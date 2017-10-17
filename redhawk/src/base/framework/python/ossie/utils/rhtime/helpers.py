@@ -145,7 +145,7 @@ def convert(timeString):
         return CF.UTCTime(0,0,0)
     _year, _month, _day, _blank, _hours, _minutes, _seconds = timeString.split(':')
     _full_seconds = float(_seconds)
-    _time = time.mktime((int(_year),int(_month),int(_day),int(_hours),int(_minutes),int(_full_seconds),0,0,0))
+    _time = time.mktime((int(_year),int(_month),int(_day),int(_hours),int(_minutes),int(_full_seconds),0,0,0))-time.timezone
     return CF.UTCTime(1, _time, _full_seconds - int(_full_seconds))
     # Break out the whole seconds into a GMT time
 

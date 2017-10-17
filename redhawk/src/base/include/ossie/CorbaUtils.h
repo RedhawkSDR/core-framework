@@ -484,6 +484,16 @@ inline void operator <<= (CORBA::Any& _a, const std::string& _s)
     _a <<= _s.c_str();
 }
 
+inline bool operator >>= (const CORBA::Any& _a, CF::UTCTime& _utctime)
+{
+    const CF::UTCTime* _local_utctime;
+    if (_a >>= _local_utctime) {
+        _utctime = *_local_utctime;
+        return true;
+    }
+    return false;
+}
+
 inline bool operator >>= (const CORBA::Any& _a, bool& _b)
 {
     CORBA::Boolean b;

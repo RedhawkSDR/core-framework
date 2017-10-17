@@ -38,7 +38,7 @@ _propertyType = {
     CorbaTypes.ULONGLONG: java.Types.LONG,
     CorbaTypes.FLOAT:     java.Types.FLOAT,
     CorbaTypes.DOUBLE:    java.Types.DOUBLE,
-    CorbaTypes.UTCTIME:   java.Types.UTCTIME,
+    CorbaTypes.UTCTIME:   'CF.UTCTime',
     CorbaTypes.STRING:    'String',
     CorbaTypes.OBJREF:    'String'
 }
@@ -56,7 +56,7 @@ _propertyClass = {
     CorbaTypes.ULONGLONG: 'ULongLong',
     CorbaTypes.FLOAT:     'Float',
     CorbaTypes.DOUBLE:    'Double',
-    CorbaTypes.UTCTIME:    'UTCTime',
+    CorbaTypes.UTCTIME:   'UTCTime',
     CorbaTypes.STRING:    'String',
     CorbaTypes.OBJREF:    'Objref'
 }
@@ -102,7 +102,10 @@ class JavaPropertyMapper(PropertyMapper):
                                  javatype, 
                                  complex = prop.isComplex())
         else:
-            value = java.NULL
+            if javaprop['javatype'] == 'CF.UTCTime':
+                value = '(CF.UTCTime)'+java.NULL
+            else:
+                value = java.NULL
         javaprop['javavalue'] = value
         javaprop['isOptional'] = prop.isOptional()
         return javaprop

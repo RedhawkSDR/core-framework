@@ -48,6 +48,69 @@ public abstract class time_ja_now_base extends Component {
             Action.EXTERNAL, //action
             new Kind[] {Kind.PROPERTY}
             );
+    /**
+     * The property simple1970
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final UTCTimeProperty simple1970 =
+        new UTCTimeProperty(
+            "simple1970", //id
+            null, //name
+            "1970:01:01::00:00:00", //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    
+    /**
+     * The property simpleSeqDefNow
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final UTCTimeSequenceProperty simpleSeqDefNow =
+        new UTCTimeSequenceProperty(
+            "simpleSeqDefNow", //id
+            null, //name
+            UTCTimeSequenceProperty.asList("now"), //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    
+    /**
+     * The property simpleSeqNoDef
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final UTCTimeSequenceProperty simpleSeqNoDef =
+        new UTCTimeSequenceProperty(
+            "simpleSeqNoDef", //id
+            null, //name
+            UTCTimeSequenceProperty.asList(), //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    
+    /**
+     * The property simpleSeq1970
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final UTCTimeSequenceProperty simpleSeq1970 =
+        new UTCTimeSequenceProperty(
+            "simpleSeq1970", //id
+            null, //name
+            UTCTimeSequenceProperty.asList("1970:01:01::00:00:00"), //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
     
     /**
      * @generated
@@ -61,6 +124,14 @@ public abstract class time_ja_now_base extends Component {
 
         // Properties
         addProperty(rightnow);
+
+        addProperty(simple1970);
+
+        addProperty(simpleSeqDefNow);
+
+        addProperty(simpleSeqNoDef);
+
+        addProperty(simpleSeq1970);
 
     }
 

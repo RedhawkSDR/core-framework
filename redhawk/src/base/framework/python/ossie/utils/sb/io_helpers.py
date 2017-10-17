@@ -805,7 +805,7 @@ class _SinkBase(_DataPortBase):
         """
         if self._sink == None:
             return False
-        _stream = self._sink.getCurrentStream()
+        _stream = self._sink.getCurrentStream(0)
         if _stream:
             return _stream.eos()
         return self._sink.gotEOS
@@ -1820,11 +1820,11 @@ class DataSink(_SinkBase):
     def getStreams(self):
         return self._sink.getStreams()
 
-    def getCurrentStream(self):
+    def getCurrentStream(self, timeout=-1):
         '''
           Return the current data stream
         '''
-        return self._sink.getCurrentStream()
+        return self._sink.getCurrentStream(timeout)
 
     def getData(self, length=None, eos_block=False, tstamps=False):
         '''

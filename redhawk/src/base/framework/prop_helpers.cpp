@@ -412,7 +412,7 @@ namespace redhawk {
             t.tm_hour = hour;
             t.tm_min = minute;
             t.tm_sec = (int)second;
-            utctime.twsec = mktime(&t);
+            utctime.twsec = mktime(&t) - timezone;
             utctime.tfsec = second - (int)second;
             return utctime;
         }
@@ -580,9 +580,18 @@ CORBA::Any ossie::string_to_any(std::string value, CORBA::TypeCode_ptr type)
     return result;
 }
 
-CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind)
+CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind, CORBA::TypeCode_ptr type)
 {
     CORBA::Any result;
+    if (type != NULL) {
+        if (type->kind() == CORBA::tk_struct) {
+            std::string structName = any_to_string(*(type->parameter(0)));
+            if (structName == std::string("UTCTime")) {
+                result <<= strings_to_utctime_sequence(values);
+                return result;
+            }
+        }
+    }
     switch (kind) {
     case CORBA::tk_boolean:
         result <<= strings_to_boolean_sequence(values);
@@ -631,6 +640,7 @@ CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::
     case CORBA::tk_string:
         result <<= strings_to_string_sequence(values);
         break;
+
     default:
         result = CORBA::Any();
     }
@@ -1081,6 +1091,19 @@ CORBA::StringSeq* ossie::strings_to_string_sequence(const std::vector<std::strin
 
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = CORBA::string_dup(values[i].c_str());
+    }
+
+    return result._retn();
+}
+
+CF::UTCTimeSequence* ossie::strings_to_utctime_sequence(const std::vector<std::string> &values)
+{
+    CF::UTCTimeSequence_var result = new CF::UTCTimeSequence;
+
+    result->length(values.size());
+
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        result[i] = redhawk::time::utils::convert(values[i].c_str());
     }
 
     return result._retn();

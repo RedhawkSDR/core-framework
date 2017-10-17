@@ -425,7 +425,9 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
         resource->_remove_ref();
         LOG_TRACE(Resource_impl, "Shutting down ORB");
 
-        ossie::logging::Terminate();
+        try {
+            ossie::logging::Terminate();
+        } catch ( ... ) {}
 
         ossie::corba::OrbShutdown(true);
     }

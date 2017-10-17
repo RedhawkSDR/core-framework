@@ -45,6 +45,10 @@ from _unitTestHelpers import scatest, runtestHelpers
 import traceback
 
 globalsdrRoot = os.environ['SDRROOT']
+try:
+    from bulkio.bulkioInterfaces import BULKIO
+except:
+    pass
 
 def _initSourceAndSink(dataFormat):
 
@@ -1763,6 +1767,22 @@ class BulkioTest(unittest.TestCase):
                     data         = dataCopy,
                     dataFormat   = format)
 
+    def test_DataSinkBadTimeStamp(self):
+        if 'bulkio.bulkioInterfaces.BULKIO' not in sys.modules:
+            return
+        datasink = sb.DataSink()
+        port=datasink.getPort('shortIn')
+        sb.start()
+
+        t_good=BULKIO.PrecisionUTCTime(1,BULKIO.TCS_VALID,0,0,0)
+        t_bad=BULKIO.PrecisionUTCTime(1,BULKIO.TCS_INVALID,0,0,0)
+
+        # Retrieve the data
+        port.pushPacket([1,2,3,4],t_good,False,'hello')
+        port.pushPacket([],t_bad,True,'hello')
+        data, tstamps = datasink.getData(eos_block=True, tstamps=True)
+        self.assertEquals(len(tstamps), 1)
+
     def test_XMLDataSource(self):
         source = sb.DataSource(dataFormat='xml')
         datasink = sb.DataSink()
@@ -2134,6 +2154,38 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(block_2.xdelta(), 0.001)
         self.assertEquals(block_3.xdelta(), 0.0001)
 
+    def test_DataSinkSingleRead(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5])
+        src.push([1,2,3,4,5])
+        src.push([1,2,3,4,5])
+        wait_on_data(snk, 3)
+        stream=snk.getCurrentStream()
+        block_1 = stream.read()
+        block_2 = stream.read()
+        block_3 = stream.read()
+        self.assertNotEqual(block_1, None)
+        self.assertNotEqual(block_2, None)
+        self.assertNotEqual(block_3, None)
+        self.assertEquals(len(block_1.data()), 5)
+        self.assertEquals(len(block_2.data()), 5)
+        self.assertEquals(len(block_3.data()), 5)
+
+    def test_getCurrentStreamTimeout(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        time_diff = 2
+        start_time = time.time()
+        stream=snk.getCurrentStream(time_diff)
+        now = time.time()
+        self.assertTrue((now-start_time) >= time_diff)
+        self.assertTrue((now-start_time) < time_diff + 0.1)
+
     def _fileSourceThrottle(self, _file, rate):
         fp=open(_file, 'r')
         contents = fp.read()
@@ -2174,7 +2226,7 @@ class BulkioTest(unittest.TestCase):
         self.assertTrue(time_diff>time_estimate*0.9)
 
         stream=snk.getCurrentStream()
-        block_1 = stream.read()
+        block_1 = stream.read(3.0*_dataLength)
         self.assertNotEqual(block_1, None)
         self.assertEquals(len(block_1.data()), 3.0*_dataLength)
 
@@ -2192,7 +2244,7 @@ class BulkioTest(unittest.TestCase):
         self.assertTrue(time_diff>time_estimate*0.9)
 
         stream=snk.getCurrentStream()
-        block_1 = stream.read()
+        block_1 = stream.read(3.0*_dataLength)
         self.assertNotEqual(block_1, None)
         self.assertEquals(len(block_1.data()), 3.0*_dataLength)
 

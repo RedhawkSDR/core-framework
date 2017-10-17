@@ -769,7 +769,7 @@ class JavaUTCTimeTest(scatest.CorbaTestCase):
 
     def test_UTCTimeJava(self):
         prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
-        datetime = time.localtime(prop[0].value.value().twsec)
+        datetime = time.gmtime(prop[0].value.value().twsec)
         self.assertEquals(datetime.tm_year,2017)
         self.assertEquals(datetime.tm_mon,2)
         self.assertEquals(datetime.tm_mday,1)

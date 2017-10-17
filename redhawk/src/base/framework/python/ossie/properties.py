@@ -227,7 +227,7 @@ def to_pyvalue(data, type_,alt_py_tc=None):
                elif pytype == CF.UTCTime:
                    data = pytype(data['tcstatus'], data['twsec'], data['tfsec'])
                else:
-                  data = pytype(data)
+                   data = pytype(data)
     return data
 
 def to_xmlvalue(data, type_):

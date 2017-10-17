@@ -58,7 +58,18 @@ class GDB(Debugger):
         status, gdb = commands.getstatusoutput('which gdb')
         if status:
             raise RuntimeError, 'gdb cannot be found'
-        super(GDB,self).__init__(gdb, '=', **opts)
+        pass_opts = {}
+        for name, value in opts.iteritems():
+            if len(name) == 1:
+                name = '-'+name
+                pass_opts[name] = value
+            elif name[0] == '-' and name[1] != '-':
+                pass_opts[name] = value
+            elif name[:2] != '--':
+                name = '--'+name
+                name = name.replace('_','-')
+                pass_opts[name] = value
+        super(GDB,self).__init__(gdb, '=', **pass_opts)
         self._attach = attach
 
     def modifiesCommand(self):
@@ -102,6 +113,12 @@ class JDB(Debugger):
         status, jdb = commands.getstatusoutput('which jdb')
         if status:
             raise RuntimeError, 'jdb cannot be found'
+        pass_opts = {}
+        for name, value in opts.iteritems():
+            if name[0] != '-':
+                name = '-'+name
+                name = name.replace('_','-')
+                pass_opts[name] = value
         super(JDB,self).__init__(jdb, None, **opts)
         self._lastport = 5680
         self._attach = attach
@@ -138,7 +155,18 @@ class Valgrind(Debugger):
         status, valgrind = commands.getstatusoutput('which valgrind')
         if status:
             raise RuntimeError, 'valgrind cannot be found'
-        super(Valgrind,self).__init__(valgrind, '=', **opts)
+        pass_opts = {}
+        for name, value in opts.iteritems():
+            if len(name) == 1:
+                name = '-'+name
+                pass_opts[name] = value
+            elif name[0] == '-' and name[1] != '-':
+                pass_opts[name] = value
+            elif name[:2] != '--':
+                name = '--'+name
+                name = name.replace('_','-')
+                pass_opts[name] = value
+        super(Valgrind,self).__init__(valgrind, '=', **pass_opts)
 
     def modifiesCommand(self):
         return True

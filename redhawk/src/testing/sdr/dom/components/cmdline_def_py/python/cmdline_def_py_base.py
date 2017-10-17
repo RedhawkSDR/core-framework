@@ -2,7 +2,7 @@
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
-# Source: time_py_now.spd.xml
+# Source: cmdline_def_py.spd.xml
 from ossie.cf import CF
 from ossie.cf import CF__POA
 from ossie.utils import uuid
@@ -10,11 +10,10 @@ from ossie.utils import uuid
 from ossie.component import Component
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
-from ossie.properties import simpleseq_property
 
 import Queue, copy, time, threading
 
-class time_py_now_base(CF__POA.Resource, Component, ThreadedComponent):
+class cmdline_def_py_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
 
         PAUSE = 0.0125 # The amount of time to sleep if process return NOOP
@@ -59,36 +58,29 @@ class time_py_now_base(CF__POA.Resource, Component, ThreadedComponent):
         # 
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
-        rightnow = simple_property(id_="rightnow",
-                                   type_="utctime",
-                                   defvalue="now",
-                                   mode="readwrite",
-                                   action="external",
-                                   kinds=("property",))
-        simple1970 = simple_property(id_="simple1970",
-                                     type_="utctime",
-                                     defvalue="1970:01:01::00:00:00",
-                                     mode="readwrite",
-                                     action="external",
-                                     kinds=("property",))
+        readonly_cmdline = simple_property(id_="readonly_cmdline",
+                                           type_="string",
+                                           defvalue="a",
+                                           mode="readonly",
+                                           action="external",
+                                           kinds=("property",))
 
-        simpleSeqDefNow = simpleseq_property(id_="simpleSeqDefNow",
-                                             type_="utctime",
-                                             defvalue=["now"],
-                                             mode="readwrite",
-                                             action="external",
-                                             kinds=("property",))
 
-        simpleSeqNoDef = simpleseq_property(id_="simpleSeqNoDef",
-                                            type_="utctime",
-                                            defvalue=[],
+        readwrite_cmdline = simple_property(id_="readwrite_cmdline",
+                                            type_="string",
+                                            defvalue="b",
                                             mode="readwrite",
                                             action="external",
                                             kinds=("property",))
 
-        simpleSeq1970 = simpleseq_property(id_="simpleSeq1970",
-                                           type_="utctime",
-                                           defvalue=["1970:01:01::00:00:00"],
-                                           mode="readwrite",
-                                           action="external",
-                                           kinds=("property",))
+
+        writeonly_cmdline = simple_property(id_="writeonly_cmdline",
+                                            type_="string",
+                                            defvalue="c",
+                                            mode="writeonly",
+                                            action="external",
+                                            kinds=("property",))
+
+
+
+

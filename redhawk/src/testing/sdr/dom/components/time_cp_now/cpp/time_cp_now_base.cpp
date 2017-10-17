@@ -64,6 +64,45 @@ void time_cp_now_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(simple1970,
+                "1970:01:01::00:00:00",
+                "simple1970",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    // Set the sequence with its initial values
+    simpleSeqDefNow.push_back(redhawk::time::utils::convert("now"));
+    addProperty(simpleSeqDefNow,
+                simpleSeqDefNow,
+                "simpleSeqDefNow",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    addProperty(simpleSeqNoDef,
+                "simpleSeqNoDef",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    // Set the sequence with its initial values
+    simpleSeq1970.push_back(redhawk::time::utils::convert("1970:01:01::00:00:00"));
+    addProperty(simpleSeq1970,
+                simpleSeq1970,
+                "simpleSeq1970",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
 }
 
 

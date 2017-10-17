@@ -143,7 +143,7 @@ namespace ossie
     CORBA::String_var strings_to_string(const std::vector<std::string> &values);
     std::string any_to_string(const CORBA::Any& value);
 
-    CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind);
+    CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind, CORBA::TypeCode_ptr type);
     CORBA::BooleanSeq* strings_to_boolean_sequence(const std::vector<std::string> &values);
     CORBA::CharSeq* strings_to_char_sequence(const std::vector<std::string> &values);
     CORBA::DoubleSeq* strings_to_double_sequence(const std::vector<std::string> &values);
@@ -156,6 +156,7 @@ namespace ossie
     CORBA::ULongSeq* strings_to_unsigned_long_sequence(const std::vector<std::string> &values);
     CORBA::ULongLongSeq* strings_to_unsigned_long_long_sequence(const std::vector<std::string> &values);
     CORBA::StringSeq* strings_to_string_sequence(const std::vector<std::string> &values);
+    CF::UTCTimeSequence* strings_to_utctime_sequence(const std::vector<std::string> &values);
 
     CORBA::TCKind       getTypeKind(std::string type);
     CORBA::TypeCode_ptr getTypeCode(std::string type);

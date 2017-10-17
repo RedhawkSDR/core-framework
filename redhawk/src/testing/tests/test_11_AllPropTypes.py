@@ -113,6 +113,28 @@ class UTCTimeTestWaveform(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
     def basetest_Now(self, app_name):
+        self.basetest_Overload(app_name)
+        prop = CF.DataType(id='simple1970',value=any.to_any(None))
+        retval = self._app.comps[0].ref.query([prop])
+        self.assertEqual(retval[0].value._v.twsec, 0)
+        self.assertEqual(retval[0].value._v.tfsec, 0)
+        prop = CF.DataType(id='simpleSeqDefNow',value=any.to_any(None))
+        retval = self._app.comps[0].ref.query([prop])
+        self.assertEquals(len(retval[0].value._v), 1)
+        self.assertEquals(retval[0].value._v[0].tcstatus, 1)
+        self.assertNotEquals(retval[0].value._v[0].twsec, 0)
+        self.assertNotEquals(retval[0].value._v[0].tfsec, 0)
+        prop = CF.DataType(id='simpleSeqNoDef',value=any.to_any(None))
+        retval = self._app.comps[0].ref.query([prop])
+        self.assertEquals(len(retval[0].value._v), 0)
+        prop = CF.DataType(id='simpleSeq1970',value=any.to_any(None))
+        retval = self._app.comps[0].ref.query([prop])
+        self.assertEquals(len(retval[0].value._v), 1)
+        self.assertEquals(retval[0].value._v[0].tcstatus, 1)
+        self.assertEquals(retval[0].value._v[0].twsec, 0)
+        self.assertEquals(retval[0].value._v[0].tfsec, 0)
+
+    def basetest_Overload(self, app_name):
         self._app = self._rhDom.createApplication("/waveforms/"+app_name+"/"+app_name+".sad.xml")
         self.assertNotEqual(self._app, None)
         cur_time = rhtime.now()
@@ -122,16 +144,16 @@ class UTCTimeTestWaveform(scatest.CorbaTestCase):
         self.assertTrue(abs(_cur_time-_app_time)<1, True)
 
     def test_nowOverload(self):
-        self.basetest_Now('newtime_w')
+        self.basetest_Overload('newtime_w')
 
-    def test_nowCpp(self):
+    def test_nowWaveCpp(self):
         self.basetest_Now('time_cp_now_w')
 
-    def test_nowPython(self):
+    def test_nowWavePython(self):
         self.basetest_Now('time_py_now_w')
 
     @scatest.requireJava
-    def test_nowJava(self):
+    def test_nowWaveJava(self):
         self.basetest_Now('time_ja_now_w')
 
 class UTCTimeTestSandbox(scatest.CorbaTestCase):
@@ -156,6 +178,10 @@ class UTCTimeTestSandbox(scatest.CorbaTestCase):
         _cur_time = cur_time.twsec + cur_time.tfsec
         _comp_time = comp_time.twsec + comp_time.tfsec
         self.assertTrue(abs(_cur_time-_comp_time)<1, True)
+        prop = CF.DataType(id='simple1970',value=any.to_any(None))
+        retval = comp.ref.query([prop])
+        self.assertEqual(retval[0].value._v.twsec, 0)
+        self.assertEqual(retval[0].value._v.tfsec, 0)
 
     def test_nowSbCpp(self):
         self.basetest_Now('time_cp_now')

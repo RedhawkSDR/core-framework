@@ -121,7 +121,8 @@ CF::DataType ossie::convertPropertyToDataType(const SimpleSequenceProperty* prop
     dataType.id = CORBA::string_dup(prop->getID());
     if (!prop->isNone()) {
         CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-        dataType.value = ossie::strings_to_any(prop->getValues(), kind);
+        CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(prop->getType()));
+        dataType.value = ossie::strings_to_any(prop->getValues(), kind, type);
     }
     return dataType;
 }
@@ -179,7 +180,8 @@ static CF::DataType overrideSimpleSequenceValue(const SimpleSequenceProperty* pr
     CF::DataType dataType;
     dataType.id = CORBA::string_dup(prop->getID());
     CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-    dataType.value = ossie::strings_to_any(values, kind);
+    CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(prop->getType()));
+    dataType.value = ossie::strings_to_any(values, kind, type);
     return dataType;
 }
 
@@ -200,7 +202,8 @@ CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, co
         const SimpleSequencePropertyRef* simpleseqref = dynamic_cast<const SimpleSequencePropertyRef*>(compprop);
         LOG_TRACE(prop_utils, "overriding simpleseq property id " << dataType.id);
         CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
-        dataType.value = ossie::strings_to_any(simpleseqref->getValues(), kind);
+        CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(prop->getType()));
+        dataType.value = ossie::strings_to_any(simpleseqref->getValues(), kind, type);
     } else {
         LOG_WARN(prop_utils, "ignoring attempt to override simple sequence property " << dataType.id << " because override definition is not a simpleseqref");
     }
@@ -532,7 +535,7 @@ CF::DataType ossie::convertPropertyToDataType(const SimplePropertyRef* prop) {
 CF::DataType ossie::convertPropertyToDataType(const SimpleSequencePropertyRef* prop) {
     CF::DataType dataType;
     dataType.id = prop->getID().c_str();
-    dataType.value = ossie::strings_to_any(prop->getValues(), CORBA::tk_string);
+    dataType.value = ossie::strings_to_any(prop->getValues(), CORBA::tk_string, NULL);
     return dataType;
 }
 
@@ -608,7 +611,8 @@ CF::DataType ossie::convertDataTypeToPropertyType(const CF::DataType& value, con
 CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const SimpleSequenceProperty* property)
 {
     CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(property->getType()));
-    return ossie::strings_to_any(ossie::any_to_strings(value), kind);
+    CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(property->getType()));
+    return ossie::strings_to_any(ossie::any_to_strings(value), kind, type);
 }
 
 CORBA::Any ossie::convertAnyToPropertyType(const CORBA::Any& value, const StructProperty* property)

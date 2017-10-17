@@ -125,7 +125,7 @@ def _complexLiteral(value, typename):
 def literal(value, typename, complex=False):
     if complex:
         return _complexLiteral(value, typename)
-    elif typename == 'utctime':
+    elif typename == 'CF.UTCTime':
         return stringLiteral(value)
     elif typename == 'String':
         return stringLiteral(value)
@@ -155,6 +155,8 @@ def literal(value, typename, complex=False):
 def defaultValue(typename):
     if typename == 'String':
         return stringLiteral('')
+    elif typename == 'CF.UTCTime':
+        return stringLiteral('(CF.UTCTime)'+NULL)
     elif typename == 'Object':
         return NULL
     elif typename == Types.BOOLEAN:
