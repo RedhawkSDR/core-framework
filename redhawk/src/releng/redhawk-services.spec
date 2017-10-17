@@ -29,7 +29,7 @@ Prefix:         %{_sysconfdir}
 
 Name:           redhawk-services
 Version:        2.1.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        REDHAWK System Services
 
 Group:          Applications/Engineering
@@ -173,7 +173,7 @@ fi
 
 %post
 
-cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d 
+cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d
 
 %if 0%{?with_systemd}
 
@@ -188,7 +188,7 @@ ln -s %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs %{_sysconfdir}/rc.d/init
 ln -s %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs %{_sysconfdir}/rc.d/init.d/
 ln -s %{_sysconfdir}/redhawk/init.d/redhawk-waveforms %{_sysconfdir}/rc.d/init.d/
 
-/sbin/chkconfig --add redhawk-domain-mgrs 
+/sbin/chkconfig --add redhawk-domain-mgrs
 /sbin/chkconfig --add redhawk-device-mgrs
 /sbin/chkconfig --add redhawk-waveforms
 
@@ -210,7 +210,7 @@ service crond reload > /dev/null 2>&1 || :
 /sbin/service redhawk-device-mgrs stop > /dev/null 2>&1 || :
 /sbin/service redhawk-domain-mgrs stop > /dev/null 2>&1 || :
 
-/sbin/chkconfig --del redhawk-domain-mgrs  > /dev/null 2>&1 || : 
+/sbin/chkconfig --del redhawk-domain-mgrs  > /dev/null 2>&1 || :
 /sbin/chkconfig --del redhawk-device-mgrs  > /dev/null 2>&1 || :
 /sbin/chkconfig --del redhawk-waveforms  > /dev/null 2>&1 || :
 

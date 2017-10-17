@@ -55,18 +55,7 @@ stages:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
-
-.deploy-common: &deploy-common
-  image: centos:7
-  stage: deploy
-  dependencies: []
-  script:
-  - if [ -n "$jenkins_url" ]; then
-      curl --insecure -X POST $jenkins_url/job/$jenkins_job/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
-    fi
-  #Skip on tag of following format
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -271,11 +260,11 @@ mvn:deploy:
     PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/redhawk/core/bin
   script:
     - if [ -n "$CI_COMMIT_TAG" ]; then
+        rpm_release=`rpm --query --queryformat "%{release}\n" --specfile redhawk/src/releng/redhawk.spec|head -n 1|awk -F. '{print $1}'`;
         for file in `find -name pom.xml`; do
-          sed -i "s|$redhawk_version-SNAPSHOT|$redhawk_version|" $file;
+          sed -i "s|$redhawk_version-SNAPSHOT|$redhawk_version-$rpm_release|" $file;
         done
       fi
-    - export nproc=$((`nproc`/ 4))
     - cd redhawk/src
     - sed -i 's|testing||' Makefile.am
     - ./reconf && ./configure && make -j$nproc && make install
@@ -291,22 +280,22 @@ mvn:deploy:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
-#Trigger a Jenkins job to aggregate artifacts there
 deploy:
-  variables:
-    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
-  <<: *deploy-common
-  only:
-    - branches
-
-deploy-release:
-  variables:
-    redhawk_version: '2.1.2'
-    jenkins_job: $redhawk_version/job/core-framework
-  <<: *deploy-common
-  only:
-    - tags
+  image: centos:7
+  stage: deploy
+  dependencies: []
+  before_script:
+    - echo "Deploying to $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-$CI_COMMIT_REF_NAME"
+  script:
+    - if [ -n "$jenkins_url" ]; then
+        curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-$CI_COMMIT_REF_NAME/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
+      fi
+  #Don't build on final tags
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
 #Trigger separate tests pipeline
 test-trigger:
@@ -321,6 +310,8 @@ test-trigger:
                               $test_url
   only:
     - branches
+  except:
+    - master
 
 test-trigger:release:
   image: centos:7
