@@ -28,6 +28,11 @@ namespace bulkio {
     protected:
         void _run();
 
+        bool _isRunning();
+        bool _receiveMessage();
+
+        volatile bool _running;
+        boost::mutex _mutex;
         boost::thread _thread;
         IPCFifo* _fifo;
         redhawk::shm::HeapClient _heapClient;
