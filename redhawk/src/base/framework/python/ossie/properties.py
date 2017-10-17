@@ -189,11 +189,11 @@ def _toPyComplex(data, type_):
         CF.complexType(real=A, imag=B)
     to complex(A,B)
     '''
-    if type(data) == type({}):
+    if isinstance(data, dict):
         real = data["real"]
         imag = data["imag"]
         newdata = complex(real, imag)
-    elif type(data) == complex:
+    elif isinstance(data, complex):
         newdata = complex(data)
     else:
         # assume CF::complexType
@@ -210,7 +210,7 @@ def to_pyvalue(data, type_,alt_py_tc=None):
 
     pytype = getPyType(type_,alt_py_tc)
 
-    if type(data) != pytype:
+    if not isinstance(data, pytype):
         # Handle boolean strings as a special case
         if type_ == "boolean" and type(data) in (str, unicode):
             data = {"TRUE": 1, "FALSE": 0}[data.strip().upper()]
@@ -273,7 +273,7 @@ def _convertComplexToCFComplex(data, type_):
     cfComplexType = getCFType(type_)
     memberType    = getMemberType(type_)
 
-    if type(data) == type({}):
+    if isinstance(data, dict):
         #if the data is already in the form of a CF:complex, recast
         real = data["real"]
         imag = data["imag"]
