@@ -213,6 +213,9 @@ namespace redhawk {
 
     NegotiableUsesPort::~NegotiableUsesPort()
     {
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            delete *manager;
+        }
     }
 
     void NegotiableUsesPort::initializePort()

@@ -43,6 +43,13 @@ namespace redhawk {
     
     NegotiableProvidesPortBase::~NegotiableProvidesPortBase()
     {
+        for (TransportMap::iterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+            delete transport->second;
+        }
+
+        for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            delete manager->second;
+        }
     }
      
     void NegotiableProvidesPortBase::initializePort()

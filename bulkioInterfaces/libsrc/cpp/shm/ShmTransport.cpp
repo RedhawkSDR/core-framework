@@ -231,7 +231,12 @@ namespace bulkio {
 
     static int initializeModule()
     {
-#define REGISTER_FACTORY(x) redhawk::TransportRegistry::RegisterTransport(new ShmTransportFactory<x>);
+#define REGISTER_FACTORY(x) \
+        {                                                               \
+            static ShmTransportFactory<x> factory;                      \
+            redhawk::TransportRegistry::RegisterTransport(&factory);    \
+        }
+
         FOREACH_NUMERIC_PORT_TYPE(REGISTER_FACTORY);
 
         return 0;
