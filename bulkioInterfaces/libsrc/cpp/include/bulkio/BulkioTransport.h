@@ -43,7 +43,7 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        OutputTransport(OutPortType* port, const std::string& connectionId, PtrType objref);
+        OutputTransport(OutPortType* port, PtrType objref);
 
         virtual ~OutputTransport();
 

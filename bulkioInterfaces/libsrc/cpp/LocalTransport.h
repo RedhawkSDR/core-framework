@@ -32,11 +32,9 @@ namespace bulkio {
         typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef InPort<PortType> LocalPortType;
 
-        static LocalTransport* Factory(OutPort<PortType>* parent, const std::string& connectionId,
-                                       PortBase* port);
+        static LocalTransport* Factory(OutPort<PortType>* parent, PortBase* port);
 
-        LocalTransport(OutPort<PortType>* parent, const std::string& connectionId,
-                       LocalPortType* localPort, PtrType port);
+        LocalTransport(OutPort<PortType>* parent, LocalPortType* localPort, PtrType port);
         ~LocalTransport();
 
         virtual std::string getDescription() const;

@@ -94,13 +94,15 @@ namespace bulkio {
       const BULKIO::StreamSRI& sri = stream.sri();
 
       if (active) {
-          for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-              PortTransportType* port = *iter;
-              const std::string& connection_id = port->connectionId();
+          for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+              PortTransportType* transport = connection.transport();
+              const std::string& connection_id = connection.connectionId();
+
               // Skip ports known to be dead
-              if (!port->isAlive()) {
+              if (!transport->isAlive()) {
                   continue;
               }
+
               if (!_isStreamRoutedToConnection(sid, connection_id)) {
                   continue;
               }
@@ -108,7 +110,7 @@ namespace bulkio {
               LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
                         << stream.streamID() << " Mode:" << sri.mode << " XDELTA:" << 1.0/sri.xdelta);
               try {
-                  port->pushSRI(sid, sri, stream.modcount());
+                  transport->pushSRI(sid, sri, stream.modcount());
               } catch (const redhawk::FatalTransportError& err) {
                   LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
                             << " PORT/CONNECTION: " << name << "/" << connection_id);
@@ -188,12 +190,11 @@ namespace bulkio {
     StreamType stream = _getStream(streamID);
 
     if (active) {
-        for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-            PortTransportType* port = *iter;
-            const std::string& connection_id = port->connectionId();
-
+        for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+            PortTransportType* transport = connection.transport();
+            const std::string& connection_id = connection.connectionId();
             // Skip ports known to be dead
-            if (!port->isAlive()) {
+            if (!transport->isAlive()) {
                 continue;
             }
 
@@ -204,12 +205,12 @@ namespace bulkio {
             }
 
             try {
-                port->pushSRI(streamID, stream.sri(), stream.modcount());
-                port->pushPacket(data, T, EOS, streamID, stream.sri());
+                transport->pushSRI(streamID, stream.sri(), stream.modcount());
+                transport->pushPacket(data, T, EOS, streamID, stream.sri());
             } catch (const redhawk::FatalTransportError& err) {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
-                port->setAlive(false);
+                transport->setAlive(false);
             }
         }
     }
@@ -226,11 +227,10 @@ namespace bulkio {
   {
       SCOPED_LOCK   lock(updatingPortsLock);
       BULKIO::UsesPortStatisticsSequence_var recStat = new BULKIO::UsesPortStatisticsSequence();
-      for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-          PortTransportType* port = *iter;
+      for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
           BULKIO::UsesPortStatistics stat;
-          stat.connectionId = port->connectionId().c_str();
-          stat.statistics = port->getStatistics();
+          stat.connectionId = connection.connectionId().c_str();
+          stat.statistics = connection.transport()->getStatistics();
           ossie::corba::push_back(recStat, stat);
       }
       return recStat._retn();
@@ -240,7 +240,7 @@ namespace bulkio {
   BULKIO::PortUsageType OutPort<PortType>::state()
   {
     SCOPED_LOCK lock(updatingPortsLock);
-    if (_transports.empty()) {
+    if (_connections.empty()) {
       return BULKIO::IDLE;
     } else {
       return BULKIO::ACTIVE;
@@ -257,7 +257,7 @@ namespace bulkio {
   redhawk::UsesTransport*
   OutPort<PortType>::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId)
   {
-      return LocalTransport<PortType>::Factory(this, connectionId, port);
+      return LocalTransport<PortType>::Factory(this, port);
   }
 
   template <typename PortType>
@@ -275,7 +275,7 @@ namespace bulkio {
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 
-      return CorbaTransportFactory<PortType>::Create(this, connectionId, port);
+      return CorbaTransportFactory<PortType>::Create(this, port);
   }
 
 
@@ -360,10 +360,9 @@ namespace bulkio {
     SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
     ConnectionsList outConnections;
 
-    for (TransportIterator iter = _transports.begin(); iter != _transports.end(); ++iter) {
-        PortTransportType* port = *iter;
-        PortVarType port_var = ossie::corba::_narrowSafe<PortType>(port->objref());
-        outConnections.push_back(std::make_pair(port_var, port->connectionId()));
+    for (ConnectionList::iterator iter = _connections.begin(); iter != _connections.end(); ++iter) {
+        PortVarType port = ossie::corba::_narrowSafe<PortType>((*iter)->objref);
+        outConnections.push_back(std::make_pair(port, (*iter)->connectionId));
     }
 
     return outConnections;

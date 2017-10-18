@@ -96,12 +96,26 @@ namespace redhawk {
         void setLogger(LOGGER newLogger);
 
     protected:
+        class Connection {
+        public:
+            Connection(const std::string& connectionId, CORBA::Object_ptr objref, UsesTransport* transport);
+            ~Connection();
+
+            void disconnected();
+
+            std::string connectionId;
+            CORBA::Object_var objref;
+            UsesTransport* transport;
+        };
+
+        typedef std::vector<Connection*> ConnectionList;
+
         typedef std::vector<UsesTransport*> TransportList;
 
         template <class TransportType>
         class TransportIteratorAdapter {
         public:
-            typedef TransportList::iterator IteratorType;
+            typedef ConnectionList::iterator IteratorType;
 
             TransportIteratorAdapter()
             {
@@ -112,9 +126,14 @@ namespace redhawk {
             {
             }
 
-            inline TransportType* operator*()
+            inline const std::string& connectionId()
             {
-                return static_cast<TransportType*>(*_iterator);
+                return (*_iterator)->connectionId;
+            }
+
+            inline TransportType* transport()
+            {
+                return static_cast<TransportType*>((*_iterator)->transport);
             }
 
             inline TransportIteratorAdapter& operator++()
@@ -146,14 +165,13 @@ namespace redhawk {
 
         virtual void _validatePort(CORBA::Object_ptr object);
 
-        TransportList::iterator _findTransportEntry(const std::string& connectionId);
-        void _addTransportEntry(UsesTransport* transport);
+        ConnectionList::iterator _findConnection(const std::string& connectionId);
 
         virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         LOGGER logger;
 
-        TransportList _transports;
+        ConnectionList _connections;
 
     private:
         ossie::notification<void (const std::string&)> _portConnected;

@@ -66,11 +66,8 @@ namespace redhawk {
     class UsesTransport
     {
     public:
-        UsesTransport(UsesPort* port, const std::string& connectionId, CORBA::Object_ptr objref);
+        UsesTransport(UsesPort* port);
         virtual ~UsesTransport() { }
-
-        const std::string& connectionId() const;
-        CORBA::Object_ptr objref() const;
 
         virtual std::string transportType() const
         {
@@ -91,11 +88,8 @@ namespace redhawk {
 
     private:
         UsesPort* _port;
-        const std::string _connectionId;
-        CORBA::Object_var _objref;
         bool _alive;
     };
-
 
     class UsesTransportManager
     {

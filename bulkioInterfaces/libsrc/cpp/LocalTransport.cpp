@@ -28,21 +28,19 @@ namespace bulkio {
 
     template <typename PortType>
     LocalTransport<PortType>* LocalTransport<PortType>::Factory(OutPort<PortType>* parent,
-                                                                const std::string& connectionId,
                                                                 PortBase* port)
     {
         LocalPortType* local_port = dynamic_cast<LocalPortType*>(port);
         if (local_port) {
             typename PortType::_var_type corba_port = local_port->_this();
-            return new LocalTransport(parent, connectionId, local_port, corba_port);
+            return new LocalTransport(parent, local_port, corba_port);
         }
         return 0;
     }
 
     template <typename PortType>
-    LocalTransport<PortType>::LocalTransport(OutPort<PortType>* parent, const std::string& connectionId,
-                                             LocalPortType* localPort, PtrType port) :
-        OutputTransport<PortType>(parent, connectionId, port),
+    LocalTransport<PortType>::LocalTransport(OutPort<PortType>* parent, LocalPortType* localPort, PtrType port) :
+        OutputTransport<PortType>(parent, port),
         _localPort(localPort)
     {
         _localPort->_add_ref();

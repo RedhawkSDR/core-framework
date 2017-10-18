@@ -25,17 +25,10 @@
 
 namespace redhawk {
     
-    UsesTransport::UsesTransport(UsesPort* port, const std::string& connectionId, CORBA::Object_ptr objref) :
+    UsesTransport::UsesTransport(UsesPort* port) :
         _port(port),
-        _connectionId(connectionId),
-        _objref(CORBA::Object::_duplicate(objref)),
         _alive(true)
     {
-    }
-
-    const std::string& UsesTransport::connectionId() const
-    {
-        return _connectionId;
     }
 
     std::string UsesTransport::getDescription() const
@@ -53,9 +46,23 @@ namespace redhawk {
         _alive = alive;
     }
 
-    CORBA::Object_ptr UsesTransport::objref() const
+
+    UsesPort::Connection::Connection(const std::string& connectionId, CORBA::Object_ptr objref,
+                                     UsesTransport* transport):
+        connectionId(connectionId),
+        objref(CORBA::Object::_duplicate(objref)),
+        transport(transport)
     {
-        return _objref;
+    }
+
+    UsesPort::Connection::~Connection()
+    {
+        delete transport;
+    }
+
+    void UsesPort::Connection::disconnected()
+    {
+        transport->disconnect();
     }
 
 
@@ -66,8 +73,8 @@ namespace redhawk {
 
     UsesPort::~UsesPort()
     {
-        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
-            delete *port;
+        for (ConnectionList::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+            delete *connection;
         }
     }
 
@@ -89,14 +96,15 @@ namespace redhawk {
             // Acquire the state lock before modifying the container
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            TransportList::iterator entry = _findTransportEntry(connection_id);
-            if (entry == _transports.end()) {
+            ConnectionList::iterator entry = _findConnection(connection_id);
+            if (entry == _connections.end()) {
                 UsesTransport* transport = _createTransport(connection, connection_id);
-                _addTransportEntry(transport);
+                _connections.push_back(new Connection(connection_id, connection, transport));
+
                 RH_DEBUG(logger, "Using " << transport->getDescription()
                          << " for connection '" << connection_id << "'");
             } else {
-                // TODO: Replace the object reference
+                // TODO: Replace the object reference, or throw an exception?
             }
 
             active = true;
@@ -112,31 +120,32 @@ namespace redhawk {
         {
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            TransportList::iterator transport = _findTransportEntry(connectionId);
-            if (transport == _transports.end()) {
+            ConnectionList::iterator connection = _findConnection(connectionId);
+            if (connection == _connections.end()) {
                 std::string message = std::string("No connection ") + connectionId;
                 throw CF::Port::InvalidPort(2, message.c_str());
             }
 
             RH_DEBUG(logger, "Disconnecting connection '" << connectionId << "'");
+            UsesTransport* transport = (*connection)->transport;
             try {
-                (*transport)->disconnect();
+                (*connection)->disconnected();
             } catch (const std::exception& exc) {
-                if ((*transport)->isAlive()) {
+                if (transport->isAlive()) {
                     RH_WARN(logger, "Exception disconnecting '" << connectionId << "': "
                             << exc.what());
                 }
             } catch (const CORBA::Exception& exc) {
-                if ((*transport)->isAlive()) {
+                if (transport->isAlive()) {
                     RH_WARN(logger, "Exception disconnecting '" << connectionId << "': "
                             << ossie::corba::describeException(exc));
                 }
             }
 
-            delete (*transport);
-            _transports.erase(transport);
+            delete (*connection);
+            _connections.erase(connection);
 
-            if (_transports.empty()) {
+            if (_connections.empty()) {
                 active = false;
             }
         }
@@ -149,14 +158,10 @@ namespace redhawk {
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
         ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence();
-        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+        for (ConnectionList::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
             ExtendedCF::UsesConnection conn;
-            conn.connectionId = (*port)->connectionId().c_str();
-            if ((*port)->isAlive()) {
-                conn.port = CORBA::Object::_duplicate((*port)->objref());
-            } else {
-                conn.port = CORBA::Object::_nil();
-            }
+            conn.connectionId = (*connection)->connectionId.c_str();
+            conn.port = CORBA::Object::_duplicate((*connection)->objref);
             ossie::corba::push_back(retVal, conn);
         }
         return retVal._retn();
@@ -185,25 +190,20 @@ namespace redhawk {
         }
     }
 
-    UsesPort::TransportList::iterator UsesPort::_findTransportEntry(const std::string& connectionId)
+    UsesPort::ConnectionList::iterator UsesPort::_findConnection(const std::string& connectionId)
     {
-        TransportList::iterator entry = _transports.begin();
-        for (; entry != _transports.end(); ++entry) {
-            if ((*entry)->connectionId() == connectionId) {
+        ConnectionList::iterator entry = _connections.begin();
+        for (; entry != _connections.end(); ++entry) {
+            if ((*entry)->connectionId == connectionId) {
                 return entry;
             }
         }
         return entry;
     }
 
-    void UsesPort::_addTransportEntry(UsesTransport* transport)
-    {
-        _transports.push_back(transport);
-    }
-
     UsesTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
     {
-        return new UsesTransport(this, connectionId, object);
+        return new UsesTransport(this);
     }
 
     NegotiableUsesPort::NegotiableUsesPort(const std::string& name) :
@@ -251,13 +251,14 @@ namespace redhawk {
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
         ExtendedCF::ConnectionStatusSequence_var retVal = new ExtendedCF::ConnectionStatusSequence();
-        for (TransportList::iterator port = _transports.begin(); port != _transports.end(); ++port) {
+        for (ConnectionList::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
             ExtendedCF::ConnectionStatus status;
-            status.connectionId = (*port)->connectionId().c_str();
-            status.port = CORBA::Object::_duplicate((*port)->objref());
-            status.alive = (*port)->isAlive();
-            status.transportType = (*port)->transportType().c_str();
-            status.transportInfo = (*port)->transportInfo();
+            status.connectionId = (*connection)->connectionId.c_str();
+            status.port = CORBA::Object::_duplicate((*connection)->objref);
+            UsesTransport* transport = (*connection)->transport;
+            status.alive = transport->isAlive();
+            status.transportType = transport->transportType().c_str();
+            status.transportInfo = transport->transportInfo();
             ossie::corba::push_back(retVal, status);
         }
         return retVal._retn();

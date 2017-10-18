@@ -24,9 +24,8 @@
 class MessageSupplierPort::MessageTransport : public redhawk::UsesTransport
 {
 public:
-    MessageTransport(MessageSupplierPort* port, const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
-        redhawk::UsesTransport(port, connectionId, channel),
-        _channel(CosEventChannelAdmin::EventChannel::_duplicate(channel))
+    MessageTransport(MessageSupplierPort* port) :
+        redhawk::UsesTransport(port)
     {
     }
 
@@ -47,8 +46,8 @@ private:
 class MessageSupplierPort::CorbaTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    CorbaTransport(MessageSupplierPort* port, const std::string& connectionId, CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(port, connectionId, channel)
+    CorbaTransport(MessageSupplierPort* port, CosEventChannelAdmin::EventChannel_ptr channel) :
+        MessageTransport(port)
     {
         CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
         _consumer = supplier_admin->obtain_push_consumer();
@@ -122,9 +121,8 @@ private:
 class MessageSupplierPort::LocalTransport : public MessageSupplierPort::MessageTransport
 {
 public:
-    LocalTransport(MessageSupplierPort* port, const std::string& connectionId, MessageConsumerPort* consumer,
-                   CosEventChannelAdmin::EventChannel_ptr channel) :
-        MessageTransport(port, connectionId, channel),
+    LocalTransport(MessageSupplierPort* port, MessageConsumerPort* consumer) :
+        MessageTransport(port),
         _consumer(consumer)
     {
     }
@@ -262,18 +260,18 @@ redhawk::UsesTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr 
 
     MessageConsumerPort* local_port = ossie::corba::getLocalServant<MessageConsumerPort>(channel);
     if (local_port) {
-        return new LocalTransport(this, connectionId, local_port, channel);
+        return new LocalTransport(this, local_port);
     } else {
-        return new CorbaTransport(this, connectionId, channel);
+        return new CorbaTransport(this, channel);
     }
 }
 
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
-    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+    for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
-            (*transport)->push(data);
+            connection.transport()->push(data);
         } catch (const redhawk::TransportError& exc) {
             RH_NL_WARN("MessageSupplierPort", "Could not deliver the message. " << exc.what());
         } catch (...) {
@@ -288,16 +286,16 @@ std::string MessageSupplierPort::getRepid() const
 
 void MessageSupplierPort::_beginMessageQueue(size_t count)
 {
-    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
-        (*transport)->beginQueue(count);
+    for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        connection.transport()->beginQueue(count);
     }
 }
 
 void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
 {
-    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+    for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
-            (*transport)->queueMessage(msgId, format, msgData, serializer);
+            connection.transport()->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
         }
     }
@@ -305,9 +303,9 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
 
 void MessageSupplierPort::_sendMessageQueue()
 {
-    for (TransportIterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
+    for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
         try {
-            (*transport)->sendMessages();
+            connection.transport()->sendMessages();
         } catch (const redhawk::TransportError& exc) {
             RH_NL_WARN("MessageSupplierPort", "Could not deliver the message. " << exc.what());
         } catch (...) {

@@ -40,8 +40,8 @@ namespace burstio {
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
 
-        BurstTransport(OutPort<Traits>* port, const std::string& connectionId, PtrType objref) :
-            redhawk::UsesTransport(port, connectionId, objref),
+        BurstTransport(OutPort<Traits>* port) :
+            redhawk::UsesTransport(port),
             _port(port),
             _stats(port->getName(), sizeof(ElementType) * 8)
         {
@@ -70,8 +70,8 @@ namespace burstio {
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
 
-        CorbaTransport(OutPort<Traits>* parent, const std::string& connectionId, PtrType objref) :
-            super(parent, connectionId, objref),
+        CorbaTransport(OutPort<Traits>* parent, PtrType objref) :
+            super(parent),
             _objref(PortType::_duplicate(objref))
         {
         }
@@ -99,18 +99,10 @@ namespace burstio {
                 if (bursts.length() > 1) {
                     partitionBursts(bursts, startTime, queueDepth);
                 } else {
-                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed because the burst size is too long");
+                    throw redhawk::TransportError("burst size is too long");
                 }
             } catch (const CORBA::Exception& ex) {
-                if (this->isAlive()) {
-                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
-                }
-                this->setAlive(false);
-            } catch (...) {
-                if (this->isAlive()) {
-                    RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed");
-                }
-                this->setAlive(false);
+                throw redhawk::FatalTransportError(ossie::corba::describeException(ex));
             }
         }
 
@@ -160,8 +152,8 @@ namespace burstio {
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
 
-        LocalTransport(OutPort<Traits>* parent, const std::string& connectionId, InPort<Traits>* localPort, PtrType objref) :
-            super(parent, connectionId, objref),
+        LocalTransport(OutPort<Traits>* parent, InPort<Traits>* localPort) :
+            super(parent),
             localPort_(localPort)
         {
         }
@@ -197,10 +189,8 @@ namespace burstio {
                 localPort_->pushBursts(bursts);
 
                 this->_stats.record(total_bursts, total_elements, queueDepth, delay.total_microseconds() * 1e-6);
-            } catch (const CORBA::Exception& ex) {
-                RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed: CORBA::" << ex._name());
             } catch (...) {
-                RH_ERROR(_port->logger, "pushBursts to " << this->connectionId() << " failed");
+                throw redhawk::TransportError("pushBursts failed");
             }
         }
 
@@ -501,7 +491,7 @@ namespace burstio {
     BULKIO::PortUsageType OutPort<Traits>::state ()
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);
-        if (_transports.empty()) {
+        if (_connections.empty()) {
             return BULKIO::IDLE;
         } else {
             return BULKIO::ACTIVE;
@@ -545,16 +535,28 @@ namespace burstio {
         BurstSequenceType const_bursts(bursts.length(), bursts.length(), buffer, false);
 
         boost::mutex::scoped_lock lock(updatingPortsLock);
-        for (TransportIterator ii = _transports.begin(); ii != _transports.end(); ++ii) {
-            TransportType* connection = *ii;
-            const std::string& connection_id = connection->connectionId();
+        for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+            TransportType* transport = connection.transport();
+            // Skip ports known to be dead
+            if (!transport->isAlive()) {
+                continue;
+            }
+
+            const std::string& connection_id = connection.connectionId();
             if (!isStreamRoutedToConnection(streamID, connection_id)) {
                 RH_TRACE(logger, "Stream " << streamID << " is not routed to connection " << connection_id);
                 continue;
             }
 
             RH_TRACE(logger, "Pushing " << const_bursts.length() << " bursts to connection " << connection_id);
-            connection->pushBursts(const_bursts, startTime, queueDepth);
+            try {
+                transport->pushBursts(const_bursts, startTime, queueDepth);
+            } catch (const redhawk::FatalTransportError& exc) {
+                RH_ERROR(logger, "pushBursts to " << connection_id << " failed: " << exc.what());
+                transport->setAlive(false);
+            } catch (const redhawk::TransportError& exc) {
+                RH_ERROR(logger, "pushBursts to " << connection_id << " failed: " << exc.what());
+            }
         }
     }
 
@@ -581,15 +583,13 @@ namespace burstio {
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);
         BULKIO::UsesPortStatisticsSequence_var retval = new BULKIO::UsesPortStatisticsSequence();
-        retval->length(_transports.size());
+        retval->length(_connections.size());
         CORBA::ULong index = 0;
-        for (TransportIterator ii = _transports.begin(); ii != _transports.end(); ++ii, ++index) {
-            TransportType* transport = *ii;
-            retval[index].connectionId = transport->connectionId().c_str();
-            BULKIO::PortStatistics_var stats = transport->getStatistics();
+        for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection, ++index) {
+            BULKIO::PortStatistics_var stats = connection.transport()->getStatistics();
             for (typename QueueMap::iterator jj = streamQueues_.begin(); jj != streamQueues_.end(); ++jj) {
                 const std::string& streamID = jj->first;
-                if (isStreamRoutedToConnection(streamID, transport->connectionId())) {
+                if (isStreamRoutedToConnection(streamID, connection.connectionId())) {
                     burstio::utils::push_back(stats->streamIDs, jj->first.c_str());
                 }
             }
@@ -621,9 +621,9 @@ namespace burstio {
         var_type port = ossie::corba::_narrowSafe<PortType>(object);
         InPort<Traits>* local_port = ossie::corba::getLocalServant<InPort<Traits> >(port);
         if (local_port) {
-            return new LocalTransport(this, connectionId, local_port, port);
+            return new LocalTransport(this, local_port);
         } else {
-            return new CorbaTransport(this, connectionId, port);
+            return new CorbaTransport(this, port);
         }
     }
 

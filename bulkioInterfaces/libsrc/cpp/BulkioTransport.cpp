@@ -27,8 +27,8 @@
 namespace bulkio {
 
     template <typename PortType>
-    OutputTransport<PortType>::OutputTransport(OutPortType* port, const std::string& connectionId, PtrType objref) :
-        redhawk::UsesTransport(port, connectionId, objref),
+    OutputTransport<PortType>::OutputTransport(OutPortType* port, PtrType objref) :
+        redhawk::UsesTransport(port),
         _port(port),
         _objref(PortType::_duplicate(objref)),
         _stats(port->getName(), sizeof(NativeType))
