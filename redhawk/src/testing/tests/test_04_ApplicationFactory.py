@@ -2765,7 +2765,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         end_release = time.time()
         release_time = end_release-end_stop
         self.assertTrue(16<=stop_time<=17)
-        self.assertTrue(20<=release_time<=21)
+        self.assertTrue(20<=release_time<=22)
 
     def test_StopTimeoutBuiltinDefault(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
@@ -2790,7 +2790,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         end_release = time.time()
         release_time = end_release-end_stop
         self.assertTrue(6<=stop_time<=7)
-        self.assertTrue(20<=release_time<=21)
+        self.assertTrue(20<=release_time<=22)
 
     def test_StopTimeoutLiveOverride(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
@@ -2816,7 +2816,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         end_release = time.time()
         release_time = end_release-end_stop
         self.assertTrue(8<=stop_time<=9)
-        self.assertTrue(20<=release_time<=21)
+        self.assertTrue(20<=release_time<=22)
 
     def test_StopTimeoutChange(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
@@ -2845,7 +2845,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         end_release = time.time()
         release_time = end_release-end_stop
         self.assertTrue(10<=stop_time<=11)
-        self.assertTrue(20<=release_time<=21)
+        self.assertTrue(20<=release_time<=22)
 
     def test_StopTimeoutIndefinite(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
