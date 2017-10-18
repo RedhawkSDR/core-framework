@@ -78,18 +78,18 @@ namespace redhawk {
         }
     }
 
-    void UsesPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
+    void UsesPort::connectPort(CORBA::Object_ptr object, const char* connectionId)
     {
         RH_TRACE_ENTER(logger);
 
         // Give a specific exception message for nil
-        if (CORBA::is_nil(connection)) {
+        if (CORBA::is_nil(object)) {
             throw CF::Port::InvalidPort(1, "Nil object reference");
         }
 
         // Attempt to check the type of the remote object to reject invalid
         // types; note this does not require the lock
-        _validatePort(connection);
+        _validatePort(object);
 
         const std::string connection_id(connectionId);
         {
@@ -98,10 +98,10 @@ namespace redhawk {
 
             ConnectionList::iterator entry = _findConnection(connection_id);
             if (entry == _connections.end()) {
-                UsesTransport* transport = _createTransport(connection, connection_id);
-                _connections.push_back(new Connection(connection_id, connection, transport));
+                Connection* connection = _createConnection(object, connection_id);
+                _connections.push_back(connection);
 
-                RH_DEBUG(logger, "Using " << transport->getDescription()
+                RH_DEBUG(logger, "Using " << connection->transport->getDescription()
                          << " for connection '" << connection_id << "'");
             } else {
                 // TODO: Replace the object reference, or throw an exception?
@@ -206,6 +206,13 @@ namespace redhawk {
         return new UsesTransport(this);
     }
 
+    UsesPort::Connection* UsesPort::_createConnection(CORBA::Object_ptr object, const std::string& connectionId)
+    {
+        UsesTransport* transport = _createTransport(object, connectionId);
+        return new Connection(connectionId, object, transport);
+    }
+
+
     NegotiableUsesPort::NegotiableUsesPort(const std::string& name) :
         UsesPort(name)
     {
@@ -264,25 +271,55 @@ namespace redhawk {
         return retVal._retn();
     }
 
-    UsesTransport* NegotiableUsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
+    class NegotiableUsesPort::NegotiatedConnection : public UsesPort::Connection
+    {
+    public:
+        NegotiatedConnection(const std::string& connectionId, ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                             const std::string& transportId, UsesTransport* transport) :
+            Connection(connectionId, negotiablePort, transport),
+            negotiablePort(ExtendedCF::NegotiableProvidesPort::_duplicate(negotiablePort)),
+            transportId(transportId)
+        {
+        }
+
+        virtual void disconnected()
+        {
+            Connection::disconnected();
+
+            if (!CORBA::is_nil(negotiablePort) && !transportId.empty()) {
+                try {
+                    negotiablePort->disconnectTransport(transportId.c_str());
+                } catch (const CORBA::Exception& exc) {
+                    // Ignore 
+                } 
+            }
+        }
+
+        ExtendedCF::NegotiableProvidesPort_var negotiablePort;
+        std::string transportId;
+    };
+
+    UsesPort::Connection* NegotiableUsesPort::_createConnection(CORBA::Object_ptr object,
+                                                                const std::string& connectionId)
     {
         PortBase* local_port = ossie::corba::getLocalServant<PortBase>(object);
         if (local_port) {
             UsesTransport* transport = _createLocalTransport(local_port, object, connectionId);
             if (transport) {
-                return transport;
+                return new Connection(connectionId, object, transport);
             }
         }
 
         ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
         if (!CORBA::is_nil(negotiable_port)) {
-            UsesTransport* transport = _negotiateTransport(negotiable_port, connectionId);
-            if (transport) {
-                return transport;
+            Connection* connection = _negotiateConnection(negotiable_port, connectionId);
+            if (connection) {
+                return connection;
             }
         }
 
-        return _createDefaultTransport(object, connectionId);
+        UsesTransport* transport = _createTransport(object, connectionId);
+        return new Connection(connectionId, object, transport);
     }
 
     UsesTransport* NegotiableUsesPort::_createLocalTransport(PortBase*, CORBA::Object_ptr, const std::string&)
@@ -290,13 +327,9 @@ namespace redhawk {
         return 0;
     }
 
-    UsesTransport* NegotiableUsesPort::_createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId)
-    {
-        return UsesPort::_createTransport(object, connectionId);
-    }
-
-    UsesTransport* NegotiableUsesPort::_negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
-                                                           const std::string& connectionId)
+    NegotiableUsesPort::NegotiatedConnection*
+    NegotiableUsesPort::_negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                             const std::string& connectionId)
     {
         RH_DEBUG(logger, "Trying to negotiate transport for connection '" << connectionId << "'");
         ExtendedCF::TransportInfoSequence_var supported_transports;
@@ -315,9 +348,30 @@ namespace redhawk {
                              << "' for connection '" << connectionId << "'");
                     const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
                     UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);
-                    if (transport) {
-                        return transport;
+                    if (!transport) {
+                        continue;
                     }
+
+                    redhawk::PropertyMap negotiation_props = (*manager)->getNegotiationProperties(transport);
+                    ExtendedCF::NegotiationResult_var result;
+                    try {
+                        result = negotiablePort->negotiateTransport(transport_name.c_str(), negotiation_props);
+                    } catch (const ExtendedCF::NegotiationError& exc) {
+                        RH_ERROR(logger, "Error negotiating transport '" << transport_name << ": " << exc.msg);
+                        delete transport;
+                        continue;
+                    }
+
+                    const std::string negotiation_id(result->negotiationId);
+                    NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, negotiation_id, transport);
+                    try {
+                        (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
+                    } catch (const std::exception& exc) {
+                        RH_ERROR(logger, "Error completing transport '" << transport_name << "' connection:"
+                                 << exc.what());
+                        delete connection;
+                    }
+                    return connection;
                 }
             }
             RH_TRACE(logger, "Provides side for connection '" << connectionId
@@ -325,4 +379,5 @@ namespace redhawk {
         }
         return 0;
     }
+
 }

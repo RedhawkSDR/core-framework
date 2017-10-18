@@ -106,6 +106,7 @@ namespace redhawk {
 
         ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
         result->negotiationId = transport_id.c_str();
+        result->properties = manager->getNegotiationProperties(transport);
         return result._retn();
     }
 

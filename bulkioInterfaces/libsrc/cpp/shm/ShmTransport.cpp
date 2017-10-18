@@ -38,10 +38,11 @@ namespace bulkio {
         typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        ShmTransport(OutPort<PortType>* parent, IPCFifo* fifo, PtrType port) :
+        ShmTransport(OutPort<PortType>* parent, PtrType port) :
             OutputTransport<PortType>(parent, port),
-            _fifo(fifo)
+            _fifo(new IPCFifoServer(parent->getName() + "-fifo"))
         {
+            _fifo->beginConnect();
         }
 
         ~ShmTransport()
@@ -62,6 +63,16 @@ namespace bulkio {
         virtual CF::Properties transportInfo() const
         {
             return CF::Properties();
+        }
+
+        const std::string& getFifoName()
+        {
+            return _fifo->name();
+        }
+
+        void finishConnect()
+        {
+            _fifo->finishConnect();
         }
 
         virtual void disconnect()
@@ -162,7 +173,7 @@ namespace bulkio {
 
     template <typename PortType>
     OutputTransport<PortType>*
-    ShmOutputManager<PortType>::createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+    ShmOutputManager<PortType>::createUsesTransport(CORBA::Object_ptr object,
                                                     const std::string& connectionId,
                                                     const redhawk::PropertyMap& properties)
     {
@@ -179,23 +190,33 @@ namespace bulkio {
             return 0;
         }
 
-        RH_NL_DEBUG("ShmTransport", "Attempting to negotiate shared memory IPC");
-        IPCFifo* fifo = new IPCFifoServer(this->_port->getName() + "-fifo");
-        redhawk::PropertyMap props;
-        props["fifo"] = fifo->name();
-        fifo->beginConnect();
-        ExtendedCF::NegotiationResult_var result;
-        try {
-            result = negotiablePort->negotiateTransport("shmipc", props);
-        } catch (const ExtendedCF::NegotiationError& exc) {
-            RH_NL_ERROR("ShmTransport", "Error negotiating shared memory IPC: " << exc.msg);
-            delete fifo;
-            return 0;
-        }
-        fifo->finishConnect();
+        typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(object);
+        return new ShmTransport<PortType>(this->_port, bulkio_port);
+    }
 
-        typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(negotiablePort);
-        return new ShmTransport<PortType>(this->_port, fifo, bulkio_port);
+    template <typename PortType>
+    redhawk::PropertyMap ShmOutputManager<PortType>::getNegotiationProperties(redhawk::UsesTransport* transport)
+    {
+        TransportType* shm_transport = dynamic_cast<TransportType*>(transport);
+        if (!shm_transport) {
+            throw std::logic_error("invalid transport type");
+        }
+
+        redhawk::PropertyMap properties;
+        properties["fifo"] = shm_transport->getFifoName();
+        return properties;
+    }
+
+    template <typename PortType>
+    void ShmOutputManager<PortType>::setNegotiationResult(redhawk::UsesTransport* transport,
+                                                          const redhawk::PropertyMap&)
+    {
+        TransportType* shm_transport = dynamic_cast<TransportType*>(transport);
+        if (!shm_transport) {
+            throw std::logic_error("invalid transport type");
+        }
+
+        shm_transport->finishConnect();
     }
 
     template <typename PortType>

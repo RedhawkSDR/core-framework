@@ -99,9 +99,9 @@ namespace redhawk {
         class Connection {
         public:
             Connection(const std::string& connectionId, CORBA::Object_ptr objref, UsesTransport* transport);
-            ~Connection();
+            virtual ~Connection();
 
-            void disconnected();
+            virtual void disconnected();
 
             std::string connectionId;
             CORBA::Object_var objref;
@@ -167,6 +167,8 @@ namespace redhawk {
 
         ConnectionList::iterator _findConnection(const std::string& connectionId);
 
+        virtual Connection* _createConnection(CORBA::Object_ptr object, const std::string& connectionId);
+
         virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         LOGGER logger;
@@ -194,12 +196,13 @@ namespace redhawk {
         virtual ExtendedCF::ConnectionStatusSequence* connectionStatus();
 
     protected:
-        virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+        class NegotiatedConnection;
+
+        virtual Connection* _createConnection(CORBA::Object_ptr object, const std::string& connectionId);
 
         virtual UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
-        virtual UsesTransport* _createDefaultTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
-        UsesTransport* _negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr port, const std::string& connectionId);
+        NegotiatedConnection* _negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr port, const std::string& connectionId);
 
         typedef std::vector<UsesTransportManager*> TransportManagerList;
         TransportManagerList _transportManagers;

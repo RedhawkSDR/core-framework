@@ -29,18 +29,27 @@
 namespace bulkio {
 
     template <typename PortType>
+    class ShmTransport;
+
+    template <typename PortType>
     class ShmOutputManager : public OutputManager<PortType>
     {
     public:
+        typedef ShmTransport<PortType> TransportType;
+
         ShmOutputManager(OutPort<PortType>* port);
 
         virtual std::string transportName();
 
         virtual CF::Properties transportProperties();
 
-        virtual OutputTransport<PortType>* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+        virtual OutputTransport<PortType>* createUsesTransport(CORBA::Object_ptr object,
                                                                const std::string& connectionId,
                                                                const redhawk::PropertyMap& properties);
+
+        virtual redhawk::PropertyMap getNegotiationProperties(redhawk::UsesTransport* transport);
+
+        virtual void setNegotiationResult(redhawk::UsesTransport* transport, const redhawk::PropertyMap& properties);
 
     private:
         std::string _hostname;

@@ -105,7 +105,16 @@ namespace redhawk {
             return CF::Properties();
         }
 
-        virtual UsesTransport* createUsesTransport(ExtendedCF::NegotiableProvidesPort_ptr port,
+        virtual redhawk::PropertyMap getNegotiationProperties(UsesTransport*)
+        {
+            return redhawk::PropertyMap();
+        }
+
+        virtual void setNegotiationResult(UsesTransport*, const redhawk::PropertyMap&)
+        {
+        }
+
+        virtual UsesTransport* createUsesTransport(CORBA::Object_ptr object,
                                                    const std::string& connectionId,
                                                    const redhawk::PropertyMap& properties) = 0;
     };
@@ -157,6 +166,11 @@ namespace redhawk {
         virtual CF::Properties transportProperties()
         {
             return CF::Properties();
+        }
+
+        virtual redhawk::PropertyMap getNegotiationProperties(ProvidesTransport*)
+        {
+            return redhawk::PropertyMap();
         }
     };
 
