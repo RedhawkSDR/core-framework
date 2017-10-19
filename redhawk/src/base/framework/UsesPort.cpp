@@ -201,11 +201,6 @@ namespace redhawk {
         return entry;
     }
 
-    UsesTransport* UsesPort::_createTransport(CORBA::Object_ptr object, const std::string& connectionId)
-    {
-        return 0;
-    }
-
     UsesPort::Connection* UsesPort::_createConnection(CORBA::Object_ptr object, const std::string& connectionId)
     {
         UsesTransport* transport = _createTransport(object, connectionId);
