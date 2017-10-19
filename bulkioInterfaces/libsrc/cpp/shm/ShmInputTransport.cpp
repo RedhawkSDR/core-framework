@@ -24,6 +24,12 @@ namespace bulkio {
     }
 
     template <class PortType>
+    std::string ShmInputTransport<PortType>::transportType() const
+    {
+        return "shmipc";
+    }
+
+    template <class PortType>
     void ShmInputTransport<PortType>::startTransport()
     {
         _running = true;

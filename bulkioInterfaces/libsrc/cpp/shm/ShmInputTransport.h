@@ -22,8 +22,10 @@ namespace bulkio {
         ShmInputTransport(InPortType* port, const std::string& transportId, IPCFifo* fifo);
         ~ShmInputTransport();
 
-        void startTransport();
-        void stopTransport();
+        virtual std::string transportType() const;
+
+        virtual void startTransport();
+        virtual void stopTransport();
 
     protected:
         void _run();

@@ -63,21 +63,39 @@ namespace redhawk {
         }
     };
 
-    class UsesTransport
-    {
+    class Transport {
     public:
-        UsesTransport(UsesPort* port);
-        virtual ~UsesTransport() { }
-
-        virtual std::string transportType() const
+        virtual ~Transport()
         {
-            return "";
         }
+
+        virtual std::string transportType() const = 0;
 
         virtual CF::Properties transportInfo() const
         {
             return CF::Properties();
         }
+    };
+
+    class TransportManager {
+    public:
+        virtual ~TransportManager()
+        {
+        }
+
+        virtual std::string transportType() = 0;
+
+        virtual CF::Properties transportProperties()
+        {
+            return CF::Properties();
+        }
+    };
+
+    class UsesTransport : public Transport
+    {
+    public:
+        UsesTransport(UsesPort* port);
+        virtual ~UsesTransport() { }
 
         virtual std::string getDescription() const;
 
@@ -91,19 +109,16 @@ namespace redhawk {
         bool _alive;
     };
 
-    class UsesTransportManager
+    class UsesTransportManager : public TransportManager
     {
     public:
         virtual ~UsesTransportManager()
         {
         }
 
-        virtual std::string transportName() = 0;
-
-        virtual CF::Properties transportProperties()
-        {
-            return CF::Properties();
-        }
+        virtual UsesTransport* createUsesTransport(CORBA::Object_ptr object,
+                                                   const std::string& connectionId,
+                                                   const redhawk::PropertyMap& properties) = 0;
 
         virtual redhawk::PropertyMap getNegotiationProperties(UsesTransport*)
         {
@@ -113,13 +128,9 @@ namespace redhawk {
         virtual void setNegotiationResult(UsesTransport*, const redhawk::PropertyMap&)
         {
         }
-
-        virtual UsesTransport* createUsesTransport(CORBA::Object_ptr object,
-                                                   const std::string& connectionId,
-                                                   const redhawk::PropertyMap& properties) = 0;
     };
 
-    class ProvidesTransport
+    class ProvidesTransport : public Transport
     {
     public:
         ProvidesTransport(NegotiableProvidesPortBase* port, const std::string& transportId);
@@ -129,16 +140,6 @@ namespace redhawk {
         }
 
         const std::string& transportId() const;
-
-        virtual std::string transportType() const
-        {
-            return "";
-        }
-
-        virtual CF::Properties transportInfo() const
-        {
-            return CF::Properties();
-        }
 
         virtual void startTransport()
         {
@@ -153,7 +154,7 @@ namespace redhawk {
         const std::string _transportId;
     };
 
-    class ProvidesTransportManager
+    class ProvidesTransportManager : public TransportManager
     {
     public:
         virtual ~ProvidesTransportManager()
@@ -162,11 +163,6 @@ namespace redhawk {
 
         virtual ProvidesTransport* createProvidesTransport(const std::string& transportId,
                                                            const redhawk::PropertyMap& properties) = 0;
-
-        virtual CF::Properties transportProperties()
-        {
-            return CF::Properties();
-        }
 
         virtual redhawk::PropertyMap getNegotiationProperties(ProvidesTransport*)
         {

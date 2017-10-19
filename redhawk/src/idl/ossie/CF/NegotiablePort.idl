@@ -31,7 +31,7 @@ module ExtendedCF {
     };
 
     struct TransportInfo {
-        string transportName;
+        string transportType;
         CF::Properties transportProperties;
     };
 

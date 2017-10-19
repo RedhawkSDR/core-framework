@@ -158,7 +158,7 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    std::string ShmOutputManager<PortType>::transportName()
+    std::string ShmOutputManager<PortType>::transportType()
     {
         return "shmipc";
     }

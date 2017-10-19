@@ -81,7 +81,7 @@ namespace redhawk {
         ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
         for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
             ExtendedCF::TransportInfo transport;
-            transport.transportName = manager->first.c_str();
+            transport.transportType = manager->second->transportType().c_str();
             transport.transportProperties = manager->second->transportProperties();
             ossie::corba::push_back(transports, transport);
         }

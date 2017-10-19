@@ -39,7 +39,7 @@ namespace bulkio {
 
         ShmOutputManager(OutPort<PortType>* port);
 
-        virtual std::string transportName();
+        virtual std::string transportType();
 
         virtual CF::Properties transportProperties();
 

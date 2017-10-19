@@ -36,6 +36,22 @@ namespace bulkio {
         {
         }
 
+        virtual std::string transportType()
+        {
+            return "shmipc";
+        }
+
+        virtual CF::Properties transportProperties()
+        {
+            CF::Properties properties;
+
+            char host[HOST_NAME_MAX+1];
+            gethostname(host, sizeof(host));
+
+            ossie::corba::push_back(properties, redhawk::PropertyType("hostname", std::string(host)));
+            return properties;
+        }
+
         ShmInputTransport<PortType>* createProvidesTransport(const std::string& transportId,
                                                              const redhawk::PropertyMap& properties)
         {
@@ -52,17 +68,6 @@ namespace bulkio {
                 throw ExtendedCF::NegotiationError(message.c_str());
             }
             return new ShmInputTransport<PortType>(this->_port, transportId, fifo);
-        }
-
-        virtual CF::Properties transportProperties()
-        {
-            CF::Properties properties;
-
-            char host[HOST_NAME_MAX+1];
-            gethostname(host, sizeof(host));
-
-            ossie::corba::push_back(properties, redhawk::PropertyType("hostname", std::string(host)));
-            return properties;
         }
     };
 }
