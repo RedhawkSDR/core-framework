@@ -44,15 +44,14 @@ namespace redhawk {
         virtual void releasePort();
 
         virtual ExtendedCF::TransportInfoSequence* supportedTransports();
-        virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* protocol, const CF::Properties& props);
-        virtual void disconnectTransport(const char* connectionId);
+        virtual ExtendedCF::NegotiationResult* negotiateTransport(const char* transportType,
+                                                                  const CF::Properties& transportProperties);
+        virtual void disconnectTransport(const char* transportId);
 
         void setLogger(LOGGER newLogger);
 
     protected:
-        void _addTransportManager(const std::string& transport, ProvidesTransportManager* manager);
-
-        ProvidesTransportManager* _getTransportManager(const std::string& protocol);
+        ProvidesTransportManager* _getTransportManager(const std::string& transportType);
 
         ProvidesTransport* _getTransport(const std::string identifier);
 
@@ -60,8 +59,8 @@ namespace redhawk {
 
         boost::mutex _transportMutex;
 
-        typedef std::map<std::string,ProvidesTransportManager*> TransportManagerMap;
-        TransportManagerMap _transportManagers;
+        typedef std::vector<ProvidesTransportManager*> TransportManagerList;
+        TransportManagerList _transportManagers;
 
         typedef std::map<std::string,ProvidesTransport*> TransportMap;
         TransportMap _transports;

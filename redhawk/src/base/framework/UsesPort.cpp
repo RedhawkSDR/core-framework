@@ -231,8 +231,8 @@ namespace redhawk {
 
         for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
             TransportFactory* transport = *iter;
-            RH_INFO(logger, "Adding uses transport '" << transport->transportType()
-                    << "' for '" << repo_id << "'");
+            RH_DEBUG(logger, "Adding uses transport '" << transport->transportType()
+                     << "' for '" << repo_id << "'");
             _transportManagers.push_back(transport->createUsesManager(this));
         }
     }

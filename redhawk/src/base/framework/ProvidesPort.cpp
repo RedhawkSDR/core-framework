@@ -40,22 +40,22 @@ namespace redhawk {
         Port_Provides_base_impl(name)
     {
     }
-    
+
     NegotiableProvidesPortBase::~NegotiableProvidesPortBase()
     {
         for (TransportMap::iterator transport = _transports.begin(); transport != _transports.end(); ++transport) {
             delete transport->second;
         }
 
-        for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
-            delete manager->second;
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            delete (*manager);
         }
     }
-     
+
     void NegotiableProvidesPortBase::initializePort()
     {
-        const std::string repid = getRepid();
-        TransportStack* transports = TransportRegistry::GetTransports(repid);
+        const std::string repo_id = getRepid();
+        TransportStack* transports = TransportRegistry::GetTransports(repo_id);
         if (!transports) {
             // No registered transports for this port type
             return;
@@ -63,9 +63,9 @@ namespace redhawk {
 
         for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
             TransportFactory* transport = *iter;
-            RH_INFO(logger, "Adding provides transport '" << transport->transportType()
-                    << "' for '" << repid << "'");
-            _addTransportManager(transport->transportType(), transport->createProvidesManager(this));
+            RH_DEBUG(logger, "Adding provides transport '" << transport->transportType()
+                     << "' for '" << repo_id << "'");
+            _transportManagers.push_back(transport->createProvidesManager(this));
         }
     }
 
@@ -79,26 +79,28 @@ namespace redhawk {
     ExtendedCF::TransportInfoSequence* NegotiableProvidesPortBase::supportedTransports()
     {
         ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
-        for (TransportManagerMap::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
             ExtendedCF::TransportInfo transport;
-            transport.transportType = manager->second->transportType().c_str();
-            transport.transportProperties = manager->second->transportProperties();
+            transport.transportType = (*manager)->transportType().c_str();
+            transport.transportProperties = (*manager)->transportProperties();
             ossie::corba::push_back(transports, transport);
         }
         return transports._retn();
     }
 
-    ExtendedCF::NegotiationResult* NegotiableProvidesPortBase::negotiateTransport(const char* protocol, const CF::Properties& props)
+    ExtendedCF::NegotiationResult*
+    NegotiableProvidesPortBase::negotiateTransport(const char* transportType,
+                                                   const CF::Properties& transportProperties)
     {
         boost::mutex::scoped_lock lock(_transportMutex);
-        ProvidesTransportManager* manager = _getTransportManager(protocol);
+        ProvidesTransportManager* manager = _getTransportManager(transportType);
         if (!manager) {
-            std::string message = "Cannot negotiate protocol '" + std::string(protocol) + "'";
+            std::string message = "Cannot negotiate protocol '" + std::string(transportType) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
         std::string transport_id = ossie::generateUUID();
-        const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(props);
+        const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(transportProperties);
         ProvidesTransport* transport = manager->createProvidesTransport(transport_id, transport_props);
         transport->startTransport();
 
@@ -127,17 +129,13 @@ namespace redhawk {
         logger = newLogger;
     }
 
-    ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& protocol)
+    ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& transportType)
     {
-        TransportManagerMap::iterator manager = _transportManagers.find(protocol);
-        if (manager == _transportManagers.end()) {
-            return 0;
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            if ((*manager)->transportType() == transportType) {
+                return (*manager);
+            }
         }
-        return manager->second;
-    }
-
-    void NegotiableProvidesPortBase::_addTransportManager(const std::string& name, ProvidesTransportManager* manager)
-    {
-        _transportManagers[name] = manager;
+        return 0;
     }
 }
