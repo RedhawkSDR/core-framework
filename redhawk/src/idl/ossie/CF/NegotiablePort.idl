@@ -21,7 +21,7 @@
 #ifndef _NEGOTIABLE_PORT_IDL_
 #define _NEGOTIABLE_PORT_IDL_
 
-#include "ossie/CF/DataType.idl"
+#include "ossie/CF/cf.idl"
 #include "ossie/CF/QueryablePort.idl"
 
 module ExtendedCF {
@@ -56,14 +56,16 @@ module ExtendedCF {
     };
 
     struct NegotiationResult {
-        string negotiationId;
+        string transportId;
         CF::Properties properties;
     };
 
     interface NegotiableProvidesPort : NegotiablePort {
-        NegotiationResult negotiateTransport(in string protocol, in CF::Properties props) raises (NegotiationError);
+        NegotiationResult negotiateTransport(in string transportType, in CF::Properties transportProperties)
+            raises (ExtendedCF::NegotiationError);
 
-        void disconnectTransport(in string negotiationId);
+        void disconnectTransport(in string transportId)
+            raises (CF::InvalidIdentifier);
     };
 };
 

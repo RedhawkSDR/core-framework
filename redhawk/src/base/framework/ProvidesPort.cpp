@@ -105,18 +105,17 @@ namespace redhawk {
         _transports[transport_id] = transport;
 
         ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
-        result->negotiationId = transport_id.c_str();
+        result->transportId = transport_id.c_str();
         result->properties = manager->getNegotiationProperties(transport);
         return result._retn();
     }
 
-    void NegotiableProvidesPortBase::disconnectTransport(const char* connectionId)
+    void NegotiableProvidesPortBase::disconnectTransport(const char* transportId)
     {
         boost::mutex::scoped_lock lock(_transportMutex);
-        TransportMap::iterator transport = _transports.find(connectionId);
+        TransportMap::iterator transport = _transports.find(transportId);
         if (transport == _transports.end()) {
-            // TODO: throw exception
-            return;
+            throw CF::InvalidIdentifier();
         }
         transport->second->stopTransport();
         delete transport->second;

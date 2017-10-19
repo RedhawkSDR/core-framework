@@ -357,8 +357,8 @@ namespace redhawk {
                         continue;
                     }
 
-                    const std::string negotiation_id(result->negotiationId);
-                    NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, negotiation_id, transport);
+                    const std::string transport_id(result->transportId);
+                    NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
                     try {
                         (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
                     } catch (const std::exception& exc) {
