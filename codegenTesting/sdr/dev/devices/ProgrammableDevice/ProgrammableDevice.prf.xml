@@ -94,6 +94,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
      IE: &quot;file://path/to/local/filesystem/load.bit&quot;</description>                                                                                                                                                                       
       </simple>                                                                                                                                                                                                                                   
     </struct>                                                                                                                                                                                                                                     
-    <configurationkind kindtype="configure"/>                                                                                                                                                                                                     
+    <configurationkind kindtype="allocation"/>
   </structsequence>                                                                                                                                                                                                                                                                                                                                                                                                                                               
 </properties>
