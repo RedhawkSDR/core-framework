@@ -136,6 +136,23 @@ namespace bulkio {
     {
     }
 
+    template <typename PortType>
+    redhawk::UsesTransport*
+    OutputManager<PortType>::createUsesTransport(CORBA::Object_ptr object,
+                                                 const std::string& connectionId,
+                                                 const redhawk::PropertyMap& properties)
+    {
+        typename PortType::_var_type port;
+        try {
+            port = PortType::_narrow(object);
+        } catch (const CORBA::Exception&) {
+            // If this narrow fails something has gone horribly wrong, but just
+            // let the negotiation layer handle it
+            return 0;
+        }
+        return createOutputTransport(port, connectionId, properties);
+    }
+
     //
     // InputManager
     //
@@ -143,6 +160,14 @@ namespace bulkio {
     InputManager<PortType>::InputManager(InPortType* port) :
         _port(port)
     {
+    }
+
+    template <typename PortType>
+    redhawk::ProvidesTransport*
+    InputManager<PortType>::createProvidesTransport(const std::string& transportId,
+                                                    const redhawk::PropertyMap& properties)
+    {
+        return createInputTransport(transportId, properties);
     }
 
     //

@@ -118,14 +118,18 @@ namespace bulkio {
         typedef OutputTransport<PortType> TransportType;
         typedef typename PortType::_ptr_type PtrType;
 
-        virtual TransportType* createUsesTransport(CORBA::Object_ptr object,
-                                                   const std::string& connectionId,
-                                                   const redhawk::PropertyMap& properties) = 0;
-
+        virtual TransportType* createOutputTransport(PtrType object, 
+                                                     const std::string& connectionId,
+                                                     const redhawk::PropertyMap& properties) = 0;
     protected:
         OutputManager(OutPortType* port);
 
         OutPortType* _port;
+
+    private:
+        virtual redhawk::UsesTransport* createUsesTransport(CORBA::Object_ptr object,
+                                                            const std::string& connectionId,
+                                                            const redhawk::PropertyMap& properties);
     };
 
     template <class PortType>
@@ -134,13 +138,16 @@ namespace bulkio {
         typedef InPort<PortType> InPortType;
         typedef InputTransport<PortType> TransportType;
 
-        virtual TransportType* createProvidesTransport(const std::string& transportId,
-                                                       const redhawk::PropertyMap& properties) = 0;
-
+        virtual TransportType* createInputTransport(const std::string& transportId,
+                                                    const redhawk::PropertyMap& properties) = 0;
     protected:
         InputManager(InPortType* port);
 
         InPortType* _port;
+
+    private:
+        virtual redhawk::ProvidesTransport* createProvidesTransport(const std::string& transportId,
+                                                                    const redhawk::PropertyMap& properties);
     };
 
     template <class PortType>

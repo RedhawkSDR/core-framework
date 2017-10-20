@@ -173,9 +173,9 @@ namespace bulkio {
 
     template <typename PortType>
     OutputTransport<PortType>*
-    ShmOutputManager<PortType>::createUsesTransport(CORBA::Object_ptr object,
-                                                    const std::string& connectionId,
-                                                    const redhawk::PropertyMap& properties)
+    ShmOutputManager<PortType>::createOutputTransport(PtrType object,
+                                                      const std::string& connectionId,
+                                                      const redhawk::PropertyMap& properties)
     {
         // For testing, allow disabling
         const char* shm_env = getenv("BULKIO_SHM");
@@ -190,8 +190,7 @@ namespace bulkio {
             return 0;
         }
 
-        typename PortType::_var_type bulkio_port = ossie::corba::_narrowSafe<PortType>(object);
-        return new ShmTransport<PortType>(this->_port, bulkio_port);
+        return new ShmTransport<PortType>(this->_port, object);
     }
 
     template <typename PortType>

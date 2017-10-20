@@ -36,6 +36,7 @@ namespace bulkio {
     {
     public:
         typedef ShmTransport<PortType> TransportType;
+        typedef typename PortType::_ptr_type PtrType;
 
         ShmOutputManager(OutPort<PortType>* port);
 
@@ -43,9 +44,9 @@ namespace bulkio {
 
         virtual CF::Properties transportProperties();
 
-        virtual OutputTransport<PortType>* createUsesTransport(CORBA::Object_ptr object,
-                                                               const std::string& connectionId,
-                                                               const redhawk::PropertyMap& properties);
+        virtual OutputTransport<PortType>* createOutputTransport(PtrType object,
+                                                                 const std::string& connectionId,
+                                                                 const redhawk::PropertyMap& properties);
 
         virtual redhawk::PropertyMap getNegotiationProperties(redhawk::UsesTransport* transport);
 
