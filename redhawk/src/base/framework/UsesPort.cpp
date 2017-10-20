@@ -223,13 +223,8 @@ namespace redhawk {
     void NegotiableUsesPort::initializePort()
     {
         const std::string repo_id = getRepid();
-        TransportStack* transports = TransportRegistry::GetTransports(repo_id);
-        if (!transports) {
-            // No registered transports for this port type
-            return;
-        }
-
-        for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
+        TransportStack transports = TransportRegistry::GetTransports(repo_id);
+        for (TransportStack::iterator iter = transports.begin(); iter != transports.end(); ++iter) {
             TransportFactory* transport = *iter;
             RH_DEBUG(logger, "Adding uses transport '" << transport->transportType()
                      << "' for '" << repo_id << "'");
@@ -339,7 +334,7 @@ namespace redhawk {
             const std::string transport_type = (*manager)->transportType();
             for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
                 if (transport_type == (const char*) supported_transports[index].transportType) {
-                    RH_TRACE(logger, "Trying to negotiate transport '" << transport_type
+                    RH_DEBUG(logger, "Trying to negotiate transport '" << transport_type
                              << "' for connection '" << connectionId << "'");
                     const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
                     UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);

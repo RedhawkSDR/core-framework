@@ -23,38 +23,74 @@
 
 namespace redhawk {
 
-    TransportRegistry::TransportRegistry()
-    {
-    }
+    class TransportRegistry::Impl {
+    public:
+        Impl()
+        {
+        }
+
+        void registerTransport(TransportFactory* transport)
+        {
+            const std::string repo_id = transport->repoId();
+            int priority = getPriority(transport);
+
+            TransportList& list = _registry[repo_id];
+            TransportList::iterator pos = list.begin();
+            while ((pos != list.end()) && (pos->priority <= priority)) {
+                ++pos;
+            }
+            list.insert(pos, Entry(priority, transport));
+        }
+
+        TransportStack getTransports(const std::string& repoId)
+        {
+            TransportStack stack;
+            TransportMap::iterator transport = _registry.find(repoId);
+            if (transport != _registry.end()) {
+                TransportList& list = transport->second;
+                for (TransportList::iterator iter = list.begin(); iter != list.end(); ++iter) {
+                    stack.push_back(iter->transport);
+                }
+            }
+            return stack;
+        }
+
+        int getPriority(TransportFactory* transport)
+        {
+            return transport->defaultPriority();
+        }
+
+    private:
+        struct Entry {
+        public:
+            Entry(int priority, TransportFactory* transport) :
+                priority(priority),
+                transport(transport)
+            {
+            }
+
+            int priority;
+            TransportFactory* transport;
+        };
+
+        typedef std::vector<Entry> TransportList;
+        typedef std::map<std::string,TransportList> TransportMap;
+        TransportMap _registry;
+    };
 
     void TransportRegistry::RegisterTransport(TransportFactory* transport)
     {
-        Instance()._registerTransport(transport);
+        Instance().registerTransport(transport);
     }
 
-    TransportStack* TransportRegistry::GetTransports(const std::string& repid)
+    TransportStack TransportRegistry::GetTransports(const std::string& repoId)
     {
-        return Instance()._getTransport(repid);
+        return Instance().getTransports(repoId);
     }
 
-    void TransportRegistry::_registerTransport(TransportFactory* transport)
+    TransportRegistry::Impl& TransportRegistry::Instance()
     {
-        const std::string repid = transport->repid();
-        _registry[repid].push_back(transport);
-    }
-
-    TransportStack* TransportRegistry::_getTransport(const std::string& repid)
-    {
-        TransportMap::iterator transport = _registry.find(repid);
-        if (transport != _registry.end()) {
-            return &(transport->second);
-        }
-        return 0;
-    }
-
-    TransportRegistry& TransportRegistry::Instance()
-    {
-        static TransportRegistry instance;
+        static TransportRegistry::Impl instance;
         return instance;
     }
 }

@@ -149,7 +149,7 @@ namespace bulkio {
     // TransportFactory
     //
     template <typename PortType>
-    std::string BulkioTransportFactory<PortType>::repid()
+    std::string BulkioTransportFactory<PortType>::repoId()
     {
         return PortType::_PD_repoId;
     }
@@ -160,7 +160,7 @@ namespace bulkio {
     {
         InPortType* bulkio_port = dynamic_cast<InPortType*>(port);
         if (!bulkio_port) {
-            throw std::logic_error("incorrect input port type for BulkIO transport factory " + repid());
+            throw std::logic_error("incorrect input port type for BulkIO transport factory " + repoId());
         }
         return this->createInputManager(bulkio_port);
     }
@@ -171,7 +171,7 @@ namespace bulkio {
     {
         OutPortType* bulkio_port = dynamic_cast<OutPortType*>(port);
         if (!bulkio_port) {
-            throw std::logic_error("incorrect output port type for BulkIO transport factory " + repid());
+            throw std::logic_error("incorrect output port type for BulkIO transport factory " + repoId());
         }
         return this->createOutputManager(bulkio_port);
     }

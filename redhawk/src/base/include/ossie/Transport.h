@@ -178,7 +178,8 @@ namespace redhawk {
         }
 
         virtual std::string transportType() = 0;
-        virtual std::string repid() = 0;
+        virtual std::string repoId() = 0;
+        virtual int defaultPriority() = 0;
 
         virtual ProvidesTransportManager* createProvidesManager(redhawk::NegotiableProvidesPortBase* port) = 0;
         virtual UsesTransportManager* createUsesManager(redhawk::NegotiableUsesPort* port) = 0;
@@ -190,19 +191,14 @@ namespace redhawk {
     {
     public:
         static void RegisterTransport(TransportFactory* transport);
-        static TransportStack* GetTransports(const std::string& repid);
+        static TransportStack GetTransports(const std::string& repoId);
 
     private:
         TransportRegistry();
 
-        static TransportRegistry& Instance();
-        static TransportRegistry* _instance;
+        class Impl;
 
-        void _registerTransport(TransportFactory* transport);
-        TransportStack* _getTransport(const std::string& repid);
-
-        typedef std::map<std::string,TransportStack> TransportMap;
-        TransportMap _registry;
+        static Impl& Instance();
     };
 }
 

@@ -150,7 +150,7 @@ namespace bulkio {
         typedef InPort<PortType> InPortType;
         typedef OutPort<PortType> OutPortType;
 
-        virtual std::string repid();
+        virtual std::string repoId();
 
         virtual InputManager<PortType>* createInputManager(InPortType* port) = 0;
         virtual OutputManager<PortType>* createOutputManager(OutPortType* port) = 0;

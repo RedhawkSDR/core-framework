@@ -55,13 +55,8 @@ namespace redhawk {
     void NegotiableProvidesPortBase::initializePort()
     {
         const std::string repo_id = getRepid();
-        TransportStack* transports = TransportRegistry::GetTransports(repo_id);
-        if (!transports) {
-            // No registered transports for this port type
-            return;
-        }
-
-        for (TransportStack::iterator iter = transports->begin(); iter != transports->end(); ++iter) {
+        TransportStack transports = TransportRegistry::GetTransports(repo_id);
+        for (TransportStack::iterator iter = transports.begin(); iter != transports.end(); ++iter) {
             TransportFactory* transport = *iter;
             RH_DEBUG(logger, "Adding provides transport '" << transport->transportType()
                      << "' for '" << repo_id << "'");
@@ -95,13 +90,17 @@ namespace redhawk {
         boost::mutex::scoped_lock lock(_transportMutex);
         ProvidesTransportManager* manager = _getTransportManager(transportType);
         if (!manager) {
-            std::string message = "Cannot negotiate protocol '" + std::string(transportType) + "'";
+            std::string message = "cannot negotiate transport type '" + std::string(transportType) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
         std::string transport_id = ossie::generateUUID();
         const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(transportProperties);
         ProvidesTransport* transport = manager->createProvidesTransport(transport_id, transport_props);
+        if (!transport) {
+            std::string message = "cannot create provides transport type '" + std::string(transportType) + "'";
+            throw ExtendedCF::NegotiationError(message.c_str());
+        }
         transport->startTransport();
 
         _transports[transport_id] = transport;

@@ -232,6 +232,11 @@ namespace bulkio {
             return "shmipc";
         }
 
+        virtual int defaultPriority()
+        {
+            return 1;
+        }
+
         virtual InputManager<PortType>* createInputManager(InPort<PortType>* port)
         {
             return new ShmInputManager<PortType>(port);
