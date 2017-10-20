@@ -116,15 +116,26 @@ namespace redhawk {
         {
         }
 
+        /**
+         * Return null to abort transport negotiation.
+         *
+         * Must not throw an exception.
+         */
         virtual UsesTransport* createUsesTransport(CORBA::Object_ptr object,
                                                    const std::string& connectionId,
                                                    const redhawk::PropertyMap& properties) = 0;
 
+        /**
+         * Must not throw an exception.
+         */
         virtual redhawk::PropertyMap getNegotiationProperties(UsesTransport*)
         {
             return redhawk::PropertyMap();
         }
 
+        /**
+         * May throw a TransportError to abort transport negotiation.
+         */         
         virtual void setNegotiationResult(UsesTransport*, const redhawk::PropertyMap&)
         {
         }
@@ -141,6 +152,9 @@ namespace redhawk {
 
         const std::string& transportId() const;
 
+        /**
+         * May throw a TransportError to abort transport negotiation.
+         */         
         virtual void startTransport()
         {
         }
@@ -161,9 +175,17 @@ namespace redhawk {
         {
         }
 
+        /**
+         * Return null to abort transport negotiation.
+         *
+         * Must not throw an exception.
+         */
         virtual ProvidesTransport* createProvidesTransport(const std::string& transportId,
                                                            const redhawk::PropertyMap& properties) = 0;
 
+        /**
+         * Must not throw an exception.
+         */
         virtual redhawk::PropertyMap getNegotiationProperties(ProvidesTransport*)
         {
             return redhawk::PropertyMap();

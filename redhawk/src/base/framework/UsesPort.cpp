@@ -24,6 +24,21 @@
 #include <ossie/PropertyMap.h>
 
 namespace redhawk {
+
+    namespace {
+        static const redhawk::PropertyMap*
+        findTransportProperties(const ExtendedCF::TransportInfoSequence& transports,
+                                const std::string& transportType)
+        {
+            for (CORBA::ULong index = 0; index < transports.length(); ++index) {
+                if (transportType == static_cast<const char*>(transports[index].transportType)) {
+                    return &redhawk::PropertyMap::cast(transports[index].transportProperties);
+                }
+            }
+            return 0;
+        }
+    }
+
     
     UsesTransport::UsesTransport(UsesPort* port) :
         _port(port),
@@ -317,36 +332,32 @@ namespace redhawk {
         return 0;
     }
 
-    static const redhawk::PropertyMap* findTransportProperties(const ExtendedCF::TransportInfoSequence& transports,
-                                                               const std::string& transportType)
-    {
-        for (CORBA::ULong index = 0; index < transports.length(); ++index) {
-            if (transportType == static_cast<const char*>(transports[index].transportType)) {
-                return &redhawk::PropertyMap::cast(transports[index].transportProperties);
-            }
-        }
-        return 0;
-    }
-
     NegotiableUsesPort::NegotiatedConnection*
     NegotiableUsesPort::_negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
                                              const std::string& connectionId)
     {
         RH_DEBUG(logger, "Trying to negotiate transport for connection '" << connectionId << "'");
+
+        // Check the remote side's supported transport list first, to determine
+        // which transports to try and their properties (e.g., hostname)
         ExtendedCF::TransportInfoSequence_var supported_transports;
         try {
             supported_transports = negotiablePort->supportedTransports();
         } catch (const CORBA::Exception& exc) {
             // Can't negotiate with an inaccessible object
+            RH_WARN(logger, "Unable to negotiate connection '" << connectionId << "': "
+                    << ossie::corba::describeException(exc));
             return 0;
         }
 
+        // Try possible transports until one succeeds; the managers are created
+        // in priority order, so the highest priority is tried first
         for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            // Search the supported transports for a match based on the type,
+            // getting back the remote side's properties (or null if not found)
             const std::string transport_type = (*manager)->transportType();
             const redhawk::PropertyMap* transport_props = findTransportProperties(supported_transports, transport_type);
             if (transport_props) {
-                RH_DEBUG(logger, "Trying to negotiate transport '" << transport_type
-                         << "' for connection '" << connectionId << "'");
                 NegotiatedConnection* connection = _negotiateTransport(negotiablePort, connectionId, *manager, *transport_props);
                 if (connection) {
                     return connection;
@@ -365,13 +376,30 @@ namespace redhawk {
                                             UsesTransportManager* manager,
                                             const redhawk::PropertyMap& properties)
     {
+        const std::string transport_type = manager->transportType();
+        RH_DEBUG(logger, "Trying to negotiate transport '" << transport_type
+                 << "' for connection '" << connectionId << "'");
+
+        // Ask the transport manager to create a uses transport based on the
+        // remote side's transport properties. This is allowed to fail, if the
+        // manager doesn't think it can connect to the remote side, with a
+        // null return.
         UsesTransport* transport = manager->createUsesTransport(negotiablePort, connectionId, properties);
         if (!transport) {
             return 0;
         }
 
-        const std::string transport_type = manager->transportType();
+        // Now that the uses side transport endpoint is established, ask the
+        // manager for any properties it wants to pass to the remote object to
+        // establish the provides side transport endpoint.
+        // NB: This is done via the manager instead of the transport because
+        //     local and CORBA implementations of the transport are not
+        //     negotiated.
         redhawk::PropertyMap negotiation_props = manager->getNegotiationProperties(transport);
+
+        // Attempt to negotiate with the remote side. Exceptions are considered
+        // a soft failure here, so log the message, clean up, and try another
+        // transport type.
         ExtendedCF::NegotiationResult_var result;
         try {
             result = negotiablePort->negotiateTransport(transport_type.c_str(), negotiation_props);
@@ -381,13 +409,24 @@ namespace redhawk {
             return 0;
         }
 
+        // A negotiated connection was established, but can still be canceled
+        // below. The connection object is created now to ensure that if that
+        // happens, the connection is undone.
         const std::string transport_id(result->transportId);
         NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
+
+        // Perform any final negotiation steps based on the results. This is
+        // the transport layer's last chance to reject the connection if there
+        // is some aspect of the provides side's properties it doesn't like.
         try {
             manager->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
         } catch (const std::exception& exc) {
             RH_ERROR(logger, "Error completing transport '" << transport_type << "' connection: "
                      << exc.what());
+            delete connection;
+            return 0;
+        } catch (...) {
+            RH_ERROR(logger, "Unknown error completing transport '" << transport_type << "' connection");
             delete connection;
             return 0;
         }

@@ -88,23 +88,48 @@ namespace redhawk {
                                                    const CF::Properties& transportProperties)
     {
         boost::mutex::scoped_lock lock(_transportMutex);
+
+        // Find the appropriate transport manager; the caller should have
+        // checked this port's supported transport types already, but it's
+        // still technically possible to give us a bad type.
         ProvidesTransportManager* manager = _getTransportManager(transportType);
         if (!manager) {
             std::string message = "cannot negotiate transport type '" + std::string(transportType) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
 
+        // Create a unique identifier for this transport instance, that should
+        // be used later for disconnect
         std::string transport_id = ossie::generateUUID();
         const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(transportProperties);
+
+        // Ask the manager to create a transport instance; if for any reason it
+        // doesn't want to (e.g., bad properties), it should return null.
         ProvidesTransport* transport = manager->createProvidesTransport(transport_id, transport_props);
         if (!transport) {
             std::string message = "cannot create provides transport type '" + std::string(transportType) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
         }
-        transport->startTransport();
 
+        // Attempt to start the transport instance. This should be unlikely to
+        // fail, but the transport still has the option to throw an exception;
+        // if it does, make sure to delete the transport.
+        try {
+            transport->startTransport();
+        } catch (const std::exception& exc) {
+            delete transport;
+            throw ExtendedCF::NegotiationError(exc.what());
+        } catch (...) {
+            RH_ERROR(logger, "Unexpected error starting transport type '" << transportType << "'");
+            delete transport;
+            throw ExtendedCF::NegotiationError("failed to start transport");
+        }
+
+        // Take ownership of the transport instance, and return the results of
+        // negotiation back to the caller. If the uses side rejects the results
+        // (again, should be unlikely at this point), it's responsible for
+        // breaking the connection by calling disconnectTransport().
         _transports[transport_id] = transport;
-
         ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
         result->transportId = transport_id.c_str();
         result->properties = manager->getNegotiationProperties(transport);
@@ -114,11 +139,23 @@ namespace redhawk {
     void NegotiableProvidesPortBase::disconnectTransport(const char* transportId)
     {
         boost::mutex::scoped_lock lock(_transportMutex);
+
+        // Make sure it's a valid transport ID
         TransportMap::iterator transport = _transports.find(transportId);
         if (transport == _transports.end()) {
             throw CF::InvalidIdentifier();
         }
-        transport->second->stopTransport();
+
+        // Stop the transport, logging exceptions but continuing on
+        try {
+            transport->second->stopTransport();
+        } catch (const std::exception& exc) {
+            RH_ERROR(logger, "Error stopping transport '" << transportId << "': " << exc.what());
+        } catch (...) {
+            RH_ERROR(logger, "Unknown error stopping transport '" << transportId << "'");
+        }
+
+        // Finish cleaning up
         delete transport->second;
         _transports.erase(transport);
     }
