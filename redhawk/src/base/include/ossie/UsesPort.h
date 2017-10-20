@@ -202,7 +202,13 @@ namespace redhawk {
 
         virtual UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
 
-        NegotiatedConnection* _negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr port, const std::string& connectionId);
+        NegotiatedConnection* _negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                                   const std::string& connectionId);
+
+        NegotiatedConnection* _negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                                  const std::string& connectionId,
+                                                  UsesTransportManager* manager,
+                                                  const redhawk::PropertyMap& properties);
 
         typedef std::vector<UsesTransportManager*> TransportManagerList;
         TransportManagerList _transportManagers;

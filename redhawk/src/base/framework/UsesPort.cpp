@@ -317,6 +317,17 @@ namespace redhawk {
         return 0;
     }
 
+    static const redhawk::PropertyMap* findTransportProperties(const ExtendedCF::TransportInfoSequence& transports,
+                                                               const std::string& transportType)
+    {
+        for (CORBA::ULong index = 0; index < transports.length(); ++index) {
+            if (transportType == static_cast<const char*>(transports[index].transportType)) {
+                return &redhawk::PropertyMap::cast(transports[index].transportProperties);
+            }
+        }
+        return 0;
+    }
+
     NegotiableUsesPort::NegotiatedConnection*
     NegotiableUsesPort::_negotiateConnection(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
                                              const std::string& connectionId)
@@ -332,42 +343,55 @@ namespace redhawk {
 
         for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
             const std::string transport_type = (*manager)->transportType();
-            for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
-                if (transport_type == (const char*) supported_transports[index].transportType) {
-                    RH_DEBUG(logger, "Trying to negotiate transport '" << transport_type
-                             << "' for connection '" << connectionId << "'");
-                    const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
-                    UsesTransport* transport = (*manager)->createUsesTransport(negotiablePort, connectionId, transport_props);
-                    if (!transport) {
-                        continue;
-                    }
-
-                    redhawk::PropertyMap negotiation_props = (*manager)->getNegotiationProperties(transport);
-                    ExtendedCF::NegotiationResult_var result;
-                    try {
-                        result = negotiablePort->negotiateTransport(transport_type.c_str(), negotiation_props);
-                    } catch (const ExtendedCF::NegotiationError& exc) {
-                        RH_ERROR(logger, "Error negotiating transport '" << transport_type << ": " << exc.msg);
-                        delete transport;
-                        continue;
-                    }
-
-                    const std::string transport_id(result->transportId);
-                    NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
-                    try {
-                        (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
-                    } catch (const std::exception& exc) {
-                        RH_ERROR(logger, "Error completing transport '" << transport_type << "' connection:"
-                                 << exc.what());
-                        delete connection;
-                    }
+            const redhawk::PropertyMap* transport_props = findTransportProperties(supported_transports, transport_type);
+            if (transport_props) {
+                RH_DEBUG(logger, "Trying to negotiate transport '" << transport_type
+                         << "' for connection '" << connectionId << "'");
+                NegotiatedConnection* connection = _negotiateTransport(negotiablePort, connectionId, *manager, *transport_props);
+                if (connection) {
                     return connection;
                 }
+            } else {
+                RH_DEBUG(logger, "Provides side for connection '" << connectionId
+                         << "' does not support transport '" << transport_type << "'");
             }
-            RH_TRACE(logger, "Provides side for connection '" << connectionId
-                     << "' does not support transport '" << transport_type << "'");
         }
         return 0;
+    }
+
+    NegotiableUsesPort::NegotiatedConnection*
+    NegotiableUsesPort::_negotiateTransport(ExtendedCF::NegotiableProvidesPort_ptr negotiablePort,
+                                            const std::string& connectionId,
+                                            UsesTransportManager* manager,
+                                            const redhawk::PropertyMap& properties)
+    {
+        UsesTransport* transport = manager->createUsesTransport(negotiablePort, connectionId, properties);
+        if (!transport) {
+            return 0;
+        }
+
+        const std::string transport_type = manager->transportType();
+        redhawk::PropertyMap negotiation_props = manager->getNegotiationProperties(transport);
+        ExtendedCF::NegotiationResult_var result;
+        try {
+            result = negotiablePort->negotiateTransport(transport_type.c_str(), negotiation_props);
+        } catch (const ExtendedCF::NegotiationError& exc) {
+            RH_ERROR(logger, "Error negotiating transport '" << transport_type << ": " << exc.msg);
+            delete transport;
+            return 0;
+        }
+
+        const std::string transport_id(result->transportId);
+        NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
+        try {
+            manager->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
+        } catch (const std::exception& exc) {
+            RH_ERROR(logger, "Error completing transport '" << transport_type << "' connection: "
+                     << exc.what());
+            delete connection;
+            return 0;
+        }
+        return connection;
     }
 
 }
