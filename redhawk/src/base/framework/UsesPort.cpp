@@ -46,11 +46,6 @@ namespace redhawk {
     {
     }
 
-    std::string UsesTransport::getDescription() const
-    {
-        return "basic transport";
-    }
-
     bool UsesTransport::isAlive() const
     {
         return _alive;
@@ -119,8 +114,8 @@ namespace redhawk {
             Connection* connection = _createConnection(object, connection_id);
             _connections.push_back(connection);
 
-            RH_DEBUG(logger, "Using " << connection->transport->getDescription()
-                     << " for connection '" << connection_id << "'");
+            RH_DEBUG(logger, "Using transport '" << connection->transport->transportType()
+                     << "' for connection '" << connection_id << "'");
 
             active = true;
         }

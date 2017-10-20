@@ -54,11 +54,6 @@ public:
         _consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
     }
 
-    virtual std::string getDescription() const
-    {
-        return "CORBA messaging transport";
-    }
-
     virtual std::string transportType() const
     {
         return "CORBA";
@@ -125,11 +120,6 @@ public:
         MessageTransport(port),
         _consumer(consumer)
     {
-    }
-
-    virtual std::string getDescription() const
-    {
-        return "local messaging connection to " + _consumer->getName();
     }
 
     virtual std::string transportType() const

@@ -53,12 +53,6 @@ namespace bulkio {
     }
 
     template <typename PortType>
-    std::string LocalTransport<PortType>::getDescription() const
-    {
-        return "local BulkIO connection to " + _localPort->getName();
-    }
-
-    template <typename PortType>
     std::string LocalTransport<PortType>::transportType() const
     {
         return "local";

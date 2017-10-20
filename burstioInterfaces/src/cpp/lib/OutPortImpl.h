@@ -76,11 +76,6 @@ namespace burstio {
         {
         }
 
-        virtual std::string getDescription() const
-        {
-            return "CORBA BurstIO transport";
-        }
-
         virtual std::string transportType() const
         {
             return "CORBA";
@@ -156,11 +151,6 @@ namespace burstio {
             super(parent),
             localPort_(localPort)
         {
-        }
-
-        virtual std::string getDescription() const
-        {
-            return "local BurstIO connection to " + localPort_->getName();
         }
 
         virtual std::string transportType() const

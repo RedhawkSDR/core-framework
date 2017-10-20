@@ -97,8 +97,6 @@ namespace redhawk {
         UsesTransport(UsesPort* port);
         virtual ~UsesTransport() { }
 
-        virtual std::string getDescription() const;
-
         bool isAlive() const;
         void setAlive(bool alive);
 

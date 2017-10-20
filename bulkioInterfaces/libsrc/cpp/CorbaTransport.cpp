@@ -42,11 +42,6 @@ namespace bulkio {
         {
         }
 
-        virtual std::string getDescription() const
-        {
-            return "CORBA BulkIO transport";
-        }
-
         virtual std::string transportType() const
         {
             return "CORBA";
