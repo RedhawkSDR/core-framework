@@ -111,16 +111,16 @@ namespace redhawk {
             // Acquire the state lock before modifying the container
             boost::mutex::scoped_lock lock(updatingPortsLock);
 
-            ConnectionList::iterator entry = _findConnection(connection_id);
-            if (entry == _connections.end()) {
-                Connection* connection = _createConnection(object, connection_id);
-                _connections.push_back(connection);
-
-                RH_DEBUG(logger, "Using " << connection->transport->getDescription()
-                         << " for connection '" << connection_id << "'");
-            } else {
-                // TODO: Replace the object reference, or throw an exception?
+            // Prevent duplicate connection IDs
+            if (_findConnection(connection_id) != _connections.end()) {
+                throw CF::Port::OccupiedPort();
             }
+
+            Connection* connection = _createConnection(object, connection_id);
+            _connections.push_back(connection);
+
+            RH_DEBUG(logger, "Using " << connection->transport->getDescription()
+                     << " for connection '" << connection_id << "'");
 
             active = true;
         }
