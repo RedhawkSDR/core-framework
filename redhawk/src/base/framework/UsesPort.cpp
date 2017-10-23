@@ -404,28 +404,33 @@ namespace redhawk {
             return 0;
         }
 
-        // A negotiated connection was established, but can still be canceled
-        // below. The connection object is created now to ensure that if that
-        // happens, the connection is undone.
-        const std::string transport_id(result->transportId);
-        NegotiatedConnection* connection = new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
-
         // Perform any final negotiation steps based on the results. This is
         // the transport layer's last chance to reject the connection if there
         // is some aspect of the provides side's properties it doesn't like.
+        const std::string transport_id(result->transportId);
         try {
             manager->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
+
+            // On success, it's safe to return now
+            return new NegotiatedConnection(connectionId, negotiablePort, transport_id, transport);
         } catch (const std::exception& exc) {
             RH_ERROR(logger, "Error completing transport '" << transport_type << "' connection: "
                      << exc.what());
-            delete connection;
-            return 0;
         } catch (...) {
             RH_ERROR(logger, "Unknown error completing transport '" << transport_type << "' connection");
-            delete connection;
-            return 0;
         }
-        return connection;
+
+        // Clean up the failed transport negotiation, which is still registered
+        // on the provides end.
+        try {
+            RH_DEBUG(logger, "Undoing failed negotiation for transport '" << transport_type << "'");
+            negotiablePort->disconnectTransport(transport_id.c_str());
+        } catch (const CORBA::Exception& exc) {
+            RH_ERROR(logger, "Error undoing failed negotiation for transport '" << transport_type << "': "
+                     << ossie::corba::describeException(exc));
+        }
+        delete transport;
+        return 0;
     }
 
 }
