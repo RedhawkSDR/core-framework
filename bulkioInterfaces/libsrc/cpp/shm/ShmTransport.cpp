@@ -40,7 +40,7 @@ namespace bulkio {
 
         ShmTransport(OutPort<PortType>* parent, PtrType port) :
             OutputTransport<PortType>(parent, port),
-            _fifo(new IPCFifoServer(parent->getName() + "-fifo"))
+            _fifo(new IPCFifoServer(_makeFifoName(parent)))
         {
             _fifo->beginConnect();
         }
@@ -48,11 +48,6 @@ namespace bulkio {
         ~ShmTransport()
         {
             delete _fifo;
-        }
-
-        virtual std::string getDescription() const
-        {
-            return "shared memory BulkIO connection";
         }
 
         virtual std::string transportType() const
@@ -82,6 +77,17 @@ namespace bulkio {
         }
 
     protected:
+        std::string _makeFifoName(OutPort<PortType>* parent)
+        {
+            // Generate a unique name for the FIFOs for this connection using
+            // the process ID and the address of the new transport object (as a
+            // hex number). There can only be one object at a given address at
+            // a time in a single process, so there can be no name collisions.
+            std::ostringstream oss;
+            oss << "fifo-" << getpid() << '-' << std::hex << (size_t) this;
+            return oss.str();
+        }
+
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
