@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <stdexcept>
 
+#include <boost/thread.hpp>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -46,6 +48,7 @@ void IPCFifo::write(const void* data, size_t bytes)
 {
     size_t total = 0;
     while (total < bytes) {
+        boost::this_thread::interruption_point();
         ssize_t pass = ::write(_sendfd, data, bytes);
         if (pass <= 0) {
             if (pass < 0) {
@@ -60,6 +63,7 @@ void IPCFifo::write(const void* data, size_t bytes)
 
 size_t IPCFifo::read(void* buffer, size_t bytes)
 {
+    boost::this_thread::interruption_point();
     ssize_t count = ::read(_recvfd, buffer, bytes);
     if (count < 0) {
         perror("read");
