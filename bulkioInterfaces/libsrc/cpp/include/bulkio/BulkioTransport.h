@@ -37,13 +37,7 @@ namespace bulkio {
     class OutputTransport : public redhawk::UsesTransport
     {
     public:
-        typedef OutPort<PortType> OutPortType;
-        typedef typename PortType::_var_type VarType;
-        typedef typename PortType::_ptr_type PtrType;
-        typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
-
-        OutputTransport(OutPortType* port, PtrType objref);
 
         virtual ~OutputTransport();
 
@@ -60,6 +54,13 @@ namespace bulkio {
         BULKIO::PortStatistics getStatistics();
 
     protected:
+        typedef OutPort<PortType> OutPortType;
+        typedef typename PortType::_ptr_type PtrType;
+        typedef typename PortType::_var_type VarType;
+        typedef typename NativeTraits<PortType>::NativeType NativeType;
+
+        OutputTransport(OutPortType* port, PtrType objref);
+
         virtual void _pushSRI(const BULKIO::StreamSRI& sri) = 0;
 
         virtual void _sendPacket(const BufferType& data,
@@ -94,11 +95,9 @@ namespace bulkio {
     template <class PortType>
     class InputTransport : public redhawk::ProvidesTransport
     {
-    public:
-        typedef InPort<PortType> InPortType;
-
     protected:
-        typedef typename InPortType::BufferType BufferType;
+        typedef InPort<PortType> InPortType;
+        typedef typename BufferTraits<PortType>::BufferType BufferType;
 
         InputTransport(InPortType* port, const std::string& transportId);
 
@@ -114,14 +113,14 @@ namespace bulkio {
     class OutputManager : public redhawk::UsesTransportManager
     {
     public:
-        typedef OutPort<PortType> OutPortType;
-        typedef OutputTransport<PortType> TransportType;
         typedef typename PortType::_ptr_type PtrType;
 
-        virtual TransportType* createOutputTransport(PtrType object, 
-                                                     const std::string& connectionId,
-                                                     const redhawk::PropertyMap& properties) = 0;
+        virtual OutputTransport<PortType>* createOutputTransport(PtrType object, 
+                                                                 const std::string& connectionId,
+                                                                 const redhawk::PropertyMap& properties) = 0;
     protected:
+        typedef OutPort<PortType> OutPortType;
+
         OutputManager(OutPortType* port);
 
         OutPortType* _port;
@@ -135,12 +134,12 @@ namespace bulkio {
     template <class PortType>
     class InputManager : public redhawk::ProvidesTransportManager
     {
-        typedef InPort<PortType> InPortType;
-        typedef InputTransport<PortType> TransportType;
-
-        virtual TransportType* createInputTransport(const std::string& transportId,
-                                                    const redhawk::PropertyMap& properties) = 0;
+    public:
+        virtual InputTransport<PortType>* createInputTransport(const std::string& transportId,
+                                                               const redhawk::PropertyMap& properties) = 0;
     protected:
+        typedef InPort<PortType> InPortType;
+
         InputManager(InPortType* port);
 
         InPortType* _port;
