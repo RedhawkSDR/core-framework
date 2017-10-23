@@ -399,7 +399,7 @@ namespace redhawk {
         try {
             result = negotiablePort->negotiateTransport(transport_type.c_str(), negotiation_props);
         } catch (const ExtendedCF::NegotiationError& exc) {
-            RH_ERROR(logger, "Error negotiating transport '" << transport_type << ": " << exc.msg);
+            RH_ERROR(logger, "Error negotiating transport '" << transport_type << "': " << exc.msg);
             delete transport;
             return 0;
         }

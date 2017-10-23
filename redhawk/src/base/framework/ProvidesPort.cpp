@@ -104,8 +104,16 @@ namespace redhawk {
         const redhawk::PropertyMap& transport_props = redhawk::PropertyMap::cast(transportProperties);
 
         // Ask the manager to create a transport instance; if for any reason it
-        // doesn't want to (e.g., bad properties), it should return null.
-        ProvidesTransport* transport = manager->createProvidesTransport(transport_id, transport_props);
+        // doesn't want to (e.g., bad properties), it should throw an exception
+        // (preferably some form of TransportError).
+        ProvidesTransport* transport;
+        try {
+            transport = manager->createProvidesTransport(transport_id, transport_props);
+        } catch (const std::exception& exc) {
+            throw ExtendedCF::NegotiationError(exc.what());
+        }
+
+        // An exception is preferred, but handle null as well.
         if (!transport) {
             std::string message = "cannot create provides transport type '" + std::string(transportType) + "'";
             throw ExtendedCF::NegotiationError(message.c_str());
