@@ -1,23 +1,23 @@
 #include "ShmInputTransport.h"
-#include "ipcfifo.h"
 #include "MessageBuffer.h"
 #include "bulkio_p.h"
 
 namespace bulkio {
 
     template <class PortType>
-    ShmInputTransport<PortType>::ShmInputTransport(InPortType* port, const std::string& transportId, IPCFifo* fifo) :
+    ShmInputTransport<PortType>::ShmInputTransport(InPortType* port, const std::string& transportId,
+                                                   const std::string& writePath) :
         InputTransport<PortType>(port, transportId),
         _running(false),
-        _fifo(fifo)
+        _fifo()
     {
+        _fifo.connect(writePath);
     }
 
     template <class PortType>
     ShmInputTransport<PortType>::~ShmInputTransport()
     {
-        _fifo->close();
-        delete _fifo;
+        _fifo.disconnect();
 
         // The HeapClient is automatically detached by its destructor, ensuring
         // that any heap(s) it was attached to can be cleaned up
@@ -52,6 +52,12 @@ namespace bulkio {
     }
 
     template <class PortType>
+    const std::string& ShmInputTransport<PortType>::getFifoName() const
+    {
+        return _fifo.name();
+    }
+
+    template <class PortType>
     bool ShmInputTransport<PortType>::_isRunning()
     {
         boost::mutex::scoped_lock lock(_mutex);
@@ -61,7 +67,7 @@ namespace bulkio {
     template <class PortType>
     void ShmInputTransport<PortType>::_run()
     {
-        _fifo->finishConnect();
+        _fifo.sync();
 
         while (_isRunning()) {
             if (!_receiveMessage()) {
@@ -78,7 +84,7 @@ namespace bulkio {
         std::string streamID;
 
         MessageBuffer msg(512);
-        size_t msg_length = _fifo->read(msg.buffer(), msg.size());
+        size_t msg_length = _fifo.read(msg.buffer(), msg.size());
         if (msg_length == 0) {
             return false;
         }
@@ -135,7 +141,7 @@ namespace bulkio {
 
         // Send response back
         size_t status = 0;
-        _fifo->write(&status, sizeof(size_t));
+        _fifo.write(&status, sizeof(size_t));
 
         return true;
     }

@@ -9,7 +9,7 @@
 #include <BulkioTransport.h>
 #include <bulkio_in_port.h>
 
-#include "ipcfifo.h"
+#include "FifoIPC.h"
 
 namespace bulkio {
 
@@ -19,13 +19,15 @@ namespace bulkio {
         typedef InPort<PortType> InPortType;
         typedef typename NativeTraits<PortType>::NativeType NativeType;
 
-        ShmInputTransport(InPortType* port, const std::string& transportId, IPCFifo* fifo);
+        ShmInputTransport(InPortType* port, const std::string& transportId, const std::string& writePath);
         ~ShmInputTransport();
 
         virtual std::string transportType() const;
 
         virtual void startTransport();
         virtual void stopTransport();
+
+        const std::string& getFifoName() const;
 
     protected:
         void _run();
@@ -36,7 +38,7 @@ namespace bulkio {
         volatile bool _running;
         boost::mutex _mutex;
         boost::thread _thread;
-        IPCFifo* _fifo;
+        FifoEndpoint _fifo;
         redhawk::shm::HeapClient _heapClient;
     };
 }

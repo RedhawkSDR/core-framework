@@ -23,7 +23,6 @@
 #include <ossie/PropertyMap.h>
 #include <ossie/ProvidesPort.h>
 
-#include "ipcfifo.h"
 #include "ShmInputTransport.h"
 
 namespace bulkio {
@@ -31,6 +30,8 @@ namespace bulkio {
     template <typename PortType>
     class ShmInputManager : public InputManager<PortType> {
     public:
+        typedef ShmInputTransport<PortType> InputTransportType;
+
         ShmInputManager(InPort<PortType>* port) :
             InputManager<PortType>(port)
         {
@@ -52,22 +53,29 @@ namespace bulkio {
             return properties;
         }
 
-        ShmInputTransport<PortType>* createInputTransport(const std::string& transportId,
-                                                          const redhawk::PropertyMap& properties)
+        InputTransportType* createInputTransport(const std::string& transportId,
+                                                       const redhawk::PropertyMap& properties)
         {
             if (!properties.contains("fifo")) {
-                throw ExtendedCF::NegotiationError("Invalid properties for shared memory connection");
+                throw redhawk::FatalTransportError("invalid properties for shared memory connection");
             }
             const std::string location = properties["fifo"].toString();
-            IPCFifo* fifo = new IPCFifoClient(location);
             try {
-                fifo->beginConnect();
+                return new ShmInputTransport<PortType>(this->_port, transportId, location);
             } catch (const std::exception& exc) {
-                delete fifo;
-                std::string message = "Failed to connect to FIFO " + location;
-                throw ExtendedCF::NegotiationError(message.c_str());
+                throw redhawk::FatalTransportError("failed to connect to FIFO " + location);
             }
-            return new ShmInputTransport<PortType>(this->_port, transportId, fifo);
+        }
+
+        virtual redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport)
+        {
+            InputTransportType* transport = dynamic_cast<InputTransportType*>(providesTransport);
+            if (!transport) {
+                throw std::logic_error("invalid provides transport instance");
+            }
+            redhawk::PropertyMap properties;
+            properties["fifo"] = transport->getFifoName();
+            return properties;
         }
     };
 }

@@ -20,7 +20,7 @@
 
 #include "ShmTransport.h"
 #include "ShmProvidesTransport.h"
-#include "ipcfifo.h"
+#include "FifoIPC.h"
 #include "MessageBuffer.h"
 
 #include <bulkio_in_port.h>
@@ -40,14 +40,12 @@ namespace bulkio {
 
         ShmTransport(OutPort<PortType>* parent, PtrType port) :
             OutputTransport<PortType>(parent, port),
-            _fifo(new IPCFifoServer(_makeFifoName(parent)))
+            _fifo()
         {
-            _fifo->beginConnect();
         }
 
         ~ShmTransport()
         {
-            delete _fifo;
         }
 
         virtual std::string transportType() const
@@ -62,32 +60,22 @@ namespace bulkio {
 
         const std::string& getFifoName()
         {
-            return _fifo->name();
+            return _fifo.name();
         }
 
-        void finishConnect()
+        void finishConnect(const std::string& filename)
         {
-            _fifo->finishConnect();
+            _fifo.connect(filename);
+            _fifo.sync();
         }
 
         virtual void disconnect()
         {
             OutputTransport<PortType>::disconnect();
-            _fifo->close();
+            _fifo.disconnect();
         }
 
     protected:
-        std::string _makeFifoName(OutPort<PortType>* parent)
-        {
-            // Generate a unique name for the FIFOs for this connection using
-            // the process ID and the address of the new transport object (as a
-            // hex number). There can only be one object at a given address at
-            // a time in a single process, so there can be no name collisions.
-            std::ostringstream oss;
-            oss << "fifo-" << getpid() << '-' << std::hex << (size_t) this;
-            return oss.str();
-        }
-
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
             try {
@@ -139,19 +127,19 @@ namespace bulkio {
             msg.write(streamID);
 
             try {
-                _fifo->write(msg.buffer(), msg.size());
+                _fifo.write(msg.buffer(), msg.size());
             } catch (const std::exception& exc) {
                 throw redhawk::FatalTransportError(exc.what());
             }
 
             size_t status;
-            if (_fifo->read(&status, sizeof(size_t)) != sizeof(size_t)) {
-                RH_NL_ERROR("ShmTransport", "Bad response");
+            if (_fifo.read(&status, sizeof(size_t)) != sizeof(size_t)) {
+                throw redhawk::FatalTransportError("bad response");
             }
         }
 
     private:
-        IPCFifo* _fifo;
+        FifoEndpoint _fifo;
     };
 
     template <typename PortType>
@@ -214,14 +202,20 @@ namespace bulkio {
 
     template <typename PortType>
     void ShmOutputManager<PortType>::setNegotiationResult(redhawk::UsesTransport* transport,
-                                                          const redhawk::PropertyMap&)
+                                                          const redhawk::PropertyMap& properties)
     {
         TransportType* shm_transport = dynamic_cast<TransportType*>(transport);
         if (!shm_transport) {
             throw std::logic_error("invalid transport type");
         }
 
-        shm_transport->finishConnect();
+        if (!properties.contains("fifo")) {
+            throw redhawk::FatalTransportError("invalid properties for shared memory connection");
+        }
+
+        std::string fifo_name = properties["fifo"].toString();
+        RH_NL_DEBUG("ShmTransport", "Connecting to provides port FIFO: " << fifo_name);
+        shm_transport->finishConnect(fifo_name);
     }
 
     template <typename PortType>

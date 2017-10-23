@@ -52,12 +52,12 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/CorbaTransport.cpp \
     cpp/LocalTransport.h \
     cpp/LocalTransport.cpp \
+    cpp/shm/FifoIPC.h \
+    cpp/shm/FifoIPC.cpp \
     cpp/shm/MessageBuffer.h \
     cpp/shm/ShmProvidesTransport.h \
     cpp/shm/ShmTransport.h \
     cpp/shm/ShmTransport.cpp \
-    cpp/shm/ipcfifo.h \
-    cpp/shm/ipcfifo.cpp \
     cpp/shm/ShmInputTransport.h \
     cpp/shm/ShmInputTransport.cpp
 
