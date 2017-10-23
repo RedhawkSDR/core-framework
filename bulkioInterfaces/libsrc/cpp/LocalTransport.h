@@ -37,7 +37,6 @@ namespace bulkio {
         LocalTransport(OutPort<PortType>* parent, LocalPortType* localPort, PtrType port);
         ~LocalTransport();
 
-        virtual std::string getDescription() const;
         virtual std::string transportType() const;
         virtual CF::Properties transportInfo() const;
 
