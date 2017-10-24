@@ -98,12 +98,16 @@ namespace bulkio {
         msg.resize(msg_length);
 
         std::string message_name;
-        msg.read(message_name);
-        if (message_name == "pushPacket") {
-            _receivePushPacket(msg);
-        } else {
-            // Unknown message type, send error response back
-            RH_NL_ERROR("ShmTransport", "Invalid message type '" << message_name << "'");
+        try {
+            msg.read(message_name);
+            if (message_name == "pushPacket") {
+                _receivePushPacket(msg);
+            } else {
+                // Unknown message type, send error response back
+                throw std::logic_error("invalid message type");
+            }
+        } catch (const std::exception& exc) {
+            RH_NL_ERROR("ShmTransport", "Error handling message '" << message_name << "': " << exc.what());
             size_t status = 1;
             _fifo.write(&status, sizeof(size_t));
         }
@@ -114,13 +118,10 @@ namespace bulkio {
     template <class PortType>
     void ShmInputTransport<PortType>::_receivePushPacket(MessageBuffer& msg)
     {
-        BULKIO::PrecisionUTCTime T;
-        bool EOS;
-        std::string streamID;
-
-        redhawk::buffer<NativeType> buffer;
         size_t count;
         msg.read(count);
+
+        redhawk::buffer<NativeType> buffer;
         if (count > 0) {
             redhawk::shm::MemoryRef ref;
             msg.read(ref.heap);
@@ -158,8 +159,14 @@ namespace bulkio {
                 }
             }
         }
+
+        BULKIO::PrecisionUTCTime T;
         msg.read(T);
+
+        bool EOS;
         msg.read(EOS);
+
+        std::string streamID;
         msg.read(streamID);
         if (msg.offset() < msg.size()) {
             std::cerr << "Message bytes left over" << std::endl;

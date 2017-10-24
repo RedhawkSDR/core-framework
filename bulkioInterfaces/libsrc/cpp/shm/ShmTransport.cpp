@@ -131,19 +131,26 @@ namespace bulkio {
             msg.write(EOS);
             msg.write(streamID);
 
+            _sendMessage(msg);
+        }
+
+    private:
+        void _sendMessage(const MessageBuffer& message)
+        {
             try {
-                _fifo.write(msg.buffer(), msg.size());
+                _fifo.write(message.buffer(), message.size());
             } catch (const std::exception& exc) {
                 throw redhawk::FatalTransportError(exc.what());
             }
 
             size_t status;
             if (_fifo.read(&status, sizeof(size_t)) != sizeof(size_t)) {
-                throw redhawk::FatalTransportError("bad response");
+                throw redhawk::FatalTransportError("failed to read response");
+            } else if (status != 0) {
+                throw redhawk::TransportError("call failed");
             }
         }
 
-    private:
         FifoEndpoint _fifo;
     };
 

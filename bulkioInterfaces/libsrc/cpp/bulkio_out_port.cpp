@@ -211,6 +211,8 @@ namespace bulkio {
                 LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
                 transport->setAlive(false);
+            } catch (const redhawk::TransportError& err) {
+                LOG_ERROR(logger, "pushPacket error on connection '" << connection_id << "': " << err.what());
             }
         }
     }

@@ -17,6 +17,11 @@ namespace bulkio {
             return &_data[0];
         }
 
+        const char* buffer() const
+        {
+            return &_data[0];
+        }
+
         size_t size() const
         {
             return _data.size();
