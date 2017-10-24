@@ -51,6 +51,8 @@ namespace bulkio {
         void setFlags(int flags);
         void clearFlags(int flags);
 
+        bool poll(int events, int timeout);
+
         size_t read(void* buffer, size_t bytes);
         void write(const void* data, size_t bytes);
 
@@ -66,7 +68,7 @@ namespace bulkio {
         const std::string& name() const;
 
         void connect(const std::string& name);
-        void sync();
+        void sync(int timeout);
 
         size_t read(void* buffer, size_t bytes);
         void write(const void* data, size_t bytes);

@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 
 namespace bulkio {
 
@@ -116,6 +117,15 @@ namespace bulkio {
         }
     }
 
+    bool Pipe::poll(int events, int timeout)
+    {
+        struct pollfd pfd;
+        pfd.fd = _fd;
+        pfd.events = events;
+
+        return ::poll(&pfd, 1, timeout) == 1;
+    }
+
     size_t Pipe::read(void* buffer, size_t bytes)
     {
         boost::this_thread::interruption_point();
@@ -174,14 +184,19 @@ namespace bulkio {
         write(&token, sizeof(token));
     }
 
-    void FifoEndpoint::sync()
+    void FifoEndpoint::sync(int timeout)
     {
+        if (!_read.poll(POLLIN, timeout)) {
+            throw std::runtime_error("sync timed out");
+        }
+
         // Read the sync character. Even though the non-blocking flag has been
         // cleared, read may return immediately with no data, if the write side
         // has not been opened yet. Retrying the read until it returns data
         // ensures that the FIFO is fully connected.
         char token;
-        while (read(&token, sizeof(token)) == 0) {
+        if (read(&token, sizeof(token)) != sizeof(token)) {
+            throw std::runtime_error("read failed");
         }
 
         if (token != 'w') {

@@ -66,7 +66,10 @@ namespace bulkio {
         void finishConnect(const std::string& filename)
         {
             _fifo.connect(filename);
-            _fifo.sync();
+
+            // The provides side should have already opened its write end, so
+            // if the FIFO doesn't sync immediately, something is wrong.
+            _fifo.sync(0);
         }
 
         virtual void disconnect()

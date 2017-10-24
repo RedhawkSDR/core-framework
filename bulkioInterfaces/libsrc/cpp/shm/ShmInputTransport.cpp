@@ -67,7 +67,16 @@ namespace bulkio {
     template <class PortType>
     void ShmInputTransport<PortType>::_run()
     {
-        _fifo.sync();
+        // Give the FIFO up to a second to sychronize with the other side. This
+        // method is being run on a thread that gets started when the transport
+        // is negotiated, so the uses side may take a moment to receive the
+        // result and connect on its end.
+        try {
+            _fifo.sync(1000);
+        } catch (const std::exception& exc) {
+            RH_NL_ERROR("ShmTransport", "Synchronization failed on BulkIO input transport: " << exc.what());
+            return;
+        }
 
         while (_isRunning()) {
             if (!_receiveMessage()) {
