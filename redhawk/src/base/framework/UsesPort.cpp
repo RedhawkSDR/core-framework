@@ -422,6 +422,7 @@ namespace redhawk {
 
         // Clean up the failed transport negotiation, which is still registered
         // on the provides end.
+        delete transport;
         try {
             RH_DEBUG(logger, "Undoing failed negotiation for transport '" << transport_type << "'");
             negotiablePort->disconnectTransport(transport_id.c_str());
@@ -429,7 +430,6 @@ namespace redhawk {
             RH_ERROR(logger, "Error undoing failed negotiation for transport '" << transport_type << "': "
                      << ossie::corba::describeException(exc));
         }
-        delete transport;
         return 0;
     }
 
