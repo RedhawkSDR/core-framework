@@ -62,7 +62,12 @@ void SuperblockFile::close()
     }
 
     if (_header->refcount.decrement() == 0) {
-        _file.unlink();
+        try {
+            _file.unlink();
+        } catch (const std::exception&) {
+            // Ignore exception--someone may have already forcibly removed the
+            // file, but that's not a problem here.
+        }
     }
 
     _file.close();
