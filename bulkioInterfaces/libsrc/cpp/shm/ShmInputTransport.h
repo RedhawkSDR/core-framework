@@ -13,6 +13,8 @@
 
 namespace bulkio {
 
+    class MessageBuffer;
+
     template <typename PortType>
     class ShmInputTransport : public InputTransport<PortType> {
     public:
@@ -34,6 +36,8 @@ namespace bulkio {
 
         bool _isRunning();
         bool _receiveMessage();
+
+        void _receivePushPacket(MessageBuffer& msg);
 
         volatile bool _running;
         boost::mutex _mutex;

@@ -88,16 +88,35 @@ namespace bulkio {
     template <class PortType>
     bool ShmInputTransport<PortType>::_receiveMessage()
     {
-        BULKIO::PrecisionUTCTime T;
-        bool EOS;
-        std::string streamID;
-
-        MessageBuffer msg(512);
+        // FIFOs allow up to 16K in a single write, though BulkIO messages are
+        // not that large at present.
+        MessageBuffer msg(16384);
         size_t msg_length = _fifo.read(msg.buffer(), msg.size());
         if (msg_length == 0) {
             return false;
         }
         msg.resize(msg_length);
+
+        std::string message_name;
+        msg.read(message_name);
+        if (message_name == "pushPacket") {
+            _receivePushPacket(msg);
+        } else {
+            // Unknown message type, send error response back
+            RH_NL_ERROR("ShmTransport", "Invalid message type '" << message_name << "'");
+            size_t status = 1;
+            _fifo.write(&status, sizeof(size_t));
+        }
+
+        return true;
+    }
+
+    template <class PortType>
+    void ShmInputTransport<PortType>::_receivePushPacket(MessageBuffer& msg)
+    {
+        BULKIO::PrecisionUTCTime T;
+        bool EOS;
+        std::string streamID;
 
         redhawk::buffer<NativeType> buffer;
         size_t count;
@@ -151,8 +170,6 @@ namespace bulkio {
         // Send response back
         size_t status = 0;
         _fifo.write(&status, sizeof(size_t));
-
-        return true;
     }
 
 

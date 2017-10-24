@@ -61,13 +61,23 @@ namespace bulkio {
 
         void write(const std::string& val)
         {
-            write(val.size());
-            size_t offset = _data.size();
-            _data.resize(offset + val.size());
-            strncpy(&_data[offset], val.data(), val.size());
+            _writeString(val.size(), val.data());
+        }
+
+        void write(const char* val)
+        {
+            _writeString(strlen(val), val);
         }
 
     private:
+        inline void _writeString(size_t length, const char* data)
+        {
+            write(length);
+            size_t offset = _data.size();
+            _data.resize(offset + length);
+            strncpy(&_data[offset], data, length);
+        }
+
         inline void _checkRead(size_t bytes)
         {
             if ((_offset + bytes) > _data.size()) {

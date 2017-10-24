@@ -94,6 +94,8 @@ namespace bulkio {
                                  const std::string& streamID)
         {
             MessageBuffer msg;
+            msg.write("pushPacket");
+
             msg.write(data.size());
 
             // Temporary buffer to ensure that if a copy is made, it gets
