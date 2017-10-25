@@ -85,7 +85,18 @@ namespace bulkio {
     template <typename PortType>
     BULKIO::PortStatistics OutputTransport<PortType>::getStatistics()
     {
-        return _stats.retrieve();
+        BULKIO::PortStatistics statistics = _stats.retrieve();
+
+        // Use our own stream tracking to fill in the statistics stream IDs
+        statistics.streamIDs.length(0);
+        for (VersionMap::iterator stream = _sriVersions.begin(); stream != _sriVersions.end(); ++stream) {
+            ossie::corba::push_back(statistics.streamIDs, stream->first.c_str());
+        }
+
+        // Add extended statistics from subclasses to the keywords
+        ossie::corba::extend(statistics.keywords, _getExtendedStatistics());
+
+        return statistics;
     }
 
     template <typename PortType>
@@ -103,6 +114,12 @@ namespace bulkio {
     void OutputTransport<PortType>::_recordPush(const std::string& streamID, size_t elements, bool endOfStream)
     {
         _stats.update(elements, 0.0, endOfStream, streamID);
+    }
+
+    template <typename PortType>
+    redhawk::PropertyMap OutputTransport<PortType>::_getExtendedStatistics()
+    {
+        return redhawk::PropertyMap();
     }
 
     template <typename PortType>

@@ -233,6 +233,7 @@ namespace bulkio {
           BULKIO::UsesPortStatistics stat;
           stat.connectionId = connection.connectionId().c_str();
           stat.statistics = connection.transport()->getStatistics();
+          stat.statistics.portName = name.c_str();
           ossie::corba::push_back(recStat, stat);
       }
       return recStat._retn();

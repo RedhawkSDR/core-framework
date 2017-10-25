@@ -23,6 +23,8 @@
 #include "FifoIPC.h"
 #include "MessageBuffer.h"
 
+#include <numeric>
+
 #include <bulkio_in_port.h>
 #include <bulkio_out_port.h>
 
@@ -76,6 +78,15 @@ namespace bulkio {
         {
             OutputTransport<PortType>::disconnect();
             _fifo.disconnect();
+        }
+
+        double getCopyRate()
+        {
+            if (_copyStats.empty()) {
+                return 0.0;
+            }
+            size_t copies = std::accumulate(_copyStats.begin(), _copyStats.end(), 0);
+            return  copies * 100.0 / _copyStats.size();
         }
 
     protected:
@@ -132,9 +143,26 @@ namespace bulkio {
             msg.write(streamID);
 
             _sendMessage(msg);
+
+            _recordExtendedStatistics(!copy.empty());
+        }
+
+        virtual redhawk::PropertyMap _getExtendedStatistics()
+        {
+            redhawk::PropertyMap statistics;
+            statistics["shm::copy_rate"] = getCopyRate();
+            return statistics;
         }
 
     private:
+        void _recordExtendedStatistics(bool copied)
+        {
+            _copyStats.push_back(copied);
+            if (_copyStats.size() > 10) {
+                _copyStats.pop_front();
+            }
+        }
+
         void _sendMessage(const MessageBuffer& message)
         {
             try {
@@ -152,6 +180,8 @@ namespace bulkio {
         }
 
         FifoEndpoint _fifo;
+
+        std::deque<bool> _copyStats;
     };
 
     template <typename PortType>

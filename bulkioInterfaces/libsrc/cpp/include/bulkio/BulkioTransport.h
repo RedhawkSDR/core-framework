@@ -76,6 +76,8 @@ namespace bulkio {
 
         void _recordPush(const std::string& streamID, size_t elements, bool endOfStream);
 
+        virtual redhawk::PropertyMap _getExtendedStatistics();
+
         //
         // Returns the total number of elements of data in a pushPacket call, for
         // statistical tracking; enables XML and File specialization, which have
