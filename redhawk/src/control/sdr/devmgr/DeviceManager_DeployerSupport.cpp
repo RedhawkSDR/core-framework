@@ -218,9 +218,8 @@ void DeviceManager_impl::createDeviceThread(
         // all conditions are met for a persona    
         // Load shared library into device using load mechanism
         std::string execDevId = ossie::corba::returnString(execDevice->identifier());
-        CF::FileManager_var dm_filemgr = _dmnMgr->fileMgr();
         LOG_DEBUG(DeviceManager_impl, "Loading '" << codeFilePath << "' to parent device: " << execDevId );
-        execDevice->load(dm_filemgr, codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
+        execDevice->load(_fileSys, codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
         LOG_DEBUG(DeviceManager_impl, "Load complete on device: " << execDevId);
        
         const std::string realCompType = "device";

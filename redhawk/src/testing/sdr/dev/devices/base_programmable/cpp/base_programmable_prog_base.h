@@ -1,41 +1,10 @@
-/*#
- * This file is protected by Copyright. Please refer to the COPYRIGHT file 
- * distributed with this source distribution.
- * 
- * This file is part of REDHAWK core.
- * 
- * REDHAWK core is free software: you can redistribute it and/or modify it 
- * under the terms of the GNU Lesser General Public License as published by the 
- * Free Software Foundation, either version 3 of the License, or (at your 
- * option) any later version.
- * 
- * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
- * for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License 
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- #*/
-/*{% block license %}*/
-/*# Allow child templates to include license #*/
-/*{% endblock %}*/
-//% set className = component.reprogclass.name
-//% set baseClass = component.baseclass.name
-//% set includeGuard = className.upper() + '_IMPL_REPROG_H'
-//% set executesHWComponents = component.executesHWComponents 
-//% set executesPersonaDevices = not executesHWComponents
-//% set executeType = "resource" if executesHWComponents else "persona"
-//% set executeClass = "Resource_impl" if executesHWComponents else "Device_impl"
-#ifndef ${includeGuard}
-#define ${includeGuard}
+#ifndef BASE_PROGRAMMABLE_PROG_BASE_IMPL_REPROG_H
+#define BASE_PROGRAMMABLE_PROG_BASE_IMPL_REPROG_H
 
-#include "${component.baseclass.header}"
-/*{% if component is device %}*/
+#include "base_programmable_base.h"
 #include "ossie/prop_helpers.h"
 #include "entry_point.h"
 #include <dlfcn.h>
-/*{% endif %}*/
 
 
 namespace HW_LOAD {
@@ -61,7 +30,7 @@ namespace HW_LOAD {
     };
 
     static std::string getId() {
-        return std::string("hw_load_status");
+        return std::string("hw_load_request");
     };
 
     std::string request_id;
@@ -84,16 +53,16 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
     if (!(a >>= temp)) return false;
     CF::Properties& props = *temp;
     for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("hw_load_request::request_id", props[idx].id)) {
+        if (!strcmp("request_id", props[idx].id)) {
             if (!(props[idx].value >>= s.request_id)) return false;
         }
-        if (!strcmp("hw_load_request::requester_id", props[idx].id)) {
+        if (!strcmp("requester_id", props[idx].id)) {
             if (!(props[idx].value >>= s.requester_id)) return false;
         }
-        if (!strcmp("hw_load_request::hardware_id", props[idx].id)) {
+        if (!strcmp("hardware_id", props[idx].id)) {
             if (!(props[idx].value >>= s.hardware_id)) return false;
         }
-        if (!strcmp("hw_load_request:load_filepath", props[idx].id)) {
+        if (!strcmp("load_filepath", props[idx].id)) {
             if (!(props[idx].value >>= s.load_filepath)) return false;
         }
     }
@@ -103,76 +72,31 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
 inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_request_struct& s) {
     CF::Properties props;
     props.length(4);
-    props[0].id = CORBA::string_dup("hw_load_request::request_id");
+    props[0].id = CORBA::string_dup("request_id");
     props[0].value <<= s.request_id;
-    props[1].id = CORBA::string_dup("hw_load_request::requester_id");
+    props[1].id = CORBA::string_dup("requester_id");
     props[1].value <<= s.requester_id;
-    props[2].id = CORBA::string_dup("hw_load_request::hardware_id");
+    props[2].id = CORBA::string_dup("hardware_id");
     props[2].value <<= s.hardware_id;
-    props[3].id = CORBA::string_dup("hw_load_request::load_filepath");
+    props[3].id = CORBA::string_dup("load_filepath");
     props[3].value <<= s.load_filepath;
     a <<= props;
 };
 
-
-
-inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_status_struct& s) {
-    CF::Properties* temp;
-    if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("hw_load_status::request_id", props[idx].id)) {
-            if (!(props[idx].value >>= s.request_id)) return false;
-        }
-        if (!strcmp("hw_load_status::requester_id", props[idx].id)) {
-            if (!(props[idx].value >>= s.requester_id)) return false;
-        }
-        if (!strcmp("hw_load_status::hardware_id", props[idx].id)) {
-            if (!(props[idx].value >>= s.hardware_id)) return false;
-        }
-        if (!strcmp("hw_load_status:load_filepath", props[idx].id)) {
-            if (!(props[idx].value >>= s.load_filepath)) return false;
-        }
-        if (!strcmp("hw_load_status:state", props[idx].id)) {
-            if (!(props[idx].value >>= s.state)) return false;
-        }
-    }
-    return true;
-};
-
-inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_status_struct& s) {
-    CF::Properties props;
-    props.length(4);
-    props[0].id = CORBA::string_dup("hw_load_status::request_id");
-    props[0].value <<= s.request_id;
-    props[1].id = CORBA::string_dup("hw_load_status::requester_id");
-    props[1].value <<= s.requester_id;
-    props[2].id = CORBA::string_dup("hw_load_status::hardware_id");
-    props[2].value <<= s.hardware_id;
-    props[3].id = CORBA::string_dup("hw_load_status::load_filepath");
-    props[3].value <<= s.load_filepath;
-    props[3].id = CORBA::string_dup("hw_load_status::state");
-    props[3].value <<= s.state;
-    a <<= props;
-};
-
-
-/*{% if component is device %}*/
-typedef std::string ${executeType.capitalize()}Id;
-typedef std::map<${executeType.capitalize()}Id, ${executeClass}*> ${executeType.capitalize()}Map;
-typedef std::map<unsigned int, ${executeType.capitalize()}Id> ProcessMap;
-typedef ${executeType.capitalize()}Map::iterator ${executeType.capitalize()}MapIter;
+typedef std::string PersonaId;
+typedef std::map<PersonaId, Device_impl*> PersonaMap;
+typedef std::map<unsigned int, PersonaId> ProcessMap;
+typedef PersonaMap::iterator PersonaMapIter;
 typedef ProcessMap::iterator ProcessMapIter;
 typedef std::vector<std::string> StrVec;
-/*{% endif %}*/
 
 
 template <typename HW_LOAD_REQUEST=HW_LOAD::default_hw_load_request_struct, 
           typename HW_LOAD_STATUS=HW_LOAD::default_hw_load_status_struct>
-class ${className};
+class base_programmable_prog_base;
 
 template <typename HW_LOAD_REQUEST, typename HW_LOAD_STATUS>
-class ${className} : public ${baseClass}
+class base_programmable_prog_base : public base_programmable_base
 {
     ENABLE_LOGGING;
 
@@ -182,52 +106,45 @@ class ${className} : public ${baseClass}
         typedef HW_LOAD_STATUS  HwLoadStatusStruct;
         typedef std::vector<HwLoadRequestStruct> HwLoadRequestVec;
         typedef std::vector<HwLoadStatusStruct> HwLoadStatusVec;
-        typedef ${className}<HW_LOAD_REQUEST BOOST_PP_COMMA()
-                             HW_LOAD_STATUS> ${className}_type;
+        typedef base_programmable_prog_base<HW_LOAD_REQUEST BOOST_PP_COMMA()
+                             HW_LOAD_STATUS> base_programmable_prog_base_type;
 
-/*{% if component is not device %}*/
-        ${className}(const char *uuid, const char *label) :
-            ${baseClass}(uuid, label) 
-        {
-            construct(); 
-        }
-//% else
-        ${className} (
+        base_programmable_prog_base (
                                     char            *devMgr_ior,
                                     char            *id,
                                     char            *lbl,
                                     char            *sftwrPrfl )
         : 
-            ${baseClass}(devMgr_ior, id, lbl, sftwrPrfl)
+            base_programmable_base(devMgr_ior, id, lbl, sftwrPrfl)
         {
             construct();
         }
 
-        ${className} (
+        base_programmable_prog_base (
                                     char            *devMgr_ior,
                                     char            *id,
                                     char            *lbl,
                                     char            *sftwrPrfl,
                                     char            *compDev )
         :
-            ${baseClass}(devMgr_ior, id, lbl, sftwrPrfl, compDev)
+            base_programmable_base(devMgr_ior, id, lbl, sftwrPrfl, compDev)
         {
             construct();
         }
 
-        ${className} (
+        base_programmable_prog_base (
                                     char            *devMgr_ior, 
                                     char            *id, 
                                     char            *lbl, 
                                     char            *sftwrPrfl, 
                                     CF::Properties  capacities ) 
         :
-            ${baseClass}(devMgr_ior, id, lbl, sftwrPrfl, capacities)
+            base_programmable_base(devMgr_ior, id, lbl, sftwrPrfl, capacities)
         {
             construct();
         }
 
-        ${className} (
+        base_programmable_prog_base (
                                     char            *devMgr_ior,
                                     char            *id,
                                     char            *lbl,
@@ -235,27 +152,23 @@ class ${className} : public ${baseClass}
                                     CF::Properties  capacities,
                                     char            *compDev )
         :
-            ${baseClass}(devMgr_ior, id, lbl, sftwrPrfl, capacities, compDev)
+            base_programmable_base(devMgr_ior, id, lbl, sftwrPrfl, capacities, compDev)
         {
             construct();
         }
         
-/*{% endif %}*/
-        virtual ~${className}() {
+        virtual ~base_programmable_prog_base() {
             // Clean up all children that were executed
-            ${executeType.capitalize()}MapIter ${executeType}Iter;
-            for (${executeType}Iter = _${executeType}Map.begin(); ${executeType}Iter != _${executeType}Map.end(); ${executeType}Iter++) {
-                delete ${executeType}Iter->second;
+            PersonaMapIter personaIter;
+            for (personaIter = _personaMap.begin(); personaIter != _personaMap.end(); personaIter++) {
+                delete personaIter->second;
             }
         }
 
-/*{% if component is device %}*/
         void construct() {
-//% if executesPersonaDevices
             setUsageState(CF::Device::BUSY);
 
-//% endif
-            _${executeType}Map.clear();
+            _personaMap.clear();
             _processMap.clear();
             _processIdIncrement = 0;
 
@@ -280,15 +193,15 @@ class ${className} : public ${baseClass}
             bool isSharedLibrary = (loadKind == CF::LoadableDevice::SHARED_LIBRARY);
             bool existsOnDevFS   = _deviceManager->fileSys()->exists(fileName);
             
-            // For ${executeType} shared librariess that already reside on the dev file 
+            // For persona shared librariess that already reside on the dev file 
             // system, use the dev filesystem to copy into cache
             if (isSharedLibrary && existsOnDevFS) { 
                 fs = _deviceManager->fileSys();;
-                LOG_DEBUG(${className}, __FUNCTION__ << 
+                LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ << 
                     ": File-system switched to dev");
             }
 
-            ${baseClass}::load(fs, fileName, loadKind);
+            base_programmable_base::load(fs, fileName, loadKind);
         }
         
         CF::ExecutableDevice::ProcessID_Type execute (
@@ -304,30 +217,30 @@ class ${className} : public ${baseClass}
                 CF::Device::InvalidState, 
                 CORBA::SystemException )
         {
-            LOG_DEBUG(${className}, __FUNCTION__ << 
-                    ": Instantiating ${executeType} '" << name << "'... ");
+            LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ << 
+                    ": Instantiating persona '" << name << "'... ");
             
             // Initialize local variables
-            ${executeClass}* ${executeType} = NULL; 
-            std::string ${executeType}Id;
+            Device_impl* persona = NULL; 
+            std::string personaId;
 
             // Attempt to instantiate the object contained in the shared library
-            ${executeType} = instantiate${executeType.capitalize()}(name, options, parameters);
-            if (${executeType} == NULL) {
-                LOG_FATAL(${className}, __FUNCTION__ << 
+            persona = instantiatePersona(name, options, parameters);
+            if (persona == NULL) {
+                LOG_FATAL(base_programmable_prog_base, __FUNCTION__ << 
                     ": Unable to instantiate '" << name << "'");
                 throw (CF::ExecutableDevice::ExecuteFail());
             }
            
             // Grab the name from the instantiated object 
-            ${executeType}Id = ossie::corba::returnString(${executeType}->identifier());
+            personaId = ossie::corba::returnString(persona->identifier());
             
             // Save off the name-pid and name-object mappings
-            _${executeType}Map[${executeType}Id] = ${executeType};
-            _processMap[++_processIdIncrement] = ${executeType}Id;
+            _personaMap[personaId] = persona;
+            _processMap[++_processIdIncrement] = personaId;
 
-            LOG_DEBUG(${className}, __FUNCTION__ <<
-                    ": ${executeType.capitalize()} '" << ${executeType}Id << "' has been successfully instantiated");
+            LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ <<
+                    ": Persona '" << personaId << "' has been successfully instantiated");
 
             return _processIdIncrement;
         }
@@ -340,27 +253,26 @@ class ${className} : public ${baseClass}
         {
             // Initialize local variables
             ProcessMapIter processIter;
-            ${executeType.capitalize()}MapIter ${executeType}Iter;
-            ${executeType.capitalize()}Id ${executeType}Id;
+            PersonaMapIter personaIter;
+            PersonaId personaId;
 
-            // Search for the ${executeType}Id that related to the incoming terminate request
+            // Search for the personaId that related to the incoming terminate request
             processIter = _processMap.find(processId);
             if (processIter != _processMap.end()) {
 
-                /// Search for the ${executeType} that related to the found ${executeType}Id
-                ${executeType}Iter = _${executeType}Map.find(processIter->second);
-                if (${executeType}Iter != _${executeType}Map.end()) {
-/*{% if executesPersonaDevices %}*/
-                    ${executeType}Iter->second->setAdminState(CF::Device::UNLOCKED);
-/*{% endif %}*/
-                    ${executeType}Iter->second->releaseObject();
+                /// Search for the persona that related to the found personaId
+                personaIter = _personaMap.find(processIter->second);
+                if (personaIter != _personaMap.end()) {
+                    _deviceManager->unregisterDevice(personaIter->second->_this());
+                    personaIter->second->setAdminState(CF::Device::UNLOCKED);
+                    personaIter->second->releaseObject();
                     _processMap.erase(processIter); // Erase process mapping here to minimize collisions with non-persona processIds
-                    _${executeType}Map.erase(${executeType}Iter);
+                    _personaMap.erase(personaIter);
                     return;
                 }
             }
-            LOG_WARN(${className}, __FUNCTION__ << 
-                    ": Unable to locate ${executeType} using pid '" << processId <<"'");
+            LOG_WARN(base_programmable_prog_base, __FUNCTION__ << 
+                    ": Unable to locate persona using pid '" << processId <<"'");
         }
         
         CORBA::Boolean allocateCapacity(const CF::Properties& capacities) 
@@ -375,9 +287,9 @@ class ${className} : public ${baseClass}
             // Initialize local variables
             bool allocationSuccess = false;
             std::string id;
-            std::string incoming${executeType.capitalize()};
+            std::string incomingPersona;
             CF::Properties loadProps;
-            ${executeType.capitalize()}MapIter iter;
+            PersonaMapIter iter;
             HwLoadStatusVec hwLoadStatusStruct;
             HwLoadStatusVec* statusVecPtr;
             HwLoadRequestVec* loadRequestsPtr;
@@ -394,7 +306,7 @@ class ${className} : public ${baseClass}
                     // Grab the current hw_load_request struct
                     loadRequestsPtr = getHwLoadRequests();
                     if (loadRequestsPtr == NULL) {
-                        LOG_ERROR(${className}, __FUNCTION__ <<
+                        LOG_ERROR(base_programmable_prog_base, __FUNCTION__ <<
                             ": Unable to get HwLoadRequest vector! Pointer is NULL");
                         continue;
                     }
@@ -413,7 +325,7 @@ class ${className} : public ${baseClass}
                             (*cfPropsPtr)[iv].value >>= (*loadRequestsPtr)[iv];
                         }
                     } else {
-                        LOG_ERROR(${className}, __FUNCTION__ << 
+                        LOG_ERROR(base_programmable_prog_base, __FUNCTION__ << 
                             ": Unable to convert HW_LOAD_REQUEST prop!");
                         continue;
                     }
@@ -424,7 +336,7 @@ class ${className} : public ${baseClass}
                         // Grab the current hw_load_status struct
                         statusVecPtr = getHwLoadStatuses();
                         if (statusVecPtr == NULL) {
-                            LOG_ERROR(${className}, __FUNCTION__ <<
+                            LOG_ERROR(base_programmable_prog_base, __FUNCTION__ <<
                                 ": Unable to get HwLoadStatus vector! Pointer is NULL");
                             continue;
                         }
@@ -440,7 +352,7 @@ class ${className} : public ${baseClass}
             }
 
             updateAdminStates();
-            LOG_DEBUG(${className}, __FUNCTION__ << ": Allocation Result: " << allocationSuccess);
+            LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ << ": Allocation Result: " << allocationSuccess);
             return allocationSuccess;
         }
         
@@ -464,7 +376,7 @@ class ${className} : public ${baseClass}
                 id = capacities[ii].id;
 
                 if (id == HW_LOAD_REQUEST_PROP()) {
-                    LOG_DEBUG(${className}, __FUNCTION__ <<
+                    LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ <<
                         ": Deallocating hw_load_requests...");
                     
                     // Attempt to Convert Any to unwrappable type
@@ -481,7 +393,7 @@ class ${className} : public ${baseClass}
                             (*cfPropsPtr)[iv].value >>= loadRequestsToRemove[iv];
                         }
                     } else {
-                        LOG_ERROR(${className}, __FUNCTION__ << 
+                        LOG_ERROR(base_programmable_prog_base, __FUNCTION__ << 
                             ": Unable to convert HW_LOAD_REQUEST property");
                         continue;
                     }
@@ -489,7 +401,7 @@ class ${className} : public ${baseClass}
                     // Grab the current hw_load_status struct
                     statusVecPtr = getHwLoadStatuses();
                     if (statusVecPtr == NULL) {
-                        LOG_ERROR(${className}, __FUNCTION__ <<
+                        LOG_ERROR(base_programmable_prog_base, __FUNCTION__ <<
                             ": Unable to get HwLoadStatus vector! Pointer is NULL");
                         continue;
                     }
@@ -514,14 +426,14 @@ class ${className} : public ${baseClass}
         {
             // Initialize local variables
             ProcessMapIter processIter;
-            ${executeType.capitalize()}MapIter ${executeType}Iter;
+            PersonaMapIter personaIter;
 
             // Terminate all children that were executed
             for (processIter = _processMap.begin(); processIter != _processMap.end(); processIter++) {
                 this->terminate(processIter->first);
             }
 
-            ${baseClass}::releaseObject();
+            base_programmable_base::releaseObject();
         }
         
         HwLoadRequestVec* getHwLoadRequests() { 
@@ -536,7 +448,7 @@ class ${className} : public ${baseClass}
 
         void setHwLoadRequestsPtr(HwLoadRequestVec* propPtr) {
             if (propPtr == NULL) {
-               LOG_ERROR(${className}, "CANNOT SET HW_LOAD_REQUESTS_PTR: PROPERTY IS NULL");
+               LOG_ERROR(base_programmable_prog_base, "CANNOT SET HW_LOAD_REQUESTS_PTR: PROPERTY IS NULL");
                return;
             }
             _hwLoadRequestsPtr = propPtr;
@@ -544,14 +456,14 @@ class ${className} : public ${baseClass}
         
         void setHwLoadStatusesPtr(HwLoadStatusVec* propPtr) {
             if (propPtr == NULL) {
-               LOG_ERROR(${className}, "CANNOT SET HW_LOAD_STATUSES_PTR: PROPERTY IS NULL");
+               LOG_ERROR(base_programmable_prog_base, "CANNOT SET HW_LOAD_STATUSES_PTR: PROPERTY IS NULL");
                return;
             }
             _hwLoadStatusesPtr = propPtr;
         }
 
     protected:
-        ${executeType.capitalize()}Map      _${executeType}Map;        // Mapping of name to object ptr
+        PersonaMap      _personaMap;        // Mapping of name to object ptr
         ProcessMap      _processMap;         // Mapping of name to processId
         unsigned int    _processIdIncrement; // Used to generate unique ProcessIds
         boost::mutex    _allocationMutex;    // Used to ensure one allocation occurs at a time
@@ -561,13 +473,13 @@ class ${className} : public ${baseClass}
         virtual std::string HW_LOAD_STATUS_PROP()  { return "hw_load_statuses"; };
 
 
-        virtual ${executeClass}* generate${executeType.capitalize()} (
+        virtual Device_impl* generatePersona (
                                     int                         argc, 
                                     char*                       argv[], 
                                     ConstructorPtr              fnptr, 
                                     const char*                 libraryName)=0;
 
-        virtual ${executeClass}* instantiate${executeType.capitalize()} (
+        virtual Device_impl* instantiatePersona (
                                     const char*                 libraryName, 
                                     const CF::Properties&       options, 
                                     const CF::Properties&       parameters) 
@@ -578,7 +490,7 @@ class ${className} : public ${baseClass}
             void* pHandle = dlopen(absPath.c_str(), RTLD_NOW);
             if (!pHandle) {
                 char* errorMsg = dlerror();
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                LOG_FATAL(base_programmable_prog_base, __FUNCTION__ << 
                     ": Unable to open library '" << absPath.c_str() << "': " << errorMsg);
                 return NULL;
             }  
@@ -594,7 +506,7 @@ class ${className} : public ${baseClass}
             for (size_t ii = 0; ii < combinedProps.length(); ii++) {
                 std::string id(combinedProps[ii].id);
                 std::string val = ossie::any_to_string(combinedProps[ii].value);
-                LOG_DEBUG(${className}, "ARGV[" << id << "]: " << val);
+                LOG_DEBUG(base_programmable_prog_base, "ARGV[" << id << "]: " << val);
             }
 
             // Convert combined properties into ARGV/ARGC format
@@ -619,7 +531,7 @@ class ${className} : public ${baseClass}
             void* fnPtr = dlsym(pHandle, symbol);
             if (!fnPtr) {
                 char* errorMsg = dlerror();
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                LOG_FATAL(base_programmable_prog_base, __FUNCTION__ << 
                     ": Unable to find symbol '" << symbol << "': " << errorMsg);
                 return NULL;
             }
@@ -627,20 +539,20 @@ class ${className} : public ${baseClass}
             // Cast the symbol as a ConstructorPtr
             ConstructorPtr constructPtr = reinterpret_cast<ConstructorPtr>(fnPtr);
 
-            // Attempt to instantiate the ${executeType} device via the constructor pointer
-            ${executeClass}* ${executeType}Ptr = NULL;
+            // Attempt to instantiate the persona device via the constructor pointer
+            Device_impl* personaPtr = NULL;
             try {
-                ${executeType}Ptr = generate${executeType.capitalize()}(argc, argv, constructPtr, libraryName);
+                personaPtr = generatePersona(argc, argv, constructPtr, libraryName);
             } catch (...) {
-                LOG_FATAL(${className}, __FUNCTION__ << 
-                    ": Unable to construct ${executeType} device: '" << argv[0] << "'");
+                LOG_FATAL(base_programmable_prog_base, __FUNCTION__ << 
+                    ": Unable to construct persona device: '" << argv[0] << "'");
             }
 
             for (unsigned int i = 0; i < argCounter; i++) {
                 free(argv[i]);
             }
 
-            return ${executeType}Ptr;
+            return personaPtr;
         }
 
 
@@ -685,7 +597,7 @@ class ${className} : public ${baseClass}
                     success |= applyHwLoadRequest(loadRequestVec[ii], loadStatusVec[availableStatusIndex]);
                     usedStatusIndices[ii] = availableStatusIndex;;
                 } else {
-                    LOG_ERROR(${className}, __FUNCTION__ << 
+                    LOG_ERROR(base_programmable_prog_base, __FUNCTION__ << 
                         ": Device cannot be allocated against. No load capacity");
                     success = false;
                 }
@@ -764,7 +676,7 @@ class ${className} : public ${baseClass}
         {
             HwLoadStatusVec* statusVecPtr = getHwLoadStatuses();
             if (statusVecPtr == NULL) {
-                LOG_ERROR(${className}, __FUNCTION__ <<
+                LOG_ERROR(base_programmable_prog_base, __FUNCTION__ <<
                     ": Unable to get HwLoadStatus vector! Pointer is NULL");
                 return false;
             }
@@ -774,22 +686,19 @@ class ${className} : public ${baseClass}
         virtual void updateAdminStates()
         {
             if (hasAnInactiveHwLoadStatus()) {
-//% if executesPersonaDevices
                 // Unlock all devices if there is capacity for more loads
-                ${executeType.capitalize()}MapIter iter;
-                for (iter = _${executeType}Map.begin(); iter != _${executeType}Map.end(); iter++) {
+                PersonaMapIter iter;
+                for (iter = _personaMap.begin(); iter != _personaMap.end(); iter++) {
                     iter->second->adminState(CF::Device::UNLOCKED);
                 }
-//% endif
                 setAdminState(CF::Device::UNLOCKED);
             } else {
-/*{% if executesPersonaDevices %}*/
                 // Lock all personas that are not loaded onto the device
                 
                 // Grab the current hw_load_status struct
                 HwLoadStatusVec* statusVecPtr = getHwLoadStatuses();
                 if (statusVecPtr == NULL) {
-                    LOG_ERROR(${className}, __FUNCTION__ <<
+                    LOG_ERROR(base_programmable_prog_base, __FUNCTION__ <<
                         ": Unable to get HwLoadStatus vector! Pointer is NULL");
                     return;
                 }
@@ -802,16 +711,15 @@ class ${className} : public ${baseClass}
                 }
 
                 // Any persona that has a load running should not be locked
-                ${executeType.capitalize()}MapIter iter;
-                for (iter = _${executeType}Map.begin(); iter != _${executeType}Map.end(); iter++) {
+                PersonaMapIter iter;
+                for (iter = _personaMap.begin(); iter != _personaMap.end(); iter++) {
                     if (strVecContainsStr(allRequesterIds, iter->first)) {
-                        continue; // Skip the running ${executeType}s
+                        continue; // Skip the running personas
                     }
-                    LOG_DEBUG(${className}, __FUNCTION__ <<
+                    LOG_DEBUG(base_programmable_prog_base, __FUNCTION__ <<
                         ": Locking device '" << ossie::corba::returnString(iter->second->identifier()) << "'");
                     iter->second->adminState(CF::Device::LOCKED);
                 }
-/*{% endif %}*/
                 setAdminState(CF::Device::LOCKED);
             }
         }
@@ -851,11 +759,10 @@ class ${className} : public ${baseClass}
             return defaultProperty;
         }
 
-//% endif
 };
 
 template <typename HW_LOAD_REQUEST, typename HW_LOAD_STATUS>
-PREPARE_ALT_LOGGING(${className}<HW_LOAD_REQUEST BOOST_PP_COMMA() 
-                                 HW_LOAD_STATUS>, ${className});
+PREPARE_ALT_LOGGING(base_programmable_prog_base<HW_LOAD_REQUEST BOOST_PP_COMMA() 
+                                 HW_LOAD_STATUS>, base_programmable_prog_base);
 
-#endif // ${includeGuard}
+#endif // BASE_PROGRAMMABLE_PROG_BASE_IMPL_REPROG_H

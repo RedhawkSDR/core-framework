@@ -194,9 +194,6 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
                                               mode="readwrite")
 
         self.comp.start()
-        # allocation should fail since there are no hardware resources to program
-        ret= self.comp.allocateCapacity([my_requests])
-        self.assertEquals( ret, False )
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

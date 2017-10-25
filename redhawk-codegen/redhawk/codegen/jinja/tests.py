@@ -59,6 +59,12 @@ def is_aggregatedevice(component):
     """
     return component.get('aggregate', False)
 
+def is_programmabledevice(component):
+    """
+    Returns True if the component is a programmable device (host for persona)
+    """
+    return component.get('programmable', False)
+
 def is_service(component):
     """
     Returns True if the component is a REDHAWK service.

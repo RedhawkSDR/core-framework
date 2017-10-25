@@ -333,6 +333,8 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
                 testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/base_programmable/cpp/Makefile \
+                testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
                 testing/sdr/dev/devices/writeonly_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/DevC/cpp/Makefile \

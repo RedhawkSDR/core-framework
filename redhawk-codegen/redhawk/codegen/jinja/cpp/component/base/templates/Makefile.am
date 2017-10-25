@@ -94,6 +94,10 @@ include $(srcdir)/Makefile.am.ide
 #{% if component.impl.module %}
 {{amtarget}}_LDFLAGS = -shared -module -export-dynamic -export-symbols-regex 'make_component' -avoid-version $(redhawk_LDFLAGS_auto)
 #{% else %}
-{{amtarget}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
+#{% if component is programmabledevice %}
+{{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -ldl
+#{% else %}
+{{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
+#{% endif %}
 #{% endif %}
 #{% endblock %}

@@ -202,7 +202,6 @@ class ${className}(${baseClass}):
         # resource.releaseObject()
 
 #{% if executesPersonaDevices %}
-        #self._devmgr.unregisterDevice(resource._this())
         resource._set_adminState(CF.Device.UNLOCKED)
         sys.stdout.flush()
 #{% endif %}

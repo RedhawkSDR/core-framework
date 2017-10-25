@@ -76,4 +76,20 @@ class PersonaTest(scatest.CorbaTestCase):
         self.checkRegisteredDevices(4)
         self.allocate()
 
+class PPTest(scatest.CorbaTestCase):
+    def setUp(self):
+        self._nodebooter, self._domMgr = self.launchDomainManager()
 
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+
+    def launchNode(self, node):
+        self._devBooter,self._devMgr = self.launchDeviceManager("/nodes/%s/DeviceManager.dcd.xml" % (node),)
+
+    def test_CPP_ProgrammableAndPersona(self):
+        self.launchNode("agg_test")
+        devs = self._devMgr._get_registeredDevices()
+        self.assertEquals(devs[0]._get_identifier(), 'agg_test:base_programmable_1')
+        self.assertEquals(devs[1]._get_identifier(), 'agg_test:base_persona_1')
+        self.assertEquals(devs[0]._get_compositeDevice(), None)
+        self.assertEquals(devs[1]._get_compositeDevice()._get_identifier(), 'agg_test:base_programmable_1')
