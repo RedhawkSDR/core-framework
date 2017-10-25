@@ -182,9 +182,8 @@ void DeviceManager_impl::createDeviceThread(
         // all conditions are met for a persona    
         // Load shared library into device using load mechanism
         std::string execDevId = ossie::corba::returnString(execDevice->identifier());
-        CF::FileManager_var dm_filemgr = _dmnMgr->fileMgr();
         LOG_DEBUG(DeviceManager_impl, "Loading '" << codeFilePath << "' to parent device: " << execDevId );
-        execDevice->load(dm_filemgr, codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
+        execDevice->load(_fileSys, codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
         LOG_DEBUG(DeviceManager_impl, "Load complete on device: " << execDevId);
        
         const std::string realCompType = "device";
@@ -750,7 +749,6 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
 
     // check if directory
     fs::path workpath(workingFileName);
-    bool isDir=false;
     try {
         if (!fs::exists (workpath)) {
             std::ostringstream emsg;
@@ -758,8 +756,6 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
             LOG_ERROR(DeviceManager_impl, emsg.str());
             throw std::runtime_error(emsg.str().c_str());
         }
-
-        if ( fs::is_directory(workpath) ) { isDir=true; }
     }
     catch(...){
         std::ostringstream emsg;

@@ -38,6 +38,8 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/PersonaDevice/cpp \
           sdr/dev/devices/ProgrammableDevice/cpp \
           sdr/dev/devices/cpp_dev/cpp \
+          sdr/dev/devices/base_programmable/cpp \
+          sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
           sdr/dev/devices/DevC/cpp \
           sdr/dev/devices/dev_kill_devmgr/cpp \

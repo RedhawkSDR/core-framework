@@ -327,6 +327,8 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
                 testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/base_programmable/cpp/Makefile \
+                testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
                 testing/sdr/dev/devices/DevC/cpp/Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \

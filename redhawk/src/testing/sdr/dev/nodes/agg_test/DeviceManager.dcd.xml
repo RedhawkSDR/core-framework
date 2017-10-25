@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:bacd4edc-0644-40ad-afbc-0d185d838a18" name="agg_test">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="base_programmable_d5fb2f5a-7e69-4c92-b9da-0eb05836fe36" type="SPD">
+      <localfile name="/devices/base_programmable/base_programmable.spd.xml"/>
+    </componentfile>
+    <componentfile id="base_persona_b718542e-cc17-49a6-9d83-7f150cafffb6" type="SPD">
+      <localfile name="/devices/base_persona/base_persona.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="base_programmable_d5fb2f5a-7e69-4c92-b9da-0eb05836fe36"/>
+      <componentinstantiation id="agg_test:base_programmable_1">
+        <usagename>base_programmable_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="base_persona_b718542e-cc17-49a6-9d83-7f150cafffb6"/>
+      <compositepartofdevice refid="agg_test:base_programmable_1"/>
+      <componentinstantiation id="agg_test:base_persona_1">
+        <usagename>base_persona_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

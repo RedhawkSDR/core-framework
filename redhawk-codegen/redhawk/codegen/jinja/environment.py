@@ -44,6 +44,7 @@ class CodegenEnvironment(jinja2.Environment):
         self.tests['loadabledevice'] = tests.is_loadabledevice
         self.tests['executabledevice'] = tests.is_executabledevice
         self.tests['aggregatedevice'] = tests.is_aggregatedevice
+        self.tests['programmabledevice'] = tests.is_programmabledevice
         self.tests['service'] = tests.is_service
         self.tests['simple'] = tests.is_simple
         self.tests['simplesequence'] = tests.is_simplesequence

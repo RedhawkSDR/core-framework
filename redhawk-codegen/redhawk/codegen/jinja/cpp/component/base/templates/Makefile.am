@@ -71,7 +71,11 @@ include $(srcdir)/Makefile.am.ide
 {{target}}_SOURCES = $(redhawk_SOURCES_auto)
 {{target}}_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
 {{target}}_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+#{% if component is programmabledevice %}
+{{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -ldl
+#{% else %}
 {{target}}_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
+#{% endif %}
 #{% if component.mFunction %}
 {{target}}_CXXFLAGS += $(M_FUNCTION_INTERPRETER_INCLUDE)
 {{target}}_LDFLAGS += $(BOOST_FILESYSTEM_LIB) $(M_FUNCTION_INTERPRETER_LOAD)

@@ -27,6 +27,7 @@ import sys
 class ProgrammableComponentMapper(PullComponentMapper):
     def _mapComponent(self, softpkg):
         cppcomp = PullComponentMapper._mapComponent(self, softpkg)
+        cppcomp['programmable'] = True
         cppcomp['reprogclass'] = self.reprogClass(softpkg)
         cppcomp['executesHWComponents'] = False # TODO: Implement this 
         self._validateAggregateDevice(cppcomp)
