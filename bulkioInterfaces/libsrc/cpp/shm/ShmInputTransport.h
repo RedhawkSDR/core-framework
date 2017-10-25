@@ -20,6 +20,7 @@ namespace bulkio {
     public:
         typedef InPort<PortType> InPortType;
         typedef typename NativeTraits<PortType>::NativeType NativeType;
+        typedef typename BufferTraits<PortType>::BufferType BufferType;
 
         ShmInputTransport(InPortType* port, const std::string& transportId, const std::string& writePath);
         ~ShmInputTransport();

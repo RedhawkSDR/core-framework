@@ -121,7 +121,7 @@ namespace bulkio {
         size_t count;
         msg.read(count);
 
-        redhawk::buffer<NativeType> buffer;
+        BufferType buffer;
         if (count > 0) {
             redhawk::shm::MemoryRef ref;
             msg.read(ref.heap);
@@ -144,16 +144,16 @@ namespace bulkio {
                 // then recast to the desired type.
                 char* ptr = reinterpret_cast<char*>(base);
                 size_t bytes = offset + count * sizeof(NativeType);
-                redhawk::buffer<char> temp(ptr, bytes, &redhawk::shm::HeapClient::deallocate);
+                redhawk::shared_buffer<char> temp(ptr, bytes, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
                 temp.trim(offset);
 
-                buffer = redhawk::buffer<NativeType>::recast(temp);
+                buffer = BufferType::recast(temp);
             } else {
                 // Normal alignment, include the start offset (if any) in the
                 // initial buffer size, then trim to the desired start.
                 NativeType* ptr = reinterpret_cast<NativeType*>(base);
                 count += start;
-                buffer = redhawk::make_buffer(ptr, count, &redhawk::shm::HeapClient::deallocate);
+                buffer = BufferType(ptr, count, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
                 if (start > 0) {
                     buffer.trim(start);
                 }

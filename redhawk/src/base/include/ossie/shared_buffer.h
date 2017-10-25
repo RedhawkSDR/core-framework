@@ -74,6 +74,10 @@ namespace redhawk {
 #endif
         }
 
+        // Special tag class for explicitly constructing a buffer that is known
+        // to have been allocated by REDHAWK's shared memory allocator.
+        struct process_shared_tag { };
+
         // Traits class for determining whether an allocator provides memory
         // that can be shared between processes (default: false).
         template <typename Allocator>
@@ -172,7 +176,25 @@ namespace redhawk {
          */
         template <class D>
         shared_buffer(value_type* data, size_t size, D deleter) :
-            _M_impl(new func_impl<D>(data, deleter)),
+            _M_impl(new func_impl<D>(data, deleter, false)),
+            _M_start(data),
+            _M_finish(data + size)
+        {
+        }
+
+        /**
+         * @brief  Construct a %shared_buffer with an existing pointer known to
+         *         be allocated from process-shared memory.
+         * @param data  Pointer to first element.
+         * @param size  Number of elements.
+         * @param deleter  Callable object.
+         * @param tag  Indicates that @a data is in process-shared memory.
+         *
+         * @warning This constructor is intended for internal use only.
+         */
+        template <class D>
+        shared_buffer(value_type* data, size_t size, D deleter, detail::process_shared_tag) :
+            _M_impl(new func_impl<D>(data, deleter, true)),
             _M_start(data),
             _M_finish(data + size)
         {
@@ -526,11 +548,19 @@ namespace redhawk {
         struct impl {
             typedef void (*release_func)(impl*);
 
-            impl(value_type* ptr, release_func func=&impl::delete_release) :
+            impl(value_type* ptr) :
+                refcount(1),
+                data(ptr),
+                release(&impl::delete_release),
+                shared(false)
+            {
+            }
+
+            impl(value_type* ptr, release_func func, bool shared) :
                 refcount(1),
                 data(ptr),
                 release(func),
-                shared(false)
+                shared(shared)
             {
             }
 
@@ -556,8 +586,8 @@ namespace redhawk {
         // release the buffer data; may be a function pointer or functor.
         template <class Func>
         struct func_impl : public impl {
-            func_impl(value_type* data, Func func) :
-                impl(data, &func_impl::func_release),
+            func_impl(value_type* data, Func func, bool shared) :
+                impl(data, &func_impl::func_release, shared),
                 func(func)
             {
             }
@@ -577,11 +607,10 @@ namespace redhawk {
         struct allocator_impl : public impl, public Alloc
         {
             allocator_impl(value_type* data, size_t size, const Alloc& allocator) :
-                impl(data, &allocator_impl::allocator_release),
+                impl(data, &allocator_impl::allocator_release, detail::is_process_shared<Alloc>::value),
                 Alloc(allocator),
                 size(size)
             {
-                this->shared = detail::is_process_shared<Alloc>::value;
             }
 
             static void allocator_release(impl* imp)
@@ -720,6 +749,22 @@ namespace redhawk {
         template <class D>
         buffer(value_type* data, size_t size, D deleter) :
             shared_type(data, size, deleter)
+        {
+        }
+
+        /**
+         * @brief  Construct a %buffer with an existing pointer known to be
+         *         allocated from process-shared memory.
+         * @param data  Pointer to first element.
+         * @param size  Number of elements.
+         * @param deleter  Callable object.
+         * @param tag  Indicates that @a data is in process-shared memory.
+         *
+         * @warning This constructor is intended for internal use only.
+         */
+        template <class D>
+        buffer(value_type* data, size_t size, D deleter, detail::process_shared_tag tag) :
+            shared_type(data, size, deleter, tag)
         {
         }
 
