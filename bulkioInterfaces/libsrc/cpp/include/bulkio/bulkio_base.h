@@ -291,7 +291,7 @@ namespace bulkio {
       /*
        * Create a time stamp object from the provided input... 
        */
-      BULKIO::PrecisionUTCTime create( const double wholeSecs=-1.0, const double fractionalSecs=-1.0, const Int16 tsrc= BULKIO::TCM_CPU  );
+      BULKIO::PrecisionUTCTime create(double wholeSecs=-1.0, double fractionalSecs=-1.0, CORBA::Short tsrc=BULKIO::TCM_CPU);
 
       /*
        * Create a time stamp object from the current time of day reported by the system
