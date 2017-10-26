@@ -69,7 +69,7 @@ namespace bulkio {
   template <typename PortType>
   class InPort : public redhawk::NegotiableProvidesPortBase
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-               , public virtual CorbaTraits<PortType>::POAType
+               , public virtual CorbaTraits<PortType>::POATypeExt
 #endif
   {
   public:

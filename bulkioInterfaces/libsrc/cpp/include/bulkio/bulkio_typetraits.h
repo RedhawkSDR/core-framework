@@ -38,7 +38,8 @@ namespace bulkio {
 #define DEFINE_CORBA_TRAITS(NAME,TT,ST)                         \
     template <>                                                 \
     struct CorbaTraits<BULKIO::NAME> {                          \
-        typedef POA_BULKIO::internal::NAME##Ext POAType;        \
+        typedef POA_BULKIO::NAME POAType;                       \
+        typedef POA_BULKIO::internal::NAME##Ext POATypeExt;     \
         typedef TT TransportType;                               \
         typedef ST SequenceType;                                \
     };
