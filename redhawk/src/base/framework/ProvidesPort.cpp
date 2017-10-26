@@ -151,7 +151,7 @@ namespace redhawk {
         // Make sure it's a valid transport ID
         TransportMap::iterator transport = _transports.find(transportId);
         if (transport == _transports.end()) {
-            throw CF::InvalidIdentifier();
+            throw ExtendedCF::NegotiationError("invalid transport identifier");
         }
 
         // Stop the transport, logging exceptions but continuing on

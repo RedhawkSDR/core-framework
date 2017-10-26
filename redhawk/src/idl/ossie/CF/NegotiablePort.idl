@@ -21,7 +21,6 @@
 #ifndef _NEGOTIABLE_PORT_IDL_
 #define _NEGOTIABLE_PORT_IDL_
 
-#include "ossie/CF/cf.idl"
 #include "ossie/CF/QueryablePort.idl"
 
 module ExtendedCF {
@@ -65,7 +64,7 @@ module ExtendedCF {
             raises (ExtendedCF::NegotiationError);
 
         void disconnectTransport(in string transportId)
-            raises (CF::InvalidIdentifier);
+            raises (ExtendedCF::NegotiationError);
     };
 };
 
