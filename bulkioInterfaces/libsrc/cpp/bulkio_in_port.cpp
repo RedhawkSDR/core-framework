@@ -201,6 +201,35 @@ namespace bulkio {
     TRACE_EXIT( logger, "InPort::pushSRI"  );
   }
 
+    namespace {
+        template <typename T>
+        inline bool is_copy_required(const redhawk::shared_buffer<T>& data)
+        {
+            // If the data comes from a non-shared source (a vector or raw
+            // pointer), we need to make a copy.
+            return (data.transient() && !data.empty());
+        }
+
+        template <typename T>
+        inline redhawk::shared_buffer<T> copy_data(const redhawk::shared_buffer<T>& data)
+        {
+            return data.copy();
+        }
+
+        inline bool is_copy_required(const std::string&)
+        {
+            // Strings don't have sharing semantics, so no copy is required.
+            return false;
+        }
+
+        inline const std::string& copy_data(const std::string& data)
+        {
+            // Pass through the string by reference (no copies made)
+            return data;
+        }
+
+    }
+
   template <typename PortType>
   void  InPort<PortType>::queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
@@ -289,7 +318,12 @@ namespace bulkio {
 
       LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
       stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
-      Packet *tmpIn = new Packet(data, T, EOS, sri, sriChanged, flushToReport);
+      Packet *tmpIn;
+      if (is_copy_required(data)) {
+          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, flushToReport);
+      } else {
+          tmpIn = new Packet(data, T, EOS, sri, sriChanged, flushToReport);
+      }
       packetQueue.push_back(tmpIn);
       dataAvailable.notify_all();
     }

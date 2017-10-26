@@ -76,32 +76,6 @@ namespace bulkio {
                              bool EOS,
                              const std::string& streamID)
     {
-        if (!data.empty() && data.transient()) {
-            // The data comes from a non-shared source (a vector or raw pointer),
-            // so we need to make a copy. This could be optimized for the fanout
-            // case by making the copy at a higher level, but only if there's at
-            // least one local connection.
-            _localPort->queuePacket(data.copy(), T, EOS, streamID);
-        } else {
-            _localPort->queuePacket(data, T, EOS, streamID);
-        }
-    }
-
-    template <>
-    void LocalTransport<BULKIO::dataFile>::_pushPacket(const std::string& data,
-                                                       const BULKIO::PrecisionUTCTime& T,
-                                                       bool EOS,
-                                                       const std::string& streamID)
-    {
-        _localPort->queuePacket(data, T, EOS, streamID);
-    }
-
-    template <>
-    void LocalTransport<BULKIO::dataXML>::_pushPacket(const std::string& data,
-                                                      const BULKIO::PrecisionUTCTime& T,
-                                                      bool EOS,
-                                                      const std::string& streamID)
-    {
         _localPort->queuePacket(data, T, EOS, streamID);
     }
 
