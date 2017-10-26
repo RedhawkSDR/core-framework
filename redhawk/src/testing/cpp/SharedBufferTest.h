@@ -42,6 +42,7 @@ class SharedBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testAllocatorCopy);
     CPPUNIT_TEST(testCustomDeleter);
     CPPUNIT_TEST(testTransient);
+    CPPUNIT_TEST(testBase);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -71,6 +72,7 @@ public:
     void testAllocatorCopy();
     void testCustomDeleter();
     void testTransient();
+    void testBase();
 
 private:
     template <class Buffer>

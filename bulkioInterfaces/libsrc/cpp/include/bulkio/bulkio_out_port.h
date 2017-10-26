@@ -36,11 +36,9 @@
 #include "bulkio_typetraits.h"
 #include "bulkio_callbacks.h"
 #include "bulkio_out_stream.h"
+#include "BulkioTransport.h"
 
 namespace bulkio {
-
-  template <typename PortType>
-  class PortTransport;
 
   template <class PortType>
   struct OutStreamTraits
@@ -67,9 +65,9 @@ namespace bulkio {
   //
   //
   template <typename PortType>
-  class OutPort : public redhawk::UsesPort
+  class OutPort : public redhawk::NegotiableUsesPort
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
-                    , public virtual POA_BULKIO::UsesPortStatisticsProvider
+                , public virtual POA_BULKIO::internal::UsesPortStatisticsProviderExt
 #endif
   {
 
@@ -257,11 +255,13 @@ namespace bulkio {
     //
     // Lookup table for connections to input ports in the same process space
     //
-    typedef PortTransport<PortType> PortTransportType;
+    typedef OutputTransport<PortType> PortTransportType;
 
-    virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+    virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
 
-    typedef redhawk::TransportIteratorAdapter<PortTransportType> TransportIterator;
+    virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+
+    typedef redhawk::UsesPort::TransportIteratorAdapter<PortTransportType> TransportIterator;
 
     typedef std::map<std::string,StreamType> StreamMap;
     StreamMap streams;

@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import ExtendedCF.UsesConnection;
+import ExtendedCF.TransportInfo;
+import ExtendedCF.ConnectionStatus;
 import org.ossie.component.PortBase;
 
 import BULKIO.PortUsageType;
