@@ -76,7 +76,7 @@ namespace bulkio {
                              bool EOS,
                              const std::string& streamID)
     {
-        if (data.transient()) {
+        if (!data.empty() && data.transient()) {
             // The data comes from a non-shared source (a vector or raw pointer),
             // so we need to make a copy. This could be optimized for the fanout
             // case by making the copy at a higher level, but only if there's at

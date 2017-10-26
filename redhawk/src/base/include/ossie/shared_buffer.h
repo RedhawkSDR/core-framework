@@ -141,7 +141,7 @@ namespace redhawk {
          * @brief  Construct an empty %shared_buffer.
          */
         shared_buffer() :
-            _M_impl(),
+            _M_impl(0),
             _M_start(0),
             _M_finish(0)
         {
@@ -623,12 +623,13 @@ namespace redhawk {
         };
 
         // Internal constructor to allow buffer to provide its own allocator-
-        // based data buffer instance.
+        // based data buffer instance. It may be null, if the allocated size
+        // was 0, so handle that case (equivalent to the no-argument ctor).
         template <class Alloc>
         shared_buffer(allocator_impl<Alloc>* imp) :
             _M_impl(imp),
-            _M_start(imp->data),
-            _M_finish(_M_start + imp->size)
+            _M_start(imp?imp->data:0),
+            _M_finish(imp?(_M_start + imp->size):0)
         {
         }
         /// @endcond
@@ -997,8 +998,15 @@ namespace redhawk {
         template <class Alloc>
         static typename shared_type::template allocator_impl<Alloc>* _M_allocate(size_t size, const Alloc& allocator)
         {
-            // Create an empty allocator_impl instance first then try to allocate
-            // the memory, using the fact that it inherits from the allocator.
+            // Zero-length buffer requires no allocation, so don't bother with
+            // an implementation in the first place.
+            if (size == 0) {
+                return 0;
+            }
+
+            // Create an empty allocator_impl instance first, then try to
+            // allocate the memory, using the fact that it inherits from the
+            // allocator.
             typedef typename shared_type::template allocator_impl<Alloc> impl_type;
             impl_type* imp = new impl_type(0, size, allocator);
             try {

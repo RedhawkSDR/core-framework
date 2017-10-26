@@ -90,6 +90,12 @@ void* Superblock::attach(size_t offset)
 
 void Superblock::deallocate(void* ptr)
 {
+    // The C standard says it's safe to call free() with a null pointer, so for
+    // consistency, handle that case here
+    if (!ptr) {
+        return;
+    }
+
     Block* block = Block::from_pointer(ptr);
     assert(block->valid());
     if (block->decref() == 0) {
@@ -286,9 +292,11 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
         lock.lock();
     }
 
-    // Add overhead for block metadata, and round up to the nearest block
-    // size to preserve alignment on all architectures; otherwise, atomic
-    // operations may cause a fatal bus error
+    // Add overhead for block metadata, making sure that the total byte size
+    // is enough for a free block, then round up to the nearest block size to
+    // preserve alignment on all architectures; otherwise, atomic operations
+    // may cause a fatal bus error.
+    bytes = std::min(bytes + sizeof(Block), sizeof(FreeBlock));
     size_t blocks = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
 
     LOG_ALLOC(bytes);
