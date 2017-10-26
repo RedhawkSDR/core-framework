@@ -58,16 +58,17 @@ bio_dataUlongLong.idl \
 bio_dataSDDS.idl \
 bio_dataVITA49.idl
 
+# IDL files that are marked as "internal" are installed to a separate directory
+# to discourage external use
+IDL_INTERNAL_FILES := internal/bio_dataExt.idl
+
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
 IDL_EXTERNS := CF
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
-
-# Relative path to the location of the IDL files
-IDL_SOURCE_PATH := .
+PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf NegotiablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
 
 # A Qualifier to append to the version, by default this is a timestamp of the build
 BUNDLE_QUALIFIER := v$(shell date +%Y%m%d%H%M%S)
@@ -131,7 +132,9 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/ossie/BULKIO/bio_dataSDDSSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
-	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp
+	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp \
+	src/cpp/ossie/BULKIO/internal/bio_dataExtSK.cpp \
+	src/cpp/ossie/BULKIO/internal/bio_dataExtDynSK.cpp 
 
 pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
 pkginclude_HEADERS = \
@@ -153,6 +156,10 @@ pkginclude_HEADERS = \
 	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
 	src/cpp/ossie/BULKIO/bio_dataVITA49.h
 
+pkginternalincludedir = $(pkgincludedir)/internal
+pkginternalinclude_HEADERS = \
+	src/cpp/ossie/BULKIO/internal/bio_dataExt.h
+
 BUILT_SOURCES = $(libbulkioInterfaces_la_SOURCES) $(pkginclude_HEADERS)
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -164,6 +171,9 @@ LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
 
 idldir = $(datadir)/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
 dist_idl_DATA =  $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
+
+idlinternaldir = $(idldir)/internal
+dist_idlinternal_DATA = $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_INTERNAL_FILES))
 
 all-local: all-python
 
@@ -189,11 +199,9 @@ bulkio_builddir = src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)
 libbulkioInterfaces_la_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 libbulkioInterfaces_la_LIBS = $(OSSIE_LIBS)
 
-$(bulkio_builddir):
-	$(AM_V_at)mkdir -p $@
-
-$(bulkio_builddir)/%DynSK.cpp $(bulkio_builddir)/%SK.cpp $(bulkio_builddir)/%.h: idl/ossie/BULKIO/%.idl | $(bulkio_builddir)
-	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C $(bulkio_builddir) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
+$(bulkio_builddir)/%DynSK.cpp $(bulkio_builddir)/%SK.cpp $(bulkio_builddir)/%.h: idl/ossie/BULKIO/%.idl
+	$(AM_V_at)mkdir -p $(dir $@)
+	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C $(dir $@) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 ###############################################################################
 # Python
@@ -207,9 +215,8 @@ PYTHON_MODULE_NAME := $(LOWER_CASE_IDL_MODULE)Interfaces
 PYTHON_PACKAGE := $(LOWER_CASE_IDL_MODULE).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
+PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES) $(IDL_INTERNAL_FILES))
 PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_BUILT_SRCS := $(addprefix $(PY_BUILD_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
 PY_IDL_INCLUDES := -I idl
@@ -217,6 +224,7 @@ PY_IDL_INCLUDES := -I idl
 $(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
 	$(AM_V_at)mkdir -p $(PY_SRC_OUT_DIR)
 	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
+	$(AM_V_at)touch $@
 
 # Mimic automake silent rules
 OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
@@ -230,7 +238,7 @@ $(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py
 
 all-python: $(PY_BUILD_OUT_DIR)
 
-install-python: $(PY_BUILT_SRCS)
+install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
 	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python:
@@ -287,7 +295,9 @@ IDLJNI_BUILDDIR = $(IDLJ_BUILDDIR)
 # For IDLJ/IDLJNI rules, set VPATH for .idl files so that pattern rules can
 # find them.
 vpath %.idl idl/ossie/BULKIO
-idlj_IDLSRC = $(IDL_FILES)
+# Only include internal interfaces in pure Java; do not build them for Java-
+# side JNI, because we will not be generating the C++-side
+idlj_IDLSRC = $(IDL_FILES) $(IDL_INTERNAL_FILES)
 idljni_IDLSRC = $(IDL_FILES)
 
 BULKIOInterfaces_jar_SOURCE = $(idlj_SOURCE) $(idljni_SOURCE)

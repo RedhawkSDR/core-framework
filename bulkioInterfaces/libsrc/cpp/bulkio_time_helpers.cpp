@@ -38,24 +38,21 @@ namespace  bulkio {
 
     namespace utils {
 
-      BULKIO::PrecisionUTCTime create( const double wholeSecs, const double fractionalSecs, const bulkio::Int16 tsrc ) {
-
-	double wsec = wholeSecs;
-	double fsec = fractionalSecs;
-	if ( wsec < 0.0 || fsec < 0.0 ) {
-	  struct timeval tmp_time;
-	  struct timezone tmp_tz;
-	  gettimeofday(&tmp_time, &tmp_tz);
-	  wsec = tmp_time.tv_sec;
-	  fsec = tmp_time.tv_usec / 1e6;
+      BULKIO::PrecisionUTCTime create(double wsec, double fsec, CORBA::Short tsrc)
+      {
+        if ((wsec < 0.0) || (fsec < 0.0)) {
+          struct timespec tod;
+          clock_gettime(CLOCK_REALTIME, &tod);
+          wsec = tod.tv_sec;
+          fsec = tod.tv_nsec * 1e-9;
 	}
-	BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
-	tstamp.tcmode = tsrc;
-	tstamp.tcstatus = BULKIO::TCS_VALID;
-	tstamp.toff = 0.0;
-	tstamp.twsec = wsec;
-	tstamp.tfsec = fsec;
-	return tstamp;
+        BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
+        tstamp.tcmode = tsrc;
+        tstamp.tcstatus = BULKIO::TCS_VALID;
+        tstamp.toff = 0.0;
+        tstamp.twsec = wsec;
+        tstamp.tfsec = fsec;
+        return tstamp;
       }
 
       BULKIO::PrecisionUTCTime now() {

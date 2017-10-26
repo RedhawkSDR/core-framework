@@ -284,6 +284,12 @@ public:
     {
     }
 
+    // Called when the Port is first activated by a PortSupplier; subclasses
+    // may override to implement virtual constructor behavior
+    virtual void initializePort()
+    {
+    }
+
     virtual void releasePort()
     {
     }

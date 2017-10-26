@@ -65,8 +65,9 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              Versions.h \
              shared_buffer.h \
              ExecutorService.h \
-             BasicTransport.h \
              UsesPort.h \
+             ProvidesPort.h \
+             Transport.h \
              BufferManager.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
@@ -75,4 +76,11 @@ nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/loghelpers.h \
 	     debug/check.h \
 	     debug/checked_allocator.h \
-	     debug/checked_iterator.h
+	     debug/checked_iterator.h \
+	     shm/Allocator.h \
+	     shm/Heap.h \
+	     shm/HeapClient.h \
+	     shm/MappedFile.h \
+	     shm/ProcessHeap.h \
+	     shm/SuperblockFile.h
+

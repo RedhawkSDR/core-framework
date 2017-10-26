@@ -72,7 +72,7 @@ class connection_descriptor_struct(object):
         return [("connection_id",self.connection_id),("stream_id",self.stream_id),("port_name",self.port_name)]
 
 
-class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
+class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
     
     class SriMapStruct:
         def __init__( self, sri=None, connections=None, time=None): 
@@ -207,6 +207,13 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         finally:
             self.port_lock.release()
         return currentConnections
+
+    def _get_connectionStatus(self):
+        connectionStatus = []
+        with self.port_lock:
+            for id_, port in self.outConnections.items():
+                connectionStatus.append(ExtendedCF.ConnectionStatus(id_, port, True, 'CORBA', []))
+        return connectionStatus
 
     def _get_statistics(self):
         self.port_lock.acquire()

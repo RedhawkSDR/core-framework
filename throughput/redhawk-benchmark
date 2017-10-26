@@ -338,12 +338,14 @@ if __name__ == '__main__':
         elif key == '--no-gui':
             nogui = True
 
-    interface_list = ('raw', 'corba', 'bulkio-corba', 'bulkio-local')
+    interface_list = ('raw', 'corba', 'bulkio-corba', 'bulkio-shm', 'bulkio-local')
     interfaces = []
     for arg in args:
         name = arg.lower()
         if name == 'bulkio':
-            interfaces.extend(('bulkio-corba', 'bulkio-local'))
+            for name in interface_list:
+                if name.startswith('bulkio'):
+                    interfaces.append(name)
         elif not name in interface_list:
             raise SystemExit("unknown interface '%s'" % arg)
         else:
@@ -407,7 +409,13 @@ if __name__ == '__main__':
             name = 'CORBA'
             factory = corba.factory(transport)
         elif interface == 'bulkio-corba':
+            os.environ['BULKIO_SHM'] = 'disable'
             name = 'BulkIO (CORBA)'
+            factory = bulkio.factory(transport, local=False)
+        elif interface == 'bulkio-shm':
+            if 'BULKIO_SHM' in os.environ:
+                del os.environ['BULKIO_SHM']
+            name = 'BulkIO (shm)'
             factory = bulkio.factory(transport, local=False)
         elif interface == 'bulkio-local':
             name = 'BulkIO (local)'

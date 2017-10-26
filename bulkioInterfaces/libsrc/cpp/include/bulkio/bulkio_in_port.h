@@ -28,6 +28,7 @@
 
 #include <ossie/callback.h>
 #include <ossie/signalling.h>
+#include <ossie/ProvidesPort.h>
 
 #include "bulkio_base.h"
 #include "bulkio_typetraits.h"
@@ -39,6 +40,9 @@ namespace bulkio {
 
   template <class PortType>
   class LocalTransport;
+
+  template <typename PortType>
+  class InputTransport;
 
   template <class PortType>
   struct InStreamTraits {
@@ -63,7 +67,10 @@ namespace bulkio {
   //                 passed between port objects
   //
   template <typename PortType>
-  class InPort : public CorbaTraits<PortType>::POAType, public Port_Provides_base_impl
+  class InPort : public redhawk::NegotiableProvidesPortBase
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+               , public virtual CorbaTraits<PortType>::POATypeExt
+#endif
   {
   public:
     // The CORBA interface of this port (nested typedef for template parameter)
@@ -261,8 +268,6 @@ namespace bulkio {
 
     void setNewStreamListener(SriListener *newListener);
 
-    void setLogger( LOGGER_PTR logger );
-
 	// Return the interface that this Port supports
     std::string getRepid () const;
 
@@ -352,8 +357,6 @@ namespace bulkio {
     //
     linkStatistics                                 *stats;
 
-    LOGGER_PTR                                     logger;
-
     //
     // Synchronized waiter list for use in poll()
     //
@@ -374,6 +377,9 @@ namespace bulkio {
     // Streams that have the same stream ID as an active stream, when an
     // end-of-stream has been queued but not yet read 
     std::multimap<std::string,StreamType> pendingStreams;
+
+    // Allow non-CORBA data ingress (shared memory, VITA49)
+    friend class InputTransport<PortType>;
 
     //
     // Queues a packet received via pushPacket; in most cases, this method maps

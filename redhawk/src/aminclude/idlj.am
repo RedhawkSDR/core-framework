@@ -17,10 +17,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
 # Find all Java files in path referenced by first argument, replace that path
 # with a variable refernce to the second argument (e.g., output will contain
 # the unexpanded value '$(IDLJ_BUILDDIR)') and combine all lines into one.
 rh__idlfind = find $(1) -name '*.java' | sed 's|^$(1)|$$($2)|' | paste -s -d " " -
+
+# Turns the leading path of a pattern-matched segment in an IDL file into an
+# underscore-separated variable name
+rh__idlvar = $(subst /,_,$*)
 
 ###############################################################################
 # Generate Java source from IDL files using IDLJ
@@ -35,10 +40,10 @@ IDLJ_BUILDDIR ?= .
 .idlj/%.mk : %.idl
 	$(AM_V_at)rm -rf $(rh__idljtemp); mkdir -p $(rh__idljtemp)
 	$(AM_V_at)$(rh__idlj) -td $(rh__idljtemp) $<
-	$(AM_V_at)echo -n "$*_idlj_SOURCE = " > $@
+	$(AM_V_at)echo -n "$(rh__idlvar)_idlj_SOURCE = " > $@
 	$(AM_V_at)$(call rh__idlfind,$(rh__idljtemp),IDLJ_BUILDDIR) >> $@
 	$(AM_V_at)rm -rf $(rh__idljtemp)
-	$(AM_V_at)echo '$$($*_idlj_SOURCE) : $(rh__idljtemp).idlj' >> $@
+	$(AM_V_at)echo '$$($(rh__idlvar)_idlj_SOURCE) : $(rh__idljtemp).idlj' >> $@
 	$(AM_V_at)echo '.INTERMEDIATE : $(rh__idljtemp).idlj' >> $@
 	$(AM_V_at)echo '$(rh__idljtemp).idlj : $<' >> $@
 	$(AM_V_at)echo '	@mkdir -p $$(IDLJ_BUILDDIR)' >> $@
@@ -57,10 +62,10 @@ IDLJNI_BUILDDIR ?= .
 .idljni/%.mk : %.idl
 	$(AM_V_at)rm -rf $(rh__idljnitemp); mkdir -p $(rh__idljnitemp)
 	$(AM_V_at)$(rh__idljni) -C $(rh__idljnitemp) $<
-	$(AM_V_at)echo -n "$*_idljni_SOURCE = " > $@
+	$(AM_V_at)echo -n "$(rh__idlvar)_idljni_SOURCE = " > $@
 	$(AM_V_at)$(call rh__idlfind,$(rh__idljnitemp),IDLJNI_BUILDDIR) >> $@
 	$(AM_V_at)rm -rf $(rh__idljnitemp)
-	$(AM_V_at)echo '$$($*_idljni_SOURCE) : $(rh__idljnitemp).idljni' >> $@
+	$(AM_V_at)echo '$$($(rh__idlvar)_idljni_SOURCE) : $(rh__idljnitemp).idljni' >> $@
 	$(AM_V_at)echo '.INTERMEDIATE : $(rh__idljnitemp).idljni' >> $@
 	$(AM_V_at)echo '$(rh__idljnitemp).idljni : $<' >> $@
 	$(AM_V_at)echo '	@mkdir -p $$(IDLJNI_BUILDDIR)' >> $@
@@ -84,7 +89,7 @@ endef
 define JAVA_IDL_template
 # Include Java IDL makefile fragments. 
 $(foreach mkfile,$($(1)_IDLSRC:%.idl=.$(1)/%.mk),$(eval $(call INCLUDE_IFEXIST,$(mkfile))))
-$(eval $(1)_SOURCE = $(foreach idlfile,$($(1)_IDLSRC:%.idl=%),$$($(idlfile)_$(1)_SOURCE)))
+$(eval $(1)_SOURCE = $(foreach idlfile,$($(1)_IDLSRC:%.idl=%),$$($(subst /,_,$(idlfile))_$(1)_SOURCE)))
 
 # Chain clean and distclean off of Automake targets
 .PHONY: clean-$(1) distclean-$(1)

@@ -230,13 +230,13 @@ namespace burstio {
             std::string streamID_;
         };
 
-        class RemoteTransport;
+        class CorbaTransport;
         class LocalTransport;
 
         friend class Queue;
 
         typedef BurstTransport<Traits> TransportType;
-        typedef redhawk::TransportIteratorAdapter<TransportType> TransportIterator;
+        typedef redhawk::UsesPort::TransportIteratorAdapter<TransportType> TransportIterator;
 
         typedef std::map<std::string,Queue*> QueueMap;
 
@@ -251,7 +251,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual redhawk::BasicTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
+        virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);
