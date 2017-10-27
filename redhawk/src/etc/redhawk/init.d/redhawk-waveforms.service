@@ -10,9 +10,9 @@ Type=forking
 ExecStart=/etc/redhawk/init.d/redhawk-service-start WAVEFORM
 ExecStop=/etc/redhawk/init.d/redhawk-service-stop WAVEFORM
 WorkingDirectory=/etc/redhawk/init.d
-NotifyAccess=all
 TimeoutSec=10s
 KillMode=process
+RemainAfterExit=True
 
 [Install]
 WantedBy=multi-user.target
