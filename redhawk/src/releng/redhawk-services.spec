@@ -29,7 +29,7 @@ Prefix:         %{_sysconfdir}
 
 Name:           redhawk-services
 Version:        2.1.2
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        REDHAWK System Services
 
 Group:          Applications/Engineering
