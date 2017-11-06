@@ -175,7 +175,12 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
     else:
         raise BadParamException("Must specify either a portRef or a dataType, but not both")
 
-    dataType = portIDL.split('/')[1].split(':')[0]
+    # Given the repo ID, get the fully-qualified interface name (in between the
+    # colons) and take just the last part, removing any module name(s)
+    dataType = portIDL.split(':')[1].split('/')[-1]
+    if dataType.endswith('Ext'):
+        # Treat extended interfaces as their base interface
+        dataType = dataType[:-3]
 
     dataSetType = type(dataSet)
     validSetTypes = [str, list, tuple]
