@@ -783,6 +783,7 @@ class sdds_header(ctypes.Structure):
 
       def set_rate(self, rate):
            vw=0
+           val=rate
            if rate>= 125e6:
                 vw = 1
                 val = val * 0.0625
