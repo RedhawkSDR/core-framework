@@ -787,7 +787,7 @@ class sdds_header(ctypes.Structure):
                 vw = 1
                 val = val * 0.0625
            self.set_vw(vw)
-           self.set_freq(freq)
+           self.set_freq(val)
 
       def get_dfdt(self):
            return self.ssc.get_dfdt()
