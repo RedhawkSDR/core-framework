@@ -43,6 +43,7 @@ sdr/dom/components/C2/cpp/C2
 sdr/dom/components/msg_through_cpp/cpp/msg_through_cpp
 sdr/dom/components/prop_trigger_timing/cpp/prop_trigger_timing
 sdr/dom/components/timeprop_cpp/cpp/timeprop_cpp
+sdr/dom/components/svc_fn_error_cpp/cpp/svc_fn_error_cpp
 sdr/dom/domain/
 sdr/dom/mgr/DomainManager*
 sdr/dom/mgr/rh/

@@ -1489,7 +1489,6 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
 {
     LOG_TRACE(GPP_i, " Terminate request, processID: " << processId);
-    component_description comp;
     try {
       markPidTerminated( processId );
       ExecutableDevice_impl::terminate(processId);
@@ -1499,31 +1498,31 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
     removeProcess(processId);
 }
 
-bool GPP_i::_component_cleanup( const int child_pid, const int exit_status ) {
-  
- 
-  bool ret=false;
-  component_description comp;
-  try {
-    comp = getComponentDescription(child_pid);
-    ret=true;
-    if ( !comp.terminated ) {
-      // release of component can exit process before terminate is called
-      if ( WIFEXITED(exit_status) == 0 ) {
-        LOG_ERROR(GPP_i, " Unexpected Component Failure,  App/Identifier/Process: " << 
-                comp.appName << "/" << comp.identifier << "/" << comp.terminated <<  "/" << child_pid << 
-                " STATUS==" << WIFEXITED(exit_status)  << "," << WEXITSTATUS(exit_status) <<
-                "," <<WIFSIGNALED(exit_status) );
-        sendChildNotification(comp.identifier, comp.appName);
-      }
+bool GPP_i::_component_cleanup(const int pid, const int status)
+{
+    component_description comp;
+    try {
+        comp = getComponentDescription(pid);
+    } catch (...) {
+        // pass.. could be a pid from and popen or system commands..
+        return false;
     }
-  }
-  catch(...) {
-    // pass.. could be a pid from and popen or system commands..
-  }
 
-  removeProcess(child_pid);
-  return ret;
+    if (!comp.terminated) {
+        // release of component can exit process before terminate is called
+        if (WIFEXITED(status) && (WEXITSTATUS(status) != 0)) {
+            LOG_ERROR(GPP_i, "Unexpected component exit with non-zero status " << WEXITSTATUS(status)
+                      << ", App/Identifier/Process: " << comp.appName << "/" << comp.identifier << "/" << pid);
+            sendChildNotification(comp.identifier, comp.appName);
+        } else if (WIFSIGNALED(status)) {
+            LOG_ERROR(GPP_i, "Unexepected component termination with signal " << WTERMSIG(status)
+                      << ", App/Identifier/Process: " << comp.appName << "/" << comp.identifier << "/" << pid);
+            sendChildNotification(comp.identifier, comp.appName);
+        }
+    }
+
+    removeProcess(pid);
+    return true;
 }
 
 
