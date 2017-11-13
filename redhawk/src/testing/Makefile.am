@@ -117,7 +117,8 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/PropertyChange_J1/java \
            sdr/dom/components/Property_JAVA/java \
            sdr/dom/components/foo/bar/jv/java \
-           sdr/dom/components/TestJavaOptionalProps/java
+           sdr/dom/components/TestJavaOptionalProps/java \
+           sdr/dom/components/svc_fn_error_java/java
 endif
 
 SUBDIRS += cpp

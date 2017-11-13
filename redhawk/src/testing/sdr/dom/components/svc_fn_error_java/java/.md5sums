@@ -1,0 +1,6 @@
+dae876691e3921f8ca9c44cdc5b7385f  src/svc_fn_error_java/java/svc_fn_error_java.java
+c98e20c0d3998cfdf2d5d553850a28ef  startJava.sh
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+396a7d30cdc00a18bf0b7c82771f5547  src/svc_fn_error_java/java/svc_fn_error_java_base.java
+c11aad975ee01664a4d30750be2008bf  configure.ac
+4fcc54af3b88cca523b14c2b8c9d11a2  Makefile.am

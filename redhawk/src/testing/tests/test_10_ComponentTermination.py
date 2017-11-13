@@ -67,3 +67,11 @@ class ComponentTerminationTest(scatest.CorbaTestCase):
         components to terminate abnormally.
         """
         self._test_UnhandledException('py')
+
+    @scatest.requireJava
+    def test_UnhandledExceptionJava(self):
+        """
+        Test that unhandled exceptions in Java service function cause
+        components to terminate abnormally.
+        """
+        self._test_UnhandledException('java')

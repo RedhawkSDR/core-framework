@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:b86306f0-ca79-49d8-a23f-7f9145147f9d" name="svc_fn_error_java_w">
+  <componentfiles>
+    <componentfile id="svc_fn_error_java_4fc0b3c8-2afa-4201-80ef-ed231707ed74" type="SPD">
+      <localfile name="/components/svc_fn_error_java/svc_fn_error_java.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="svc_fn_error_java_4fc0b3c8-2afa-4201-80ef-ed231707ed74"/>
+      <componentinstantiation id="svc_fn_error_java_1">
+        <usagename>svc_fn_error_java_1</usagename>
+        <findcomponent>
+          <namingservice name="svc_fn_error_java_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="svc_fn_error_java_1"/>
+  </assemblycontroller>
+</softwareassembly>
