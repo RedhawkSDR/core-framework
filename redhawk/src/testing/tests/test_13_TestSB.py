@@ -357,7 +357,7 @@ class SBTestTest(scatest.CorbaTestCase):
         except:
             pass
             
-        self.assertTrue('ERROR:svc_fn_error' in log_contents)
+        self.assertTrue('test exception in process()' in log_contents)
 
     def test_propertyInitialization(self):
         """

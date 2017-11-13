@@ -60,3 +60,10 @@ class ComponentTerminationTest(scatest.CorbaTestCase):
         to terminate abnormally.
         """
         self._test_UnhandledException('cpp')
+
+    def test_UnhandledExceptionPy(self):
+        """
+        Test that unhandled exceptions in Python service function cause
+        components to terminate abnormally.
+        """
+        self._test_UnhandledException('py')
