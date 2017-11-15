@@ -48,7 +48,7 @@ import Queue, copy, time, threading
 #{% filter lines|unique|join('\n') %}
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
-from ossie.resource import usesport, providesport
+from ossie.resource import usesport, providesport, PortCallError
 #{%   endif %}
 #{%   for statement in portgen.imports() %}
 ${statement}

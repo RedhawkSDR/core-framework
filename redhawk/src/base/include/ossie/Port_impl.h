@@ -112,6 +112,20 @@ template<typename _Tp>
     }
 } // namespace _seqVector
 
+namespace redhawk {
+
+    class PortCallError : public std::runtime_error {
+
+    public:
+        PortCallError( const std::string &msg, const std::vector<std::string> &connectionids );
+
+        ~PortCallError() throw ();
+
+    private:
+        static std::string makeMessage(const std::string& msg, const std::vector<std::string>& connectionids);
+    };
+
+}
 
 class Port_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE

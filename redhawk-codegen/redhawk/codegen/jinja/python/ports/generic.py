@@ -80,7 +80,20 @@ class GenericPortGenerator(PythonPortGenerator):
                     args.append(param.name)
                 if param.direction in ('inout', 'out'):
                     returns.append(str(param.paramType))
+            _out = False
+            for p in op.params:
+                if p.direction == 'out':
+                    _out = True
+                    break
+            _inout = False
+            for p in op.params:
+                if p.direction == 'inout':
+                    _inout = True
+                    break
             yield {'name': op.name,
+                   'hasout': _out,
+                   'hasinout': _inout,
+                   'hasreturnType': str(op.returnType),
                    'args': args,
                    'returns': returns}
         for attr in self.idl.attributes():

@@ -137,6 +137,17 @@ class usesport(_port):
         # Uses ports are always CF.Port objects
         return (portobj != None) and (portobj._is_a(self.CF_PORT_REPID))
 
+class PortCallError(Exception):
+    def __init__(self, message='', connections={}):
+        _message = message
+        if len(connections) > 0:
+            _message += 'Connections available: '
+        for key in connections:
+            _message += key+', '
+        if len(connections) > 0:
+            _message = _message[:-2]
+        super(PortCallError, self).__init__(_message)
+
 class providesport(_port):
     def isValid(self, portobj):
         """Validate that portobj is the expected type to get returned by PortSupplier.getPort() based on the repid."""

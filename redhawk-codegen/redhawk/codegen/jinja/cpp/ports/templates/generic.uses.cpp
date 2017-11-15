@@ -33,9 +33,30 @@ ${classname}::~${classname}()
 }
 /*{% for operation in portgen.operations() %}*/
 
-${operation.returns} ${classname}::${operation.name}(${operation.arglist})
+/*{%  if operation.arglist %}*/
+${operation.returns} ${classname}::${operation.name}(${operation.arglist}, const std::string __connection_id__)
+/*{%  else %}*/
+${operation.returns} ${classname}::${operation.name}(const std::string __connection_id__)
+/*{%  endif %}*/
 {
 //% set hasreturn = operation.returns != 'void'
+/*{% if hasreturn %}*/
+/*{%     set returnstate='true' %}*/
+/*{% else %}*/
+/*{%     set returnstate='false' %}*/
+/*{% endif %}*/
+//% set hasout = operation.hasout
+/*{% if hasout %}*/
+/*{%     set _hasout='true' %}*/
+/*{% else %}*/
+/*{%     set _hasout='false' %}*/
+/*{% endif %}*/
+//% set hasinout = operation.hasinout
+/*{% if hasinout %}*/
+/*{%     set _hasinout='true' %}*/
+/*{% else %}*/
+/*{%     set _hasinout='false' %}*/
+/*{% endif %}*/
 /*{% if hasreturn %}*/
     ${operation.temporary} retval${' = %s' % operation.initializer if operation.initializer};
 /*{% endif %}*/
@@ -43,13 +64,32 @@ ${operation.returns} ${classname}::${operation.name}(${operation.arglist})
 
     boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
+    __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
     if (active) {
-        for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-            try {
-                ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
-            } catch(...) {
-                LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
-                throw;
+        if (not __connection_id__.empty()) {
+            bool found_connection = false;
+            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
+                if ((*i).second == __connection_id__) {
+                    found_connection = true;
+                    try {
+                        ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
+                    } catch(...) {
+                        LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+                        throw;
+                    }
+                }
+            }
+            if (not found_connection) {
+                throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
+            }
+        } else {
+            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
+                try {
+                    ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
+                } catch(...) {
+                    LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+                    throw;
+                }
             }
         }
     }

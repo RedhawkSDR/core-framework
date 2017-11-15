@@ -26,11 +26,12 @@ package ${package};
 import java.util.Map;
 import org.ossie.component.QueryableUsesPort;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
 /**
  * @generated
  */
-public class ${classname} extends QueryableUsesPort<${interface}> implements ${interface}, PortBase {
+public class ${classname} extends QueryableUsesPort<${interface}> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -63,17 +64,56 @@ public class ${classname} extends QueryableUsesPort<${interface}> implements ${i
     public ${operation.returns} ${operation.name}(${operation.arglist})${" throws " + operation.throws if operation.throws}
     {
 //% set hasreturn = operation.returns != 'void'
+/*{% if operation.argnames %}*/
+        ${'return ' if hasreturn}this.${operation.name}(${operation.argnames|join(', ')}, "");
+/*{% else %}*/
+        ${'return ' if hasreturn}this.${operation.name}("");
+/*{% endif %}*/
+    }
+
+/*{% if operation.arglist %}*/
+    public ${operation.returns} ${operation.name}(${operation.arglist}, String __connection_id__)${" throws " + operation.throws if operation.throws}
+/*{% else %}*/
+    public ${operation.returns} ${operation.name}(String __connection_id__)${" throws " + operation.throws if operation.throws}
+/*{% endif %}*/
+    {
+/*{% if hasreturn %}*/
+/*{%     set returnstate='true' %}*/
+/*{% else %}*/
+/*{%     set returnstate='false' %}*/
+/*{% endif %}*/
+//% set hasout = operation.hasout
+/*{% if hasout %}*/
+/*{%     set _hasout='true' %}*/
+/*{% else %}*/
+/*{%     set _hasout='false' %}*/
+/*{% endif %}*/
+//% set hasinout = operation.hasinout
+/*{% if hasinout %}*/
+/*{%     set _hasinout='true' %}*/
+/*{% else %}*/
+/*{%     set _hasinout='false' %}*/
+/*{% endif %}*/
 /*{% if hasreturn %}*/
         ${operation.returns} retval = ${java.defaultValue(operation.returns)};
 
 /*{% endif %}*/
         synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
+            __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
             if (this.active) {
                 //begin-user-code
                 //end-user-code
                 
-                for (${interface} p : this.outPorts.values()) {
-                    ${'retval = ' if hasreturn}p.${operation.name}(${operation.argnames|join(', ')});
+                if (!__connection_id__.isEmpty()) {
+                    if (this.outPorts.containsKey(__connection_id__)) {
+                        ${'retval = ' if hasreturn}this.outPorts.get(__connection_id__).${operation.name}(${operation.argnames|join(', ')});
+                    } else {
+                        throw new PortCallError("Connection id "+__connection_id__+" not found.", this.getConnectionIds());
+                    }
+                } else {
+                    for (${interface} p : this.outPorts.values()) {
+                        ${'retval = ' if hasreturn}p.${operation.name}(${operation.argnames|join(', ')});
+                    }
                 }
             }
         }    // don't want to process while command information is coming in

@@ -27,8 +27,33 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
         ~${classname}();
 
 /*{% for op in portgen.operations() %}*/
-        ${op.returns} ${op.name}(${op.arglist});
+/*{%  if op.arglist %}*/
+        ${op.returns} ${op.name}(${op.arglist}, const std::string __connection_id__ = "");
+/*{%  else %}*/
+        ${op.returns} ${op.name}(const std::string __connection_id__ = "");
+/*{%  endif %}*/
 /*{% endfor %}*/
+
+        std::vector<std::string> getConnectionIds()
+        {
+            std::vector<std::string> retval;
+            for (unsigned int i = 0; i < outConnections.size(); i++) {
+                retval.push_back(outConnections[i].second);
+            }
+            return retval;
+        };
+
+        void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+            if (__connection_id__.empty() and (outConnections.size() > 1)) {
+                if (out or inOut or returnValue) {
+                    throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                            getConnectionIds());
+                }
+            }
+            if (outConnections.empty()) {
+                throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+            }
+        }
 
         ExtendedCF::UsesConnectionSequence * connections() 
         {

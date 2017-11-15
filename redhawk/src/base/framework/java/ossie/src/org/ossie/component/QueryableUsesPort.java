@@ -30,6 +30,10 @@ import java.util.HashMap;
 import org.ossie.component.UsesPort;
 //import ExtendedCF.QueryablePortPOA;
 import ExtendedCF.*;
+import org.ossie.redhawk.PortCallError;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.ListIterator;
 
 public abstract class QueryableUsesPort< E > extends QueryablePortPOA { // SUPPRESS CHECKSTYLE Name
     
@@ -43,6 +47,25 @@ public abstract class QueryableUsesPort< E > extends QueryablePortPOA { // SUPPR
         this.active = false;
         this.name = portName;
         this.updatingPortsLock = new Object();
+    }
+
+    public List<String> getConnectionIds() {
+        List<String> retval = new ArrayList<String>();
+        for (String key : outPorts.keySet()) {
+            retval.add(key);
+        }
+        return retval;
+    }
+
+    public void __evaluateRequestBasedOnConnections(String __connection_id__, boolean returnValue, boolean inOut, boolean out) throws PortCallError {
+        if (__connection_id__.isEmpty() && (outPorts.size() > 1)) {
+            if (out || inOut || returnValue) {
+                throw new PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.", this.getConnectionIds());
+            }
+        }
+        if (outPorts.isEmpty()) {
+            throw new PortCallError("No connections available.", new ArrayList<String>());
+        }
     }
 
     public boolean isActive() {
