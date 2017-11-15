@@ -29,7 +29,7 @@ class DomainComponent(ComponentBase):
         self.ports = []
 
         try:
-            self.name = str(spd.get_name())
+            self.name = instanceName.split('/')[-1]
             self._parseComponentXMLFiles()
             self._buildAPI()
             if self.ref != None:
