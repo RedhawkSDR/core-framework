@@ -24,12 +24,18 @@ from ossie.utils.model import ComponentBase, Resource, PropertySet, PortSupplier
 
 class DomainComponent(ComponentBase):
     def __init__(self, profile, spd, scd, prf, instanceName, refid, impl, pid=0, devs=[]):
-        super(DomainComponent,self).__init__(spd, scd, prf, instanceName, refid, impl, pid, devs)
+        # Remove waveform from the instance name for ComponentBase so that the
+        # short name is visible as 'instanceName'
+        baseName = instanceName.split('/')[-1]
+        super(DomainComponent,self).__init__(spd, scd, prf, baseName, refid, impl, pid, devs)
+        # Retain the "waveformId/instantiationId" in _instanceName for backward
+        # compatibility
+        self._instanceName = instanceName
         self._profile = profile
         self.ports = []
 
         try:
-            self.name = instanceName.split('/')[-1]
+            self.name = str(spd.get_name())
             self._parseComponentXMLFiles()
             self._buildAPI()
             if self.ref != None:

@@ -812,7 +812,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         foundcomp=False
         for _comp in app1.comps:
             if _comp._id[:33] == 'PortTest1:PortConnectExternalPort':
-                self.assertEquals(_comp.name, "PortTest1")
+                self.assertEquals(_comp.instanceName, "PortTest1")
                 foundcomp = True
                 break
         self.assertTrue(foundcomp)

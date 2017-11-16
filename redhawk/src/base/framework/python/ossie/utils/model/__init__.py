@@ -1356,6 +1356,7 @@ class ComponentBase(QueryableBase):
         super(ComponentBase, self).__init__(prf, refid)
         self._spd = spd
         self._scd = scd
+        self.instanceName = instanceName
         self._instanceName = instanceName
         self._impl = impl
         self._pid = pid
