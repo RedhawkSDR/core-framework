@@ -809,10 +809,13 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app1 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
         app2 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
 
+        foundcomp=False
         for _comp in app1.comps:
-            print 'searching: ',_comp.name, _comp._id
-            if _comp._id[:50] == 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74:PortConne':
+            if _comp._id[:33] == 'PortTest1:PortConnectExternalPort':
+                self.assertEquals(_comp.name, "PortTest1")
+                foundcomp = True
                 break
+        self.assertTrue(foundcomp)
 
         for _port in _comp.ports:
             if _port.name == 'resource_out':

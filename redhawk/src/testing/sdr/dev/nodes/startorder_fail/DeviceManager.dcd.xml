@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:d1d8f63e-81bf-4e6c-bf68-8fd114b0c722" name="startorder_fail">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="start_event_device_d45e765f-5d80-4265-a913-5160e79a96f4" type="SPD">
+      <localfile name="/devices/start_event_device/start_event_device.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="start_event_device_d45e765f-5d80-4265-a913-5160e79a96f4"/>
+      <componentinstantiation id="startorder_fail:start_event_device_1" startorder="0">
+        <usagename>start_event_device_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="start_event_device_d45e765f-5d80-4265-a913-5160e79a96f4"/>
+      <componentinstantiation id="startorder_fail:fail_device_1" startorder="1">
+        <usagename>fail_device_1</usagename>
+        <componentproperties>
+          <structref refid="failures">
+            <simpleref refid="failures::start" value="true"/>
+            <simpleref refid="failures::stop" value="true"/>
+          </structref>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="start_event_device_d45e765f-5d80-4265-a913-5160e79a96f4"/>
+      <componentinstantiation id="startorder_fail:start_event_device_2" startorder="2">
+        <usagename>start_event_device_2</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_fail:start_event_device_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_2">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_fail:fail_device_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_3">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_fail:start_event_device_2"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+  </connections>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

@@ -29,7 +29,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <partitioning>
     <componentplacement>
       <componentfileref refid="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997"/>
-      <componentinstantiation id="DCE:5faf296f-3193-49cc-8751-f8a64b315fdf">
+      <componentinstantiation id="PortTest1">
         <usagename>PortTest1</usagename>
         <findcomponent>
           <namingservice name="PortTest1"/>
@@ -38,7 +38,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
     <componentplacement>
       <componentfileref refid="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997"/>
-      <componentinstantiation id="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74">
+      <componentinstantiation id="PortTest2">
         <usagename>PortTest2</usagename>
         <findcomponent>
           <namingservice name="PortTest2"/>
@@ -47,7 +47,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
     <componentplacement>
       <componentfileref refid="PortTest_74fce942-ce9d-48a0-bc18-47093ee04997"/>
-      <componentinstantiation id="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74-1">
+      <componentinstantiation id="PortTest2-1">
         <usagename>PortTest2-1</usagename>
         <findcomponent>
           <namingservice name="PortTest2-1"/>
@@ -56,20 +56,20 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
   </partitioning>
   <assemblycontroller>
-    <componentinstantiationref refid="DCE:5faf296f-3193-49cc-8751-f8a64b315fdf"/>
+    <componentinstantiationref refid="PortTest1"/>
   </assemblycontroller>
   <externalports>
     <port>
       <usesidentifier>resource_out</usesidentifier>
-      <componentinstantiationref refid="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74"/>
+      <componentinstantiationref refid="PortTest2"/>
     </port>
     <port  externalname="PortTest2-1::resource_out">
       <usesidentifier>resource_out</usesidentifier>
-      <componentinstantiationref refid="DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74-1"/>
+      <componentinstantiationref refid="PortTest2-1"/>
     </port>
     <port>
       <providesidentifier>resource_in</providesidentifier>
-      <componentinstantiationref refid="DCE:5faf296f-3193-49cc-8751-f8a64b315fdf"/>
+      <componentinstantiationref refid="PortTest1"/>
     </port>
   </externalports>
 </softwareassembly>

@@ -761,7 +761,6 @@ class Resource(object):
                 raise
 
             if len(unknownProperties) > 0:
-                self._log.warning("query called with invalid properties %s", unknownProperties)
                 self.propertySetAccess.release()
                 raise CF.UnknownProperties(unknownProperties)
 

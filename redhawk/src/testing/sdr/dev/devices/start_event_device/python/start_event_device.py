@@ -1,17 +1,33 @@
 #!/usr/bin/env python
 #
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK core.
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
 #
 # AUTO-GENERATED
 #
-# Source: dev_startorder.spd.xml
+# Source: start_event_device.spd.xml
 from ossie.device import start_device
-from omniORB import any
 import logging
-from ossie.cf import CF
 
-from dev_startorder_base import *
+from start_event_device_base import *
 
-class dev_startorder_i(dev_startorder_base):
+class start_event_device_i(start_event_device_base):
     """<DESCRIPTION GOES HERE>"""
     def constructor(self):
         """
@@ -24,22 +40,33 @@ class dev_startorder_i(dev_startorder_base):
 
         """
         # TODO add customization here.
-        self.stopped = False
 
     def start(self):
-        self._log.info("starting "+self._id)
-        if self._id == 'devmgr_startorder:dev_startorder_2':
-            svc = self.getDeviceManager().ref._get_registeredServices()[0]
-            if len(self.port_output._get_connections())==0:
-                self.port_output.connectPort(svc.serviceObject, 'service_connection')
-        val = CF.DataType(id='start_from', value=any.to_any(self.start_from+","+self._id))
-        self.port_output.configure([val])
+        self._log.info('starting %s', self._id)
+        
+        message = start_event_device_i.StateChange()
+        message.identifier = self._id
+        message.event = 'start'
+        self.port_message_out.sendMessage(message)
 
+        if self.failures.start:
+            raise CF.Resource.StartError(CF.CF_NOTSET, 'failure requested')
+
+        start_event_device_base.start(self)
+    
     def stop(self):
-        if not self.stopped:
-            self._log.info("stopping "+self._id)
-            self.stopped = True
+        self._log.info('stopping %s', self._id)
 
+        message = start_event_device_i.StateChange()
+        message.identifier = self._id
+        message.event = 'stop'
+        self.port_message_out.sendMessage(message)
+
+        if self.failures.stop:
+            raise CF.Resource.StopError(CF.CF_NOTSET, 'failure requested')
+
+        start_event_device_base.stop(self)
+        
     def updateUsageState(self):
         """
         This is called automatically after allocateCapacity or deallocateCapacity are called.
@@ -104,14 +131,14 @@ class dev_startorder_i(dev_startorder_base):
                 print msg_id, msg_value
         
             Register the message callback onto the input port with the following form:
-            self.port_input.registerMessage("my_msg", dev_startorder_i.MyMsg, self.msg_callback)
+            self.port_input.registerMessage("my_msg", start_event_device_i.MyMsg, self.msg_callback)
         
             To send a message, you need to (1) create a message structure, and (2) send the message over the port.
         
             Assuming a property of type message is declared called "my_msg", an output port called "msg_output" is declared of
             type MessageEvent, create the following code:
         
-            msg_out = dev_startorder_i.MyMsg()
+            msg_out = start_event_device_i.MyMsg()
             this.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
@@ -196,5 +223,5 @@ class dev_startorder_i(dev_startorder_base):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.debug("Starting Device")
-    start_device(dev_startorder_i)
+    start_device(start_event_device_i)
 

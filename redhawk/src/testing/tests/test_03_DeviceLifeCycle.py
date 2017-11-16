@@ -23,8 +23,11 @@ from _unitTestHelpers import scatest
 from test_01_DeviceManager import killChildProcesses
 from ossie.utils import redhawk
 from ossie.cf import CF
+from ossie.events import Subscriber
+from ossie import properties
 from omniORB import any as _any
 import time
+import Queue
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -53,70 +56,113 @@ class DeviceLifeCycleTest(scatest.CorbaTestCase):
 class DeviceStartorder(scatest.CorbaTestCase):
     def setUp(self):
         domBooter, domMgr = self.launchDomainManager()
-        devBooter, devMgr = self.launchDeviceManager("/nodes/devmgr_startorder/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/devmgr_config.cfg')
 
-    def test_DeviceStarted(self):
-        rhdom = redhawk.attach(scatest.getTestDomainName())
-        startfrom = {}
-        q=CF.DataType(id='start_from',value=_any.to_any(None))
-        for dev in rhdom.devMgrs[0].devs:
-            startfrom[dev._id] = dev.query([q])[0].value._v
-        for svc in rhdom.devMgrs[0].services:
-            startfrom[svc._id] = svc.query([q])[0].value._v
-        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_1'], ',devmgr_startorder:dev_startorder_2,svc_startorder_1')
-        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_2'], ',devmgr_startorder:dev_startorder_2,svc_startorder_1,devmgr_startorder:dev_startorder_1')
-        self.assertEquals(startfrom['devmgr_startorder:dev_startorder_3'], '')
-        self.assertEquals(startfrom['devmgr_startorder:svc_startorder_1'], ',devmgr_startorder:dev_startorder_2')
+        # Create an event channel to receive the device and service start/stop
+        # messages (the name must match the findbys in the DCD), and connect a
+        # subscriber
+        eventMgr = domMgr._get_eventChannelMgr()
+        channel = eventMgr.createForRegistrations('test_events')
+        self._started = Queue.Queue()
+        self._stopped = Queue.Queue()
+        self._subscriber = Subscriber(channel, dataArrivedCB=self._messageReceived)
 
-        rhdom.devMgrs[0].shutdown()
+    def tearDown(self):
+        self._subscriber.terminate()
 
-        fp = None
-        try:
-            fp = open('sdr/cache/.devmgr_startorder/foo/bar/test.log','r')
-        except:
-            pass
-        if fp != None:
-            log_contents = fp.read()
-            fp.close()
-        try:
-            os.remove('foo/bar/test.log')
-        except:
-            pass
-        try:
-            os.rmdir('foo/bar')
-        except:
-            pass
-        try:
-            os.rmdir('foo')
-        except:
-            pass
-        try:
-            os.remove('sdr/cache/.devmgr_startorder/foo/bar/test.log')
-        except:
-            pass
-        try:
-            os.rmdir('sdr/cache/.devmgr_startorder/foo/bar')
-        except:
-            pass
-        try:
-            os.rmdir('sdr/cache/.devmgr_startorder/foo')
-        except:
-            pass
-        start_dev_1 = log_contents.find('starting devmgr_startorder:dev_startorder_1')
-        start_dev_2 = log_contents.find('starting devmgr_startorder:dev_startorder_2')
-        start_dev_3 = log_contents.find('starting devmgr_startorder:dev_startorder_3')
-        start_svc = log_contents.find('starting svc_startorder_1')
-        stop_dev_1 = log_contents.find('stopping devmgr_startorder:dev_startorder_1')
-        stop_dev_2 = log_contents.find('stopping devmgr_startorder:dev_startorder_2')
-        stop_dev_3 = log_contents.find('stopping devmgr_startorder:dev_startorder_3')
-        stop_svc = log_contents.find('stopping svc_startorder_1')
+        scatest.CorbaTestCase.tearDown(self)
 
-        self.assertTrue(start_dev_2<start_svc)
-        self.assertTrue(start_svc<start_dev_1)
-        self.assertEquals(start_dev_3, -1)
-        self.assertTrue(stop_dev_1<stop_svc)
-        self.assertTrue(stop_svc<stop_dev_2)
-        self.assertTrue(stop_dev_2<stop_dev_3)
+    def _messageReceived(self, message):
+        payload = message.value(CF._tc_Properties)
+        if not payload:
+            return
+        for dt in payload:
+            if dt.id == 'state_change':
+                value = properties.props_to_dict(dt.value.value(CF._tc_Properties))
+                identifier = value['state_change::identifier']
+                if value['state_change::event'] == 'start':
+                    self._started.put(identifier)
+                elif value['state_change::event'] == 'stop':
+                    self._stopped.put(identifier)
+
+    def _verifyStartOrder(self, startorder):
+        for identifier in startorder:
+            try:
+                received = self._started.get(timeout=1.0)
+            except Queue.Empty:
+                self.fail('Did not receive start message for ' + identifier)
+            self.assertEqual(received, identifier)
+        self.failUnless(self._started.empty(), msg='Too many start messages received')
+
+    def _verifyStopOrder(self, startorder):
+        for identifier in startorder[::-1]:
+            try:
+                received = self._stopped.get(timeout=1.0)
+            except Queue.Empty:
+                self.fail('Did not receive stop message for ' + identifier)
+            self.assertEqual(received, identifier)
+        self.failUnless(self._stopped.empty(), msg='Too many stop messages received')
+
+    def test_StartOrder(self):
+        """
+        Test that device/service start order runs correctly
+        """
+        devBooter, devMgr = self.launchDeviceManager("/nodes/startorder_events/DeviceManager.dcd.xml")
+
+        startorder = ('startorder_events:start_event_device_3',
+                      'start_event_service_1',
+                      'startorder_events:start_event_device_1')
+
+        # Verify that start calls were received in the right order
+        self._verifyStartOrder(startorder)
+
+        # Check that the devices are started as expected
+        for dev in devMgr._get_registeredDevices():
+            dev_id = dev._get_identifier()
+            expected = dev_id in startorder
+            self.assertEqual(expected, dev._get_started(), msg='Device '+dev_id+' started state is incorrect')
+
+        # Also services, if supported
+        for svc in devMgr._get_registeredServices():
+            expected = svc.serviceName in startorder
+            if svc.serviceObject._is_a(CF.Resource._NP_RepositoryId):
+                started = svc.serviceObject._narrow(CF.Resource)._get_started()
+            else:
+                started = False
+            self.assertEqual(expected, started, msg='Service '+svc.serviceName+' started state is incorrect')
+
+        # Shut down the node so that it stops all of the devices and services
+        devMgr.shutdown()
+
+        # Check that stop was called in the reverse order of start
+        self._verifyStopOrder(startorder)
+
+    def test_StartOrderException(self):
+        """
+        Test that the node continues along the device/service start order even
+        if one of them throws an exception
+        """
+        devBooter, devMgr = self.launchDeviceManager("/nodes/startorder_fail/DeviceManager.dcd.xml")
+
+        startorder = ('startorder_fail:start_event_device_1',
+                      'startorder_fail:fail_device_1',
+                      'startorder_fail:start_event_device_2')
+
+        # Verify that start calls were received in the right order, and that
+        # the device manager continued after the failing device
+        self._verifyStartOrder(startorder)
+
+        # Check that the devices are started as expected, with the device that
+        # was configured to fail not started
+        for dev in devMgr._get_registeredDevices():
+            label = dev._get_label()
+            expected = not label.startswith('fail_')
+            self.assertEqual(expected, dev._get_started(), msg='Device '+label+' started state is incorrect')
+
+        # Shut down the node so that it stops all of the devices and services
+        devMgr.shutdown()
+
+        # Check that stop was called in the reverse order of start
+        self._verifyStopOrder(startorder)
 
 class DeviceDeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
