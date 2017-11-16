@@ -27,10 +27,15 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
         ~${classname}();
 
 /*{% for op in portgen.operations() %}*/
-/*{%  if op.arglist %}*/
-        ${op.returns} ${op.name}(${op.arglist}, const std::string __connection_id__ = "");
+/*{%  if op.readwrite_attr %}*/
+        ${op.returns} ${op.name}();
+        ${op.returns} _get_${op.name}(const std::string __connection_id__);
 /*{%  else %}*/
+/*{%   if op.arglist %}*/
+        ${op.returns} ${op.name}(${op.arglist}, const std::string __connection_id__ = "");
+/*{%   else %}*/
         ${op.returns} ${op.name}(const std::string __connection_id__ = "");
+/*{%   endif %}*/
 /*{%  endif %}*/
 /*{% endfor %}*/
 

@@ -269,9 +269,13 @@ class GenericPortGenerator(CppPortGenerator):
         # for attributes of an interface...provide manipulator methods
         # 
         for attr in self.idl.attributes():
+            readwrite_attr = False
+            if not attr.readonly:
+                readwrite_attr = True
             yield {'name': attr.name,
                    'arglist': '',
                    'argnames': '',
+                   'readwrite_attr': readwrite_attr,
                    'temporary': temporaryType(attr.attrType),
                    'initializer': temporaryValue(attr.attrType),
                    'returns': baseReturnType(attr.attrType)}

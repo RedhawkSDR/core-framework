@@ -32,13 +32,6 @@ ${classname}::~${classname}()
 {
 }
 /*{% for operation in portgen.operations() %}*/
-
-/*{%  if operation.arglist %}*/
-${operation.returns} ${classname}::${operation.name}(${operation.arglist}, const std::string __connection_id__)
-/*{%  else %}*/
-${operation.returns} ${classname}::${operation.name}(const std::string __connection_id__)
-/*{%  endif %}*/
-{
 //% set hasreturn = operation.returns != 'void'
 /*{% if hasreturn %}*/
 /*{%     set returnstate='true' %}*/
@@ -57,6 +50,20 @@ ${operation.returns} ${classname}::${operation.name}(const std::string __connect
 /*{% else %}*/
 /*{%     set _hasinout='false' %}*/
 /*{% endif %}*/
+/*{%  if operation.readwrite_attr %}*/
+${operation.returns} ${classname}::${operation.name}() {
+    return _get_${operation.name}("");
+}
+
+${operation.returns} ${classname}::${operation.name}(const std::string __connection_id__)
+/*{%  else %}*/
+/*{%   if operation.arglist %}*/
+${operation.returns} ${classname}::${operation.name}(${operation.arglist}, const std::string __connection_id__)
+/*{%   else %}*/
+${operation.returns} ${classname}::${operation.name}(const std::string __connection_id__)
+/*{%   endif %}*/
+/*{%  endif %}*/
+{
 /*{% if hasreturn %}*/
     ${operation.temporary} retval${' = %s' % operation.initializer if operation.initializer};
 /*{% endif %}*/
