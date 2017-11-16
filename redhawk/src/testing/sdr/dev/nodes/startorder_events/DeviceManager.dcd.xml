@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:7b75b037-72b6-4c64-ae66-5b5fc0c55724" name="startorder_events">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="start_event_device_9b28b711-c892-4b5a-b724-d99ba3fd6eea" type="SPD">
+      <localfile name="/devices/start_event_device/start_event_device.spd.xml"/>
+    </componentfile>
+    <componentfile id="start_event_service_ce214c61-bc4f-4c57-870c-cc3937ac1b2b" type="SPD">
+      <localfile name="/services/start_event_service/start_event_service.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="start_event_device_9b28b711-c892-4b5a-b724-d99ba3fd6eea"/>
+      <componentinstantiation id="startorder_events:start_event_device_1" startorder="3">
+        <usagename>start_event_device_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="start_event_device_9b28b711-c892-4b5a-b724-d99ba3fd6eea"/>
+      <componentinstantiation id="startorder_events:no_start_event_device_2">
+        <usagename>no_start_event_device_2</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="start_event_service_ce214c61-bc4f-4c57-870c-cc3937ac1b2b"/>
+      <componentinstantiation id="startorder_events:start_event_service_1" startorder="2">
+        <usagename>start_event_service_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="start_event_device_9b28b711-c892-4b5a-b724-d99ba3fd6eea"/>
+      <componentinstantiation id="startorder_events:start_event_device_3" startorder="1">
+        <usagename>start_event_device_3</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <connections>
+    <connectinterface id="connection_1">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_events:start_event_device_1"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_2">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_events:no_start_event_device_2"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_3">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <componentinstantiationref refid="startorder_events:start_event_device_3"/>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+    <connectinterface id="connection_4">
+      <usesport>
+        <usesidentifier>message_out</usesidentifier>
+        <findby>
+          <domainfinder name="start_event_service_1" type="servicename"/>
+        </findby>
+      </usesport>
+      <componentsupportedinterface>
+        <supportedidentifier>IDL:ExtendedEvent/MessageEvent:1.0</supportedidentifier>
+        <findby>
+          <domainfinder name="test_events" type="eventchannel"/>
+        </findby>
+      </componentsupportedinterface>
+    </connectinterface>
+  </connections>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

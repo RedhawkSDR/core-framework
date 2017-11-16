@@ -2312,20 +2312,46 @@ void DeviceManager_impl::startOrder()
     }
     for (std::vector<std::pair<std::string, int> >::iterator item=start_order.begin(); item!=start_order.end();item++) {
         bool started = false;
-        for(DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); _dev++) {
-            if ((*_dev)->identifier == item->first) {
-                (*_dev)->device->start();
+        for (DeviceList::iterator dev=_registeredDevices.begin(); dev!=_registeredDevices.end(); dev++) {
+            if ((*dev)->identifier == item->first) {
+                LOG_TRACE(DeviceManager_impl, "Starting device " << (*dev)->label);
+                try {
+                    (*dev)->device->start();
+                } catch (const CF::Resource::StartError& exc) {
+                    LOG_ERROR(DeviceManager_impl, "Device " << (*dev)->label << " failed to start: " << exc.msg);
+                } catch (const CORBA::SystemException& exc) {
+                    LOG_ERROR(DeviceManager_impl, "Device " << (*dev)->label << " failed to start: "
+                              << ossie::corba::describeException(exc));
+                }
                 started = true;
                 break;
             }
         }
         if (started)
             continue;
-        for(ServiceList::iterator _svc=_registeredServices.begin(); _svc!=_registeredServices.end(); _svc++) {
-            if ((*_svc)->identifier == item->first) {
-                CF::Resource_ptr res = CF::Resource::_narrow((*_svc)->service);
-                if (not CORBA::is_nil(res))
+        for (ServiceList::iterator svc=_registeredServices.begin(); svc!=_registeredServices.end(); svc++) {
+            if ((*svc)->identifier == item->first) {
+                const std::string& identifier = (*svc)->identifier;
+                LOG_TRACE(DeviceManager_impl, "Starting service " << identifier);
+                CORBA::Object_ptr obj = (*svc)->service;
+                if (!(obj->_is_a(CF::Resource::_PD_repoId))) {
+                    LOG_WARN(DeviceManager_impl, "Service " << identifier
+                             << " has a startorder value but does not inherit from Resource");
+                    break;
+                }
+                CF::Resource_var res = ossie::corba::_narrowSafe<CF::Resource>(obj);
+                if (CORBA::is_nil(res)) {
+                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " cannot be narrowed to Resource");
+                    break;
+                }
+                try {
                     res->start();
+                } catch (const CF::Resource::StartError& exc) {
+                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " failed to start: " << exc.msg);
+                } catch (const CORBA::SystemException& exc) {
+                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " failed to start: "
+                              << ossie::corba::describeException(exc));
+                }
                 break;
             }
         }
