@@ -67,14 +67,22 @@ public class ${classname} extends QueryableUsesPort<${interface}> implements Por
 /*{% if operation.argnames %}*/
         ${'return ' if hasreturn}this.${operation.name}(${operation.argnames|join(', ')}, "");
 /*{% else %}*/
+/*{%  if operation.readwrite_attr %}*/
+        ${'return ' if hasreturn}this._get_${operation.name}("");
+/*{%  else %}*/
         ${'return ' if hasreturn}this.${operation.name}("");
+/*{%  endif %}*/
 /*{% endif %}*/
     }
 
 /*{% if operation.arglist %}*/
     public ${operation.returns} ${operation.name}(${operation.arglist}, String __connection_id__)${" throws " + operation.throws if operation.throws}
 /*{% else %}*/
+/*{%  if operation.readwrite_attr %}*/
+    public ${operation.returns} _get_${operation.name}(String __connection_id__)${" throws " + operation.throws if operation.throws}
+/*{%  else %}*/
     public ${operation.returns} ${operation.name}(String __connection_id__)${" throws " + operation.throws if operation.throws}
+/*{%  endif %}*/
 /*{% endif %}*/
     {
 /*{% if hasreturn %}*/

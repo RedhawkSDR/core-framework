@@ -200,9 +200,13 @@ class GenericUsesPortGenerator(GenericPortGenerator):
                    'defaultval': defaultValue(op.returnType),
                    'returns': baseType(op.returnType)}
         for attr in self.idl.attributes():
+            readwrite_attr = False
+            if not attr.readonly:
+                readwrite_attr = True
             yield {'name': attr.name,
                    'arglist': '',
                    'argnames': tuple(),
+                   'readwrite_attr': readwrite_attr,
                    'throws': 'PortCallError',
                    'defaultval': defaultValue(attr.attrType),
                    'returns': baseType(attr.attrType)}
