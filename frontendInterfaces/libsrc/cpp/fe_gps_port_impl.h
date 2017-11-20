@@ -95,11 +95,34 @@ namespace frontend {
             OutGPSPortT(std::string port_name) : OutFrontendPort<PortType_var, PortType>(port_name)
             {};
             ~OutGPSPortT(){};
-            
+
+            std::vector<std::string> getConnectionIds()
+            {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+                    retval.push_back(this->outConnections[i].second);
+                }
+                return retval;
+            };
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (this->outConnections.empty()) {
+                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                }
+            }
             frontend::GPSInfo gps_info() {
+                return _get_gps_info("");
+            };
+            frontend::GPSInfo _get_gps_info(const std::string __connection_id__) {
                 frontend::GPSInfo retval;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::GPSInfo_var tmp = ((*i).first)->gps_info();
@@ -108,9 +131,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void gps_info(const frontend::GPSInfo &gps) {
+            void gps_info(const frontend::GPSInfo &gps, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::GPSInfo_var tmp = frontend::returnGPSInfo(gps);
@@ -120,9 +144,13 @@ namespace frontend {
                 return;
             };
             frontend::GpsTimePos gps_time_pos() {
+                return _get_gps_time_pos("");
+            };
+            frontend::GpsTimePos _get_gps_time_pos(const std::string __connection_id__) {
                 frontend::GpsTimePos retval;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::GpsTimePos_var tmp = ((*i).first)->gps_time_pos();
@@ -131,9 +159,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void gps_time_pos(frontend::GpsTimePos gps_time_pos) {
+            void gps_time_pos(frontend::GpsTimePos gps_time_pos, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::GpsTimePos_var tmp = frontend::returnGpsTimePos(gps_time_pos);

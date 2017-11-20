@@ -78,11 +78,34 @@ namespace frontend {
             OutNavDataPortT(std::string port_name) : OutFrontendPort<PortType_var, PortType>(port_name)
             {};
             ~OutNavDataPortT(){};
-            
+
+            std::vector<std::string> getConnectionIds()
+            {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+                    retval.push_back(this->outConnections[i].second);
+                }
+                return retval;
+            };
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (this->outConnections.empty()) {
+                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                }
+            };
             frontend::NavigationPacket nav_packet() {
+                return _get_nav_packet("");
+            };
+            frontend::NavigationPacket _get_nav_packet(const std::string __connection_id__) {
                 frontend::NavigationPacket retval;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::NavigationPacket_var tmp = ((*i).first)->nav_packet();
@@ -91,9 +114,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void nav_packet(const frontend::NavigationPacket &nav) {
+            void nav_packet(const frontend::NavigationPacket &nav, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         const FRONTEND::NavigationPacket_var tmp = frontend::returnNavigationPacket(nav);

@@ -247,11 +247,32 @@ namespace frontend {
             OutFrontendTunerPortT(std::string port_name) : OutFrontendPort<PortType_var, PortType>(port_name)
             {};
             ~OutFrontendTunerPortT(){};
-            
-            std::string getTunerType(std::string &id) {
+
+            std::vector<std::string> getConnectionIds() {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+                    retval.push_back(this->outConnections[i].second);
+                }
+                return retval;
+            }
+
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (this->outConnections.empty()) {
+                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                }
+            }
+
+            std::string getTunerType(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerType(id.c_str());
@@ -260,10 +281,11 @@ namespace frontend {
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
-            bool getTunerDeviceControl(std::string &id) {
+            bool getTunerDeviceControl(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerDeviceControl(id.c_str());
@@ -271,10 +293,11 @@ namespace frontend {
                 }
                 return retval;
             };
-            std::string getTunerGroupId(std::string &id) {
+            std::string getTunerGroupId(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerGroupId(id.c_str());
@@ -283,10 +306,11 @@ namespace frontend {
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
-            std::string getTunerRfFlowId(std::string &id) {
+            std::string getTunerRfFlowId(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::String_var retval = "";
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerRfFlowId(id.c_str());
@@ -295,10 +319,11 @@ namespace frontend {
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
-            CF::Properties* getTunerStatus(std::string &id) {
+            CF::Properties* getTunerStatus(std::string &id, const std::string __connection_id__ = "") {
                 CF::Properties_var retval = new CF::Properties();
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerStatus(id.c_str());
@@ -315,10 +340,11 @@ namespace frontend {
             OutAnalogTunerPortT(std::string port_name) : OutFrontendTunerPortT<PortType_var, PortType>(port_name)
             {};
             ~OutAnalogTunerPortT(){};
-            
-            void setTunerCenterFrequency(std::string &id, double freq) {
+
+            void setTunerCenterFrequency(std::string &id, double freq, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerCenterFrequency(id.c_str(), freq);
@@ -326,10 +352,11 @@ namespace frontend {
                 }
                 return;
             };
-            double getTunerCenterFrequency(std::string &id) {
+            double getTunerCenterFrequency(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerCenterFrequency(id.c_str());
@@ -337,9 +364,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void setTunerBandwidth(std::string &id, double bw) {
+            void setTunerBandwidth(std::string &id, double bw, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerBandwidth(id.c_str(), bw);
@@ -347,10 +375,11 @@ namespace frontend {
                 }
                 return;
             };
-            double getTunerBandwidth(std::string &id) {
+            double getTunerBandwidth(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerBandwidth(id.c_str());
@@ -358,9 +387,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void setTunerAgcEnable(std::string &id, bool enable) {
+            void setTunerAgcEnable(std::string &id, bool enable, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerAgcEnable(id.c_str(), enable);
@@ -368,10 +398,11 @@ namespace frontend {
                 }
                 return;
             };
-            bool getTunerAgcEnable(std::string &id) {
+            bool getTunerAgcEnable(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerAgcEnable(id.c_str());
@@ -379,9 +410,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void setTunerGain(std::string &id, float gain) {
+            void setTunerGain(std::string &id, float gain, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerGain(id.c_str(), gain);
@@ -389,10 +421,11 @@ namespace frontend {
                 }
                 return;
             };
-            float getTunerGain(std::string &id) {
+            float getTunerGain(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Float retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerGain(id.c_str());
@@ -400,9 +433,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void setTunerReferenceSource(std::string &id, int source) {
+            void setTunerReferenceSource(std::string &id, int source, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerReferenceSource(id.c_str(), source);
@@ -410,10 +444,11 @@ namespace frontend {
                 }
                 return;
             };
-            int getTunerReferenceSource(std::string &id) {
+            int getTunerReferenceSource(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Long retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerReferenceSource(id.c_str());
@@ -421,9 +456,10 @@ namespace frontend {
                 }
                 return retval;
             };
-            void setTunerEnable(std::string &id, bool enable) {
+            void setTunerEnable(std::string &id, bool enable, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerEnable(id.c_str(), enable);
@@ -431,10 +467,11 @@ namespace frontend {
                 }
                 return;
             };
-            bool getTunerEnable(std::string &id) {
+            bool getTunerEnable(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Boolean retval = false;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerEnable(id.c_str());
@@ -451,10 +488,11 @@ namespace frontend {
             OutDigitalTunerPortT(std::string port_name) : OutAnalogTunerPortT<PortType_var, PortType>(port_name)
             {};
             ~OutDigitalTunerPortT(){};
-            
-            void setTunerOutputSampleRate(std::string &id, double sr) {
+
+            void setTunerOutputSampleRate(std::string &id, double sr, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         ((*i).first)->setTunerOutputSampleRate(id.c_str(), sr);
@@ -462,10 +500,11 @@ namespace frontend {
                 }
                 return;
             };
-            double getTunerOutputSampleRate(std::string &id) {
+            double getTunerOutputSampleRate(std::string &id, const std::string __connection_id__ = "") {
                 CORBA::Double retval = 0;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         retval = ((*i).first)->getTunerOutputSampleRate(id.c_str());

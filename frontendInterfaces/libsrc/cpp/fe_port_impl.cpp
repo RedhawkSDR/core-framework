@@ -256,7 +256,7 @@ namespace frontend {
         return val;
     };
 
-      void  copyRFInfoPktSequence(const RFInfoPktSequence &src, FRONTEND::RFInfoPktSequence* &dest) {
+      void  copyRFInfoPktSequence(const RFInfoPktSequence &src, FRONTEND::RFInfoPktSequence &dest) {
         RFInfoPktSequence::const_iterator i=src.begin();
         for( ; i != src.end(); i++ ) {
             ossie::corba::push_back( dest, getRFInfoPkt(*i) );

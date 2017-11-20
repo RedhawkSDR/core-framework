@@ -103,9 +103,11 @@ namespace frontend {
             ~OutRFSourcePort();
 
             frontend::RFInfoPktSequence available_rf_inputs();
-            void available_rf_inputs(const RFInfoPktSequence& data);
+            frontend::RFInfoPktSequence _get_available_rf_inputs(const std::string __connection_id__);
+            void available_rf_inputs(const RFInfoPktSequence& data, const std::string __connection_id__ = "");
             frontend::RFInfoPkt *current_rf_input();
-            void current_rf_input(const RFInfoPkt& data);;
+            frontend::RFInfoPkt *_get_current_rf_input(const std::string __connection_id__);
+            void current_rf_input(const RFInfoPkt& data, const std::string __connection_id__ = "");
     };
 
 } // end of frontend namespace

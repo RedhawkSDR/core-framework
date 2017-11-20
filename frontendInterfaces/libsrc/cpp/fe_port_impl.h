@@ -64,7 +64,7 @@ namespace frontend {
     frontend::GpsTimePos returnGpsTimePos(const FRONTEND::GpsTimePos &tmpVal);
     FRONTEND::NavigationPacket* returnNavigationPacket(const frontend::NavigationPacket &val);
     frontend::NavigationPacket returnNavigationPacket(const FRONTEND::NavigationPacket &tmpVal);
-    void copyRFInfoPktSequence(const RFInfoPktSequence &src, FRONTEND::RFInfoPktSequence* &dest);
+    void copyRFInfoPktSequence(const RFInfoPktSequence &src, FRONTEND::RFInfoPktSequence &dest);
     void copyRFInfoPktSequence(const FRONTEND::RFInfoPktSequence &src, RFInfoPktSequence &dest );
 
     // ----------------------------------------------------------------------------------------
@@ -81,6 +81,27 @@ namespace frontend {
                 recConnections.length(0);
             }
             ~OutFrontendPort(){
+            }
+
+            std::vector<std::string> getConnectionIds()
+            {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < outConnections.size(); i++) {
+                    retval.push_back(outConnections[i].second);
+                }
+                return retval;
+            };
+
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (outConnections.empty()) {
+                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                }
             }
 
             ExtendedCF::UsesConnectionSequence * connections()
