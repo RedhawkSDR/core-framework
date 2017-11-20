@@ -60,8 +60,26 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
 
 #{% set arglist = ['self'] + operation.args %}
 #{%  if arglist %}
+#{%   if operation.is_attribute %}
+    def ${operation.base_attribute}(self, __connection_id__ = ""):
+#{%    if operation.returns %}
+        return self.${operation.name}(__connection_id__)
+#{%    else %}
+        self.${operation.name}(__connection_id__)
+#{%    endif %}
+
+#{%   endif %}
     def ${operation.name}(${arglist|join(', ')}, __connection_id__ = ""):
 #{%  else %}
+#{%   if operation.is_attribute %}
+    def ${operation.base_attribute}(__connection_id__ = ""):
+#{%    if operation.returns %}
+        return self.${operation.name}(__connection_id__)
+#{%    else %}
+        self.${operation.name}(__connection_id__)
+#{%    endif %}
+
+#{%   endif %}
     def ${operation.name}(__connection_id__ = ""):
 #{%  endif %}
 #{% if operation.returns|length > 1 %}

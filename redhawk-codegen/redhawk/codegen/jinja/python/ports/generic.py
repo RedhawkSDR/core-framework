@@ -99,10 +99,13 @@ class GenericPortGenerator(PythonPortGenerator):
         for attr in self.idl.attributes():
             yield {'name': '_get_'+attr.name,
                    'args': [],
+                   'is_attribute': True,
+                   'base_attribute': attr.name,
                    'returns': [str(attr.attrType)]}
             if not attr.readonly:
                 yield {'name': '_set_'+attr.name,
                        'args': ['data'],
+                       'hasreturnType': 'void',
                        'returns': []}
 
     def _implementation(self):
