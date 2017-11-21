@@ -79,7 +79,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
     </xs:restriction>
   </xs:simpleType>
   <xs:complexType name="configurationKind">
-    <xs:attribute ecore:name="type" default="property" name="kindtype" type="StructPropertyConfigurationType"/>
+    <xs:attribute ecore:name="type" default="configure" name="kindtype" type="StructPropertyConfigurationType"/>
   </xs:complexType>
   <xs:complexType name="enumeration">
     <xs:attribute name="label" type="xs:string" use="required"/>
@@ -96,7 +96,7 @@ values used by a CF Resource component’s configure(), query(), and runTest() o
     </xs:sequence>
   </xs:complexType>
   <xs:complexType ecore:name="Kind" name="kind">
-    <xs:attribute default="property" ecore:name="type" name="kindtype" type="PropertyConfigurationType"/>
+    <xs:attribute default="configure" ecore:name="type" name="kindtype" type="PropertyConfigurationType"/>
   </xs:complexType>
   <xs:simpleType name="PropertyConfigurationType">
     <xs:restriction base="xs:string">
