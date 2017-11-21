@@ -764,8 +764,6 @@ class Resource(object):
                                     newvalval.append(v)
                             prop.value = CORBA.Any(prop.value.typecode(), newvalval)
                     else:
-                        self._log.warning("property %s cannot be queried.  valid Id: %s", 
-                                        prop.id, self._props.has_id(prop.id))
                         unknownProperties.append(prop)
             except:
                 self.propertySetAccess.release()
