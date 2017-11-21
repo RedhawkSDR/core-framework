@@ -19,9 +19,8 @@
  */
 
 package org.ossie.component;
-import org.ossie.redhawk.PortCallError;
 
-public interface PortBase throws PortCallError
+public interface PortBase
 {
 	String getRepid();
 	String getDirection();
