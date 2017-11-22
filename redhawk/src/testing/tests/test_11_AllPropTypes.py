@@ -22,6 +22,7 @@ from omniORB import any
 import unittest
 from _unitTestHelpers import scatest
 from ossie.cf import CF, CF__POA
+from ossie.utils import redhawk
 from omniORB import CORBA
 from ossie.utils import sb, rhtime, redhawk
 import struct, time, os
@@ -259,6 +260,22 @@ class TestAllTypes(scatest.CorbaTestCase):
                     self.assertEqual(r.value.value()[0], value)
                 else:
                     self.assertEqual(r.value.value(), value)
+
+    def test_deploytime_sequenceExt(self):
+        dom=redhawk.attach(self._domMgr._get_name())
+        sadpath = "/waveforms/testWave/testWave.sad.xml"
+        props3 = [CF.DataType(id='prop', value=any.to_any(['a']))]
+        _app = dom.createApplication(sadpath, 'appname', props3)
+        self.assertEqual(len(_app.prop), 1)
+        self.assertEqual(_app.prop[0], 'a')
+
+    def test_deploytime_sequenceDirect(self):
+        dom=redhawk.attach(self._domMgr._get_name())
+        sadpath = "/waveforms/testWave/testWave.sad.xml"
+        props3 = [CF.DataType(id='a', value=any.to_any(['a']))]
+        _app = dom.createApplication(sadpath, 'appname', props3)
+        self.assertEqual(len(_app.prop), 1)
+        self.assertEqual(_app.prop[0], 'a')
 
     def test_AllPropTypeCallbacks(self):
         languages = ['Cpp', 'Python']
