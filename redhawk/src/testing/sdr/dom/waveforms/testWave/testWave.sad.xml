@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:b04fa628-7bd1-4ae5-ab73-b14266ac9287" name="testWave">
+  <componentfiles>
+    <componentfile id="testcomp_d450354c-f771-465b-9abf-8265c57ca81b" type="SPD">
+      <localfile name="/components/testcomp/testcomp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="testcomp_d450354c-f771-465b-9abf-8265c57ca81b"/>
+      <componentinstantiation id="testcomp_1" startorder="0">
+        <usagename>testcomp_1</usagename>
+        <findcomponent>
+          <namingservice name="testcomp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="testcomp_1"/>
+  </assemblycontroller>
+  <externalproperties>
+    <property comprefid="testcomp_1" propid="a" externalpropid="prop"/>
+  </externalproperties>
+</softwareassembly>

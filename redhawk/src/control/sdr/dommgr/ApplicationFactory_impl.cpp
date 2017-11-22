@@ -1623,8 +1623,7 @@ void createHelper::overrideExternalProperties(const CF::Properties& initConfigur
 
             if (id == static_cast<const char*>(initConfiguration[i].id)) {
                 ComponentInfo *comp = findComponentByInstantiationId(prop->comprefid);
-                // Only configure on non AC components
-                if (comp != 0 && !comp->isAssemblyController()) {
+                if (comp != 0) {
                     comp->overrideProperty(prop->propid.c_str(), initConfiguration[i].value);
                 }
             }

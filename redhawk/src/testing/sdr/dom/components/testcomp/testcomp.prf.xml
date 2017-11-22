@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simplesequence id="a" mode="readwrite" type="string">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+</properties>
