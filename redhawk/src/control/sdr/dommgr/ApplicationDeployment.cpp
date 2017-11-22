@@ -120,9 +120,8 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
         ac = deployment;
         deployment->setIsAssemblyController(true);
         overrideAssemblyControllerProperties(deployment);
-    } else {
-        overrideExternalProperties(deployment);
     }
+    overrideExternalProperties(deployment);
 
     return deployment;
 }
