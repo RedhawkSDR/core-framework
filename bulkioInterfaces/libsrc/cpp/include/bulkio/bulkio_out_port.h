@@ -199,10 +199,20 @@ namespace bulkio {
 
     StreamType getStream(const std::string& streamID);
 
-    // Create a new stream based on a stream ID
+    /**
+     * @brief  Creates a new output stream.
+     * @param streamID  Stream identifier.
+     * @returns  A new output stream.
+     *
+     * The returned output stream's SRI is initialized with default values.
+     */
     StreamType createStream(const std::string& streamID);
 
-    // Create a new stream based on an SRI instance
+    /**
+     * @brief  Creates a new stream based on an existing SRI.
+     * @param sri  Stream SRI.
+     * @returns  A new output stream.
+     */
     StreamType createStream(const BULKIO::StreamSRI& sri);
 
     //

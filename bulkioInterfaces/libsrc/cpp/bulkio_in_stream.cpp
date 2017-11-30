@@ -410,8 +410,9 @@ public:
             if (!blocking && !_pending && (this->_eosState == ImplBase::EOS_NONE)) {
                 return DataBlockType();
             }
-            // Otherwise, consume all remaining data
-            consume = samples;
+            // Otherwise, consume all remaining data (when not requested as 0)
+            if (consume != 0)
+                consume = samples;
         }
 
         return _readData(samples, consume);

@@ -232,22 +232,47 @@ namespace bulkio {
      */
     bool blocked();
 
+    /**
+     * @brief  Registers a callback for new streams.
+     * @param target  Class instance.
+     * @param func  Member function pointer.
+     */
     template <class Target, class Func>
     void addStreamListener(Target target, Func func) {
       streamAdded.add(target, func);
     }
 
+    /**
+     * @brief  Unregisters a callback for new streams.
+     * @param target  Class instance.
+     * @param func  Member function pointer.
+     */
     template <class Target, class Func>
     void removeStreamListener(Target target, Func func) {
       streamAdded.remove(target, func);
     }
 
-    // Returns the stream that should be used for the next basic read
+    /**
+     * @brief  Gets the stream that should be used for the next basic read.
+     * @param timeout  Seconds to wait for a stream; a negative value waits
+     *                 indefinitely.
+     * @returns  Input stream ready for reading on success.
+     * @returns  Null input stream if timeout expires or port is stopped.
+     */
     StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
 
-    // Returns the current stream with the given stream ID, if available
+    /**
+     * @brief  Get the active stream with the given stream ID.
+     * @param streamID  Stream identifier.
+     * @returns  Input stream for @p streamID if it exists.
+     * @returns  Null input stream if no such stream ID exits.
+     */
     StreamType getStream(const std::string& streamID);
 
+    /**
+     * @brief  Gets the current set of active streams.
+     * @returns  List of streams.
+     */
     StreamList getStreams();
 
     /*
