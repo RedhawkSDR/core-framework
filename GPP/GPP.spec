@@ -43,7 +43,7 @@ Vendor:         REDHAWK
 
 BuildRoot:      %{_tmppath}/%{name}-root
 
-Requires:       redhawk >= 2.0
+Requires(post): redhawk >= 2.0
 BuildRequires:  redhawk-devel >= 2.0
 BuildRequires:  numactl-devel >= 2.0
 Obsoletes:      %{name} < 2.0
@@ -52,9 +52,9 @@ Obsoletes:      %{name} < 2.0
 %package profile
 Summary:        Basic GPP profile
 Group:          Redhawk/Framework
-Requires(pre):  redhawk >= 2.0
-Requires(pre):  redhawk-sdrroot-dev-mgr >= 2.0
-Requires(pre):  %{name} = %{version}-%{release}
+Requires(post): redhawk >= 2.0
+Requires(post): redhawk-sdrroot-dev-mgr >= 2.0
+Requires(post): %{name} = %{version}-%{release}
 Obsoletes:      %{name}-profile < 2.0
 
 %description
@@ -104,9 +104,11 @@ rm -rf $RPM_BUILD_ROOT
 # GPP-profile doesn't install any files
 
 %post
+# Source profile script for architecture, if available
+[ -e /etc/profile.d/redhawk.sh ] && source /etc/profile.d/redhawk.sh
 /sbin/runuser redhawk -s /bin/bash -c '%{_prefix}/dev/devices/%{name}/cpp/gpp_setup --silent \
     --gppcfg \
-    --location=%{_prefix}/dev/devices/%{name}'
+    --location=%{_prefix}/dev/devices/%{name}' || :
 
 %post profile
 # Source profile script for architecture, if available
@@ -120,7 +122,7 @@ find %{_prefix}/dev/nodes -type d -name 'DevMgr_*' -uid 0 -exec chown -R redhawk
     --gpppath=/devices/%{name} \
     --domainname=REDHAWK_DEV \
     --sdrroot=%{_prefix} \
-    --inplace'
+    --inplace' || :
 
 
 %changelog
