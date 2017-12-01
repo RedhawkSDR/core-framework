@@ -224,11 +224,27 @@ module FRONTEND {
         the tuner scan generates as a series of center frequency retunes to cover the spectrum between the start/stop frequencies or
         discrete frequencies.
 
-        If the scan_mode_enabled reflects whether the tuner is currently scanning through a plan that was generated to cover the spectrum.
+        The FRONTEND::tuner_status::scan_mode_enabled reflects whether the tuner is currently scanning through a plan that was generated to cover the spectrum.
         It will then tune, dwell for a specific number of samples based on the dwell setting and then move to the next center frequency.
         No output samples should be generated until the tuner settling time has been internally accounted for.
 
-        The start_time allows for synchronous sampling between multiple tuners. 
+        start_time provides control over the tuner state and allows for synchronous sampling between multiple tuners.
+
+        Scanning is enabled when the following conditions are met:
+          1. FRONTEND::tuner_status::enabled is true
+          2. scan_strategy.scan_mode != MANUAL_SCAN (note that the whole data structure must be passed on the call)
+          3. start_time <= (BULKIO::PrecisionUTCTime) now
+             alternatively, start_time = 0
+
+        Scanning can be disabled by either:
+          - FRONTEND::tuner_status::enabled is false (use setTunerEnable with the argument false)
+          and/or
+          - setting scan_strategy.scan_mode = MANUAL_SCAN
+          and/or
+          - start_time > (BULKIO::PrecisionUTCTime) now
+            note: when the device's clock reaches start_time, the scan will start
+
+        Also note that if the start_time is not set before setting the strategy, the scan plan will be executed as soon as the strategy is set.
 
         The ScanStatus structure contains the settings for the scan. 
     */
