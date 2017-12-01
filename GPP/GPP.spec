@@ -94,13 +94,17 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,redhawk,redhawk,-)
 %dir %{_prefix}/dev/devices/%{name}
 %{_prefix}/dev/devices/%{name}/GPP.spd.xml
-%{_prefix}/dev/devices/%{name}/GPP.prf.xml
+%config %{_prefix}/dev/devices/%{name}/GPP.prf.xml
 %{_prefix}/dev/devices/%{name}/GPP.scd.xml
 %{_prefix}/dev/devices/%{name}/cpp
 
 %files profile
 # GPP-profile doesn't install any files
 
+%post
+/sbin/runuser redhawk -s /bin/bash -c '%{_prefix}/dev/devices/%{name}/cpp/gpp_setup --silent \
+    --gppcfg \
+    --location=%{_prefix}/dev/devices/%{name}'
 
 %post profile
 # Source profile script for architecture, if available
