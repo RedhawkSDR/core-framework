@@ -265,7 +265,6 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
 
-
     def test_ECM_redhawkUtilsAccess(self):
 
         self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
@@ -286,6 +285,13 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         self.assertEqual(ch.channel_name, 'ODM_Channel')
         ch=citer.next_one()
         self.assertEqual(ch, None)
+
+        # test registration listeners
+        clist,citer = self.ecm.listRegistrants('doesnotexist')
+        self.assertEqual(clist, [] )
+        self.assertEqual(citer, None)
+        self.assertEqual(self._domBooter.poll(), None)
+
 
         # test registration listeners
         clist,citer = self.ecm.listRegistrants('IDM_Channel')

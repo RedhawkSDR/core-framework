@@ -1008,31 +1008,24 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
                                              CORBA::ULong how_many, 
                                              CF::EventChannelManager::EventRegistrantList_out rlist, 
                                              CF::EventRegistrantIterator_out riter) {
-
     SCOPED_LOCK(_mgrlock);
     ChannelRegistrationPtr reg = _getChannelRegistration( channel_name );
-    if ( reg == 0 ) {
-      // no results
-      // result of this call
-      riter = CF::EventRegistrantIterator::_nil();
-      rlist->length(0);
-      return;
-    }      
-
-    // get number of registrants to 
-    uint64_t size = reg->nregistrants();
-    ECM_TRACE( "listRegistrants", " list channel registrants context " << this << ", how_many " << how_many << ", size " << size );
-
-    // create copy of entire table...
+    ECM_TRACE( "listRegistrants", " channel_name " << channel_name << " reg : " << reg );
+    uint64_t size = 0;
     ossie::events::EventRegistrantList* all = new ossie::events::EventRegistrantList(size);
-    all->length(size);
+    if ( reg != 0 ) {
+      // get number of registrants to
+      size = reg->nregistrants();
+      ECM_TRACE( "listRegistrants", " list channel registrants context " << this << ", how_many " << how_many << ", size " << size );
+      all->length(size);
 
-    RegIdList::iterator iter =  reg->registrants.begin();
-    for ( int i=0; iter != reg->registrants.end() ; iter++,i++ ){
-      std::string cname(channel_name);
-      (*all)[i].channel_name = CORBA::string_dup(cname.c_str());
-      (*all)[i].reg_id = CORBA::string_dup( iter->first.c_str() );
-      ECM_DEBUG("listRegistrants", " Registrant : (" << i << ") regid: " <<  iter->first );
+      RegIdList::iterator iter =  reg->registrants.begin();
+      for ( int i=0; iter != reg->registrants.end() ; iter++,i++ ){
+	std::string cname(channel_name);
+	(*all)[i].channel_name = CORBA::string_dup(cname.c_str());
+	(*all)[i].reg_id = CORBA::string_dup( iter->first.c_str() );
+	ECM_DEBUG("listRegistrants", " Registrant : (" << i << ") regid: " <<  iter->first );
+      }
     }
 
     riter = EventRegistrantIter::list( how_many, rlist, all );
