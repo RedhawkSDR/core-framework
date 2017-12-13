@@ -55,6 +55,7 @@ bio_dataUshort.idl \
 bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
+bio_dataBit.idl \
 bio_dataSDDS.idl \
 bio_dataVITA49.idl
 
@@ -129,6 +130,8 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/ossie/BULKIO/bio_dataLongLongDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataUlongLongSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataUlongLongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
@@ -153,6 +156,7 @@ pkginclude_HEADERS = \
 	src/cpp/ossie/BULKIO/bio_dataLong.h \
 	src/cpp/ossie/BULKIO/bio_dataLongLong.h \
 	src/cpp/ossie/BULKIO/bio_dataUlongLong.h \
+	src/cpp/ossie/BULKIO/bio_dataBit.h \
 	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
 	src/cpp/ossie/BULKIO/bio_dataVITA49.h
 
