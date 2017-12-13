@@ -41,6 +41,11 @@ namespace bulkio {
     };
 
     template <>
+    struct BlockTraits<BULKIO::dataBit> {
+        typedef BitDataBlock DataBlockType;
+    };
+
+    template <>
     struct BlockTraits<BULKIO::dataXML> {
         typedef StringDataBlock DataBlockType;
     };
@@ -137,6 +142,7 @@ namespace bulkio {
     typedef BufferedInputStream<BULKIO::dataUlongLong> InULongLongStream;
     typedef BufferedInputStream<BULKIO::dataFloat>     InFloatStream;
     typedef BufferedInputStream<BULKIO::dataDouble>    InDoubleStream;
+    typedef InputStream<BULKIO::dataBit>               InBitStream;
     typedef InputStream<BULKIO::dataXML>               InXMLStream;
     typedef InputStream<BULKIO::dataFile>              InFileStream;
 

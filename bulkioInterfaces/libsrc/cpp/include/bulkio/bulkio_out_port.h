@@ -47,6 +47,11 @@ namespace bulkio {
   };
 
   template <>
+  struct OutStreamTraits<BULKIO::dataBit> {
+      typedef OutBitStream OutStreamType;
+  };
+
+  template <>
   struct OutStreamTraits<BULKIO::dataXML> {
       typedef OutXMLStream OutStreamType;
   };
@@ -411,6 +416,15 @@ namespace bulkio {
    
   };
 
+
+  class OutBitPort : public OutPort<BULKIO::dataBit> {
+  public:
+    typedef char* NativeSequenceType;
+
+    OutBitPort(const std::string& name, LOGGER_PTR logger=LOGGER_PTR()); 
+
+    void pushPacket(const bulkio::bitstring& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+  };
 
   //
   // OutFilePort

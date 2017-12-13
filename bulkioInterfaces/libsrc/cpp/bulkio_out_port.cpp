@@ -498,6 +498,18 @@ namespace bulkio {
   }
 
 
+  OutBitPort::OutBitPort(const std::string& name, LOGGER_PTR logger) :
+    OutPort<BULKIO::dataBit>(name, logger)
+  {
+  }
+
+
+  void OutBitPort::pushPacket(const bulkio::bitstring& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  {
+    _sendPacket(data, T, EOS, streamID);
+  }
+
+
   OutFilePort::OutFilePort(const std::string& name,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :

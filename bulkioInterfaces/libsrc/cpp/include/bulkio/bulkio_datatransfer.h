@@ -100,6 +100,11 @@ namespace bulkio {
             }
         }
 
+        static void assign(bulkio::bitstring& dest, const BULKIO::BitSequence& src)
+        {
+            dest.assign(src.data.get_buffer(), src.data.get_buffer() + src.data.length());
+            dest.bits = src.bits;
+        }
     };
 
     template <>
@@ -170,6 +175,7 @@ namespace bulkio {
     typedef DataTransfer<std::vector<CORBA::Float> > FloatDataTransfer;
     typedef DataTransfer<std::vector<CORBA::Double> > DoubleDataTransfer;
     typedef DataTransfer<std::string> StringDataTransfer;
+    typedef DataTransfer<bulkio::bitstring> BitDataTransfer;
 }
 
 #endif // __bulkio_datatransfer_h

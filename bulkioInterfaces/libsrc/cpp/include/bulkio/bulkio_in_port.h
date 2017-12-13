@@ -50,6 +50,11 @@ namespace bulkio {
   };
 
   template <>
+  struct InStreamTraits<BULKIO::dataBit> {
+      typedef InBitStream InStreamType;
+  };
+
+  template <>
   struct InStreamTraits<BULKIO::dataXML> {
       typedef InXMLStream InStreamType;
   };
@@ -532,6 +537,14 @@ namespace bulkio {
     typedef typename super::Packet Packet;
 
     StreamList getReadyStreams(size_t samples);
+  };
+
+  class InBitPort : public InPort<BULKIO::dataBit>
+  {
+  public:
+    InBitPort(const std::string& name, LOGGER_PTR logger=LOGGER_PTR());
+
+    virtual void pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
   };
 
   //

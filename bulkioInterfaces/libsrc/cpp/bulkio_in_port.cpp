@@ -216,6 +216,18 @@ namespace bulkio {
             return data.copy();
         }
 
+        inline bool is_copy_required(const bulkio::bitstring&)
+        {
+            // Bit strings don't have sharing semantics, so no copy is required.
+            return false;
+        }
+
+        inline const bulkio::bitstring& copy_data(const bulkio::bitstring& data)
+        {
+            // Pass through the bitstring by reference (no copies made)
+            return data;
+        }
+
         inline bool is_copy_required(const std::string&)
         {
             // Strings don't have sharing semantics, so no copy is required.
@@ -907,6 +919,19 @@ namespace bulkio {
     return result;
   }
 
+
+  InBitPort::InBitPort(const std::string& name, LOGGER_PTR logger) :
+    InPort<BULKIO::dataBit>(name, logger)
+  {
+  }
+
+  void InBitPort::pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+    bulkio::bitstring buffer;
+    buffer.data.assign(data.data.get_buffer(), data.data.get_buffer() + data.data.length());
+    buffer.bits = data.bits;
+    queuePacket(buffer, T, EOS, streamID);
+  }
 
   // ----------------------------------------------------------------------------------------
   //  Source Input Port String Definitions

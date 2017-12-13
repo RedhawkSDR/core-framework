@@ -28,6 +28,7 @@
 
 #include "BULKIO_Interfaces.h"
 #include <ossie/BULKIO/internal/bio_dataExt.h>
+#include "bulkio_base.h"
 
 namespace bulkio {
 
@@ -54,6 +55,7 @@ namespace bulkio {
     DEFINE_CORBA_TRAITS(dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
     DEFINE_CORBA_TRAITS(dataFloat, CORBA::Float, PortTypes::FloatSequence);
     DEFINE_CORBA_TRAITS(dataDouble, CORBA::Double, PortTypes::DoubleSequence);
+    DEFINE_CORBA_TRAITS(dataBit, CORBA::Octet, BULKIO::BitSequence);
     DEFINE_CORBA_TRAITS(dataFile, char, char*);
     DEFINE_CORBA_TRAITS(dataXML, char, char*);
 
@@ -74,6 +76,12 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef std::vector<NativeType> VectorType;
         typedef redhawk::shared_buffer<NativeType> BufferType;
+    };
+
+    template <>
+    struct BufferTraits<BULKIO::dataBit> {
+        typedef bulkio::bitstring VectorType;
+        typedef bulkio::bitstring BufferType;
     };
 
     template <>

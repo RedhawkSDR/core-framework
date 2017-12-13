@@ -98,6 +98,19 @@ namespace bulkio {
     };
 
     template <>
+    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const bulkio::bitstring& data,
+                                                          const BULKIO::PrecisionUTCTime& T,
+                                                          bool EOS,
+                                                          const char* streamID)
+    {
+        const CORBA::Octet* ptr = reinterpret_cast<const CORBA::Octet*>(&data.data[0]);
+        BULKIO::BitSequence buffer;
+        buffer.data.replace(data.data.size(), data.data.size(), const_cast<CORBA::Octet*>(ptr), false);
+        buffer.bits = data.bits;
+        _objref->pushPacket(buffer, T, EOS, streamID);
+    }
+
+    template <>
     void CorbaTransport<BULKIO::dataFile>::_pushPacketImpl(const std::string& data,
                                                             const BULKIO::PrecisionUTCTime& T,
                                                             bool EOS,
@@ -197,6 +210,14 @@ namespace bulkio {
                                                                        PtrType port)
     {
         return new ChunkingTransport<PortType>(parent, port);
+    }
+
+    template <>
+    OutputTransport<BULKIO::dataBit>*
+    CorbaTransportFactory<BULKIO::dataBit>::Create(OutPort<BULKIO::dataBit>* parent,
+                                                   PtrType port)
+    {
+        return new CorbaTransport<BULKIO::dataBit>(parent, port);
     }
 
     template <>

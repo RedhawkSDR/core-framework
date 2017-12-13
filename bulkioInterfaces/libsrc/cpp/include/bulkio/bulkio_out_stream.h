@@ -235,6 +235,21 @@ namespace bulkio {
         OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
+
+    class OutBitStream : public OutputStream<BULKIO::dataBit> {
+    public:
+        OutBitStream();
+
+        void write(const bulkio::bitstring& data, const BULKIO::PrecisionUTCTime& time);
+
+    private:
+        typedef OutputStream<BULKIO::dataBit> Base;
+
+        friend class OutPort<BULKIO::dataBit>;
+        typedef OutPort<BULKIO::dataBit> OutPortType;
+        OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+    };
+
     typedef BufferedOutputStream<BULKIO::dataChar>      OutCharStream;
     typedef BufferedOutputStream<BULKIO::dataOctet>     OutOctetStream;
     typedef BufferedOutputStream<BULKIO::dataShort>     OutShortStream;

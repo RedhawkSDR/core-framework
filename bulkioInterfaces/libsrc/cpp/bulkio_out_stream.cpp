@@ -576,6 +576,26 @@ const typename BufferedOutputStream<PortType>::Impl& BufferedOutputStream<PortTy
 
 
 //
+// Bit
+//
+using bulkio::OutBitStream;
+
+OutBitStream::OutBitStream() :
+    Base()
+{
+}
+
+OutBitStream::OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(sri, port)
+{
+}
+
+void OutBitStream::write(const bulkio::bitstring& data, const BULKIO::PrecisionUTCTime& T)
+{
+    impl().write(data, T);
+}
+
+//
 // XML
 //
 using bulkio::OutXMLStream;
