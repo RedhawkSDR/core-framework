@@ -27,4 +27,8 @@ class XMLDataHelper implements DataHelper<String> {
     public int arraySize(String data) {
         return data.length();
     }
+
+    public String emptyArray() {
+        return "";
+    }
 }

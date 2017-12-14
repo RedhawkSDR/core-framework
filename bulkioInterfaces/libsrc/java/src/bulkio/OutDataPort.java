@@ -33,11 +33,11 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Size of a single element
      */
-    protected final int sizeof;
+    protected final DataHelper<A> helper;
 
-    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, int size) {
+    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
         super(portName, logger, connectionListener);
-        this.sizeof = size;
+        this.helper = helper;
     }
 
     /**
@@ -61,7 +61,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            this.stats.put(connectionId, new linkStatistics(this.name, this.sizeof));
+            this.stats.put(connectionId, new linkStatistics(this.name, this.helper.elementSize()));
 
             if (logger != null) {
                 logger.debug("bulkio.OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
@@ -91,7 +91,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             {
                 // Create an empty data packet with an invalid timestamp to
                 // send with the end-of-stream
-                final A data = emptyArray();
+                final A data = helper.emptyArray();
                 final BULKIO.PrecisionUTCTime tstamp = bulkio.time.utils.notSet();
                 for (Map.Entry<String, SriMapStruct> entry: this.currentSRIs.entrySet()) {
                     final String streamID = entry.getKey();
@@ -239,7 +239,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected void pushSinglePacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
-        final int length = arraySize(data);
+        final int length = helper.arraySize(data);
         SriMapStruct sriStruct = this.currentSRIs.get(streamID);
         if (this.active) {
             for (Entry<String,E> entry : this.outConnections.entrySet()) {
@@ -279,6 +279,4 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected abstract E narrow(org.omg.CORBA.Object obj);
     protected abstract void sendPacket(E port, A data, PrecisionUTCTime time, boolean endOfStream, String streamID);
-    protected abstract int arraySize(A array);
-    protected abstract A emptyArray();
 }

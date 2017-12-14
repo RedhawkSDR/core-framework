@@ -16,11 +16,11 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
      */
     protected int maxSamplesPerPush;
 
-    protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, int size) {
-        super(portName, logger, connectionListener, size);
+    protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
+        super(portName, logger, connectionListener, helper);
         // Make sure max samples per push is even so that complex data case is
         // handled properly
-        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof) & 0xFFFFFFFE;
+        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/helper.elementSize()) & 0xFFFFFFFE;
     }
 
     /**
@@ -36,12 +36,12 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
     }
 
     private void pushOversizedPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
-        final int length = arraySize(data);
+        final int length = helper.arraySize(data);
 
         SriMapStruct sriStruct = this.currentSRIs.get(streamID);
         if (sriStruct.sri.subsize != 0) {
             if (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
-                this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.sizeof) & 0xFFFFFFFE;
+                this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.helper.elementSize()) & 0xFFFFFFFE;
                 while (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
                     this.maxSamplesPerPush -= this.maxSamplesPerPush%sriStruct.sri.subsize;
                     if (this.maxSamplesPerPush%2 != 0){

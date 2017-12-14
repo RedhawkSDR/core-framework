@@ -21,5 +21,6 @@ package bulkio;
 
 public interface DataHelper<E> {
     int elementSize();
+    E emptyArray();
     int arraySize(E data);
 }

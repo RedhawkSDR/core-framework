@@ -44,7 +44,7 @@ public class Out@name@Port extends OutStreamPort<@idl@Operations,@type@[]> {
     }
 
     public Out@name@Port(String portName, Logger logger, ConnectionEventListener eventCB) {
-        super(portName, logger, eventCB, @size@);
+        super(portName, logger, eventCB, new @name@DataHelper());
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }
@@ -62,14 +62,6 @@ public class Out@name@Port extends OutStreamPort<@idl@Operations,@type@[]> {
 
     protected @type@[] copyOfRange(@type@[] array, int start, int end) {
         return Arrays.copyOfRange(array, start, end);
-    }
-
-    protected int arraySize(@type@[] array) {
-        return array.length;
-    }
-
-    protected @type@[] emptyArray() {
-        return new @type@[0];
     }
 
     public String getRepid() {

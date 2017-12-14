@@ -31,4 +31,8 @@ class @name@DataHelper implements DataHelper<@type@[]> {
     public int arraySize(@type@[] data) {
         return data.length;
     }
+
+    public @type@[] emptyArray() {
+        return new @type@[0];
+    }
 }
