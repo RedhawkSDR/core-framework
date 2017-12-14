@@ -132,6 +132,7 @@ JAVA_SRCDIR := $(JAVA_DIR)/src
 JAVA_SRCS := Const.java \
 DataHelper.java \
 DataTransfer.java \
+InBitPort.java \
 InCharPort.java \
 InFilePort.java \
 InLongLongPort.java \
@@ -146,6 +147,7 @@ InUShortPort.java \
 InXMLPort.java \
 InPortImpl.java \
 linkStatistics.java \
+OutBitPort.java \
 OutCharPort.java \
 OutDataPort.java \
 OutFilePort.java \
@@ -169,6 +171,7 @@ SriListener.java \
 ConnectionEventListener.java \
 sriState.java \
 utils.java \
+BitDataHelper.java \
 FileDataHelper.java \
 XMLDataHelper.java \
 sdds/SDDSStream.java \
