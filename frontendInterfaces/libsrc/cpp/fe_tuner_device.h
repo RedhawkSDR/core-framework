@@ -184,6 +184,8 @@ namespace frontend {
             frontend::frontend_listener_allocation_struct frontend_listener_allocation;
             std::vector<TunerStatusStructType> frontend_tuner_status;
 
+            bool callDeviceSetTuning(size_t tuner_id);
+
             // tuner_allocation_ids is exclusively paired with property frontend_tuner_status.
             // tuner_allocation_ids tracks allocation ids while frontend_tuner_status provides tuner information.
             std::vector<frontend::tunerAllocationIdsStruct> tuner_allocation_ids;
@@ -293,6 +295,33 @@ namespace frontend {
                 }
                 std::cout << std::endl;
             }
+
+        private:
+            // this will be overridden by the generated base class once all ports are known
+            virtual void construct();
+    };
+
+    /*
+     *    Frontend scanning tuner class definition
+     */
+    template < typename TunerStatusStructType >
+    class FrontendScanningTunerDevice : public FrontendTunerDevice< TunerStatusStructType >
+    {
+        ENABLE_LOGGING
+
+        public:
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
+            ~FrontendScanningTunerDevice();
+
+        protected:
+            frontend::frontend_scanner_allocation_struct frontend_scanner_allocation;
+
+            bool callDeviceSetTuning(size_t tuner_id);
+            virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id);
 
         private:
             // this will be overridden by the generated base class once all ports are known

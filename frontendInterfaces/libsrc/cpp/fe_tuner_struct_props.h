@@ -333,4 +333,59 @@ template<> inline short StructSequenceProperty<frontend::default_frontend_tuner_
     }
 }
 
+inline bool operator>>= (const CORBA::Any& a, frontend::frontend_scanner_allocation_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("FRONTEND::scanner_allocation::min_freq")) {
+        if (!(props["FRONTEND::scanner_allocation::min_freq"] >>= s.min_freq)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::max_freq")) {
+        if (!(props["FRONTEND::scanner_allocation::max_freq"] >>= s.max_freq)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::mode")) {
+        if (!(props["FRONTEND::scanner_allocation::mode"] >>= s.mode)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::control_mode")) {
+        if (!(props["FRONTEND::scanner_allocation::control_mode"] >>= s.control_mode)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::control_limit")) {
+        if (!(props["FRONTEND::scanner_allocation::control_limit"] >>= s.control_limit)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const frontend::frontend_scanner_allocation_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["FRONTEND::scanner_allocation::min_freq"] = s.min_freq;
+ 
+    props["FRONTEND::scanner_allocation::max_freq"] = s.max_freq;
+ 
+    props["FRONTEND::scanner_allocation::mode"] = s.mode;
+ 
+    props["FRONTEND::scanner_allocation::control_mode"] = s.control_mode;
+ 
+    props["FRONTEND::scanner_allocation::control_limit"] = s.control_limit;
+    a <<= props;
+}
+
+inline bool operator== (const frontend::frontend_scanner_allocation_struct& s1, const frontend::frontend_scanner_allocation_struct& s2) {
+    if (s1.min_freq!=s2.min_freq)
+        return false;
+    if (s1.max_freq!=s2.max_freq)
+        return false;
+    if (s1.mode!=s2.mode)
+        return false;
+    if (s1.control_mode!=s2.control_mode)
+        return false;
+    if (s1.control_limit!=s2.control_limit)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const frontend::frontend_scanner_allocation_struct& s1, const frontend::frontend_scanner_allocation_struct& s2) {
+    return !(s1==s2);
+}
+
 #endif

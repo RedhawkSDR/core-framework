@@ -268,6 +268,52 @@ namespace frontend {
         tuner_allocation_ids.clear();
     }
 
+    template < typename TunerStatusStructType >
+    FrontendScanningTunerDevice<TunerStatusStructType>::FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
+        FrontendTunerDevice<TunerStatusStructType>(devMgr_ior, id, lbl, sftwrPrfl)
+    {
+    }
+
+    template < typename TunerStatusStructType >
+    FrontendScanningTunerDevice<TunerStatusStructType>::FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev) :
+        FrontendTunerDevice<TunerStatusStructType>(devMgr_ior, id, lbl, sftwrPrfl, compDev)
+    {
+    }
+
+    template < typename TunerStatusStructType >
+    FrontendScanningTunerDevice<TunerStatusStructType>::FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities) :
+        FrontendTunerDevice<TunerStatusStructType>(devMgr_ior, id, lbl, sftwrPrfl, capacities)
+    {
+    }
+
+    template < typename TunerStatusStructType >
+    FrontendScanningTunerDevice<TunerStatusStructType>::FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev) :
+        FrontendTunerDevice<TunerStatusStructType>(devMgr_ior, id, lbl, sftwrPrfl, capacities, compDev)
+    {
+    }
+
+    template < typename TunerStatusStructType >
+    void FrontendScanningTunerDevice<TunerStatusStructType>::construct()
+    {
+        Resource_impl::_started = false;
+        FrontendTunerDevice<TunerStatusStructType>::loadProperties();
+    }
+
+    template < typename TunerStatusStructType >
+    bool FrontendScanningTunerDevice<TunerStatusStructType>::callDeviceSetTuning(size_t tuner_id) {
+        return deviceSetTuning(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, frontend_scanner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
+    }
+
+    template < typename TunerStatusStructType >
+    bool FrontendScanningTunerDevice<TunerStatusStructType>::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id) {
+        return false;
+    }
+
+    template < typename TunerStatusStructType >
+    FrontendScanningTunerDevice<TunerStatusStructType>::~FrontendScanningTunerDevice()
+    {
+    }
+
     /*******************************************************************************************
         Framework-level functions
         These functions are generally called by the framework to perform housekeeping.
@@ -368,6 +414,11 @@ namespace frontend {
     }
 
     template < typename TunerStatusStructType >
+    bool FrontendTunerDevice<TunerStatusStructType>::callDeviceSetTuning(size_t tuner_id) {
+        return deviceSetTuning(frontend_tuner_allocation, frontend_tuner_status[tuner_id], tuner_id);
+    }
+
+    template < typename TunerStatusStructType >
     CORBA::Boolean FrontendTunerDevice<TunerStatusStructType>::allocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
         if (this->tuner_allocation_ids.size() != this->frontend_tuner_status.size()) {
@@ -376,6 +427,12 @@ namespace frontend {
         LOG_TRACE(FrontendTunerDevice<TunerStatusStructType>,__PRETTY_FUNCTION__);
         CORBA::ULong ii;
         try{
+            for (ii = 0; ii < capacities.length(); ++ii) {
+                const std::string id = (const char*) capacities[ii].id;
+                if (id == "FRONTEND::scanner_allocation"){
+                    throw CF::Device::InvalidCapacity("FRONTEND::scanner_allocation found in allocation; this is not a scanning device", capacities);
+                }
+            }
             for (ii = 0; ii < capacities.length(); ++ii) {
                 const std::string id = (const char*) capacities[ii].id;
                 if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation"){
@@ -441,7 +498,7 @@ namespace frontend {
                             frontend_tuner_status[tuner_id].center_frequency = frontend_tuner_allocation.center_frequency;
                             frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate;
                             // device control
-                            if(!tuner_allocation_ids[tuner_id].control_allocation_id.empty() || !deviceSetTuning(frontend_tuner_allocation, frontend_tuner_status[tuner_id], tuner_id)){
+                            if(!tuner_allocation_ids[tuner_id].control_allocation_id.empty() || !callDeviceSetTuning(tuner_id)){
                                 if (frontend_tuner_status[tuner_id].bandwidth == frontend_tuner_allocation.bandwidth)
                                     frontend_tuner_status[tuner_id].bandwidth = orig_bw;
                                 if (frontend_tuner_status[tuner_id].center_frequency == frontend_tuner_allocation.center_frequency)

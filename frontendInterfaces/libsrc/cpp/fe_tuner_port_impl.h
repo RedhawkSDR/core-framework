@@ -94,6 +94,32 @@ namespace frontend {
             }
     };
     
+    class analog_scanning_tuner_delegation : public virtual analog_tuner_delegation {
+        public:
+            virtual frontend::ScanStatus getScanStatus(const std::string& id) {
+                throw FRONTEND::NotSupportedException("getScanStatus not supported");
+            }
+            virtual void setScanStartTime(const std::string& id, const BULKIO::PrecisionUTCTime& start_time) {
+                throw FRONTEND::NotSupportedException("setScanStartTime not supported");
+            }
+            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy& scan_strategy) {
+                throw FRONTEND::NotSupportedException("setScanStrategy not supported");
+            }
+    };
+
+    class digital_scanning_tuner_delegation : public virtual digital_tuner_delegation {
+        public:
+            virtual frontend::ScanStatus getScanStatus(const std::string& id) {
+                throw FRONTEND::NotSupportedException("getScanStatus not supported");
+            }
+            virtual void setScanStartTime(const std::string& id, const BULKIO::PrecisionUTCTime& start_time) {
+                throw FRONTEND::NotSupportedException("setScanStartTime not supported");
+            }
+            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy& scan_strategy) {
+                throw FRONTEND::NotSupportedException("setScanStrategy not supported");
+            }
+    };
+
     class InFrontendTunerPort : public virtual POA_FRONTEND::FrontendTuner, public Port_Provides_base_impl
     {
         public:
@@ -238,8 +264,69 @@ namespace frontend {
         private:
             digital_tuner_delegation *parent;
     };
-    
-    
+
+    class InAnalogScanningTunerPort : public virtual POA_FRONTEND::DigitalScanningTuner, public InAnalogTunerPort
+    {
+        public:
+            typedef InAnalogTunerPort super;
+            InAnalogScanningTunerPort(std::string port_name, analog_scanning_tuner_delegation *_parent):super(port_name, _parent)
+            {
+                parent = _parent;
+            };
+            ~InAnalogScanningTunerPort() {};
+            FRONTEND::ScanningTuner::ScanStatus* getScanStatus(const char* id) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                return (returnScanStatus(this->parent->getScanStatus(_id)));
+            };
+            void setScanStartTime(const char* id, const BULKIO::PrecisionUTCTime& start_time) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                this->parent->setScanStartTime(_id, start_time);
+            };
+            void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                this->parent->setScanStrategy(_id, returnScanStrategy(scan_strategy));
+            };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/AnalogScanningTuner:1.0";
+            };
+        private:
+            analog_scanning_tuner_delegation *parent;
+    };
+
+    class InDigitalScanningTunerPort : public virtual POA_FRONTEND::DigitalScanningTuner, public InDigitalTunerPort
+    {
+        public:
+            typedef InDigitalTunerPort super;
+            InDigitalScanningTunerPort(std::string port_name, digital_scanning_tuner_delegation *_parent):super(port_name, _parent)
+            {
+                parent = _parent;
+            };
+            ~InDigitalScanningTunerPort() {};
+            FRONTEND::ScanningTuner::ScanStatus* getScanStatus(const char* id) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                return (returnScanStatus(this->parent->getScanStatus(_id)));
+            };
+            void setScanStartTime(const char* id, const BULKIO::PrecisionUTCTime& start_time) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                this->parent->setScanStartTime(_id, start_time);
+            };
+            void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                this->parent->setScanStrategy(_id, returnScanStrategy(scan_strategy));
+            };
+            std::string getRepid() const {
+                return "IDL:FRONTEND/DigitalScanningTuner:1.0";
+            };
+        private:
+            digital_scanning_tuner_delegation *parent;
+    };
+
     template<typename PortType_var, typename PortType>
     class OutFrontendTunerPortT : public OutFrontendPort<PortType_var, PortType>
     {

@@ -187,7 +187,8 @@ namespace frontend {
         val.timestamp = tmpVal.timestamp;
         return val;
     };
-     FRONTEND::NavigationPacket* returnNavigationPacket(const frontend::NavigationPacket &val) {
+
+    FRONTEND::NavigationPacket* returnNavigationPacket(const frontend::NavigationPacket &val) {
         FRONTEND::NavigationPacket* tmpVal = new FRONTEND::NavigationPacket();
         tmpVal->source_id = CORBA::string_dup(val.source_id.c_str());
         tmpVal->rf_flow_id = CORBA::string_dup(val.rf_flow_id.c_str());
@@ -269,6 +270,267 @@ namespace frontend {
         }
     }
 
-
+    FRONTEND::ScanningTuner::ScanStatus* returnScanStatus(const frontend::ScanStatus &val) {
+        FRONTEND::ScanningTuner::ScanStatus* tmpVal = new FRONTEND::ScanningTuner::ScanStatus();
+        ScanStrategy* _scan_strategy = val.strategy.get();
+        if (dynamic_cast<ManualStrategy*>(_scan_strategy) != NULL) {
+            tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::MANUAL_SCAN;
+            ManualStrategy* _strat = dynamic_cast<ManualStrategy*>(_scan_strategy);
+            tmpVal->strategy.scan_definition.center_frequency(_strat->center_frequency);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->strategy.control_mode = _strat->control_mode;
+            tmpVal->strategy.control_value = _strat->control_value;
+        } else if (dynamic_cast<SpanStrategy*>(_scan_strategy) != NULL) {
+            tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::SPAN_SCAN;
+            SpanStrategy* _strat = dynamic_cast<SpanStrategy*>(_scan_strategy);
+            FRONTEND::ScanningTuner::ScanSpanRanges _tmp;
+            _tmp.length(_strat->freq_scan_list.size());
+            for (unsigned int i=0; i<_strat->freq_scan_list.size(); i++) {
+                _tmp[i].begin_frequency = _strat->freq_scan_list[i].begin_frequency;
+                _tmp[i].end_frequency = _strat->freq_scan_list[i].end_frequency;
+                _tmp[i].step = _strat->freq_scan_list[i].step;
+            }
+            tmpVal->strategy.scan_definition.freq_scan_list(_tmp);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->strategy.control_mode = _strat->control_mode;
+            tmpVal->strategy.control_value = _strat->control_value;
+        } else if (dynamic_cast<DiscreteStrategy*>(_scan_strategy) != NULL) {
+            tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::DISCRETE_SCAN;
+            DiscreteStrategy* _strat = dynamic_cast<DiscreteStrategy*>(_scan_strategy);
+            FRONTEND::ScanningTuner::Frequencies _tmp;
+            _tmp.length(_strat->discrete_freq_list.size());
+            for (unsigned int i=0; i<_strat->discrete_freq_list.size(); i++) {
+                _tmp[i] = _strat->discrete_freq_list[i];
+            }
+            tmpVal->strategy.scan_definition.discrete_freq_list(_tmp);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->strategy.control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->strategy.control_mode = _strat->control_mode;
+            tmpVal->strategy.control_value = _strat->control_value;
+        }
+        tmpVal->start_time = val.start_time;
+        tmpVal->center_tune_frequencies.length(val.center_tune_frequencies.size());
+        for (unsigned int i=0; i<val.center_tune_frequencies.size(); i++) {
+            tmpVal->center_tune_frequencies[i] = val.center_tune_frequencies[i];
+        }
+        tmpVal->started = val.started;
+        return tmpVal;
+    };
+    frontend::ScanStatus returnScanStatus(const FRONTEND::ScanningTuner::ScanStatus &tmpVal) {
+        switch (tmpVal.strategy.scan_mode) {
+            case FRONTEND::ScanningTuner::MANUAL_SCAN:
+                break;
+            case FRONTEND::ScanningTuner::SPAN_SCAN:
+                {
+                    ScanSpanRanges freqs;
+                    FRONTEND::ScanningTuner::ScanSpanRanges _tmp(tmpVal.strategy.scan_definition.freq_scan_list());
+                    freqs.resize(_tmp.length());
+                    for (unsigned int i=0; i<_tmp.length(); i++) {
+                        freqs[i].begin_frequency = _tmp[i].begin_frequency;
+                        freqs[i].end_frequency = _tmp[i].end_frequency;
+                        freqs[i].step = _tmp[i].step;
+                    }
+                    SpanStrategy* _strat = new SpanStrategy(freqs);
+                    switch(tmpVal.strategy.control_mode) {
+                        case frontend::TIME_BASED:
+                            _strat->control_mode = frontend::TIME_BASED;
+                            break;
+                        case frontend::SAMPLE_BASED:
+                            _strat->control_mode = frontend::SAMPLE_BASED;
+                            break;
+                    }
+                    //_strat->control_mode = tmpVal.strategy.control_mode;
+                    _strat->control_value = tmpVal.strategy.control_value;
+                    ScanStatus retval(_strat);
+                    retval.start_time = tmpVal.start_time;
+                    retval.started = tmpVal.started;
+                    for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
+                        retval.center_tune_frequencies.push_back(tmpVal.center_tune_frequencies[i]);
+                    return retval;
+                }
+            case FRONTEND::ScanningTuner::DISCRETE_SCAN:
+                {
+                    Frequencies freqs;
+                    FRONTEND::ScanningTuner::Frequencies _tmp(tmpVal.strategy.scan_definition.discrete_freq_list());
+                    for (unsigned int i=0; i<_tmp.length(); i++) {
+                        freqs.push_back(_tmp[i]);
+                    }
+                    DiscreteStrategy* _strat = new DiscreteStrategy(freqs);
+                    switch(tmpVal.strategy.control_mode) {
+                        case frontend::TIME_BASED:
+                            _strat->control_mode = frontend::TIME_BASED;
+                            break;
+                        case frontend::SAMPLE_BASED:
+                            _strat->control_mode = frontend::SAMPLE_BASED;
+                            break;
+                    }
+                    //_strat->control_mode = tmpVal.strategy.control_mode;
+                    _strat->control_value = tmpVal.strategy.control_value;
+                    ScanStatus retval(_strat);
+                    retval.start_time = tmpVal.start_time;
+                    retval.started = tmpVal.started;
+                    for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
+                        retval.center_tune_frequencies.push_back(tmpVal.center_tune_frequencies[i]);
+                    return retval;
+                }
+        }
+        ManualStrategy* _strat = new ManualStrategy(tmpVal.strategy.scan_definition.center_frequency());
+        switch(tmpVal.strategy.control_mode) {
+            case frontend::TIME_BASED:
+                _strat->control_mode = frontend::TIME_BASED;
+                break;
+            case frontend::SAMPLE_BASED:
+                _strat->control_mode = frontend::SAMPLE_BASED;
+                break;
+        }
+        //_strat->control_mode = tmpVal.strategy.control_mode;
+        _strat->control_value = tmpVal.strategy.control_value;
+        ScanStatus retval(_strat);
+        retval.start_time = tmpVal.start_time;
+        retval.started = tmpVal.started;
+        for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
+            retval.center_tune_frequencies.push_back(tmpVal.center_tune_frequencies[i]);
+        return retval;
+    };
+    FRONTEND::ScanningTuner::ScanStrategy* returnScanStrategy(const frontend::ScanStrategy &val) {
+        FRONTEND::ScanningTuner::ScanStrategy* tmpVal = new FRONTEND::ScanningTuner::ScanStrategy();
+        if (dynamic_cast<const ManualStrategy*>(&val) != NULL) {
+            tmpVal->scan_mode = FRONTEND::ScanningTuner::MANUAL_SCAN;
+            const ManualStrategy* _strat = dynamic_cast<const ManualStrategy*>(&val);
+            tmpVal->scan_definition.center_frequency(_strat->center_frequency);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->control_mode = _strat->control_mode;
+            tmpVal->control_value = _strat->control_value;
+        } else if (dynamic_cast<const SpanStrategy*>(&val) != NULL) {
+            tmpVal->scan_mode = FRONTEND::ScanningTuner::SPAN_SCAN;
+            const SpanStrategy* _strat = dynamic_cast<const SpanStrategy*>(&val);
+            FRONTEND::ScanningTuner::ScanSpanRanges _tmp;
+            _tmp.length(_strat->freq_scan_list.size());
+            for (unsigned int i=0; i<_strat->freq_scan_list.size(); i++) {
+                _tmp[i].begin_frequency = _strat->freq_scan_list[i].begin_frequency;
+                _tmp[i].end_frequency = _strat->freq_scan_list[i].end_frequency;
+                _tmp[i].step = _strat->freq_scan_list[i].step;
+            }
+            tmpVal->scan_definition.freq_scan_list(_tmp);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->strategy.control_mode = _strat->control_mode;
+            tmpVal->control_value = _strat->control_value;
+        } else if (dynamic_cast<const DiscreteStrategy*>(&val) != NULL) {
+            tmpVal->scan_mode = FRONTEND::ScanningTuner::DISCRETE_SCAN;
+            const DiscreteStrategy* _strat = dynamic_cast<const DiscreteStrategy*>(&val);
+            FRONTEND::ScanningTuner::Frequencies _tmp;
+            _tmp.length(_strat->discrete_freq_list.size());
+            for (unsigned int i=0; i<_strat->discrete_freq_list.size(); i++) {
+                _tmp[i] = _strat->discrete_freq_list[i];
+            }
+            tmpVal->scan_definition.discrete_freq_list(_tmp);
+            switch(_strat->control_mode) {
+                case frontend::TIME_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::TIME_BASED;
+                    break;
+                case frontend::SAMPLE_BASED:
+                    tmpVal->control_mode = FRONTEND::ScanningTuner::SAMPLE_BASED;
+                    break;
+            }
+            //tmpVal->strategy.control_mode = _strat->control_mode;
+            tmpVal->control_value = _strat->control_value;
+        }
+        return tmpVal;
+    };
+    frontend::ScanStrategy returnScanStrategy(const FRONTEND::ScanningTuner::ScanStrategy &tmpVal) {
+        switch (tmpVal.scan_mode) {
+            case FRONTEND::ScanningTuner::MANUAL_SCAN:
+                break;
+            case FRONTEND::ScanningTuner::SPAN_SCAN:
+                {
+                    ScanSpanRanges freqs;
+                    FRONTEND::ScanningTuner::ScanSpanRanges _tmp(tmpVal.scan_definition.freq_scan_list());
+                    freqs.resize(_tmp.length());
+                    for (unsigned int i=0; i<_tmp.length(); i++) {
+                        freqs[i].begin_frequency = _tmp[i].begin_frequency;
+                        freqs[i].end_frequency = _tmp[i].end_frequency;
+                        freqs[i].step = _tmp[i].step;
+                    }
+                    SpanStrategy retval(freqs);
+                    switch(tmpVal.control_mode) {
+                        case frontend::TIME_BASED:
+                            retval.control_mode = frontend::TIME_BASED;
+                            break;
+                        case frontend::SAMPLE_BASED:
+                            retval.control_mode = frontend::SAMPLE_BASED;
+                            break;
+                    }
+                    //retval.control_mode = tmpVal.strategy.control_mode;
+                    retval.control_value = tmpVal.control_value;
+                    return retval;
+                }
+            case FRONTEND::ScanningTuner::DISCRETE_SCAN:
+                {
+                    Frequencies freqs;
+                    FRONTEND::ScanningTuner::Frequencies _tmp(tmpVal.scan_definition.discrete_freq_list());
+                    for (unsigned int i=0; i<_tmp.length(); i++) {
+                        freqs.push_back(_tmp[i]);
+                    }
+                    DiscreteStrategy retval(freqs);
+                    switch(tmpVal.control_mode) {
+                        case frontend::TIME_BASED:
+                            retval.control_mode = frontend::TIME_BASED;
+                            break;
+                        case frontend::SAMPLE_BASED:
+                            retval.control_mode = frontend::SAMPLE_BASED;
+                            break;
+                    }
+                    //retval.control_mode = tmpVal.strategy.control_mode;
+                    retval.control_value = tmpVal.control_value;
+                    return retval;
+                }
+        }
+        ManualStrategy retval(tmpVal.scan_definition.center_frequency());
+        switch(tmpVal.control_mode) {
+            case frontend::TIME_BASED:
+                retval.control_mode = frontend::TIME_BASED;
+                break;
+            case frontend::SAMPLE_BASED:
+                retval.control_mode = frontend::SAMPLE_BASED;
+                break;
+        }
+        //retval.control_mode = tmpVal.strategy.control_mode;
+        retval.control_value = tmpVal.control_value;
+        return retval;
+    };
 } // end of frontend namespace
 
