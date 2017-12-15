@@ -307,8 +307,9 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     # Make sure maxSamplesPerPush is even so that complex data case is handled properly
                     if self.maxSamplesPerPush%2 != 0:
                         self.maxSamplesPerPush -= 1
-        
-        if len(data) <= self.maxSamplesPerPush:
+
+        elements = self._packetSize(data)
+        if elements <= self.maxSamplesPerPush:
             self._pushPacket(data, T, EOS, streamID);
             return
 
@@ -404,6 +405,9 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket EXIT ')
 
+    def _packetSize(self, data):
+        return len(data)
+
 
 class OutCharPort(OutPort):
     TRANSFER_TYPE = 'c'
@@ -454,6 +458,14 @@ class OutDoublePort(OutPort):
     TRANSFER_TYPE = 'd'
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataDouble, OutDoublePort.TRANSFER_TYPE , logger )
+
+class OutBitPort(OutPort):
+    TRANSFER_TYPE = 'B'
+    def __init__(self, name, logger=None):
+        OutPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger)
+
+    def _packetSize(self, data):
+        return len(data.data)
 
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'

@@ -369,6 +369,15 @@ class InDoublePort(InPort, BULKIO__POA.dataDouble):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InDoublePort._TYPE_ )
 
 
+class InBitPort(InPort, BULKIO__POA.dataBit):
+    _TYPE_ = 'B'
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InBitPort._TYPE_)
+
+    def _packetSize(self, data):
+        return data.bits
+
+
 class InFilePort(InPort, BULKIO__POA.dataFile):
     _TYPE_ = 'd'
     def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
