@@ -40,7 +40,9 @@ class FrontendComponentMapper(PullComponentMapper):
         # Ensure that parent interfaces also gets added (so, e.g., a device
         # with a DigitalTuner should also report that it's an AnalogTuner
         # and FrontendTuner)
-        inherits = { 'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 
         for port in softpkg.providesPorts():
@@ -74,7 +76,13 @@ class FrontendComponentMapper(PullComponentMapper):
 
                 # Add the most specific tuner delegate interface:
                 #   (Digital > Analog > Frontend)
-                if 'DigitalTuner' in deviceinfo:
+                if 'DigitalScanningTuner' in deviceinfo:
+                    classes.append({'name': 'virtual frontend::digital_scanning_tuner_delegation', 'header': ''})
+                    parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
+                elif 'AnalogScanningTuner' in deviceinfo:
+                    classes.append({'name': 'virtual frontend::analog_scanning_tuner_delegation', 'header': ''})
+                    parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
+                elif 'DigitalTuner' in deviceinfo:
                     classes.append({'name': 'virtual frontend::digital_tuner_delegation', 'header': ''})
                 elif 'AnalogTuner' in deviceinfo:
                     classes.append({'name': 'virtual frontend::analog_tuner_delegation', 'header': ''})
@@ -107,7 +115,8 @@ class FrontendPropertyMapper(CppPropertyMapper):
 
     FRONTEND_BUILTINS = (
         'FRONTEND::tuner_allocation',
-        'FRONTEND::listener_allocation'
+        'FRONTEND::listener_allocation',
+        'FRONTEND::scanner_allocation'
     )
 
     def mapStructProperty(self, prop, fields):
