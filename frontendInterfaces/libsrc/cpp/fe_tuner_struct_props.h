@@ -388,4 +388,25 @@ inline bool operator!= (const frontend::frontend_scanner_allocation_struct& s1, 
     return !(s1==s2);
 }
 
+template<> inline short StructProperty<frontend::frontend_scanner_allocation_struct>::compare (const CORBA::Any& a) {
+    if (super::isNil_) {
+        CORBA::TypeCode_var aType = a.type();
+        if (aType->kind() == (CORBA::tk_null)) {
+            return 0;
+        }
+        return 1;
+    }
+
+    frontend::frontend_scanner_allocation_struct tmp;
+    if (fromAny(a, tmp)) {
+        if (tmp != this->value_) {
+            return 1;
+        }
+
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 #endif

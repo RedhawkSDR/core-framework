@@ -184,7 +184,8 @@ namespace frontend {
             frontend::frontend_listener_allocation_struct frontend_listener_allocation;
             std::vector<TunerStatusStructType> frontend_tuner_status;
 
-            bool callDeviceSetTuning(size_t tuner_id);
+            virtual bool callDeviceSetTuning(size_t tuner_id);
+            virtual void checkValidIds(const CF::Properties & capacities);
 
             // tuner_allocation_ids is exclusively paired with property frontend_tuner_status.
             // tuner_allocation_ids tracks allocation ids while frontend_tuner_status provides tuner information.
@@ -319,8 +320,10 @@ namespace frontend {
         protected:
             frontend::frontend_scanner_allocation_struct frontend_scanner_allocation;
 
-            bool callDeviceSetTuning(size_t tuner_id);
+            virtual bool callDeviceSetTuning(size_t tuner_id);
+            virtual void checkValidIds(const CF::Properties & capacities);
             virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            virtual void loadProperties();
             bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id);
 
         private:
