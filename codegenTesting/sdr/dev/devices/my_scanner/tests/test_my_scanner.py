@@ -2,6 +2,7 @@
 
 import ossie.utils.testing
 from ossie.utils import sb
+import frontend
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -40,6 +41,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
+        _bad_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=0.0,returnDict=False)
+        _good_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=1000.0,returnDict=False)
+        _bad_scanner=frontend.createScannerAllocation(returnDict=False)
+        _good_scanner=frontend.createScannerAllocation(min_freq=10000.0,returnDict=False)
+        self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _bad_scanner]))
+        self.assertFalse(self.comp.allocateCapacity([_good_tuner, _bad_scanner]))
+        self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _good_scanner]))
+        self.assertTrue(self.comp.allocateCapacity([_good_tuner, _good_scanner]))
         self.comp.stop()
 
 if __name__ == "__main__":
