@@ -71,6 +71,22 @@ class digital_tuner_delegation(analog_tuner_delegation):
     def getTunerOutputSampleRate(self, id):
         raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
 
+class analog_scanning_tuner_delegation(analog_tuner_delegation):
+    def getScanStatus(self, id):
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+    def setScanStartTime(self, id, start_time):
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+    def setScanStrategy(self, id, scan_strategy):
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
+
+class digital_scanning_tuner_delegation(digital_tuner_delegation):
+    def getScanStatus(self, id):
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+    def setScanStartTime(self, id, start_time):
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+    def setScanStrategy(self, id, scan_strategy):
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
+
 class InFrontendTunerPort(FRONTEND__POA.FrontendTuner):
     def __init__(self, name, parent=tuner_delegation()):
         self.name = name
@@ -219,6 +235,33 @@ class InDigitalTunerPort(FRONTEND__POA.DigitalTuner, InAnalogTunerPort):
         self.port_lock.acquire()
         try:
             return self.parent.getTunerOutputSampleRate(id)
+        finally:
+            self.port_lock.release()
+
+class InDigitalScanningTunerPort(FRONTEND__POA.DigitalScanningTuner, InDigitalTunerPort):
+    def __init__(self, name, parent=digital_scanning_tuner_delegation()):
+        self.name = name
+        self.port_lock = threading.Lock()
+        self.parent = parent
+        
+    def getScanStatus(self, id):
+        self.port_lock.acquire()
+        try:
+            return self.parent.getScanStatus(id)
+        finally:
+            self.port_lock.release()
+
+    def setScanStartTime(self, id, start_time):
+        self.port_lock.acquire()
+        try:
+            return self.parent.setScanStartTime(id, start_time)
+        finally:
+            self.port_lock.release()
+
+    def setScanStrategy(self, id, scan_strategy):
+        self.port_lock.acquire()
+        try:
+            return self.parent.setScanStrategy(id, scan_strategy)
         finally:
             self.port_lock.release()
 

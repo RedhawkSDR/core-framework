@@ -3,4 +3,12 @@
   <implSettings key="cpp">
     <value outputDir="cpp" template="redhawk.codegen.jinja.cpp.component.frontend" generatorId="gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator" primary="true"/>
   </implSettings>
+  <implSettings key="python">
+    <value outputDir="python" template="redhawk.codegen.jinja.python.component.frontend" generatorId="gov.redhawk.ide.codegen.jinja.python.PythonGenerator"/>
+  </implSettings>
+  <implSettings key="java">
+    <value outputDir="java" template="redhawk.codegen.jinja.java.component.frontend" generatorId="gov.redhawk.ide.codegen.jinja.java.JavaGenerator">
+      <properties id="java_package" value="my_scanner.java"/>
+    </value>
+  </implSettings>
 </codegen:WaveDevSettings>
