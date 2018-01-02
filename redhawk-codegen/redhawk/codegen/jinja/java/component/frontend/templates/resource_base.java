@@ -45,6 +45,12 @@ import CF.DevicePackage.InvalidCapacity;
 /*{% if component.hasfrontendprovides %}*/
 /*{%     set implementedClasses = "" %}*/
 /*{%     for port in component.ports if port is provides %}*/
+/*{%         if port.javatype == "frontend.InAnalogScanningTunerPort" and "AnalogScanningTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",AnalogScanningTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InDigitalScanningTunerPort" and "DigitalScanningTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",DigitalScanningTunerDelegate" %}*/
+/*{%         endif %}*/
 /*{%         if port.javatype == "frontend.InAnalogTunerPort" and "AnalogTunerDelegate" not in implementedClasses %}*/
 /*{%             set implementedClasses = implementedClasses + ",AnalogTunerDelegate" %}*/
 /*{%         endif %}*/

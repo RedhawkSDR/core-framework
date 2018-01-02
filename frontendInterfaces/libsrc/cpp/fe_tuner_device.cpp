@@ -466,7 +466,7 @@ namespace frontend {
         for (unsigned int ii = 0; ii < capacities.length(); ++ii) {
             const std::string id = (const char*) capacities[ii].id;
             if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation"){
-                throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY1", capacities);
+                throw CF::Device::InvalidCapacity("Invalid allocation property", capacities);
             }
             PropertyInterface* property = this->getPropertyFromId(id);
             if(!property){
