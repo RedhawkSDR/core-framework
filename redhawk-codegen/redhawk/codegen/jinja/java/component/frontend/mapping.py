@@ -49,7 +49,9 @@ class FrontendComponentMapper(PullComponentMapper):
         # Ensure that parent interfaces also gets added (so, e.g., a device
         # with a DigitalTuner should also report that it's an AnalogTuner
         # and FrontendTuner)
-        inherits = { 'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 
         for port in softpkg.providesPorts():
@@ -78,6 +80,9 @@ class FrontendComponentMapper(PullComponentMapper):
                 if sc['name'] == 'ThreadedDevice':
                     sc['name'] = 'frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>'
                     sc['header'] = ''
+            if 'ScanningTuner' in deviceinfo:
+                if sc['name'] == 'frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>':
+                    sc['name'] = 'frontend.FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
 
         return sc
 

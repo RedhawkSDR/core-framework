@@ -210,6 +210,75 @@ namespace frontend {
         std::string rf_flow_id;
         bool enabled;
     };
+
+    struct frontend_scanner_allocation_struct {
+        frontend_scanner_allocation_struct ()
+        {
+        }
+
+        static std::string getId() {
+            return std::string("FRONTEND::scanner_allocation");
+        }
+
+        static const char* getFormat() {
+            return "ddddd";
+        }
+
+        double min_freq;
+        double max_freq;
+        double mode;
+        double control_mode;
+        double control_limit;
+    };
+
+    typedef enum ScanMode { MANUAL_SCAN, SPAN_SCAN, DISCRETE_SCAN } ScanMode;
+    typedef enum OutputControlMode { TIME_BASED, SAMPLE_BASED } OutputControlMode;
+
+    struct ScanSpanRange {
+        double begin_frequency;
+        double end_frequency;
+        double step;
+    };
+    
+    typedef std::vector<ScanSpanRange> ScanSpanRanges;
+    typedef std::vector<double> Frequencies;
+
+    /*typedef union ScanModeDefinition {
+        double center_frequency;
+        ScanSpanRanges freq_scan_list;
+        Frequencies discrete_freq_list;
+    } ScanModeDefinition;*/
+
+    struct ScanStrategy {
+        ScanMode scan_mode;
+        OutputControlMode control_mode;
+        double control_value;
+        ScanStrategy(ScanMode _scan_mode) : scan_mode(_scan_mode), control_mode(TIME_BASED), control_value(0) { };
+        virtual ~ScanStrategy() {};
+    };
+
+    struct ManualStrategy : ScanStrategy {
+        double center_frequency;
+        ManualStrategy(double _center_frequency) : ScanStrategy(MANUAL_SCAN), center_frequency(_center_frequency) { }
+    };
+
+    struct SpanStrategy : ScanStrategy {
+        ScanSpanRanges freq_scan_list;
+        SpanStrategy(ScanSpanRanges& _freq_scan_list) : ScanStrategy(SPAN_SCAN), freq_scan_list(_freq_scan_list) { }
+    };
+
+    struct DiscreteStrategy : ScanStrategy {
+        Frequencies discrete_freq_list;
+        DiscreteStrategy(Frequencies& _discrete_freq_list) : ScanStrategy(DISCRETE_SCAN), discrete_freq_list(_discrete_freq_list) { }
+    };
+
+    struct ScanStatus {
+        std::auto_ptr<ScanStrategy> strategy;
+        BULKIO::PrecisionUTCTime start_time;
+        Frequencies center_tune_frequencies;
+        bool started;
+        ScanStatus(ScanStrategy *strat) : strategy(strat) {};
+    };
 }
 
 #endif

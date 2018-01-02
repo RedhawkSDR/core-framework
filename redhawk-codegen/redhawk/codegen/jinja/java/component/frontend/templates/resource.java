@@ -64,7 +64,11 @@ import CF.InvalidObjectReference;
         fts.enabled.setValue(false);
         return;
     }
+/*{% if 'ScanningTuner' in component.implements %}*/
+    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
+/*{% else %}*/
     public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, frontend_tuner_status_struct_struct fts, int tuner_id)
+/*{% endif %}*/
     {
         /************************************************************
         modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
@@ -229,6 +233,33 @@ import CF.InvalidObjectReference;
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         return frontend_tuner_status.getValue().get(idx).sample_rate.getValue();
     }
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+
+    public FRONTEND.ScanningTunerPackage.ScanStatus getScanStatus(String allocation_id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    {
+        int idx = getTunerMapping(allocation_id);
+        if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
+        FRONTEND.ScanningTunerPackage.ScanStatus status = null;
+        return status;
+    }
+
+    public void setScanStartTime(String allocation_id, BULKIO.PrecisionUTCTime start_time) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    {
+        int idx = getTunerMapping(allocation_id);
+        if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
+        if(allocation_id != getControlAllocationId(idx))
+            throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
+    }
+
+    public void setScanStrategy(String allocation_id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    {
+        int idx = getTunerMapping(allocation_id);
+        if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
+        if(allocation_id != getControlAllocationId(idx))
+            throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
+    }
+
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
 

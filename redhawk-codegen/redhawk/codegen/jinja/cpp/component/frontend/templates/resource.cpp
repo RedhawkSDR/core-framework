@@ -49,7 +49,11 @@ void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
     fts.enabled = false;
     return;
 }
+/*{% if 'ScanningTuner' in component.implements %}*/
+bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+/*{% else %}*/
 bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+/*{% endif %}*/
     /************************************************************
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
       At a minimum, bandwidth, center frequency, and sample_rate have to be set
@@ -196,6 +200,29 @@ double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     return frontend_tuner_status[idx].sample_rate;
+}
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
+    frontend::ScanStatus retval(tmp);
+    return retval;
+}
+
+void ${className}::setScanStartTime(const std::string& allocation_id, BULKIO::PrecisionUTCTime& start_time) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+}
+
+void ${className}::setScanStrategy(const std::string& allocation_id, frontend::ScanStrategy& scan_strategy) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/

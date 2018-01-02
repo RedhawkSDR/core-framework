@@ -49,6 +49,7 @@ class FrontendComponentGenerator(PullComponentGenerator):
                 if prop['javaname'] in ('device_kind', 'device_model',
                                        'frontend_tuner_allocation',
                                        'frontend_listener_allocation',
+                                       'frontend_scanner_allocation',
                                        'frontend_tuner_status'):
                     prop['inherited'] = True
         return component

@@ -35,6 +35,7 @@
 #include <redhawk/FRONTEND/RFInfo.h>
 #include <redhawk/FRONTEND/GPS.h>
 #include <redhawk/FRONTEND/NavigationData.h>
+#include <redhawk/FRONTEND/TunerControl.h>
 
 #include <ossie/CorbaUtils.h>
 #include "fe_types.h"
@@ -66,6 +67,11 @@ namespace frontend {
     frontend::NavigationPacket returnNavigationPacket(const FRONTEND::NavigationPacket &tmpVal);
     void copyRFInfoPktSequence(const RFInfoPktSequence &src, FRONTEND::RFInfoPktSequence &dest);
     void copyRFInfoPktSequence(const FRONTEND::RFInfoPktSequence &src, RFInfoPktSequence &dest );
+    
+    FRONTEND::ScanningTuner::ScanStatus* returnScanStatus(const frontend::ScanStatus &val);
+    frontend::ScanStatus returnScanStatus(const FRONTEND::ScanningTuner::ScanStatus &tmpVal);
+    FRONTEND::ScanningTuner::ScanStrategy* returnScanStrategy(const frontend::ScanStrategy &val);
+    frontend::ScanStrategy returnScanStrategy(const FRONTEND::ScanningTuner::ScanStrategy &tmpVal);
 
     // ----------------------------------------------------------------------------------------
     // OutFrontendPort declaration

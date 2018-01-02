@@ -25,5 +25,9 @@
 #include "struct_props.h"
 #include <frontend/fe_tuner_device.cpp>
 
+/*{% if 'ScanningTuner' in component.implements %}*/
+template class frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>;
+/*{% else %}*/
 template class frontend::FrontendTunerDevice<frontend_tuner_status_struct_struct>;
+/*{% endif %}*/
 

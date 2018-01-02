@@ -497,7 +497,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      *
      * @throws InvalidCapacity
      */
-    private void validateAllocProps(final DataType[] capacities) throws InvalidCapacity {
+    protected void validateAllocProps(final DataType[] capacities) throws InvalidCapacity {
 
         final ArrayList<DataType> invalidProperties = new ArrayList<DataType>();
         //        throw new InvalidCapacity("Error configuring component", 
