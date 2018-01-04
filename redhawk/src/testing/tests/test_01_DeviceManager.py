@@ -28,7 +28,6 @@ import tempfile
 import commands
 import shutil
 
-
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
     children = []
@@ -1297,6 +1296,155 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             os.unlink(altpath)
             if ub_patch:
                 os.unlink(altpath+'.bin')
+
+    def test_DeviceExecParamReadonly_0(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_exec_params/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        from ossie.utils import redhawk
+        d=redhawk.attach(scatest.getTestDomainName())
+
+        dev=d.devices[0]
+        self.assertNotEqual(dev, None)
+
+        # check exec params are changed
+        val = dev.config_prop_normal.queryValue()
+        self.assertEqual(val,"prop_ok_normal")
+
+        val = dev.config_prop_read_only.queryValue()
+        self.assertEqual(val,"good")
+
+        val = dev.exec_read_only.queryValue()
+        self.assertEqual(val,"cmd_ok_read_only")
+
+        val = dev.exec_read_only_nochange.queryValue()
+        self.assertEqual(val,"nochange")
+
+        val = dev.exec_read_only_empty.queryValue()
+        self.assertEqual(val,None)
+
+        val = dev.exec_read_only_number.queryValue()
+        self.assertEqual(val,12345)
+
+        val = dev.exec_read_only_empty_number.queryValue()
+        self.assertEqual(val,0)
+
+        val = dev.exec_cmd.queryValue()
+        self.assertEqual(val,"cmd_ok")
+
+        val = dev.exec_cmd_empty.queryValue()
+        self.assertEqual(val,None)
+
+
+    def test_DeviceExecParamReadonly_1(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_exec_params_no_empty/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        from ossie.utils import redhawk
+        d=redhawk.attach(scatest.getTestDomainName())
+
+        dev=d.devices[0]
+        self.assertNotEqual(dev, None)
+
+        # check exec params are changed
+        val = dev.config_prop_normal.queryValue()
+        self.assertEqual(val,"prop_ok_normal")
+
+        val = dev.config_prop_read_only.queryValue()
+        self.assertEqual(val,"good")
+
+        val = dev.exec_read_only.queryValue()
+        self.assertEqual(val,"cmd_ok_read_only")
+
+        val = dev.exec_read_only_nochange.queryValue()
+        self.assertEqual(val,"nochange")
+
+        val = dev.exec_read_only_empty.queryValue()
+        self.assertEqual(val,"cmd_ok_read_only_empty")
+
+        val = dev.exec_read_only_number.queryValue()
+        self.assertEqual(val,54321)
+
+        val = dev.exec_read_only_empty_number.queryValue()
+        self.assertEqual(val,654321)
+
+        val = dev.exec_cmd.queryValue()
+        self.assertEqual(val,"cmd_ok")
+
+        val = dev.exec_cmd_empty.queryValue()
+        self.assertEqual(val,"cmd_ok_empty")
+
+
+
+    def _find_exec_param( self,lines, pname, match_str ):
+        p=None
+        for l in lines:
+            if l.find(pname) != -1 :
+                p=l.find(match_str)
+
+        return p
+
+    def test_ServiceExecParamReadonly_0(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        from ossie.utils import redhawk
+        d=redhawk.attach(scatest.getTestDomainName())
+
+        svc=d.services[0]
+        self.assertNotEqual(svc, None)
+        
+        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params"')]
+        
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only cmd_ok_read_only")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_nochange nochange")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_number 54321")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty_number 654321")
+        self.assertNotEqual(p, None)
+
+
+    def test_ServiceExecParamReadonly_1(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_svc_exec_params_no_empty/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        from ossie.utils import redhawk
+        d=redhawk.attach(scatest.getTestDomainName())
+
+        svc=d.services[0]
+        self.assertNotEqual(svc, None)
+        
+        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params"')]
+        
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd_empty cmd_ok_empty")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only cmd_ok_read_only")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_nochange nochange")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty cmd_ok_empty")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_number 54321")
+        self.assertNotEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty_number 654321")
+        self.assertNotEqual(p, None)
+
 
 
 
