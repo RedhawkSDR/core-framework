@@ -508,7 +508,13 @@ void ProgramProfile::load(CF::FileSystem_ptr fileSys,
                 LOG_TRACE(ProgramProfile, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {
-                LOG_TRACE(ProgramProfile, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                if ( eprop[i]->isProperty() )  {
+                    LOG_TRACE(ProgramProfile, "Adding exec param (readonly property) " << eprop[i]->getID() << " " << eprop[i]->getName());
+                    addExecParameter(convertPropertyToDataType(eprop[i]));
+                }
+                else {
+                    LOG_TRACE(ProgramProfile, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                }
             }
         }
 
@@ -725,6 +731,10 @@ void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
                 LOG_WARN(ProgramProfile, "Ignoring attempt to override readonly property " << id);
             }
             else {
+                // allow read-only exec param properties
+                if ( prop->isCommandLine()) {
+                    process_overrides(&execParameters, id, value);
+                }
                 process_overrides(&ctorProperties, id, value);
             }
             return;

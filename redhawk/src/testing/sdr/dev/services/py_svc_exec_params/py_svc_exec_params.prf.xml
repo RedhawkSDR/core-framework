@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="exec_read_only" mode="readonly" type="string" commandline="true">
+    <value>changeme</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_read_only_nochange" mode="readonly" type="string" commandline="true">
+    <value>nochange</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_read_only_empty" mode="readonly" type="string" commandline="true">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_cmd" mode="readwrite" type="string" commandline="true">
+    <value>changeme</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_cmd_empty" mode="readwrite" type="string" commandline="true">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="config_prop_read_only" mode="readonly" type="string">
+    <value>good</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="config_prop_normal" mode="readwrite" type="string">
+    <value>changeme</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_read_only_number" mode="readonly" type="long" commandline="true">
+    <value>1000</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_read_only_empty_number" mode="readonly" type="long" commandline="true">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+</properties>
