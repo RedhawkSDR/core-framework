@@ -57,7 +57,7 @@ namespace bulkio {
    *
    * The %InputStream class itself is a lightweight handle; it is inexpensive
    * to copy or store in local variables or nested data types. Assigning one
-   * %InputStream to another does not copy the stream state, but instead
+   * %InputStream to another does not copy the stream state but instead
    * aliases both objects to the same underlying stream.
    *
    * The default constructor creates an invalid "null" %InputStream that cannot
@@ -82,21 +82,21 @@ namespace bulkio {
    *
    * @par  Data Buffering
    * Often, signal processing algorithms prefer to work on regular, fixed-size
-   * blocks of data. However, since the producer is working independently, data
+   * blocks of data. However, because the producer is working independently, data
    * may be received in entirely different packet sizes. For this use case,
    * %InputStream provides a read(size_t) method that frees the user from
    * managing their own data buffering.
    * @par
-   * In order to maintain the requested size, partial packets may be buffered,
+   * To maintain the requested size, partial packets may be buffered,
    * or a read may span multiple packets. Packets are fetched from the %InPort
    * as needed; however, if an SRI change or input queue flush is encountered,
-   * the operation will stop, reading data only up until that point. The next
+   * the operation will stop, therefore, data is only read up to that point. The next
    * read operation will continue at the beginning of the packet that contains
    * the new SRI or input queue flush flag.
    *
    * @par  Time Stamps
    * The data block from a successful read always includes as least one time
-   * stamp, at a sample offset of 0. Since buffered reads may not begin on a
+   * stamp, at a sample offset of 0. Because buffered reads may not begin on a
    * packet boundary, the %InputStream can interpolate a time stamp based on
    * the SRI @a xdelta value and the prior time stamp. When this occurs, the
    * time stamp will be marked as "synthetic."
@@ -110,7 +110,7 @@ namespace bulkio {
    * Certain classes of signal processing algorithms need to preserve a portion
    * of the last data set for the next iteration, such as a power spectral
    * density (PSD) calculation with overlap. The read(size_t,size_t) method
-   * supports this mode of operation by allowing the reader to consumer fewer
+   * supports this mode of operation by allowing the reader to consume fewer
    * samples than are read. This can be thought of as a separate read pointer
    * that trails behind the stream's internal buffer.
    * @par
@@ -154,9 +154,9 @@ namespace bulkio {
      *
      * Creates a null InputStream. This stream is not associated with a stream
      * from any InPort instance. No methods may be called on the %InputStream
-     * except for operator!, which will always return true; and operator==,
-     * which returns true if the other %InputStream is also null, or false
-     * otherwise.
+     * except for operator!, which will always return true, and operator==,
+     * which returns true if the other %InputStream is also null. Both operators
+     * will return false if the other %InputStream is also not null.
      *
      * To get a handle to a live stream, you must query an %InPort or register
      * a callback.
@@ -192,7 +192,8 @@ namespace bulkio {
 
     /**
      * @brief  Checks whether this stream has ended.
-     * @returns  True if this stream has reached the end, false otherwise.
+     * @returns  True if this stream has reached the end. False if the end of stream
+     *           has not been reached.
      * @pre  Stream is valid.
      *
      * A stream is considered at the end when it has read and consumed all data
@@ -201,7 +202,7 @@ namespace bulkio {
      * received for this stream.
      *
      * The recommended practice is to check @a eos any time a read operation
-     * fails, or returns fewer samples than requested. When the end-of-stream
+     * fails or returns fewer samples than requested. When the end-of-stream
      * is acknowledged, either by checking @a eos or when successive reads fail
      * due to an end-of-stream, the stream is removed from the %InPort. If the
      * %InPort has another stream with the same streamID pending, it will
@@ -216,7 +217,7 @@ namespace bulkio {
      * @pre  Stream is valid.
      *
      * Blocking read up to the next packet boundary. Reading a packet at a time
-     * is the most computationally efficent method, because it does not require
+     * is the most computationally efficent method because it does not require
      * the stream to copy data into an intermediate buffer; instead, it may
      * pass the original buffer along to the reader.
      *
@@ -243,8 +244,8 @@ namespace bulkio {
      * If the SRI indicates that the data is complex, @a count is in terms of
      * complex samples.
      *
-     * The returned data block may contain fewer samples than requested, if any
-     * of the following conditions are encountered while fetching packets:
+     * If any of the following conditions are encountered while fetching packets,
+     * the returned data block may contain fewer samples than requested.
      *   @li End-of-stream
      *   @li SRI change
      *   @li Input queue flush
@@ -265,7 +266,7 @@ namespace bulkio {
      * @pre  @p consume <= @p count
      * @see  read(size_t)
      *
-     * Blocking read of @a count samples worth of data, only advancing the read
+     * Blocking read of @a count samples worth of data will only advance the read
      * pointer by @a consume samples. The remaining @c count-consume samples
      * are buffered and will be returned on the following read operation. This
      * method is designed to support signal processing operations that require
@@ -274,8 +275,8 @@ namespace bulkio {
      * If the SRI indicates that the data is complex, @a count and @a consume
      * are in terms of complex samples.
      *
-     * The returned data block may contain fewer samples than requested, if any
-     * of the following conditions are encountered while fetching packets:
+     * If any of the following conditions are encountered while fetching packets, 
+     * the returned data block may contain fewer samples than requested.
      *   @li End-of-stream
      *   @li SRI change
      *   @li Input queue flush
@@ -335,7 +336,7 @@ namespace bulkio {
      * @pre  Stream is valid.
      * @see  read(size_t)
      *
-     * Skips the next @a count samples worth of data, blocking until the
+     * Skips the next @a count samples worth of data and blocks until the
      * requested amount of data is available. If the data is not being used,
      * this is more computationally efficient than the equivalent call to
      * read(size_t) because no buffering is performed.
@@ -343,9 +344,8 @@ namespace bulkio {
      * If the SRI indicates that the data is complex, @a count and the return
      * value are in terms of complex samples.
      *
-     * Skipping behaves like read(size_t) when fetching packets. The returned
-     * value may be less than @a count, if any of the following conditions are
-     * encountered:
+     * Skipping behaves like read(size_t) when fetching packets. If any of the following 
+     * conditions are encountered, the returned  value may be less than @a count.
      *   @li End-of-stream
      *   @li SRI change
      *   @li Input queue flush
@@ -358,13 +358,13 @@ namespace bulkio {
 
     /**
      * @brief Checks whether this stream can receive data.
-     * @returns  True if this stream is enabled, false if disabled.
+     * @returns  True if this stream is enabled. False if stream is disabled.
      * @pre  Stream is valid.
      * @see  enable()
      * @see  disable()
      *
      * If a stream is enabled, packets received for its stream ID are queued
-     * in the InPort and the stream may be used for reading. Conversely,
+     * in the InPort, and the stream may be used for reading. Conversely,
      * packets for a disabled stream are discarded, and no reading may be
      * performed.
      */
@@ -408,15 +408,15 @@ namespace bulkio {
      * If the SRI indicates that the data is complex, the returned value is in
      * terms of complex samples.
      *
-     * @warning  The returned value is not guaranteed; a subsequent call to
-     *           @a read may block, or @a tryread may fail, if the input queue
-     *           flushes in between calls.
+     * @warning  The returned value is not guaranteed; if the input queue
+     *           flushes in between calls, a subsequent call to
+     *           @a read may block or @a tryread may fail.
      */
     size_t samplesAvailable();
 
     /**
      * @brief  Checks stream validity.
-     * @returns  True if this stream is not valid, false if it is valid.
+     * @returns  True if this stream is not valid. False if the stream is invalid.
      *
      * Invalid (null) InputStreams are not associated with an active stream in
      * an %InPort. If this method returns true, no other methods except
@@ -427,7 +427,7 @@ namespace bulkio {
     /**
      * @brief  Stream equality comparison.
      * @param other  Another %InputStream.
-     * @returns  True iff both InputStreams reference the same underlying
+     * @returns  True if and only if both InputStreams reference the same underlying
      *           stream.
      */
     bool operator== (const InputStream& other) const;
@@ -439,9 +439,9 @@ namespace bulkio {
      * A stream is considered ready if samplesAvailable() would return a
      * non-zero value.
      *
-     * @warning  Even if this method returns true, a subsequent call to @a read
-     *           may block, or @a tryread may fail, if the input queue flushes
-     *           in between calls.
+     * @warning  Even if this method returns true, if the input queue flushes
+     *           in between calls, a subsequent call to @a read
+     *           may block or @a tryread may fail.
      */
     bool ready();
 

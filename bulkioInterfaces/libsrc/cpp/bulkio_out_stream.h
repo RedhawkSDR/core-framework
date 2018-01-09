@@ -58,13 +58,13 @@ namespace bulkio {
    * active at a time.
    *
    * OutputStreams help manage the stream lifetime by tying that SRI with an
-   * %OutPort, and ensuring that all data is associated with a valid stream.
+   * %OutPort and ensuring that all data is associated with a valid stream.
    * When the stream is complete, it may be closed, notifying downstream
    * receivers that no more data is expected.
    *
    * The %OutputStream class itself is a lightweight handle; it is inexpensive
    * to copy or store in local variables or nested data types. Assigning one
-   * %OutputStream to another does not copy the stream state, but instead
+   * %OutputStream to another does not copy the stream state, but instead, it
    * aliases both objects to the same underlying stream.
    *
    * The default constructor creates an invalid "null" %InputStream that cannot
@@ -79,7 +79,7 @@ namespace bulkio {
    * }
    * @endcode
    *
-   * OutputStreams must be created via an %OutPort. A stream can not be
+   * OutputStreams must be created via an %OutPort. A stream cannot be
    * associated with more than one port.
    * @see  OutPort::createStream(const std::string&)
    * @see  OutPort::createStream(const BULKIO::StreamSRI&)
@@ -107,8 +107,8 @@ namespace bulkio {
      * Create a null OutputStream. This stream is not associated with a stream
      * from any OutPort instance. No methods may be called on the %OutputStream
      * except for operator!, which will always return true; and operator==,
-     * which returns true if the other %OutputStream is also null, or false
-     * otherwise.
+     * which returns true if the other %OutputStream is also null. Both operators
+     * will return false if the other %OutputStream is also not null.
      *
      * New, valid streams are created via an %OutPort.
      */
@@ -144,7 +144,7 @@ namespace bulkio {
      * @returns  The distance between two adjacent samples in the X direction.
      * @pre  Stream is valid.
      *
-     * Since the X-axis is commonly in terms of time (that is, @c sri.xunits is
+     * Because the X-axis is commonly in terms of time (that is, @c sri.xunits is
      * @c BULKIO::UNITS_TIME), this is typically the reciprocal of the sample
      * rate.
      */
@@ -164,7 +164,7 @@ namespace bulkio {
 
     /**
      * @brief  Gets the complex mode of this stream.
-     * @returns  True if data is complex, false if data is real.
+     * @returns  True if data is complex. False if data is not complex.
      * @pre  Stream is valid.
      *
      * A stream is considered complex if @c sri.mode is non-zero.
@@ -173,7 +173,7 @@ namespace bulkio {
 
     /**
      * @brief  Sets the complex mode of this stream.
-     * @param mode  True if data is complex, false if data is real.
+     * @param mode  True if data is complex. False if data is not complex.
      * @pre  Stream is valid.
      * @see  complex() const
      *
@@ -185,14 +185,14 @@ namespace bulkio {
 
     /**
      * @brief  Gets the blocking mode of this stream.
-     * @returns  True if this stream is blocking, false if it is non-blocking.
+     * @returns  True if this stream is blocking. False if stream is non-blocking.
      * @pre  Stream is valid.
      */
     bool blocking() const;
 
     /**
      * @brief  Sets the blocking mode of this stream.
-     * @param mode  True if blocking, false if non-blocking.
+     * @param mode  True if blocking. False if stream is non-blocking.
      * @pre  Stream is valid.
      *
      * Changing the %blocking mode updates the SRI, which will be pushed on the
@@ -224,7 +224,7 @@ namespace bulkio {
     /**
      * @brief  Checks for the presence of a keyword in the SRI.
      * @param name  The name of the keyword.
-     * @returns  True if the keyword is found, false otherwise.
+     * @returns  True if the keyword is found. False if keyword is not found.
      * @pre  Stream is valid.
      */
     bool hasKeyword(const std::string& name) const;
@@ -251,8 +251,8 @@ namespace bulkio {
      * @see  setKeyword(const std::string&, const redhawk::Value&)
      * @see  setKeyword(const std::string&, const T&)
      *
-     * If the keyword @a name already exists, its value is updated to @a value,
-     * otherwise a new keyword is appended.
+     * If the keyword @a name already exists, its value is updated to @a value.
+     * If the keyword @a name does not exist, the new keyword is appended.
      *
      * Setting a keyword updates the SRI, which will be pushed on the next
      * call to write().
@@ -266,8 +266,8 @@ namespace bulkio {
      * @pre  Stream is valid.
      * @see  setKeyword(const std::string&, const T&)
      *
-     * If the keyword @a name already exists, its value is updated to @a value,
-     * otherwise a new keyword is appended.
+     * If the keyword @a name already exists, its value is updated to @a value.
+     * If the keyword @a name does not exist, the new keyword is appended.
      *
      * Setting a keyword updates the SRI, which will be pushed on the next
      * call to write().
@@ -281,8 +281,8 @@ namespace bulkio {
      * @tparam T  Any type that can be converted to a redhawk::Value.
      * @pre  Stream is valid.
      *
-     * If the keyword @a name already exists, its value is updated to @a value,
-     * otherwise a new keyword is appended.
+     * If the keyword @a name already exists, its value is updated to @a value.
+     * If the keyword @a name does not exist, the new keyword is appended.
      *
      * Setting a keyword updates the SRI, which will be pushed on the next
      * call to write().
@@ -318,7 +318,7 @@ namespace bulkio {
      *
      * Sends the contents of a real or complex vector as a single packet. This
      * is a convenience wrapper that defers to one of the write methods that
-     * takes a pointer and size, depending on on whether @a T is real or
+     * takes a pointer and size, depending on whether @a T is real or
      * complex.
      */
     template <class T>
@@ -340,7 +340,7 @@ namespace bulkio {
      *
      * Sends the contents of a real or complex vector as one or more packets.
      * This is a convenience wrapper that defers to one of the write methods
-     * that takes a pointer and size, depending on on whether @a T is real or
+     * that takes a pointer and size, depending on whether @a T is real or
      * complex.
      */
     template <class T>
@@ -369,18 +369,18 @@ namespace bulkio {
      * @param count  Number of samples to write.
      * @param times  List of time stamps, with offsets.
      * @pre  Stream is valid.
-     * @pre  @p times is sorted order in order of offset.
+     * @pre  @p times is sorted in order of offset.
      * @throw std::logic_error  If @p times is empty.
      * @see  write(const ScalarType*,size_t,const BULKIO::PrecisionUTCTime&)
      *
-     * Writes @a count samples of scalar data to the steam, where each element
+     * Writes @a count samples of scalar data to the stream, where each element
      * of @a times gives the offset and time stamp of an individual packet. The
      * offset of the first time stamp is ignored and assumed to be 0, while
      * subsequent offsets determine the length of the prior packet. All offsets
      * should be less than @a count.
      *
      * For example, given three time stamps with offsets 0, 10, and 20, and a
-     * @a count of 25, @a data is broken into three packets of size 10, 10 and
+     * @a count of 25, @a data is broken into three packets of size 10, 10, and
      * 5 samples.
      *
      * If there are any pending SRI changes, the new SRI is pushed first.
@@ -412,19 +412,19 @@ namespace bulkio {
      * @param count  Number of samples to write.
      * @param times  List of time stamps, with offsets.
      * @pre  Stream is valid.
-     * @pre  @p times is sorted order in order of offset.
+     * @pre  @p times is sorted in order of offset.
      * @throw std::logic_error  If stream is not configured for complex data.
      * @throw std::logic_error  If @p times is empty.
      * @see  write(const ComplexType*,size_t,const BULKIO::PrecisionUTCTime&)
      *
-     * Writes @a count samples of complex data to the steam, where each element
+     * Writes @a count samples of complex data to the stream, where each element
      * of @a times gives the offset and time stamp of an individual packet. The
      * offset of the first time stamp is ignored and assumed to be 0, while
      * subsequent offsets determine the length of the prior packet. All offsets
      * should be less than @a count.
      *
      * For example, given three time stamps with offsets 0, 10, and 20, and a
-     * @a count of 25, @a data is broken into three packets of size 10, 10 and
+     * @a count of 25, @a data is broken into three packets of size 10, 10, and
      * 5 samples.
      *
      * If there are any pending SRI changes, the new SRI is pushed first.

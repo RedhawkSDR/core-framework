@@ -79,7 +79,7 @@ namespace bulkio {
    * @headerfile  bulkio_datablock.h <bulkio/bulkio_datablock.h>
    *
    * %DataBlock is a smart pointer-based class that encapsulates the result of
-   * a single read operation on an InputStream. It includes both sample data,
+   * a single-read operation on an InputStream. It includes both sample data,
    * which may be real or complex, and metadata, which includes signal-related
    * information (SRI).
    *
@@ -90,12 +90,12 @@ namespace bulkio {
    *           an %InputStream.
    *
    * DataBlocks have reference semantics; in other words, assigning one block
-   * to another does not make a copy, but rather shares the same sample data
+   * to another does not make a copy but rather shares the same sample data
    * and metadata. When the last reference expires, the memory is released to
    * the system to prevent memory leaks. Additionally, blocks are inexpensive
    * to return by value, reassign, or store in nested data types.
    *
-   * The default constructor creates an invalid, or "null," block. Likewise,
+   * The default constructor creates an invalid or "null" block. Likewise,
    * %InputStream read operations may return an invalid block if the operation
    * cannot be completed. When receiving a data block, you must always check
    * for validity before accessing the sample data or metadata:
@@ -114,7 +114,7 @@ namespace bulkio {
    *
    * @par  Real vs. Complex Samples
    * Because BulkIO streams support both real and complex sample data, blocks
-   * store data internally as an array of real samples, providing methods that
+   * store data internally as an array of real samples, thus providing methods that
    * allow the user to interpret the data as either real or complex. When the
    * complex mode changes, this is typically indicated with the corresponding
    * SRI change flag (see sriChangeFlags()). On a per-block basis, the complex()
@@ -150,8 +150,8 @@ namespace bulkio {
      * @see  InputStream::tryread
      *
      * Create a null block. This block has no data nor metadata associated with
-     * it. No methods may be called on a null %DataBlock, except for operator!,
-     * which will always return true; and operator==, which returns true if the
+     * it. No methods may be called on a null %DataBlock except for operator!,
+     * which will always return true, and operator==, which returns true if the
      * other %DataBlock is also null, or false otherwise.
      *
      * DataBlocks are typically obtained by reading from an InputStream.
@@ -163,7 +163,7 @@ namespace bulkio {
      * @param sri  The SRI that describes the data.
      * @param size  Number of samples to allocate.
      *
-     * Creates a new, valid block, allocating enough space to hold @a size real
+     * Creates a new, valid block providing enough allocated space to hold @a size real
      * samples in the internal buffer. If the data is complex, @a size must be
      * twice the desired number of complex samples.
      *
@@ -175,7 +175,7 @@ namespace bulkio {
      * @brief  Copies this block's data and metadata.
      * @returns  A new block.
      *
-     * Makes a complete copy of this block, returning a unique block that does
+     * Makes a complete copy of this block, which returns a unique block that does
      * not share this block's data or metadata.
      *
      * If this block is invalid, returns a new null block.
@@ -196,7 +196,7 @@ namespace bulkio {
      * @returns  The distance between two adjacent samples in the X direction.
      * @pre  Block is valid.
      *
-     * Since the X-axis is commonly in terms of time (that is, @c sri.xunits is
+     * Because the X-axis is commonly in terms of time (that is, @c sri.xunits is
      * @c BULKIO::UNITS_TIME), this is typically the reciprocal of the sample
      * rate.
      */
@@ -252,7 +252,7 @@ namespace bulkio {
 
     /**
      * @brief  Checks whether data should be interpreted as complex samples.
-     * @returns  True if data is complex, false if data is real.
+     * @returns  True if data is complex. False if data is real.
      * @pre  Block is valid.
      *
      * The sample data is considered complex if @c sri.mode is non-zero.
@@ -301,7 +301,7 @@ namespace bulkio {
     /**
      * @brief  Checks whether the SRI has changed since the last read from the
      *         same stream.
-     * @returns  True if the SRI has changed, false otherwise.
+     * @returns  True if the SRI has changed. False is SRI is unchanged.
      * @pre  Block is valid.
      * @see  sriChangeFlags()
      */
@@ -347,11 +347,11 @@ namespace bulkio {
 
     /**
      * @brief  Checks whether the input queue has flushed since the last read.
-     * @returns  True if an input queue flush occurred, false otherwise.
+     * @returns  True if an input queue flush occurred. False if no flush has occurred.
      * @pre  Block is valid.
      *
      * An input queue flush indicates that the InPort was unable to keep up
-     * with incoming packets for non-blocking streams, and emptied the queue
+     * with incoming packets for non-blocking streams and emptied the queue
      * to catch up.
      *
      * The %InPort reports a flush once, on the next queued packet. This is
@@ -363,7 +363,7 @@ namespace bulkio {
 
     /**
      * @brief  Set the input queue flush flag.
-     * @param flush  True if an input queue flush occurred, false otherwise.
+     * @param flush  True if an input queue flush occurred. False if no flush has occurred.
      * @pre  Block is valid.
      * @see  inputQueueFlushed()
      *
@@ -394,7 +394,7 @@ namespace bulkio {
      *
      * Valid %DataBlocks obtained by reading from an InputStream are guaranteed
      * to have at least one time stamp, at offset 0. If the read spanned more
-     * than one packet, each packet's time stamp is included, with their
+     * than one packet, each packet's time stamp is included with the packet's
      * respective offsets from the first sample.
      *
      * When the %DataBlock is read from an %InputStream, only the first time
@@ -410,14 +410,14 @@ namespace bulkio {
     /**
      * @brief  Calculates the difference between the expected and actual value
      *         of the last time stamp
-     * @returns  Difference, in seconds, between expected and actual value
+     * @returns  Difference, in seconds, between expected and actual value.
      * @pre  Block is valid.
      * @see  getMaxTimeDrift()
      * @see  xdelta()
      *
      * If this %DataBlock contains more than one time stamp, this method
-     * compares the last time stamp to a linearly interpolated value, based off
-     * of the initial time stamp, the StreamSRI xdelta, and the sample offset.
+     * compares the last time stamp to a linearly interpolated value based on
+     * the initial time stamp, the StreamSRI xdelta, and the sample offset.
      * This difference gives a rough estimate of the deviation between the
      * nominal and actual sample rates over the sample period.
      *
@@ -437,7 +437,7 @@ namespace bulkio {
      *
      * If this %DataBlock contains more than one time stamp, this method
      * compares each time stamp to its linearly interpolated equivalent time
-     * stamp, based off of the initial time stamp, the StreamSRI xdelta, and
+     * stamp, based on the initial time stamp, the StreamSRI xdelta, and
      * the sample offset. The greatest deviation is reported; this difference
      * gives a rough indication of how severely the actual sample rate deviates
      * from the nominal sample rate on a packet-to-packet basis.
@@ -449,11 +449,11 @@ namespace bulkio {
 
     /**
      * @brief  Checks block validity.
-     * @returns  True if this block is invalid, false if it is valid.
+     * @returns  True if this block is invalid. False if the block is valid.
      *
      * Invalid (null) blocks do not contain any sample data or metadata. An
      * InputStream read operation may return a null block if there is no data
-     * available, or the operation is interrupted.
+     * available or the operation is interrupted.
      *
      * If this method returns true, no other methods except comparison or
      * assignment may be called.
