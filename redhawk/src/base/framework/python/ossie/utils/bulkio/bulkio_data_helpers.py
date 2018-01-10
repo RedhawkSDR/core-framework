@@ -353,7 +353,7 @@ class ArraySink(StreamMgr):
                 continue
             break
         if not _stream:
-            return None
+            return (None, None)
         done = False
         goal = length
         self.port_cond.acquire()

@@ -1849,12 +1849,11 @@ class DataSink(_SinkBase):
             return None
         if eos_block:
             self._sink.waitEOS()
-        _retval = self._sink.retrieveData(length=length)
-        if not _retval:
+        (retval, timestamps) = self._sink.retrieveData(length=length)
+        if not retval:
             if tstamps:
                 return ([],[])
             return []
-        (retval, timestamps) = _retval
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
