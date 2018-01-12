@@ -66,11 +66,28 @@ namespace bitops {
             4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
         };
 
+        // Tags for describing how a unary or binary operation accesses the bit
+        // arrays, allowing the apply functions to support get/set/modify with
+        // the same code
+
+        // Only read from the operand (e.g., population count)
         struct read_tag {};
+
+        // Only write to the operand (e.g., fill)
         struct write_tag {};
+
+        // Read and modify the operation (e.g., negate)
         struct readwrite_tag {};
 
+        // Tags for bit operation function bodies with exact alignment for all
+        // bit arrays (e.g., in a binary operation, both bit arrays have the
+        // same alignment)
+
+        // Use the normal operator() to process element-by-element
         struct element_tag {};
+
+        // Use array-based operator() to process all at once (e.g., in copy,
+        // using memcpy to transfer)
         struct array_tag {};
 
         // Handle reading of partial and split bytes
@@ -123,6 +140,8 @@ namespace bitops {
         struct bit_writer {
             static inline void write(byte value, byte* dest, size_t offset, size_t bits)
             {
+                // Preserve the leftmost bits, and if necessary, the rightmost
+                // bits as well
                 const size_t shift = 8 - (offset + bits);
                 const byte mask = bitmask(bits) << shift;
                 *dest = ((*dest) & ~mask) | ((value << shift) & mask);
@@ -138,12 +157,17 @@ namespace bitops {
 
             static inline void write_split(byte value, byte* dest, size_t offset)
             {
+                // 8-bit split write is equivalent to two partial writes, one
+                // to each byte
                 write(value >> offset, dest, offset, 8 - offset);
                 write(value, dest + 1, offset);
             }
 
             static inline void write_split(byte value, byte* dest, size_t offset, size_t bits)
             {
+                // Fewer than 8 bits may or may not be split into two bytes;
+                // write as many bits as possible to the first byte, and then
+                // if necessary, write the remainder to the second byte
                 size_t left = std::min(8 - offset, bits);
                 write(value >> (bits - left), dest, offset, left);
                 if (bits > left) {
@@ -152,9 +176,15 @@ namespace bitops {
             }
         };
 
+        // Traits-like class to take a read/write tag and provide an interface
+        // to read and write bits to the operands as necessary. For example, if
+        // an operation reads from but does not write to a bit array, the read
+        // functions return meaningful values but the write functions are no-
+        // ops, which can be eliminated by the compiler.
         template <typename Mode>
         struct bit_handler;
 
+        // Read-only: add no-op write interface to bit reader
         template <>
         struct bit_handler<read_tag> : public bit_reader
         {
@@ -175,6 +205,7 @@ namespace bitops {
             }
         };
 
+        // Write-only: add no-op read interface to bit writer
         template <>
         struct bit_handler<write_tag> : public bit_writer
         {
@@ -199,6 +230,7 @@ namespace bitops {
             }
         };
 
+        // Read/write: compose bit reader and bit writer
         template <>
         struct bit_handler<readwrite_tag> : public bit_reader, public bit_writer
         {
