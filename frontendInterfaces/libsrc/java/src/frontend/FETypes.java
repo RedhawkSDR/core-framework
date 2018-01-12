@@ -398,6 +398,16 @@ public class FETypes {
             Mode.READWRITE, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
+    
+    public final StructProperty<frontend_scanner_allocation_struct> frontend_scanner_allocation =
+        new StructProperty<frontend_scanner_allocation_struct>(
+            "FRONTEND::scanner_allocation", //id
+            "frontend_scanner_allocation", //name
+            frontend_scanner_allocation_struct.class, //type
+            new frontend_scanner_allocation_struct(), //default value
+            Mode.READWRITE, //mode
+            new Kind[] {Kind.ALLOCATION} //kind
+            );
 
     public static class frontend_listener_allocation_struct extends StructDef {
         public final StringProperty existing_allocation_id =
@@ -527,4 +537,113 @@ public class FETypes {
             return "frontend_tuner_status_struct";
         }
     }
+
+    public static class frontend_scanner_allocation_struct extends StructDef {
+        public final DoubleProperty min_freq =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::min_freq", //id
+                "min_freq", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty max_freq =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::max_freq", //id
+                "max_freq", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty mode =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::mode", //id
+                "mode", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty control_mode =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::control_mode", //id
+                "control_mode", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty control_limit =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::control_limit", //id
+                "control_limit", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+    
+        /**
+         * @generated
+         */
+        public frontend_scanner_allocation_struct(Double min_freq, Double max_freq, Double mode, Double control_mode, Double control_limit) {
+            this();
+            this.min_freq.setValue(min_freq);
+            this.max_freq.setValue(max_freq);
+            this.mode.setValue(mode);
+            this.control_mode.setValue(control_mode);
+            this.control_limit.setValue(control_limit);
+        }
+    
+        /**
+         * @generated
+         */
+        public void set_min_freq(Double min_freq) {
+            this.min_freq.setValue(min_freq);
+        }
+        public Double get_min_freq() {
+            return this.min_freq.getValue();
+        }
+        public void set_max_freq(Double max_freq) {
+            this.max_freq.setValue(max_freq);
+        }
+        public Double get_max_freq() {
+            return this.max_freq.getValue();
+        }
+        public void set_mode(Double mode) {
+            this.mode.setValue(mode);
+        }
+        public Double get_mode() {
+            return this.mode.getValue();
+        }
+        public void set_control_mode(Double control_mode) {
+            this.control_mode.setValue(control_mode);
+        }
+        public Double get_control_mode() {
+            return this.control_mode.getValue();
+        }
+        public void set_control_limit(Double control_limit) {
+            this.control_limit.setValue(control_limit);
+        }
+        public Double get_control_limit() {
+            return this.control_limit.getValue();
+        }
+    
+        /**
+         * @generated
+         */
+        public frontend_scanner_allocation_struct() {
+            addElement(this.min_freq);
+            addElement(this.max_freq);
+            addElement(this.mode);
+            addElement(this.control_mode);
+            addElement(this.control_limit);
+        }
+    
+        public String getId() {
+            return "FRONTEND::scanner_allocation";
+        }
+    };
 }

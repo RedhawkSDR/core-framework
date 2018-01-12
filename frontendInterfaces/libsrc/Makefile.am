@@ -98,11 +98,15 @@ JAVA_BINDIR := $(JAVA_DIR)/bin
 
 JAVA_SRCS := \
 InAnalogTunerPort.java \
+InAnalogScanningTunerPort.java \
 OutAnalogTunerPort.java \
 AnalogTunerDelegate.java \
+AnalogScanningTunerDelegate.java \
 InDigitalTunerPort.java \
+InDigitalScanningTunerPort.java \
 OutDigitalTunerPort.java \
 DigitalTunerDelegate.java \
+DigitalScanningTunerDelegate.java \
 InFrontendTunerPort.java \
 OutFrontendTunerPort.java \
 FrontendTunerDelegate.java \
@@ -119,6 +123,7 @@ InRFSourcePort.java \
 OutRFSourcePort.java \
 RFSourceDelegate.java \
 FETypes.java \
+FrontendScanningTunerDevice.java \
 FrontendTunerDevice.java
 
 java_JARFILES = frontend.jar

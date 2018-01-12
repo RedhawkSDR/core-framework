@@ -207,7 +207,7 @@ void BufferedInStreamTest<Port>::testSizedTryreadEmptyEos()
 }
 
 template <class Port>
-void InStreamTest<Port>::testTryreadPeek()
+void BufferedInStreamTest<Port>::testTryreadPeek()
 {
     typedef typename Port::StreamType StreamType;
     typedef typename Port::PortSequenceType PortSequenceType;
@@ -234,7 +234,7 @@ void InStreamTest<Port>::testTryreadPeek()
 }
 
 template <class Port>
-void InStreamTest<Port>::testReadPeek()
+void BufferedInStreamTest<Port>::testReadPeek()
 {
     typedef typename Port::StreamType StreamType;
     typedef typename Port::PortSequenceType PortSequenceType;
@@ -261,7 +261,7 @@ void InStreamTest<Port>::testReadPeek()
 }
 
 template <class Port>
-void InStreamTest<Port>::testReadPartial()
+void BufferedInStreamTest<Port>::testReadPartial()
 {
     typedef typename Port::StreamType StreamType;
     typedef typename Port::PortSequenceType PortSequenceType;

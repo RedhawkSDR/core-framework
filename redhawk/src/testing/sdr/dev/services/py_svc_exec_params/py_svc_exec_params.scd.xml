@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/PropertyEmitter:1.0"/>
+  <componenttype>service</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/PropertyEmitter:1.0" supportsname="PropertyEmitter"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="PropertyEmitter" repid="IDL:CF/PropertyEmitter:1.0">
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+    </interface>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+  </interfaces>
+</softwarecomponent>

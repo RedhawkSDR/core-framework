@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:294f1fef-a09d-4e75-a68e-86be04e90082" name="node_exec_params">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="py_svc_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773" type="SPD">
+      <localfile name="/services/py_svc_exec_params/py_svc_exec_params.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="py_svc_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773"/>
+      <componentinstantiation id="node_exec_params:py_svc_exec_params_1">
+        <usagename>py_svc_exec_params_1</usagename>
+        <componentproperties>
+          <simpleref refid="exec_read_only" value="cmd_ok_read_only"/>
+          <simpleref refid="exec_read_only_empty" value=""/>
+          <simpleref refid="exec_read_only_number" value="12345"/>
+          <simpleref refid="exec_read_only_empty_number" value=""/>
+          <simpleref refid="exec_cmd" value="cmd_ok"/>
+          <simpleref refid="exec_cmd_empty" value=""/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

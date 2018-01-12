@@ -51,7 +51,11 @@
         fts.enabled = False
         return
 
+#{% if 'ScanningTuner' in component.implements %}
+    def deviceSetTuning(self,request, scan_request, fts, tuner_id):
+#{% else %}
     def deviceSetTuning(self,request, fts, tuner_id):
+#{% endif %}
         '''
         ************************************************************
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
@@ -182,6 +186,36 @@
         idx = self.getTunerMapping(allocation_id)
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         return self.frontend_tuner_status[idx].sample_rate
+
+#{% endif %}
+#{% if 'ScanningTuner' in component.implements %}
+
+    def getScanStatus(self, allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        # set hardware to new value. Raise an exception if it's not possible
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(
+            FRONTEND.ScanningTuner.MANUAL_SCAN, 
+            FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
+            FRONTEND.ScanningTuner.TIME_BASED, 
+            0.0)
+        _scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
+                                           start_time=bulkio.timestamp.now(),
+                                           center_tune_frequencies=[],
+                                           started=False)
+        return _scan_status
+
+    def setScanStartTime(self, allocation_id, start_time):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+
+    def setScanStrategy(self, allocation_id, scan_strategy):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
 
 #{% endif %}
 #{% if 'GPS' in component.implements %}

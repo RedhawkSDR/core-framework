@@ -30,7 +30,11 @@ BOOLEAN_VALUE_HERE=False
 #{% block extensions %}
 #{% for prop in component.properties if prop.name == "frontend_tuner_status" %}
         # Rebind tuner status property with custom struct definition
+#{%  if 'ScanningTuner' in component.implements %}
+        frontend_tuner_status = FrontendScannerDevice.frontend_tuner_status.rebind()
+#{%  else %}
         frontend_tuner_status = FrontendTunerDevice.frontend_tuner_status.rebind()
+#{%  endif %}
         frontend_tuner_status.structdef = frontend_tuner_status_struct_struct
 #{% endfor %}
 

@@ -56,6 +56,7 @@ import org.ossie.component.ThreadedDevice;
 import org.ossie.properties.Action;
 import org.ossie.properties.Allocator;
 import org.ossie.properties.AnyUtils;
+import org.ossie.properties.IProperty;
 import org.ossie.properties.Kind;
 import org.ossie.properties.Mode;
 import org.ossie.properties.StringProperty;
@@ -294,7 +295,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
     private void construct() {
         loadProperties();
         allocation_id_to_tuner_id = new HashMap<String,Integer>();
-        frontend_tuner_allocation.setAllocator(new Allocator<frontend.FETypes.frontend_tuner_allocation_struct>() {
+        /*frontend_tuner_allocation.setAllocator(new Allocator<frontend.FETypes.frontend_tuner_allocation_struct>() {
             public boolean allocate(frontend.FETypes.frontend_tuner_allocation_struct capacity){
                 boolean status = false;
                 try{
@@ -325,7 +326,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             public void deallocate(frontend.FETypes.frontend_listener_allocation_struct capacity) throws CF.DevicePackage.InvalidCapacity {
                 deallocateListener(capacity);
             }
-        });
+        });*/
     }
     
     // this is implemented in the generated base class once all properties are known
@@ -444,6 +445,117 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         return CF.DevicePackage.UsageType.ACTIVE;
     }
 
+    public boolean callDeviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_allocation, TunerStatusStructType fts, int tuner_id) {
+        return deviceSetTuning(frontend_tuner_allocation, fts, tuner_id);
+    }
+
+    public void checkValidIds(DataType[] capacities) throws InvalidCapacity, InvalidState {
+        for (DataType cap : capacities) {
+            if (cap.id.equals("FRONTEND::scanner_allocation")) {
+                throw new CF.DevicePackage.InvalidCapacity("FRONTEND::scanner_allocation found in allocation; this is not a scanning device", capacities);
+            }
+        }
+        for (DataType cap : capacities) {
+            if (!cap.id.equals("FRONTEND::tuner_allocation") && !cap.id.equals("FRONTEND::listener_allocation")) {
+                throw new CF.DevicePackage.InvalidCapacity("Invalid allocation property", capacities);
+            }
+        }
+    }
+
+    public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+        // Checks for empty
+        if (capacities.length == 0){
+            logger.trace("No capacities to allocate.");
+            return true;
+        }
+
+        // Verify that the device is in a valid state
+        if (!isUnlocked() || isDisabled()) {
+            String invalidState;
+            if (isLocked()) {
+                invalidState = "LOCKED";
+            } else if (isDisabled()) {
+                invalidState = "DISABLED";
+            } else {
+                invalidState = "SHUTTING_DOWN";
+            }
+            logger.debug("Cannot allocate capacity: System is " + invalidState);
+            throw new InvalidState(invalidState);
+        }
+
+        checkValidIds(capacities);
+
+        // Check for obviously invalid properties up front.
+        validateAllocProps(capacities);
+
+        for (DataType cap : capacities) {
+            final IProperty property = this.propSet.get(cap.id);
+            property.configure(cap.value);
+        }
+
+        for (DataType cap : capacities) {
+            final IProperty property = this.propSet.get(cap.id);
+            if (cap.id.equals("FRONTEND::tuner_allocation")) {
+                try {
+                    return allocateTuner(frontend_tuner_allocation.getValue());
+                } catch (CF.DevicePackage.InvalidCapacity e) {
+                    throw e;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            if (cap.id.equals("FRONTEND::listener_allocation")) {
+                try {
+                    return allocateListener(frontend_listener_allocation.getValue());
+                } catch (CF.DevicePackage.InvalidCapacity e) {
+                    throw e;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void deallocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+        if (!isUnlocked() || isDisabled()) {
+            String invalidState;
+            if (isLocked()) {
+                invalidState = "LOCKED";
+            } else if (isDisabled()) {
+                invalidState = "DISABLED";
+            } else {
+                invalidState = "SHUTTING_DOWN";
+            }
+            logger.debug("Cannot deallocate capacity: System is " + invalidState);
+            throw new InvalidState(invalidState);
+        }
+
+        // Check for obviously invalid properties to avoid partial deallocation.
+        validateAllocProps(capacities);
+
+        final ArrayList<DataType> invalidProps = new ArrayList<DataType>();
+        for (DataType cap : capacities) {
+            final IProperty property = this.propSet.get(cap.id);
+            if (cap.id.equals("FRONTEND::tuner_allocation")) {
+                deallocateTuner(frontend_tuner_allocation.getValue());
+            }
+            if (cap.id.equals("FRONTEND::listener_allocation")) {
+                try {
+                    deallocateListener(frontend_listener_allocation.getValue());
+                } catch (CF.DevicePackage.InvalidCapacity e) {
+                    invalidProps.add(cap);
+                }
+            }
+        }
+
+        updateUsageState();
+
+        if ( invalidProps.size() > 0  ) {
+            throw new InvalidCapacity("Invalid capacity deallocation", invalidProps.toArray(new DataType[0]));
+        }
+    }
+
     public boolean allocateTuner(frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_allocation) throws CF.DevicePackage.InvalidCapacity, Exception {
         try{
             // Check allocation_id
@@ -492,7 +604,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
                         frontend_tuner_status.getValue().get(tuner_id).sample_rate.setValue(frontend_tuner_allocation.sample_rate.getValue());
                         if(tuner_allocation_ids.get(tuner_id).control_allocation_id != null &&
                            (!tuner_allocation_ids.get(tuner_id).control_allocation_id.isEmpty() || 
-                            !deviceSetTuning(frontend_tuner_allocation, frontend_tuner_status.getValue().get(tuner_id), tuner_id))){
+                            !callDeviceSetTuning(frontend_tuner_allocation, frontend_tuner_status.getValue().get(tuner_id), tuner_id))){
                             // either not available or didn't succeed setting tuning, try next tuner
                             if (frontend_tuner_status.getValue().get(tuner_id).bandwidth.getValue().equals(frontend_tuner_allocation.bandwidth.getValue()))
                                 frontend_tuner_status.getValue().get(tuner_id).bandwidth.setValue(orig_bw);
@@ -610,6 +722,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
     }
 
     public boolean allocateListener(frontend.FETypes.frontend_listener_allocation_struct frontend_listener_allocation) throws CF.DevicePackage.InvalidCapacity, Exception {
+    //public boolean allocateListener() throws CF.DevicePackage.InvalidCapacity, Exception {
         try{
             // Check validity of allocation_id's
             if (frontend_listener_allocation.existing_allocation_id == null || 
