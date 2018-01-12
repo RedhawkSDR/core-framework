@@ -1,2 +1,3 @@
-test_standalone
+*.csv
 test_libossiecf
+benchmark_bitops
