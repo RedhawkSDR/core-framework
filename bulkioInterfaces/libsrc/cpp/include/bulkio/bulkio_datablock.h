@@ -56,7 +56,7 @@ namespace bulkio {
     {
     public:
         DataBlock();
-        DataBlock(const StreamDescriptor& sri, const T& buffer);
+        explicit DataBlock(const StreamDescriptor& sri, const T& buffer=T());
       
         DataBlock copy() const;
 
@@ -130,6 +130,22 @@ namespace bulkio {
         using Base::_impl;
     };
 
+    class BitDataBlock : public DataBlock<redhawk::bitstring>
+    {
+    public:
+        BitDataBlock();
+        explicit BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring& buffer=redhawk::bitstring());
+
+        bool complex() const;
+        size_t size() const;
+
+        const redhawk::bitstring& buffer() const;
+        void buffer(const redhawk::bitstring& other);
+
+    private:
+        typedef DataBlock<redhawk::bitstring> Base;
+    };
+
     typedef SampleDataBlock<int8_t>           CharDataBlock;
     typedef SampleDataBlock<CORBA::Octet>     OctetDataBlock;
     typedef SampleDataBlock<CORBA::Short>     ShortDataBlock;
@@ -140,7 +156,6 @@ namespace bulkio {
     typedef SampleDataBlock<CORBA::ULongLong> ULongLongDataBlock;
     typedef SampleDataBlock<CORBA::Float>     FloatDataBlock;
     typedef SampleDataBlock<CORBA::Double>    DoubleDataBlock;
-    typedef DataBlock<redhawk::bitstring>     BitDataBlock;
     typedef DataBlock<std::string>            StringDataBlock;
 
 }  // end of bulkio namespace

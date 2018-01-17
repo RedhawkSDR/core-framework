@@ -50,11 +50,6 @@ namespace bulkio {
   };
 
   template <>
-  struct InStreamTraits<BULKIO::dataBit> {
-      typedef InBitStream InStreamType;
-  };
-
-  template <>
   struct InStreamTraits<BULKIO::dataXML> {
       typedef InXMLStream InStreamType;
   };

@@ -27,6 +27,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/ptr_container/ptr_deque.hpp>
 
+#include <ossie/bitops.h>
+
 using bulkio::InputStream;
 
 template <class PortType>
@@ -292,6 +294,7 @@ public:
     typedef typename ImplBase::PacketType PacketType;
     typedef typename NativeTraits<PortType>::NativeType NativeType;
     typedef typename BufferTraits<PortType>::BufferType BufferType;
+    typedef typename BufferTraits<PortType>::MutableBufferType MutableBufferType;
 
     Impl(const bulkio::StreamDescriptor& sri, InPortType* port) :
         ImplBase(sri, port),
@@ -517,6 +520,21 @@ private:
         }
     }
 
+    BufferType _slice(const BufferType& buffer, size_t start, size_t end)
+    {
+        return buffer.slice(start, end);
+    }
+
+    void _copy(const BufferType& src, size_t srcOffset, MutableBufferType& dest, size_t destOffset, size_t count)
+    {
+        std::copy(&src[srcOffset], &src[srcOffset + count], &dest[destOffset]);
+    }
+
+    inline MutableBufferType _allocate(size_t size)
+    {
+        return MutableBufferType(size);
+    }
+
     DataBlockType _readData(size_t count, size_t consume)
     {
         // Acknowledge pending SRI change
@@ -539,10 +557,10 @@ private:
         if (last_offset <= front.buffer.size()) {
             // The requsted sample count can be satisfied from the first packet
             _addTimestamp(data, _sampleOffset, 0, front.T);
-            data.buffer(front.buffer.slice(_sampleOffset, last_offset));
+            data.buffer(_slice(front.buffer, _sampleOffset, last_offset));
         } else {
             // We have to span multiple packets to get the data
-            redhawk::buffer<NativeType> buffer(count);
+            MutableBufferType buffer = _allocate(count);
             data.buffer(buffer);
             size_t data_offset = 0;
 
@@ -561,7 +579,8 @@ private:
                 const size_t available = input_data.size() - packet_offset;
                 const size_t pass = std::min(available, count);
 
-                std::copy(&input_data[packet_offset], &input_data[packet_offset+pass], &buffer[data_offset]);
+                std::cout << "COPYING " << pass << " from " << packet_offset << " to " << data_offset << std::endl;
+                _copy(input_data, packet_offset, buffer, data_offset, pass);
                 data_offset += pass;
                 packet_offset += pass;
                 count -= pass;
@@ -675,6 +694,30 @@ private:
 };
 
 
+namespace bulkio {
+    template<>
+    redhawk::bitstring BufferedInputStream<BULKIO::dataBit>::Impl::_slice(const redhawk::bitstring& buffer, size_t start, size_t end)
+    {
+        return buffer.substr(start, end);
+    }
+
+    template<>
+    void BufferedInputStream<BULKIO::dataBit>::Impl::_copy(const redhawk::bitstring& src, size_t srcStart,
+                                                           redhawk::bitstring& dest, size_t destStart,
+                                                           size_t count)
+    {
+        redhawk::bitops::copy(dest.data(), destStart, src.data(), srcStart, count);
+    }
+
+    template<>
+    inline redhawk::bitstring BufferedInputStream<BULKIO::dataBit>::Impl::_allocate(size_t size)
+    {
+        redhawk::bitstring tmp;
+        tmp.resize(size);
+        return tmp;
+    }
+}
+
 template <class PortType>
 BufferedInputStream<PortType>::BufferedInputStream() :
     Base()
@@ -765,5 +808,6 @@ const typename BufferedInputStream<PortType>::Impl& BufferedInputStream<PortType
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
     template class BufferedInputStream<x>;
 
-    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
-    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataBit);

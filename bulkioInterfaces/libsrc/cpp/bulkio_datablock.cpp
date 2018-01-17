@@ -299,6 +299,38 @@ void SampleDataBlock<T>::buffer(const ScalarBuffer& data)
     _impl->data = data;
 }
 
+using bulkio::BitDataBlock;
+
+BitDataBlock::BitDataBlock() :
+    Base()
+{
+}
+
+BitDataBlock::BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring& buffer) :
+    Base(sri, buffer)
+{
+}
+
+bool BitDataBlock::complex() const
+{
+    return false;
+}
+
+size_t BitDataBlock::size() const
+{
+    return _impl->data.size();
+}
+
+const redhawk::bitstring& BitDataBlock::buffer() const
+{
+    return _impl->data;
+}
+
+void BitDataBlock::buffer(const redhawk::bitstring& data)
+{
+    _impl->data = data;
+}
+
 // Instantiate templates for supported types
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class DataBlock< x >;

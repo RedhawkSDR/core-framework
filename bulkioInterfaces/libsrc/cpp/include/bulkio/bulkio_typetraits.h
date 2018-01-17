@@ -77,24 +77,28 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef std::vector<NativeType> VectorType;
         typedef redhawk::shared_buffer<NativeType> BufferType;
+        typedef redhawk::buffer<NativeType> MutableBufferType;
     };
 
     template <>
     struct BufferTraits<BULKIO::dataBit> {
         typedef redhawk::bitstring VectorType;
         typedef redhawk::bitstring BufferType;
+        typedef redhawk::bitstring MutableBufferType;
+    };
+
+    struct StringBufferTraits {
+        typedef std::string VectorType;
+        typedef std::string BufferType;
+        typedef std::string MutableBufferType;
     };
 
     template <>
-    struct BufferTraits<BULKIO::dataXML> {
-        typedef std::string VectorType;
-        typedef std::string BufferType;
+    struct BufferTraits<BULKIO::dataXML> : public StringBufferTraits {
     };
 
     template <>
-    struct BufferTraits<BULKIO::dataFile> {
-        typedef std::string VectorType;
-        typedef std::string BufferType;
+    struct BufferTraits<BULKIO::dataFile> : public StringBufferTraits {
     };
 }
 

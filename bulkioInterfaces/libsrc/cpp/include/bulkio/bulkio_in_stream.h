@@ -142,7 +142,7 @@ namespace bulkio {
     typedef BufferedInputStream<BULKIO::dataUlongLong> InULongLongStream;
     typedef BufferedInputStream<BULKIO::dataFloat>     InFloatStream;
     typedef BufferedInputStream<BULKIO::dataDouble>    InDoubleStream;
-    typedef InputStream<BULKIO::dataBit>               InBitStream;
+    typedef BufferedInputStream<BULKIO::dataBit>       InBitStream;
     typedef InputStream<BULKIO::dataXML>               InXMLStream;
     typedef InputStream<BULKIO::dataFile>              InFileStream;
 
