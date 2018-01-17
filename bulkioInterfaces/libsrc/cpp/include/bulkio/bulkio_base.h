@@ -425,56 +425,6 @@ namespace bulkio {
 
 
   };
-
-  // Placeholder class to provide enough basic interface to transfer bit data
-  // TODO: Replace with more feature-rich version in core
-  class bitstring {
-  public:
-    typedef unsigned char value_type;
-    typedef std::vector<value_type> vector_type;
-
-    bitstring() :
-      data(),
-      bits(0)
-    {
-    }
-
-    bitstring(const value_type* dataIn, size_t numBits) :
-      data(dataIn, dataIn + ((numBits + 7)/8)),
-      bits(numBits)
-    {
-    }
-
-    bool empty() const
-    {
-      return data.empty();
-    }
-
-    size_t size() const
-    {
-      return bits;
-    }
-
-    template <class InputIterator>
-    void assign(InputIterator first, InputIterator last)
-    {
-      data.assign(first, last);
-      bits = data.size() * 8;
-    }
-
-    vector_type::const_iterator begin() const
-    {
-      return data.begin();
-    }
-
-    vector_type::const_iterator end() const
-    {
-      return data.end();
-    }
-
-    vector_type data;
-    size_t bits;
-  };
 }  // end of bulkio namespace
 
 

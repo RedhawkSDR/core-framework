@@ -590,7 +590,7 @@ OutBitStream::OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
 {
 }
 
-void OutBitStream::write(const bulkio::bitstring& data, const BULKIO::PrecisionUTCTime& T)
+void OutBitStream::write(const redhawk::bitstring& data, const BULKIO::PrecisionUTCTime& T)
 {
     impl().write(data, T);
 }

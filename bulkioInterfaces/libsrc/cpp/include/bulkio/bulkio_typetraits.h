@@ -25,6 +25,7 @@
 #include <vector>
 
 #include <ossie/shared_buffer.h>
+#include <ossie/bitstring.h>
 
 #include "BULKIO_Interfaces.h"
 #include <ossie/BULKIO/internal/bio_dataExt.h>
@@ -80,8 +81,8 @@ namespace bulkio {
 
     template <>
     struct BufferTraits<BULKIO::dataBit> {
-        typedef bulkio::bitstring VectorType;
-        typedef bulkio::bitstring BufferType;
+        typedef redhawk::bitstring VectorType;
+        typedef redhawk::bitstring BufferType;
     };
 
     template <>

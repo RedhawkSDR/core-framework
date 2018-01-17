@@ -27,6 +27,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <ossie/shared_buffer.h>
+#include <ossie/bitstring.h>
 
 #include <BULKIO/bulkioDataTypes.h>
 #include "bulkio_base.h"
@@ -139,7 +140,7 @@ namespace bulkio {
     typedef SampleDataBlock<CORBA::ULongLong> ULongLongDataBlock;
     typedef SampleDataBlock<CORBA::Float>     FloatDataBlock;
     typedef SampleDataBlock<CORBA::Double>    DoubleDataBlock;
-    typedef DataBlock<bitstring>              BitDataBlock;
+    typedef DataBlock<redhawk::bitstring>     BitDataBlock;
     typedef DataBlock<std::string>            StringDataBlock;
 
 }  // end of bulkio namespace

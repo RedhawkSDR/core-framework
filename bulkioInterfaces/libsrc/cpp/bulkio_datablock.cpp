@@ -307,7 +307,7 @@ void SampleDataBlock<T>::buffer(const ScalarBuffer& data)
     INSTANTIATE_TEMPLATE(redhawk::shared_buffer<x>); template class SampleDataBlock<x>;
 
 INSTANTIATE_TEMPLATE(std::string);
-INSTANTIATE_TEMPLATE(bulkio::bitstring);
+INSTANTIATE_TEMPLATE(redhawk::bitstring);
 INSTANTIATE_NUMERIC_TEMPLATE(int8_t);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Octet);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Short);

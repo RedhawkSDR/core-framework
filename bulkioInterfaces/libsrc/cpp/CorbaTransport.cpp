@@ -98,15 +98,16 @@ namespace bulkio {
     };
 
     template <>
-    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const bulkio::bitstring& data,
+    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const redhawk::bitstring& data,
                                                           const BULKIO::PrecisionUTCTime& T,
                                                           bool EOS,
                                                           const char* streamID)
     {
-        const CORBA::Octet* ptr = reinterpret_cast<const CORBA::Octet*>(&data.data[0]);
+        const CORBA::Octet* ptr = reinterpret_cast<const CORBA::Octet*>(data.data());
         BULKIO::BitSequence buffer;
-        buffer.data.replace(data.data.size(), data.data.size(), const_cast<CORBA::Octet*>(ptr), false);
-        buffer.bits = data.bits;
+        size_t bytes = (data.size() + 7) / 8;
+        buffer.data.replace(bytes, bytes, const_cast<CORBA::Octet*>(ptr), false);
+        buffer.bits = data.size();
         _objref->pushPacket(buffer, T, EOS, streamID);
     }
 
