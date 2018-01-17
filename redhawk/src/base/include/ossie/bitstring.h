@@ -48,6 +48,8 @@ namespace redhawk {
     public:
         bitstring();
 
+        explicit bitstring(size_t bits);
+
         bitstring(uint64_t value, size_type bits);
 
         bitstring(const data_type* data, size_type bits);
@@ -76,7 +78,7 @@ namespace redhawk {
 
         void fill(size_type start, size_type end, bool value);
 
-        bitstring substr(size_type start, size_type end) const;
+        bitstring slice(size_type start, size_type end=npos) const;
 
         size_type find(const bitstring& pattern, int maxErrors);
         size_type find(size_type start, const bitstring& pattern, int maxErrors);

@@ -46,6 +46,12 @@ bitstring::bitstring() :
 {
 }
 
+bitstring::bitstring(size_t bits) :
+    _M_data(_M_allocate(bits)),
+    _M_size(bits)
+{
+}
+
 bitstring::bitstring(uint64_t value, size_type bits) :
     _M_data(_M_allocate(bits)),
     _M_size(bits)
@@ -154,8 +160,11 @@ void bitstring::fill(size_type start, size_type end, bool value)
     bitops::fill(data(), start, end - start, value);
 }
 
-bitstring bitstring::substr(size_type start, size_type end) const
+bitstring bitstring::slice(size_type start, size_type end) const
 {
+    if (end == npos) {
+        end = _M_size;
+    }
     const size_t bits = end - start;
     bitstring result;
     result._M_data = _M_allocate(bits);
@@ -171,6 +180,9 @@ int bitstring::popcount() const
 
 bitstring::data_type* bitstring::_M_allocate(size_t bits)
 {
+    if (!bits) {
+        return 0;
+    }
     return new data_type[(bits + 7) / 8];
 }
 

@@ -702,7 +702,7 @@ namespace redhawk {
          * This constructor allocates memory for @a size elements; no
          * initialization is performed.
          */
-        buffer(size_t size) :
+        explicit buffer(size_t size) :
             shared_type(this->_M_allocate(size, default_allocator()))
         {
         }
