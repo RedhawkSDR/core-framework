@@ -138,11 +138,11 @@ namespace bulkio {
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ChunkingTransport(OutPort<PortType>* parent, PtrType port) :
-            CorbaTransport<PortType>(parent, port)      
+            CorbaTransport<PortType>(parent, port)
         {
             // Multiply by some number < 1 to leave some margin for the CORBA header
             const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
-            maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
+            maxSamplesPerPush = _maxSamples(maxPayloadSize);
         }
 
         /*
@@ -189,7 +189,7 @@ namespace bulkio {
                 }
 
                 // Take the next slice of the input buffer.
-                BufferType subPacket = data.slice(first, first + pushSize);
+                BufferType subPacket = _slice(data, first, first + pushSize);
                 CorbaTransport<PortType>::_sendPacket(subPacket, packetTime, packetEOS, streamID, sri);
 
                 // Synthesize the next packet timestamp
@@ -203,22 +203,37 @@ namespace bulkio {
         }
 
     private:
+        BufferType _slice(const BufferType& data, size_t start, size_t end)
+        {
+            return data.slice(start, end);
+        }
+
+        static size_t _maxSamples(size_t payloadSize)
+        {
+            return payloadSize / sizeof(TransportType);
+        }
+
         size_t maxSamplesPerPush;
     };
+
+    template <>
+    size_t ChunkingTransport<BULKIO::dataBit>::_maxSamples(size_t payloadSize)
+    {
+        return payloadSize * 8;
+    }
+
+    template <>
+    redhawk::bitstring ChunkingTransport<BULKIO::dataBit>::_slice(const redhawk::bitstring& data,
+                                                                  size_t start, size_t end)
+    {
+        return data.substr(start, end);
+    }
 
     template <typename PortType>
     OutputTransport<PortType>* CorbaTransportFactory<PortType>::Create(OutPort<PortType>* parent,
                                                                        PtrType port)
     {
         return new ChunkingTransport<PortType>(parent, port);
-    }
-
-    template <>
-    OutputTransport<BULKIO::dataBit>*
-    CorbaTransportFactory<BULKIO::dataBit>::Create(OutPort<BULKIO::dataBit>* parent,
-                                                   PtrType port)
-    {
-        return new CorbaTransport<BULKIO::dataBit>(parent, port);
     }
 
     template <>
@@ -237,7 +252,7 @@ namespace bulkio {
         return new CorbaTransport<BULKIO::dataXML>(parent, port);
     }
 
-#define INSTANTIATE_TEMPLATE(x)                 \
+#define INSTANTIATE_TEMPLATE(x)                \
     template class CorbaTransport<x>;          \
     template class CorbaTransportFactory<x>;
 
@@ -246,4 +261,5 @@ namespace bulkio {
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataBit);
 }
