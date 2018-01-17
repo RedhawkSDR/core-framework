@@ -579,7 +579,6 @@ private:
                 const size_t available = input_data.size() - packet_offset;
                 const size_t pass = std::min(available, count);
 
-                std::cout << "COPYING " << pass << " from " << packet_offset << " to " << data_offset << std::endl;
                 _copy(input_data, packet_offset, buffer, data_offset, pass);
                 data_offset += pass;
                 packet_offset += pass;
