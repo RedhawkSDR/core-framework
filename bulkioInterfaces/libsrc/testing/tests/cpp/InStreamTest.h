@@ -23,6 +23,8 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ossie/debug.h>
 
+#include <BULKIO/bulkioDataTypes.h>
+
 template <class Port>
 class InStreamTest : public CppUnit::TestFixture
 {
@@ -42,6 +44,8 @@ public:
 
 protected:
     virtual std::string getPortName() const = 0;
+
+    void _pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time, bool eos, const char* streamID);
 
     Port* port;
 };
