@@ -110,6 +110,12 @@ const T& DataBlock<T>::data() const
 }
 
 template <class T>
+size_t DataBlock<T>::size() const
+{
+    return _impl->data.size();
+}
+
+template <class T>
 void DataBlock<T>::addTimestamp(const bulkio::SampleTimestamp& timestamp)
 {
     std::list<SampleTimestamp>::iterator pos = _impl->timestamps.begin();
@@ -314,11 +320,6 @@ BitDataBlock::BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring
 bool BitDataBlock::complex() const
 {
     return false;
-}
-
-size_t BitDataBlock::size() const
-{
-    return _impl->data.size();
 }
 
 const redhawk::bitstring& BitDataBlock::buffer() const

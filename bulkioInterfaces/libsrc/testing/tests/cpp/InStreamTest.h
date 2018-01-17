@@ -31,7 +31,7 @@ class InStreamTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(InStreamTest);
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
-    CPPUNIT_TEST(testSriModeChanges);
+    CPPUNIT_TEST(testSriChanges);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -40,9 +40,12 @@ public:
 
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
-    void testSriModeChanges();
+    void testSriChanges();
 
 protected:
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
     virtual std::string getPortName() const = 0;
 
     void _pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time, bool eos, const char* streamID);
@@ -71,7 +74,6 @@ public:
     void testReadPartial();
 
 private:
-    typedef typename Port::PortSequenceType PortSequenceType;
     typedef typename Port::StreamType StreamType;
     typedef typename StreamType::DataBlockType DataBlockType;
 

@@ -37,9 +37,6 @@ void InStreamTest<Port>::tearDown()
 template <class Port>
 void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
     port->pushSRI(sri);
@@ -72,9 +69,6 @@ void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
 template <class Port>
 void InStreamTest<Port>::testGetCurrentStreamDataEos()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
     port->pushSRI(sri);
@@ -113,13 +107,12 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
 }
 
 template <class Port>
-void InStreamTest<Port>::testSriModeChanges()
+void InStreamTest<Port>::testSriChanges()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
+    sri.xstart = 0.0;
+    sri.xdelta = 1.0;
     port->pushSRI(sri);
     _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
 
@@ -130,27 +123,36 @@ void InStreamTest<Port>::testSriModeChanges()
     CPPUNIT_ASSERT(block);
     CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
     CPPUNIT_ASSERT(!stream.eos());
-    CPPUNIT_ASSERT_EQUAL(block.complex(),false);
+    CPPUNIT_ASSERT_EQUAL(sri.xdelta, block.sri().xdelta);
 
-    // check mode....true
-    sri.mode=1;
+    // Change xdelta (based on sample rate of 2.5Msps)
+    sri.xdelta = 1.0 / 2.5e6;
     port->pushSRI(sri);
     _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
     CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
     CPPUNIT_ASSERT(!stream.eos());
-    CPPUNIT_ASSERT_EQUAL(block.complex(),true);
+    CPPUNIT_ASSERT(block.sriChanged());
+    int flags = bulkio::sri::XDELTA;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI change flags incorrect", flags, block.sriChangeFlags());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI xdelta incorrect", sri.xdelta, block.sri().xdelta);
 
-    // check mode....false
-    sri.mode=0;
+    // Add a keyword, change xdelta back and update xstart
+    ossie::corba::push_back(sri.keywords, redhawk::PropertyType("COL_RF", 101.1e6));
+    sri.xstart = 100.0;
+    sri.xdelta = 1.0;
     port->pushSRI(sri);
     _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
     CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
     CPPUNIT_ASSERT(!stream.eos());
-    CPPUNIT_ASSERT_EQUAL(block.complex(),false);
+    CPPUNIT_ASSERT(block.sriChanged());
+    flags = bulkio::sri::XSTART | bulkio::sri::XDELTA | bulkio::sri::KEYWORDS;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI change flags incorrect", flags, block.sriChangeFlags());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI xstart incorrect", sri.xstart, block.sri().xstart);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI xdelta incorrect", sri.xdelta, block.sri().xdelta);
 }
 
 template <class Port>
@@ -160,6 +162,22 @@ void InStreamTest<Port>::_pushTestPacket(size_t length, const BULKIO::PrecisionU
     typename Port::PortSequenceType data;
     data.length(length);
     port->pushPacket(data, time, eos, streamID);
+}
+
+template <>
+void InStreamTest<bulkio::InFilePort>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time,
+                                                       bool eos, const char* streamID)
+{
+    std::string data(length, ' ');
+    port->pushPacket(data.c_str(), time, eos, streamID);
+}
+
+template <>
+void InStreamTest<bulkio::InXMLPort>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime&,
+                                                      bool eos, const char* streamID)
+{
+    std::string data(length, ' ');
+    port->pushPacket(data.c_str(), eos, streamID);
 }
 
 template <>
@@ -211,9 +229,6 @@ void BufferedInStreamTest<Port>::testSizedTryreadEmptyEos()
 template <class Port>
 void BufferedInStreamTest<Port>::testTryreadPeek()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     const char* stream_id = "tryread_peek";
 
     // Create a new stream and push some data to it
@@ -235,9 +250,6 @@ void BufferedInStreamTest<Port>::testTryreadPeek()
 template <class Port>
 void BufferedInStreamTest<Port>::testReadPeek()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     const char* stream_id = "read_peek";
 
     // Create a new stream and push some data to it
@@ -259,9 +271,6 @@ void BufferedInStreamTest<Port>::testReadPeek()
 template <class Port>
 void BufferedInStreamTest<Port>::testReadPartial()
 {
-    typedef typename Port::StreamType StreamType;
-    typedef typename StreamType::DataBlockType DataBlockType;
-
     const char* stream_id = "read_partial";
 
     // Create a new stream and push some data to it
@@ -278,23 +287,28 @@ void BufferedInStreamTest<Port>::testReadPartial()
     CPPUNIT_ASSERT(!block);
 }
 
-#define CREATE_TEST(x)                                                  \
-    class In##x##StreamTest : public BufferedInStreamTest<bulkio::In##x##Port>  \
+#define CREATE_TEST(x, BASE)                                            \
+    class In##x##StreamTest : public BASE<bulkio::In##x##Port>          \
     {                                                                   \
-        CPPUNIT_TEST_SUB_SUITE(In##x##StreamTest, BufferedInStreamTest<bulkio::In##x##Port>); \
+        CPPUNIT_TEST_SUB_SUITE(In##x##StreamTest, BASE<bulkio::In##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
         virtual std::string getPortName() const { return #x; };         \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##StreamTest);
 
-CREATE_TEST(Octet);
-CREATE_TEST(Char);
-CREATE_TEST(Short);
-CREATE_TEST(UShort);
-CREATE_TEST(Long);
-CREATE_TEST(ULong);
-CREATE_TEST(LongLong);
-CREATE_TEST(ULongLong);
-CREATE_TEST(Float);
-CREATE_TEST(Double);
-CREATE_TEST(Bit);
+#define CREATE_BASIC_TEST(x) CREATE_TEST(x, InStreamTest)
+#define CREATE_BUFFERED_TEST(x) CREATE_TEST(x, BufferedInStreamTest)
+
+CREATE_BASIC_TEST(XML);
+CREATE_BASIC_TEST(File);
+CREATE_BUFFERED_TEST(Octet);
+CREATE_BUFFERED_TEST(Char);
+CREATE_BUFFERED_TEST(Short);
+CREATE_BUFFERED_TEST(UShort);
+CREATE_BUFFERED_TEST(Long);
+CREATE_BUFFERED_TEST(ULong);
+CREATE_BUFFERED_TEST(LongLong);
+CREATE_BUFFERED_TEST(ULongLong);
+CREATE_BUFFERED_TEST(Float);
+CREATE_BUFFERED_TEST(Double);
+CREATE_BUFFERED_TEST(Bit);

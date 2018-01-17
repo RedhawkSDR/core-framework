@@ -64,6 +64,7 @@ namespace bulkio {
         double xdelta() const;
 
         const T& data() const;
+        size_t size() const;
 
         bool sriChanged() const;
         int sriChangeFlags() const;
@@ -137,7 +138,6 @@ namespace bulkio {
         explicit BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring& buffer=redhawk::bitstring());
 
         bool complex() const;
-        size_t size() const;
 
         const redhawk::bitstring& buffer() const;
         void buffer(const redhawk::bitstring& other);
