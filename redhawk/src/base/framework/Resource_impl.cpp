@@ -27,6 +27,7 @@
 PREPARE_CF_LOGGING(Resource_impl)
 
 Resource_impl::Resource_impl (const char* _uuid) :
+    Logging_impl(_uuid),
     _identifier(_uuid),
     _started(false),
     component_running_mutex(),
@@ -38,6 +39,7 @@ Resource_impl::Resource_impl (const char* _uuid) :
 
 
 Resource_impl::Resource_impl (const char* _uuid, const char *label) :
+    Logging_impl(label),
     _identifier(_uuid),
     naming_service_name(label),
     _started(false),
@@ -136,6 +138,16 @@ throw (CORBA::SystemException)
     return CORBA::string_dup(_softwareProfile.c_str());
 }
 
+CF::StringSequence* Resource_impl::getNamedLoggers() {
+    CF::StringSequence_var retval = new CF::StringSequence();
+    std::vector<std::string> _loggers = this->_log->getNamedLoggers();
+    retval->length(_loggers.size());
+    for (unsigned int i=0; i<_loggers.size(); i++) {
+        retval[i] = CORBA::string_dup(_loggers[i].c_str());
+    }
+    return retval._retn();
+}
+
 CORBA::Boolean Resource_impl::started () throw (CORBA::SystemException)
 {
     return _started;
@@ -223,6 +235,9 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
     std::string identifier;
     std::string name_binding;
     std::string application_registrar_ior;
+    std::string logging_config_uri;
+    std::string dpath;
+    int debug_level = -1;
     redhawk::PropertyMap cmdlineProps;
     for (redhawk::PropertyMap::const_iterator prop = parameters.begin(); prop != parameters.end(); ++prop) {
         const std::string id = prop->getId();
@@ -233,17 +248,23 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
         } else if (id == "NAMING_CONTEXT_IOR") {
             application_registrar_ior = prop->getValue().toString();
         } else if (id == "DEBUG_LEVEL") {
-            // If DEBUG_LEVEL is in the parameters, this component is being
-            // created from a shared library entry point, not the command line;
-            // logging has already been set up by the component host.
-            // TODO: Revisit as part of logging update
+            debug_level = atoi(prop->getValue().toString().c_str());
+        } else if (id == "LOGGING_CONFIG_URI") {
+            logging_config_uri = prop->getValue().toString();
+        } else if (id == "DOM_PATH") {
+            dpath = prop->getValue().toString();
         } else {
             cmdlineProps.push_back(*prop);
         }
     }
 
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, identifier, dpath ) );
+    ossie::logging::Configure(logging_config_uri, debug_level, ctx);
+
     LOG_TRACE(Resource_impl, "Creating component with identifier '" << identifier << "'");
     Resource_impl* resource = ctor(identifier, name_binding);
+
+    resource->saveLoggingContext( logging_config_uri, debug_level, ctx );
 
     // Initialize command line properties, which can include special properties
     // like PROFILE_NAME.
