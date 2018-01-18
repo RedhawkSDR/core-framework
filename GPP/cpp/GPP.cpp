@@ -743,7 +743,6 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
 
 #if HAVE_LIBNUMA
   // fill in the exec partitions for each numa node identified on the system
-    CpuUsageStats::CpuList cpus;
     std::string nodestr("all");
     struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str());     
 
@@ -752,14 +751,12 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
     // for each node bit set in the mask then get cpu list
     int nbytes = numa_bitmask_nbytes(node_mask);
     for (int i=0; i < nbytes*8; i++ ){
-      exec_socket  soc;
-      cpus.clear();
       if ( numa_bitmask_isbitset( node_mask, i ) ) {
-        soc.id = i;
         numa_node_to_cpus( i, cpu_mask );
               
         // foreach cpu identified add to list
         int nb = numa_bitmask_nbytes(cpu_mask);
+        CpuUsageStats::CpuList cpus;
         for (int j=0; j < nb*8; j++ ){
           int count =  std::count( bl_cpus.begin(), bl_cpus.end(), j );
           if ( numa_bitmask_isbitset( cpu_mask, j ) && count == 0 ) {
@@ -767,6 +764,8 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
           }
         }
         CpuUsageStats cpu_usage(cpus);
+        exec_socket soc;
+        soc.id = i;
         soc.cpus = cpus;
         soc.stats = cpu_usage;
         soc.idle_threshold = __thresholds.cpu_idle;      

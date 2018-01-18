@@ -318,6 +318,11 @@ private:
         const std::string&                            usageName,
         const std::string&                            compositeDeviceIOR );
 
+
+    void resolveBoolExec( const std::string &id,
+                          std::string &value,
+                          const ossie::ComponentInstantiation&          instantiation );
+
     void recordComponentInstantiationId(
         const ossie::ComponentInstantiation& instantiation,
         const std::string &impl_id );

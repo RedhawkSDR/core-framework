@@ -142,6 +142,13 @@ class py_dev_exec_params_base(CF__POA.Device, Device, ThreadedComponent):
                                                       action="external",
                                                       kinds=("property",))
 
+        exec_read_only_bool = simple_property(id_="exec_read_only_bool",
+                                                      type_="boolean",
+                                                      defvalue=False,
+                                                      mode="readonly",
+                                                      action="external",
+                                                      kinds=("property",))
+
 
 
 
