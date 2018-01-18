@@ -63,6 +63,7 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              PropertyMonitor.h \
              Autocomplete.h \
              Versions.h \
+             refcount_memory.h \
              shared_buffer.h \
              ExecutorService.h \
              UsesPort.h \

@@ -444,31 +444,32 @@ void SharedBufferTest::testTransient()
     CPPUNIT_ASSERT(!buffer.transient());
 }
 
-void SharedBufferTest::testBase()
+void SharedBufferTest::testGetMemory()
 {
     // Using externally-acquired memory, check that the shared buffer's data()
     // and base() values match the original value
     const size_t BUFFER_SIZE = 12;
     float* data = new float[BUFFER_SIZE];
     redhawk::shared_buffer<float> buffer(data, BUFFER_SIZE);
-    CPPUNIT_ASSERT_EQUAL((const void*) data, buffer.base());
-    CPPUNIT_ASSERT_EQUAL((const void*) buffer.data(), buffer.base());
+    CPPUNIT_ASSERT_EQUAL((const float*) data, buffer.get_memory().address());
+    CPPUNIT_ASSERT_EQUAL((const float*) buffer.data(), buffer.get_memory().address());
 
     // Recasting shouldn't affect the base pointer
     redhawk::shared_buffer<int> alias = redhawk::shared_buffer<int>::recast(buffer);
-    CPPUNIT_ASSERT_EQUAL((const void*) data, alias.base());
+    CPPUNIT_ASSERT_EQUAL((const int*) data, alias.get_memory().address());
 
     // Taking a slice of the original buffer should produce a different data
     // pointer but preserve the base pointer
     redhawk::shared_buffer<float> slice = buffer.slice(2, 7);
-    CPPUNIT_ASSERT(slice.data() != slice.base());
-    CPPUNIT_ASSERT_EQUAL((const void*) data, slice.base());
+    const float* slice_base = slice.get_memory().address();
+    CPPUNIT_ASSERT(slice.data() != slice_base);
+    CPPUNIT_ASSERT_EQUAL((const float*) data, slice_base);
 
     // Recast the slice, which should still preserve the base pointer
     alias = redhawk::shared_buffer<int>::recast(slice);
-    CPPUNIT_ASSERT_EQUAL((const void*) data, alias.base());
+    CPPUNIT_ASSERT_EQUAL((const int*) data, alias.get_memory().address());
 
     // Transient buffers should always return null
     redhawk::shared_buffer<float> transient = redhawk::shared_buffer<float>::make_transient(data, BUFFER_SIZE);
-    CPPUNIT_ASSERT_EQUAL((const void*) 0, transient.base());
+    CPPUNIT_ASSERT_EQUAL((const float*) 0, transient.get_memory().address());
 }
