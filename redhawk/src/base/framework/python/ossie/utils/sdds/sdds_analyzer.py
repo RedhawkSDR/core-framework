@@ -12,20 +12,71 @@ class SDDSAnalyzer(object):
     The SDDSAnalyzer class can process a block of raw bytes as SDDS packets and perform the 
     following actions:
 
-    trackChanges - track changes in the packet data for the field values:
-      fsn - frame sequence number
-      bps - bits per sample
-      dmode - data mode
-      freq - collected signal frequency
-      sample rate - sample rate of the data
-      time stamps - changes in time (only if ttv=1)
-      ttv - time tag value (controls time stamp check)
+    trackChanges:
 
-    dumpRawPackets - Dump the entire content as a data buffer with the results 
-                     managed by a pager
-    dumpPackets - dump packet fields and their data values, contents managed by a pager
-    getPacketsIterator - returns a generator object for access packets in a looping construct
+      Displays the following contents of the first packet's SDDS header fields.
+          seq - sequence number of packet 
+          fmt - data mode 
+          cplx - complex flags
+          bps -  bits per sample
+          freq - collected signal frequency 
+          clk - sample rate
+          time valid  - value of ttv field
+          time slip - amount of time slip between valid time stamps
+
+      Then tracks changes in these fields and reports the following:
+          -    No change in data detected, sequence number passed, 
+               or expected time stamp passed (i.e., last valid time stamp + nsamples*1.0/sample rate)
+         ***   Change in data field, out of sequence packet, time stamp invalid, 
+               or expected time stamp did not pass
+          +    Valid time stamp value provided in packet header
+
+      Parameters:
+          pkt_start = first packet to dump
+          pkt_end =  last packet to dump  (None == end of list)
+          repeat_header = displays column header every Nth packet displayed
+          use_pager =  display data using pager to limit number of packets that are displayed
+
+    dumpRawPackets:
+
+         Dump the contents of the capture with the results managed by a pager.
+
+      Parameters:
+        pkt_start = first packet to dump
+        pkt_end =  last packet to dump  (None == end of list)
+        row_width = 80 the number of bytes to display per row
+        bytes_per_group = the number of bytes to group when hexify-ing
+        pkt_len = the number of bytes in a packet, None defaults to 1080 or length when getData method was called
+        use_pager =  display data using pager to limit number of packets that are displayed
+
+    dumpPackets:
+
+       Dump packet fields and their data values, contents managed by a pager
+
+       Parameters:
+         pkt_start = first packet to dump
+         pkt_end =  last packet to dump  (None == end of list)
+         payload_start = starting payload sample to display
+         payload_end = ending payload sample to display
+         raw_payload = dump payload data as raw bytes
+         header_only = only display header information for each packet
+         use_pager  = display data using pager to limit number of packets that are displayed
+
+    getPacketsIterator:
+
+       Returns a Python iterator that will traverse the set of packets managed by the SDDSAnalyzer object
+ 
+       Parameters:
+         pkt_start = first packet to dump
+         pkt_end =  last packet to dump  (None == end of list)
+
     getPackets - returns a list of sdds_packet objects
+
+      Returns a list of sdds_packet objects
+ 
+      Parameters:
+        pkt_start = first packet to dump
+        pkt_end =  last packet to dump  (None == end of list)
 
     __iter__ - The iterable returns a tuple (pkt number,sdds_packet)
     __len__  - returns the number of packets 
