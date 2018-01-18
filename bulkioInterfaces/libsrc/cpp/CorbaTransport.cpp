@@ -98,12 +98,13 @@ namespace bulkio {
     };
 
     template <>
-    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const redhawk::bitstring& data,
+    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const redhawk::shared_bitbuffer& data,
                                                           const BULKIO::PrecisionUTCTime& T,
                                                           bool EOS,
                                                           const char* streamID)
     {
         const CORBA::Octet* ptr = reinterpret_cast<const CORBA::Octet*>(data.data());
+        // TODO: Add an offset to BitSequence
         BULKIO::BitSequence buffer;
         size_t bytes = (data.size() + 7) / 8;
         buffer.data.replace(bytes, bytes, const_cast<CORBA::Octet*>(ptr), false);

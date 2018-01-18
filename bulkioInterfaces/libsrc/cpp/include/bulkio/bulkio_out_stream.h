@@ -240,7 +240,7 @@ namespace bulkio {
     public:
         OutBitStream();
 
-        void write(const redhawk::bitstring& data, const BULKIO::PrecisionUTCTime& time);
+        void write(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& time);
 
     private:
         typedef OutputStream<BULKIO::dataBit> Base;

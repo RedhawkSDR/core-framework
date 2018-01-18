@@ -216,16 +216,16 @@ namespace bulkio {
             return data.copy();
         }
 
-        inline bool is_copy_required(const redhawk::bitstring&)
+        inline bool is_copy_required(const redhawk::shared_bitbuffer& data)
         {
-            // Bit strings don't have sharing semantics, so no copy is required.
-            return false;
+            // If the data comes from a non-shared source (a raw pointer), we
+            // need to make a copy.
+            return (data.transient() && !data.empty());
         }
 
-        inline const redhawk::bitstring& copy_data(const redhawk::bitstring& data)
+        inline const redhawk::shared_bitbuffer copy_data(const redhawk::shared_bitbuffer& data)
         {
-            // Pass through the bitstring by reference (no copies made)
-            return data;
+            return data.copy();
         }
 
         inline bool is_copy_required(const std::string&)
@@ -475,31 +475,13 @@ namespace bulkio {
     return getPacket(timeout, "");
   }
 
-    namespace {
-        template <class Tout, class Alloc, class Tin>
-        inline void move_buffer(std::vector<Tout,Alloc>& dest, const redhawk::shared_buffer<Tin>& src)
-        {
-            // To preserve data integrity, copy the contents of the shared
-            // buffer to the vector
-            dest.assign(src.begin(), src.end());
-        }
-
-        template <class T>
-        inline void move_buffer(T& dest, T& src)
-        {
-            // Default same type to same type can use swap
-            dest.swap(src);
-        }
-    }
-
   template <typename PortType>
   typename InPort<PortType>::DataTransferType * InPort<PortType>::getPacket(float timeout, const std::string& streamID)
   {
     DataTransferType* transfer = 0;
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
     if (packet) {
-      transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
-      move_buffer(transfer->dataBuffer, packet->buffer);
+      transfer = new DataTransferType(packet->buffer, packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
     }
     return transfer;
   }
@@ -943,7 +925,8 @@ namespace bulkio {
 
   void InBitPort::pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    redhawk::bitstring buffer(data.data.get_buffer(), data.bits);
+    redhawk::shared_bitbuffer::data_type* ptr = const_cast<BULKIO::BitSequence&>(data).data.get_buffer(1);
+    redhawk::shared_bitbuffer buffer(ptr, data.bits);
     queuePacket(buffer, T, EOS, streamID);
   }
 

@@ -71,7 +71,8 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              Transport.h \
              BufferManager.h \
              bitops.h \
-             bitstring.h
+             bitstring.h \
+             bitbuffer.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     logging/rh_logger.h \

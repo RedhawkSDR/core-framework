@@ -685,11 +685,11 @@ private:
 
 namespace bulkio {
     template<>
-    void BufferedInputStream<BULKIO::dataBit>::Impl::_copy(const redhawk::bitstring& src, size_t srcStart,
-                                                           redhawk::bitstring& dest, size_t destStart,
+    void BufferedInputStream<BULKIO::dataBit>::Impl::_copy(const redhawk::shared_bitbuffer& src, size_t srcStart,
+                                                           redhawk::bitbuffer& dest, size_t destStart,
                                                            size_t count)
     {
-        redhawk::bitops::copy(dest.data(), destStart, src.data(), srcStart, count);
+        redhawk::bitops::copy(dest.data(), dest.offset() + destStart, src.data(), src.offset() + srcStart, count);
     }
 }
 

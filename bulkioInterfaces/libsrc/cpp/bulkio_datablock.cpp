@@ -312,7 +312,7 @@ BitDataBlock::BitDataBlock() :
 {
 }
 
-BitDataBlock::BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring& buffer) :
+BitDataBlock::BitDataBlock(const StreamDescriptor& sri, const redhawk::shared_bitbuffer& buffer) :
     Base(sri, buffer)
 {
 }
@@ -322,12 +322,12 @@ bool BitDataBlock::complex() const
     return false;
 }
 
-const redhawk::bitstring& BitDataBlock::buffer() const
+const redhawk::shared_bitbuffer& BitDataBlock::buffer() const
 {
     return _impl->data;
 }
 
-void BitDataBlock::buffer(const redhawk::bitstring& data)
+void BitDataBlock::buffer(const redhawk::shared_bitbuffer& data)
 {
     _impl->data = data;
 }
@@ -340,7 +340,7 @@ void BitDataBlock::buffer(const redhawk::bitstring& data)
     INSTANTIATE_TEMPLATE(redhawk::shared_buffer<x>); template class SampleDataBlock<x>;
 
 INSTANTIATE_TEMPLATE(std::string);
-INSTANTIATE_TEMPLATE(redhawk::bitstring);
+INSTANTIATE_TEMPLATE(redhawk::shared_bitbuffer);
 INSTANTIATE_NUMERIC_TEMPLATE(int8_t);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Octet);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Short);

@@ -27,7 +27,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <ossie/shared_buffer.h>
-#include <ossie/bitstring.h>
+#include <ossie/bitbuffer.h>
 
 #include <BULKIO/bulkioDataTypes.h>
 #include "bulkio_base.h"
@@ -131,19 +131,21 @@ namespace bulkio {
         using Base::_impl;
     };
 
-    class BitDataBlock : public DataBlock<redhawk::bitstring>
+    class BitDataBlock : public DataBlock<redhawk::shared_bitbuffer>
     {
     public:
+        typedef redhawk::shared_bitbuffer BufferType;
+
         BitDataBlock();
-        explicit BitDataBlock(const StreamDescriptor& sri, const redhawk::bitstring& buffer=redhawk::bitstring());
+        explicit BitDataBlock(const StreamDescriptor& sri, const BufferType& buffer=BufferType());
 
         bool complex() const;
 
-        const redhawk::bitstring& buffer() const;
-        void buffer(const redhawk::bitstring& other);
+        const BufferType& buffer() const;
+        void buffer(const BufferType& other);
 
     private:
-        typedef DataBlock<redhawk::bitstring> Base;
+        typedef DataBlock<BufferType> Base;
     };
 
     typedef SampleDataBlock<int8_t>           CharDataBlock;

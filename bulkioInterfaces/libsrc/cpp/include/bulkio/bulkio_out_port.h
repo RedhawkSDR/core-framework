@@ -423,7 +423,7 @@ namespace bulkio {
 
     OutBitPort(const std::string& name, LOGGER_PTR logger=LOGGER_PTR()); 
 
-    void pushPacket(const redhawk::bitstring& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    void pushPacket(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
   };
 
   //

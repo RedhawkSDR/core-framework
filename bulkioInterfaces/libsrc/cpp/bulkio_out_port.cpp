@@ -504,7 +504,7 @@ namespace bulkio {
   }
 
 
-  void OutBitPort::pushPacket(const redhawk::bitstring& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  void OutBitPort::pushPacket(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
   {
     _sendPacket(data, T, EOS, streamID);
   }
