@@ -18,6 +18,7 @@
           <simpleref refid="exec_read_only" value="cmd_ok_read_only"/>
           <simpleref refid="exec_read_only_empty" value=""/>
           <simpleref refid="exec_read_only_number" value="12345"/>
+          <simpleref refid="exec_read_only_bool" value="True"/>
           <simpleref refid="exec_read_only_empty_number" value=""/>
           <simpleref refid="exec_cmd" value="cmd_ok"/>
           <simpleref refid="exec_cmd_empty" value=""/>

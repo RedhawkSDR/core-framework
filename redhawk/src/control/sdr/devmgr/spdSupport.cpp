@@ -538,6 +538,7 @@ ProgramProfile *ProgramProfile::LoadProfile(CF::FileSystem_ptr fileSys,
         for (unsigned int i = 0; i < cprop.size(); i++) {
           LOG_TRACE(ProgramProfile, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
           if (cprop[i]->isCommandLine()) {
+              LOG_TRACE(ProgramProfile, "Adding (cmdline) construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
             newComponent->addExecParameter(convertPropertyToDataType(cprop[i]));
           } else {
             newComponent->addConstructProperty(convertPropertyToDataType(cprop[i]));
@@ -704,7 +705,7 @@ void ProgramProfile::overrideProperty(const ossie::ComponentProperty* propref) {
 }
 
 
-void ProgramProfile::overrideSimpleProperty(const char* id, const std::string value)
+void ProgramProfile::overrideSimpleProperty(const char* id, const std::string &value)
 {
     const Property* prop = prf.getProperty(id);
     // Without a prop, we don't know how to convert the strings to the property any type
@@ -735,6 +736,8 @@ void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
             else {
                 // allow read-only exec param properties
                 if ( prop->isCommandLine()) {
+                    LOG_TRACE(ProgramProfile, "overrideProperty (read-only command line ) id " << id << 
+                              " with value " << ossie::any_to_string(value));
                     process_overrides(&execParameters, id, value);
                 }
                 process_overrides(&ctorProperties, id, value);
@@ -752,7 +755,7 @@ void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
 
 
 
-void ProgramProfile::process_overrides(CF::Properties* props, const char* id, CORBA::Any value)
+void ProgramProfile::process_overrides(CF::Properties* props, const char* id, const CORBA::Any &value)
 {
     LOG_DEBUG(ProgramProfile, "Attempting to override property " << id);
     for (unsigned int i = 0; i < (*props).length(); ++i ) {
@@ -1031,12 +1034,14 @@ CF::Properties ProgramProfile::getPopulatedExecParameters()
     CF::Properties retval;
     unsigned int i;
     for ( i=0; i < execParameters.length(); i++ ) {
-
+        RH_NL_TRACE("ProgramProfile", "getPopulatedExecParams i " << i << " id " << execParameters[i].id);
         // no empty exec params allowed..
         CORBA::TypeCode_var typecode = execParameters[i].value.type();
+        RH_NL_TRACE("ProgramProfile", "getPopulatedExecParams i " << i << " typekind  " << typecode->kind() );
         if (typecode->kind() == CORBA::tk_null) continue;
           
         std::string v=ossie::any_to_string( execParameters[i].value );
+        RH_NL_TRACE("ProgramProfile", "getPopulatedExecParams i : " << i << " value string " <<  v);
         if ( v.size() == 0 )  continue;
           
         // add to retval

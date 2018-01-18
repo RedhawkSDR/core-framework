@@ -215,7 +215,7 @@ namespace ossie
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const ossie::ComponentProperty& propref);
         void overrideProperty(const char* id, const CORBA::Any& value);
-        void overrideSimpleProperty(const char* id, const std::string value);
+        void overrideSimpleProperty(const char* id, const std::string &value);
 
         const char* getInstantiationIdentifier();
         const char* getIdentifier();
@@ -257,7 +257,7 @@ namespace ossie
 
     protected:
 
-        void process_overrides(CF::Properties* props, const char* id, CORBA::Any value);
+        void process_overrides(CF::Properties* props, const char* id, const CORBA::Any &value);
         bool _isAssemblyController;
         bool _isConfigurable;
         bool _isScaCompliant;
