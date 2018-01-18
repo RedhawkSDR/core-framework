@@ -91,13 +91,9 @@ namespace redhawk {
      * structure like redhawk::shared_buffer to manage the reference counting
      * and customizable deallocation.
      */
-    template <typename T>
     class refcount_memory
     {
     public:
-        /// @brief The element type (T).
-        typedef T value_type;
-
         /**
          * @brief  Construct an empty %refcount_memory.
          */
@@ -108,64 +104,65 @@ namespace redhawk {
 
         /**
          * @brief  Construct a %refcount_memory with an existing pointer.
-         * @param data  Pointer to first element.
-         * @param size  Number of elements.
+         * @param ptr  Pointer to first element.
+         * @param count  Number of elements.
          *
          * The newly-created %refcount_memory takes ownership of @a data. When
          * the last %refcount_memory pointing to @a data is destroyed, @a data
          * will be deleted with delete[].
          */
-        refcount_memory(value_type* data, size_t size) :
-            _M_impl(new impl(data, size))
+        template <typename T>
+        refcount_memory(T* ptr, size_t count) :
+            _M_impl(new impl(ptr, count))
         {
         }
 
         /**
          * @brief  Construct a %refcount_memory and allocate memory.
-         * @param size  Number of elements to allocate.
+         * @param count  Number of elements to allocate.
          * @param alloc  STL-compliant allocator.
 
-         * Creates an internal copy of @a alloc and allocates @a size elements
+         * Creates an internal copy of @a alloc and allocates @a count elements
          * in an exception-safe manner. When the last %refcount_memory pointing
          * to the allocated memory is destroyed, the memory will be deallocated
          * via the internal copy of @a alloc.
          */
         template <class Alloc>
-        refcount_memory(size_t size, const Alloc& alloc) :
-            _M_impl(_M_allocate(size, alloc))
+        refcount_memory(size_t count, const Alloc& alloc) :
+            _M_impl(_M_allocate(count, alloc))
         {
         }
 
         /**
          * @brief  Construct a %refcount_memory with an existing pointer and a
          *         custom deleter.
-         * @param data  Pointer to first element.
-         * @param size  Number of elements.
+         * @param ptr  Pointer to first element.
+         * @param count  Number of elements.
          * @param deleter  Callable object.
          *
          * @a D must by copy-constructible. When the last %refcount_memory
-         * pointing to @a data is destroyed, @a deleter will be called on
-         * @a data. This can be used to define custom release behavior.
+         * pointing to @a ptr is destroyed, @a deleter will be called on
+         * @a ptr. This can be used to define custom release behavior.
          */
-        template <class D>
-        refcount_memory(value_type* ptr, size_t size, D deleter) :
-            _M_impl(new func_impl<D>(ptr, size, deleter, false))
+        template <typename T, class D>
+        refcount_memory(T* ptr, size_t count, D deleter) :
+            _M_impl(new func_impl<D>(ptr, count, deleter, false))
         {
         }
 
         /**
          * @brief  Construct a %refcount_memory with an existing pointer known
          *         to be allocated from process-shared memory.
-         * @param data  Pointer to first element.
-         * @param size  Number of elements.
+         * @param ptr  Pointer to first element.
+         * @param count  Number of elements.
          * @param deleter  Callable object.
-         * @param tag  Indicates that @a data is in process-shared memory.
+         * @param tag  Indicates that @a ptr is in process-shared memory.
          *
          * @warning This constructor is intended for internal use only.
          */
-        template <class D>
-        refcount_memory(value_type* ptr, size_t size, D deleter, detail::process_shared_tag) :
-            _M_impl(new func_impl<D>(ptr, size, deleter, true))
+        template <typename T, class D>
+        refcount_memory(T* ptr, size_t count, D deleter, detail::process_shared_tag) :
+            _M_impl(new func_impl<D>(ptr, count, deleter, true))
         {
         }
 
@@ -174,8 +171,8 @@ namespace redhawk {
          * @param other  A %refcount_memory of identical element type.
          *
          * %refcount_memory has reference semantics; after construction, this
-         * instance shares the underlying data, increasing its reference count
-         * by one.
+         * instance shares the underlying memory, increasing its reference
+         * count by one.
          */
         refcount_memory(const refcount_memory& other) :
             _M_impl(other._M_impl)
@@ -187,7 +184,7 @@ namespace redhawk {
 
         /**
          * The dtor decrements reference count of the allocated memory. If no
-         * other %refcount_memory points to the data the memory is deallocated.
+         * other %refcount_memory points to the memory it is deallocated.
          */
         ~refcount_memory()
         {
@@ -213,7 +210,7 @@ namespace redhawk {
         /**
          * Returns the base address of the allocated memory.
          */
-        const value_type* address() const
+        const void* address() const
         {
             if (_M_impl) {
                 return _M_impl->addr;
@@ -223,12 +220,12 @@ namespace redhawk {
         }
 
         /**
-         * Returns the size of the allocated memory, in elements.
+         * Returns the size of the allocated memory, in bytes.
          */
-        size_t size() const
+        size_t bytes() const
         {
             if (_M_impl) {
-                return _M_impl->size;
+                return _M_impl->bytes;
             } else {
                 return 0;
             }
@@ -262,22 +259,13 @@ namespace redhawk {
         // created per type, and makes the in-memory layout more predicatable
         // should cache alignment be a concern.
         struct impl {
-            typedef T value_type;
             typedef void (*release_func)(impl*);
 
-            impl(value_type* ptr, size_t size) :
+            template <typename T>
+            impl(T* ptr, size_t count, release_func func=&impl::delete_release<T>, bool shared=false) :
                 refcount(1),
                 addr(ptr),
-                size(size),
-                release(&impl::delete_release),
-                shared(false)
-            {
-            }
-
-            impl(value_type* ptr, size_t size, release_func func, bool shared) :
-                refcount(1),
-                addr(ptr),
-                size(size),
+                bytes(count * sizeof(T)),
                 release(func),
                 shared(shared)
             {
@@ -290,24 +278,26 @@ namespace redhawk {
                 }
             }
 
+            template <typename T>
             static void delete_release(impl* imp)
             {
-                delete[] imp->addr;
+                delete[] reinterpret_cast<T*>(imp->addr);
             }
 
             int refcount;
-            value_type* addr;
-            size_t size;
+            void* addr;
+            size_t bytes;
             release_func release;
             bool shared;
         };
 
         // Data buffer implementation that uses an arbitrary function to
-        // release the buffer data; may be a function pointer or functor.
+        // release the memory; may be a function pointer or functor.
         template <class Func>
         struct func_impl : public impl {
-            func_impl(value_type* ptr, size_t size, Func func, bool shared) :
-                impl(ptr, size, &func_impl::func_release, shared),
+            template <typename T>
+            func_impl(T* ptr, size_t count, Func func, bool shared) :
+                impl(ptr, count, &func_impl::func_release, shared),
                 func(func)
             {
             }
@@ -321,21 +311,25 @@ namespace redhawk {
         };
 
         // Data buffer implementation that inherits from an STL-compliant
-        // allocator class; supports allocation as well as deallocation for use
-        // by the mutable buffer class below for exception-safe allocation.
+        // allocator class; used below for exception-safe allocation, as well
+        // as deallocation when the memory is released.
         template <class Alloc>
         struct allocator_impl : public impl, public Alloc
         {
-            allocator_impl(value_type* ptr, size_t size, const Alloc& allocator) :
-                impl(ptr, size, &allocator_impl::allocator_release, detail::is_process_shared<Alloc>::value),
+            typedef typename Alloc::value_type value_type;
+
+            allocator_impl(value_type* ptr, size_t count, const Alloc& allocator) :
+                impl(ptr, count, &allocator_impl::allocator_release, detail::is_process_shared<Alloc>::value),
                 Alloc(allocator)
             {
             }
 
             static void allocator_release(impl* imp)
             {
+                value_type* ptr = reinterpret_cast<value_type*>(imp->addr);
+                size_t count = imp->bytes / sizeof(value_type);
                 allocator_impl* alloc = static_cast<allocator_impl*>(imp);
-                alloc->deallocate(alloc->addr, alloc->size);
+                alloc->deallocate(ptr, count);
             }
         };
 
@@ -343,11 +337,11 @@ namespace redhawk {
         // data buffer implementation in an exception-safe way which can then
         // be passed to the base class constructor.
         template <class Alloc>
-        static impl* _M_allocate(size_t size, const Alloc& allocator)
+        static impl* _M_allocate(size_t count, const Alloc& allocator)
         {
             // Zero-length buffer requires no allocation, so don't bother with
             // an implementation in the first place.
-            if (size == 0) {
+            if (count == 0) {
                 return 0;
             }
 
@@ -355,9 +349,9 @@ namespace redhawk {
             // allocate the memory, using the fact that it inherits from the
             // allocator.
             typedef allocator_impl<Alloc> impl_type;
-            impl_type* imp = new impl_type(0, size, allocator);
+            impl_type* imp = new impl_type(0, count, allocator);
             try {
-                imp->addr = imp->allocate(size);
+                imp->addr = imp->allocate(count);
             } catch (...) {
                 // If allocation throws an exception (most likely, std::bad_alloc),
                 // delete the implementation to avoid a memory leak, and rethrow.

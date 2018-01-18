@@ -236,7 +236,7 @@ namespace redhawk {
          *
          * @warning This method is intended for internal use only.
          */
-        const refcount_memory<value_type>& get_memory() const
+        const refcount_memory& get_memory() const
         {
             return _M_memory;
         }
@@ -464,8 +464,8 @@ namespace redhawk {
         template <typename Alloc>
         shared_buffer(size_t count, const Alloc& allocator) :
             _M_memory(count, allocator),
-            _M_start(const_cast<value_type*>(_M_memory.address())),
-            _M_finish(_M_start + _M_memory.size())
+            _M_start((value_type*) _M_memory.address()),
+            _M_finish(_M_start + count)
         {
         }
         /// @endcond
@@ -475,7 +475,7 @@ namespace redhawk {
         template <class U>
         void swap(U& other);
 
-        refcount_memory<value_type> _M_memory;
+        refcount_memory _M_memory;
         value_type* _M_start;
         value_type* _M_finish;
     };
