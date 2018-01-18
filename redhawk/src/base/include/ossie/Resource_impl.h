@@ -78,6 +78,7 @@ public:
     char* identifier () throw (CORBA::SystemException);
     CORBA::Boolean started() throw (CORBA::SystemException);
     char* softwareProfile () throw (CORBA::SystemException);
+    CF::StringSequence* getNamedLoggers();
     
     virtual void run ();
     virtual void halt ();

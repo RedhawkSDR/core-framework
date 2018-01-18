@@ -113,6 +113,7 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
                                     DomainManager_impl* domainManager, const std::string& waveformContextName,
                                     CosNaming::NamingContext_ptr waveformContext, bool aware,
                                     float stopTimeout, CosNaming::NamingContext_ptr DomainContext) :
+    Logging_impl(name),
     _assemblyController(0),
     _identifier(id),
     _sadProfile(profile),

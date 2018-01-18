@@ -76,6 +76,7 @@ rh_logger::LoggerPtr DomainManager_impl::__logger;
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
 					const char *db_uri,
 					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain, bool _persistence) :
+  Logging_impl(domainName),
   _eventChannelMgr(NULL),
   _domainName(domainName),
   _domainManagerProfile(dmdFile),

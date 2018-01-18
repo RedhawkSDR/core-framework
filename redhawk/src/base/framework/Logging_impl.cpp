@@ -37,9 +37,10 @@ struct null_deleter
 };
 
 
-Logging_impl::Logging_impl() :
+Logging_impl::Logging_impl(std::string logger_name) :
   _logName(""),
   _logLevel(CF::LogLevels::INFO),
+  _log(rh_logger::Logger::getResourceLogger(logger_name)),
   _logCfgContents(),
   _logCfgURL(""),
   _loggingCtx()
@@ -279,6 +280,39 @@ void Logging_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLev
         _logLevel = newLevel;
     }
   }
+}
+
+bool Logging_impl::haveLogger(const std::string &name)
+{
+    std::vector<std::string> loggers = this->_log->getNamedLoggers();
+    std::string _logger_id(name);
+    bool found_logger = false;
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); it++) {
+        if (*it==_logger_id) {
+            found_logger = true;
+            break;
+        }
+    }
+    return found_logger;
+}
+
+CF::LogLevel Logging_impl::getLogLevel( const char *logger_id ) 
+  throw (CF::UnknownIdentifier)
+{
+    if (not haveLogger(logger_id))
+        throw (CF::UnknownIdentifier());
+    rh_logger::LoggerPtr tmp_logger(this->_log->getLogger(logger_id));
+    return tmp_logger->getLevel()->toInt();
+}
+
+CF::StringSequence* Logging_impl::getNamedLoggers() {
+    CF::StringSequence_var retval = new CF::StringSequence();
+    std::vector<std::string> loggers = this->_log->getNamedLoggers();
+    for (unsigned int i=0; i<loggers.size(); i++) {
+        ossie::corba::push_back(retval, CORBA::string_dup(loggers[i].c_str()));
+    }
+    
+    return retval._retn();
 }
 
 CF::LogLevel Logging_impl::log_level() {

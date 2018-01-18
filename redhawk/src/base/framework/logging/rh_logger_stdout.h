@@ -50,6 +50,8 @@ namespace rh_logger {
 
     const LevelPtr&  getEffectiveLevel() const;
 
+    std::vector<std::string> getNamedLoggers();
+
   protected:
 
 

@@ -35,7 +35,7 @@ class Logging_impl
 {
  public:
 
-  Logging_impl ();
+  Logging_impl (std::string logger_name);
     
   virtual ~Logging_impl() {};
 
@@ -57,6 +57,12 @@ class Logging_impl
 
   // override this method to accept logging configuration information as a string
   void         setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+
+  // override this method to accept logging configuration information as a string
+  CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+
+  // retrieves the list of named loggers associated with the logger
+  CF::StringSequence* getNamedLoggers();
 
   // returns the current logger assigned to the resource, by default it is the root logger
   LOGGER       getLogger();
@@ -110,7 +116,6 @@ class Logging_impl
    * 
    */
   void    saveLoggingContext( const std::string &url, int loglevel, ossie::logging::ResourceCtxPtr ctx );
-
 
   //
   // RESOLVE: refactor to use boost::function and boost::bind 
@@ -292,7 +297,13 @@ class Logging_impl
 
   // logging macro defintion table;
   ossie::logging::MacroTable     _loggingMacros;
-  
+
+  bool haveLogger(const std::string &name);
+
+ public:
+
+  rh_logger::LoggerPtr _log;
+
  private:
 
   // logging configuration data, 

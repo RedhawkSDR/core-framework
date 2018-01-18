@@ -22,6 +22,7 @@
 #include "Application_impl.h"
 
 FakeApplication::FakeApplication (Application_impl* app) :
+    Logging_impl(app->getName()),
     _app(app)
 {
 }

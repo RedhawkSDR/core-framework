@@ -65,6 +65,8 @@ namespace rh_logger {
 
     const LevelPtr&  getEffectiveLevel() const;
 
+    std::vector<std::string> getNamedLoggers();
+
   private:
 
     typedef boost::shared_ptr< L4Logger > L4LoggerPtr;

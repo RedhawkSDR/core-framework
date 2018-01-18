@@ -79,7 +79,10 @@ namespace rh_logger {
   };
 
 
-  /*
+  const std::string Logger::USER_LOGS = "user";
+  const std::string Logger::SYSTEM_LOGS = "system";
+
+   /*
    */
   namespace spi
   {
@@ -401,6 +404,15 @@ namespace rh_logger {
     return getLogger(n);
   }
 
+  LoggerPtr Logger::getChildLogger( const std::string &logname, const std::string &ns ) {
+    std::string _full_name;
+    if (not ns.empty() and ((ns!=Logger::USER_LOGS) or ((ns==Logger::USER_LOGS) and (name.find("."+Logger::USER_LOGS+".") == std::string::npos))))
+        _full_name = name+"."+ns+"."+logname;
+    else
+        _full_name = name+"."+logname;
+    return getResourceLogger(_full_name);
+  }
+
   void Logger::setLevel ( const LevelPtr &newLevel ) {
     STDOUT_DEBUG( " RH LOGGER  setLevel - logger: " << name );    
     if ( newLevel ) {
@@ -539,6 +551,22 @@ namespace rh_logger {
     return  log_records;
   }
 
+  std::vector<std::string> Logger::getNamedLoggers() {
+    std::vector<std::string> ret;
+    std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
+        size_t _idx = it->find(name);
+        if (_idx != std::string::npos) {
+            if (_idx != 0)
+                continue;
+            if (it->size() > name.size())
+                if ((*it)[name.size()] != '.')
+                    continue;
+            ret.push_back(*it);
+        }
+    }
+    return ret;
+  }
 
   //  append log record to circular buffer
   void Logger::appendLogRecord( const LevelPtr &level, const std::string &msg)  {
@@ -588,6 +616,11 @@ namespace rh_logger {
     return _rootLogger;
   }
 
+  std::vector<std::string> StdOutLogger::getNamedLoggers() {
+      std::vector<std::string> ret;
+      ret.push_back(name);
+      return ret;
+  }
 
   LoggerPtr StdOutLogger::getLogger( const std::string &name ) {
 
@@ -772,6 +805,24 @@ namespace rh_logger {
     }
   }
 
+  std::vector<std::string> L4Logger::getNamedLoggers() {
+    std::vector<std::string> ret;
+    log4cxx::spi::LoggerRepositoryPtr repo = log4cxx::Logger::getRootLogger()->getLoggerRepository();
+    log4cxx::LoggerList list = repo->getCurrentLoggers();
+    for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
+        std::string _name((*it)->getName());
+        size_t _idx = _name.find(name);
+        if (_idx != std::string::npos) {
+            if (_idx != 0)
+                continue;
+            if (_name.size() > name.size())
+                if (_name[name.size()] != '.')
+                    continue;
+            ret.push_back(_name);
+        }
+    }
+    return ret;
+  }
 
   rh_logger::LevelPtr L4Logger::getLevel ( ) const {
     STDOUT_DEBUG(  " L4Logger::getLevel:  BEGIN logger: " << name  );
