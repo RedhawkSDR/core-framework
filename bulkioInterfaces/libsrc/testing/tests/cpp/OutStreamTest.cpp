@@ -23,6 +23,19 @@
 #include <ossie/PropertyMap.h>
 #include "bulkio.h"
 
+namespace {
+    template <class T>
+    size_t data_length(const T& data)
+    {
+        return data.length();
+    }
+
+    size_t data_length(const BULKIO::BitSequence& seq)
+    {
+        return seq.bits;
+    }
+}
+
 template <class Port>
 void OutStreamTest<Port>::setUp()
 {
@@ -96,7 +109,7 @@ void OutStreamTest<Port>::testBasicWrite()
     const BULKIO::PrecisionUTCTime time = bulkio::time::utils::now();
     _writeSinglePacket(stream, 256, time);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL((size_t) 256, (size_t) stub->packets[0].data.length());
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, data_length(stub->packets[0].data));
     CPPUNIT_ASSERT(!stub->packets[0].EOS);
     CPPUNIT_ASSERT_MESSAGE("Received incorrect time stamp", _checkLastTimestamp(time));
     CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->packets[0].streamID);
@@ -279,6 +292,16 @@ template <class Port>
 bool OutStreamTest<Port>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& time)
 {
     return (time == stub->packets.back().T);
+}
+
+// Specialization for dataBit, which uses redhawk::bitbuffer
+template <>
+void OutStreamTest<bulkio::OutBitPort>::_writeSinglePacket(StreamType& stream, size_t size,
+                                                           const BULKIO::PrecisionUTCTime& time)
+{
+    redhawk::bitbuffer buffer(size);
+    buffer.fill(0, buffer.size(), 0);
+    stream.write(buffer, time);
 }
 
 // Specialization for dataFile, which uses std::string
@@ -617,5 +640,6 @@ CREATE_BUFFERED_TEST(ULongLong);
 CREATE_BUFFERED_TEST(Float);
 CREATE_BUFFERED_TEST(Double);
 
+CREATE_BASIC_TEST(Bit);
 CREATE_BASIC_TEST(XML);
 CREATE_BASIC_TEST(File);
