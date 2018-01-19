@@ -43,6 +43,14 @@ shared_bitbuffer::~shared_bitbuffer()
 {
 }
 
+shared_bitbuffer& shared_bitbuffer::operator=(const shared_bitbuffer& other)
+{
+    // Use copy constructor and swap to handle reference count
+    shared_bitbuffer temp(other);
+    this->swap(temp);
+    return *this;
+}
+
 bool shared_bitbuffer::empty() const
 {
     return (_M_size == 0);
@@ -71,6 +79,7 @@ int shared_bitbuffer::operator[] (size_t pos) const
 redhawk::bitbuffer shared_bitbuffer::copy() const
 {
     bitbuffer result(this->size());
+    this->_M_copy(result);
     return result;
 }
 
@@ -99,6 +108,26 @@ void shared_bitbuffer::swap(shared_bitbuffer& other)
     std::swap(_M_size, other._M_size);
 }
 
+int shared_bitbuffer::popcount() const
+{
+    return bitops::popcount(data(), offset(), size());
+}
+
+size_t shared_bitbuffer::find(const shared_bitbuffer& pattern, int maxDistance) const
+{
+    return find(0, pattern, maxDistance);
+}
+
+size_t shared_bitbuffer::find(size_t start, const shared_bitbuffer& pattern, int maxDistance) const
+{
+    return bitops::find(data(), offset() + start, size(), pattern.data(), pattern.offset(), pattern.size(), maxDistance);
+}
+
+void shared_bitbuffer::_M_copy(bitbuffer& dest) const
+{
+    redhawk::bitops::copy(dest.data(), dest.offset(), data(), offset(), size());
+}
+
 void shared_bitbuffer::_M_normalize()
 {
     _M_base += (_M_offset / 8);
@@ -107,8 +136,26 @@ void shared_bitbuffer::_M_normalize()
 
 using redhawk::bitbuffer;
 
-bitbuffer::bitbuffer(size_t bits) :
-    shared_bitbuffer(bits, std::allocator<data_type>())
+bitbuffer::reference::reference(data_type* data, size_t pos) :
+    _M_data(data),
+    _M_pos(pos)
+{
+}
+
+bitbuffer::reference::operator int () const
+{
+    return bitops::getbit(_M_data, _M_pos);
+}
+
+bitbuffer::reference& bitbuffer::reference::operator=(bool value)
+{
+    bitops::setbit(_M_data, _M_pos, value);
+    return *this;
+}
+
+
+bitbuffer::bitbuffer() :
+    shared_bitbuffer()
 {
 }
 
@@ -121,4 +168,29 @@ void bitbuffer::fill(size_t start, size_t end, bool value)
 {
     size_t bits = end - start;
     bitops::fill(data(), offset() + start, bits, value);
+}
+
+bitbuffer::reference bitbuffer::operator[] (size_t pos)
+{
+    return reference(data(), offset() + pos);
+}
+
+bool redhawk::operator==(const shared_bitbuffer& lhs, const shared_bitbuffer& rhs)
+{
+    if (lhs.size() != rhs.size()) {
+        // Different sizes always compare unequal
+        return false;
+    } else if ((lhs.data() == rhs.data()) && (lhs.offset() == rhs.offset())) {
+        // If the data pointer and offsets are the same (the size is already
+        // known to be the same), no further comparison is required
+        return true;
+    } else {
+        // Perform element-wise comparison
+        return bitops::compare(lhs.data(), lhs.offset(), rhs.data(), rhs.offset(), lhs.size()) == 0;
+    }
+}
+
+bool redhawk::operator!=(const shared_bitbuffer& lhs, const shared_bitbuffer& rhs)
+{
+    return !(lhs == rhs);
 }
