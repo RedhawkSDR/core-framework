@@ -65,7 +65,6 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			BufferManager.cpp \
 			inplace_list.h \
 			bitops.cpp \
-			bitstring.cpp \
 			bitbuffer.cpp \
 			shm/Heap.cpp \
 			shm/HeapClient.cpp \
