@@ -661,6 +661,12 @@ class RogueService(CorbaObject):
     def setLogLevel(self, logid, newLogLevel ):
         self.ref.setLogLevel( logid, newLogLevel )
 
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
+
     def getLogConfig(self):
         return self.ref.getLogConfig()
 
@@ -730,6 +736,12 @@ class Service(CorbaObject):
 
     def setLogLevel(self, logid, newLogLevel ):
         self.ref.setLogLevel( logid, newLogLevel )
+
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -855,6 +867,18 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
     def setLogLevel(self, logid, newLogLevel ):
         if self.ref:
            self.ref.setLogLevel( logid, newLogLevel )
+
+    def getLogLevel(self, logger_id):
+        if self.ref:
+            return self.ref.getLogLevel(logger_id)
+        else:
+           None
+
+    def getNamedLoggers(self):
+        if self.ref:
+            return self.ref.getNamedLoggers()
+        else:
+           None
 
     def getLogConfig(self):
         if self.ref:

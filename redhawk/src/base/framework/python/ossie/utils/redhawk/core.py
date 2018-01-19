@@ -2109,6 +2109,20 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
 
+    def getLogLevel(self, logger_id):
+        if self.ref :
+            try:
+                return self.ref.getLogLevel(logger_id)
+            except:
+                raise
+
+    def getNamedLoggers(self):
+        if self.ref :
+            try:
+                return self.ref.getNamedLoggers()
+            except:
+                raise
+
     # End external Domain Manager API
     ########################################
     
