@@ -436,7 +436,10 @@ void DeviceManager_impl::createDeviceExecStatement(
       CORBA::TypeCode_var  etype=eParams[i].value.type();
       LOG_TRACE(DeviceManager_impl, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() << " tk_bool " << CORBA::tk_boolean );
       if  ( etype->kind() == CORBA::tk_boolean ) {
-          resolveBoolExec( p1, p2, compProfile, instantiation);
+          std::string v("");
+          resolveBoolExec( p1, v, compProfile, instantiation);
+          if ( v.size() == 0 ) continue;   // skip empty params
+          p2=v;
       }
 
       // skiop already added params
@@ -467,10 +470,11 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
              const SimpleProperty* tmp = dynamic_cast<const SimpleProperty*>(eprop[j]);
              if (tmp) {
                  LOG_TRACE(DeviceManager_impl, "Default exec boolean with PRF value: " << tmp->getValue());
-                 std::string v = tmp->getValue();
-                 // can't be empty
-                 if ( v.size() != 0 ) {
-                     value = tmp->getValue();
+                 if (tmp->getValue()) {
+                     std::string v(tmp->getValue());
+                     if ( v.size() != 0 ) {
+                         value = tmp->getValue();
+                     }
                  }
              }
         }
@@ -484,12 +488,12 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
             LOG_TRACE(DeviceManager_impl, "resolveBoolExec ctor id == instantiation prop " << id <<  " = " << prop_id );
             const SimpleProperty* tmp = dynamic_cast<const SimpleProperty*>(cprop[j]);
             if (tmp) {
-
                  LOG_TRACE(DeviceManager_impl, "Default exec boolean with PRF value: " << tmp->getValue());
-                 std::string v = tmp->getValue();
-                 // can't be empty
-                 if ( v.size() != 0 ) {
-                     value = tmp->getValue();
+                 if (tmp->getValue()) {
+                     std::string v(tmp->getValue());
+                     if ( v.size() != 0 ) {
+                         value = tmp->getValue();
+                     }
                  }
              }
         }
@@ -504,10 +508,11 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
             const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&overrideProps[j]);
             if ( ref ) {
                 LOG_TRACE(DeviceManager_impl, "Overriding exec boolean with instance value: " << ref->getValue());
-                std::string v = ref->getValue();
-                // can't be empty
-                if ( v.size() != 0 ) {
-                    value = ref->getValue();
+                if (ref->getValue()) {
+                     std::string v(ref->getValue());
+                     if ( v.size() != 0 ) {
+                         value = ref->getValue();
+                     }
                 }
             }
         }
@@ -583,7 +588,10 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
       CORBA::TypeCode_var  etype=eParams[i].value.type();
       LOG_DEBUG(DeviceManager_impl, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() );
       if  ( etype->kind() == CORBA::tk_boolean ) {      
-          resolveBoolExec( p1, p2, compProfile, instantiation);
+          std::string v("");
+          resolveBoolExec( p1, v, compProfile, instantiation);
+          if ( v.size() == 0 ) continue;   // skip empty params
+          p2=v;
       }
       
       if ( p1 == "LOGGING_CONFIG_URI" || p1 == "DEBUG_LEVEL" ) continue;

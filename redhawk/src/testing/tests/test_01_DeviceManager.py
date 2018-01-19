@@ -1419,7 +1419,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                      "exec_read_only_empty" :  "exec_read_only_empty cmd_ok_empty",
                      "exec_read_only_number" : "exec_read_only_number 54321",
                      "exec_read_only_empty_number" : "exec_read_only_empty_number 654321",
-                     "exec_read_only_bool" : "exec_read_only_bool FALSE"  }
+                     "exec_read_only_bool" : "exec_read_only_bool FALSE",
+                     "exec_read_only_bool_missing" : None };
 
     def _test_ServiceExecParamReadonly_(self, dcd_file, match_exec):
         devmgr_nb, devMgr = self.launchDeviceManager(dcd_file)
@@ -1497,6 +1498,14 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
             self.assertEqual(p, None)
 
+        k="exec_read_only_bool_missing"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
+
     def test_ServiceExecParamReadonly_0(self):
         match_exec=self._get_match_exec()
         self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.dcd.xml", match_exec)
@@ -1519,6 +1528,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
     def test_ServiceExecParamReadonly_3(self):
         match_exec=self._get_match_exec()
         match_exec["exec_read_only_bool"]="exec_read_only_bool 0"
+        match_exec["exec_read_only_bool_missing"]="exec_read_only_bool_missing FaLsE"
         self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.false-0.dcd.xml", match_exec)
 
     def test_ServiceExecParamReadonly_4(self):
@@ -1528,7 +1538,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_ServiceExecParamReadonly_4_1(self):
         match_exec=self._get_match_exec()
-        match_exec["exec_read_only_bool"]="exec_read_only_bool False"
+        match_exec["exec_read_only_bool"]="exec_read_only_bool fAlSe"
         self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.false-fAlSe.dcd.xml", match_exec)
 
     def test_ServiceExecParamReadonly_5(self):
@@ -1541,6 +1551,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         match_exec["exec_read_only_number"] = "exec_read_only_number 1000"
         match_exec["exec_read_only_empty_number"] = None
         match_exec["exec_read_only_bool"]="exec_read_only_bool FALSE"
+        match_exec["exec_read_only_bool_missing"]=None
         self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.missing.dcd.xml", match_exec)
 
 
