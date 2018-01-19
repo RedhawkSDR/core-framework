@@ -168,7 +168,7 @@ namespace redhawk {
 
         /**
          * @brief  %refcount_memory copy constructor.
-         * @param other  A %refcount_memory of identical element type.
+         * @param other  Another %refcount_memory.
          *
          * %refcount_memory has reference semantics; after construction, this
          * instance shares the underlying memory, increasing its reference
@@ -193,6 +193,23 @@ namespace redhawk {
                     delete _M_impl;
                 }
             }
+        }
+
+        /**
+         * @brief  %refcount_memory assignment operator.
+         * @param other  Another %refcount_memory.
+         *
+         * %refcount_memory has reference semantics; after assignment, this
+         * instance shares the underlying memory, increasing its reference
+         * count by one. The prior memory is released; if this was the last
+         * reference, the memory is deallocated.
+         */
+        refcount_memory& operator=(const refcount_memory& other)
+        {
+            // Use copy constructor and swap to handle reference count
+            refcount_memory temp(other);
+            this->swap(temp);
+            return *this;
         }
 
         /**
@@ -281,7 +298,8 @@ namespace redhawk {
             template <typename T>
             static void delete_release(impl* imp)
             {
-                delete[] reinterpret_cast<T*>(imp->addr);
+                T* ptr = reinterpret_cast<T*>(imp->addr);
+                delete[] ptr;
             }
 
             int refcount;
@@ -297,14 +315,16 @@ namespace redhawk {
         struct func_impl : public impl {
             template <typename T>
             func_impl(T* ptr, size_t count, Func func, bool shared) :
-                impl(ptr, count, &func_impl::func_release, shared),
+                impl(ptr, count, &func_impl::func_release<T>, shared),
                 func(func)
             {
             }
 
+            template <typename T>
             static void func_release(impl* imp)
             {
-                static_cast<func_impl*>(imp)->func(imp->addr);
+                T* ptr = reinterpret_cast<T*>(imp->addr);
+                static_cast<func_impl*>(imp)->func(ptr);
             }
 
             Func func;
