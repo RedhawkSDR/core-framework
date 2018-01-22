@@ -43,7 +43,7 @@ namespace bulkio {
   template <class PortType>
   struct OutStreamTraits
   {
-      typedef BufferedOutputStream<PortType> OutStreamType;
+      typedef NumericOutputStream<PortType> OutStreamType;
   };
 
   template <>

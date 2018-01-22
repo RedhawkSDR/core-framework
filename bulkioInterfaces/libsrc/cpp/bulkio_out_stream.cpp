@@ -326,8 +326,8 @@ class BufferedOutputStream<PortType>::Impl : public Base::Impl {
 public:
     typedef typename Base::Impl ImplBase;
 
-    typedef typename BufferedOutputStream<PortType>::ScalarBuffer ScalarBuffer;
-    typedef typename BufferedOutputStream<PortType>::ComplexBuffer ComplexBuffer;
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
+    typedef typename BufferTraits<PortType>::MutableBufferType MutableBufferType;
 
     using ImplBase::_sri;
     using ImplBase::_streamID;
@@ -339,7 +339,7 @@ public:
     {
     }
 
-    void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+    void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
     {
         // If buffering is disabled, or the buffer is empty and the input data is
         // large enough for a full buffer, send it immediately
@@ -347,42 +347,6 @@ public:
             ImplBase::write(data, time);
         } else {
             _doBuffer(data, time);
-        }
-    }
-
-    void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
-    {
-        if (_sri->mode == 0) {
-            throw std::logic_error("stream mode is not complex");
-        }
-        write(ScalarBuffer::recast(data), time);
-    }
-
-    template <class Sample>
-    void write(const redhawk::shared_buffer<Sample>& data, const std::list<bulkio::SampleTimestamp>& times)
-    {
-        std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
-        if (timestamp == times.end()) {
-            throw std::logic_error("no timestamps given");
-        }
-
-        size_t first = 0;
-        while (first < data.size()) {
-            size_t last = 0;
-            const BULKIO::PrecisionUTCTime& when = timestamp->time;
-            if (++timestamp == times.end()) {
-                last = data.size();
-            } else {
-                last = timestamp->offset;
-                if (!is_complex<Sample>::value && this->complex()) {
-                    // If the stream is complex but the data type is not, adjust sample
-                    // offset to account for the fact that each real/imaginary pair is
-                    // actually two values
-                    last *= 2;
-                }
-            }
-            write(data.slice(first, last), when);
-            first = last;
         }
     }
 
@@ -406,7 +370,7 @@ public:
         } else if (_bufferSize > _buffer.size()) {
             // The buffer size is increasing beyond the existing allocation;
             // allocate a new buffer of the desired size and copy existing data
-            redhawk::buffer<ScalarType> new_buffer(_bufferSize);
+            MutableBufferType new_buffer(_bufferSize);
             if (_bufferOffset > 0) {
                 std::copy(&_buffer[0], &_buffer[_bufferOffset], &new_buffer[0]);
             }
@@ -449,11 +413,11 @@ private:
         this->_send(_buffer.slice(0, _bufferOffset), _bufferTime, eos);
 
         // Allocate a new buffer and reset the offset index
-        _buffer = redhawk::buffer<ScalarType>(_bufferSize);
+        _buffer = MutableBufferType(_bufferSize);
         _bufferOffset = 0;
     }
 
-    void _doBuffer(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+    void _doBuffer(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
     {
         // If this is the first data being queued, use its timestamp for the start
         // time of the buffered data
@@ -478,7 +442,7 @@ private:
         }
     }
 
-    redhawk::buffer<ScalarType> _buffer;
+    MutableBufferType _buffer;
     BULKIO::PrecisionUTCTime _bufferTime;
     size_t _bufferSize;
     size_t _bufferOffset;
@@ -515,51 +479,9 @@ void BufferedOutputStream<PortType>::flush()
 }
 
 template <class PortType>
-void BufferedOutputStream<PortType>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+void BufferedOutputStream<PortType>::write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
 {
     impl().write(data, time);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
-{
-    impl().write(data, times);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
-{
-    impl().write(data, time);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
-{
-    impl().write(data, times);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
-{
-    impl().write(ScalarBuffer::make_transient(data, count), time);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
-{
-    impl().write(ScalarBuffer::make_transient(data, count), times);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
-{
-    impl().write(ComplexBuffer::make_transient(data, count), time);
-}
-
-template <class PortType>
-void BufferedOutputStream<PortType>::write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
-{
-    impl().write(ComplexBuffer::make_transient(data, count), times);
 }
 
 template <class PortType>
@@ -574,6 +496,79 @@ const typename BufferedOutputStream<PortType>::Impl& BufferedOutputStream<PortTy
     return static_cast<const Impl&>(*this->_impl);
 }
 
+//
+// Numeric streams add addtional complex/scalar and extended timestamp methods
+//
+using bulkio::NumericOutputStream;
+
+template <class PortType>
+NumericOutputStream<PortType>::NumericOutputStream() :
+    Base()
+{
+}
+
+template <class PortType>
+NumericOutputStream<PortType>::NumericOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(sri, port)
+{
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+    Base::write(data, time);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+    _writeMultiple(data, times);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+    if (!this->complex()) {
+        throw std::logic_error("stream mode is not complex");
+    }
+    write(ScalarBuffer::recast(data), time);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+    _writeMultiple(data, times);
+}
+
+template <class PortType>
+template <typename Sample>
+inline void NumericOutputStream<PortType>::_writeMultiple(const redhawk::shared_buffer<Sample>& data,
+                                                          const std::list<bulkio::SampleTimestamp>& times)
+{
+    std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
+    if (timestamp == times.end()) {
+        throw std::logic_error("no timestamps given");
+    }
+
+    size_t first = 0;
+    while (first < data.size()) {
+        size_t last = 0;
+        const BULKIO::PrecisionUTCTime& when = timestamp->time;
+        if (++timestamp == times.end()) {
+            last = data.size();
+        } else {
+            last = timestamp->offset;
+            if (!is_complex<Sample>::value && this->complex()) {
+                // If the stream is complex but the data type is not, adjust sample
+                // offset to account for the fact that each real/imaginary pair is
+                // actually two values
+                last *= 2;
+            }
+        }
+        write(data.slice(first, last), when);
+        first = last;
+    }
+}
 
 //
 // Bit
@@ -641,8 +636,9 @@ void OutFileStream::write(const std::string& URL, const BULKIO::PrecisionUTCTime
 #define INSTANTIATE_TEMPLATE(x) \
     template class OutputStream<x>;
 
-#define INSTANTIATE_NUMERIC_TEMPLATE(x) \
-    template class BufferedOutputStream<x>;
+#define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
+    template class BufferedOutputStream<x>;     \
+    template class NumericOutputStream<x>;
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);

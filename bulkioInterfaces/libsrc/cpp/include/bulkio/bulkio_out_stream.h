@@ -105,12 +105,8 @@ namespace bulkio {
     template <class PortType>
     class BufferedOutputStream : public OutputStream<PortType> {
     public:
-        typedef typename NativeTraits<PortType>::NativeType ScalarType;
-        typedef std::complex<ScalarType> ComplexType;
+        typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
-        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
-       
         BufferedOutputStream();
 
         /**
@@ -131,17 +127,36 @@ namespace bulkio {
          */
         void flush();
 
-        template <class T>
-        void write(const std::vector<T>& data, const BULKIO::PrecisionUTCTime& time)
-        {
-            write(&data[0], data.size(), time);
-        }
+        /**
+         * @brief  Writes data to the stream.
+         * @param data  The data write.
+         * @param time  The timestamp of the first sample.
+         */
+        void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time);
 
-        template <class T>
-        void write(const std::vector<T>& data, const std::list<bulkio::SampleTimestamp>& times)
-        {
-            write(&data[0], data.size(), times);
-        }
+    protected:
+        typedef OutputStream<PortType> Base;
+
+        friend class OutPort<PortType>;
+        typedef OutPort<PortType> OutPortType;
+        BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+
+        class Impl;
+        Impl& impl();
+        const Impl& impl() const;
+    };
+
+
+    template <class PortType>
+    class NumericOutputStream : public BufferedOutputStream<PortType> {
+    public:
+        typedef typename NativeTraits<PortType>::NativeType ScalarType;
+        typedef std::complex<ScalarType> ComplexType;
+
+        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
+       
+        NumericOutputStream();
 
         /**
          * @brief  Write scalar data to the stream.
@@ -149,6 +164,13 @@ namespace bulkio {
          * @param time  The timestamp of the first sample.
          */
         void write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time);
+
+        /**
+         * @brief  Write complex data to the stream.
+         * @param data  The %shared_buffer to write.
+         * @param time  The timestamp of the first sample.
+         */
+        void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time);
 
         /**
          * @brief  Write scalar data to the stream.
@@ -164,13 +186,6 @@ namespace bulkio {
         /**
          * @brief  Write complex data to the stream.
          * @param data  The %shared_buffer to write.
-         * @param time  The timestamp of the first sample.
-         */
-        void write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time);
-
-        /**
-         * @brief  Write complex data to the stream.
-         * @param data  The %shared_buffer to write.
          * @param times  A list of sample timestamps. Sample offsets must be in
          *               increasing order, starting at 0.
          *
@@ -179,22 +194,48 @@ namespace bulkio {
          */
         void write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times);
 
-        void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
-        void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
+        template <class T>
+        void write(const std::vector<T>& data, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(&data[0], data.size(), time);
+        }
 
-        void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
-        void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
+        template <class T>
+        void write(const std::vector<T>& data, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(&data[0], data.size(), times);
+        }
+
+        void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(ScalarBuffer::make_transient(data, count), time);
+        }
+
+        void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(ScalarBuffer::make_transient(data, count), times);
+        }
+
+        void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(ComplexBuffer::make_transient(data, count), time);
+        }
+
+        void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(ComplexBuffer::make_transient(data, count), times);
+        }
 
     private:
-        typedef OutputStream<PortType> Base;
+        typedef BufferedOutputStream<PortType> Base;
 
         friend class OutPort<PortType>;
         typedef OutPort<PortType> OutPortType;
-        BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+        NumericOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
-        class Impl;
-        Impl& impl();
-        const Impl& impl() const;
+        template <typename Sample>
+        inline void _writeMultiple(const redhawk::shared_buffer<Sample>& data,
+                                   const std::list<bulkio::SampleTimestamp>& times);
     };
 
 
@@ -250,16 +291,16 @@ namespace bulkio {
         OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port);
     };
 
-    typedef BufferedOutputStream<BULKIO::dataChar>      OutCharStream;
-    typedef BufferedOutputStream<BULKIO::dataOctet>     OutOctetStream;
-    typedef BufferedOutputStream<BULKIO::dataShort>     OutShortStream;
-    typedef BufferedOutputStream<BULKIO::dataUshort>    OutUShortStream;
-    typedef BufferedOutputStream<BULKIO::dataLong>      OutLongStream;
-    typedef BufferedOutputStream<BULKIO::dataUlong>     OutULongStream;
-    typedef BufferedOutputStream<BULKIO::dataLongLong>  OutLongLongStream;
-    typedef BufferedOutputStream<BULKIO::dataUlongLong> OutULongLongStream;
-    typedef BufferedOutputStream<BULKIO::dataFloat>     OutFloatStream;
-    typedef BufferedOutputStream<BULKIO::dataDouble>    OutDoubleStream;
+    typedef NumericOutputStream<BULKIO::dataChar>      OutCharStream;
+    typedef NumericOutputStream<BULKIO::dataOctet>     OutOctetStream;
+    typedef NumericOutputStream<BULKIO::dataShort>     OutShortStream;
+    typedef NumericOutputStream<BULKIO::dataUshort>    OutUShortStream;
+    typedef NumericOutputStream<BULKIO::dataLong>      OutLongStream;
+    typedef NumericOutputStream<BULKIO::dataUlong>     OutULongStream;
+    typedef NumericOutputStream<BULKIO::dataLongLong>  OutLongLongStream;
+    typedef NumericOutputStream<BULKIO::dataUlongLong> OutULongLongStream;
+    typedef NumericOutputStream<BULKIO::dataFloat>     OutFloatStream;
+    typedef NumericOutputStream<BULKIO::dataDouble>    OutDoubleStream;
 
 } // end of bulkio namespace
 
