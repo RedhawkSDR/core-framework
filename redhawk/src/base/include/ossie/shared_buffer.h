@@ -755,6 +755,45 @@ namespace redhawk {
         }
 
         /**
+         * @brief  Resizes this %buffer.
+         * @param size  Number of elements.
+         *
+         * Allocates new memory using the default allocator. Existing values
+         * are copied to the new memory.
+         */
+        void resize(size_t size)
+        {
+            buffer temp(size);
+            _M_resize(temp);
+        }
+
+        /**
+         * @brief  Resizes this %buffer.
+         * @param size  Number of elements.
+         * @param allocator  STL-compliant allocator.
+         *
+         * Allocates new memory using @a allocator. Existing values are copied
+         * to the new memory.
+         */
+        template <class Alloc>
+        void resize(size_t size, Alloc& allocator)
+        {
+            buffer temp(size, allocator);
+            _M_resize(temp);
+        }
+
+        /**
+         * @brief  Replaces the contents of this %buffer.
+         * @param pos  Index of first element to be replaced.
+         * @param len  Number of elements to replace.
+         * @param data  A shared_buffer from which to copy elements.
+         */
+        void replace(size_t pos, size_t len, const shared_type& data)
+        {
+            std::copy(data.begin(), data.begin() + len, begin() + pos);
+        }
+
+        /**
          * @brief  Returns a copy of this %buffer.
          *
          * The returned %buffer points to a newly-allocated array.
@@ -826,6 +865,17 @@ namespace redhawk {
 #else
             return const_iterator(iter);
 #endif
+        }
+
+        // Copies existing elements into a destination buffer then swaps the
+        // buffers, as used to perform a resize. The allocation is done inside
+        // the public method to ensure that the correct allocator template is
+        // used.
+        inline void _M_resize(buffer& dest)
+        {
+            size_t count = std::min(size(), dest.size());
+            std::copy(begin(), begin() + count, dest.begin());
+            this->swap(dest);
         }
         /// @endcond
     };

@@ -368,15 +368,8 @@ public:
         if (_bufferSize <= _bufferOffset) {
             flush();
         } else if (_bufferSize > _buffer.size()) {
-            // The buffer size is increasing beyond the existing allocation;
-            // allocate a new buffer of the desired size and copy existing data
-            MutableBufferType new_buffer(_bufferSize);
-            if (_bufferOffset > 0) {
-                std::copy(&_buffer[0], &_buffer[_bufferOffset], &new_buffer[0]);
-            }
-
-            // Replace the old buffer with the new one
-            _buffer.swap(new_buffer);
+            // The buffer size is increasing beyond the existing allocation
+            _buffer.resize(_bufferSize);
         }
     }
 
@@ -427,7 +420,7 @@ private:
 
         // Only buffer up to the currently configured buffer size
         size_t count = std::min(data.size(), _bufferSize - _bufferOffset);
-        std::copy(&data[0], &data[count], &_buffer[_bufferOffset]);
+        _buffer.replace(_bufferOffset, count, data);
 
         // Advance buffer offset, flushing if the buffer is full
         _bufferOffset += count;
