@@ -103,10 +103,20 @@ namespace bulkio {
                                                           bool EOS,
                                                           const char* streamID)
     {
-        const CORBA::Octet* ptr = reinterpret_cast<const CORBA::Octet*>(data.data());
-        // TODO: Add an offset to BitSequence
         BULKIO::BitSequence buffer;
         size_t bytes = (data.size() + 7) / 8;
+        const CORBA::Octet* ptr;
+        redhawk::bitbuffer temp;
+        if (data.offset() == 0) {
+            // Bit buffer is byte-aligned, so it can be directly wrapped with a
+            // non-owning CORBA sequence
+            ptr = reinterpret_cast<const CORBA::Octet*>(data.data());
+        } else {
+            // Not byte-aligned, copy bits into a temporary buffer and use that
+            // as the data for the CORBA sequence
+            temp = data.copy();
+            ptr = reinterpret_cast<const CORBA::Octet*>(temp.data());
+        }
         buffer.data.replace(bytes, bytes, const_cast<CORBA::Octet*>(ptr), false);
         buffer.bits = data.size();
         _objref->pushPacket(buffer, T, EOS, streamID);
