@@ -226,6 +226,7 @@ namespace redhawk {
         void _M_copy(bitbuffer& dest) const;
 
         void _M_normalize();
+        void _M_swap(shared_bitbuffer& other);
 
         refcount_memory _M_memory;
         data_type* _M_base;
@@ -274,6 +275,12 @@ namespace redhawk {
         reference operator[] (size_t pos);
 
         void fill(size_t start, size_t end, bool value);
+
+        /**
+         * @brief  Swap contents with another bit buffer.
+         * @param other  Bit buffer to swap with.
+         */
+        void swap(bitbuffer& other);
     };
 
     template <class Alloc>

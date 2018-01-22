@@ -102,10 +102,7 @@ shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
 
 void shared_bitbuffer::swap(shared_bitbuffer& other)
 {
-    _M_memory.swap(other._M_memory);
-    std::swap(_M_base, other._M_base);
-    std::swap(_M_offset, other._M_offset);
-    std::swap(_M_size, other._M_size);
+    this->_M_swap(other);
 }
 
 int shared_bitbuffer::popcount() const
@@ -126,6 +123,14 @@ size_t shared_bitbuffer::find(size_t start, const shared_bitbuffer& pattern, int
 void shared_bitbuffer::_M_copy(bitbuffer& dest) const
 {
     redhawk::bitops::copy(dest.data(), dest.offset(), data(), offset(), size());
+}
+
+void shared_bitbuffer::_M_swap(shared_bitbuffer& other)
+{
+    _M_memory.swap(other._M_memory);
+    std::swap(_M_base, other._M_base);
+    std::swap(_M_offset, other._M_offset);
+    std::swap(_M_size, other._M_size);
 }
 
 void shared_bitbuffer::_M_normalize()
@@ -173,6 +178,11 @@ void bitbuffer::fill(size_t start, size_t end, bool value)
 bitbuffer::reference bitbuffer::operator[] (size_t pos)
 {
     return reference(data(), offset() + pos);
+}
+
+void bitbuffer::swap(bitbuffer& other)
+{
+    this->_M_swap(other);
 }
 
 bool redhawk::operator==(const shared_bitbuffer& lhs, const shared_bitbuffer& rhs)
