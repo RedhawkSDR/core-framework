@@ -44,6 +44,7 @@ from ossie.utils.model import _readProfile
 from ossie.utils.model import _idllib
 from ossie.utils.model import ConnectionManager as _ConnectionManager
 from ossie.utils.model import *
+from ossie.utils.log_helpers import stringToCode
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
@@ -2103,9 +2104,12 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
                 raise
 
     def setLogLevel(self, logger_id, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
         if self.ref :
             try:
-                self.ref.setLogLevel(logger_id, cf_log_lvl)
+                self.ref.setLogLevel(logger_id, _cf_log_lvl)
             except:
                 raise
 

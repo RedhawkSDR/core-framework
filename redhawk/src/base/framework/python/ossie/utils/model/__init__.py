@@ -40,6 +40,7 @@ from ossie.properties import getCFType
 from ossie.properties import getMemberType
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.utils.formatting import TablePrinter
+from ossie.utils.log_helpers import stringToCode
 from ossie.utils import prop_helpers
 from ossie.utils import rhtime
 import warnings as _warnings
@@ -658,8 +659,11 @@ class RogueService(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
 
     def getLogLevel(self, logger_id):
         return self.ref.getLogLevel(logger_id)
@@ -734,8 +738,11 @@ class Service(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
 
     def getLogLevel(self, logger_id):
         return self.ref.getLogLevel(logger_id)
@@ -864,9 +871,12 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
             if self.ref:
                self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
         if self.ref:
-           self.ref.setLogLevel( logid, newLogLevel )
+            self.ref.setLogLevel( logid, _cf_log_lvl )
 
     def getLogLevel(self, logger_id):
         if self.ref:
