@@ -109,15 +109,17 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
 template <class Port>
 void InStreamTest<Port>::testSriChanges()
 {
+    const char* stream_id = "sri_changes";
+
     // Create a new stream and push some data to it
-    BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
     sri.xstart = 0.0;
     sri.xdelta = 1.0;
     port->pushSRI(sri);
     _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
 
     // Get the input stream and read the first packet
-    StreamType stream = port->getStream("empty_eos");
+    StreamType stream = port->getStream(stream_id);
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read();
     CPPUNIT_ASSERT(block);
@@ -153,6 +155,48 @@ void InStreamTest<Port>::testSriChanges()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI change flags incorrect", flags, block.sriChangeFlags());
     CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI xstart incorrect", sri.xstart, block.sri().xstart);
     CPPUNIT_ASSERT_EQUAL_MESSAGE("SRI xdelta incorrect", sri.xdelta, block.sri().xdelta);
+}
+
+template <class Port>
+void InStreamTest<Port>::testDisable()
+{
+    const char* stream_id = "disable";
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(false, !stream);
+
+    DataBlockType block = stream.read();
+    CPPUNIT_ASSERT_EQUAL(false, !block);
+
+    // Push a couple more packets
+    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    CPPUNIT_ASSERT_EQUAL(2, port->getCurrentQueueDepth());
+
+    // Disable the stream; this should drop the existing packets
+    stream.disable();
+    CPPUNIT_ASSERT(!stream.enabled());
+    CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
+
+    // Push a couple more packets; they should get dropped
+    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
+
+    // Push an end-of-stream packet
+    _pushTestPacket(16, bulkio::time::utils::notSet(), true, sri.streamID);
+
+    // Re-enable the stream and read; it should fail with end-of-stream set
+    stream.enable();
+    block = stream.read();
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(stream.eos());
 }
 
 template <class Port>
@@ -287,6 +331,82 @@ void BufferedInStreamTest<Port>::testReadPartial()
     CPPUNIT_ASSERT(!block);
 }
 
+template <class Port>
+void BufferedInStreamTest<Port>::testDisableDiscard()
+{
+    const char* stream_id = "disable_discard";
+
+    // Create a new stream and push a couple of packets to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
+
+    // Get the input stream and read half of the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(false, !stream);
+    DataBlockType block = stream.read(512);
+    CPPUNIT_ASSERT_EQUAL(false, !block);
+
+    // The stream should report samples available, but there should be no
+    // packets in the port's queue
+    CPPUNIT_ASSERT(stream.ready());
+    CPPUNIT_ASSERT(stream.samplesAvailable() > 0);
+    CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
+
+    // Disable the stream; this should discard
+    stream.disable();
+    CPPUNIT_ASSERT(!stream.ready());
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, stream.samplesAvailable());
+}
+
+template <class Port>
+void NumericInStreamTest<Port>::testSriModeChanges()
+{
+    const char* stream_id = "sri_mode_changes";
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, sri.streamID);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT(stream);
+    DataBlockType block = stream.read();
+    CPPUNIT_ASSERT(block);
+
+    // First block from a new stream reports SRI change
+    CPPUNIT_ASSERT_EQUAL(true, block.sriChanged());
+
+    // Change the mode to complex and push more data
+    sri.mode = 1;
+    port->pushSRI(sri);
+    this->_pushTestPacket(200, bulkio::time::utils::now(), false, sri.streamID);
+    block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT(block.complex());
+    CPPUNIT_ASSERT(block.sriChanged());
+    CPPUNIT_ASSERT(block.sriChangeFlags() & bulkio::sri::MODE);
+
+    // Next push should report no SRI changes
+    this->_pushTestPacket(200, bulkio::time::utils::now(), false, sri.streamID);
+    block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT(block.complex());
+    CPPUNIT_ASSERT(!block.sriChanged());
+
+    // Change back to scalar
+    sri.mode = 0;
+    port->pushSRI(sri);
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, sri.streamID);
+    block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT(!block.complex());
+    CPPUNIT_ASSERT(block.sriChanged());
+    CPPUNIT_ASSERT(block.sriChangeFlags() & bulkio::sri::MODE);
+}
+
 #define CREATE_TEST(x, BASE)                                            \
     class In##x##StreamTest : public BASE<bulkio::In##x##Port>          \
     {                                                                   \
@@ -297,18 +417,18 @@ void BufferedInStreamTest<Port>::testReadPartial()
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##StreamTest);
 
 #define CREATE_BASIC_TEST(x) CREATE_TEST(x, InStreamTest)
-#define CREATE_BUFFERED_TEST(x) CREATE_TEST(x, BufferedInStreamTest)
+#define CREATE_NUMERIC_TEST(x) CREATE_TEST(x, NumericInStreamTest)
 
 CREATE_BASIC_TEST(XML);
 CREATE_BASIC_TEST(File);
-CREATE_BUFFERED_TEST(Octet);
-CREATE_BUFFERED_TEST(Char);
-CREATE_BUFFERED_TEST(Short);
-CREATE_BUFFERED_TEST(UShort);
-CREATE_BUFFERED_TEST(Long);
-CREATE_BUFFERED_TEST(ULong);
-CREATE_BUFFERED_TEST(LongLong);
-CREATE_BUFFERED_TEST(ULongLong);
-CREATE_BUFFERED_TEST(Float);
-CREATE_BUFFERED_TEST(Double);
-CREATE_BUFFERED_TEST(Bit);
+CREATE_TEST(Bit,BufferedInStreamTest);
+CREATE_NUMERIC_TEST(Octet);
+CREATE_NUMERIC_TEST(Char);
+CREATE_NUMERIC_TEST(Short);
+CREATE_NUMERIC_TEST(UShort);
+CREATE_NUMERIC_TEST(Long);
+CREATE_NUMERIC_TEST(ULong);
+CREATE_NUMERIC_TEST(LongLong);
+CREATE_NUMERIC_TEST(ULongLong);
+CREATE_NUMERIC_TEST(Float);
+CREATE_NUMERIC_TEST(Double);

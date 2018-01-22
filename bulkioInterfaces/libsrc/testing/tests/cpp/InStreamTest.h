@@ -32,6 +32,7 @@ class InStreamTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
     CPPUNIT_TEST(testSriChanges);
+    CPPUNIT_TEST(testDisable);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -41,6 +42,8 @@ public:
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
     void testSriChanges();
+
+    void testDisable();
 
 protected:
     typedef typename Port::StreamType StreamType;
@@ -63,6 +66,7 @@ class BufferedInStreamTest : public InStreamTest<Port>
     CPPUNIT_TEST(testTryreadPeek);
     CPPUNIT_TEST(testReadPeek);
     CPPUNIT_TEST(testReadPartial);
+    CPPUNIT_TEST(testDisableDiscard);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -72,6 +76,26 @@ public:
     void testTryreadPeek();
     void testReadPeek();
     void testReadPartial();
+
+    void testDisableDiscard();
+
+protected:
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    using TestBase::port;
+};
+
+template <class Port>
+class NumericInStreamTest : public BufferedInStreamTest<Port>
+{
+    typedef BufferedInStreamTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericInStreamTest, TestBase);
+    CPPUNIT_TEST(testSriModeChanges);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testSriModeChanges();
 
 private:
     typedef typename Port::StreamType StreamType;

@@ -291,126 +291,9 @@ void  Bulkio_InPort_Fixture::test_sri_change( T *port  ) {
   CPPUNIT_ASSERT(packet);
   CPPUNIT_ASSERT(packet->sriChanged == false);
   CPPUNIT_ASSERT(listener.sriChanged() == false);
-}
 
-template <typename T>
-void Bulkio_InPort_Fixture::test_stream_disable(T* port)
-{
-  typedef typename T::PortSequenceType PortSequenceType;
-  typedef typename T::StreamType StreamType;
-  typedef typename StreamType::DataBlockType DataBlockType;
-
-  // Remove any existing stream listener
   port->setNewStreamListener((bulkio::SriListener*) 0);
-
-  // Create a new stream and push some data to it
-  BULKIO::StreamSRI sri = bulkio::sri::create("test_stream_disable");
-  port->pushSRI(sri);
-  PortSequenceType data;
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-
-  // Get the input stream and read the first packet
-  StreamType stream = port->getStream("test_stream_disable");
-  CPPUNIT_ASSERT_EQUAL(!stream, false);
-
-  DataBlockType block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(!block, false);
-
-  // Push a couple more packets, but only read part of the first
-  int current_depth = port->getCurrentQueueDepth();
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-
-  // Read half of the first packet
-  block = stream.read(512);
-
-  // Disable the stream
-  stream.disable();
-  CPPUNIT_ASSERT(!stream.enabled());
-  CPPUNIT_ASSERT(!stream.ready());
-  CPPUNIT_ASSERT_EQUAL((size_t) 0, stream.samplesAvailable());
-  CPPUNIT_ASSERT_EQUAL(current_depth, port->getCurrentQueueDepth());
-
-  // Push a couple more packets; they should get dropped
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-  CPPUNIT_ASSERT_EQUAL(current_depth, port->getCurrentQueueDepth());
-
-  // Push an end-of-stream packet
-  port->pushPacket(data, bulkio::time::utils::notSet(), true, sri.streamID);
-
-  // Re-enable the stream
-  stream.enable();
-  block = stream.read();
-  CPPUNIT_ASSERT(!block);
-  CPPUNIT_ASSERT(stream.eos());
 }
-
-
-template <typename T>
-void Bulkio_InPort_Fixture::test_stream_sri_changed(T* port)
-{
-  typedef typename T::PortSequenceType PortSequenceType;
-  typedef typename T::StreamType StreamType;
-  typedef typename StreamType::DataBlockType DataBlockType;
-
-  // Create a new stream and push some data to it
-  BULKIO::StreamSRI sri = bulkio::sri::create("test_stream_sri_changed");
-  // push sri , data seqeunce
-  port->pushSRI(sri);
-  PortSequenceType data;
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-
-  // Get the input stream and read the first packet
-  StreamType stream = port->getStream("test_stream_sri_changed");
-  CPPUNIT_ASSERT_EQUAL(!stream, false);
-
-  DataBlockType block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(!block, false);
-
-  CPPUNIT_ASSERT_EQUAL(true, block.sriChanged());
-
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-  block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(!block, false);
-  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
-
-  // push sri , data seqeunce
-  sri.mode = 1;
-  port->pushSRI(sri);
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-
-  block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(true, block.sriChanged());
-  int srichangedflags = block.sriChangeFlags();
-  bool modeset = srichangedflags == bulkio::sri::MODE;
-  CPPUNIT_ASSERT_EQUAL(true, modeset);
-
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), false, sri.streamID);
-  block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(!block, false);
-  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
-
-  data.length(1024);
-  port->pushPacket(data, bulkio::time::utils::now(), true, sri.streamID);
-  block = stream.read();
-  CPPUNIT_ASSERT_EQUAL(!block, false);
-  CPPUNIT_ASSERT_EQUAL(false, block.sriChanged());
-  CPPUNIT_ASSERT_EQUAL(true, stream.eos());
-
-}
-
-
-
 
 template<>
 void  Bulkio_InPort_Fixture::test_port_api( bulkio::InSDDSPort *port  ) {
@@ -494,8 +377,6 @@ Bulkio_InPort_Fixture::test_int8()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -519,8 +400,6 @@ Bulkio_InPort_Fixture::test_int16()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -541,8 +420,6 @@ Bulkio_InPort_Fixture::test_int32()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -565,8 +442,6 @@ Bulkio_InPort_Fixture::test_int64()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -588,8 +463,6 @@ Bulkio_InPort_Fixture::test_uint8()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -610,8 +483,6 @@ Bulkio_InPort_Fixture::test_uint16()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
 
   CPPUNIT_ASSERT_NO_THROW( port );
@@ -634,8 +505,6 @@ Bulkio_InPort_Fixture::test_uint32()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
@@ -657,8 +526,6 @@ Bulkio_InPort_Fixture::test_uint64()
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
-  test_stream_disable( port );
-  test_stream_sri_changed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
   delete port;
