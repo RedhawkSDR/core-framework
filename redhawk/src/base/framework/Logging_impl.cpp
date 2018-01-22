@@ -302,7 +302,12 @@ CF::LogLevel Logging_impl::getLogLevel( const char *logger_id )
     if (not haveLogger(logger_id))
         throw (CF::UnknownIdentifier());
     rh_logger::LoggerPtr tmp_logger(this->_log->getLogger(logger_id));
-    return tmp_logger->getLevel()->toInt();
+    int _level = tmp_logger->getLevel()->toInt();
+    if (_level == rh_logger::Level::OFF_INT)
+        _level = CF::LogLevels::OFF;
+    else if (_level == rh_logger::Level::ALL_INT)
+        _level = CF::LogLevels::ALL;
+    return _level;
 }
 
 CF::StringSequence* Logging_impl::getNamedLoggers() {
