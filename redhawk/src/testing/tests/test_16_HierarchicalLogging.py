@@ -35,7 +35,7 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
         return stuff
 
     def tearDown(self):
-        self.comp.releaseObject()
+        sb.release()
 
         try:
             os.remove('foo/bar/test.log')
