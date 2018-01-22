@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# Source redhawk support functions
-. /etc/redhawk/init.d/svc-functions && import_os_functions
-
-SVC_NAME="REDHAWK Service Listing"
-rh_svc_wrapper "list" "${@}"
-exit $?

@@ -1,22 +1,20 @@
-
-
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
-#
+# 
 # This file is part of REDHAWK core.
-#
-# REDHAWK core is free software: you can redistribute it and/or modify it under
-# the terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation, either version 3 of the License, or (at your option) any
+# 
+# REDHAWK core is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU Lesser General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) any 
 # later version.
-#
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# 
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-#
-# You should have received a copy of the GNU Lesser General Public License
+# 
+# You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
@@ -34,82 +32,6 @@ profiled_DATA = profile.d/redhawk.sh \
   profile.d/redhawk.csh \
   profile.d/redhawk-sdrroot.sh \
   profile.d/redhawk-sdrroot.csh
-
-rh_etc_dir = $(sysconfdir)/redhawk
-cron_dir = $(rh_etc_dir)/cron.d
-domains_dir = $(rh_etc_dir)/domains.d
-init_dir = $(rh_etc_dir)/init.d
-logging_dir = $(rh_etc_dir)/logging
-nodes_dir = $(rh_etc_dir)/nodes.d
-limits_dir = $(rh_etc_dir)/security/limits.d
-sysctl_dir = $(rh_etc_dir)/sysctl.d
-waveforms_dir = $(rh_etc_dir)/waveforms.d
-
-rh_etc__DATA = \
-redhawk/rh.cond.cfg
-
-cron__DATA = \
-redhawk/cron.d/redhawk
-
-domains__DATA = \
-redhawk/domains.d/example.domains
-
-init__DATA = \
-redhawk/init.d/conditional_overrides \
-redhawk/init.d/redhawk-device-mgr@.service \
-redhawk/init.d/domain.defaults \
-redhawk/init.d/functions \
-redhawk/init.d/node.defaults \
-redhawk/init.d/omni-clean \
-redhawk/init.d/redhawk-device-mgrs.service \
-redhawk/init.d/redhawk-device-mgrs \
-redhawk/init.d/set-env \
-redhawk/init.d/redhawk-domain-mgr@.service \
-redhawk/init.d/redhawk-domain-mgrs \
-redhawk/init.d/redhawk-domain-mgrs.service \
-redhawk/init.d/redhawk-service-config \
-redhawk/init.d/redhawk-service-list \
-redhawk/init.d/redhawk-service-start \
-redhawk/init.d/redhawk-service-status \
-redhawk/init.d/redhawk-service-stop \
-redhawk/init.d/redhawk-waveform \
-redhawk/init.d/redhawk-waveform@.service \
-redhawk/init.d/redhawk-waveforms \
-redhawk/init.d/redhawk-waveforms.service \
-redhawk/init.d/redhawk-wf-control \
-redhawk/init.d/rundir \
-redhawk/init.d/svc-functions \
-redhawk/init.d/waveform.defaults
-
-logging__DATA = \
-redhawk/logging/default.logging.properties \
-redhawk/logging/example.logging.properties \
-redhawk/logging/logrotate.redhawk
-
-nodes__DATA = \
-redhawk/nodes.d/example.nodes
-
-limits__DATA = \
-redhawk/security/limits.d/99-redhawk-limits.conf
-
-sysctl__DATA = \
-redhawk/sysctl.d/sysctl.conf
-
-waveforms__DATA = \
-redhawk/waveforms.d/example.waveforms
-
-if INSTALL_SYSTEMDUNITS
-
-rh_systemdunits_dir=$(unitdir)
-rh_systemdunits__DATA = \
-redhawk/init.d/redhawk-domain-mgrs.service \
-redhawk/init.d/redhawk-device-mgrs.service \
-redhawk/init.d/redhawk-waveforms.service \
-redhawk/init.d/redhawk-domain-mgr@.service \
-redhawk/init.d/redhawk-device-mgr@.service \
-redhawk/init.d/redhawk-waveform@.service
-
-endif
 
 lib = lib${gr_libdir_suffix}
 edit = $(SED) \
@@ -130,11 +52,3 @@ profile.d/redhawk-sdrroot.csh: profile.d/redhawk-sdrroot.csh.in
 
 DISTCLEANFILES = $(ldsoconfd_DATA) $(profiled_DATA)
 
-install-data-local:
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/log/redhawk"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/domain-mgrs"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/device-mgrs"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/lock/redhawk/waveforms"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/domain-mgrs"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/device-mgrs"
-	$(MKDIR_P) "$(DESTDIR)/$(localstatedir)/run/redhawk/waveforms"

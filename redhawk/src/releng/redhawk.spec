@@ -135,31 +135,6 @@ Requires:       java-1.8.0-openjdk-devel
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.
 
-%package services
-Summary:        Service scripts for REDHAWK, a software defined radio framework
-Group:          Applications/Engineering
-BuildArch:      noarch
-Requires:       %{name} = %{version}-%{release}
-
-Requires:       bash
-Requires:       crudini
-Requires:       binutils
-Requires:       python
-Requires:       redhawk >= 2.0
-Requires:       redhawk-sdrroot-dom-mgr >= 2.0
-Requires:       redhawk-sdrroot-dev-mgr >= 2.0
-
-%if 0%{?with_systemd}
-%{?systemd_requires}
-BuildRequires:          systemd
-%else
-Requires:       /sbin/service /sbin/chkconfig
-Requires(pre):  /sbin/service
-%endif
-
-%description services
-Service scripts for REDHAWK, a Software Defined Radio framework.
-
 %prep
 
 %if 0%{?_localbuild}
@@ -172,11 +147,7 @@ Service scripts for REDHAWK, a Software Defined Radio framework.
 # build the core framework
 cd src
 ./reconf
-%if 0%{?with_systemd}
-%configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests --with-unitdir=%{_unitdir}
-%else
 %configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests
-%endif
 
 make %{?_smp_mflags}
 
@@ -187,7 +158,6 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 # install ossie framework
 cd src
 make install DESTDIR=$RPM_BUILD_ROOT
-echo "REDHAWK_VERSION=%{version}-%{release}" > $RPM_BUILD_ROOT/etc/redhawk/redhawk-release
 
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
@@ -298,145 +268,12 @@ fi
 %{_sysconfdir}/bash_completion.d/nodeBooter
 
 
-%files services
-%defattr(664,root,redhawk,775)
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk
-%attr(444,root,redhawk) %{_sysconfdir}/redhawk/redhawk-release
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/rh.cond.cfg
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/cron.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/cron.d/redhawk
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/domains.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/domains.d/example.domains
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/logging
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/default.logging.properties
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/example.logging.properties
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/logging/logrotate.redhawk
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/nodes.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/nodes.d/example.nodes
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/security
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/security/limits.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/security/limits.d/99-redhawk-limits.conf
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/sysctl.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/sysctl.d/sysctl.conf
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/waveforms.d
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/waveforms.d/example.waveforms
-%dir %attr(775,root,redhawk) %{_sysconfdir}/redhawk/init.d
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs.service
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgr@.service
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs.service
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-device-mgr@.service
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-waveforms
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-waveform
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-waveform@.service
-%attr(644,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-waveforms.service
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/omni-clean
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-service-config
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-service-list
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-service-start
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-service-status
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-service-stop
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/redhawk-wf-control
-%attr(775,root,redhawk) %{_sysconfdir}/redhawk/init.d/conditional_overrides
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/functions
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/svc-functions
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/rundir
-%attr(755,root,redhawk) %{_sysconfdir}/redhawk/init.d/set-env
-%attr(664,root,redhawk) %{_sysconfdir}/redhawk/init.d/*.defaults
-%dir %attr(0777,root,redhawk) %{_localstatedir}/log/redhawk
-%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk
-%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/domain-mgrs
-%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/device-mgrs
-%dir %attr(0777,root,redhawk) %{_localstatedir}/lock/redhawk/waveforms
-%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk
-%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/domain-mgrs
-%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/device-mgrs
-%dir %attr(0777,root,redhawk) %{_localstatedir}/run/redhawk/waveforms
-%if 0%{?with_systemd}
-%defattr (-,root,root)
-%{_unitdir}/redhawk-domain-mgrs.service
-%{_unitdir}/redhawk-device-mgrs.service
-%{_unitdir}/redhawk-waveforms.service
-%{_unitdir}/redhawk-domain-mgr@.service
-%{_unitdir}/redhawk-device-mgr@.service
-%{_unitdir}/redhawk-waveform@.service
-%endif
-
 %post
 /sbin/ldconfig
 
 
-%post services
-
-cp %{_sysconfdir}/redhawk/cron.d/redhawk %{_sysconfdir}/cron.d
-
-%if 0%{?with_systemd}
-
-%systemd_post redhawk-domain-mgrs.service
-%systemd_post redhawk-device-mgrs.service
-%systemd_post redhawk-waveforms.service
-
-systemctl reload crond > /dev/null 2>&1 || :
-
-%else
-ln -s %{_sysconfdir}/redhawk/init.d/redhawk-domain-mgrs %{_sysconfdir}/rc.d/init.d/
-ln -s %{_sysconfdir}/redhawk/init.d/redhawk-device-mgrs %{_sysconfdir}/rc.d/init.d/
-ln -s %{_sysconfdir}/redhawk/init.d/redhawk-waveforms %{_sysconfdir}/rc.d/init.d/
-
-/sbin/chkconfig --add redhawk-domain-mgrs
-/sbin/chkconfig --add redhawk-device-mgrs
-/sbin/chkconfig --add redhawk-waveforms
-
-service crond reload > /dev/null 2>&1 || :
-
-%endif
-
 %postun
 /sbin/ldconfig
-
-%preun services
-
-%if 0%{?with_systemd}
-
-%systemd_preun redhawk-domain-mgrs.service
-%systemd_preun redhawk-device-mgrs.service
-%systemd_preun redhawk-waveforms.service
-
-%else
-
-/sbin/service redhawk-waveforms stop > /dev/null 2>&1 || :
-/sbin/service redhawk-device-mgrs stop > /dev/null 2>&1 || :
-/sbin/service redhawk-domain-mgrs stop > /dev/null 2>&1 || :
-
-/sbin/chkconfig --del redhawk-domain-mgrs  > /dev/null 2>&1 || :
-/sbin/chkconfig --del redhawk-device-mgrs  > /dev/null 2>&1 || :
-/sbin/chkconfig --del redhawk-waveforms  > /dev/null 2>&1 || :
-
-%endif
-
-
-%postun services
-[ -f %{_sysconfdir}/cron.d/redhawk ] && rm -f  %{_sysconfdir}/cron.d/redhawk || :
-
-
-%if 0%{?with_systemd}
-
-%systemd_postun_with_restart redhawk-domain-mgrs.service
-%systemd_postun_with_restart redhawk-device-mgrs.service
-%systemd_postun_with_restart redhawk-waveforms.service
-
-systemctl reload crond  > /dev/null 2>&1 || :
-
-%else
-
-[ -h %{_sysconfdir}/init.d/redhawk-domain-mgrs ] && rm -f %{_sysconfdir}/init.d/redhawk-domain-mgrs
-[ -h %{_sysconfdir}/init.d/redhawk-device-mgrs ] && rm -f %{_sysconfdir}/init.d/redhawk-device-mgrs
-[ -h %{_sysconfdir}/init.d/redhawk-waveforms ] && rm -f %{_sysconfdir}/init.d/redhawk-waveforms
-
-/sbin/service crond reload  > /dev/null 2>&1 || :
-
-%endif
 
 %changelog
 * Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
