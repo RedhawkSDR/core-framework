@@ -180,9 +180,21 @@ bitbuffer::reference bitbuffer::operator[] (size_t pos)
     return reference(data(), offset() + pos);
 }
 
+void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src)
+{
+    redhawk::bitops::copy(data(), offset() + pos, src.data(), src.offset(), bits);
+}
+
 void bitbuffer::swap(bitbuffer& other)
 {
     this->_M_swap(other);
+}
+
+void bitbuffer::_M_resize(bitbuffer& dest)
+{
+    size_t bits = std::min(size(), dest.size());
+    redhawk::bitops::copy(dest.data(), dest.offset(), data(), offset(), bits);
+    this->swap(dest);
 }
 
 bool redhawk::operator==(const shared_bitbuffer& lhs, const shared_bitbuffer& rhs)

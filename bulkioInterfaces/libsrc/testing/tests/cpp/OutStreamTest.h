@@ -77,9 +77,6 @@ class BufferedOutStreamTest : public OutStreamTest<Port>
     CPPUNIT_TEST(testFlushOnClose);
     CPPUNIT_TEST(testFlushOnSriChange);
     CPPUNIT_TEST(testFlushOnBufferSizeChange);
-    CPPUNIT_TEST(testWriteTimestampsReal);
-    CPPUNIT_TEST(testWriteTimestampsComplex);
-    CPPUNIT_TEST(testWriteTimestampsMixed);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -91,6 +88,26 @@ public:
     void testFlushOnSriChange();
     void testFlushOnBufferSizeChange();
 
+protected:
+    typedef typename Port::StreamType StreamType;
+    typedef typename Port::CorbaType CorbaType;
+    typedef typename bulkio::BufferTraits<CorbaType>::MutableBufferType BufferType;
+
+    using TestBase::port;
+    using TestBase::stub;
+};
+
+template <class Port>
+class NumericOutStreamTest : public BufferedOutStreamTest<Port>
+{
+    typedef BufferedOutStreamTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericOutStreamTest, TestBase);
+    CPPUNIT_TEST(testWriteTimestampsReal);
+    CPPUNIT_TEST(testWriteTimestampsComplex);
+    CPPUNIT_TEST(testWriteTimestampsMixed);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
     void testWriteTimestampsReal();
     void testWriteTimestampsComplex();
     void testWriteTimestampsMixed();

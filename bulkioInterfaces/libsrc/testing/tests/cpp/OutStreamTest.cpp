@@ -342,7 +342,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // First write is below the buffer size
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 0);
@@ -355,7 +355,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // but only up to the buffer size (48*3 == 144)
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), data_length(stub->packets.back().data));
 
     // There should now be 16 samples in the queue; writing another 48 should
     // not trigger a push
@@ -365,7 +365,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // Flush the stream and make sure we get as many samples as expected
     stream.flush();
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 64, stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL((size_t) 64, data_length(stub->packets.back().data));
 
     // Disable buffering; push should happen immediately
     stream.setBufferSize(0);
@@ -381,11 +381,11 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     stream.setBufferSize(100);
 
     // With an empty queue, large write should go right through
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(256);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), data_length(stub->packets.back().data));
 
     // Queue up a bit of data
     buffer.resize(16);
@@ -397,7 +397,7 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     buffer.resize(128);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), data_length(stub->packets.back().data));
 }
 
 template <class Port>
@@ -408,7 +408,7 @@ void BufferedOutStreamTest<Port>::testFlush()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->H.size() == 0);
@@ -418,7 +418,7 @@ void BufferedOutStreamTest<Port>::testFlush()
     stream.flush();
     CPPUNIT_ASSERT(stub->H.size() == 1);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), data_length(stub->packets.back().data));
 }
 
 template <class Port>
@@ -428,7 +428,7 @@ void BufferedOutStreamTest<Port>::testFlushOnClose()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->H.size() == 0);
@@ -452,7 +452,7 @@ void BufferedOutStreamTest<Port>::testFlushOnSriChange()
     stream.subsize(0);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
 
@@ -507,7 +507,7 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 0);
@@ -540,14 +540,14 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsReal()
+void NumericOutStreamTest<Port>::testWriteTimestampsReal()
 {
     StreamType stream = port->createStream("write_timestamps_real");
     _writeTimestampsImpl(stream, false);
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsComplex()
+void NumericOutStreamTest<Port>::testWriteTimestampsComplex()
 {
     StreamType stream = port->createStream("write_timestamps_complex");
     stream.complex(true);
@@ -555,7 +555,7 @@ void BufferedOutStreamTest<Port>::testWriteTimestampsComplex()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsMixed()
+void NumericOutStreamTest<Port>::testWriteTimestampsMixed()
 {
    StreamType stream = port->createStream("write_timestamps_mixed");
    stream.complex(true);
@@ -563,7 +563,7 @@ void BufferedOutStreamTest<Port>::testWriteTimestampsMixed()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool complexData)
+void NumericOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool complexData)
 {
     // Generate a ramp using the scalar type; if the data needs to be pushed as
     // complex, it will be reintepreted there
@@ -627,19 +627,19 @@ void BufferedOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool 
 
 #define CREATE_TEST(x,BASE) CREATE_TEST_IMPL(Out##x##StreamTest,bulkio::Out##x##Port,x,BASE)
 #define CREATE_BASIC_TEST(x) CREATE_TEST(x,OutStreamTest)
-#define CREATE_BUFFERED_TEST(x) CREATE_TEST(x,BufferedOutStreamTest)
+#define CREATE_NUMERIC_TEST(x) CREATE_TEST(x,NumericOutStreamTest)
 
-CREATE_BUFFERED_TEST(Octet);
-CREATE_BUFFERED_TEST(Char);
-CREATE_BUFFERED_TEST(Short);
-CREATE_BUFFERED_TEST(UShort);
-CREATE_BUFFERED_TEST(Long);
-CREATE_BUFFERED_TEST(ULong);
-CREATE_BUFFERED_TEST(LongLong);
-CREATE_BUFFERED_TEST(ULongLong);
-CREATE_BUFFERED_TEST(Float);
-CREATE_BUFFERED_TEST(Double);
+CREATE_NUMERIC_TEST(Octet);
+CREATE_NUMERIC_TEST(Char);
+CREATE_NUMERIC_TEST(Short);
+CREATE_NUMERIC_TEST(UShort);
+CREATE_NUMERIC_TEST(Long);
+CREATE_NUMERIC_TEST(ULong);
+CREATE_NUMERIC_TEST(LongLong);
+CREATE_NUMERIC_TEST(ULongLong);
+CREATE_NUMERIC_TEST(Float);
+CREATE_NUMERIC_TEST(Double);
 
-CREATE_BASIC_TEST(Bit);
+CREATE_TEST(Bit,BufferedOutStreamTest);
 CREATE_BASIC_TEST(XML);
 CREATE_BASIC_TEST(File);

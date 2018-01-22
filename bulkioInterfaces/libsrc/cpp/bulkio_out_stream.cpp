@@ -578,11 +578,6 @@ OutBitStream::OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
 {
 }
 
-void OutBitStream::write(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& T)
-{
-    impl().write(data, T);
-}
-
 //
 // XML
 //
@@ -633,5 +628,8 @@ void OutFileStream::write(const std::string& URL, const BULKIO::PrecisionUTCTime
     template class BufferedOutputStream<x>;     \
     template class NumericOutputStream<x>;
 
-    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
-    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+// Bit data gets output stream buffering, but does not support scalar/complex
+// data APIs
+template class BufferedOutputStream<BULKIO::dataBit>;

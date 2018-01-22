@@ -277,14 +277,12 @@ namespace bulkio {
     };
 
 
-    class OutBitStream : public OutputStream<BULKIO::dataBit> {
+    class OutBitStream : public BufferedOutputStream<BULKIO::dataBit> {
     public:
         OutBitStream();
 
-        void write(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& time);
-
     private:
-        typedef OutputStream<BULKIO::dataBit> Base;
+        typedef BufferedOutputStream<BULKIO::dataBit> Base;
 
         friend class OutPort<BULKIO::dataBit>;
         typedef OutPort<BULKIO::dataBit> OutPortType;

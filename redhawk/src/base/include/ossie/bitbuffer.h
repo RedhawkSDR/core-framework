@@ -276,11 +276,29 @@ namespace redhawk {
 
         void fill(size_t start, size_t end, bool value);
 
+        void resize(size_t bits)
+        {
+            bitbuffer temp(bits);
+            _M_resize(temp);
+        }
+
+        template <class Alloc>
+        void resize(size_t bits, const Alloc& allocator)
+        {
+            bitbuffer temp(bits, allocator);
+            _M_resize(temp);
+        }
+
+        void replace(size_t pos, size_t bits, const shared_bitbuffer& src);
+
         /**
          * @brief  Swap contents with another bit buffer.
          * @param other  Bit buffer to swap with.
          */
         void swap(bitbuffer& other);
+
+    private:
+        void _M_resize(bitbuffer& dest);
     };
 
     template <class Alloc>
