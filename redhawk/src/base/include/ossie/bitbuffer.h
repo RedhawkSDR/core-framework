@@ -291,6 +291,8 @@ namespace redhawk {
 
         void replace(size_t pos, size_t bits, const shared_bitbuffer& src);
 
+        void replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos);
+
         /**
          * @brief  Swap contents with another bit buffer.
          * @param other  Bit buffer to swap with.

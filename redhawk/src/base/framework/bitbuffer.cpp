@@ -182,7 +182,12 @@ bitbuffer::reference bitbuffer::operator[] (size_t pos)
 
 void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src)
 {
-    redhawk::bitops::copy(data(), offset() + pos, src.data(), src.offset(), bits);
+    replace(pos, bits, src, 0);
+}
+
+void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos)
+{
+    redhawk::bitops::copy(data(), offset() + pos, src.data(), src.offset() + srcpos, bits);
 }
 
 void bitbuffer::swap(bitbuffer& other)

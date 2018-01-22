@@ -520,11 +520,6 @@ private:
         }
     }
 
-    void _copy(const BufferType& src, size_t srcOffset, MutableBufferType& dest, size_t destOffset, size_t count)
-    {
-        std::copy(&src[srcOffset], &src[srcOffset + count], &dest[destOffset]);
-    }
-
     DataBlockType _readData(size_t count, size_t consume)
     {
         // Acknowledge pending SRI change
@@ -569,7 +564,7 @@ private:
                 const size_t available = input_data.size() - packet_offset;
                 const size_t pass = std::min(available, count);
 
-                _copy(input_data, packet_offset, buffer, data_offset, pass);
+                buffer.replace(data_offset, pass, input_data, packet_offset);
                 data_offset += pass;
                 packet_offset += pass;
                 count -= pass;
@@ -681,17 +676,6 @@ private:
     size_t _samplesQueued;
     size_t _sampleOffset;
 };
-
-
-namespace bulkio {
-    template<>
-    void BufferedInputStream<BULKIO::dataBit>::Impl::_copy(const redhawk::shared_bitbuffer& src, size_t srcStart,
-                                                           redhawk::bitbuffer& dest, size_t destStart,
-                                                           size_t count)
-    {
-        redhawk::bitops::copy(dest.data(), dest.offset() + destStart, src.data(), src.offset() + srcStart, count);
-    }
-}
 
 template <class PortType>
 BufferedInputStream<PortType>::BufferedInputStream() :

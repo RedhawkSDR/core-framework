@@ -786,11 +786,24 @@ namespace redhawk {
          * @brief  Replaces the contents of this %buffer.
          * @param pos  Index of first element to be replaced.
          * @param len  Number of elements to replace.
-         * @param data  A shared_buffer from which to copy elements.
+         * @param src  A shared_buffer from which to copy elements.
          */
-        void replace(size_t pos, size_t len, const shared_type& data)
+        void replace(size_t pos, size_t len, const shared_type& src)
         {
-            std::copy(data.begin(), data.begin() + len, begin() + pos);
+            replace(pos, len, src, 0);
+        }
+
+        /**
+         * @brief  Replaces the contents of this %buffer.
+         * @param pos  Index of first element to be replaced.
+         * @param len  Number of elements to replace.
+         * @param src  A shared_buffer from which to copy elements.
+         * @param srcpos  Index of first element in @p src to copy.
+         */
+        void replace(size_t pos, size_t len, const shared_type& src, size_t srcpos)
+        {
+            shared_type::const_iterator start = data.begin() + srcpos;
+            std::copy(start, start + len, begin() + pos);
         }
 
         /**
