@@ -332,6 +332,9 @@ public class my_scanner extends my_scanner_base {
     public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
     {
         /************************************************************
+
+        This function is called when the allocation request contains a scanner allocation
+
         modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
         
         The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
@@ -347,6 +350,26 @@ public class my_scanner extends my_scanner_base {
         if ((request.bandwidth.getValue() == 1000.0) && (scan_request.min_freq.getValue() == 10000.0)) {
             return true;
         }
+        return false;
+    }
+    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, frontend_tuner_status_struct_struct fts, int tuner_id)
+    {
+        /************************************************************
+
+        This function is called when the allocation request does not contain a scanner allocation
+
+        modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth.setValue(request.bandwidth.getValue());
+        fts.center_frequency.setValue(request.center_frequency.getValue());
+        fts.sample_rate.setValue(request.sample_rate.getValue());
+        
+        return true if the tuning succeeded, and false if it failed
+        ************************************************************/
         return false;
     }
     public boolean deviceDeleteTuning(frontend_tuner_status_struct_struct fts, int tuner_id)

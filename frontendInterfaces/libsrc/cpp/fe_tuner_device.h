@@ -323,12 +323,13 @@ namespace frontend {
             virtual bool callDeviceSetTuning(size_t tuner_id);
             virtual void checkValidIds(const CF::Properties & capacities);
             virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id) = 0;
             virtual void loadProperties();
-            bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id);
 
         private:
             // this will be overridden by the generated base class once all ports are known
             virtual void construct();
+            bool _has_scanner;
     };
 
 }; // end frontend namespace

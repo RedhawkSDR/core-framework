@@ -91,9 +91,8 @@ ${super()}
         void deviceDisable(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 /*{% if 'ScanningTuner' in component.implements %}*/
         bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
-/*{% else %}*/
-        bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 /*{% endif %}*/
+        bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         bool deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 
 /*{% endif %}*/

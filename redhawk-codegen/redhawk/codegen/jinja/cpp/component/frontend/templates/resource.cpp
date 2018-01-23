@@ -51,10 +51,30 @@ void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
 }
 /*{% if 'ScanningTuner' in component.implements %}*/
 bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
-/*{% else %}*/
-bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
-/*{% endif %}*/
     /************************************************************
+
+    This function is called when the allocation request contains a scanner allocation
+
+    modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
+      At a minimum, bandwidth, center frequency, and sample_rate have to be set
+      If the device is tuned to exactly what the request was, the code should be:
+        fts.bandwidth = request.bandwidth;
+        fts.center_frequency = request.center_frequency;
+        fts.sample_rate = request.sample_rate;
+
+    return true if the tuning succeeded, and false if it failed
+    ************************************************************/
+    #warning deviceSetTuning(): Evaluate whether or not a tuner is added  *********
+    return true;
+}
+/*{% endif %}*/
+bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+    /************************************************************
+/*{% if 'ScanningTuner' in component.implements %}*/
+
+    This function is called when the allocation request does not contain a scanner allocation
+
+/*{% endif %}*/
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
       At a minimum, bandwidth, center frequency, and sample_rate have to be set
       If the device is tuned to exactly what the request was, the code should be:

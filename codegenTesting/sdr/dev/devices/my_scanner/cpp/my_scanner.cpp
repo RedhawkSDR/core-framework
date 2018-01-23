@@ -325,6 +325,9 @@ void my_scanner_i::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
 }
 bool my_scanner_i::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
     /************************************************************
+
+    This function is called when the allocation request contains a scanner allocation
+
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
       At a minimum, bandwidth, center frequency, and sample_rate have to be set
       If the device is tuned to exactly what the request was, the code should be:
@@ -336,6 +339,22 @@ bool my_scanner_i::deviceSetTuning(const frontend::frontend_tuner_allocation_str
     ************************************************************/
     if ((request.bandwidth == 1000) and (scan_request.min_freq==10000))
         return true;
+    return false;
+}
+bool my_scanner_i::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+    /************************************************************
+
+    This function is called when the allocation request does not contain a scanner allocation
+
+    modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
+      At a minimum, bandwidth, center frequency, and sample_rate have to be set
+      If the device is tuned to exactly what the request was, the code should be:
+        fts.bandwidth = request.bandwidth;
+        fts.center_frequency = request.center_frequency;
+        fts.sample_rate = request.sample_rate;
+
+    return true if the tuning succeeded, and false if it failed
+    ************************************************************/
     return false;
 }
 bool my_scanner_i::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id) {
