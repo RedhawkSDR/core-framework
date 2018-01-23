@@ -22,25 +22,12 @@
 #include "bulkio.h"
 
 template <class Port>
-void InStreamTest<Port>::setUp()
-{
-    std::string name = "data" + getPortName() + "_in";
-    port = new Port(name);
-}
-
-template <class Port>
-void InStreamTest<Port>::tearDown()
-{
-    delete port;
-}
-
-template <class Port>
 void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
 {
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
     port->pushSRI(sri);
-    _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
 
     // Get the input stream and read the first packet
     StreamType stream = port->getStream("empty_eos");
@@ -51,7 +38,7 @@ void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
     CPPUNIT_ASSERT(!stream.eos());
 
     // Push an end-of-stream packet with no data and get the stream again
-    _pushTestPacket(0, bulkio::time::utils::notSet(), true, sri.streamID);
+    this->_pushTestPacket(0, bulkio::time::utils::notSet(), true, sri.streamID);
     stream = port->getCurrentStream(bulkio::Const::NON_BLOCKING);
     CPPUNIT_ASSERT(stream);
     block = stream.read();
@@ -72,7 +59,7 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create("empty_eos");
     port->pushSRI(sri);
-    _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
 
     // Get the input stream and read the first packet
     StreamType stream = port->getStream("empty_eos");
@@ -83,7 +70,7 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     CPPUNIT_ASSERT(!stream.eos());
 
     // Push an end-of-stream packet with data and get the stream again
-    _pushTestPacket(1024, bulkio::time::utils::now(), true, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), true, sri.streamID);
     stream = port->getCurrentStream(bulkio::Const::NON_BLOCKING);
     CPPUNIT_ASSERT(stream);
     block = stream.read();
@@ -116,7 +103,7 @@ void InStreamTest<Port>::testSriChanges()
     sri.xstart = 0.0;
     sri.xdelta = 1.0;
     port->pushSRI(sri);
-    _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
 
     // Get the input stream and read the first packet
     StreamType stream = port->getStream(stream_id);
@@ -130,7 +117,7 @@ void InStreamTest<Port>::testSriChanges()
     // Change xdelta (based on sample rate of 2.5Msps)
     sri.xdelta = 1.0 / 2.5e6;
     port->pushSRI(sri);
-    _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
     CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
@@ -145,7 +132,7 @@ void InStreamTest<Port>::testSriChanges()
     sri.xstart = 100.0;
     sri.xdelta = 1.0;
     port->pushSRI(sri);
-    _pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
     CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
@@ -165,7 +152,7 @@ void InStreamTest<Port>::testDisable()
     // Create a new stream and push some data to it
     BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
     port->pushSRI(sri);
-    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
 
     // Get the input stream and read the first packet
     StreamType stream = port->getStream(stream_id);
@@ -175,8 +162,8 @@ void InStreamTest<Port>::testDisable()
     CPPUNIT_ASSERT_EQUAL(false, !block);
 
     // Push a couple more packets
-    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
-    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
     CPPUNIT_ASSERT_EQUAL(2, port->getCurrentQueueDepth());
 
     // Disable the stream; this should drop the existing packets
@@ -185,12 +172,12 @@ void InStreamTest<Port>::testDisable()
     CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
 
     // Push a couple more packets; they should get dropped
-    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
-    _pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::now(), false, sri.streamID);
     CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
 
     // Push an end-of-stream packet
-    _pushTestPacket(16, bulkio::time::utils::notSet(), true, sri.streamID);
+    this->_pushTestPacket(16, bulkio::time::utils::notSet(), true, sri.streamID);
 
     // Re-enable the stream and read; it should fail with end-of-stream set
     stream.enable();
@@ -199,40 +186,6 @@ void InStreamTest<Port>::testDisable()
     CPPUNIT_ASSERT(stream.eos());
 }
 
-template <class Port>
-void InStreamTest<Port>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time,
-                                         bool eos, const char* streamID)
-{
-    typename Port::PortSequenceType data;
-    data.length(length);
-    port->pushPacket(data, time, eos, streamID);
-}
-
-template <>
-void InStreamTest<bulkio::InFilePort>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time,
-                                                       bool eos, const char* streamID)
-{
-    std::string data(length, ' ');
-    port->pushPacket(data.c_str(), time, eos, streamID);
-}
-
-template <>
-void InStreamTest<bulkio::InXMLPort>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime&,
-                                                      bool eos, const char* streamID)
-{
-    std::string data(length, ' ');
-    port->pushPacket(data.c_str(), eos, streamID);
-}
-
-template <>
-void InStreamTest<bulkio::InBitPort>::_pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time,
-                                                      bool eos, const char* streamID)
-{
-    BULKIO::BitSequence data;
-    data.data.length((length+7)/8);
-    data.bits = length;
-    port->pushPacket(data, time, eos, streamID);
-}
 
 template <class Port>
 void BufferedInStreamTest<Port>::testSizedReadEmptyEos()

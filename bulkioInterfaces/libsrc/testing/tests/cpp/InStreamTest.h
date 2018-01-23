@@ -20,14 +20,13 @@
 #ifndef BULKIO_INSTREAMTEST_H
 #define BULKIO_INSTREAMTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
-#include <ossie/debug.h>
-
-#include <BULKIO/bulkioDataTypes.h>
+#include "InPortTestFixture.h"
 
 template <class Port>
-class InStreamTest : public CppUnit::TestFixture
+class InStreamTest : public InPortTestFixture<Port>
 {
+    typedef InPortTestFixture<Port> TestBase;
+
     CPPUNIT_TEST_SUITE(InStreamTest);
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
@@ -36,9 +35,6 @@ class InStreamTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void setUp();
-    void tearDown();
-
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
     void testSriChanges();
@@ -49,11 +45,7 @@ protected:
     typedef typename Port::StreamType StreamType;
     typedef typename StreamType::DataBlockType DataBlockType;
 
-    virtual std::string getPortName() const = 0;
-
-    void _pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time, bool eos, const char* streamID);
-
-    Port* port;
+    using TestBase::port;
 };
 
 template <class Port>

@@ -23,52 +23,6 @@
 #include <ossie/PropertyMap.h>
 #include "bulkio.h"
 
-namespace {
-    template <class T>
-    size_t data_length(const T& data)
-    {
-        return data.length();
-    }
-
-    size_t data_length(const BULKIO::BitSequence& seq)
-    {
-        return seq.bits;
-    }
-}
-
-template <class Port>
-void OutStreamTest<Port>::setUp()
-{
-    ossie::corba::CorbaInit(0,0);
-
-    std::string name = "data" + getPortName() + "_out";
-    port = new Port(name);
-
-    stub = new InPortStub<CorbaType>();
-    PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(stub);
-
-    CORBA::Object_var objref = stub->_this();
-    port->connectPort(objref, "test_connection");
-}
-
-template <class Port>
-void OutStreamTest<Port>::tearDown()
-{
-    port->disconnectPort("test_connection");
-
-    // The port has not been used as a CORBA object, so we can delete it directly
-    delete port;
-
-    try {
-        PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->servant_to_id(stub);
-        ossie::corba::RootPOA()->deactivate_object(oid);
-    } catch (...) {
-        // Ignore CORBA exceptions
-    }
-    stub->_remove_ref();
-    stub = 0;
-}
-
 template <class Port>
 void OutStreamTest<Port>::testOperators()
 {
@@ -109,7 +63,7 @@ void OutStreamTest<Port>::testBasicWrite()
     const BULKIO::PrecisionUTCTime time = bulkio::time::utils::now();
     _writeSinglePacket(stream, 256, time);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL((size_t) 256, data_length(stub->packets[0].data));
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, stub->packets[0].size());
     CPPUNIT_ASSERT(!stub->packets[0].EOS);
     CPPUNIT_ASSERT_MESSAGE("Received incorrect time stamp", _checkLastTimestamp(time));
     CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->packets[0].streamID);
@@ -355,7 +309,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // but only up to the buffer size (48*3 == 144)
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), data_length(stub->packets.back().data));
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), stub->packets.back().size());
 
     // There should now be 16 samples in the queue; writing another 48 should
     // not trigger a push
@@ -365,7 +319,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // Flush the stream and make sure we get as many samples as expected
     stream.flush();
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL((size_t) 64, data_length(stub->packets.back().data));
+    CPPUNIT_ASSERT_EQUAL((size_t) 64, stub->packets.back().size());
 
     // Disable buffering; push should happen immediately
     stream.setBufferSize(0);
@@ -385,7 +339,7 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     buffer.resize(256);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), data_length(stub->packets.back().data));
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
 
     // Queue up a bit of data
     buffer.resize(16);
@@ -397,7 +351,7 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     buffer.resize(128);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), data_length(stub->packets.back().data));
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), stub->packets.back().size());
 }
 
 template <class Port>
@@ -418,7 +372,7 @@ void BufferedOutStreamTest<Port>::testFlush()
     stream.flush();
     CPPUNIT_ASSERT(stub->H.size() == 1);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), data_length(stub->packets.back().data));
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
 }
 
 template <class Port>
