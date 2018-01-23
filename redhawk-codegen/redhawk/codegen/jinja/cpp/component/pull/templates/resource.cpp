@@ -337,12 +337,12 @@ void ${className}::updateUsageState()
 
         void ${className}::scaleChanged(float oldValue, float newValue)
         {
-            LOG_DEBUG(${className}, "scaleValue changed from" << oldValue << " to " << newValue);
+            RH_DEBUG(this->_log, "scaleValue changed from" << oldValue << " to " << newValue);
         }
             
         void ${className}::statusChanged(const status_struct& oldValue, const status_struct& newValue)
         {
-            LOG_DEBUG(${className}, "status changed");
+            RH_DEBUG(this->_log, "status changed");
         }
             
         //Add to ${component.userclass.header}
@@ -380,7 +380,7 @@ void ${className}::updateUsageState()
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    LOG_DEBUG(${className}, "serviceFunction() example log message");
+    RH_DEBUG(this->_log, "serviceFunction() example log message");
     
     return NOOP;
 }
