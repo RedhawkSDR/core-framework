@@ -21,20 +21,60 @@
 #include "LocalTest.h"
 #include <bulkio/bulkio.h>
 
+template <class Port>
+struct BitTraits {
+    static const size_t size = sizeof(typename Port::NativeType) * 8;
+};
+
+template <>
+struct BitTraits<bulkio::OutBitPort> {
+    static const size_t size = 1;
+};
+
+
 namespace {
+    template <class T>
+    bool overlaps(const T start1, const T end1, const T start2, const T end2)
+    {
+        return (start2 <= end1) && (start1 <= end2);
+    }
+
+    template <class T>
+    bool contains(const T start1, const T end1, const T start2, const T end2)
+    {
+        return (start2 >= start1) && (end2 <= end1);
+    }
+
     template <class T>
     bool overlaps(const redhawk::shared_buffer<T>& lhs, const redhawk::shared_buffer<T>& rhs)
     {
-        const T* end;
-        const T* ptr;
-        if (lhs.data() < rhs.data()) {
-            end = lhs.data() + lhs.size();
-            ptr = rhs.data();
-        } else {
-            end = rhs.data() + rhs.size();
-            ptr = lhs.data();
-        }
-        return (ptr < end);
+        return overlaps(lhs.data(), lhs.data() + lhs.size(), rhs.data(), rhs.data() + rhs.size());
+    }
+
+    template <class T>
+    bool contains(const redhawk::shared_buffer<T>& outer, const redhawk::shared_buffer<T>& inner)
+    {
+        return contains(outer.data(), outer.data() + outer.size(), inner.data(), inner.data() + inner.size());
+    }
+
+    bool overlaps(const redhawk::shared_bitbuffer& lhs, const redhawk::shared_bitbuffer& rhs)
+    {
+        // Normalize the starts and ends to be relative to the lower of the two
+        // base addresses, and in terms of bits
+        const unsigned char* base = std::min(lhs.data(), rhs.data());
+        size_t lstart = (lhs.data() - base) * 8 + lhs.offset();
+        size_t rstart = (rhs.data() - base) * 8 + rhs.offset();
+        return overlaps(lstart, lstart + lhs.size(), rstart, rstart + rhs.size());
+    }
+
+    bool contains(const redhawk::shared_bitbuffer& outer, const redhawk::shared_bitbuffer& inner)
+    {
+        // Normalize the starts and ends to be relative to the lower of the two
+        // base addresses, and in terms of bits
+        const unsigned char* base = std::min(outer.data(), inner.data());
+        size_t ostart = (outer.data() - base) * 8 + outer.offset();
+        size_t rstart = (inner.data() - base) * 8 + inner.offset();
+        return contains(ostart, ostart + outer.size(), rstart, rstart + inner.size());
     }
 }
 
@@ -72,7 +112,7 @@ void LocalTest<OutPort,InPort>::testBasicWrite()
 {
     // Create an output stream and write a buffer to it
     OutStreamType out_stream = outPort->createStream("test_stream");
-    redhawk::buffer<ScalarType> data(1024);
+    MutableBufferType data(1024);
     out_stream.write(data, bulkio::time::utils::now());
 
     // The corresponding input stream should exist and have data
@@ -82,8 +122,8 @@ void LocalTest<OutPort,InPort>::testBasicWrite()
     CPPUNIT_ASSERT(block);
 
     // Check that the input stream is sharing the underlying memory
-    redhawk::shared_buffer<ScalarType> result = block.buffer();
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Input stream received a copy of data", (const ScalarType*) data.data(), result.data());
+    BufferType result = block.buffer();
+    CPPUNIT_ASSERT_MESSAGE("Input stream received a copy of data", data.data() == result.data());
     CPPUNIT_ASSERT_EQUAL(data.size(), result.size());
 }
 
@@ -93,8 +133,8 @@ void LocalTest<OutPort,InPort>::testLargeWrite()
     // Create an output stream and write a buffer that is too large for a
     // single CORBA transfer
     OutStreamType out_stream = outPort->createStream("test_stream");
-    size_t count = (2 * bulkio::Const::MaxTransferBytes()) / sizeof(ScalarType);
-    redhawk::buffer<ScalarType> data(count);
+    size_t count = (16 * bulkio::Const::MaxTransferBytes()) / BitTraits<OutPort>::size;
+    MutableBufferType data(count);
     out_stream.write(data, bulkio::time::utils::now());
 
     // The corresponding input stream should exist and have data
@@ -104,8 +144,8 @@ void LocalTest<OutPort,InPort>::testLargeWrite()
     CPPUNIT_ASSERT(block);
 
     // Make sure that the original buffer was preserved as a single transfer
-    redhawk::shared_buffer<ScalarType> result = block.buffer();
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Input stream received a copy of data", (const ScalarType*) data.data(), result.data());
+    BufferType result = block.buffer();
+    CPPUNIT_ASSERT_MESSAGE("Input stream received a copy of data", data.data() == result.data());
     CPPUNIT_ASSERT_EQUAL(data.size(), result.size());
 }
 
@@ -114,9 +154,8 @@ void LocalTest<OutPort,InPort>::testReadSlice()
 {
     // Create an output stream and write a buffer to it
     OutStreamType out_stream = outPort->createStream("test_stream");
-    redhawk::buffer<ScalarType> data(1024);
+    MutableBufferType data(1024);
     out_stream.write(data, bulkio::time::utils::now());
-    const ScalarType* start_pointer = data.data();
 
     // The corresponding input stream should exist and have data
     const size_t READ_SIZE = 500;
@@ -126,19 +165,20 @@ void LocalTest<OutPort,InPort>::testReadSlice()
     CPPUNIT_ASSERT(block);
 
     // Check that the read buffer is a subset of the original buffer
-    redhawk::shared_buffer<ScalarType> result = block.buffer();
+    BufferType result = block.buffer();
     CPPUNIT_ASSERT_EQUAL(READ_SIZE, result.size());
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Input stream received a copy of data", start_pointer, result.data());
+    CPPUNIT_ASSERT_MESSAGE("Input stream received a copy of data", data.data() == result.data());
 
     // The next read buffer should point to an offset into the original buffer
     block = in_stream.tryread(READ_SIZE);
     CPPUNIT_ASSERT(block);
     result = block.buffer();
     CPPUNIT_ASSERT_EQUAL(READ_SIZE, result.size());
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Input stream received a copy of data", start_pointer + READ_SIZE, result.data());
+    CPPUNIT_ASSERT_MESSAGE("Input stream received a copy of data", contains(data, result));
+    CPPUNIT_ASSERT_MESSAGE("Input buffer did not advance", data.data() < result.data());
 
     // Write a new buffer (copy allocates a new memory block)
-    redhawk::shared_buffer<ScalarType> data2 = data.copy();
+    BufferType data2 = data.copy();
     out_stream.write(data2, bulkio::time::utils::now());
 
     // Read a buffer that we know spans two input buffers; it should still be
@@ -171,3 +211,4 @@ CREATE_TEST(LongLong);
 CREATE_TEST(ULongLong);
 CREATE_TEST(Float);
 CREATE_TEST(Double);
+CREATE_TEST(Bit);
