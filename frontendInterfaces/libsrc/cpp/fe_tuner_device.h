@@ -322,7 +322,7 @@ namespace frontend {
 
             virtual bool callDeviceSetTuning(size_t tuner_id);
             virtual void checkValidIds(const CF::Properties & capacities);
-            virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            virtual bool deviceSetTuningScan(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
             virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id) = 0;
             virtual void loadProperties();
 

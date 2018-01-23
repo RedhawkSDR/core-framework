@@ -329,7 +329,7 @@ public class my_scanner extends my_scanner_base {
         fts.enabled.setValue(false);
         return;
     }
-    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
+    public boolean deviceSetTuningScan(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
     {
         /************************************************************
 

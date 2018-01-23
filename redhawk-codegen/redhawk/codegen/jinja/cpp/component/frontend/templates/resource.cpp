@@ -50,7 +50,7 @@ void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
     return;
 }
 /*{% if 'ScanningTuner' in component.implements %}*/
-bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+bool ${className}::deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
     /************************************************************
 
     This function is called when the allocation request contains a scanner allocation

@@ -323,7 +323,7 @@ void my_scanner_i::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
     fts.enabled = false;
     return;
 }
-bool my_scanner_i::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+bool my_scanner_i::deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
     /************************************************************
 
     This function is called when the allocation request contains a scanner allocation

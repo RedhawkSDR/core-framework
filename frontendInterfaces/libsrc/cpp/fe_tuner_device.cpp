@@ -305,7 +305,7 @@ namespace frontend {
     template < typename TunerStatusStructType >
     bool FrontendScanningTunerDevice<TunerStatusStructType>::callDeviceSetTuning(size_t tuner_id) {
         if (this->_has_scanner) {
-            return deviceSetTuning(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, frontend_scanner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
+            return deviceSetTuningScan(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, frontend_scanner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
         }
         return deviceSetTuning(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
     }

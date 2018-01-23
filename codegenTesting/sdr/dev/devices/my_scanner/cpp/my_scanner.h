@@ -52,7 +52,7 @@ class my_scanner_i : public my_scanner_base
         // these are pure virtual, must be implemented here
         void deviceEnable(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         void deviceDisable(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
-        bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
+        bool deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         bool deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 

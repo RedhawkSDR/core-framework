@@ -75,7 +75,7 @@ public abstract class FrontendScanningTunerDevice<TunerStatusStructType extends 
 
     public boolean callDeviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_allocation, TunerStatusStructType fts, int tuner_id) {
         if (this._has_scanner) {
-            return deviceSetTuning(frontend_tuner_allocation, frontend_scanner_allocation.getValue(), fts, tuner_id);
+            return deviceSetTuningScan(frontend_tuner_allocation, frontend_scanner_allocation.getValue(), fts, tuner_id);
         }
         return deviceSetTuning(frontend_tuner_allocation, fts, tuner_id);
     }
@@ -92,11 +92,7 @@ public abstract class FrontendScanningTunerDevice<TunerStatusStructType extends 
         }
     }
 
-    protected abstract boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, TunerStatusStructType fts, int tuner_id);
-
-    /*protected boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, TunerStatusStructType fts, int tuner_id) {
-        return false;
-    }*/
+    protected abstract boolean deviceSetTuningScan(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, TunerStatusStructType fts, int tuner_id);
 
     protected StructProperty<frontend.FETypes.frontend_scanner_allocation_struct> frontend_scanner_allocation;
 
