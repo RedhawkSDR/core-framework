@@ -321,6 +321,7 @@ private:
 
     void resolveBoolExec( const std::string &id,
                           std::string &value,
+                          local_spd::ProgramProfile                     *compProfile,
                           const ossie::ComponentInstantiation&          instantiation );
 
     void recordComponentInstantiationId(

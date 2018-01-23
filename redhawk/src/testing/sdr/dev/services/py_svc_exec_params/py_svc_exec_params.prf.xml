@@ -44,7 +44,11 @@
     <action type="external"/>
   </simple>
   <simple id="exec_read_only_bool" mode="readonly" type="boolean" commandline="true">
-    <value>false</value>
+    <value>FALSE</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="exec_read_only_bool_missing" mode="readonly" type="boolean" commandline="true">
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
