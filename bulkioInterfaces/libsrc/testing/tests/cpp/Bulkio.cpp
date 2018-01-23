@@ -22,13 +22,12 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/TestResult.h>
+#include <cppunit/TestPath.h>
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 #include "log4cxx/logger.h"
 #include "log4cxx/basicconfigurator.h"
 #include "log4cxx/helpers/exception.h"
-using namespace std;
-
 
 int main(int argc, char* argv[])
 {
@@ -44,15 +43,28 @@ int main(int argc, char* argv[])
   // Add a listener that collects test result
   CppUnit::TestResultCollector result;
   controller.addListener ( &result );
-  CppUnit::TextUi::TestRunner *runner = new CppUnit::TextUi::TestRunner;
+  CppUnit::TextUi::TestRunner runner;
 
-  ofstream xmlout ( "../cppunit-results.xml" );
+  std::ofstream xmlout("../cppunit-results.xml");
   CppUnit::XmlOutputter xmlOutputter ( &result, xmlout );
   CppUnit::CompilerOutputter compilerOutputter ( &result, std::cerr );
 
+  // If arguments were given, assume they were names of tests or test suites
+  if (argc > 1) {
+      for (int ii = 1; ii < argc; ++ii) {
+          try {
+              CppUnit::Test* test = suite->resolveTestPath(argv[ii]).getChildTest();
+              runner.addTest(test);
+          } catch (const std::exception& exc) {
+              std::cerr << exc.what() << std::endl;
+          }
+      }
+  } else {
+      runner.addTest(suite);
+  }
+
   // Run the tests.
-  runner->addTest( suite );
-  runner->run( controller );
+  runner.run(controller);
   xmlOutputter.write();
   compilerOutputter.write();
 
