@@ -28,20 +28,27 @@ class OutPortTest : public OutPortTestFixture<Port>
     typedef OutPortTestFixture<Port> TestBase;
 
     CPPUNIT_TEST_SUITE(OutPortTest);
-    CPPUNIT_TEST(testBasicAPI);
+    CPPUNIT_TEST(testLegacyAPI);
     CPPUNIT_TEST(testConnections);
     CPPUNIT_TEST(testStatistics);
+    CPPUNIT_TEST(testMultiOut);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void testBasicAPI();
+    void testLegacyAPI();
     void testConnections();
     void testStatistics();
+    void testMultiOut();
 
 protected:
     typedef typename TestBase::StubType StubType;
 
     using TestBase::port;
+    using TestBase::stub;
+
+    void _addStreamFilter(const std::string& streamId, const std::string& connectionId);
+
+    std::vector<bulkio::connection_descriptor_struct> connectionTable;
 };
 
 #endif // BULKIO_OUTPORTTEST_H

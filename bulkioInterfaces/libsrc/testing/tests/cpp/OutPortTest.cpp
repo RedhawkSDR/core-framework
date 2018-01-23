@@ -33,13 +33,10 @@ static void port_disconnected(const char* connectionId)
 }
 
 template <class Port>
-void OutPortTest<Port>::testBasicAPI()
+void OutPortTest<Port>::testLegacyAPI()
 {
     port->setNewConnectListener(&port_connected);
     port->setNewDisconnectListener(&port_disconnected);
-
-    BULKIO::StreamSRI sri;
-    port->pushSRI(sri);
 
     typename Port::ConnectionsList cl = port->_getConnections();
     std::string sid="none";
@@ -109,6 +106,84 @@ void OutPortTest<Port>::testStatistics()
     CPPUNIT_ASSERT(stats.elementsPerSecond > 0.0);
     size_t bits_per_element = round(stats.bitsPerSecond / stats.elementsPerSecond);
     //CPPUNIT_ASSERT_EQUAL(8 * sizeof(typename Port::NativeType), bits_per_element);
+}
+
+template <class Port>
+void OutPortTest<Port>::testMultiOut()
+{
+    StubType* stub2 = this->_createStub();
+    CORBA::Object_var objref = stub2->_this();
+    port->connectPort(objref, "connection_2");
+
+    // Set up a connection table that only routes the filtered stream to the
+    // second stub, and another stream to both connections
+    const std::string filter_stream_id = "filter_stream";
+    _addStreamFilter(filter_stream_id, "connection_2");
+    const std::string all_stream_id = "all_stream";
+    _addStreamFilter(all_stream_id, "test_connection");
+    _addStreamFilter(all_stream_id, "connection_2");
+
+    // Push an SRI for the filtered stream; it should only be received by the
+    // second stub
+    BULKIO::StreamSRI sri = bulkio::sri::create(filter_stream_id, 2.5e6);
+    port->pushSRI(sri);
+    CPPUNIT_ASSERT(stub->H.empty());
+    CPPUNIT_ASSERT(stub2->H.size() == 1);
+    CPPUNIT_ASSERT_EQUAL(filter_stream_id, std::string(stub2->H.back().streamID));
+
+    // Push a packet for the filtered stream; again, only received by #2
+    this->_pushTestPacket(91, bulkio::time::utils::now(), false, filter_stream_id);
+    CPPUNIT_ASSERT(stub->packets.empty());
+    CPPUNIT_ASSERT(stub2->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL((size_t) 91, stub2->packets.back().size());
+
+    // Unknown (to the connection filter) stream should get dropped
+    const std::string unknown_stream_id = "unknown_stream";
+    sri = bulkio::sri::create(unknown_stream_id);
+    port->pushSRI(sri);
+    CPPUNIT_ASSERT(stub->H.empty());
+    CPPUNIT_ASSERT(stub2->H.size() == 1);
+    this->_pushTestPacket(50, bulkio::time::utils::now(), false, unknown_stream_id);
+    CPPUNIT_ASSERT(stub->packets.empty());
+    CPPUNIT_ASSERT(stub2->packets.size() == 1);
+
+    // Check SRI routed to both connections...
+    sri = bulkio::sri::create(all_stream_id, 1e6);
+    port->pushSRI(sri);
+    CPPUNIT_ASSERT(stub->H.size() == 1);
+    CPPUNIT_ASSERT(stub2->H.size() == 2);
+    CPPUNIT_ASSERT_EQUAL(all_stream_id, std::string(stub->H.back().streamID));
+    CPPUNIT_ASSERT_EQUAL(all_stream_id, std::string(stub2->H.back().streamID));
+
+    // ...and data
+    this->_pushTestPacket(256, bulkio::time::utils::now(), false, all_stream_id);
+    CPPUNIT_ASSERT(stub->packets.size() == 1);
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, stub->packets.back().size());
+    CPPUNIT_ASSERT(stub2->packets.size() == 2);
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, stub2->packets.back().size());
+
+    // Reset the connection filter and push data for the filtered stream again,
+    // which should trigger an SRI push to the first stub
+    connectionTable.clear();
+    port->updateConnectionFilter(connectionTable);
+    this->_pushTestPacket(9, bulkio::time::utils::now(), false, filter_stream_id);
+    CPPUNIT_ASSERT(stub->H.size() == 2);
+    CPPUNIT_ASSERT_EQUAL(filter_stream_id, std::string(stub->H.back().streamID));
+    CPPUNIT_ASSERT(stub->packets.size() == 2);
+    CPPUNIT_ASSERT_EQUAL((size_t) 9, stub->packets.back().size());
+    CPPUNIT_ASSERT(stub2->packets.size() == 3);
+    CPPUNIT_ASSERT_EQUAL((size_t) 9, stub2->packets.back().size());
+}
+
+template <class Port>
+void OutPortTest<Port>::_addStreamFilter(const std::string& streamId, const std::string& connectionId)
+{
+    bulkio::connection_descriptor_struct desc;
+    desc.stream_id = streamId;
+    desc.connection_id = connectionId;
+    desc.port_name = port->getName();
+    connectionTable.push_back(desc);
+    port->updateConnectionFilter(connectionTable);
 }
 
 template <class Port>
