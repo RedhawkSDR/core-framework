@@ -21,17 +21,6 @@
 #include "LocalTest.h"
 #include <bulkio/bulkio.h>
 
-template <class Port>
-struct BitTraits {
-    static const size_t size = sizeof(typename Port::NativeType) * 8;
-};
-
-template <>
-struct BitTraits<bulkio::OutBitPort> {
-    static const size_t size = 1;
-};
-
-
 namespace {
     template <class T>
     bool overlaps(const T start1, const T end1, const T start2, const T end2)
@@ -133,7 +122,7 @@ void LocalTest<OutPort,InPort>::testLargeWrite()
     // Create an output stream and write a buffer that is too large for a
     // single CORBA transfer
     OutStreamType out_stream = outPort->createStream("test_stream");
-    size_t count = (16 * bulkio::Const::MaxTransferBytes()) / BitTraits<OutPort>::size;
+    size_t count = (16 * bulkio::Const::MaxTransferBytes()) / bulkio::NativeTraits<CorbaType>::bits;
     MutableBufferType data(count);
     out_stream.write(data, bulkio::time::utils::now());
 

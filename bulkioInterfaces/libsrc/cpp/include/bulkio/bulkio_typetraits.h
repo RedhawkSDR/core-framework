@@ -66,11 +66,19 @@ namespace bulkio {
     template <typename PortType>
     struct NativeTraits {
         typedef typename CorbaTraits<PortType>::TransportType NativeType;
+        static const size_t bits = sizeof(NativeType) * 8;
     };
 
     template <>
     struct NativeTraits<BULKIO::dataChar> {
         typedef int8_t NativeType;
+        static const size_t bits = 8;
+    };
+
+    template <>
+    struct NativeTraits<BULKIO::dataBit> {
+        typedef redhawk::shared_bitbuffer::data_type NativeType;
+        static const size_t bits = 1;
     };
 
     template <typename PortType>
