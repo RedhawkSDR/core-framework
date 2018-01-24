@@ -20,6 +20,8 @@
 
 #include "OutPortTest.h"
 
+#include <ossie/bitops.h>
+
 // Suppress warnings for access to deprecated methods
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -359,6 +361,47 @@ protected:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(OutCharPortTest);
 
+class OutBitPortTest : public ChunkingOutPortTest<bulkio::OutBitPort>
+{
+    typedef ChunkingOutPortTest<bulkio::OutBitPort> TestBase;
+
+    CPPUNIT_TEST_SUB_SUITE(OutBitPortTest, TestBase);
+    CPPUNIT_TEST(testPushUnaligned);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testPushUnaligned()
+    {
+        // Create bit buffer with arbitrary data, then use trim so that it does
+        // not start on a byte boundary
+        redhawk::bitbuffer buffer(16);
+        buffer.data()[0] = 0x14;
+        buffer.data()[1] = 0x85;
+        buffer.trim(1,14);
+        CPPUNIT_ASSERT(buffer.offset() == 1);
+
+        const char* stream_id = "bit_unaligned";
+        BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+        port->pushSRI(sri);
+
+        port->pushPacket(buffer, BULKIO::PrecisionUTCTime(), false, stream_id);
+
+        // Compare received data with sent data, which we know has a non-zero
+        // offset
+        CPPUNIT_ASSERT_EQUAL((size_t) 1, stub->packets.size());
+        CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets[0].size());
+        const BULKIO::BitSequence& data = stub->packets[0].data;
+        int status = redhawk::bitops::compare(&data.data[0], 0, buffer.data(), buffer.offset(), buffer.size());
+        CPPUNIT_ASSERT_MESSAGE("Received data does not match sent data", status == 0);
+    }
+
+protected:
+    using TestBase::port;
+    using TestBase::stub;
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(OutBitPortTest);
+
 #define CREATE_TEST(x,BASE)                                             \
     class Out##x##PortTest : public BASE<bulkio::Out##x##Port>          \
     {                                                                   \
@@ -379,6 +422,5 @@ CREATE_NUMERIC_TEST(LongLong);
 CREATE_NUMERIC_TEST(ULongLong);
 CREATE_NUMERIC_TEST(Float);
 CREATE_NUMERIC_TEST(Double);
-CREATE_TEST(Bit, ChunkingOutPortTest);
 CREATE_BASIC_TEST(XML);
 CREATE_BASIC_TEST(File);
