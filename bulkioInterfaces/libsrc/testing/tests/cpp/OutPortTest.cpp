@@ -357,7 +357,7 @@ protected:
     using TestBase::stub;
 };
 
-
+CPPUNIT_TEST_SUITE_REGISTRATION(OutCharPortTest);
 
 #define CREATE_TEST(x,BASE)                                             \
     class Out##x##PortTest : public BASE<bulkio::Out##x##Port>          \
