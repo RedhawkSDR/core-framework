@@ -267,16 +267,41 @@ void ChunkingOutPortTest<Port>::_testPushOversizedPacket(const BULKIO::Precision
 }
 
 template <class Port>
-void NumericOutPortTest<Port>::testPushPointer()
+void NumericOutPortTest<Port>::testPushPacketData()
 {
-    const char* stream_id = "push_pointer";
+    _testPushPacketDataImpl<NativeType>();
+}
+
+template <class Port>
+template <class T>
+void NumericOutPortTest<Port>::_testPushPacketDataImpl()
+{
+    const char* stream_id = "push_packet";
     BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
     port->pushSRI(sri);
 
-    NativeType buffer[128];
-    port->pushPacket(buffer, 128, BULKIO::PrecisionUTCTime(), false, stream_id);
-    CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL((size_t) 128, stub->packets.back().size());
+    // Create a vector and fill it with a ramp
+    std::vector<T> buffer;
+    buffer.resize(1024);
+    for (size_t ii = 0; ii < buffer.size(); ++ii) {
+        buffer[ii] = ii;
+    }
+
+    // Test push-by-vector
+    port->pushPacket(buffer, BULKIO::PrecisionUTCTime(), false, stream_id);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, stub->packets.size());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
+    // NB: received data is cast to T* for the benefit of dataChar, in which
+    // there is a mismatch in the C++ types
+    CPPUNIT_ASSERT(std::equal(buffer.begin(), buffer.end(), (T*)(&stub->packets.back().data[0])));
+
+    // Test push-by-pointer
+    T* ptr = &buffer[0];
+    port->pushPacket(ptr, buffer.size(), BULKIO::PrecisionUTCTime(), false, stream_id);
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, stub->packets.size());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
+    // NB: see above
+    CPPUNIT_ASSERT(std::equal(buffer.begin(), buffer.end(), (T*)(&stub->packets.back().data[0])));
 }
 
 template <class Port>
@@ -332,26 +357,14 @@ class OutCharPortTest : public NumericOutPortTest<bulkio::OutCharPort>
     typedef NumericOutPortTest<bulkio::OutCharPort> TestBase;
 
     CPPUNIT_TEST_SUB_SUITE(OutCharPortTest, TestBase);
-    CPPUNIT_TEST(testPushChar);
+    CPPUNIT_TEST(testPushPacketDataChar);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void testPushChar()
+    void testPushPacketDataChar()
     {
-        // Test for char* overloads of pushPacket
-        const char* stream_id = "push_char";
-        BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
-        port->pushSRI(sri);
-
-        std::vector<char> vec;
-        port->pushPacket(vec, BULKIO::PrecisionUTCTime(), false, stream_id);
-        CPPUNIT_ASSERT(stub->packets.size() == 1);
-        CPPUNIT_ASSERT_EQUAL(vec.size(), stub->packets.back().size());
-
-        char buffer[100];
-        port->pushPacket(buffer, sizeof(buffer), BULKIO::PrecisionUTCTime(), false, stream_id);
-        CPPUNIT_ASSERT(stub->packets.size() == 2);
-        CPPUNIT_ASSERT_EQUAL(sizeof(buffer), stub->packets.back().size());
+        // Test overloads of pushPacket that take "char" instead of "int8_t"
+        _testPushPacketDataImpl<char>();
     }
 
 protected:
@@ -366,10 +379,31 @@ class OutBitPortTest : public ChunkingOutPortTest<bulkio::OutBitPort>
     typedef ChunkingOutPortTest<bulkio::OutBitPort> TestBase;
 
     CPPUNIT_TEST_SUB_SUITE(OutBitPortTest, TestBase);
+    CPPUNIT_TEST(testPushPacketData);
     CPPUNIT_TEST(testPushUnaligned);
     CPPUNIT_TEST_SUITE_END();
 
 public:
+    void testPushPacketData()
+    {
+        const char* stream_id = "push_packet";
+        BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+        port->pushSRI(sri);
+
+        // Create a bit buffer, and fill the backing bytes with a ramp
+        redhawk::bitbuffer buffer(1024);
+        for (int ii = 0; ii / (buffer.size() / 8); ++ii) {
+            buffer.data()[ii] = 3 * ii;
+        }
+        port->pushPacket(buffer, BULKIO::PrecisionUTCTime(), false, stream_id);
+
+        CPPUNIT_ASSERT_EQUAL((size_t) 1, stub->packets.size());
+        CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets[0].size());
+        const BULKIO::BitSequence& data = stub->packets[0].data;
+        int status = redhawk::bitops::compare(&data.data[0], 0, buffer.data(), buffer.offset(), buffer.size());
+        CPPUNIT_ASSERT_MESSAGE("Received data does not match sent data", status == 0);
+    }
+
     void testPushUnaligned()
     {
         // Create bit buffer with arbitrary data, then use trim so that it does
@@ -402,6 +436,54 @@ protected:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(OutBitPortTest);
 
+class OutXMLPortTest : public OutPortTest<bulkio::OutXMLPort>
+{
+    typedef OutPortTest<bulkio::OutXMLPort> TestBase;
+
+    CPPUNIT_TEST_SUB_SUITE(OutXMLPortTest, TestBase);
+    CPPUNIT_TEST(testPushPacketData);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testPushPacketData()
+    {
+        const char* stream_id = "push_packet";
+        BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+        port->pushSRI(sri);
+
+        const std::string document = "<document><body attribute=\"value\"/></document>";
+        port->pushPacket(document, false, stream_id);
+
+        CPPUNIT_ASSERT_EQUAL((size_t) 1, stub->packets.size());
+        CPPUNIT_ASSERT_EQUAL(document, stub->packets.back().data);
+    }
+};
+
+class OutFilePortTest : public OutPortTest<bulkio::OutFilePort>
+{
+    typedef OutPortTest<bulkio::OutFilePort> TestBase;
+
+    CPPUNIT_TEST_SUB_SUITE(OutFilePortTest, TestBase);
+    CPPUNIT_TEST(testPushPacketData);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testPushPacketData()
+    {
+        const char* stream_id = "push_packet";
+        BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+        port->pushSRI(sri);
+
+        const std::string uri = "file:///tmp/test.dat";
+        port->pushPacket(uri, BULKIO::PrecisionUTCTime(), false, stream_id);
+
+        CPPUNIT_ASSERT_EQUAL((size_t) 1, stub->packets.size());
+        CPPUNIT_ASSERT_EQUAL(uri, stub->packets.back().data);
+    }
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(OutFilePortTest);
+
 #define CREATE_TEST(x,BASE)                                             \
     class Out##x##PortTest : public BASE<bulkio::Out##x##Port>          \
     {                                                                   \
@@ -410,7 +492,6 @@ CPPUNIT_TEST_SUITE_REGISTRATION(OutBitPortTest);
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(Out##x##PortTest);
 
-#define CREATE_BASIC_TEST(x) CREATE_TEST(x,OutPortTest)
 #define CREATE_NUMERIC_TEST(x) CREATE_TEST(x,NumericOutPortTest)
 
 CREATE_NUMERIC_TEST(Octet);
@@ -422,5 +503,3 @@ CREATE_NUMERIC_TEST(LongLong);
 CREATE_NUMERIC_TEST(ULongLong);
 CREATE_NUMERIC_TEST(Float);
 CREATE_NUMERIC_TEST(Double);
-CREATE_BASIC_TEST(XML);
-CREATE_BASIC_TEST(File);

@@ -82,19 +82,23 @@ class NumericOutPortTest : public ChunkingOutPortTest<Port>
     typedef ChunkingOutPortTest<Port> TestBase;
 
     CPPUNIT_TEST_SUB_SUITE(NumericOutPortTest, TestBase);
-    CPPUNIT_TEST(testPushPointer);
+    CPPUNIT_TEST(testPushPacketData);
     CPPUNIT_TEST(testPushChunkingComplex);
     CPPUNIT_TEST(testPushChunkingSubsizeComplex);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void testPushPointer();
+    void testPushPacketData();
     void testPushChunkingComplex();
     void testPushChunkingSubsizeComplex();
 
 protected:
     typedef typename Port::NativeType NativeType;
+    typedef typename Port::VectorType VectorType;
     typedef typename Port::CorbaType CorbaType;
+
+    template <typename T>
+    void _testPushPacketDataImpl();
 
     using TestBase::port;
     using TestBase::stub;
