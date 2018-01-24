@@ -802,7 +802,7 @@ namespace redhawk {
          */
         void replace(size_t pos, size_t len, const shared_type& src, size_t srcpos)
         {
-            shared_type::const_iterator start = data.begin() + srcpos;
+            typename shared_type::const_iterator start = src.begin() + srcpos;
             std::copy(start, start + len, begin() + pos);
         }
 
