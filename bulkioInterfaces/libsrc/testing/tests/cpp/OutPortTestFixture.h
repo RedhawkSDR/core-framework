@@ -32,8 +32,6 @@ class OutPortTestFixture : public CppUnit::TestFixture
 public:
     void setUp()
     {
-        ossie::corba::CorbaInit(0,0);
-
         std::string name = "data" + getPortName() + "_out";
         port = new Port(name);
 

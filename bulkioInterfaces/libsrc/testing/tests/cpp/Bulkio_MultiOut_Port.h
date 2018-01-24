@@ -37,8 +37,6 @@ public:
 
   rh_logger::LoggerPtr logger;
 
-  CORBA::ORB_ptr orb;
-
   std::string  lname;
 
   IN_PORT *ip1; 

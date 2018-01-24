@@ -25,7 +25,6 @@ void Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::setUp()
 {
   logger = rh_logger::Logger::getLogger("Bulkio-MultiOutPort-" + lname );
   logger->setLevel( rh_logger::Level::getInfo());
-  orb = ossie::corba::CorbaInit(0,NULL);
 
   RH_DEBUG(this->logger, "Setup - Multiout Create Ports Table " );
 
@@ -97,9 +96,6 @@ void Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::tearDown()
   ossie::corba::RootPOA()->deactivate_object(ip3_oid);
   ossie::corba::RootPOA()->deactivate_object(ip4_oid);
   ossie::corba::RootPOA()->deactivate_object(port_oid);
-
-  RH_DEBUG(this->logger, "TearDown - Shutdown the ORB " );
-  //orb->shutdown(1);
 }
 
 

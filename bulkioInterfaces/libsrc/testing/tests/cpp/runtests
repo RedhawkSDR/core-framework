@@ -1,4 +1,5 @@
 #
 #
-make check -j 10
+make -j 10 Bulkio
+./Bulkio --xunit-file ../cppunit-results.xml
 

@@ -128,7 +128,6 @@ class OutSDDSPortTest : public CppUnit::TestFixture
 public:
     void setUp()
     {
-        ossie::corba::CorbaInit(0,0);
         logger = rh_logger::Logger::getLogger("BulkioOutPort");
         logger->setLevel( rh_logger::Level::getInfo());
         port = new bulkio::OutSDDSPort("dataSDDS_out", logger);

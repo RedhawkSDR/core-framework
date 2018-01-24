@@ -18,57 +18,107 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 #include <iostream>
-#include <cppunit/CompilerOutputter.h>
+
+#include <getopt.h>
+
 #include <cppunit/extensions/TestFactoryRegistry.h>
-#include <cppunit/ui/text/TestRunner.h>
+#include <cppunit/BriefTestProgressListener.h>
+#include <cppunit/CompilerOutputter.h>
+#include <cppunit/TextTestRunner.h>
 #include <cppunit/TestResult.h>
 #include <cppunit/TestPath.h>
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
-#include "log4cxx/logger.h"
-#include "log4cxx/basicconfigurator.h"
-#include "log4cxx/helpers/exception.h"
+
+#include <ossie/CorbaUtils.h>
+
+// log4cxx includes need to follow CorbaUtils, otherwise "ossie/debug.h" will
+// issue warnings about the logging macros
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/propertyconfigurator.h>
 
 int main(int argc, char* argv[])
 {
+    const char* short_options = "v";
+    struct option long_options[] = {
+        { "xunit-file", required_argument, 0, 'x' },
+        { "log-level",  required_argument, 0, 'l' },
+        { "log-config", required_argument, 0, 'c' },
+        { "verbose",    no_argument,       0, 'v' },
+        { 0, 0, 0, 0 }
+    };
 
-  // Set up a simple configuration that logs on the console.
-  log4cxx::BasicConfigurator::configure();
+    bool verbose = false;
+    const char* xunit_file = 0;
+    const char* log_config = 0;
+    std::string log_level;
+    int status;
+    while ((status = getopt_long(argc, argv, short_options, long_options, NULL)) >= 0) {
+        switch (status) {
+        case '?': // Invalid option
+            return -1;
+        case 'x':
+            xunit_file = optarg;
+            break;
+        case 'l':
+            log_level = optarg;
+            break;
+        case 'c':
+            log_config = optarg;
+            break;
+        case 'v':
+            verbose = true;
+            break;
+        }
+    }
 
-  // Get the top level suite from the registry
-  CppUnit::Test *suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
+    // Many tests require CORBA, and possibly the REDHAWK ORB singleton, so
+    // initialize up front.
+    ossie::corba::CorbaInit(0,0);
 
-  // Create the event manager and test controller
-  CppUnit::TestResult controller;
-  // Add a listener that collects test result
-  CppUnit::TestResultCollector result;
-  controller.addListener ( &result );
-  CppUnit::TextUi::TestRunner runner;
+    // If a log4j configuration file was given, read it.
+    if (log_config) {
+        log4cxx::PropertyConfigurator::configure(log_config);
+    } else {
+        // Set up a simple configuration that logs on the console.
+        log4cxx::BasicConfigurator::configure();
+    }
 
-  std::ofstream xmlout("../cppunit-results.xml");
-  CppUnit::XmlOutputter xmlOutputter ( &result, xmlout );
-  CppUnit::CompilerOutputter compilerOutputter ( &result, std::cerr );
+    // Apply the log level (can override config file).
+    log4cxx::LevelPtr level = log4cxx::Level::toLevel(log_level, log4cxx::Level::getInfo());
+    log4cxx::Logger::getRootLogger()->setLevel(level);
 
-  // If arguments were given, assume they were names of tests or test suites
-  if (argc > 1) {
-      for (int ii = 1; ii < argc; ++ii) {
-          try {
-              CppUnit::Test* test = suite->resolveTestPath(argv[ii]).getChildTest();
-              runner.addTest(test);
-          } catch (const std::exception& exc) {
-              std::cerr << exc.what() << std::endl;
-          }
-      }
-  } else {
-      runner.addTest(suite);
-  }
+    // Create the test runner.
+    CppUnit::TextTestRunner runner;
 
-  // Run the tests.
-  runner.run(controller);
-  xmlOutputter.write();
-  compilerOutputter.write();
+    // Enable verbose output, displaying the name of each test as it runs.
+    if (verbose) {
+        runner.eventManager().addListener(new CppUnit::BriefTestProgressListener());
+    }
 
-  // Return error code 1 if the one of test failed.
-  return result.wasSuccessful() ? 0 : 1;
+    // Use a compiler outputter instead of the default text one.
+    runner.setOutputter(new CppUnit::CompilerOutputter(&runner.result(), std::cerr));
+
+    // Get the top level suite from the registry.
+    CppUnit::Test* suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
+    runner.addTest(suite);
+
+    // If an argument was given, assume it was the name of a test or suite.
+    std::string test_path;
+    if (optind < argc) {
+        test_path = argv[optind];
+    }
+
+    // Run the tests (don't pause, write output, don't print progress).
+    runner.run(test_path, false, true, false);
+
+    // Write XML file, if requested.
+    if (xunit_file) {
+        std::ofstream file(xunit_file);
+        CppUnit::XmlOutputter xml_outputter(&runner.result(), file);
+        xml_outputter.write();
+    }
+
+    // Return error code 1 if the one of test failed.
+    return runner.result().wasSuccessful() ? 0 : 1;
 }
-
