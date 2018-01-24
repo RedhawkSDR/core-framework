@@ -575,7 +575,6 @@ void NumericOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool c
         typedef BASE<PORT> TestBase;                                    \
         CPPUNIT_TEST_SUB_SUITE(TESTCLASS, TestBase);                    \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #NAME; };      \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(TESTCLASS);
 

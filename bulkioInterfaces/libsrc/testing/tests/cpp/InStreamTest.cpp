@@ -365,7 +365,6 @@ void NumericInStreamTest<Port>::testSriModeChanges()
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(In##x##StreamTest, BASE<bulkio::In##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #x; };         \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##StreamTest);
 

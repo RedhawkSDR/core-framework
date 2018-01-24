@@ -243,8 +243,6 @@ public:
     }
 
 protected:
-    virtual std::string getPortName() const { return "Char"; };
-
     using TestBase::port;
     using TestBase::stub;
 };
@@ -254,7 +252,6 @@ protected:
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(Out##x##PortTest, BASE<bulkio::Out##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #x; };         \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(Out##x##PortTest);
 

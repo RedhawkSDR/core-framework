@@ -30,8 +30,7 @@ class InPortTestFixture : public CppUnit::TestFixture
 public:
     void setUp()
     {
-        std::string name = "data" + getPortName() + "_in";
-        port = new Port(name);
+        port = new Port(getPortName());
     }
 
     void tearDown()
@@ -40,7 +39,13 @@ public:
     }
 
 protected:
-    virtual std::string getPortName() const = 0;
+    typedef typename Port::CorbaType CorbaType;
+
+    virtual std::string getPortName() const
+    {
+        std::string name = bulkio::CorbaTraits<CorbaType>::name();
+        return name + "_in";
+    }
 
     inline void _pushTestPacket(size_t length, const BULKIO::PrecisionUTCTime& time,
                          bool eos, const char* streamID)

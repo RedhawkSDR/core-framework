@@ -44,6 +44,7 @@ namespace bulkio {
         typedef POA_BULKIO::internal::NAME##Ext POATypeExt;     \
         typedef TT TransportType;                               \
         typedef ST SequenceType;                                \
+        static const char* name() { return #NAME; }             \
     };
 
     DEFINE_CORBA_TRAITS(dataChar, CORBA::Char, PortTypes::CharSequence);

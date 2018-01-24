@@ -32,8 +32,7 @@ class OutPortTestFixture : public CppUnit::TestFixture
 public:
     void setUp()
     {
-        std::string name = "data" + getPortName() + "_out";
-        port = new Port(name);
+        port = new Port(getPortName());
 
         stub = _createStub();
 
@@ -61,7 +60,11 @@ protected:
     typedef typename Port::CorbaType CorbaType;
     typedef InPortStub<CorbaType> StubType;
 
-    virtual std::string getPortName() const = 0;
+    virtual std::string getPortName() const
+    { 
+        std::string name = bulkio::CorbaTraits<CorbaType>::name();
+        return name + "_out";
+    };
 
     StubType* _createStub()
     {

@@ -81,9 +81,9 @@ namespace {
 template <class OutPort, class InPort>
 void LocalTest<OutPort,InPort>::setUp()
 {
-    std::string name = getPortName();
-    outPort = new OutPort("data" + name + "_out");
-    inPort = new InPort("data" + name + "_in");
+    std::string name = bulkio::CorbaTraits<CorbaType>::name();
+    outPort = new OutPort(name + "_out");
+    inPort = new InPort(name + "_in");
 
     PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(inPort);
 
@@ -197,7 +197,6 @@ void LocalTest<OutPort,InPort>::testReadSlice()
         typedef LocalTest<bulkio::Out##x##Port,bulkio::In##x##Port> TestBase; \
         CPPUNIT_TEST_SUB_SUITE(Local##x##Test, TestBase);               \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #x; };         \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(Local##x##Test);
 

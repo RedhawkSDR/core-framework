@@ -21,13 +21,23 @@
 #include "InPortTestFixture.h"
 #include <bulkio/bulkio.h>
 
-class InSDDSPortTest : public InPortTestFixture<bulkio::InSDDSPort>
+class InSDDSPortTest : public CppUnit::TestFixture
 {
   CPPUNIT_TEST_SUITE(InSDDSPortTest);
   CPPUNIT_TEST(testBasicAPI);
   CPPUNIT_TEST_SUITE_END();
 
 public:
+    void setUp()
+    {
+        port = new bulkio::InSDDSPort("dataSDDS_in");
+    }
+
+    void tearDown()
+    {
+        delete port;
+    }
+
     void testBasicAPI()
     {
         BULKIO::PortStatistics *stats = port->statistics();
@@ -86,11 +96,8 @@ public:
         port->enableStats( false );
     }
 
-protected:
-    virtual std::string getPortName() const
-    {
-        return "SDDS";
-    }
+private:
+    bulkio::InSDDSPort* port;
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(InSDDSPortTest);

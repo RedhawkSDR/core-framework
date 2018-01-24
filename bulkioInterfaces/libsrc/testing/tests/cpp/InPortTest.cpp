@@ -157,7 +157,6 @@ void InPortTest<Port>::testSriChange()
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(In##x##PortTest, InPortTest<bulkio::In##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #x; };         \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##PortTest);
 

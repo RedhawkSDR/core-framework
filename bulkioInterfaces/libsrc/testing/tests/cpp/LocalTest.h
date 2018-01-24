@@ -50,8 +50,6 @@ protected:
     typedef typename bulkio::BufferTraits<CorbaType>::BufferType BufferType;
     typedef typename bulkio::BufferTraits<CorbaType>::MutableBufferType MutableBufferType;
 
-    virtual std::string getPortName() const = 0;
-
     OutPort* outPort;
     InPort* inPort;
 };
