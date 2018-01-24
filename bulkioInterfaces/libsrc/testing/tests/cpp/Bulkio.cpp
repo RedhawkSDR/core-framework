@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     }
 
     // Run the tests (don't pause, write output, don't print progress).
-    runner.run(test_path, false, true, false);
+    bool success = runner.run(test_path, false, true, false);
 
     // Write XML file, if requested.
     if (xunit_file) {
@@ -120,5 +120,5 @@ int main(int argc, char* argv[])
     }
 
     // Return error code 1 if the one of test failed.
-    return runner.result().wasSuccessful() ? 0 : 1;
+    return success ? 0 : 1;
 }
