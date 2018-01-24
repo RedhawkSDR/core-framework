@@ -17,37 +17,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef BULKIO_HELPER_FIXTURE_H
-#define BULKIO_HELPER_FIXTURE_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "StreamSRITest.h"
 
-class Bulkio_Helper_Fixture : public CppUnit::TestFixture
+#include <bulkio/bulkio.h>
+
+CPPUNIT_TEST_SUITE_REGISTRATION(StreamSRITest);
+
+void StreamSRITest::testCreate()
 {
-  CPPUNIT_TEST_SUITE( Bulkio_Helper_Fixture );
-  CPPUNIT_TEST( test_sri_create );
-  CPPUNIT_TEST( test_sri_compare );
-  CPPUNIT_TEST( test_time_now );
-  CPPUNIT_TEST( test_time_create );
-  CPPUNIT_TEST( test_time_compare );
-  CPPUNIT_TEST( test_time_normalize );
-  CPPUNIT_TEST( test_time_operators );
-  CPPUNIT_TEST( test_time_string );
-  CPPUNIT_TEST_SUITE_END();
+    BULKIO::StreamSRI sri = bulkio::sri::create();
+}
 
-public:
-  void setUp();
-  void tearDown();
+void StreamSRITest::testCompare()
+{
+    BULKIO::StreamSRI A = bulkio::sri::create();
+    BULKIO::StreamSRI B = bulkio::sri::create();
+    BULKIO::StreamSRI C = bulkio::sri::create();
 
-  void test_sri_create();
-  void test_sri_compare();
+    C.streamID = std::string("No Match").c_str();
 
-  void test_time_now();
-  void test_time_create();
-  void test_time_compare();
-  void test_time_normalize();
-  void test_time_operators();
-  void test_time_string();
-};
-
-#endif  // BULKIO_HELPER_FIXTURE_H
+    CPPUNIT_ASSERT(bulkio::sri::DefaultComparator(A, B));
+    CPPUNIT_ASSERT(!bulkio::sri::DefaultComparator(A, C));
+}
