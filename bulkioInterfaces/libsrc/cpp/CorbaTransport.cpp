@@ -149,11 +149,9 @@ namespace bulkio {
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ChunkingTransport(OutPort<PortType>* parent, PtrType port) :
-            CorbaTransport<PortType>(parent, port)
+            CorbaTransport<PortType>(parent, port),
+            maxSamplesPerPush(_getMaxSamplesPerPush())
         {
-            // Multiply by some number < 1 to leave some margin for the CORBA header
-            const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
-            maxSamplesPerPush = _maxSamples(maxPayloadSize);
         }
 
         /*
@@ -214,19 +212,18 @@ namespace bulkio {
         }
 
     private:
-        static size_t _maxSamples(size_t payloadSize)
+        static inline size_t _getMaxSamplesPerPush()
         {
-            return payloadSize / sizeof(TransportType);
+            // Take the maximum transfer size in bytes, multiply by some number
+            // < 1 to leave some margin for the CORBA header, then determine
+            // the maximum number of elements via bits, to support numeric data
+            // data types (e.g., float) and packed bits.
+            const size_t max_bits = (size_t) (bulkio::Const::MaxTransferBytes() * .9) * 8;
+            return max_bits / NativeTraits<PortType>::bits;
         }
 
-        size_t maxSamplesPerPush;
+        const size_t maxSamplesPerPush;
     };
-
-    template <>
-    size_t ChunkingTransport<BULKIO::dataBit>::_maxSamples(size_t payloadSize)
-    {
-        return payloadSize * 8;
-    }
 
     template <typename PortType>
     OutputTransport<PortType>* CorbaTransportFactory<PortType>::Create(OutPort<PortType>* parent,

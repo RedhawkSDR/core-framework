@@ -43,12 +43,61 @@ public:
 protected:
     typedef typename TestBase::StubType StubType;
 
+    void _addStreamFilter(const std::string& streamId, const std::string& connectionId);
+
     using TestBase::port;
     using TestBase::stub;
 
-    void _addStreamFilter(const std::string& streamId, const std::string& connectionId);
-
     std::vector<bulkio::connection_descriptor_struct> connectionTable;
+};
+
+template <class Port>
+class ChunkingOutPortTest : public OutPortTest<Port>
+{
+    typedef OutPortTest<Port> TestBase;
+
+    CPPUNIT_TEST_SUB_SUITE(ChunkingOutPortTest, TestBase);
+    CPPUNIT_TEST(testPushChunking);
+    CPPUNIT_TEST(testPushChunkingEOS);
+    CPPUNIT_TEST(testPushChunkingSubsize);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testPushChunking();
+    void testPushChunkingEOS();
+    void testPushChunkingSubsize();
+
+protected:
+    typedef typename Port::CorbaType CorbaType;
+
+    void _testPushOversizedPacket(const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId);
+
+    using TestBase::port;
+    using TestBase::stub;
+};
+
+template <class Port>
+class NumericOutPortTest : public ChunkingOutPortTest<Port>
+{
+    typedef ChunkingOutPortTest<Port> TestBase;
+
+    CPPUNIT_TEST_SUB_SUITE(NumericOutPortTest, TestBase);
+    CPPUNIT_TEST(testPushPointer);
+    CPPUNIT_TEST(testPushChunkingComplex);
+    CPPUNIT_TEST(testPushChunkingSubsizeComplex);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testPushPointer();
+    void testPushChunkingComplex();
+    void testPushChunkingSubsizeComplex();
+
+protected:
+    typedef typename Port::NativeType NativeType;
+    typedef typename Port::CorbaType CorbaType;
+
+    using TestBase::port;
+    using TestBase::stub;
 };
 
 #endif // BULKIO_OUTPORTTEST_H
