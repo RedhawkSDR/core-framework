@@ -21,7 +21,7 @@
 #ifndef ANYUTILSTEST_H
 #define ANYUTILSTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 #include <ossie/AnyUtils.h>
 

@@ -21,7 +21,7 @@
 #ifndef BITBUFFERTEST_H
 #define BITBUFFERTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class BitBufferTest : public CppUnit::TestFixture
 {

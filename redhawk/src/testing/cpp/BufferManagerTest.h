@@ -23,7 +23,7 @@
 
 #include <set>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 #include <ossie/BufferManager.h>
 

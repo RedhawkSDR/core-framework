@@ -28,7 +28,6 @@
 #include <stdint.h>
 
 #include <ossie/bitops.h>
-#include "AssertArray.h"
 
 void BitopsTest::setUp()
 {

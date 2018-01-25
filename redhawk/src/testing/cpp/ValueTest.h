@@ -21,7 +21,7 @@
 #ifndef VALUETEST_H
 #define VALUETEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class ValueTest : public CppUnit::TestFixture
 {

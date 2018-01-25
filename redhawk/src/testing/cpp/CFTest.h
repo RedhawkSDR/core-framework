@@ -18,11 +18,12 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef ASSERTARRAY_H
-#define ASSERTARRAY_H
+#ifndef CFTEST_H
+#define CFTEST_H
 
 #include <iomanip>
 
+#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/Message.h>
 #include <cppunit/Asserter.h>
 
@@ -61,10 +62,10 @@ namespace CppUnit {
         static inline std::string toString(unsigned char value)
         {
             std::ostringstream oss;
-            oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (int)value;
+            oss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (int)value;
             return oss.str();
         }
     };
 }
 
-#endif // ASSERTARRAY_H
+#endif // CFTEST_H

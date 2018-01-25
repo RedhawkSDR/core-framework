@@ -21,7 +21,7 @@
 #ifndef CALLBACKTEST_H
 #define CALLBACKTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class CallbackTest : public CppUnit::TestFixture
 {

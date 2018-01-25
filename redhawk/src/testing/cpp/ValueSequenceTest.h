@@ -21,7 +21,7 @@
 #ifndef VALUESEQUENCETEST_H
 #define VALUESEQUENCETEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class ValueSequenceTest : public CppUnit::TestFixture
 {

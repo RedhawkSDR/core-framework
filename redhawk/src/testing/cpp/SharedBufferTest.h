@@ -21,7 +21,7 @@
 #ifndef SHAREDBUFFERTEST_H
 #define SHAREDBUFFERTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class SharedBufferTest : public CppUnit::TestFixture
 {

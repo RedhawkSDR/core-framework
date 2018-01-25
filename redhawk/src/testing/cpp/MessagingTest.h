@@ -21,7 +21,7 @@
 #ifndef MESSAGINGTEST_H
 #define MESSAGINGTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 #include <ossie/MessageInterface.h>
 

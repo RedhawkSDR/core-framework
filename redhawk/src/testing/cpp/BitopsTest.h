@@ -21,7 +21,7 @@
 #ifndef BITOPSTEST_H
 #define BITOPSTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class BitopsTest : public CppUnit::TestFixture {
 

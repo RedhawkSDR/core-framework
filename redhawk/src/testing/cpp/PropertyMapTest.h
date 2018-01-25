@@ -21,7 +21,7 @@
 #ifndef PROPERTYMAPTEST_H
 #define PROPERTYMAPTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class PropertyMapTest : public CppUnit::TestFixture
 {
