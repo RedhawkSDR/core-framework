@@ -23,14 +23,20 @@
 
 #include "CFTest.h"
 
+#include <ossie/bitbuffer.h>
+
 class BitBufferTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(BitBufferTest);
     CPPUNIT_TEST(testDefaultConstructor);
     CPPUNIT_TEST(testConstructor);
+    CPPUNIT_TEST(testFromInt);
+    CPPUNIT_TEST(testFromArray);
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST_SUITE_END();
+
+    typedef redhawk::shared_bitbuffer::data_type data_type;
 
 public:
     void setUp();
@@ -38,6 +44,8 @@ public:
 
     void testDefaultConstructor();
     void testConstructor();
+    void testFromInt();
+    void testFromArray();
 
     void testSharing();
     void testSlicing();

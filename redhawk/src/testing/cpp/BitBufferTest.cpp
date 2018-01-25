@@ -60,6 +60,39 @@ void BitBufferTest::testConstructor()
     CPPUNIT_ASSERT(shared.data() == buffer.data());
 }
 
+void BitBufferTest::testFromInt()
+{
+    // Input value is right-aligned (i.e., take lowest 28 bits)
+    redhawk::bitbuffer buffer = redhawk::bitbuffer::from_int(0xBADC0DE, 28);
+    // Bit buffer should be left-aligned
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, buffer.offset());
+    const data_type* data = buffer.data();
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xBA, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xDC, data[1]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x0D, data[2]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xE0, (data_type) (data[3] & 0xF0));
+}
+
+void BitBufferTest::testFromArray()
+{
+    // Test with a large array and offset of 0
+    const data_type array[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x11, 0x22 };
+    const size_t bits = sizeof(array) * 8;
+    redhawk::bitbuffer buffer = redhawk::bitbuffer::from_array(array, bits);
+    // Bit buffer should be left-aligned
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, buffer.offset());
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(array, buffer.data(), sizeof(array));
+
+    // Test with a non-zero offset and non-integral number of bytes
+    buffer = redhawk::bitbuffer::from_array(array, 4, 18);
+    // Bit buffer should be left-aligned
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, buffer.offset());
+    const data_type* data = buffer.data();
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x12, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x34, data[1]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x40, (data_type) (data[2] & 0xC0));
+}
+
 void BitBufferTest::testSharing()
 {
     redhawk::bitbuffer buffer(16);

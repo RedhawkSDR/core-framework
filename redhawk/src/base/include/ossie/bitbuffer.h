@@ -25,6 +25,7 @@
 #include <stddef.h>
 
 #include "refcount_memory.h"
+#include "bitops.h"
 
 namespace redhawk {
 
@@ -253,9 +254,28 @@ namespace redhawk {
         };
 
     public:
+        typedef std::allocator<data_type> default_allocator;
+
         bitbuffer();
 
-        typedef std::allocator<data_type> default_allocator;
+        static inline bitbuffer from_int(uint64_t value, size_t bits)
+        {
+            bitbuffer result(bits);
+            redhawk::bitops::setint(result.data(), result.offset(), value, bits);
+            return result;
+        }
+
+        static inline bitbuffer from_array(const data_type* data, size_t bits)
+        {
+            return from_array(data, 0, bits);
+        }
+
+        static inline bitbuffer from_array(const data_type* data, size_t offset, size_t bits)
+        {
+            bitbuffer result(bits);
+            redhawk::bitops::copy(result.data(), result.offset(), data, offset, bits);
+            return result;
+        }
 
         explicit bitbuffer(size_t bits) :
             shared_bitbuffer(bits, default_allocator())
