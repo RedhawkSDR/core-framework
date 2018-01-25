@@ -32,8 +32,10 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testConstructor);
     CPPUNIT_TEST(testFromInt);
     CPPUNIT_TEST(testFromArray);
+    CPPUNIT_TEST(testResize);
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
+    CPPUNIT_TEST(testReplace);
     CPPUNIT_TEST_SUITE_END();
 
     typedef redhawk::shared_bitbuffer::data_type data_type;
@@ -46,9 +48,11 @@ public:
     void testConstructor();
     void testFromInt();
     void testFromArray();
+    void testResize();
 
     void testSharing();
     void testSlicing();
+    void testReplace();
 };
 
 #endif // BITBUFFER_TEST_H
