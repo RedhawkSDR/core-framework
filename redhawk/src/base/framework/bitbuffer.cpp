@@ -158,6 +158,10 @@ bitbuffer::reference& bitbuffer::reference::operator=(bool value)
     return *this;
 }
 
+bitbuffer::reference& bitbuffer::reference::operator=(const bitbuffer::reference& other)
+{
+    return *this = int(other);
+}
 
 bitbuffer::bitbuffer() :
     shared_bitbuffer()
@@ -178,6 +182,13 @@ void bitbuffer::fill(size_t start, size_t end, bool value)
 bitbuffer::reference bitbuffer::operator[] (size_t pos)
 {
     return reference(data(), offset() + pos);
+}
+
+bitbuffer bitbuffer::slice(size_t start, size_t end)
+{
+    bitbuffer temp(*this);
+    temp.trim(start, end);
+    return temp;
 }
 
 void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src)

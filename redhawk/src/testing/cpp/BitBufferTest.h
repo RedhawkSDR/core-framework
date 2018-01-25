@@ -33,6 +33,8 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testFromInt);
     CPPUNIT_TEST(testFromArray);
     CPPUNIT_TEST(testResize);
+    CPPUNIT_TEST(testIndexAccess);
+    CPPUNIT_TEST(testIndexAssignment);
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST(testReplace);
@@ -49,6 +51,9 @@ public:
     void testFromInt();
     void testFromArray();
     void testResize();
+
+    void testIndexAccess();
+    void testIndexAssignment();
 
     void testSharing();
     void testSlicing();

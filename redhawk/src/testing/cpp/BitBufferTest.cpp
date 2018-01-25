@@ -121,6 +121,73 @@ void BitBufferTest::testResize()
     CPPUNIT_ASSERT_EQUAL((data_type) (expected[1] & mask), (data_type) (data[1] & mask));
 }
 
+void BitBufferTest::testIndexAccess()
+{
+    // Bit pattern: 001 0101 0011 1100
+    const redhawk::bitbuffer buffer = redhawk::bitbuffer::from_int(0x153C, 15);
+    CPPUNIT_ASSERT_EQUAL(0, buffer[0]);
+    CPPUNIT_ASSERT_EQUAL(0, buffer[1]);
+    CPPUNIT_ASSERT_EQUAL(1, buffer[2]);
+    CPPUNIT_ASSERT_EQUAL(0, buffer[3]);
+    CPPUNIT_ASSERT_EQUAL(1, buffer[4]);
+
+    // Create a shared alias and continue checking (these should be the same
+    // code path, so it's really just checking that syntactically both forms
+    // are valid)
+    redhawk::shared_bitbuffer shared = buffer;
+    CPPUNIT_ASSERT_EQUAL(0, shared[5]);
+    CPPUNIT_ASSERT_EQUAL(1, shared[6]);
+    CPPUNIT_ASSERT_EQUAL(0, shared[7]);
+    CPPUNIT_ASSERT_EQUAL(0, shared[8]);
+    CPPUNIT_ASSERT_EQUAL(1, shared[9]);
+    CPPUNIT_ASSERT_EQUAL(1, shared[10]);
+
+    // Use slice to create a new bit buffer with a non-zero offset to test that
+    // the offset is taken into account
+    redhawk::shared_bitbuffer slice = shared.slice(11, 15);
+    CPPUNIT_ASSERT(slice.offset() != 0);
+    CPPUNIT_ASSERT_EQUAL(1, slice[0]);
+    CPPUNIT_ASSERT_EQUAL(1, slice[1]);
+    CPPUNIT_ASSERT_EQUAL(0, slice[2]);
+    CPPUNIT_ASSERT_EQUAL(0, slice[3]);
+}
+
+void BitBufferTest::testIndexAssignment()
+{
+    // Start with a zero-filled buffer
+    redhawk::bitbuffer buffer(48);
+    buffer.fill(0, buffer.size(), 0);
+
+    // Basic bit setting
+    buffer[3] = 1;
+    const data_type* data = buffer.data();
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Set bit", (data_type) 0x10, data[0]);
+
+    // Two bits in the same byte
+    buffer[8] = 1;
+    buffer[13] = 1;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Set two bits in same byte", (data_type) 0x84, data[1]);
+
+    // Any non-zero integer should be interpreted as a 1
+    buffer[18] = 2;
+    buffer[22] = -5289;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Set non-zero integer", (data_type) 0x22, data[2]);
+
+    // 0 should clear an existing bit
+    buffer[8] = 0;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Clear bit", (data_type) 0x04, data[1]);
+
+    // Transitive assignment
+    buffer[24] = buffer[27] = 1;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Transitive assignment", (data_type) 0x90, data[3]);
+
+    // Use a slice to test that offsets are accounted for
+    redhawk::bitbuffer slice = buffer.slice(35, 47);
+    CPPUNIT_ASSERT(slice.offset() != 0);
+    slice[1] = 1;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Slice with offset", 1, (int) buffer[36]);
+}
+
 void BitBufferTest::testSharing()
 {
     // Create a bitbuffer with a known pattern
@@ -179,7 +246,8 @@ void BitBufferTest::testReplace()
     CPPUNIT_ASSERT_EQUAL((data_type) 0x46, data[0]);
     CPPUNIT_ASSERT_EQUAL((data_type) 0x40, data[1]);
 
-    // 4-argument version: replace
+    // 4-argument version: replace 12 bits at offset 22, starting with the 4th
+    // bit of the source
     //   1000(11 00|110001 10|1)101
     // 000000(11|00 110001|10 1)00000 = 0x0331A0
     dest.replace(22, 13, (const redhawk::shared_bitbuffer&) src, 4);

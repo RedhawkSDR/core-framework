@@ -248,6 +248,7 @@ namespace redhawk {
             reference(data_type* data, size_t pos);
             operator int () const;
             reference& operator= (bool);
+            reference& operator= (const reference& other);
         private:
             data_type* _M_data;
             size_t _M_pos;
@@ -293,6 +294,16 @@ namespace redhawk {
 
         using shared_bitbuffer::operator[];
         reference operator[] (size_t pos);
+
+        using shared_bitbuffer::slice;
+
+        /**
+         * @brief  Returns a %bitbuffer containing a subset of bits.
+         * @param start  Index of first bit.
+         * @param end  Index of last bit, exclusive (default end).
+         * @return  The new %bitbuffer.
+         */
+        bitbuffer slice(size_t start, size_t end=npos);
 
         void fill(size_t start, size_t end, bool value);
 
