@@ -33,10 +33,12 @@ class SharedBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testIteration);
     CPPUNIT_TEST(testCopy);
     CPPUNIT_TEST(testSwap);
+    CPPUNIT_TEST(testResize);
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST(testTrim);
     CPPUNIT_TEST(testTrimShared);
+    CPPUNIT_TEST(testReplace);
     CPPUNIT_TEST(testRecast);
     CPPUNIT_TEST(testAllocator);
     CPPUNIT_TEST(testAllocatorCopy);
@@ -59,12 +61,14 @@ public:
     void testIteration();
     void testCopy();
     void testSwap();
+    void testResize();
 
     // Extended container behavior
     void testSharing();
     void testSlicing();
     void testTrim();
     void testTrimShared();
+    void testReplace();
     void testRecast();
 
     // Advanced features

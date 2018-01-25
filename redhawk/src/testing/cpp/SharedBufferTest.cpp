@@ -233,6 +233,32 @@ void SharedBufferTest::testSwap()
     CPPUNIT_ASSERT(shared_second.data() == first.data());
 }
 
+void SharedBufferTest::testResize()
+{
+    // Fill a new buffer with a ramp (offset by 1) for easy comparison
+    redhawk::buffer<unsigned char> buffer(8);
+    for (size_t index = 0; index < buffer.size(); ++index) {
+        buffer[index] = index + 1;
+    }
+
+    // Resize the buffer and check that the values are preserved
+    buffer.resize(16);
+    CPPUNIT_ASSERT_EQUAL((size_t) 16, buffer.size());
+    for (size_t index = 0; index < 8; ++index) {
+        unsigned char expected = index + 1;
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Resize did not copy data", expected, buffer[index]);
+    }
+
+    // Resize down (which can be done better with trim, but is still legal) and
+    // check values
+    buffer.resize(4);
+    CPPUNIT_ASSERT_EQUAL((size_t) 4, buffer.size());
+    for (size_t index = 0; index < buffer.size(); ++index) {
+        unsigned char expected = index + 1;
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Resize did not copy data", expected, buffer[index]);
+    }
+}
+
 void SharedBufferTest::testSharing()
 {
     // Fill a new buffer
@@ -318,6 +344,36 @@ void SharedBufferTest::testTrim()
 void SharedBufferTest::testTrimShared()
 {
     testTrimImpl<redhawk::shared_buffer<unsigned short> >();
+}
+
+void SharedBufferTest::testReplace()
+{
+    // Fill destination with a constant value
+    redhawk::buffer<int> dest(24);
+    std::fill(dest.begin(), dest.end(), 6789);
+
+    // Create a different pattern for the replacement data
+    redhawk::buffer<int> pattern(4);
+    for (size_t ii = 0; ii < pattern.size(); ++ii) {
+        pattern[ii] = (ii + 1) * 1000;
+    }
+    const redhawk::shared_buffer<int> src = pattern;
+
+    // 3-argument version: replace 3 elements at offset 1
+    dest.replace(1, 3, src);
+    CPPUNIT_ASSERT_EQUAL(6789, dest[0]);
+    CPPUNIT_ASSERT_EQUAL(1000, dest[1]);
+    CPPUNIT_ASSERT_EQUAL(2000, dest[2]);
+    CPPUNIT_ASSERT_EQUAL(3000, dest[3]);
+    CPPUNIT_ASSERT_EQUAL(6789, dest[4]);
+
+    // 4-argument version: replace 2 elements at offset 16, starting at offset
+    // 2 in the source
+    dest.replace(16, 2, src, 2);
+    CPPUNIT_ASSERT_EQUAL(6789, dest[15]);
+    CPPUNIT_ASSERT_EQUAL(3000, dest[16]);
+    CPPUNIT_ASSERT_EQUAL(4000, dest[17]);
+    CPPUNIT_ASSERT_EQUAL(6789, dest[18]);
 }
 
 void SharedBufferTest::testRecast()
