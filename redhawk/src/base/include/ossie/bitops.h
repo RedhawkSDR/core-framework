@@ -111,6 +111,38 @@ namespace redhawk {
         void unpack(byte* dest, const byte* src, size_t sstart, size_t length);
 
         /**
+         * @brief  Converts a bit string into a character string.
+         * @param str     Destination character array.
+         * @param src     Source bit string.
+         * @param sstart  Index of first bit in @p src.
+         * @param length  Number of bits in @p src.
+         * @pre  Enough space for @a length characters must have been allocated
+         *       at @a str.
+         *
+         * Expands each bit in @a src into a character in @a str, where each
+         * bit is one of '0' or '1'. No null character terminator is added at
+         * the end of @a str.
+         */
+        void toString(char* str, const byte* src, size_t sstart, size_t length);
+
+        /**
+         * @brief  Parses a character string into a bit string.
+         * @param dest    Destination bit string.
+         * @param dstart  Index of first bit in @p dest.
+         * @param src     Source character array.
+         * @param length  Number of characters in @p src.
+         * @returns  Number of characters parsed.
+         * @pre  Enough space for @a length bits must have been allocated at
+         *       @a dest, taking @a dstart into account.
+         *
+         * Converts the characters in @a str into bits, where each character
+         * must be one of '0' or '1'. On success, returns @a length. If an
+         * invalid character is encountered, parsing stops and the number of
+         * valid characters is returned.
+         */
+        int parseString(byte* dest, size_t dstart, const char* str, size_t length);
+
+        /**
          * @brief  Copies bits from one bit string to another.
          * @param dest    Destination bit string.
          * @param dstart  Index of first bit in @p dest.

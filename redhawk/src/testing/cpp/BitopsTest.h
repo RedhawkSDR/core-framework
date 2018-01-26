@@ -45,6 +45,9 @@ class BitopsTest : public CppUnit::TestFixture {
     CPPUNIT_TEST(testUnpackUnalignedSmall);
     CPPUNIT_TEST(testPopcount);
     CPPUNIT_TEST(testPopcountUnaligned);
+    CPPUNIT_TEST(testToString);
+    CPPUNIT_TEST(testParseString);
+    CPPUNIT_TEST(testParseStringError);
     CPPUNIT_TEST(testCompare);
     CPPUNIT_TEST(testCompareUnaligned);
     CPPUNIT_TEST(testHammingDistance);
@@ -84,6 +87,10 @@ public:
 
     void testPopcount();
     void testPopcountUnaligned();
+
+    void testToString();
+    void testParseString();
+    void testParseStringError();
 
     void testCompare();
     void testCompareUnaligned();

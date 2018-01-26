@@ -531,6 +531,99 @@ void BitopsTest::testPopcountUnaligned()
     CPPUNIT_ASSERT_EQUAL(11, redhawk::bitops::popcount(packed, 3, 18));
 }
 
+void BitopsTest::testToString()
+{
+    // 10100111|10111001|01000110|11100101
+    const unsigned char packed[] = { 0xA7, 0xB9, 0x46, 0xE5 };
+    const size_t bits = sizeof(packed) * 8;
+
+    // Test with the full string
+    std::string dest;
+    dest.resize(bits);
+    redhawk::bitops::toString(&dest[0], packed, 0, bits);
+    CPPUNIT_ASSERT_EQUAL(std::string("10100111101110010100011011100101"), dest);
+
+    // Test with an offset and a non-byte aligned end
+    // 101(00111|10111001|01000110|1110)0101
+    dest.resize(bits - 7);
+    redhawk::bitops::toString(&dest[0], packed, 3, dest.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("0011110111001010001101110"), dest);
+
+    // Test with a small unaligned value
+    // 10(10011)1
+    dest.resize(5);
+    redhawk::bitops::toString(&dest[0], packed, 2, dest.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("10011"), dest);
+}
+
+void BitopsTest::testParseString()
+{
+    const std::string str("10011010011110001111001000111110");
+
+    // Test with the full string
+    unsigned char packed[4];
+    int count = redhawk::bitops::parseString(packed, 0, &str[0], str.size());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Not all characters parsed", (int) str.size(), count);
+
+    // 10011010|01111000|11110010|00111110
+    const unsigned char expected1[] = { 0x9A, 0x78, 0xF2, 0x3E };
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected1, packed, 4);
+
+    // Test with an offset and a non-byte aligned end
+    // src:     (01111 000|11110 010|001)11 1110
+    // dest: 100(11010|011 11000|111 100)10|00111110
+    // =     100(01111|000 11110|010 001)10|00111110
+    const unsigned char expected2[] = { 0x8F, 0x1E, 0x46, 0x3E };
+    count = redhawk::bitops::parseString(packed, 3, &str[8], 19);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Not all characters parsed", 19, count);
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected2, packed, 4);
+
+    // Test with a small unaligned value
+    // src:  100(11010)0
+    // dest:  10(00111)1
+    // =      10(11010)1
+    count = redhawk::bitops::parseString(packed, 2, &str[3], 5);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Not all characters parsed", 5, count);
+    CPPUNIT_ASSERT_EQUAL((unsigned char) 0xB5, packed[0]);
+}
+
+void BitopsTest::testParseStringError()
+{
+    // Invalid string with a letter instead of a number at position 11
+    const std::string invalid("01101101001x010101101100");
+
+    // Parsing should stop when it hits the invalid character (tests that the
+    // full byte case returns early correctly)
+    unsigned char packed[] = { 0x00, 0x0A };
+    int count = redhawk::bitops::parseString(packed, 0, &invalid[0], invalid.size());
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Returned count does not match invalid character", 11, count);
+
+    // The values up to that point should still be updated
+    // src:  (01101101|001)x0101
+    // dest: (00000000|000)01010
+    // =     (01101101|001)01010
+    const unsigned char expected[] = { 0x6D, 0x2A };
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, packed, sizeof(expected));
+
+    // Repeat with a partial byte, no offset
+    // src:  0110110(1001)x0101
+    //               ^     ^
+    // dest:        (0110)1101
+    // =            (1001)1101
+    count = redhawk::bitops::parseString(packed, 0, &invalid[7], 6);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Returned count does not match invalid character", 4, count);
+    CPPUNIT_ASSERT_EQUAL((unsigned char) 0x9D, packed[0]);
+
+    // Sub-byte with offset
+    // src:  0110110100(1)x0101
+    //                  ^    ^
+    // dest:         10(0)11101
+    // -             10(1)11101
+    count = redhawk::bitops::parseString(packed, 2, &invalid[10], 5);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Returned count does not match invalid character", 1, count);
+    CPPUNIT_ASSERT_EQUAL((unsigned char) 0xBD, packed[0]);
+}
+
 void BitopsTest::testCompare()
 {
     const unsigned char first[] = {

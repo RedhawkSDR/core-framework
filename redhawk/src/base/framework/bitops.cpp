@@ -788,6 +788,111 @@ namespace bitops {
         return apply_unary(str, offset, count, Popcount());
     }
 
+    // Unary getter functor that turns a bit string into a character string.
+    class ToString : public UnaryGetter<void> {
+    public:
+        ToString(char* dest) :
+            dest(dest)
+        {
+        }
+
+        inline void operator() (byte value, size_t bits)
+        {
+            // When bits is known at compile time (i.e., in the aligned full-
+            // byte case), the compiler will usually unroll this loop to remove
+            // the conditional check
+            for (int pos = (bits-1); pos >= 0; --pos) {
+                // Simple optimization: the value has to be 0 or 1, and the
+                // ASCII characters for 0 and 1 are adjacent, so adding the bit
+                // value to '0' gives the right value, as long as you cast back
+                // to a char (addition promotes to int here).
+                *dest++ = '0' + ((value >> pos) & 1);
+            }
+        }
+
+        char* dest;
+    };
+
+    void toString(char* str, const byte* ptr, size_t start, size_t length)
+    {
+        apply_unary(ptr, start, length, ToString(str));
+    }
+
+    // Unary functor that takes a character string and parses into a sequence
+    // of bits, returning the number of characters parsed.
+    // The complete() method is overridden to return early if an invalid
+    // character (not '0' or '1') is encountered, and the return value will be
+    // less than the requested number of characters.
+    // In order to handle the possibility of a partial write, this functor does
+    // not inherit from the expected UnarySetter, but instead uses read/write
+    // functionality to avoid overwriting exisiting bits.
+    class FromString : public UnaryOp<int,readwrite_tag,element_tag> {
+    public:
+        FromString(const char* src) :
+            src(src),
+            valid(true)
+        {
+        }
+
+        inline void operator() (byte& dest, size_t bits)
+        {
+            byte value = 0;
+            for (size_t ii = 0; ii < bits; ++ii) {
+                byte bit = 0;
+                switch (*src) {
+                case '0': bit = 0; break;
+                case '1': bit = 1; break;
+                default:
+                    // Invalid character: stop parsing, write the valid bits
+                    // (which are in the least-significant bits, and the count
+                    // is equal to the loop index) and return.
+                    valid = false;
+                    const size_t offset = 8 - bits;
+                    bit_writer::write(value, &dest, offset, ii);
+                    return;
+                }
+                value = (value << 1) | bit;
+                ++src;
+                ++result;
+            }
+            // Everything worked as planned, assign the value
+            dest = value;
+        }
+
+        bool complete()
+        {
+            return !valid;
+        }
+
+        inline byte parse(size_t bits)
+        {
+            byte value = 0;
+            for (size_t ii = 0; ii < bits; ++ii) {
+                byte bit = 0;
+                switch (*src) {
+                case '0': bit = 0; break;
+                case '1': bit = 1; break;
+                default:
+                    // Stop parsing and return immediately
+                    valid = false;
+                    return value;
+                }
+                value = (value << 1) | bit;
+                ++src;
+                ++result;
+            }
+            return value;
+        }
+
+        const char* src;
+        bool valid;
+    };
+
+    int parseString(byte* dest, size_t dstart, const char* str, size_t length)
+    {
+        return apply_unary(dest, dstart, length, FromString(str));
+    }
+
     // Hamming distance functor that accumulates the number of bit positions
     // that differ between two bit arrays.
     class HammingDist : public BinaryGetter<int> {
