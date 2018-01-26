@@ -213,7 +213,10 @@ def to_pyvalue(data, type_,alt_py_tc=None):
     if not isinstance(data, pytype):
         # Handle boolean strings as a special case
         if type_ == "boolean" and type(data) in (str, unicode):
-            data = {"TRUE": 1, "FALSE": 0}[data.strip().upper()]
+            try:
+               data = {"TRUE": 1, "FALSE": 0}[data.strip().upper()]
+            except:
+              pass
         else:
             # Fall back to built in python conversion
             if type_.find("complex") == 0:
@@ -1915,7 +1918,10 @@ class PropertyStorage:
         if value == None:
             return None
         if typename == "boolean":
-            return {"TRUE": True, "FALSE": False, "1": True, "0": False}[value.strip().upper()]
+            try:
+                return {"TRUE": True, "FALSE": False, "1": True, "0": False}[value.strip().upper()]
+            except:
+                return None
         elif typename in ("short", "long", "ulong", "ushort"):
             return int(value)
         elif typename == "double":
