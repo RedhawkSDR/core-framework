@@ -24,14 +24,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BitBufferTest);
 
-void BitBufferTest::setUp()
-{
-}
-
-void BitBufferTest::tearDown()
-{
-}
-
 void BitBufferTest::testDefaultConstructor()
 {
     // Empty const shared bitbuffer
@@ -226,6 +218,38 @@ void BitBufferTest::testSlicing()
 
     // Compare the overlap between the two slices by taking sub-slices
     CPPUNIT_ASSERT(middle.slice(2) == end.slice(0, 2));
+}
+
+void BitBufferTest::testTrim()
+{
+    // Tests bit buffer trimming. Only shared_bitbuffer needs to be tested,
+    // because bitbuffer inherits and does not override this function.
+
+    // Start with known bit pattern: 1000 1010 1100 1101 1100
+    redhawk::shared_bitbuffer buffer = redhawk::bitbuffer::from_int(0x8ACDC, 20);
+    const data_type* data = buffer.data();
+
+    // Use 1-argument trim to remove the first 4 bits. The data pointer should
+    // remain the same.
+    buffer.trim(4);
+    CPPUNIT_ASSERT_EQUAL(data, buffer.data());
+    CPPUNIT_ASSERT_EQUAL((size_t) 4, buffer.offset());
+    CPPUNIT_ASSERT_EQUAL((size_t) 16, buffer.size());
+
+    // 1000 (1010 1100 1101 1100)
+    redhawk::shared_bitbuffer expected = redhawk::bitbuffer::from_int(0xACDC, 16);
+    CPPUNIT_ASSERT(expected == buffer);
+
+    // Use 2-argument trim to 9-bit range. The data pointer should advance
+    // and the offset should wrap around.
+    buffer.trim(5, 14);
+    CPPUNIT_ASSERT(buffer.data() != data);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, buffer.offset());
+    CPPUNIT_ASSERT_EQUAL((size_t) 9, buffer.size());
+
+    // 1010 1(100 1101 11)00
+    expected = redhawk::bitbuffer::from_int(0x137, 9);
+    CPPUNIT_ASSERT(expected == buffer);
 }
 
 void BitBufferTest::testReplace()
