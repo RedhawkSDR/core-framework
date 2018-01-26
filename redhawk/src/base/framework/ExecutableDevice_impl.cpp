@@ -61,6 +61,7 @@ PREPARE_CF_LOGGING(ExecutableDevice_impl)
 ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* lbl, char* sftwrPrfl):
     LoadableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl)
 {
+    _init();
 }
 
 
@@ -72,6 +73,7 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
                                               CF::Properties capacities):
     LoadableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl, capacities)
 {
+    _init();
 }
 
 /* ExecutableDevice_impl ****************************************
@@ -81,6 +83,7 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
                                               char* composite_ior):
     LoadableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl, composite_ior)
 {
+    _init();
 }
 
 
@@ -91,6 +94,17 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
                                               CF::Properties capacities, char* composite_ior):
     LoadableDevice_impl (devMgr_ior, id, lbl, sftwrPrfl, capacities, composite_ior)
 {
+    _init();
+}
+
+void ExecutableDevice_impl::_init()
+{
+    setLogger(_log->getChildLogger("ExecutableDevice", "system"));
+}
+
+void ExecutableDevice_impl::setLogger(rh_logger::LoggerPtr logptr)
+{
+    _executabledevice_log = logptr;
 }
 
 std::string ExecutableDevice_impl::component_name_from_profile_name(const std::string& profile_name)
@@ -120,8 +134,6 @@ std::string ExecutableDevice_impl::get_component_name_from_exec_params(const CF:
         if (ossie::corba::returnString(parameters[i].id) == std::string("PROFILE_NAME"))
             return component_name_from_profile_name( ossie::any_to_string(parameters[i].value) );
     }
-    
-    LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": Could not extract component name from exec params" );
     throw CF::ExecutableDevice::InvalidParameters(parameters);
 }
 
@@ -136,7 +148,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const
     {
         std::stringstream errstr;
         errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-        LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_executabledevice_log, __FUNCTION__ << ": " << errstr.str() );
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
     
@@ -172,7 +184,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char*
     {
         std::stringstream errstr;
         errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-        LOG_ERROR(ExecutableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_executabledevice_log, __FUNCTION__ << ": " << errstr.str() );
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
     
@@ -190,23 +202,23 @@ void ExecutableDevice_impl::set_resource_affinity( const CF::Properties& options
    //   
    try {
      if ( redhawk::affinity::has_affinity( options ) ) {
-         LOG_DEBUG(ExecutableDevice_impl, "Has Affinity....ExecDevice/Resource:" << label() << "/" << rsc_name);
+         RH_DEBUG(_executabledevice_log, "Has Affinity....ExecDevice/Resource:" << label() << "/" << rsc_name);
        if ( redhawk::affinity::is_disabled() ) {
-         LOG_WARN(ExecutableDevice_impl, "Resource has affinity directives but processing disabled, ExecDevice/Resource:" << 
+         RH_WARN(_executabledevice_log, "Resource has affinity directives but processing disabled, ExecDevice/Resource:" << 
                   label() << "/" << rsc_name);
        }
        else {
-         LOG_DEBUG(ExecutableDevice_impl, "Calling set resource affinity....ExecDevice/Resource:" <<
+         RH_DEBUG(_executabledevice_log, "Calling set resource affinity....ExecDevice/Resource:" <<
                   label() << "/" << rsc_name);
          redhawk::affinity::set_affinity( options, rsc_pid, blacklist );
        }
      }
      else {
-         LOG_TRACE(ExecutableDevice_impl, "No Affinity Found....ExecDevice/Resource:" << label() << "/" << rsc_name);
+         RH_TRACE(_executabledevice_log, "No Affinity Found....ExecDevice/Resource:" << label() << "/" << rsc_name);
      }
    }
    catch( redhawk::affinity::AffinityFailed &e) {
-     LOG_WARN(ExecutableDevice_impl, "AFFINITY REQUEST FAILED: " << e.what() );
+     RH_WARN(_executabledevice_log, "AFFINITY REQUEST FAILED: " << e.what() );
      throw;
    }
 
@@ -242,7 +254,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
                 invalidOptions[invalidOptions.length() - 1].value
                         = options[i].value;
             } else
-                LOG_WARN(ExecutableDevice_impl, "Received a PRIORITY_ID execute option...ignoring.")
+                RH_WARN(_executabledevice_log, "Received a PRIORITY_ID execute option...ignoring.")
             }
         if (options[i].id == CF::ExecutableDevice::STACK_SIZE_ID) {
             CORBA::TypeCode_var atype = options[i].value.type();
@@ -252,7 +264,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
                 invalidOptions[invalidOptions.length() - 1].value
                         = options[i].value;
             } else
-                LOG_WARN(ExecutableDevice_impl, "Received a STACK_SIZE_ID execute option...ignoring.")
+                RH_WARN(_executabledevice_log, "Received a STACK_SIZE_ID execute option...ignoring.")
             }
     }
 
@@ -279,7 +291,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
 
     // change permissions to 7--
     if (chmod(path.c_str(), S_IRWXU) != 0) {
-        LOG_ERROR(ExecutableDevice_impl, "Unable to change permission on executable");
+        RH_ERROR(_executabledevice_log, "Unable to change permission on executable");
         throw CF::ExecutableDevice::ExecuteFail(CF::CF_EACCES,
                 "Unable to change permission on executable");
     }
@@ -306,15 +318,15 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
     }
     args.push_back(path);
 
-    LOG_DEBUG(ExecutableDevice_impl, "Building param list for process " << path);
+    RH_DEBUG(_executabledevice_log, "Building param list for process " << path);
     for (CORBA::ULong i = 0; i < parameters.length(); ++i) {
-        LOG_DEBUG(ExecutableDevice_impl, "id=" << ossie::corba::returnString(parameters[i].id) << " value=" << ossie::any_to_string(parameters[i].value));
+        RH_DEBUG(_executabledevice_log, "id=" << ossie::corba::returnString(parameters[i].id) << " value=" << ossie::any_to_string(parameters[i].value));
         CORBA::TypeCode_var atype = parameters[i].value.type();
         args.push_back(ossie::corba::returnString(parameters[i].id));
         args.push_back(ossie::any_to_string(parameters[i].value));
     }
 
-    LOG_DEBUG(ExecutableDevice_impl, "Forking process " << path);
+    RH_DEBUG(_executabledevice_log, "Forking process " << path);
 
     std::vector<char*> argv(args.size() + 1, NULL);
     for (std::size_t i = 0; i < args.size(); ++i) {
@@ -341,22 +353,22 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
       ExecutableDevice_impl::__logger->setLevel(lvl);
       // set affinity logger method so we do not use log4cxx during affinity processing routine
       redhawk::affinity::set_affinity_logger( ExecutableDevice_impl::__logger ) ;
-      LOG_DEBUG(ExecutableDevice_impl, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+      RH_DEBUG(_executabledevice_log, " Calling set resource affinity....exec:" << name << " options=" << options.length());
 
       // set affinity preference before exec
       try {
-        LOG_DEBUG(ExecutableDevice_impl, " Calling set resource affinity....exec:" << name << " options=" << options.length());
+        RH_DEBUG(_executabledevice_log, " Calling set resource affinity....exec:" << name << " options=" << options.length());
         set_resource_affinity( options, getpid(), name );
       }
       catch( redhawk::affinity::AffinityFailed &ex ) {
-        LOG_WARN(ExecutableDevice_impl, "Unable to satisfy affinity request for: " << name << " Reason: " << ex.what() );
+        RH_WARN(_executabledevice_log, "Unable to satisfy affinity request for: " << name << " Reason: " << ex.what() );
         errno=EPERM<<2;
         returnval=-1;
         ossie::corba::OrbShutdown(true);
         exit(returnval);
       }
       catch( ... ) {
-        LOG_WARN(ExecutableDevice_impl,  "Unhandled exception during affinity processing for resource: " << name  );
+        RH_WARN(_executabledevice_log,  "Unhandled exception during affinity processing for resource: " << name  );
         ossie::corba::OrbShutdown(true);
         exit(returnval);
       }
@@ -382,20 +394,20 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
                 break;
 
           // Only retry on "text file busy" error
-          LOG_WARN(ExecutableDevice_impl, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
+          RH_WARN(_executabledevice_log, "execv() failed, retrying... (cmd=" << path << " msg=\"" << strerror(errno) << "\" retries=" << num_retries << ")");
           usleep(100000);
         }
 
         if( returnval ) {
-            LOG_ERROR(ExecutableDevice_impl, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
+            RH_ERROR(_executabledevice_log, "Error when calling execv() (cmd=" << path << " errno=" << errno << " msg=\"" << strerror(errno) << "\")");
             ossie::corba::OrbShutdown(true);
         }
 
-        LOG_DEBUG(ExecutableDevice_impl, "Exiting FAILED subprocess:" << returnval );
+        RH_DEBUG(_executabledevice_log, "Exiting FAILED subprocess:" << returnval );
         exit(returnval);
     }
     else if (pid < 0 ){
-        LOG_ERROR(ExecutableDevice_impl, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
+        RH_ERROR(_executabledevice_log, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
         switch (errno) {
             case E2BIG:
                 throw CF::ExecutableDevice::ExecuteFail(CF::CF_E2BIG,
@@ -427,7 +439,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
         }
     }
 
-    LOG_DEBUG(ExecutableDevice_impl, "Execute success: name:" << name << " : "<< path);
+    RH_DEBUG(_executabledevice_log, "Execute success: name:" << name << " : "<< path);
 
     return pid;
 }
@@ -456,13 +468,13 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
   bool processes_dead = false;
   for (std::vector< std::pair< int, float > >::iterator _signal=_signals.begin();!processes_dead &&_signal!=_signals.end();_signal++) {
     int retval = killpg(pgroup, _signal->first);
-    LOG_TRACE(ExecutableDevice_impl,"Intitial Process Termination pid/group " << processId << "/" << pgroup << "   RET= " << retval);
+    RH_TRACE(_executabledevice_log,"Intitial Process Termination pid/group " << processId << "/" << pgroup << "   RET= " << retval);
     if ( retval == -1 && errno == EPERM ) {
-      LOG_ERROR(ExecutableDevice_impl,"Error sending pid/group " << processId << "/" <<  pgroup);
+      RH_ERROR(_executabledevice_log,"Error sending pid/group " << processId << "/" <<  pgroup);
       continue;
     }
     if ( retval == -1 && errno == ESRCH )  { 
-      LOG_TRACE(ExecutableDevice_impl,"Process group is dead " << processId << "/" <<  pgroup);
+      RH_TRACE(_executabledevice_log,"Process group is dead " << processId << "/" <<  pgroup);
      processes_dead = true; 
       continue;
     }
@@ -473,9 +485,9 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
     int cnt=0;
     while (!processes_dead && (retval != -1) and ( now < end_time )) {
       retval = killpg(pgroup, 0);
-      LOG_TRACE(ExecutableDevice_impl,"Terminating Process.... (loop:" << cnt++ << " signal:" << _signal->first << ") pid/group " << processId << "/" << pgroup << "   RET= " << retval);
+      RH_TRACE(_executabledevice_log,"Terminating Process.... (loop:" << cnt++ << " signal:" << _signal->first << ") pid/group " << processId << "/" << pgroup << "   RET= " << retval);
       if (retval == -1 and (errno == ESRCH)) {
-        LOG_TRACE(ExecutableDevice_impl,"Process group terminated  " << processId << "/" <<  pgroup);
+        RH_TRACE(_executabledevice_log,"Process group terminated  " << processId << "/" <<  pgroup);
         processes_dead = true;
         continue;
       }

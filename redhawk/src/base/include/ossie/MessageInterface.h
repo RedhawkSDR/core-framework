@@ -168,6 +168,9 @@ public:
 
 	std::string getDirection() const;
     
+private:
+
+    rh_logger::LoggerPtr _messageconsumer_log;
 
 protected:
     friend class MessageSupplierPort;

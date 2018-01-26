@@ -178,12 +178,30 @@
         LOG_##levelname(classname, expression << "; unknown exception") \
     }
 
+#define CATCH_RH_EXCEPTION(logger, expression, levelname) \
+    catch( std::exception& ex ) { \
+        RH_##levelname(logger, expression << "; std::exception info: " << ex.what()) \
+    } \
+    catch( CORBA::Exception& ex ) { \
+        RH_##levelname(logger, expression << "; CORBA::Exception name: " << ex._name()) \
+    } \
+    catch( ... ) { \
+        RH_##levelname(logger, expression << "; unknown exception") \
+    }
+
 #define CATCH_LOG_TRACE(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, TRACE)
 #define CATCH_LOG_DEBUG(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, DEBUG)
 #define CATCH_LOG_INFO(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, INFO)
 #define CATCH_LOG_WARN(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, WARN)
 #define CATCH_LOG_ERROR(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, ERROR)
 #define CATCH_LOG_FATAL(classname, expression) CATCH_LOG_EXCEPTION(classname, expression, FATAL)
+
+#define CATCH_RH_TRACE(logger, expression) CATCH_RH_EXCEPTION(logger, expression, TRACE)
+#define CATCH_RH_DEBUG(logger, expression) CATCH_RH_EXCEPTION(logger, expression, DEBUG)
+#define CATCH_RH_INFO(logger, expression) CATCH_RH_EXCEPTION(logger, expression, INFO)
+#define CATCH_RH_WARN(logger, expression) CATCH_RH_EXCEPTION(logger, expression, WARN)
+#define CATCH_RH_ERROR(logger, expression) CATCH_RH_EXCEPTION(logger, expression, ERROR)
+#define CATCH_RH_FATAL(logger, expression) CATCH_RH_EXCEPTION(logger, expression, FATAL)
 
 /*
 * Provide standardized exception handling for catching and throwing a new exception.

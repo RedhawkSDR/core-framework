@@ -77,6 +77,8 @@ public:
     (CF::Device::InvalidState, CF::ExecutableDevice::InvalidProcess,
      CORBA::SystemException);
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     // Parse the command-line arguments to retrieve the name of the Component that is to be launched
     static std::string get_component_name_from_exec_params(const CF::Properties& params);
@@ -91,6 +93,10 @@ protected:
         
 private:
     CF::ExecutableDevice::ProcessID_Type PID;
+
+    void _init();
+
+    rh_logger::LoggerPtr _executabledevice_log;
 };
 
 #endif

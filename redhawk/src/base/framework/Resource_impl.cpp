@@ -24,8 +24,6 @@
 #include "ossie/Events.h"
 #include "ossie/Component.h"
 
-PREPARE_CF_LOGGING(Resource_impl)
-
 Resource_impl::Resource_impl (const char* _uuid) :
     Logging_impl(_uuid),
     _identifier(_uuid),
@@ -35,6 +33,7 @@ Resource_impl::Resource_impl (const char* _uuid) :
     _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
+    this->setLogger(this->_log->getChildLogger("Resource", "system"));
 }
 
 
@@ -48,6 +47,7 @@ Resource_impl::Resource_impl (const char* _uuid, const char *label) :
     _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
+    this->setLogger(this->_log->getChildLogger("Resource", "system"));
 }
 
 Resource_impl::~Resource_impl ()
@@ -61,42 +61,49 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     CORBA::Object_var applicationRegistrarObject = CORBA::Object::_nil();
     try {
-      RH_NL_TRACE("Resource", "narrow to Registrar object:" << application_registrar_ior );
+      RH_TRACE(_resource_log, "narrow to Registrar object:" << application_registrar_ior );
       applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
     } catch ( ... ) {
-      RH_NL_WARN("Resource", "No  Registrar... create empty container");
+      RH_WARN(_resource_log, "No  Registrar... create empty container");
       setDomainManager(CF::DomainManager::_nil());
       return;
     }
     CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
       try {
-          RH_NL_TRACE("Resource", "Get DomainManager from Registrar object:" << application_registrar_ior );
+          RH_TRACE(_resource_log, "Get DomainManager from Registrar object:" << application_registrar_ior );
           CF::DomainManager_var dm=applicationRegistrar->domMgr();
           setDomainManager(dm);
           return;
       }
       catch(...){
-          RH_NL_WARN("Resource", "ApplicationRegistrar Failure to get DomainManager container");
+          RH_WARN(_resource_log, "ApplicationRegistrar Failure to get DomainManager container");
       }
     }
 
-    RH_NL_TRACE("Resource", "Resolve DeviceManager...");
+    RH_TRACE(_resource_log, "Resolve DeviceManager...");
     CF::DeviceManager_var devMgr = ossie::corba::_narrowSafe<CF::DeviceManager>(applicationRegistrarObject);
     if (!CORBA::is_nil(devMgr)) {
         try {
-            RH_NL_TRACE("Resource", "Resolving DomainManager from DeviceManager...");
+            RH_TRACE(_resource_log, "Resolving DomainManager from DeviceManager...");
             CF::DomainManager_var dm=devMgr->domMgr();
             setDomainManager(dm);
             return;
         }
         catch(...){
-            RH_NL_WARN("Resource", "DeviceManager... Failure to get DomainManager container");
+            RH_WARN(_resource_log, "DeviceManager... Failure to get DomainManager container");
         }
     }
 
-    RH_NL_DEBUG("Resource", "All else failed.... use empty container");
+    RH_DEBUG(_resource_log, "All else failed.... use empty container");
     setDomainManager(CF::DomainManager::_nil());
+}
+
+void Resource_impl::setLogger(rh_logger::LoggerPtr logptr)
+{
+    _resource_log = logptr;
+    PropertySet_impl::setLogger(this->_log->getChildLogger("PropertySet", "system"));
+    PortSupplier_impl::setLogger(this->_log->getChildLogger("PortSupplier", "system"));
 }
 
 redhawk::DomainManagerContainer* Resource_impl::getDomainManager()
@@ -163,7 +170,7 @@ void Resource_impl::initialize () throw (CF::LifeCycle::InitializeError, CORBA::
       try {
           constructor();
       } catch (const std::exception& exc) {
-          LOG_ERROR(Resource_impl, "initialize(): " << exc.what());
+          RH_ERROR(_resource_log, "initialize(): " << exc.what());
           CF::StringSequence messages;
           ossie::corba::push_back(messages, exc.what());
           throw CF::LifeCycle::InitializeError(messages);
@@ -186,17 +193,17 @@ void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle
 
 void Resource_impl::run() {
     // Start handling CORBA requests
-    LOG_TRACE(Resource_impl, "handling CORBA requests");
+    RH_TRACE(_resource_log, "handling CORBA requests");
     component_running.wait();
-    LOG_TRACE(Resource_impl, "leaving run()");
+    RH_TRACE(_resource_log, "leaving run()");
 }
 
 void Resource_impl::halt() {
-    LOG_DEBUG(Resource_impl, "Halting component")
+    RH_DEBUG(_resource_log, "Halting component")
 
-    LOG_TRACE(Resource_impl, "Sending device running signal");
+    RH_TRACE(_resource_log, "Sending device running signal");
     component_running.signal();
-    LOG_TRACE(Resource_impl, "Done sending device running signal");
+    RH_TRACE(_resource_log, "Done sending device running signal");
 }
 
 const std::string& Resource_impl::getIdentifier() const
@@ -261,7 +268,8 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
     ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, identifier, dpath ) );
     ossie::logging::Configure(logging_config_uri, debug_level, ctx);
 
-    LOG_TRACE(Resource_impl, "Creating component with identifier '" << identifier << "'");
+    std::string logname = name_binding+".system.Resource";
+    RH_NL_TRACE(logname, "Creating component with identifier '" << identifier << "'");
     Resource_impl* resource = ctor(identifier, name_binding);
 
     resource->saveLoggingContext( logging_config_uri, debug_level, ctx );
@@ -273,7 +281,7 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
     }
 
     // Activate the component servant.
-    LOG_TRACE(Resource_impl, "Activating component object");
+    RH_NL_TRACE(logname, "Activating component object");
     PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(resource);
     CF::Resource_var resource_obj = resource->_this();
 
@@ -297,22 +305,22 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
                 }
 
                 // Register with the application
-                LOG_TRACE(Resource_impl, "Registering with application using name '" << name_binding << "'");
+                RH_NL_TRACE(logname, "Registering with application using name '" << name_binding << "'");
                 applicationRegistrar->registerComponent(name_binding.c_str(), resource_obj);
             }
             catch( CF::InvalidObjectReference &e ) {
-                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: InvalidObjectReference");
+                RH_NL_ERROR(logname, "Exception registering with registrar, comp: " << name_binding << " exception: InvalidObjectReference");
             }
             catch( CF::DuplicateName &e ){
-                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: DuplicateName");
+                RH_NL_ERROR(logname, "Exception registering with registrar, comp: " << name_binding << " exception: DuplicateName");
             }
             catch(CORBA::SystemException &ex){
-                LOG_ERROR(Resource_impl, "Exception registering with registrar, comp: " << name_binding << " exception: CORBA System Exception, terminating application");
+                RH_NL_ERROR(logname, "Exception registering with registrar, comp: " << name_binding << " exception: CORBA System Exception, terminating application");
                 throw;
             }
 
         } else {
-            LOG_TRACE(Resource_impl, "Binding component to naming context with name '" << name_binding << "'");
+            RH_NL_TRACE(logname, "Binding component to naming context with name '" << name_binding << "'");
             // the registrar is not available (because the invoking infrastructure only uses the name service)
             CosNaming::NamingContext_var applicationContext = ossie::corba::_narrowSafe<CosNaming::NamingContext>(applicationRegistrarObject);
             ossie::corba::bindObjectToContext(resource_obj, applicationContext, name_binding);
@@ -429,9 +437,7 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
         sa.sa_flags = 0;
         sigaction(SIGINT, &sa, NULL);
 
-        LOG_TRACE(Resource_impl, "Entering component run loop");
         resource->run();
-        LOG_TRACE(Resource_impl, "Component run loop terminated");
 
         redhawk::events::Manager::Terminate();
 
@@ -442,9 +448,7 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
         sigaction(SIGINT, &sa, NULL);
         main_component = 0;
 
-        LOG_TRACE(Resource_impl, "Deleting component");
         resource->_remove_ref();
-        LOG_TRACE(Resource_impl, "Shutting down ORB");
 
         try {
             ossie::logging::Terminate();

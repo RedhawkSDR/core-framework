@@ -27,9 +27,6 @@
 #include "ossie/CorbaUtils.h"
 #include "ossie/Events.h"
 
-
-PREPARE_CF_LOGGING(Device_impl)
-
 //
 // Helper class for performing cleanup when an allocation partially succeeds
 //
@@ -90,66 +87,68 @@ void Device_impl::initResources (char* devMgr_ior, char* _id,
 
     useNewAllocation = false;
     this->_devMgr = NULL;
-}                          
+    setLogger(_log->getChildLogger("Device", "system"));
+}
 
-Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl) : Resource_impl(_id)
+Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl) : Resource_impl(_id, lbl)
 {
-    LOG_TRACE(Device_impl, "Constructing Device")
     initResources(devMgr_ior, _id, lbl, sftwrPrfl);
-    LOG_TRACE(Device_impl, "Done Constructing Device")
+    RH_TRACE(_device_log, "Done Constructing Device")
 }
 
 
 Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl,
-                          CF::Properties& capacities) : Resource_impl(_id)
+                          CF::Properties& capacities) : Resource_impl(_id, lbl)
 {
-    LOG_TRACE(Device_impl, "Constructing Device")
     initResources(devMgr_ior, _id, lbl, sftwrPrfl);
     configure (capacities);
-    LOG_TRACE(Device_impl, "Done Constructing Device")
+    RH_TRACE(_device_log, "Done Constructing Device")
 }
 
 Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl,
-                          CF::Properties& capacities, char* compositeDev_ior) : Resource_impl(_id)
+                          CF::Properties& capacities, char* compositeDev_ior) : Resource_impl(_id, lbl)
 {
 
-    LOG_TRACE(Device_impl, "Constructing Device")
     initResources(devMgr_ior, _id, lbl, sftwrPrfl);
     _compositeDev_ior = compositeDev_ior;
     CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(_compositeDev_ior.c_str());
     if (CORBA::is_nil(_aggDev_obj)) {
-        LOG_ERROR(Device_impl, "Invalid composite device IOR: " << _compositeDev_ior);
+        RH_ERROR(_device_log, "Invalid composite device IOR: " << _compositeDev_ior);
     } else {
         _aggregateDevice = CF::AggregateDevice::_narrow(_aggDev_obj);
         _aggregateDevice->addDevice(this->_this());
     }
 
     configure (capacities);
-    LOG_TRACE(Device_impl, "Done Constructing Device")
+    RH_TRACE(_device_log, "Done Constructing Device")
 }
 
 Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl,
-                          char* compositeDev_ior) : Resource_impl(_id)
+                          char* compositeDev_ior) : Resource_impl(_id, lbl)
 {
 
-    LOG_TRACE(Device_impl, "Constructing Device")
     initResources(devMgr_ior, _id, lbl, sftwrPrfl);
     _compositeDev_ior = compositeDev_ior;
     CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(_compositeDev_ior.c_str());
     if (CORBA::is_nil(_aggDev_obj)) {
-        LOG_ERROR(Device_impl, "Invalid composite device IOR: " << _compositeDev_ior);
+        RH_ERROR(_device_log, "Invalid composite device IOR: " << _compositeDev_ior);
     } else {
         _aggregateDevice = CF::AggregateDevice::_narrow(_aggDev_obj);
         _aggregateDevice->addDevice(this->_this());
     }
 
 
-    LOG_TRACE(Device_impl, "Done Constructing Device")
+    RH_TRACE(_device_log, "Done Constructing Device")
 }
 
 const CF::DeviceManager_ptr Device_impl::getDeviceManager() const {
   if ( _devMgr ) return _devMgr->getRef();
   return CF::DeviceManager::_nil();
+}
+
+void Device_impl::setLogger(rh_logger::LoggerPtr logptr)
+{
+    _device_log = logptr;
 }
 
 
@@ -173,7 +172,7 @@ void  Device_impl::postConstruction (std::string &profile,
   _deviceManager->registerDevice(this->_this());
 
   // setup original capacity values cache
-  LOG_TRACE(Device_impl, "postConstructor: Saving original capacities... ");
+  RH_TRACE(_device_log, "postConstructor: Saving original capacities... ");
   PropertySet_impl::PropertyMap::iterator pi = propTable.begin();
   for( ; pi != propTable.end(); pi++ ) {
       PropertyInterface *p = pi->second;
@@ -181,11 +180,11 @@ void  Device_impl::postConstruction (std::string &profile,
           CF::DataType res;
           res.id = p->id.c_str();
           p->getValue(res.value);
-          LOG_TRACE(Device_impl, "postConstructor: Saving allocation ID: " << p->id);
+          RH_TRACE(_device_log, "postConstructor: Saving allocation ID: " << p->id);
           bool found = false;
           for ( unsigned int j=0; j < originalCap.length(); j++) {
               if ( strcmp(p->id.c_str(), originalCap[j].id) == 0 ) {
-                  LOG_TRACE(Device_impl, "Override value for allocation ID: " << p->id);
+                  RH_TRACE(_device_log, "Override value for allocation ID: " << p->id);
                   originalCap[j].value = res.value;
                   found = true;
               }
@@ -209,12 +208,12 @@ void  Device_impl::setAdditionalParameters ( std::string &profile,
   _deviceManager = CF::DeviceManager::_nil();
   CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(_devMgr_ior.c_str());
   if (CORBA::is_nil(obj)) {
-    LOG_ERROR(Device_impl, "Invalid device manager IOR");
+    RH_ERROR(_device_log, "Invalid device manager IOR");
     exit(-1);
   }
   _deviceManager = CF::DeviceManager::_narrow(obj);
   if (CORBA::is_nil(_deviceManager)) {
-    LOG_ERROR(Device_impl, "Could not narrow device manager IOR");
+    RH_ERROR(_device_log, "Could not narrow device manager IOR");
     exit(-1);
   }
 
@@ -233,7 +232,7 @@ void  Device_impl::run ()
 
 void  Device_impl::halt ()
 {
-    LOG_DEBUG(Device_impl, "Halting Device")
+    RH_DEBUG(_device_log, "Halting Device")
     Resource_impl::halt();
 }
 
@@ -242,9 +241,9 @@ Device_impl::releaseObject ()
 throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
     // SR:419
-    LOG_DEBUG(Device_impl, "Receive releaseObject call");
+    RH_DEBUG(_device_log, "Receive releaseObject call");
     if (_adminState == CF::Device::UNLOCKED) {
-        LOG_DEBUG(Device_impl, "Releasing Device")
+        RH_DEBUG(_device_log, "Releasing Device")
         setAdminState(CF::Device::SHUTTING_DOWN);
 
         // SR:418
@@ -259,16 +258,16 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         setAdminState(CF::Device::LOCKED);
         try {
             // SR:422
-            LOG_DEBUG(Device_impl, "Unregistering Device")
+            RH_DEBUG(_device_log, "Unregistering Device")
             _deviceManager->unregisterDevice(this->_this());
         } catch (...) {
             // SR:423
             throw CF::LifeCycle::ReleaseError();
         }
-        LOG_DEBUG(Device_impl, "Done Releasing Device")
+        RH_DEBUG(_device_log, "Done Releasing Device")
     }
 
-    RH_NL_DEBUG("Device", "Clean up IDM_CHANNEL. DEV-ID:"  << _identifier );
+    RH_DEBUG(_device_log, "Clean up IDM_CHANNEL. DEV-ID:"  << _identifier );
     if ( idm_publisher )  idm_publisher.reset();
     delete this->_devMgr;
     this->_devMgr=NULL;
@@ -278,16 +277,16 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 Device_impl::~Device_impl ()
 {
 
-  RH_NL_TRACE("Device", "DTOR START  DEV-ID:"  << _identifier );
+  RH_TRACE(_device_log, "DTOR START  DEV-ID:"  << _identifier );
 
-  RH_NL_DEBUG("Device", "Clean up event channel allocations");
+  RH_DEBUG(_device_log, "Clean up event channel allocations");
   if ( idm_publisher ) idm_publisher.reset();
   
   if (this->_devMgr != NULL) {
       delete this->_devMgr;
    }
 
-  RH_NL_TRACE("Device", "DTOR END  DEV-ID:"  << _identifier );
+  RH_TRACE(_device_log, "DTOR END  DEV-ID:"  << _identifier );
 
 }
 
@@ -295,11 +294,11 @@ Device_impl::~Device_impl ()
 CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
 throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity)
 {
-    LOG_TRACE(Device_impl, "in allocateCapacity");
+    RH_TRACE(_device_log, "in allocateCapacity");
 
     if (capacities.length() == 0) {
         // Nothing to do, return
-        LOG_TRACE(Device_impl, "no capacities to configure.");
+        RH_TRACE(_device_log, "no capacities to configure.");
         return true;
     }
 
@@ -313,7 +312,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
         } else {
             invalidState = "SHUTTING_DOWN";
         }
-        LOG_DEBUG(Device_impl, "Cannot allocate capacity: System is " << invalidState);
+        RH_DEBUG(_device_log, "Cannot allocate capacity: System is " << invalidState);
         throw CF::Device::InvalidState(invalidState);
     }
 
@@ -348,7 +347,7 @@ void Device_impl::validateCapacities (const CF::Properties& capacities)
 
 bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
 {
-    LOG_TRACE(Device_impl, "Using legacy capacity allocation");
+    RH_TRACE(_device_log, "Using legacy capacity allocation");
     
     typedef std::pair< CF::DataType, CF::DataType >         Allocation;
     std::vector< Allocation > allocations;
@@ -376,21 +375,21 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
             foundProperty = false;
 
             for (unsigned j = 0; j < currentCapacities.length (); j++) {
-                LOG_TRACE(Device_impl, "Comparing IDs: " << capacities[i].id << ", " << currentCapacities[j].id );
+                RH_TRACE(_device_log, "Comparing IDs: " << capacities[i].id << ", " << currentCapacities[j].id );
                 if (strcmp (capacities[i].id, currentCapacities[j].id) == 0) {
                     // Verify that both values have the same type
                     if (!ossie::corba::isValidType (currentCapacities[j].value, capacities[i].value)) {
-                        LOG_ERROR(Device_impl, "Cannot allocate capacity: Incorrect data type.");
+                        RH_ERROR(_device_log, "Cannot allocate capacity: Incorrect data type.");
                         throw (CF::Device::InvalidCapacity("Cannot allocate capacity. Incorrect Data Type.", capacities));
                     } else {
                         // Check for sufficient capacity and allocate it
                         if (!allocate (currentCapacities[j].value, capacities[i].value)) {
-                            LOG_ERROR(Device_impl, "Cannot allocate capacity: Insufficient capacity.");
+                            RH_ERROR(_device_log, "Cannot allocate capacity: Insufficient capacity.");
                             return false;
                         }
                         Allocation a( capacities[i], currentCapacities[j] );
                         allocations.push_back( a );
-                        LOG_TRACE(Device_impl, "Device Allocation Capacity against, ID: " << capacities[i].id );
+                        RH_TRACE(_device_log, "Device Allocation Capacity against, ID: " << capacities[i].id );
                     }
 
                     foundProperty = true;     // Report that the requested property was found
@@ -399,7 +398,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
             }
 
             if (!foundProperty) {
-                LOG_ERROR(Device_impl, "Cannot allocate capacity: Invalid property ID: " << capacities[i].id);
+                RH_ERROR(_device_log, "Cannot allocate capacity: Invalid property ID: " << capacities[i].id);
                 throw (CF::Device::InvalidCapacity("Cannot allocate capacity. Invalid property ID", capacities));
             }
         }
@@ -422,7 +421,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
             CF::DataType request = allocations[ii].first;
             CF::DataType new_alloc = allocations[ii].second;
             PropertyInterface* property = getPropertyFromId((const char*)request.id);
-            LOG_TRACE(Device_impl, "Allocatable property: " << property->id);
+            RH_TRACE(_device_log, "Allocatable property: " << property->id);
             try {
                     std::vector<std::string>::iterator kind = property->kinds.begin();
                     bool sendEvent = false;
@@ -454,10 +453,10 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
                     // just in case.. should not happen
                     cleanup.add(request);
             } catch (std::exception& e) {
-                LOG_ERROR(Device_impl, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
+                RH_ERROR(_device_log, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
                 ossie::corba::push_back(invalidProperties,request);
             } catch (CORBA::Exception& e) {
-                LOG_ERROR(Device_impl, "Setting property " << property->id << " failed.  Cause: " << e._name());
+                RH_ERROR(_device_log, "Setting property " << property->id << " failed.  Cause: " << e._name());
                 ossie::corba::push_back(invalidProperties,request);
             }
         }
@@ -478,14 +477,14 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         return true;
     } else {
         /* Not sure */
-        LOG_WARN(Device_impl, "Cannot allocate capacity: System is BUSY");
+        RH_WARN(_device_log, "Cannot allocate capacity: System is BUSY");
         return false;
     }
 }
 
 bool Device_impl::allocateCapacityNew (const CF::Properties& capacities)
 {
-    LOG_TRACE(Device_impl, "Using callback-based capacity allocation");
+    RH_TRACE(_device_log, "Using callback-based capacity allocation");
 
     validateCapacities(capacities);
 
@@ -495,16 +494,16 @@ bool Device_impl::allocateCapacityNew (const CF::Properties& capacities)
         const CF::DataType& capacity = capacities[ii];
         const std::string id = static_cast<const char*>(capacity.id);
         PropertyInterface* property = getPropertyFromId(id);
-        LOG_TRACE(Device_impl, "Allocating property '" << id << "'");
+        RH_TRACE(_device_log, "Allocating property '" << id << "'");
         try {
             if (property->allocate(capacity.value)) {
                 allocations.add(capacity);
             } else {
-                LOG_DEBUG(Device_impl, "Cannot allocate capacity. Insufficent capacity for property '" << id << "'");
+                RH_DEBUG(_device_log, "Cannot allocate capacity. Insufficent capacity for property '" << id << "'");
                 return false;
             }
         } catch (const ossie::not_implemented_error& ex) {
-            LOG_WARN(Device_impl, "No allocation implementation for property '" << id << "'");
+            RH_WARN(_device_log, "No allocation implementation for property '" << id << "'");
             return false;
         }
     }
@@ -527,7 +526,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
         } else {
             invalidState = "DISABLED";
         }
-        LOG_DEBUG(Device_impl, "Cannot deallocate capacity: System is " << invalidState);
+        RH_DEBUG(_device_log, "Cannot deallocate capacity: System is " << invalidState);
         throw CF::Device::InvalidState(invalidState);
     }
 
@@ -540,7 +539,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
 
 void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
 {
-    LOG_TRACE(Device_impl, "Using legacy capacity deallocation");
+    RH_TRACE(_device_log, "Using legacy capacity deallocation");
 
     typedef std::pair< CF::DataType, PropertyInterface * >         Allocation;
     std::vector< Allocation > deallocations;
@@ -566,25 +565,25 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
             CORBA::Any new_value;
             property->getValue(new_value);
             if (!ossie::corba::isValidType (new_value, capacities[i].value)) {
-                LOG_WARN(Device_impl, "Cannot deallocate capacity. Incorrect Data Type.");
+                RH_WARN(_device_log, "Cannot deallocate capacity. Incorrect Data Type.");
                 throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities));
             } else {
                 deallocate (new_value, capacities[i].value);
                 // check that we can stay within original bounds
                 bool _apply=true;
                 for (unsigned ii = 0; ii < originalCap.length (); ii++) {
-                    LOG_TRACE(Device_impl, "Testing max value for allocation ID: " << originalCap[ii].id);
+                    RH_TRACE(_device_log, "Testing max value for allocation ID: " << originalCap[ii].id);
                     if (strcmp (pid.c_str(), originalCap[ii].id) == 0) {
                         compResult = compareAnys (new_value, originalCap[ii].value);
                         if (compResult == FIRST_BIGGER) {
-                            LOG_WARN(Device_impl, "Cannot deallocate capacity, allocation ID: " << pid << ", New capacity would exceed original bound.");
+                            RH_WARN(_device_log, "Cannot deallocate capacity, allocation ID: " << pid << ", New capacity would exceed original bound.");
                             ossie::corba::push_back(overCaps, capacities[i]);
                             _apply = false;
                         }
                     }
                 }
                 if (_apply) {
-                    LOG_TRACE(Device_impl, "(deallocation) Allocatable property : " << property->id);
+                    RH_TRACE(_device_log, "(deallocation) Allocatable property : " << property->id);
                     try {
                         std::vector<std::string>::iterator kind = property->kinds.begin();
                         bool sendEvent = false;
@@ -614,10 +613,10 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
                         }
 
                     } catch (std::exception& e) {
-                        LOG_ERROR(Device_impl, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
+                        RH_ERROR(_device_log, "Setting property " << property->id << ", " << property->name << " failed.  Cause: " << e.what());
                         ossie::corba::push_back(invalidProps,request);
                     } catch (CORBA::Exception& e) {
-                        LOG_ERROR(Device_impl, "Setting property " << property->id << " failed.  Cause: " << e._name());
+                        RH_ERROR(_device_log, "Setting property " << property->id << " failed.  Cause: " << e._name());
                         ossie::corba::push_back(invalidProps,request);
                     }
 
@@ -669,7 +668,7 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
 
 void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
 {
-    LOG_TRACE(Device_impl, "Using callback-based capacity deallocation");
+    RH_TRACE(_device_log, "Using callback-based capacity deallocation");
 
     validateCapacities(capacities);
 
@@ -680,11 +679,11 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
         const CF::DataType& capacity = capacities[ii];
         const std::string id = static_cast<const char*>(capacity.id);
         PropertyInterface* property = getPropertyFromId(id);
-        LOG_TRACE(Device_impl, "Deallocating property (new method) '" << id << "'");
+        RH_TRACE(_device_log, "Deallocating property (new method) '" << id << "'");
         try {
             property->deallocate(capacity.value);
         } catch (const ossie::not_implemented_error& ex) {
-            LOG_WARN(Device_impl, "No deallocation implementation for property '" << id << "'");
+            RH_WARN(_device_log, "No deallocation implementation for property '" << id << "'");
         } catch (const std::exception& ex) {
             ossie::corba::push_back(invalidProps, capacity);
         }
@@ -933,7 +932,7 @@ void Device_impl::sendStateChange( StandardEvent::StateChangeType &stateChangeFr
                                       idm_publisher );
   }
   else {
-    RH_NL_WARN("Device", "Unable to publish state change, DEV-ID:"  << _identifier );
+    RH_WARN(_device_log, "Unable to publish state change, DEV-ID:"  << _identifier );
   }
 
 }
@@ -1110,11 +1109,11 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
                 CF::DataType res;
                 res.id = p->id.c_str();
                 p->getValue(res.value);
-                LOG_TRACE(Device_impl, "Saving value for allocation ID: " << p->id);
+                RH_TRACE(_device_log, "Saving value for allocation ID: " << p->id);
                 bool found = false;
                 for ( unsigned int j=0; j < originalCap.length(); j++) {
                     if ( strcmp(p->id.c_str(), originalCap[j].id) == 0 ) {
-                        LOG_TRACE(Device_impl, "Override value for allocation ID: " << p->id);
+                        RH_TRACE(_device_log, "Override value for allocation ID: " << p->id);
                         originalCap[j].value = res.value;
                         found = true;
                     }
@@ -1132,14 +1131,14 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
             unsigned int j=0;
             for ( ; j < originalCap.length(); j++ ) {
                 if ( strcmp(capacities[i].id, originalCap[j].id) == 0 ) {
-                    LOG_TRACE(Device_impl, "Override original value for allocation ID: " <<capacities[i].id);
+                    RH_TRACE(_device_log, "Override original value for allocation ID: " <<capacities[i].id);
                     originalCap[j].value = capacities[i].value;
                     found=true;
                     break;
                 }
             }
             if ( !found ) {
-                LOG_TRACE(Device_impl, "Saving original value for allocation ID: " <<capacities[i].id);
+                RH_TRACE(_device_log, "Saving original value for allocation ID: " <<capacities[i].id);
                 ossie::corba::push_back( originalCap, capacities[i]);
             }
         }
@@ -1170,29 +1169,29 @@ void Device_impl::connectIDMChannel( const std::string &idm_channel_ior ) {
     try {
       CORBA::Object_var IDM_channel_obj = ossie::corba::Orb()->string_to_object(idm_channel_ior.c_str());
       if (CORBA::is_nil(IDM_channel_obj)) {
-        LOG_ERROR(Device_impl, "Invalid IDM channel IOR: " << idm_channel_ior << "  DEV-ID:" << _identifier );
+        RH_ERROR(_device_log, "Invalid IDM channel IOR: " << idm_channel_ior << "  DEV-ID:" << _identifier );
       } else {
         ossie::events::EventChannel_var idm_channel = ossie::events::EventChannel::_narrow(IDM_channel_obj);
         idm_publisher = redhawk::events::PublisherPtr(new redhawk::events::Publisher( idm_channel ));
       }
     }
-    CATCH_LOG_WARN(Device_impl, "Unable to connect to IDM channel");
+    CATCH_RH_WARN(_device_log, "Unable to connect to IDM channel");
   }
   else {
 
     try {
-      RH_NL_DEBUG("Device", "Getting EventManager.... DEV-ID:" << _identifier );
+      RH_DEBUG(_device_log, "Getting EventManager.... DEV-ID:" << _identifier );
       redhawk::events::ManagerPtr evt_mgr = redhawk::events::Manager::GetManager( this );
       
       if ( evt_mgr ) {
-        RH_NL_INFO("Device", "DEV-ID:" << _identifier << " Requesting IDM CHANNEL " << redhawk::events::IDM_Channel_Spec  );
+        RH_INFO(_device_log, "DEV-ID:" << _identifier << " Requesting IDM CHANNEL " << redhawk::events::IDM_Channel_Spec  );
         idm_publisher = evt_mgr->Publisher( redhawk::events::IDM_Channel_Spec );
       
         if (idm_publisher == NULL ) throw -1;
       }
     }
     catch(...) { 
-      LOG_WARN(Device_impl, "Unable to connect to Domain's IDM Channel,  DEV-ID:" << _identifier );
+      RH_WARN(_device_log, "Unable to connect to Domain's IDM Channel,  DEV-ID:" << _identifier );
     }  
   }
 
@@ -1258,6 +1257,7 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
         }
     }
 
+    std::string logname = log_label+".system.Device";
     // signal assist with processing SIGCHLD events for executable devices..
     int sig_fd=-1;
     if ( enablesigfd  ){
@@ -1268,13 +1268,13 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
       /* We must block the signals in order for signalfd to receive them */
       err = sigprocmask(SIG_BLOCK, &sigset, NULL);
       if ( err != 0 ) {
-        LOG_FATAL(Device_impl, "Failed to create signalfd for SIGCHLD");
+        RH_NL_FATAL(logname, "Failed to create signalfd for SIGCHLD");
         exit(EXIT_FAILURE);
       }
       /* Create the signalfd */
       sig_fd = signalfd(-1, &sigset,0);
       if ( sig_fd == -1 ) {
-        LOG_FATAL(Device_impl, "Failed to create signalfd for SIGCHLD");
+        RH_NL_FATAL(logname, "Failed to create signalfd for SIGCHLD");
         exit(EXIT_FAILURE);
       }
     }
@@ -1296,27 +1296,27 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
     }
 
     if ((devMgr_ior == 0) || (id == 0) || (profile == 0) || (label == 0)) {
-        LOG_FATAL(Device_impl, "Per SCA specification SR:478, DEVICE_MGR_IOR, PROFILE_NAME, DEVICE_ID, and DEVICE_LABEL must be provided");
+        RH_NL_FATAL(logname, "Per SCA specification SR:478, DEVICE_MGR_IOR, PROFILE_NAME, DEVICE_ID, and DEVICE_LABEL must be provided");
         exit(-1);
     }
 
-    LOG_DEBUG(Device_impl, "Identifier = " << id << "Label = " << label << " Profile = " << profile << " IOR = " << devMgr_ior);
+    RH_NL_DEBUG(logname, "Identifier = " << id << "Label = " << label << " Profile = " << profile << " IOR = " << devMgr_ior);
 
     // Associate SIGINT to signal_catcher interrupt handler
     if( sigaction( SIGINT, &sa, NULL ) == -1 ) {
-        LOG_FATAL(Device_impl, "SIGINT association failed");
+        RH_NL_FATAL(logname, "SIGINT association failed");
         exit(EXIT_FAILURE);
     }
 
     // Associate SIGQUIT to signal_catcher interrupt handler
     if( sigaction( SIGQUIT, &sa, NULL ) == -1 ) {
-        LOG_FATAL(Device_impl, "SIGQUIT association failed");
+        RH_NL_FATAL(logname, "SIGQUIT association failed");
         exit(EXIT_FAILURE);
     }
 
     // Associate SIGTERM to signal_catcher interrupt handler
     if( sigaction( SIGTERM, &sa, NULL ) == -1 ) {
-        LOG_FATAL(Device_impl, "SIGTERM association failed");
+        RH_NL_FATAL(logname, "SIGTERM association failed");
         exit(EXIT_FAILURE);
     }
 
@@ -1343,7 +1343,7 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
       device->postConstruction( tmp_profile, tmp_devMgr_ior, idm_channel_ior, nic, sig_fd);
     }
     catch( CF::InvalidObjectReference &ex ) {
-      LOG_FATAL(Device_impl, "Device " << label << ", Failed initialization and registration, terminating execution");
+      RH_NL_FATAL(logname, "Device " << label << ", Failed initialization and registration, terminating execution");
       if ( device ) device->_remove_ref();
       ossie::logging::Terminate();
       ossie::corba::OrbShutdown(true);
@@ -1369,13 +1369,13 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
                 eout << "COMPLETED_MAYBE";
         }
         eout << ")";
-        LOG_FATAL(Device_impl, "Unable to complete Device construction: "<<eout.str());
+        RH_NL_FATAL(logname, "Unable to complete Device construction: "<<eout.str());
         if ( device ) device->_remove_ref();
         ossie::logging::Terminate();
         ossie::corba::OrbShutdown(true);
         exit(EXIT_FAILURE);
     } catch ( ... ) {
-        LOG_FATAL(Device_impl, "device fatal failure");
+        RH_NL_FATAL(logname, "device fatal failure");
         if ( device ) device->_remove_ref();
         ossie::logging::Terminate();
         ossie::corba::OrbShutdown(true);
@@ -1386,7 +1386,7 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
         return;
     }    
     device->run();
-    LOG_DEBUG(Device_impl, "Goodbye!");
+    RH_NL_DEBUG(logname, "Goodbye!");
     device->_remove_ref();
     ossie::logging::Terminate();
     ossie::corba::OrbShutdown(true);

@@ -200,6 +200,8 @@ public:
       if ( xfersize > 0 ) transferSize=xfersize;
     }
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
 
     // Increment the loadedFiles counter
@@ -240,6 +242,8 @@ protected:
     void _deleteTree(const std::string &fileKey);
     bool _treeIntact(const std::string &fileKey);
     void _copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey);
+
+    rh_logger::LoggerPtr _loadabledevice_log;
 };
 
 #endif
