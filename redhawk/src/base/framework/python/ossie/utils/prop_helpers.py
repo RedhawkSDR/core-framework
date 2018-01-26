@@ -72,7 +72,7 @@ def configureProp(compRef, propName, propValue):
     results = compRef.query([propRef])
     if results != None:
         if results[0].value._t != _CORBA.TC_null:
-            propRef.value._t = esults[0].value._t
+            propRef.value._t = results[0].value._t
             propRef.value._v = propValue
             compRef.configure([propRef])
             return
