@@ -88,6 +88,8 @@ public:
     // Set admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
     void setAdminState (CF::Device::AdminType _adminType);
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     // Admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
     CF::Device::AdminType _adminState;
@@ -262,6 +264,8 @@ private:
     void deallocateCapacityLegacy (const CF::Properties& capacities);
     // container to the Device Manager
     redhawk::DeviceManagerContainer *_devMgr;
+
+    rh_logger::LoggerPtr _device_log;
 
 
  private:
