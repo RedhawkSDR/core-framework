@@ -116,6 +116,8 @@ namespace redhawk {
 
         CF::FileSystem_var fileSystem;
         boost::ptr_vector<ossie::SoftPkg> profiles;
+
+        rh_logger::LoggerPtr _profilecache_log;
     };
 }
 
