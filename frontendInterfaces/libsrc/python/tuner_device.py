@@ -294,7 +294,7 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
 
     return True
 
-def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode=0.0, control_mode=0.0, control_limit=0.0, returnDict=True):
+def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode="", control_mode="", control_limit=0.0, returnDict=True):
     if returnDict:
         retval = {'FRONTEND::scanner_allocation':{'FRONTEND::scanner_allocation::min_freq':min_freq,'FRONTEND::scanner_allocation::max_freq':max_freq,
         'FRONTEND::scanner_allocation::mode':mode,'FRONTEND::scanner_allocation::control_mode':control_mode,
@@ -306,9 +306,7 @@ def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode=0.0, control_mode=0
         alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::max_freq',value=any.to_any(max_freq)))
         alloc[-1].value._t = CORBA.TC_double
         alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::mode',value=any.to_any(mode)))
-        alloc[-1].value._t = CORBA.TC_double
         alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::control_mode',value=any.to_any(control_mode)))
-        alloc[-1].value._t = CORBA.TC_double
         alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::control_limit',value=any.to_any(control_limit)))
         alloc[-1].value._t = CORBA.TC_double
         retval = CF.DataType(id='FRONTEND::scanner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
