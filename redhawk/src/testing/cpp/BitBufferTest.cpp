@@ -85,6 +85,80 @@ void BitBufferTest::testFromArray()
     CPPUNIT_ASSERT_MESSAGE("Offset array is not equal", status == 0);
 }
 
+void BitBufferTest::testEquals()
+{
+    // Fill a bit buffer with a known pattern
+    const int64_t pattern = 0x194AB70D385;
+    redhawk::bitbuffer first = redhawk::bitbuffer::from_int(pattern, 41);
+    CPPUNIT_ASSERT(first == first);
+
+    // Shared buffer aliasing the first should always be equal
+    const redhawk::shared_bitbuffer shared = first;
+    CPPUNIT_ASSERT(first == shared);
+
+    // Another buffer with different backing memory should still compare
+    // equal
+    redhawk::bitbuffer second = redhawk::bitbuffer::from_int(pattern, 41);
+    CPPUNIT_ASSERT(second.data() != first.data());
+    CPPUNIT_ASSERT(first == second);
+
+    // Flip a bit, the comparison should now fail
+    second[17] = !second[17];
+    CPPUNIT_ASSERT(first != second);
+
+    // Create a new buffer with a different size, but the same data (just
+    // offset by few bits). It should compare unequal as-is; however, it should
+    // compare equal if taking a slice of the original buffer to re-align them.
+    redhawk::bitbuffer third = redhawk::bitbuffer::from_int(pattern, 38);
+    CPPUNIT_ASSERT(third != first);
+    CPPUNIT_ASSERT(third == shared.slice(3));
+}
+
+void BitBufferTest::testCopy()
+{
+    // Create a bit buffer with known data
+    redhawk::bitbuffer original(127);
+    for (size_t index = 0; index < original.size(); ++index) {
+        // Value is true if index is odd
+        original[index] = index & 1;
+    }
+
+    // Make a copy, and verify that it's a new underlying buffer
+    redhawk::bitbuffer copy = original.copy();
+    CPPUNIT_ASSERT(copy == original);
+    CPPUNIT_ASSERT(copy.data() != original.data());
+
+    // Set an even index to 1; the copy should be unaffected
+    original[2] = 1;
+    CPPUNIT_ASSERT_EQUAL(0, (int) copy[2]);
+}
+
+void BitBufferTest::testSwap()
+{
+    // Create two mutable bit buffers with different contents
+    redhawk::bitbuffer first(31);
+    first.fill(0, first.size(), 1);
+    redhawk::bitbuffer second(24);
+    second.fill(0, second.size(), 0);
+
+    // Swap them and check that the swap worked as expected
+    first.swap(second);
+    CPPUNIT_ASSERT_EQUAL((size_t) 24, first.size());
+    CPPUNIT_ASSERT_EQUAL(0, (int) first[0]);
+    CPPUNIT_ASSERT_EQUAL((size_t) 31, second.size());
+    CPPUNIT_ASSERT_EQUAL(1, (int) second[0]);
+
+    // Create shared bit buffer aliases for each buffer
+    redhawk::shared_bitbuffer shared_first = first;
+    redhawk::shared_bitbuffer shared_second = second;
+
+    // Swap the shared buffers and make sure that the underlying data pointers
+    // are correct
+    shared_first.swap(shared_second);
+    CPPUNIT_ASSERT(shared_first.data() == second.data());
+    CPPUNIT_ASSERT(shared_second.data() == first.data());
+}
+
 void BitBufferTest::testResize()
 {
     // Fill a bit buffer with known byte data
