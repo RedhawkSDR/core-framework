@@ -35,7 +35,7 @@ namespace redhawk {
     {
     public:
         typedef unsigned char data_type;
-        static const size_t npos = (size_t)-1;
+        static const size_t npos = static_cast<size_t>(-1);
 
         shared_bitbuffer();
         shared_bitbuffer(data_type* ptr, size_t bits);

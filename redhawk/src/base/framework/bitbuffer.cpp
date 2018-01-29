@@ -23,6 +23,11 @@
 
 using redhawk::shared_bitbuffer;
 
+// Declare npos here so that storage is allocated for it, even though it most
+// cases it is used directly as a constant; otherwise, some uses may fail to
+// link.
+const size_t shared_bitbuffer::npos;
+
 shared_bitbuffer::shared_bitbuffer() :
     _M_memory(),
     _M_base(0),

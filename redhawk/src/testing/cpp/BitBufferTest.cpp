@@ -353,3 +353,35 @@ void BitBufferTest::testReplace()
     CPPUNIT_ASSERT_EQUAL((data_type) 0x31, data[3]);
     CPPUNIT_ASSERT_EQUAL((data_type) 0xA0, data[4]);
 }
+
+void BitBufferTest::testFind()
+{
+    // Pick a oddly-sized pattern
+    redhawk::shared_bitbuffer pattern = redhawk::bitbuffer::from_int(0x2C07BE, 22);
+
+    // Fill a bit buffer with 1's, then copy the pattern into it in a couple of
+    // places
+    redhawk::bitbuffer buffer(300);
+    buffer.fill(0, buffer.size(), 1);
+    buffer.replace(37, pattern.size(), pattern);
+    buffer.replace(200, pattern.size(), pattern);
+
+    // 2-argument find searches from the beginning
+    CPPUNIT_ASSERT_EQUAL((size_t) 37, buffer.find(pattern, 0));
+
+    // Use the optional 3rd argument to start after the first occurrence
+    CPPUNIT_ASSERT_EQUAL((size_t) 200, buffer.find(59, pattern, 0));
+
+    // Finally, the search should fail when started after both occurrences
+    CPPUNIT_ASSERT_EQUAL(redhawk::bitbuffer::npos, buffer.find(222, pattern, 0));
+
+    // Introduce some bit errors
+    buffer[38] = !buffer[38];
+    buffer[48] = !buffer[48];
+    buffer[220] = !buffer[220];
+
+    // Try decreasing tolerances
+    CPPUNIT_ASSERT_EQUAL((size_t) 37, buffer.find(pattern, 2));
+    CPPUNIT_ASSERT_EQUAL((size_t) 200, buffer.find(pattern, 1));
+    CPPUNIT_ASSERT_EQUAL(redhawk::bitbuffer::npos, buffer.find(pattern, 0));
+}
