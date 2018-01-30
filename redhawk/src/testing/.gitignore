@@ -15,6 +15,7 @@ sdr/dev/devices/GPP/cpp/GPP
 sdr/dev/devices/SimpleDevice/SimpleDevice_cpp_impl1/SimpleDevice_cpp_impl1
 sdr/dev/devices/issue_111_cpp/cpp/issue_111_cpp
 sdr/dev/devices/props_test_device/props_test_device_cpp_impl1/props_test_device_cpp_impl1
+sdr/dev/devices/base_programmable/cpp/base_programmable
 sdr/dev/devices/ProgrammableDevice/cpp/ProgrammableDevice
 sdr/dev/mgr/DeviceManager*
 sdr/dev/nodes/test_Concurrent_nodes/
@@ -22,8 +23,10 @@ sdr/dom/components/BasicAC/BasicAC_cpp_impl1/BasicAC_cpp_impl1
 sdr/dom/components/cpp_comp/cpp/cpp_comp
 sdr/dom/components/ECM_CPP/cpp/ECM_CPP
 sdr/dom/components/HardLimit/HardLimit_java_impl1/fileList.txt
+sdr/dom/components/huge_msg_cpp/cpp/huge_msg_cpp
 sdr/dom/components/MessageReceiverCpp/MessageReceiverCpp
 sdr/dom/components/MessageSenderCpp/MessageSenderCpp
+sdr/dom/components/msg_through_cpp/cpp/msg_through_cpp
 sdr/dom/components/Property_CPP/cpp/Property_CPP
 sdr/dom/components/PropertyChangeEventsCpp/PropertyChangeSenderCpp
 sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/SimpleComponent_cpp_impl1

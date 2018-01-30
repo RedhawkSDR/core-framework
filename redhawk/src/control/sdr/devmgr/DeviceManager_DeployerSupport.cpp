@@ -510,9 +510,7 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
                 LOG_TRACE(DeviceManager_impl, "Overriding exec boolean with instance value: " << ref->getValue());
                 if (ref->getValue()) {
                      std::string v(ref->getValue());
-                     if ( v.size() != 0 ) {
-                         value = ref->getValue();
-                     }
+                     value = v;
                 }
             }
         }
