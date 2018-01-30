@@ -1492,7 +1492,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         k="exec_cmd_empty"
         if  match_exec[k]:
-            p=self._find_exec_param(lines, "py_svc_exec_params", match_exec["exec_cmd_empty"])
+            p=self._find_exec_param(lines, "py_svc_exec_params", match_exec[k])
             self.assertNotEqual(p, None)
         else:
             p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
@@ -1556,6 +1556,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
     def test_ServiceExecParamReadonly_0(self):
         match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]=None
         self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.dcd.xml", match_exec)
 
     def test_ServiceExecParamReadonly_1(self):
