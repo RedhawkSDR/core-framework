@@ -40,7 +40,7 @@
 
 int main(int argc, char* argv[])
 {
-    const char* short_options = "v";
+    const char* short_options = "vx:";
     struct option long_options[] = {
         { "xunit-file", required_argument, 0, 'x' },
         { "log-level",  required_argument, 0, 'l' },
@@ -119,6 +119,9 @@ int main(int argc, char* argv[])
         CppUnit::XmlOutputter xml_outputter(&runner.result(), file);
         xml_outputter.write();
     }
+
+    // Shut down the CORBA orb, just for cleanliness' sake.
+    ossie::corba::OrbShutdown(true);
 
     // Return error code 1 if the one of test failed.
     return success ? 0 : 1;
