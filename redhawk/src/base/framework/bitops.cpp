@@ -127,11 +127,11 @@ namespace bitops {
                 // Doing it this way avoids a conditional, the performance of
                 // which is less predictable.
                 uint16_t value = src[0] << 8;
-                size_t last = offset + bits;
+                size_t last = offset + bits - 1; // index of last bit
                 value |= src[last/8];
                 // Shift to put the last bit at the LSB, and mask to get only
                 // the requested number of bits
-                size_t shift = 16 - last;
+                size_t shift = 15 - last;
                 return (value >> shift) & bitmask(bits);
             }
         };
