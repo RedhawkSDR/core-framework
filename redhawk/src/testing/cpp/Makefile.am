@@ -37,11 +37,11 @@ test_libossiecf_SOURCES += CallbackTest.cpp CallbackTest.h
 test_libossiecf_SOURCES += BitopsTest.cpp BitopsTest.h
 test_libossiecf_SOURCES += BitBufferTest.cpp BitBufferTest.h
 test_libossiecf_CXXFLAGS = $(CPPUNIT_CFLAGS) -I $(top_srcdir)/base/include
-test_libossiecf_LDFLAGS = $(CPPUNIT_LIBS) $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
+test_libossiecf_LDFLAGS = $(CPPUNIT_LIBS) $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la -no-install
 
 # Benchmark program for bit operations
 noinst_PROGRAMS = benchmark_bitops
 
 benchmark_bitops_SOURCES = benchmark_bitops.cpp
 benchmark_bitops_CXXFLAGS = -I $(top_srcdir)/base/include
-benchmark_bitops_LDFLAGS = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
+benchmark_bitops_LDFLAGS = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la -no-install

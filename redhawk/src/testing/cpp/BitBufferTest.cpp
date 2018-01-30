@@ -347,11 +347,11 @@ void BitBufferTest::testReplace()
     // 4-argument version: replace 12 bits at offset 22, starting with the 4th
     // bit of the source
     //   1000(11 00|110001 10|1)101
-    // 000000(11|00 110001|10 1)00000 = 0x0331A0
+    // 000000(11|00 110001|10 1)0xxxx = 0x0331A
     dest.replace(22, 13, (const redhawk::shared_bitbuffer&) src, 4);
     CPPUNIT_ASSERT_EQUAL((data_type) 0x03, data[2]);
     CPPUNIT_ASSERT_EQUAL((data_type) 0x31, data[3]);
-    CPPUNIT_ASSERT_EQUAL((data_type) 0xA0, data[4]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xA0, (data_type) (data[4] & 0xF0));
 }
 
 void BitBufferTest::testFind()
