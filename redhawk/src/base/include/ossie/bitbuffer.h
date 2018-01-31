@@ -192,17 +192,29 @@ namespace redhawk {
          * @brief  Returns a transient %shared_bitbuffer.
          * @param data  Pointer to first byte.
          * @param size  Number of bits.
+         * @see shared_bitbuffer::make_transient(const data_type*,size_t)
+         */
+        static inline shared_bitbuffer make_transient(const data_type* data, size_t bits)
+        {
+            return make_transient(data, 0, bits);
+        }
+
+        /**
+         * @brief  Returns a transient %shared_bitbuffer.
+         * @param data   Pointer to first byte.
+         * @param start  Index of first bit.
+         * @param size   Number of bits.
          *
          * Adapts externally managed memory to work with the %shared_bitbuffer
          * API; however, additional care must be taken to ensure that the data
          * is copied if it needs to be held past the lifetime of the transient
          * %shared_bitbuffer.
          */
-        static shared_bitbuffer make_transient(const data_type* data, size_t bits)
+        static inline shared_bitbuffer make_transient(const data_type* data, size_t start, size_t bits)
         {
             shared_bitbuffer result;
             result._M_base = const_cast<data_type*>(data);
-            result._M_offset = 0;
+            result._M_offset = start;
             result._M_size = bits;
             return result;
         }
@@ -281,11 +293,9 @@ namespace redhawk {
             return from_array(data, 0, bits);
         }
 
-        static inline bitbuffer from_array(const data_type* data, size_t offset, size_t bits)
+        static inline bitbuffer from_array(const data_type* data, size_t start, size_t bits)
         {
-            bitbuffer result(bits);
-            redhawk::bitops::copy(result.data(), result.offset(), data, offset, bits);
-            return result;
+            return shared_bitbuffer::make_transient(data, start, bits).copy();
         }
 
         explicit bitbuffer(size_t bits) :
