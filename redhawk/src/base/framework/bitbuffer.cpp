@@ -77,13 +77,6 @@ uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
     return bitops::getint(data(), offset() + pos, bits);
 }
 
-redhawk::bitbuffer shared_bitbuffer::copy() const
-{
-    bitbuffer result(this->size());
-    this->_M_copy(result);
-    return result;
-}
-
 void shared_bitbuffer::trim(size_t start, size_t end)
 {
     _M_check_index(start, "redhawk::shared_bitbuffer::trim");
@@ -124,11 +117,6 @@ shared_bitbuffer shared_bitbuffer::make_transient(const data_type* data, size_t 
     result._M_offset = start;
     result._M_size = bits;
     return result;
-}
-
-void shared_bitbuffer::_M_copy(bitbuffer& dest) const
-{
-    redhawk::bitops::copy(dest.data(), dest.offset(), data(), offset(), size());
 }
 
 void shared_bitbuffer::_M_swap(shared_bitbuffer& other)

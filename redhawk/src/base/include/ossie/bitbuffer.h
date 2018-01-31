@@ -280,8 +280,6 @@ namespace redhawk {
             return (bits + 7) / 8;
         }
 
-        void _M_copy(bitbuffer& dest) const;
-
         void _M_normalize();
         void _M_swap(shared_bitbuffer& other);
 
@@ -452,11 +450,20 @@ namespace redhawk {
         void _M_resize(bitbuffer& dest);
     };
 
-    template <class Alloc>
-    bitbuffer shared_bitbuffer::copy(const Alloc& allocator) const
+    inline bitbuffer shared_bitbuffer::copy() const
     {
+        // NB: Implementation cannot be done in-line because the buffer class
+        //     is incomplete at that point
+        return this->copy(bitbuffer::default_allocator());
+    }
+
+    template <class Alloc>
+    inline bitbuffer shared_bitbuffer::copy(const Alloc& allocator) const
+    {
+        // NB: Implementation cannot be done in-line because the buffer class
+        //     is incomplete at that point
         bitbuffer result(size(), allocator);
-        this->_M_copy(result);
+        result.replace(0, result.size(), *this);
         return result;
     }
 
