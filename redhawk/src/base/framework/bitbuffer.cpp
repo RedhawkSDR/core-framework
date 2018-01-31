@@ -44,18 +44,6 @@ shared_bitbuffer::shared_bitbuffer(data_type* ptr, size_t bits) :
 {
 }
 
-shared_bitbuffer::~shared_bitbuffer()
-{
-}
-
-shared_bitbuffer& shared_bitbuffer::operator=(const shared_bitbuffer& other)
-{
-    // Use copy constructor and swap to handle reference count
-    shared_bitbuffer temp(other);
-    this->swap(temp);
-    return *this;
-}
-
 bool shared_bitbuffer::empty() const
 {
     return (_M_size == 0);

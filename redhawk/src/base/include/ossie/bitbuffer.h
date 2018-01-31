@@ -94,10 +94,6 @@ namespace redhawk {
         {
         }
 
-        ~shared_bitbuffer();
-
-        shared_bitbuffer& operator=(const shared_bitbuffer& other);
-
         /**
          * Returns the number of bits.
          */
