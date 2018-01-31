@@ -318,6 +318,9 @@ void BitBufferTest::testSlicing()
 
     // Compare the overlap between the two slices by taking sub-slices
     CPPUNIT_ASSERT(middle.slice(2) == end.slice(0, 2));
+
+    // Exceptions
+    CPPUNIT_ASSERT_THROW(buffer.slice(buffer.size()), std::out_of_range);
 }
 
 void BitBufferTest::testTrim()
@@ -350,6 +353,9 @@ void BitBufferTest::testTrim()
     // 1010 1(100 1101 11)00
     expected = redhawk::bitbuffer::from_int(0x137, 9);
     CPPUNIT_ASSERT(expected == buffer);
+
+    // Exceptions
+    CPPUNIT_ASSERT_THROW(buffer.trim(buffer.size()), std::out_of_range);
 }
 
 void BitBufferTest::testReplace()
@@ -401,6 +407,8 @@ void BitBufferTest::testGetInt()
     // Maximum size (64 bits)
     CPPUNIT_ASSERT_EQUAL((uint64_t) 0xA11BAAE49A3F3B38, buffer.getint(32, 64));
 
+    // Exceptions
+    CPPUNIT_ASSERT_THROW(buffer.getint(buffer.size(), 1), std::out_of_range);
     CPPUNIT_ASSERT_THROW(buffer.getint(0, 65), std::length_error);
 }
 
@@ -438,7 +446,8 @@ void BitBufferTest::testSetInt()
     buffer.setint(32, 0xA11BAAE49A3F3B38, 64);
     CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, data + 4, sizeof(expected));
 
-    // More than 64 bits is an error
+    // Exceptions
+    CPPUNIT_ASSERT_THROW(buffer.setint(buffer.size(), 0, 1), std::out_of_range);
     CPPUNIT_ASSERT_THROW(buffer.setint(0, 0, 65), std::length_error);
 }
 
@@ -487,4 +496,8 @@ void BitBufferTest::testFind()
     CPPUNIT_ASSERT_EQUAL((size_t) 37, buffer.find(pattern, 2));
     CPPUNIT_ASSERT_EQUAL((size_t) 200, buffer.find(pattern, 1));
     CPPUNIT_ASSERT_EQUAL(redhawk::bitbuffer::npos, buffer.find(pattern, 0));
+
+    // Starting the search past the end of the bit buffer should always fail,
+    // but without an exception (or crash)
+    CPPUNIT_ASSERT_EQUAL(redhawk::bitbuffer::npos, buffer.find(buffer.size(), pattern, 0));
 }

@@ -83,6 +83,9 @@ int shared_bitbuffer::operator[] (size_t pos) const
 
 uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
 {
+    if ((pos + bits) > size()) {
+        throw std::out_of_range("redhawk::shared_bitbuffer::getint()");
+    }
     return bitops::getint(data(), offset() + pos, bits);
 }
 
@@ -95,9 +98,9 @@ redhawk::bitbuffer shared_bitbuffer::copy() const
 
 void shared_bitbuffer::trim(size_t start, size_t end)
 {
-    if (end == npos) {
-        end = size();
-    }
+    _M_check_index(start, "redhawk::shared_bitbuffer::trim");
+    // Limit end index to one past the last bit
+    end = std::min(end, size());
     _M_offset += start;
     _M_size = (end - start);
     _M_normalize();
@@ -105,6 +108,7 @@ void shared_bitbuffer::trim(size_t start, size_t end)
 
 shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
 {
+    _M_check_index(start, "redhawk::shared_bitbuffer::slice()");
     shared_bitbuffer result(*this);
     result.trim(start, end);
     return result;
@@ -151,6 +155,13 @@ void shared_bitbuffer::_M_normalize()
 {
     _M_base += (_M_offset / 8);
     _M_offset &= 7;
+}
+
+void shared_bitbuffer::_M_check_index(size_t pos, const char* name) const
+{
+    if (pos >= size()) {
+        throw std::out_of_range(name);
+    }
 }
 
 using redhawk::bitbuffer;
@@ -200,11 +211,15 @@ bitbuffer::reference bitbuffer::operator[] (size_t pos)
 
 void bitbuffer::setint(size_t pos, uint64_t value, size_t bits)
 {
+    if ((pos + bits) > size()) {
+        throw std::out_of_range("redhawk::bitbuffer::setint()");
+    }
     bitops::setint(data(), offset() + pos, value, bits);
 }
 
 bitbuffer bitbuffer::slice(size_t start, size_t end)
 {
+    _M_check_index(start, "redhawk::bitbuffer::slice()");
     bitbuffer temp(*this);
     temp.trim(start, end);
     return temp;

@@ -34,12 +34,38 @@ namespace redhawk {
     class shared_bitbuffer
     {
     public:
+        /// @brief  The backing memory data type.
         typedef unsigned char data_type;
+        /// @brief  Value used to represent invalid bit indices.
         static const size_t npos = static_cast<size_t>(-1);
 
+        /**
+         * Construct an empty shared_bitbuffer.
+         */
         shared_bitbuffer();
+
+        /**
+         * @brief  Construct a shared_bitbuffer with an existing pointer.
+         * @param ptr   Pointer to first byte of bit data.
+         * @param size  Number of bits.
+         *
+         * The newly-created %sharedbit_buffer takes ownership of @a ptr. When
+         * the last %shared_buffer pointing to @a ptr is destroyed, @a ptr will
+         * be deleted with delete[].
+         */
         shared_bitbuffer(data_type* ptr, size_t bits);
 
+        /**
+         * @brief  Construct a shared_bitbuffer with an existing pointer and a
+         *         custom deleter.
+         * @param ptr      Pointer to first byte of bit data.
+         * @param size     Number of bits.
+         * @param deleter  Callable object.
+         *
+         * @a D must by copy-constructible. When the last %shared_bitbuffer
+         * pointing to @a ptr is destroyed, @a deleter will be called on
+         * @a ptr. This can be used to define custom release behavior.
+         */
         template <class D>
         shared_bitbuffer(data_type* ptr, size_t bits, D deleter) :
             _M_memory(ptr, _M_bits_to_bytes(bits), deleter),
@@ -49,6 +75,16 @@ namespace redhawk {
         {
         }
 
+        /**
+         * @brief  Construct a shared_bitbuffer with an existing pointer known
+         *         to be allocated from process-shared memory.
+         * @param ptr      Pointer to first byte of bit data.
+         * @param size     Number of bits.
+         * @param deleter  Callable object.
+         * @param tag      Indicates that @a ptr is in process-shared memory.
+         *
+         * @warning This constructor is intended for internal use only.
+         */
         template <class D>
         shared_bitbuffer(data_type* ptr, size_t bits, D deleter, detail::process_shared_tag tag) :
             _M_memory(ptr, _M_bits_to_bytes(bits), deleter, tag),
@@ -73,13 +109,12 @@ namespace redhawk {
         bool empty() const;
 
         /**
-         * Returns a read-only pointer to the backing byte array.
+         * Returns a read-only pointer to the backing array.
          */
         const data_type* data() const;
 
         /**
-         * @brief  Returns the index of the first bit in the backing byte
-         *         array.
+         * @brief  Returns the index of the first bit in the backing array.
          *
          * The offset is always in the range [0, 8). Bits are numbered starting
          * at the most significant bit.
@@ -98,6 +133,8 @@ namespace redhawk {
          * @param pos    Index of first bit.
          * @param bits   Number of bits to extract (max 64).
          * @returns  Integer value.
+         * @throw std::out_of_range  If @p pos > size(), or there are fewer than
+         *                           @p bits at @p pos.
          * @throw std::length_error  If @p bits is greater than 64.
          * @see redhawk::bitops::getint
          */
@@ -107,31 +144,37 @@ namespace redhawk {
          * @brief  Returns a %shared_bitbuffer containing a subset of bits.
          * @param start  Index of first bit.
          * @param end  Index of last bit, exclusive (default end).
+         * @throw std::out_of_range  If @p start > size().
          * @return  The new %shared_bitbuffer.
+         *
+         * If @a end is past the end of the bit buffer, the slice extends to
+         * the end of this bit buffer.
          */
         shared_bitbuffer slice(size_t start, size_t end=npos) const;
 
         /**
-         * @brief  Adjusts the start and end indices of this %shared_bitbuffer.
+         * @brief  Adjusts the start and end bits of this %shared_bitbuffer.
          * @param start  Index of first bit.
          * @param end  Index of last bit, exclusive (default end).
+         * @throw std::out_of_range  If @p start > size().
+         *
+         * If @a end is past the end of the bit buffer, the end index is
+         * unchanged.
          */
         void trim(size_t start, size_t end=npos);
 
         /**
          * @brief  Copies this bit buffer.
-         * @returns  A new bit buffer with its own copy of the backing byte
-         *           array.
+         * @returns  A new bit buffer with its own copy of the backing array.
          */
         bitbuffer copy() const;
 
         /**
          * @brief  Copies this bit buffer.
          * @param allocator  STL-compliant allocator.
-         * @returns  A new bit buffer with its own copy of the backing byte
-         *           array.
+         * @returns  A new bit buffer with its own copy of the backing array.
          *
-         * The new bit buffer's backing byte array is allocated with a copy of
+         * The new bit buffer's backing array is allocated with a copy of
          * @a allocator.
          */
         template <class Alloc>
@@ -154,7 +197,6 @@ namespace redhawk {
          * @param pattern  Bit pattern to search for.
          * @param maxDistance  Maximum allowable Hamming distance.
          * @returns  Bit index of first occurence of @p pattern.
-         * @see find(size_t,const shared_bitbuffer&,int)
          *
          * Searches forward for a position at which the Hamming distance
          * between this bit buffer and @a pattern is less than or equal to
@@ -247,6 +289,8 @@ namespace redhawk {
         void _M_normalize();
         void _M_swap(shared_bitbuffer& other);
 
+        void _M_check_index(size_t pos, const char* name) const;
+
         refcount_memory _M_memory;
         data_type* _M_base;
 
@@ -306,6 +350,10 @@ namespace redhawk {
         }
 
         using shared_bitbuffer::data;
+
+        /**
+         * Returns a read/write pointer to the backing array.
+         */
         data_type* data();
 
         using shared_bitbuffer::operator[];
@@ -316,6 +364,8 @@ namespace redhawk {
          * @param pos    Index of first bit.
          * @param value  Integer value to set.
          * @param bits   Number of bits in @p value (max 64).
+         * @throw std::out_of_range  If @p pos > size(), or there are fewer than
+         *                           @p bits at @p pos.
          * @throw std::length_error  If @p bits is greater than 64.
          * @see redhawk::bitops::setint
          */
@@ -334,7 +384,8 @@ namespace redhawk {
         /**
          * @brief  Fills the bit buffer with a value.
          * @param value  Bit value to set.
-         * @see fill(size_t,size_t,bool)
+         *
+         * Sets all bits to @a value.
          */
         void fill(bool value)
         {
@@ -347,7 +398,7 @@ namespace redhawk {
          * @param end    Index of last bit, exclusive.
          * @param value  Bit value to set.
          *
-         * Fills the bits in the range [@a start, @a end) with the given value.
+         * Sets the bits in the range [@a start, @a end) to @a value.
          */
         void fill(size_t start, size_t end, bool value);
 
@@ -364,11 +415,35 @@ namespace redhawk {
             _M_resize(temp);
         }
 
+        /**
+         * @brief  Replaces bits.
+         * @param pos   Index of first bit to replace.
+         * @param bits  Number of bits to replace.
+         * @param src   The bit buffer to insert.
+         * @throw std::out_of_range  If @p pos > size(), or there are fewer
+         *                           than @p bits at @p pos.
+         *
+         * Starting at @a pos, replaces existing bit values with the bit values
+         * in @a src.
+         */
         inline void replace(size_t pos, size_t bits, const shared_bitbuffer& src)
         {
             replace(pos, bits, src, 0);
         }
 
+        /**
+         * @brief  Replaces bits.
+         * @param pos     Index of first bit to replace.
+         * @param bits    Number of bits to replace.
+         * @param src     The bit buffer to insert.
+         * @param srcpos  Index of first bit in @p src.
+         * @throw std::out_of_range  If @p pos > size(), there are fewer than
+         *                           @p bits at @p pos, or
+         *                           @p srcpos > @p src.size().
+         *
+         * Starting at @a pos, replaces existing bit values with the bit values
+         * starting at @a srcpos in @a src.
+         */
         void replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos);
 
         /**
