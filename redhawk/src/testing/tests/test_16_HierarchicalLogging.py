@@ -123,8 +123,69 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
 
         self.comp.stop()
 
+    def test_reset_logger(self):
+        self.comp = sb.launch(self.cname, properties={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
+        self.comp.start()
+        # make sure that all the named loggers appear
+        loggers = self.comp.getNamedLoggers()
+        self.assertTrue('logger_1' in loggers)
+        self.assertTrue('logger_1.lower' in loggers)
+        self.assertTrue('logger_1.namespace.lower' in loggers)
+        self.assertTrue('logger_1.user.more_stuff' in loggers)
+        self.assertTrue('logger_1.user.some_stuff' in loggers)
+        orig_loggers = {}
+
+        orig_loggers['logger_1'] = self.comp.getLogLevel('logger_1')
+        orig_loggers['logger_1.lower'] = self.comp.getLogLevel('logger_1.lower')
+        orig_loggers['logger_1.namespace.lower'] = self.comp.getLogLevel('logger_1.namespace.lower')
+        orig_loggers['logger_1.user.more_stuff'] = self.comp.getLogLevel('logger_1.user.more_stuff')
+        orig_loggers['logger_1.user.some_stuff'] = self.comp.getLogLevel('logger_1.user.some_stuff')
+
+        # verify that the logger level is inherited
+        self.comp.setLogLevel('logger_1', 'all')
+        time.sleep(0.5)
+        self.assertEquals(self.comp.getLogLevel('logger_1'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.ALL)
+        self.comp.setLogLevel('logger_1', 'off')
+        self.assertEquals(self.comp.getLogLevel('logger_1'), CF.LogLevels.OFF)
+        self.assertEquals(self.comp.getLogLevel('logger_1.lower'), CF.LogLevels.OFF)
+        self.assertEquals(self.comp.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.OFF)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.OFF)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.OFF)
+
+        # break the level inheritance
+        self.comp.setLogLevel('logger_1.user', 'trace')
+        self.comp.setLogLevel('logger_1', 'all')
+        self.assertEquals(self.comp.getLogLevel('logger_1'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.TRACE)
+        self.assertEquals(self.comp.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.TRACE)
+
+        # verify that the levels are reset back to their original level
+        self.comp.ref.resetLog()
+        self.assertEquals(orig_loggers['logger_1'], self.comp.getLogLevel('logger_1'))
+        self.assertEquals(orig_loggers['logger_1.lower'], self.comp.getLogLevel('logger_1.lower'))
+        self.assertEquals(orig_loggers['logger_1.namespace.lower'], self.comp.getLogLevel('logger_1.namespace.lower'))
+        self.assertEquals(orig_loggers['logger_1.user.more_stuff'], self.comp.getLogLevel('logger_1.user.more_stuff'))
+        self.assertEquals(orig_loggers['logger_1.user.some_stuff'], self.comp.getLogLevel('logger_1.user.some_stuff'))
+
+        # verify that inheritance is re-established
+        self.comp.setLogLevel('logger_1', 'all')
+        self.assertEquals(CF.LogLevels.ALL, self.comp.getLogLevel('logger_1'))
+        self.assertEquals(CF.LogLevels.ALL, self.comp.getLogLevel('logger_1.lower'))
+        self.assertEquals(CF.LogLevels.ALL, self.comp.getLogLevel('logger_1.namespace.lower'))
+        self.assertEquals(CF.LogLevels.ALL, self.comp.getLogLevel('logger_1.user.more_stuff'))
+        self.assertEquals(CF.LogLevels.ALL, self.comp.getLogLevel('logger_1.user.some_stuff'))
+
+        self.comp.stop()
+
     def test_single_log_level(self):
         self.comp = sb.launch(self.cname, properties={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
+        fdjkfs
         self.comp.start()
         loggers = self.comp.getNamedLoggers()
         self.assertRaises(Exception, self.comp.setLogLevel, 'logger_1.user.more_stuff', 'hello')

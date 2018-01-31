@@ -671,6 +671,9 @@ class RogueService(CorbaObject):
     def getNamedLoggers(self):
         return self.ref.getNamedLoggers()
 
+    def resetLog(self):
+        self.ref.resetLog()
+
     def getLogConfig(self):
         return self.ref.getLogConfig()
 
@@ -749,6 +752,9 @@ class Service(CorbaObject):
 
     def getNamedLoggers(self):
         return self.ref.getNamedLoggers()
+
+    def resetLog(self):
+        self.ref.resetLog()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -887,6 +893,12 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
     def getNamedLoggers(self):
         if self.ref:
             return self.ref.getNamedLoggers()
+        else:
+           None
+
+    def resetLog(self):
+        if self.ref:
+            self.ref.resetLog()
         else:
            None
 

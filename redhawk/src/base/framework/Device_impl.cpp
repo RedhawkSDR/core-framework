@@ -69,6 +69,7 @@ private:
     CF::Properties capacities;
 };
 
+PREPARE_CF_LOGGING(Device_impl)
 
 void Device_impl::initResources (char* devMgr_ior, char* _id, 
                           char* lbl, char* sftwrPrfl)

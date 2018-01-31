@@ -43,6 +43,7 @@ Logging_impl::Logging_impl(std::string logger_name) :
   _log(rh_logger::Logger::getResourceLogger(logger_name)),
   _logCfgContents(),
   _logCfgURL(""),
+  _origLogCfgURL(""),
   _loggingCtx()
 {
 
@@ -192,6 +193,12 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
       }
   }
 
+  if (_origLogCfgURL.empty()) {
+      _origLogCfgURL = _logCfgURL;
+      _origLogLevel = _logLevel;
+      _origCtx = ctx;
+  }
+
   STDOUT_DEBUG("Logging_impl setLoggingContext END" );
 }
 
@@ -308,6 +315,17 @@ CF::LogLevel Logging_impl::getLogLevel( const char *logger_id )
     else if (_level == rh_logger::Level::ALL_INT)
         _level = CF::LogLevels::ALL;
     return _level;
+}
+
+void Logging_impl::resetLog() {
+    if (not _origLogCfgURL.empty()) {
+        std::vector<std::string> loggers = this->_log->getNamedLoggers();
+        for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); it++) {
+            rh_logger::LoggerPtr _tmplog = rh_logger::Logger::getLogger(*it);
+            _tmplog->setLevel(rh_logger::LevelPtr());
+        }
+        this->setLoggingContext(_origLogCfgURL, ossie::logging::ConvertRHLevelToDebug(ossie::logging::ConvertCFLevelToRHLevel(_origLogLevel)), _origCtx);
+    }
 }
 
 CF::StringSequence* Logging_impl::getNamedLoggers() {

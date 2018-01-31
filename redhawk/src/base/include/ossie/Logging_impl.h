@@ -64,6 +64,9 @@ class Logging_impl
   // retrieves the list of named loggers associated with the logger
   CF::StringSequence* getNamedLoggers();
 
+  // reset the logger
+  void resetLog();
+
   // returns the current logger assigned to the resource, by default it is the root logger
   LOGGER       getLogger();
 
@@ -310,6 +313,10 @@ class Logging_impl
   std::string                    _logCfgContents;
 
   std::string                    _logCfgURL;
+
+  std::string                    _origLogCfgURL;
+  int                            _origLogLevel;
+  ossie::logging::ResourceCtxPtr _origCtx;
 
   ossie::logging::ResourceCtxPtr _loggingCtx;
 

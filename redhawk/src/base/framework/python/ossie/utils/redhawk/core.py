@@ -2127,6 +2127,13 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
 
+    def resetLog(self):
+        if self.ref :
+            try:
+                self.ref.resetLog()
+            except:
+                raise
+
     # End external Domain Manager API
     ########################################
     

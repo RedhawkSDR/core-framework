@@ -710,6 +710,9 @@ namespace rh_logger {
 
 
   log4cxx::LevelPtr ConvertRHLevelToLog4 ( rh_logger::LevelPtr rh_level ) {
+      if (!rh_level) {
+          return log4cxx::LevelPtr();
+      }
     if (rh_level == rh_logger::Level::getOff() )   return log4cxx::Level::getOff();
     if (rh_level == rh_logger::Level::getFatal() ) return log4cxx::Level::getFatal();
     if (rh_level == rh_logger::Level::getError() ) return log4cxx::Level::getError();
@@ -722,6 +725,9 @@ namespace rh_logger {
     };
 
   rh_logger::LevelPtr ConvertLog4ToRHLevel ( log4cxx::LevelPtr l4_level ) {
+      if (!l4_level) {
+          return rh_logger::LevelPtr();
+      }
     if (l4_level == log4cxx::Level::getOff() )   return rh_logger::Level::getOff();
     if (l4_level == log4cxx::Level::getFatal() ) return rh_logger::Level::getFatal();
     if (l4_level == log4cxx::Level::getError() ) return rh_logger::Level::getError();
@@ -846,31 +852,6 @@ namespace rh_logger {
     STDOUT_DEBUG(  " L4Logger::getLevel:  END logger: " << name  );
     return rh_logger::Logger::getLevel();
   }
-  /*rh_logger::LevelPtr L4Logger::getLevel ( ) const {
-      std::cout<<".... getting level of "<<name<<std::endl;
-    STDOUT_DEBUG(  " L4Logger::getLevel:  BEGIN logger: " << name  );
-    if ( l4logger ) {
-      std::cout<<".... l4logger "<<name<<std::endl;
-      log4cxx::LevelPtr l4l;
-      while ( not l4l ) {
-        l4l = l4logger->getLevel();
-      }
-      if ( l4l )  {
-    STDOUT_DEBUG(  " L4Logger::getLevel:  l4level: " << l4l->toString()  ); 
-      std::cout<<".... converting for "<<name<<std::endl;
-        return ConvertLog4ToRHLevel( l4l );
-      } else {
-          std::cout<<" screw you, hippie!"<<std::endl;
-      }
-    } else {
-        std::cout<<"no logger. oh no!"<<std::endl;
-    }
-
-    STDOUT_DEBUG(  " L4Logger::getLevel:  level ptr: " << level.get()  );
-    STDOUT_DEBUG(  " L4Logger::getLevel:  END logger: " << name  );
-    return rh_logger::Logger::getLevel();
-  }*/
-
 
   bool L4Logger::isFatalEnabled() const
   {

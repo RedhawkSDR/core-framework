@@ -273,7 +273,12 @@ module CF {
     CF::StringSequence getNamedLoggers();
 
     /**
-     * Return the current contents of the logging configuration as a string object. 
+     * Reset the logger to its initial configuration state
+     */
+    void resetLog();
+
+    /**
+     * Return the current contents of the logging configuration as a string object.
      */
     string getLogConfig( );
 
