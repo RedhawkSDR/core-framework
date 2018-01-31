@@ -42,6 +42,8 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST(testTrim);
     CPPUNIT_TEST(testReplace);
+    CPPUNIT_TEST(testGetInt);
+    CPPUNIT_TEST(testSetInt);
     CPPUNIT_TEST(testFind);
     CPPUNIT_TEST_SUITE_END();
 
@@ -66,6 +68,9 @@ public:
     void testTrim();
     void testReplace();
 
+    // Bit-specific operations
+    void testGetInt();
+    void testSetInt();
     void testFind();
 };
 

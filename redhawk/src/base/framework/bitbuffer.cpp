@@ -78,7 +78,12 @@ size_t shared_bitbuffer::offset() const
 
 int shared_bitbuffer::operator[] (size_t pos) const
 {
-    return bitops::getbit(_M_base, _M_offset + pos);
+    return bitops::getbit(data(), offset() + pos);
+}
+
+uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
+{
+    return bitops::getint(data(), offset() + pos, bits);
 }
 
 redhawk::bitbuffer shared_bitbuffer::copy() const
@@ -187,6 +192,11 @@ void bitbuffer::fill(size_t start, size_t end, bool value)
 bitbuffer::reference bitbuffer::operator[] (size_t pos)
 {
     return reference(data(), offset() + pos);
+}
+
+void bitbuffer::setint(size_t pos, uint64_t value, size_t bits)
+{
+    bitops::setint(data(), offset() + pos, value, bits);
 }
 
 bitbuffer bitbuffer::slice(size_t start, size_t end)

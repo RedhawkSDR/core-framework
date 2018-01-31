@@ -63,13 +63,6 @@ namespace redhawk {
         shared_bitbuffer& operator=(const shared_bitbuffer& other);
 
         /**
-         * @brief  Subscript bit access.
-         * @param index  The index of the desired bit.
-         * @return  The value of the bit (0 or 1).
-         */
-        int operator[] (size_t pos) const;
-
-        /**
          * Returns the number of bits.
          */
         size_t size() const;
@@ -92,6 +85,23 @@ namespace redhawk {
          * at the most significant bit.
          */
         size_t offset() const;
+
+        /**
+         * @brief  Subscript bit access.
+         * @param index  The index of the desired bit.
+         * @return  The value of the bit (0 or 1).
+         */
+        int operator[] (size_t pos) const;
+
+        /**
+         * @brief  Extracts an integer value.
+         * @param pos    Index of first bit.
+         * @param bits   Number of bits to extract (max 64).
+         * @returns  Integer value.
+         * @throw std::length_error  If @p bits is greater than 64.
+         * @see redhawk::bitops::getint
+         */
+        uint64_t getint(size_t pos, size_t bits) const;
 
         /**
          * @brief  Returns a %shared_bitbuffer containing a subset of bits.
@@ -262,7 +272,7 @@ namespace redhawk {
         static inline bitbuffer from_int(uint64_t value, size_t bits)
         {
             bitbuffer result(bits);
-            redhawk::bitops::setint(result.data(), result.offset(), value, bits);
+            result.setint(0, value, bits);
             return result;
         }
 
@@ -294,6 +304,16 @@ namespace redhawk {
 
         using shared_bitbuffer::operator[];
         reference operator[] (size_t pos);
+
+        /**
+         * @brief  Inserts an integer value.
+         * @param pos    Index of first bit.
+         * @param value  Integer value to set.
+         * @param bits   Number of bits in @p value (max 64).
+         * @throw std::length_error  If @p bits is greater than 64.
+         * @see redhawk::bitops::setint
+         */
+        void setint(size_t pos, uint64_t value, size_t bits);
 
         using shared_bitbuffer::slice;
 

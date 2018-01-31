@@ -354,6 +354,68 @@ void BitBufferTest::testReplace()
     CPPUNIT_ASSERT_EQUAL((data_type) 0xA0, (data_type) (data[4] & 0xF0));
 }
 
+void BitBufferTest::testGetInt()
+{
+    const data_type pattern[] = {
+        0x35, 0x45, 0xE6, 0xA9, 0xA1, 0x1B, 0xAA, 0xE4, 0x9A, 0x3F, 0x3B, 0x38
+    };
+    const redhawk::shared_bitbuffer buffer = redhawk::bitbuffer::from_array(pattern, sizeof(pattern)*8);
+
+    // Small value
+    CPPUNIT_ASSERT_EQUAL(3, (int) buffer.getint(0, 4));
+
+    // Multi-byte with offset
+    // 0x3545E6A9 = 001(10101|01000101|11100110|10101001)
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 0x1545E6A9, buffer.getint(3, 29));
+
+    // Implicit offset (slice)
+    redhawk::shared_bitbuffer slice = buffer.slice(2, 32);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 0x1545E6A9, slice.getint(1, 29));
+
+    // Maximum size (64 bits)
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 0xA11BAAE49A3F3B38, buffer.getint(32, 64));
+
+    CPPUNIT_ASSERT_THROW(buffer.getint(0, 65), std::length_error);
+}
+
+void BitBufferTest::testSetInt()
+{
+    redhawk::bitbuffer buffer(96);
+    buffer.fill(0, buffer.size(), 0);
+    const data_type* data = buffer.data();
+
+    // Small value
+    buffer.setint(0, 0x03, 4);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x30, data[0]);
+
+    // Multi-byte with offset
+    buffer.setint(4, 0x6A8BCD, 24);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x36, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xA8, data[1]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xBC, data[2]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0xD0, data[3]);
+
+    // Implicit offset (slice)
+    //        00110110|10101000
+    // slice    110110|101
+    // set       01001|0
+    // =      00101001|00101000
+    redhawk::bitbuffer slice = buffer.slice(2, 11);
+    slice.setint(1, 0x12, 6);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x29, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x28, data[1]);
+
+    // Maximum size (64 bits)
+    const data_type expected[] = {
+        0xA1, 0x1B, 0xAA, 0xE4, 0x9A, 0x3F, 0x3B, 0x38
+    };
+    buffer.setint(32, 0xA11BAAE49A3F3B38, 64);
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, data + 4, sizeof(expected));
+
+    // More than 64 bits is an error
+    CPPUNIT_ASSERT_THROW(buffer.setint(0, 0, 65), std::length_error);
+}
+
 void BitBufferTest::testFind()
 {
     // Pick a oddly-sized pattern
