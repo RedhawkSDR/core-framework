@@ -53,6 +53,7 @@ namespace redhawk {
          * @param start  Starting bit index.
          * @param bits   Number of bits to extract (max 64).
          * @returns  Integer value.
+         * @throw std::length_error  If @p bits is greater than 64.
          *
          * The value is extracted in big-endian order, and returned right-
          * justified (i.e., the least-significant N bits contain the value).
@@ -67,6 +68,7 @@ namespace redhawk {
          * @param start  Starting bit index.
          * @param value  Value to insert.
          * @param bits   Number of bits in @p value (max 64).
+         * @throw std::length_error  If @p bits is greater than 64.
          *
          * @a value is inserted in big-endian order, and must be right-
          * justified (i.e., the least-significant N bits are inserted). If

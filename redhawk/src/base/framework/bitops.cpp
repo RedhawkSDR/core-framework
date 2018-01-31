@@ -601,6 +601,9 @@ namespace bitops {
 
     uint64_t getint(const byte* str, size_t start, size_t bits)
     {
+        if (bits > 64) {
+            throw std::length_error("redhawk::bitops::getint()");
+        }
         return apply_unary(str, start, bits, GetInteger());
     }
 
@@ -628,6 +631,9 @@ namespace bitops {
 
     void setint(byte* str, size_t start, uint64_t value, size_t bits)
     {
+        if (bits > 64) {
+            throw std::length_error("redhawk::bitops::setint()");
+        }
         apply_unary(str, start, bits, SetInteger(value, bits));
     }
 

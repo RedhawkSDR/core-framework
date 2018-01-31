@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <cstring>
 #include <vector>
+#include <stdexcept>
 
 #include <stdint.h>
 
@@ -124,6 +125,9 @@ void BitopsTest::testGetInt()
         CPPUNIT_ASSERT_EQUAL(value, redhawk::bitops::getint(packed, pos*8, 32));
         value += 0x22222222;
     }
+
+    // More than 64 bits is an error
+    CPPUNIT_ASSERT_THROW(redhawk::bitops::getint(packed, 0, 65), std::length_error);
 }
 
 void BitopsTest::testGetIntUnaligned()
@@ -191,6 +195,9 @@ void BitopsTest::testSetInt()
     std::fill(packed, packed + sizeof(packed), 0xFF);
     redhawk::bitops::setint(packed, 0, 0x0123456789ABCDEF, 64);
     CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, packed, 8);
+
+    // More than 64 bits is an error
+    CPPUNIT_ASSERT_THROW(redhawk::bitops::setint(packed, 0, 0, 65), std::length_error);
 }
 
 void BitopsTest::testSetIntUnaligned()
