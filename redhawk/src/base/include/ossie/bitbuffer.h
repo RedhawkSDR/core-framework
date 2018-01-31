@@ -154,14 +154,17 @@ namespace redhawk {
          * @param pattern  Bit pattern to search for.
          * @param maxDistance  Maximum allowable Hamming distance.
          * @returns  Bit index of first occurence of @p pattern.
-         * @see shared_bitbuffer::find(size_t,const shared_bitbuffer&,int)
+         * @see find(size_t,const shared_bitbuffer&,int)
          *
          * Searches forward for a position at which the Hamming distance
          * between this bit buffer and @a pattern is less than or equal to
          * @a maxDistance. If found, returns the bit index at which the match
          * occurs. If not found, returns npos.
          */
-        size_t find(const shared_bitbuffer& pattern, int maxDistance) const;
+        size_t find(const shared_bitbuffer& pattern, int maxDistance) const
+        {
+            return find(0, pattern, maxDistance);
+        }
 
         /**
          * @brief  Finds a pattern in this bit buffer within a maximum Hamming
@@ -192,7 +195,7 @@ namespace redhawk {
          * @brief  Returns a transient %shared_bitbuffer.
          * @param data  Pointer to first byte.
          * @param size  Number of bits.
-         * @see shared_bitbuffer::make_transient(const data_type*,size_t)
+         * @see make_transient(const data_type*,size_t)
          */
         static inline shared_bitbuffer make_transient(const data_type* data, size_t bits)
         {
@@ -210,14 +213,7 @@ namespace redhawk {
          * is copied if it needs to be held past the lifetime of the transient
          * %shared_bitbuffer.
          */
-        static inline shared_bitbuffer make_transient(const data_type* data, size_t start, size_t bits)
-        {
-            shared_bitbuffer result;
-            result._M_base = const_cast<data_type*>(data);
-            result._M_offset = start;
-            result._M_size = bits;
-            return result;
-        }
+        static shared_bitbuffer make_transient(const data_type* data, size_t start, size_t bits);
 
         /**
          * @brief  Returns true if the bit array's lifetime is not managed.
@@ -335,6 +331,24 @@ namespace redhawk {
          */
         bitbuffer slice(size_t start, size_t end=npos);
 
+        /**
+         * @brief  Fills the bit buffer with a value.
+         * @param value  Bit value to set.
+         * @see fill(size_t,size_t,bool)
+         */
+        void fill(bool value)
+        {
+            fill(0, size(), value);
+        }
+
+        /**
+         * @brief  Fills a range of bits with a value.
+         * @param start  Index of first bit.
+         * @param end    Index of last bit, exclusive.
+         * @param value  Bit value to set.
+         *
+         * Fills the bits in the range [@a start, @a end) with the given value.
+         */
         void fill(size_t start, size_t end, bool value);
 
         void resize(size_t bits)
@@ -350,7 +364,10 @@ namespace redhawk {
             _M_resize(temp);
         }
 
-        void replace(size_t pos, size_t bits, const shared_bitbuffer& src);
+        inline void replace(size_t pos, size_t bits, const shared_bitbuffer& src)
+        {
+            replace(pos, bits, src, 0);
+        }
 
         void replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos);
 

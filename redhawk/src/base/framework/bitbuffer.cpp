@@ -120,14 +120,18 @@ int shared_bitbuffer::popcount() const
     return bitops::popcount(data(), offset(), size());
 }
 
-size_t shared_bitbuffer::find(const shared_bitbuffer& pattern, int maxDistance) const
-{
-    return find(0, pattern, maxDistance);
-}
-
 size_t shared_bitbuffer::find(size_t start, const shared_bitbuffer& pattern, int maxDistance) const
 {
     return bitops::find(data(), offset() + start, size(), pattern.data(), pattern.offset(), pattern.size(), maxDistance);
+}
+
+shared_bitbuffer shared_bitbuffer::make_transient(const data_type* data, size_t start, size_t bits)
+{
+    shared_bitbuffer result;
+    result._M_base = const_cast<data_type*>(data);
+    result._M_offset = start;
+    result._M_size = bits;
+    return result;
 }
 
 void shared_bitbuffer::_M_copy(bitbuffer& dest) const
@@ -204,11 +208,6 @@ bitbuffer bitbuffer::slice(size_t start, size_t end)
     bitbuffer temp(*this);
     temp.trim(start, end);
     return temp;
-}
-
-void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src)
-{
-    replace(pos, bits, src, 0);
 }
 
 void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos)

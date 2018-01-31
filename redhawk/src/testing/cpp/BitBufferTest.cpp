@@ -137,9 +137,9 @@ void BitBufferTest::testSwap()
 {
     // Create two mutable bit buffers with different contents
     redhawk::bitbuffer first(31);
-    first.fill(0, first.size(), 1);
+    first.fill(1);
     redhawk::bitbuffer second(24);
-    second.fill(0, second.size(), 0);
+    second.fill(0);
 
     // Swap them and check that the swap worked as expected
     first.swap(second);
@@ -187,6 +187,32 @@ void BitBufferTest::testResize()
     CPPUNIT_ASSERT_EQUAL((data_type) (expected[1] & mask), (data_type) (data[1] & mask));
 }
 
+void BitBufferTest::testFill()
+{
+    // Create a new buffer and set the underlying memory to all ones
+    redhawk::bitbuffer buffer(64);
+    std::memset(buffer.data(), 0xFF, 8);
+
+    // Fill the entire buffer with all zeros
+    buffer.fill(0);
+
+    data_type expected[8];
+    std::memset(expected, 0, sizeof(expected));
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, buffer.data(), sizeof(expected));
+
+    // Fill a subset of the buffer with ones
+    buffer.fill(9, 33, 1);
+    expected[1] = 0x7F;
+    expected[2] = expected[3] = 0xFF;
+    expected[4] = 0x80;
+    CPPUNIT_ASSERT_ARRAYS_EQUAL(expected, buffer.data(), sizeof(expected));
+
+    // Implicit offset and non-byte-aligned end
+    buffer.trim(42, 47);
+    buffer.fill(1);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x3E, *buffer.data());
+}
+
 void BitBufferTest::testIndexAccess()
 {
     // Bit pattern: 001 0101 0011 1100
@@ -222,7 +248,7 @@ void BitBufferTest::testIndexAssignment()
 {
     // Start with a zero-filled buffer
     redhawk::bitbuffer buffer(48);
-    buffer.fill(0, buffer.size(), 0);
+    buffer.fill(0);
 
     // Basic bit setting
     buffer[3] = 1;
@@ -330,7 +356,7 @@ void BitBufferTest::testReplace()
 {
     // Destination is all 0's
     redhawk::bitbuffer dest(36);
-    dest.fill(0, dest.size(), 0);
+    dest.fill(0);
 
     // Set known pattern in source
     // 10001100|11000110|1101xxxx
@@ -381,7 +407,7 @@ void BitBufferTest::testGetInt()
 void BitBufferTest::testSetInt()
 {
     redhawk::bitbuffer buffer(96);
-    buffer.fill(0, buffer.size(), 0);
+    buffer.fill(0);
     const data_type* data = buffer.data();
 
     // Small value
@@ -416,6 +442,21 @@ void BitBufferTest::testSetInt()
     CPPUNIT_ASSERT_THROW(buffer.setint(0, 0, 65), std::length_error);
 }
 
+void BitBufferTest::testPopcount()
+{
+    // 10111001000100011101000110111100001
+    redhawk::shared_bitbuffer buffer = redhawk::bitbuffer::from_int(0x5C88E8DE1, 35);
+    CPPUNIT_ASSERT_EQUAL(17, buffer.popcount());
+
+    // 100011101000110111100
+    buffer.trim(11, buffer.size() - 3);
+    CPPUNIT_ASSERT_EQUAL(11, buffer.popcount());
+
+    // 1010001
+    buffer.trim(6, buffer.size() - 8);
+    CPPUNIT_ASSERT_EQUAL(3, buffer.popcount());
+}
+
 void BitBufferTest::testFind()
 {
     // Pick a oddly-sized pattern
@@ -424,7 +465,7 @@ void BitBufferTest::testFind()
     // Fill a bit buffer with 1's, then copy the pattern into it in a couple of
     // places
     redhawk::bitbuffer buffer(300);
-    buffer.fill(0, buffer.size(), 1);
+    buffer.fill(1);
     buffer.replace(37, pattern.size(), pattern);
     buffer.replace(200, pattern.size(), pattern);
 

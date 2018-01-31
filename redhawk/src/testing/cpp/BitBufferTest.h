@@ -36,6 +36,7 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testCopy);
     CPPUNIT_TEST(testSwap);
     CPPUNIT_TEST(testResize);
+    CPPUNIT_TEST(testFill);
     CPPUNIT_TEST(testIndexAccess);
     CPPUNIT_TEST(testIndexAssignment);
     CPPUNIT_TEST(testSharing);
@@ -44,6 +45,7 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testReplace);
     CPPUNIT_TEST(testGetInt);
     CPPUNIT_TEST(testSetInt);
+    CPPUNIT_TEST(testPopcount);
     CPPUNIT_TEST(testFind);
     CPPUNIT_TEST_SUITE_END();
 
@@ -59,6 +61,7 @@ public:
     void testCopy();
     void testSwap();
     void testResize();
+    void testFill();
 
     void testIndexAccess();
     void testIndexAssignment();
@@ -71,6 +74,7 @@ public:
     // Bit-specific operations
     void testGetInt();
     void testSetInt();
+    void testPopcount();
     void testFind();
 };
 
