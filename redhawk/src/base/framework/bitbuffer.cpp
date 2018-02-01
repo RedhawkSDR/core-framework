@@ -22,6 +22,11 @@
 #include <ossie/bitops.h>
 
 using redhawk::shared_bitbuffer;
+using redhawk::bitbuffer;
+
+//
+// shared_bitbuffer implementation
+//
 
 // Declare npos here so that storage is allocated for it, even though it most
 // cases it is used directly as a constant; otherwise, some uses may fail to
@@ -84,7 +89,11 @@ void shared_bitbuffer::trim(size_t start, size_t end)
     end = std::min(end, size());
     _M_offset += start;
     _M_size = (end - start);
-    _M_normalize();
+
+    // Normalize base pointer and offset, so that offset is always in the range
+    // [0, 8)
+    _M_base += (_M_offset / 8);
+    _M_offset &= 7;
 }
 
 shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
@@ -97,7 +106,10 @@ shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
 
 void shared_bitbuffer::swap(shared_bitbuffer& other)
 {
-    this->_M_swap(other);
+    _M_memory.swap(other._M_memory);
+    std::swap(_M_base, other._M_base);
+    std::swap(_M_offset, other._M_offset);
+    std::swap(_M_size, other._M_size);
 }
 
 int shared_bitbuffer::popcount() const
@@ -119,20 +131,6 @@ shared_bitbuffer shared_bitbuffer::make_transient(const data_type* data, size_t 
     return result;
 }
 
-void shared_bitbuffer::_M_swap(shared_bitbuffer& other)
-{
-    _M_memory.swap(other._M_memory);
-    std::swap(_M_base, other._M_base);
-    std::swap(_M_offset, other._M_offset);
-    std::swap(_M_size, other._M_size);
-}
-
-void shared_bitbuffer::_M_normalize()
-{
-    _M_base += (_M_offset / 8);
-    _M_offset &= 7;
-}
-
 void shared_bitbuffer::_M_check_index(size_t pos, const char* name) const
 {
     if (pos >= size()) {
@@ -140,8 +138,9 @@ void shared_bitbuffer::_M_check_index(size_t pos, const char* name) const
     }
 }
 
-using redhawk::bitbuffer;
-
+//
+// bitbuffer::reference implementation
+//
 bitbuffer::reference::reference(data_type* data, size_t pos) :
     _M_data(data),
     _M_pos(pos)
@@ -164,6 +163,9 @@ bitbuffer::reference& bitbuffer::reference::operator=(const bitbuffer::reference
     return *this = int(other);
 }
 
+//
+// bitbuffer implementation
+//
 bitbuffer::bitbuffer() :
     shared_bitbuffer()
 {
@@ -171,7 +173,7 @@ bitbuffer::bitbuffer() :
 
 bitbuffer::data_type* bitbuffer::data()
 {
-    return _M_base;
+    return const_cast<data_type*>(shared_bitbuffer::data());
 }
 
 void bitbuffer::fill(size_t start, size_t end, bool value)
@@ -208,7 +210,10 @@ void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src, si
 
 void bitbuffer::swap(bitbuffer& other)
 {
-    this->_M_swap(other);
+    // Use base class swap, with the caveat that we have to do a cast so that
+    // it can complile (the base class explicitly disallows swapping with a
+    // mutable buffer to prevent accidentally end-runs around const protection)
+    shared_bitbuffer::swap(static_cast<shared_bitbuffer&>(other));
 }
 
 void bitbuffer::_M_resize(bitbuffer& dest)
@@ -218,6 +223,9 @@ void bitbuffer::_M_resize(bitbuffer& dest)
     this->swap(dest);
 }
 
+//
+// global operator implementations
+//
 bool redhawk::operator==(const shared_bitbuffer& lhs, const shared_bitbuffer& rhs)
 {
     if (lhs.size() != rhs.size()) {

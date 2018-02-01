@@ -301,18 +301,14 @@ namespace redhawk {
             return (bits + 7) / 8;
         }
 
-        void _M_normalize();
-        void _M_swap(shared_bitbuffer& other);
-
         void _M_check_index(size_t pos, const char* name) const;
+
+    private:
+        // Prevent user code from calling swap with a bitbuffer.
+        void swap(bitbuffer& other);
 
         refcount_memory _M_memory;
         data_type* _M_base;
-
-    private:
-        // Disallow swap with bitbuffer.
-        void swap(bitbuffer& other);
-
         size_t _M_offset;
         size_t _M_size;
         /// @endcond
