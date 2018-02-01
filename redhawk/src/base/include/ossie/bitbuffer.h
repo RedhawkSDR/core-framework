@@ -29,8 +29,25 @@
 
 namespace redhawk {
 
+    // Forward declaration of read/write bitbuffer class.
     class bitbuffer;
 
+    /**
+     * @brief  An immutable, shared container for working with bit data.
+     *
+     * The %shared_bitbuffer class provides read-only bit-level access to a
+     * backing array of byte data that can be shared between many bitbuffer
+     * instances. This enables the transfer of ownership of data without
+     * explicit management of references.
+     *
+     * shared_bitbuffers have reference semantics. Assignment and copy
+     * construction do not copy any bits, only the data pointer. A
+     * %shared_bitbuffer never peforms any memory allocation of its own, but
+     * can take ownership of an existing array. When the last reference to the
+     * backing array goes away, the backing array is freed.
+     *
+     * For write access and memory allocation, see bitbuffer.
+     */
     class shared_bitbuffer
     {
     public:
@@ -40,12 +57,12 @@ namespace redhawk {
         static const size_t npos = static_cast<size_t>(-1);
 
         /**
-         * Construct an empty shared_bitbuffer.
+         * Construct an empty %shared_bitbuffer.
          */
         shared_bitbuffer();
 
         /**
-         * @brief  Construct a shared_bitbuffer with an existing pointer.
+         * @brief  Construct a %shared_bitbuffer with an existing pointer.
          * @param ptr   Pointer to first byte of bit data.
          * @param size  Number of bits.
          *
@@ -56,7 +73,7 @@ namespace redhawk {
         shared_bitbuffer(data_type* ptr, size_t bits);
 
         /**
-         * @brief  Construct a shared_bitbuffer with an existing pointer and a
+         * @brief  Construct a %shared_bitbuffer with an existing pointer and a
          *         custom deleter.
          * @param ptr      Pointer to first byte of bit data.
          * @param size     Number of bits.
@@ -76,7 +93,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Construct a shared_bitbuffer with an existing pointer known
+         * @brief  Construct a %shared_bitbuffer with an existing pointer known
          *         to be allocated from process-shared memory.
          * @param ptr      Pointer to first byte of bit data.
          * @param size     Number of bits.
@@ -118,7 +135,7 @@ namespace redhawk {
         size_t offset() const;
 
         /**
-         * @brief  Subscript bit access.
+         * @brief  Subscript read access to a bit.
          * @param index  The index of the desired bit.
          * @return  The value of the bit (0 or 1).
          */
@@ -143,34 +160,33 @@ namespace redhawk {
          * @throw std::out_of_range  If @p start > size().
          * @return  The new %shared_bitbuffer.
          *
-         * If @a end is past the end of the bit buffer, the slice extends to
-         * the end of this bit buffer.
+         * The new %shared_bitbuffer shares the same backing array. If @a end
+         * is past the last bit, the slice extends to the last bit.
          */
         shared_bitbuffer slice(size_t start, size_t end=npos) const;
 
         /**
-         * @brief  Adjusts the start and end bits of this %shared_bitbuffer.
+         * @brief  Adjusts the start and end bits.
          * @param start  Index of first bit.
          * @param end  Index of last bit, exclusive (default end).
          * @throw std::out_of_range  If @p start > size().
          *
-         * If @a end is past the end of the bit buffer, the end index is
-         * unchanged.
+         * If @a end is past the last bit, the end index is unchanged.
          */
         void trim(size_t start, size_t end=npos);
 
         /**
          * @brief  Copies this bit buffer.
-         * @returns  A new bit buffer with its own copy of the backing array.
+         * @returns  A new %bitbuffer with its own copy of the backing array.
          */
         bitbuffer copy() const;
 
         /**
-         * @brief  Copies this bit buffer.
+         * @brief  Copies this bit buffer using a provided allocator.
          * @param allocator  STL-compliant allocator.
          * @returns  A new bit buffer with its own copy of the backing array.
          *
-         * The new bit buffer's backing array is allocated with a copy of
+         * The new %bitbuffer's backing array is allocated with a copy of
          * @a allocator.
          */
         template <class Alloc>
@@ -178,12 +194,12 @@ namespace redhawk {
 
         /**
          * @brief  Swap contents with another bit buffer.
-         * @param other  Bit buffer to swap with.
+         * @param other  The %shared_bitbuffer to swap with.
          */
         void swap(shared_bitbuffer& other);
 
         /**
-         * Returns the population count (number of 1's in the bit buffer).
+         * Returns the population count (number of 1's).
          */
         int popcount() const;
 
@@ -230,10 +246,10 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Returns a transient %shared_bitbuffer.
+         * @brief  Creates a transient %shared_bitbuffer.
          * @param data  Pointer to first byte.
          * @param size  Number of bits.
-         * @see make_transient(const data_type*,size_t)
+         * @see make_transient(const data_type*,size_t,size_t)
          */
         static inline shared_bitbuffer make_transient(const data_type* data, size_t bits)
         {
@@ -241,7 +257,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Returns a transient %shared_bitbuffer.
+         * @brief  Creates a transient %shared_bitbuffer.
          * @param data   Pointer to first byte.
          * @param start  Index of first bit.
          * @param size   Number of bits.
@@ -254,7 +270,7 @@ namespace redhawk {
         static shared_bitbuffer make_transient(const data_type* data, size_t start, size_t bits);
 
         /**
-         * @brief  Returns true if the bit array's lifetime is not managed.
+         * @brief  Returns true if the backing array's lifetime is not managed.
          *
          * Transient shared_bitbuffers do not own the underlying data. If the
          * receiver of a transient bit buffer needs to hold on to it past the
@@ -266,6 +282,11 @@ namespace redhawk {
         }
 
     protected:
+        /// @cond IMPL
+
+        // Allocating constructor for use by bitbuffer. The implementation must
+        // be in the header, because the complete set of allocators is not
+        // known in the framework.
         template <class Alloc>
         shared_bitbuffer(size_t bits, const Alloc& allocator) :
             _M_memory(_M_bits_to_bytes(bits), allocator),
@@ -294,11 +315,36 @@ namespace redhawk {
 
         size_t _M_offset;
         size_t _M_size;
+        /// @endcond
     };
 
+    /**
+     * @brief  A shared container for working with bit data.
+     *
+     * The %bitbuffer class extends shared_bitbuffer to provides bit-level
+     * write access. Multiple bitbuffers and shared_bitbuffers may point to the
+     * same backing array.
+     *
+     * bitbuffers have reference semantics. Assignment and copy construction do
+     * not copy any bits, only the data pointer.
+     *
+     * Unlike %shared_bitbuffer, %bitbuffer has allocating constructors. When
+     * the last reference to the backing array goes away, the backing array is
+     * freed.
+     */ 
     class bitbuffer : public shared_bitbuffer
     {
     private:
+        /**
+         * @brief  Proxy bit reference class.
+         *
+         * This class adapts bit indices and data pointers to behave like
+         * both rvalues and lvalues.
+         *
+         * This class is not intended for direct public usage; operator[] can
+         * return an instance, and syntactically it behaves like a primitive
+         * reference (mostly), but user code cannot declare one.
+         */
         class reference {
         public:
             reference(data_type* data, size_t pos);
@@ -313,8 +359,47 @@ namespace redhawk {
     public:
         typedef std::allocator<data_type> default_allocator;
 
+        /**
+         * Construct an empty %bitbuffer.
+         */
         bitbuffer();
 
+        /**
+         * @brief  Creates a %bitbuffer and allocates a backing array.
+         * @param bits  Number of bits.
+         *
+         * Allocates a backing array large enough to hold @a bits bits using
+         * the default allocator. The memory is not initialized.
+         */
+        explicit bitbuffer(size_t bits) :
+            shared_bitbuffer(bits, default_allocator())
+        {
+        }
+
+        /**
+         * @brief  Creates a %bitbuffer and allocates a backing array.
+         * @param bits       Number of bits.
+         * @param allocator  STL-compliant allocator.
+         *
+         * Allocates a backing array large enough to hold @a bits bits using
+         * a copy of @a allocator. The memory is not initialized.
+         */
+        template <class Alloc>
+        bitbuffer(size_t bits, const Alloc& allocator) :
+            shared_bitbuffer(bits, allocator)
+        {
+        }
+
+        /**
+         * @brief  Convenience function to create a %bitbuffer from an integer.
+         * @param value  Integer value.
+         * @param bits   Number of bits in @p value (max 64).
+         * @return  A new %bitbuffer.
+         * @throw std::length_error  If @p bits is greater than 64.
+         *
+         * Allocates and initializes a new %bitbuffer from the least
+         * significant @a bits bits of @a value.
+         */
         static inline bitbuffer from_int(uint64_t value, size_t bits)
         {
             bitbuffer result(bits);
@@ -322,25 +407,36 @@ namespace redhawk {
             return result;
         }
 
-        static inline bitbuffer from_array(const data_type* data, size_t bits)
+        /**
+         * @brief  Convenience function to create a %bitbuffer from a byte
+         *         array.
+         * @param ptr   Pointer to first byte.
+         * @param bits  Number of bits.
+         * @return  A new %bitbuffer.
+         *
+         * Allocates and initializes a new %bitbuffer using @a bits bits from
+         * the byte array @a ptr. The new %bitbuffer does not take ownership of
+         * @a ptr.
+         */
+        static inline bitbuffer from_array(const data_type* ptr, size_t bits)
         {
-            return from_array(data, 0, bits);
+            return from_array(ptr, 0, bits);
         }
 
-        static inline bitbuffer from_array(const data_type* data, size_t start, size_t bits)
+        /**
+         * @brief  Convenience function to create a %bitbuffer from a byte
+         *         array.
+         * @param ptr    Pointer to first byte.
+         * @param start  Index of first bit.
+         * @param bits   Number of bits.
+         *
+         * Allocates and initializes a new %bitbuffer using @a bits bits
+         * starting at bit @a start in the byte array @a ptr. The new
+         * %bitbuffer does not take ownership of @a ptr.
+         */
+        static inline bitbuffer from_array(const data_type* ptr, size_t start, size_t bits)
         {
-            return shared_bitbuffer::make_transient(data, start, bits).copy();
-        }
-
-        explicit bitbuffer(size_t bits) :
-            shared_bitbuffer(bits, default_allocator())
-        {
-        }
-
-        template <class Alloc>
-        bitbuffer(size_t bits, const Alloc& allocator) :
-            shared_bitbuffer(bits, allocator)
-        {
+            return shared_bitbuffer::make_transient(ptr, start, bits).copy();
         }
 
         using shared_bitbuffer::data;
@@ -351,6 +447,17 @@ namespace redhawk {
         data_type* data();
 
         using shared_bitbuffer::operator[];
+
+        /**
+         * @brief  Subscript read/write access to a bit.
+         * @param index  The index of the desired bit.
+         * @return  A reference to the bit.
+         *
+         * Because bits are not directly accessible, a proxy object is returned
+         * instead of the more typical reference-to-element. This proxy can be
+         * used as both an rvalue and an lvalue; however, it is not exactly
+         * equivalent to a primitive reference type.
+         */
         reference operator[] (size_t pos);
 
         /**
@@ -396,12 +503,40 @@ namespace redhawk {
          */
         void fill(size_t start, size_t end, bool value);
 
+        /**
+         * @brief  Resizes the %bitbuffer to the specified number of bits.
+         * @param bits  Number of bits.
+         * @see trim
+         *
+         * Allocates a new backing buffer large enough to hold @a bits bits
+         * using the default allocator, preserving existing bit values. If
+         * @a bits is larger than the current size, new bit values are
+         * uninitialized.
+         *
+         * If @a bits is smaller than the current size, unless a new copy is
+         * desired, trim is more efficient because it does not perform any
+         * allocation or copy.
+         */
         void resize(size_t bits)
         {
-            bitbuffer temp(bits);
-            _M_resize(temp);
+            resize(bits, default_allocator());
         }
 
+        /**
+         * @brief  Resizes the %bitbuffer to the specified number of bits using
+         *         a provided allocator.
+         * @param bits       Number of bits.
+         * @param allocator  STL-compliant allocator.
+         *
+         * Allocates a new backing buffer large enough to hold @a bits bits
+         * using a copy of @a allocator, preserving existing bit values. If
+         * @a bits is larger than the current size, new bit values are
+         * uninitialized.
+         *
+         * If @a bits is smaller than the current size, unless a new copy is
+         * desired, trim is more efficient because it does not perform any
+         * allocation or copy.
+         */
         template <class Alloc>
         void resize(size_t bits, const Alloc& allocator)
         {
@@ -410,7 +545,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Replaces bits.
+         * @brief  Replaces bit values.
          * @param pos   Index of first bit to replace.
          * @param bits  Number of bits to replace.
          * @param src   The bit buffer to insert.
@@ -426,7 +561,7 @@ namespace redhawk {
         }
 
         /**
-         * @brief  Replaces bits.
+         * @brief  Replaces bit values.
          * @param pos     Index of first bit to replace.
          * @param bits    Number of bits to replace.
          * @param src     The bit buffer to insert.
@@ -441,13 +576,15 @@ namespace redhawk {
         void replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos);
 
         /**
-         * @brief  Swap contents with another bit buffer.
-         * @param other  Bit buffer to swap with.
+         * @brief  Swap contents with another bitbuffer.
+         * @param other  The bitbuffer to swap with.
          */
         void swap(bitbuffer& other);
 
     private:
+        /// @cond IMPL
         void _M_resize(bitbuffer& dest);
+        /// @endcond
     };
 
     inline bitbuffer shared_bitbuffer::copy() const
