@@ -145,7 +145,7 @@ namespace redhawk {
          * @brief  Extracts an integer value.
          * @param pos    Index of first bit.
          * @param bits   Number of bits to extract (max 64).
-         * @returns  Integer value.
+         * @return  Integer value.
          * @throw std::out_of_range  If @p pos > size(), or there are fewer than
          *                           @p bits at @p pos.
          * @throw std::length_error  If @p bits is greater than 64.
@@ -157,8 +157,9 @@ namespace redhawk {
          * @brief  Returns a %shared_bitbuffer containing a subset of bits.
          * @param start  Index of first bit.
          * @param end  Index of last bit, exclusive (default end).
-         * @throw std::out_of_range  If @p start > size().
          * @return  The new %shared_bitbuffer.
+         * @throw std::out_of_range  If @p start > size().
+         * @throw std::invalid_argument  If @p end < @p start.
          *
          * The new %shared_bitbuffer shares the same backing array. If @a end
          * is past the last bit, the slice extends to the last bit.
@@ -169,7 +170,8 @@ namespace redhawk {
          * @brief  Adjusts the start and end bits.
          * @param start  Index of first bit.
          * @param end  Index of last bit, exclusive (default end).
-         * @throw std::out_of_range  If @p start > size().
+         * @throw std::out_of_range      If @p start > size().
+         * @throw std::invalid_argument  If @p end < @p start.
          *
          * If @a end is past the last bit, the end index is unchanged.
          */
@@ -177,14 +179,14 @@ namespace redhawk {
 
         /**
          * @brief  Copies this bit buffer.
-         * @returns  A new %bitbuffer with its own copy of the backing array.
+         * @return  A new %bitbuffer with its own copy of the backing array.
          */
         bitbuffer copy() const;
 
         /**
          * @brief  Copies this bit buffer using a provided allocator.
          * @param allocator  STL-compliant allocator.
-         * @returns  A new bit buffer with its own copy of the backing array.
+         * @return  A new bit buffer with its own copy of the backing array.
          *
          * The new %bitbuffer's backing array is allocated with a copy of
          * @a allocator.
@@ -206,7 +208,7 @@ namespace redhawk {
         /**
          * @brief  Determines the Hamming distance from another bit buffer.
          * @param other  The %shared_bitbuffer to compare with.
-         * @returns  Number of bits that are different.
+         * @return  Number of bits that are different.
          */
         int distance(const shared_bitbuffer& other) const;
 
@@ -215,7 +217,7 @@ namespace redhawk {
          *         distance.
          * @param pattern  Bit pattern to search for.
          * @param maxDistance  Maximum allowable Hamming distance.
-         * @returns  Bit index of first occurence of @p pattern.
+         * @return  Bit index of first occurence of @p pattern.
          *
          * Searches forward for a position at which the Hamming distance
          * between this bit buffer and @a pattern is less than or equal to
@@ -233,7 +235,7 @@ namespace redhawk {
          * @param start  Starting bit index.
          * @param pattern  Bit pattern to search for.
          * @param maxDistance  Maximum allowable Hamming distance.
-         * @returns  Bit index of first occurence of @p pattern.
+         * @return  Bit index of first occurence of @p pattern.
          *
          * Starting from @a start, searches forward for a position at which the
          * Hamming distance between this bit buffer and @a pattern is less than

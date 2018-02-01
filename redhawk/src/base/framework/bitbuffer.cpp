@@ -83,6 +83,9 @@ uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
 void shared_bitbuffer::trim(size_t start, size_t end)
 {
     _M_check_pos(start, "redhawk::shared_bitbuffer::trim");
+    if (end < start) {
+        throw std::invalid_argument("redhawk::shared_bitbuffer::trim end is before start");
+    }
     // Limit end index to one past the last bit
     end = std::min(end, size());
     _M_offset += start;
@@ -96,7 +99,6 @@ void shared_bitbuffer::trim(size_t start, size_t end)
 
 shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
 {
-    _M_check_pos(start, "redhawk::shared_bitbuffer::slice()");
     shared_bitbuffer result(*this);
     result.trim(start, end);
     return result;

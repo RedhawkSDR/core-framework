@@ -325,6 +325,7 @@ void BitBufferTest::testSlicing()
 
     // Exceptions
     CPPUNIT_ASSERT_THROW(buffer.slice(buffer.size() + 1), std::out_of_range);
+    CPPUNIT_ASSERT_THROW(buffer.slice(1, 0), std::invalid_argument);
 }
 
 void BitBufferTest::testTrim()
@@ -365,6 +366,7 @@ void BitBufferTest::testTrim()
 
     // Exceptions
     CPPUNIT_ASSERT_THROW(buffer.trim(buffer.size() + 1), std::out_of_range);
+    CPPUNIT_ASSERT_THROW(buffer.trim(1, 0), std::invalid_argument);
 }
 
 void BitBufferTest::testReplace()
