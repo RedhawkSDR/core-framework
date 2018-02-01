@@ -319,8 +319,12 @@ void BitBufferTest::testSlicing()
     // Compare the overlap between the two slices by taking sub-slices
     CPPUNIT_ASSERT(middle.slice(2) == end.slice(0, 2));
 
+    // Starting at the end index should return an empty bit buffer
+    redhawk::shared_bitbuffer empty = buffer.slice(buffer.size());
+    CPPUNIT_ASSERT(empty.empty());
+
     // Exceptions
-    CPPUNIT_ASSERT_THROW(buffer.slice(buffer.size()), std::out_of_range);
+    CPPUNIT_ASSERT_THROW(buffer.slice(buffer.size() + 1), std::out_of_range);
 }
 
 void BitBufferTest::testTrim()
@@ -354,8 +358,13 @@ void BitBufferTest::testTrim()
     expected = redhawk::bitbuffer::from_int(0x137, 9);
     CPPUNIT_ASSERT(expected == buffer);
 
+    // Trim starting at the end index should result in empty buffer
+    redhawk::shared_bitbuffer empty = buffer;
+    empty.trim(empty.size());
+    CPPUNIT_ASSERT(empty.empty());
+
     // Exceptions
-    CPPUNIT_ASSERT_THROW(buffer.trim(buffer.size()), std::out_of_range);
+    CPPUNIT_ASSERT_THROW(buffer.trim(buffer.size() + 1), std::out_of_range);
 }
 
 void BitBufferTest::testReplace()

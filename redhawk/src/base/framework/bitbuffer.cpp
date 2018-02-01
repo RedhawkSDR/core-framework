@@ -76,15 +76,13 @@ int shared_bitbuffer::operator[] (size_t pos) const
 
 uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
 {
-    if ((pos + bits) > size()) {
-        throw std::out_of_range("redhawk::shared_bitbuffer::getint()");
-    }
+    _M_check_pos(pos + bits, "redhawk::shared_bitbuffer::getint()");
     return bitops::getint(data(), offset() + pos, bits);
 }
 
 void shared_bitbuffer::trim(size_t start, size_t end)
 {
-    _M_check_index(start, "redhawk::shared_bitbuffer::trim");
+    _M_check_pos(start, "redhawk::shared_bitbuffer::trim");
     // Limit end index to one past the last bit
     end = std::min(end, size());
     _M_offset += start;
@@ -98,7 +96,7 @@ void shared_bitbuffer::trim(size_t start, size_t end)
 
 shared_bitbuffer shared_bitbuffer::slice(size_t start, size_t end) const
 {
-    _M_check_index(start, "redhawk::shared_bitbuffer::slice()");
+    _M_check_pos(start, "redhawk::shared_bitbuffer::slice()");
     shared_bitbuffer result(*this);
     result.trim(start, end);
     return result;
@@ -131,9 +129,9 @@ shared_bitbuffer shared_bitbuffer::make_transient(const data_type* data, size_t 
     return result;
 }
 
-void shared_bitbuffer::_M_check_index(size_t pos, const char* name) const
+void shared_bitbuffer::_M_check_pos(size_t pos, const char* name) const
 {
-    if (pos >= size()) {
+    if (pos > size()) {
         throw std::out_of_range(name);
     }
 }
@@ -189,15 +187,13 @@ bitbuffer::reference bitbuffer::operator[] (size_t pos)
 
 void bitbuffer::setint(size_t pos, uint64_t value, size_t bits)
 {
-    if ((pos + bits) > size()) {
-        throw std::out_of_range("redhawk::bitbuffer::setint()");
-    }
+    _M_check_pos(pos + bits, "redhawk::bitbuffer::setint()");
     bitops::setint(data(), offset() + pos, value, bits);
 }
 
 bitbuffer bitbuffer::slice(size_t start, size_t end)
 {
-    _M_check_index(start, "redhawk::bitbuffer::slice()");
+    _M_check_pos(start, "redhawk::bitbuffer::slice()");
     bitbuffer temp(*this);
     temp.trim(start, end);
     return temp;

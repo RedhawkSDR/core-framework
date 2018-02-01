@@ -301,7 +301,7 @@ namespace redhawk {
             return (bits + 7) / 8;
         }
 
-        void _M_check_index(size_t pos, const char* name) const;
+        void _M_check_pos(size_t pos, const char* name) const;
 
     private:
         // Prevent user code from calling swap with a bitbuffer.
