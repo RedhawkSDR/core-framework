@@ -115,6 +115,11 @@ int shared_bitbuffer::popcount() const
     return bitops::popcount(data(), offset(), size());
 }
 
+int shared_bitbuffer::distance(const shared_bitbuffer& other) const
+{
+    return bitops::hammingDistance(data(), offset(), other.data(), other.offset(), other.size());
+}
+
 size_t shared_bitbuffer::find(size_t start, const shared_bitbuffer& pattern, int maxDistance) const
 {
     return bitops::find(data(), offset() + start, size(), pattern.data(), pattern.offset(), pattern.size(), maxDistance);

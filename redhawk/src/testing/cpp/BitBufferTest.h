@@ -46,6 +46,7 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testGetInt);
     CPPUNIT_TEST(testSetInt);
     CPPUNIT_TEST(testPopcount);
+    CPPUNIT_TEST(testDistance);
     CPPUNIT_TEST(testFind);
     CPPUNIT_TEST_SUITE_END();
 
@@ -75,6 +76,7 @@ public:
     void testGetInt();
     void testSetInt();
     void testPopcount();
+    void testDistance();
     void testFind();
 };
 

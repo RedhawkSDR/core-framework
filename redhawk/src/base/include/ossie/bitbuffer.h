@@ -204,6 +204,13 @@ namespace redhawk {
         int popcount() const;
 
         /**
+         * @brief  Determines the Hamming distance from another bit buffer.
+         * @param other  The %shared_bitbuffer to compare with.
+         * @returns  Number of bits that are different.
+         */
+        int distance(const shared_bitbuffer& other) const;
+
+        /**
          * @brief  Finds a pattern in this bit buffer within a maximum Hamming
          *         distance.
          * @param pattern  Bit pattern to search for.

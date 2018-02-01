@@ -475,6 +475,23 @@ void BitBufferTest::testPopcount()
     CPPUNIT_ASSERT_EQUAL(3, buffer.popcount());
 }
 
+void BitBufferTest::testDistance()
+{
+    // 110100010011110100011001111100111
+    redhawk::shared_bitbuffer first = redhawk::bitbuffer::from_int(0x1A27A33E7, 33);
+
+    // 000101011111111010011110100000011
+    redhawk::shared_bitbuffer second = redhawk::bitbuffer::from_int(0x02BFD3D03, 33);
+
+    // Distance from self should always be 0
+    CPPUNIT_ASSERT_EQUAL(0, first.distance(first));
+
+    // a         110100010011110100011001111100111
+    // b         000101011111111010011110100000011
+    // a XOR b = 110001001100001110000111011100100
+    CPPUNIT_ASSERT_EQUAL(15, first.distance(second));
+}
+
 void BitBufferTest::testFind()
 {
     // Pick a oddly-sized pattern
