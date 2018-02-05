@@ -220,7 +220,6 @@ PYTHON_PACKAGE := $(LOWER_CASE_IDL_MODULE).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES) $(IDL_INTERNAL_FILES))
-PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
 PY_IDL_INCLUDES := -I idl
@@ -236,11 +235,7 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-$(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py
-	python setup.py $(OSSIE_V_pysetup) build --build-lib build/lib
-	$(AM_V_at)touch $(PY_BUILD_OUT_DIR)
-
-all-python: $(PY_BUILD_OUT_DIR)
+all-python: $(PY_SRC_OUT_DIR)/__init__.py
 
 install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
 	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)

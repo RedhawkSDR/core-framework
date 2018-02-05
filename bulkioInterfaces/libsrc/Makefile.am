@@ -107,11 +107,6 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-all-python: build-python
-
-build-python:
-	python setup.py $(OSSIE_V_pysetup) build
-
 install-python:
 	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
 	  python setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
@@ -248,9 +243,7 @@ endif
 # General
 #
 
-.PHONY: all-local all-python build-python install-python clean-python reallyclean
-
-all-local: all-python
+.PHONY: install-python clean-python reallyclean
 
 install-exec-hook: install-python
 

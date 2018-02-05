@@ -7,7 +7,7 @@
 bulkio_top=$(cd ../../..;pwd)
 bulkio_libsrc_top=$bulkio_top/libsrc
 export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:$bulkio_top/jni/.libs:${LD_LIBRARY_PATH}
-export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
+export PYTHONPATH=$bulkio_libsrc_top/python:${PYTHONPATH}
 export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${bulkio_top}/BULKIOInterfaces.jar:${CLASSPATH}
 
 # Limit the number of threads Java uses for the garbage collector to avoid
@@ -20,16 +20,6 @@ export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
 #   test_xxx_vector.py -- uses sandbox to load components and test data flow
 #   test_python_helpers.py -- test sri and time helpers
 #
-
-#
-# make sure there is link to bulkioInterfaces in the build/bulkio/ directory
-#
-if [ ! -h $bulkio_libsrc_top/build/lib*/bulkio/bulkioInterfaces ];
-then
-	cd $bulkio_libsrc_top/build/lib*/bulkio
-	ln -s ../../../../build/lib/bulkio/bulkioInterfaces
-	cd -
-fi
 
 if [ $# -gt 0 ]
 then

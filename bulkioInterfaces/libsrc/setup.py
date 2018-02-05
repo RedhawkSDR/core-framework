@@ -36,5 +36,5 @@ setup(
         version=version,
         description='Python Classes for REDHAWK BULKIO Interfaces',
         packages=packages,
-        package_dir = { 'bulkio' : 'python' }
+        package_dir = { '' : 'python' }
     )
