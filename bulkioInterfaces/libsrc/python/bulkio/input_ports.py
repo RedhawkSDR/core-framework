@@ -23,86 +23,28 @@ import threading
 import collections
 import copy
 import time
-import logging
 
 from ossie.utils import uuid
 from ossie.cf.CF import Port
 from ossie.utils.notify import notification
+from ossie.utils.log4py import logging
 
 from bulkio.statistics import InStats
 import bulkio.sri
 from bulkio import timestamp
 from bulkio import const
+from bulkio.in_stream import *
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 
-class InStream(object):
-    def __init__(self, sri, port):
-        self.__sri = sri
-        self.__port = port
-        self.__enabled = True
-        self.__newstream = True
-
-    @property
-    def streamID(self):
-        return self.__sri.streamID
-
-    def sri(self):
-        return self.__sri
-
-    def read(self):
-        return self._fetchPacket(True)
-
-    def tryread(self):
-        return self._fetchPacket(False)
-
-    def _fetchPacket(self, blocking):
-        # Don't fetch a packet from the port if stream is disabled
-        if not self.__enabled:
-            return None
-
-        # TODO: EOS state
-
-        if blocking:
-            timeout = const.BLOCKING
-        else:
-            timeout = const.NON_BLOCKING
-        packet = self.__port._nextPacket(timeout, self.streamID)
-        if packet and packet.EOS:
-            # TODO: EOS state
-            pass
-        return packet
-
-    def enabled(self):
-        return self.__enabled
-
-    def enable(self):
-        # Changing the enabled flag requires holding the port's streamsMutex
-        # (that controls access to the stream map) to ensure that the change
-        # is atomic with respect to handling end-of-stream packets. Otherwise,
-        # there is a race condition between the port's IO thread and the
-        # thread that enables the stream--it could be re-enabled and start
-        # reading in between the port checking whether to discard the packet
-        # and closing the stream. Because it is assumed that the same thread
-        # that calls enable is the one doing the reading, it is not necessary
-        # to apply mutual exclusion across the entire public stream API, just
-        # enable/disable.
-        with self.__port._streamsMutex:
-            self.__enabled = True
-
-    def disable(self):
-        # See above re: locking
-        with self.__port._streamsMutex:
-            self.__enabled = False
-
-    def _hasBufferedData(self):
-        # TODO
-        return False
-
-    def _close(self):
-        # TODO
-        pass
-       
-
+class Packet(object):
+    def __init__(self, data, T, EOS, SRI, sriChanged, inputQueueFlushed):
+        self.buffer = data
+        self.T = T
+        self.EOS = EOS
+        self.SRI = SRI
+        self.sriChanged = sriChanged
+        self.inputQueueFlushed = inputQueueFlushed
+        self.streamID = SRI.streamID
 
 class InPort:
     DATA_BUFFER=0
@@ -117,9 +59,6 @@ class InPort:
     # Backwards-compatible DataTransfer type can still be unpacked like a tuple
     # but also supports named fields
     DataTransfer = collections.namedtuple('DataTransfer', 'dataBuffer T EOS streamID SRI sriChanged inputQueueFlushed')
-
-    # Default stream type
-    StreamType = InStream
 
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
         self.name = name
@@ -281,21 +220,9 @@ class InPort:
 
         packet = self._nextPacket(timeout)
         if not packet:
+            # Return an empty packet instead of None for backwards
+            # compatibility
             packet = InPort.DataTransfer(None, None, None, None, None, None, None)
-
-        if packet.EOS:
-            with self._sriUpdateLock:
-                if self.sriDict.has_key(packet.streamID):
-                    self.sriDict.pop(packet.streamID)
-                    if packet.SRI.blocking:
-                        stillBlock = False
-                        for _sri, _sriChanged in self.sriDict.values():
-                            if _sri.blocking:
-                                stillBlock = True
-                                break
-                        if not stillBlock:
-                            with self._dataBufferLock:
-                                self.blocking = False
 
         if self.logger:
             self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
@@ -309,7 +236,7 @@ class InPort:
         # Prefer a stream that already has buffered data
         with self._streamsMutex:
             for stream in self._streams.itervalues():
-                if stream.hasBufferedData():
+                if stream._hasBufferedData():
                     return stream
 
         # Otherwise, return the stream that owns the next packet on the queue,
@@ -399,7 +326,7 @@ class InPort:
 
             self.logger.trace("bulkio::InPort pushPacket NEW Packet (QUEUE=%d)", len(self.queue))
             self.stats.update(self._packetSize(data), float(len(self.queue))/float(self._maxSize), EOS, streamID, queue_flushed)
-            packet = InPort.DataTransfer(data, T, EOS, streamID, sri, sri_changed, queue_flushed)
+            packet = Packet(data, T, EOS, sri, sri_changed, queue_flushed)
             self.queue.append(packet)
 
             # Let one waiting getPacket call know there is a packet available
@@ -495,12 +422,11 @@ class InPort:
         if not streamID:
             if not self.queue:
                 return None
-            return InPort.DataTransfer(*self.queue.popleft())
+            return self.queue.popleft()
 
         for index in xrange(len(self.queue)):
-            packet_stream = self.queue[index][3]
-            if packet_stream == streamID:
-                packet = InPort.DataTransfer(*self.queue[index])
+            if self.queue[index].streamID == streamID:
+                packet = self.queue[index]
                 del self.queue[index]
                 return packet
         return None
@@ -536,66 +462,109 @@ class InPort:
         if stream:
             self.streamAdded(stream)
 
+    def _removeStream(self, streamID):
+        self.logger.debug("Removing stream '%s'", streamID)
+
+        new_stream = None
+        with self._streamsMutex:
+            # Remove the current stream, and if there's a pending stream with
+            # the same stream ID, move it to the active list
+            self._streams.pop(streamID, None);
+            pending_streams = self._pendingStreams.get(streamID, [])
+            if pending_streams:
+                self.logger.debug("Moving pending stream '%s' active", streamID)
+                new_stream = pending_streams.pop(0)
+                self._streams[streamID] = new_stream
+
+        if new_stream:
+            self.streamAdded(stream);
+
+    def _discardPacketsForStream(self, streamID):
+        with self._dataBufferLock:
+            self.queue = [pkt for pkt in self.queue if pkt.streamID != streamID]
+
     def _packetSize(self, data):
         return len(data)
 
 
 class InCharPort(InPort, BULKIO__POA.dataChar):
     _TYPE_ = 'c'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InCharPort._TYPE_ )
 
 class InOctetPort(InPort, BULKIO__POA.dataOctet):
     _TYPE_ = 'B'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InOctetPort._TYPE_ )
 
 class InShortPort(InPort, BULKIO__POA.dataShort):
     _TYPE_ = 'h'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InShortPort._TYPE_ )
 
 class InUShortPort(InPort, BULKIO__POA.dataUshort):
     _TYPE_ = 'H'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InUShortPort._TYPE_ )
 
 class InLongPort(InPort, BULKIO__POA.dataLong):
     _TYPE_ = 'i'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InLongPort._TYPE_ )
 
 class InULongPort(InPort, BULKIO__POA.dataUlong):
     _TYPE_ = 'I'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InULongPort._TYPE_ )
 
 class InLongLongPort(InPort, BULKIO__POA.dataLongLong):
     _TYPE_ = 'q'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InLongLongPort._TYPE_ )
 
 
 class InULongLongPort(InPort, BULKIO__POA.dataUlongLong):
     _TYPE_ = 'Q'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InULongLongPort._TYPE_ )
 
 
 class InFloatPort(InPort, BULKIO__POA.dataFloat):
     _TYPE_ = 'f'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InFloatPort._TYPE_ )
 
 
 class InDoublePort(InPort, BULKIO__POA.dataDouble):
     _TYPE_ = 'd'
+    StreamType = BufferedInputStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InDoublePort._TYPE_ )
 
 
 class InBitPort(InPort, BULKIO__POA.dataBit):
     _TYPE_ = 'B'
+    StreamType = InBitStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InBitPort._TYPE_)
 
@@ -605,6 +574,8 @@ class InBitPort(InPort, BULKIO__POA.dataBit):
 
 class InFilePort(InPort, BULKIO__POA.dataFile):
     _TYPE_ = 'd'
+    StreamType = InFileStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InFilePort._TYPE_ )
 
@@ -615,6 +586,8 @@ class InFilePort(InPort, BULKIO__POA.dataFile):
 
 class InXMLPort(InPort, BULKIO__POA.dataXML):
     _TYPE_ = 'd'
+    StreamType = InXMLStream
+
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InXMLPort._TYPE_ )
 
