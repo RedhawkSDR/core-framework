@@ -18,10 +18,32 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-try:
-    from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
-except:
-    pass
+from bulkio.bulkioInterfaces import BULKIO
+
+# Bit flags for SRI fields
+NONE     = 0
+HVERSION = (1<<0)
+XSTART   = (1<<1)
+XDELTA   = (1<<2)
+XUNITS   = (1<<3)
+SUBSIZE  = (1<<4)
+YSTART   = (1<<5)
+YDELTA   = (1<<6)
+YUNITS   = (1<<7)
+MODE     = (1<<8)
+STREAMID = (1<<9)
+BLOCKING = (1<<10)
+KEYWORDS = (1<<11)
+
+def _compareKeywords(keywordsA, keywordsB):
+    if len(keywordsA) != len(keywordsB):
+        return False
+    for keyA, keyB in zip(keywordsA, keywordsB):
+        if keyA.value._t != keyB.value._t:
+            return False
+        if keyA.value._v != keyB.value._v:
+            return False
+    return True
 
 def compare(sriA, sriB):
     """
@@ -61,6 +83,38 @@ def compare(sriA, sriB):
         if keyA.value._v != keyB.value._v:
             return False
     return True
+
+def compareFields(sriA, sriB):
+    """
+    Field-by-field comparison of two SRIs, returning a combination of bit flags
+    indicating the fields that are different.
+    """
+    result = NONE
+    if sriA.hversion != sriB.hversion:
+        result = result | HVERSION
+    if sriA.xstart != sriB.xstart:
+        result = result | XSTART
+    if sriA.xdelta != sriB.xdelta:
+        result = result | XDELTA
+    if sriA.xunits != sriB.xunits:
+        result = result | XUNITS
+    if sriA.subsize != sriB.subsize:
+        result = result | SUBSIZE
+    if sriA.ystart != sriB.ystart:
+        result = result | YSTART
+    if sriA.ydelta != sriB.ydelta:
+        result = result | YDELTA
+    if sriA.yunits != sriB.yunits:
+        result = result | YUNITS
+    if sriA.mode != sriB.mode:
+        result = result | MODE
+    if sriA.streamID != sriB.streamID:
+        result = result | STREAMID
+    if sriA.blocking != sriB.blocking:
+        result = result | BLOCKING
+    if not _compareKeywords(sriA.keywords, sriB.keywords):
+        result = result | KEYWORDS
+    return result
 
 def create( sid='defStream', srate=1.0, xunits=1 ):
      return BULKIO.StreamSRI(hversion=1, xstart=0.0, xdelta=1.0/srate, 
