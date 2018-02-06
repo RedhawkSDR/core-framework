@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>redhawk.coreframework</groupId>
 	<artifactId>parent</artifactId>
-	<version>2.0.8-SNAPSHOT</version><!-- This will be replaced via sed -->
+	<version>2.0.9-SNAPSHOT</version><!-- This will be replaced via sed -->
 	<packaging>pom</packaging>
 	<description>
 		Used to add maven coordinates to jars produced via make and generate source jar and other artifacts.
