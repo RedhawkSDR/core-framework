@@ -24,10 +24,10 @@ logger_i::~logger_i()
 
 void logger_i::constructor()
 {
-	baseline_1_logger = this->_log->getChildLogger("some_stuff");
-	baseline_2_logger = this->_log->getChildLogger("more_stuff");
-	namespaced_logger = this->_log->getChildLogger("lower", "namespace");
-	basetree_logger = this->_log->getChildLogger("lower", "");
+	baseline_1_logger = this->_baseLog->getChildLogger("some_stuff");
+	baseline_2_logger = this->_baseLog->getChildLogger("more_stuff");
+	namespaced_logger = this->_baseLog->getChildLogger("lower", "namespace");
+	basetree_logger = this->_baseLog->getChildLogger("lower", "");
 }
 
 /***********************************************************************************************
@@ -244,7 +244,7 @@ void logger_i::constructor()
 int logger_i::serviceFunction()
 {
     LOG_DEBUG(logger_i, "serviceFunction() example log message");
-    RH_DEBUG(_log, "message from _log");
+    RH_DEBUG(_baseLog, "message from _log");
     RH_DEBUG(baseline_1_logger, "message from baseline_1_logger");
     RH_DEBUG(baseline_2_logger, "message from baseline_2_logger");
     RH_DEBUG(namespaced_logger, "message from namespaced_logger");
