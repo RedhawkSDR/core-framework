@@ -23,6 +23,8 @@ import unittest
 
 from omniORB import CORBA
 
+from ossie.cf import CF
+
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
@@ -60,7 +62,7 @@ class OutPortTest(object):
         for servant in self.__servants:
             try:
                 poa = servant._default_POA()
-                object_id = poa.servant_to_id(self.stub)
+                object_id = poa.servant_to_id(servant)
                 poa.deactivate_object(object_id)
             except:
                 # Ignore CORBA exceptions
@@ -69,6 +71,39 @@ class OutPortTest(object):
 
     def _dataLength(self, data):
         return len(data)
+
+    def testConnections(self):
+        # Should start with one connection, to the in self.port stub
+        connections = self.port._get_connections()
+        self.assertEqual(1, len(connections))
+        self.assertEqual(BULKIO.ACTIVE, self.port._get_state())
+
+        # Should throw an invalid port on a nil
+        self.assertRaises(CF.Port.InvalidPort, self.port.connectPort, None, 'connection_nil')
+
+        # Normal connection
+        stub2 = self._createStub()
+        objref = stub2._this()
+        self.port.connectPort(objref, 'connection_2')
+        connections = self.port._get_connections()
+        self.assertEqual(2, len(connections))
+
+        # Cannot reuse connection ID
+        self.assertRaises(CF.Port.OccupiedPort, self.port.connectPort, objref, 'connection_2')
+
+        # Disconnect second connection
+        self.port.disconnectPort('connection_2')
+        connections = self.port._get_connections()
+        self.assertEqual(1, len(connections))
+
+        # Bad connection ID on disconnect
+        self.assertRaises(CF.Port.InvalidPort, self.port.disconnectPort, 'connection_bad')
+
+        # Disconnect the default stub; self.port should go to idle
+        self.port.disconnectPort('test_connection')
+        connections = self.port._get_connections()
+        self.assertEqual(0, len(connections))
+        self.assertEqual(BULKIO.IDLE, self.port._get_state())
 
     def testStatistics(self):
         stream_id = "port_stats";

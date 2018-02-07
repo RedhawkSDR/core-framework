@@ -24,8 +24,8 @@ import time
 import sys
 import struct
 
-from ossie.cf    import ExtendedCF
-from ossie.cf.CF    import Port
+from ossie.cf import CF, ExtendedCF
+from ossie.cf.CF import Port
 from ossie.utils import uuid
 from ossie.properties import simple_property
 import logging
@@ -116,29 +116,38 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         if self.logger:
             self.logger.debug('bulkio::OutPort CTOR port:' + str(self.name))
             
-
     def connectPort(self, connection, connectionId):
-
         if self.logger:
             self.logger.trace('bulkio::OutPort  connectPort ENTER ')
 
-        self.port_lock.acquire()
-        try:
-           try:
-              port = connection._narrow(self.PortType)
-              if port == None:
-                  raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId))
-              self.outConnections[str(connectionId)] = port
+        if connection is None:
+            raise CF.Port.InvalidPort(1, 'Nil object reference')
 
-              if self.logger:
-                  self.logger.debug('bulkio::OutPort  CONNECT PORT:' + str(self.name) + ' CONNECTION:' + str(connectionId))
-              
-           except:
-              if self.logger:
-                  self.logger.error('bulkio::OutPort  CONNECT PORT:' + str(self.name) + ' PORT FAILED NARROW')
-              raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId))
-        finally:
-            self.port_lock.release()
+        # Attempt to check the type of the remote object to reject invalid
+        # types; note this does not require the lock
+        repo_id = self.PortType._NP_RepositoryId
+        try:
+            valid = connection._is_a(repo_id)
+        except:
+            # If _is_a throws an exception, assume the remote object is
+            # unreachable (probably dead)
+            raise CF.Port.InvalidPort(1, 'Object unreachable')
+
+        if not valid:
+            raise CF.Port.InvalidPort(1, 'Object does not support '+repo_id)
+
+        port = connection._narrow(self.PortType)
+
+        # Acquire the state lock before modifying the container
+        with self.port_lock:
+            # Prevent duplicate connection IDs
+            if str(connectionId) in self.outConnections:
+                raise Port.OccupiedPort()
+
+            self.outConnections[str(connectionId)] = port
+
+            if self.logger:
+                self.logger.debug('bulkio::OutPort  CONNECT PORT:%s CONNECTION:%s', self.name, connectionId)
 
         if self.logger:
             self.logger.trace('bulkio::OutPort  connectPort EXIT ')
