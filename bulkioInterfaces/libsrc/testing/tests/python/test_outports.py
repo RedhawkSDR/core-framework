@@ -21,19 +21,17 @@
 
 import unittest
 
-from omniORB import CORBA
-
 from ossie.cf import CF
 
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
-from inport_stubs import *
+from helpers import *
 
 class OutPortTest(object):
     def setUp(self):
         self.__servants = []
-        self.port = self._createPort()
+        self.port = self.helper.createOutPort()
         self.stub = self._createStub()
         self.connectionTable = []
 
@@ -50,7 +48,7 @@ class OutPortTest(object):
         self._releaseServants()
 
     def _createStub(self):
-        stub = self.StubType()
+        stub = self.helper.createInStub()
         self.__servants.append(stub)
         return stub
 
@@ -68,9 +66,6 @@ class OutPortTest(object):
                 # Ignore CORBA exceptions
                 pass
         self.__servants = []
-
-    def _dataLength(self, data):
-        return len(data)
 
     def testConnections(self):
         # Should start with one connection, to the in self.port stub
@@ -151,7 +146,7 @@ class OutPortTest(object):
         self._pushTestPacket(91, bulkio.timestamp.now(), False, filter_stream_id)
         self.assertEqual(0, len(self.stub.packets))
         self.assertEqual(1, len(stub2.packets))
-        self.assertEqual(91, self._dataLength(stub2.packets[-1].data))
+        self.assertEqual(91, self.helper.dataLength(stub2.packets[-1].data))
 
         # Unknown (to the connection filter) stream should get dropped
         unknown_stream_id = 'unknown_stream'
@@ -174,9 +169,9 @@ class OutPortTest(object):
         # ...and data
         self._pushTestPacket(256, bulkio.timestamp.now(), False, all_stream_id)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(256, self._dataLength(self.stub.packets[-1].data))
+        self.assertEqual(256, self.helper.dataLength(self.stub.packets[-1].data))
         self.assertEqual(2, len(stub2.packets))
-        self.assertEqual(256, self._dataLength(stub2.packets[-1].data))
+        self.assertEqual(256, self.helper.dataLength(stub2.packets[-1].data))
 
         # Reset the connection filter and push data for the filtered stream again,
         # which should trigger an SRI push to the first stub
@@ -186,9 +181,9 @@ class OutPortTest(object):
         self.assertEqual(2, len(self.stub.H))
         self.assertEqual(filter_stream_id, self.stub.H[-1].streamID)
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(9, self._dataLength(self.stub.packets[-1].data))
+        self.assertEqual(9, self.helper.dataLength(self.stub.packets[-1].data))
         self.assertEqual(3, len(stub2.packets))
-        self.assertEqual(9, self._dataLength(stub2.packets[-1].data))
+        self.assertEqual(9, self.helper.dataLength(stub2.packets[-1].data))
 
     def _addStreamFilter(self, streamId, connectionId):
         desc = bulkio.connection_descriptor_struct(connectionId, streamId, self.port.name)
@@ -196,11 +191,8 @@ class OutPortTest(object):
         self.port.updateConnectionFilter(self.connectionTable)
 
     def _pushTestPacket(self, length, time, eos, streamID):
-        data = self._createData(length)
-        self.port.pushPacket(data, time, eos, streamID)
-
-    def _createData(self, length):
-        return [0] * length
+        data = self.helper.createData(length)
+        self.helper.pushPacket(self.port, data, time, eos, streamID)
 
 class ChunkingOutPortTest(OutPortTest):
     def testPushChunking(self):
@@ -312,103 +304,29 @@ class NumericOutPortTest(ChunkingOutPortTest):
             self.assertEqual(0, len(packet.data) % 4096, 'Packet size is not a multiple of subsize')
 
 
-class OutCharPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InCharPortStub
+def register_test(name, testbase, **kwargs):
+    globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-    def _createPort(self):
-        return bulkio.OutCharPort('dataChar_out')
-
-    def _createData(self, length):
-        return '\x00'*length
-
-class OutOctetPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InOctetPortStub
-
-    def _createPort(self):
-        return bulkio.OutOctetPort('dataOctet_out')
-
-    def _createData(self, length):
-        return '\x00'*length
-
-class OutBitPortTest(OutPortTest, unittest.TestCase):
-    StubType = InBitPortStub
-
-    def _createPort(self):
-        return bulkio.OutBitPort('dataBit_out')
-
-    def _createData(self, length):
-        data = '\x00' * int((length+7)/8)
-        return BULKIO.BitSequence(data, length)
-
-    def _dataLength(self, data):
-        return data.bits
-
-class OutShortPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InShortPortStub
-
-    def _createPort(self):
-        return bulkio.OutShortPort('dataShort_out')
-
-class OutUShortPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InUshortPortStub
-
-    def _createPort(self):
-        return bulkio.OutUShortPort('dataUShort_out')
-
-class OutLongPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutLongPort('dataLong_out')
-
-class OutULongPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InUlongPortStub
-
-    def _createPort(self):
-        return bulkio.OutULongPort('dataULong_out')
-
-class OutLongLongPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InLongLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutLongLongPort('dataLongLong_out')
-
-class OutULongLongPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InUlongLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutULongLongPort('dataULongLong_out')
-
-class OutFloatPortTest(NumericOutPortTest, unittest.TestCase):
-    StubType = InFloatPortStub
-
-    def _createPort(self):
-        return bulkio.OutFloatPort('dataFloat_out')
-
-class OutXMLPortTest(OutPortTest, unittest.TestCase):
-    StubType = InXMLPortStub
-
-    def _createPort(self):
-        return bulkio.OutXMLPort('dataXML_out')
-
-    def _pushTestPacket(self, length, time, eos, streamID):
-        data = ' '*length
-        self.port.pushPacket(data, eos, streamID)
-
-class OutFilePortTest(OutPortTest, unittest.TestCase):
-    StubType = InFilePortStub
-
-    def _createPort(self):
-        return bulkio.OutFilePort('dataFile_out')
-
-    def _createData(self, length):
-        return ' '*length
-
+register_test('OutBitPortTest', OutPortTest, helper=BitTestHelper())
+register_test('OutXMLPortTest', OutPortTest, helper=XMLTestHelper())
+register_test('OutFilePortTest', OutPortTest, helper=FileTestHelper())
+register_test('OutCharPortTest', NumericOutPortTest, helper=CharTestHelper())
+register_test('OutOctetPortTest', NumericOutPortTest, helper=OctetTestHelper())
+register_test('OutShortPortTest', NumericOutPortTest, helper=ShortTestHelper())
+register_test('OutUShortPortTest', NumericOutPortTest, helper=UShortTestHelper())
+register_test('OutLongPortTest', NumericOutPortTest, helper=LongTestHelper())
+register_test('OutULongPortTest', NumericOutPortTest, helper=ULongTestHelper())
+register_test('OutLongLongPortTest', NumericOutPortTest, helper=LongLongTestHelper())
+register_test('OutULongLongPortTest', NumericOutPortTest, helper=ULongLongTestHelper())
+register_test('OutFloatPortTest', NumericOutPortTest, helper=FloatTestHelper())
+register_test('OutDoublePortTest', NumericOutPortTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
+    from ossie.utils.log4py import logging
     logging.basicConfig()
-    #logging.getLogger().setLevel(logging.TRACE)
+    logging.getLogger().setLevel(logging.TRACE)
 
+    from omniORB import CORBA
     orb = CORBA.ORB_init()
     root_poa = orb.resolve_initial_references("RootPOA")
     manager = root_poa._get_the_POAManager()

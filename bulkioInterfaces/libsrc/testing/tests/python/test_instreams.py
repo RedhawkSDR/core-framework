@@ -28,15 +28,18 @@ from ossie.cf import CF
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
+from helpers import *
+
 class InStreamTest(object):
     def setUp(self):
-        self.port = self._createPort()
+        self.port = self.helper.createInPort()
 
     def tearDown(self):
         pass
 
     def _pushTestPacket(self, length, time, eos, streamID):
-        self.port.pushPacket(range(length), time, eos, streamID)
+        data = self.helper.createData(length)
+        self.helper.pushPacket(self.port, data, time, eos, streamID)
 
     def testGetCurrentStreamEmptyEos(self):
         # Create a new stream and push some data to it
@@ -351,71 +354,22 @@ class NumericInStreamTest(BufferedInStreamTest):
         self.failUnless(block.sriChanged())
         self.failUnless(block.sriChangeFlags & bulkio.sri.MODE)
 
+def register_test(name, testbase, **kwargs):
+    globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-class InFileStreamTest(InStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InFilePort('dataFile_in')
-
-    def _pushTestPacket(self, length, time, eos, streamID):
-        data = ' '*length
-        self.port.pushPacket(data, time, eos, streamID)
-
-class InXMLStreamTest(InStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InXMLPort('dataXML_in')
-
-    def _pushTestPacket(self, length, time, eos, streamID):
-        data = ' '*length
-        self.port.pushPacket(data, eos, streamID)
-
-class InBitStreamTest(InStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InBitPort('dataBit_in')
-
-    def _pushTestPacket(self, length, time, eos, streamID):
-        data = '\x00' * int((length + 7)/8)
-        data = BULKIO.BitSequence(data, length)
-        self.port.pushPacket(data, time, eos, streamID)
-
-class InCharStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InCharPort('dataChar_in')
-
-class InOctetStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InOctetPort('dataOctet_in')
-
-class InShortStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InShortPort('dataShort_in')
-
-class InUShortStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InUShortPort('dataUShort_in')
-
-class InLongStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InLongPort('dataLong_in')
-
-class InULongStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InULongPort('dataULong_in')
-
-class InLongLongStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InLongLongPort('dataLongLong_in')
-
-class InULongLongStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InULongLongPort('dataULongLong_in')
-
-class InFloatStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InFloatPort('dataFloat_in')
-
-class InDoubleStreamTest(NumericInStreamTest, unittest.TestCase):
-    def _createPort(self):
-        return bulkio.InDoublePort('dataDouble_in')
+register_test('InBitStreamTest', InStreamTest, helper=BitTestHelper())
+register_test('InXMLStreamTest', InStreamTest, helper=XMLTestHelper())
+register_test('InFileStreamTest', InStreamTest, helper=FileTestHelper())
+register_test('InCharStreamTest', NumericInStreamTest, helper=CharTestHelper())
+register_test('InOctetStreamTest', NumericInStreamTest, helper=OctetTestHelper())
+register_test('InShortStreamTest', NumericInStreamTest, helper=ShortTestHelper())
+register_test('InUShortStreamTest', NumericInStreamTest, helper=UShortTestHelper())
+register_test('InLongStreamTest', NumericInStreamTest, helper=LongTestHelper())
+register_test('InULongStreamTest', NumericInStreamTest, helper=ULongTestHelper())
+register_test('InLongLongStreamTest', NumericInStreamTest, helper=LongLongTestHelper())
+register_test('InULongLongStreamTest', NumericInStreamTest, helper=ULongLongTestHelper())
+register_test('InFloatStreamTest', NumericInStreamTest, helper=FloatTestHelper())
+register_test('InDoubleStreamTest', NumericInStreamTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
     unittest.main()

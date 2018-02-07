@@ -22,20 +22,14 @@
 import unittest
 import math
 
-from omniORB import CORBA
-from omniORB.any import to_any
-
-from ossie.cf import CF
-from ossie.utils.log4py import logging
-
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
-from inport_stubs import *
+from helpers import *
 
 class OutStreamTest(object):
     def setUp(self):
-        self.port = self._createPort()
+        self.port = self.helper.createOutPort()
         self.stub = self._createStub()
 
         objref = self.stub._this()
@@ -51,7 +45,7 @@ class OutStreamTest(object):
         self._releaseServants()
 
     def _createStub(self):
-        return self.StubType()
+        return self.helper.createInStub()
 
     def _disconnectPorts(self):
         for connection in self.port._get_connections():
@@ -62,9 +56,6 @@ class OutStreamTest(object):
         object_id = poa.servant_to_id(self.stub)
         poa.deactivate_object(object_id)
 
-    def _dataLength(self, data):
-        return len(data)
-
     def testBasicWrite(self):
         stream = self.port.createStream('test_basic_write')
         self.failUnless(not self.stub.packets)
@@ -72,7 +63,7 @@ class OutStreamTest(object):
         time = bulkio.timestamp.now()
         self._writeSinglePacket(stream, 256, time)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(256, self._dataLength(self.stub.packets[0].data))
+        self.assertEqual(256, self.helper.dataLength(self.stub.packets[0].data))
         self.failIf(self.stub.packets[0].EOS)
         self.assertEqual(stream.streamID, self.stub.packets[0].streamID)
 
@@ -180,113 +171,32 @@ class OutStreamTest(object):
     def _writeSinglePacket(self, stream, length, time=None):
         if time is None:
             time = bulkio.timestamp.now()
-        data = self._createData(length)
+        data = self.helper.createData(length)
         stream.write(data, time)
 
-    def _createData(self, length):
-        return range(length)
+def register_test(name, testbase, **kwargs):
+    globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-class OutCharStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InCharPortStub
-
-    def _createPort(self):
-        return bulkio.OutCharPort('dataChar_out')
-
-    def _createData(self, length):
-        return '\x00'*length
-
-class OutOctetStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InOctetPortStub
-
-    def _createPort(self):
-        return bulkio.OutOctetPort('dataOctet_out')
-
-    def _createData(self, length):
-        return '\x00'*length
-
-class OutBitStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InBitPortStub
-
-    def _createPort(self):
-        return bulkio.OutBitPort('dataBit_out')
-
-    def _createData(self, length):
-        data = '\x00' * int((length+7)/8)
-        return BULKIO.BitSequence(data, length)
-
-    def _dataLength(self, data):
-        return data.bits
-
-class OutShortStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InShortPortStub
-
-    def _createPort(self):
-        return bulkio.OutShortPort('dataShort_out')
-
-class OutUShortStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InUshortPortStub
-
-    def _createPort(self):
-        return bulkio.OutUShortPort('dataUShort_out')
-
-class OutLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutLongPort('dataLong_out')
-
-class OutULongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InUlongPortStub
-
-    def _createPort(self):
-        return bulkio.OutULongPort('dataULong_out')
-
-class OutLongLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InLongLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutLongLongPort('dataLongLong_out')
-
-class OutULongLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InUlongLongPortStub
-
-    def _createPort(self):
-        return bulkio.OutULongLongPort('dataULongLong_out')
-
-class OutFloatStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InFloatPortStub
-
-    def _createPort(self):
-        return bulkio.OutFloatPort('dataFloat_out')
-
-class OutDoubleStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InDoublePortStub
-
-    def _createPort(self):
-        return bulkio.OutDoublePort('dataDouble_out')
-
-class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InXMLPortStub
-
-    def _createPort(self):
-        return bulkio.OutXMLPort('dataXML_out')
-
-    def _createData(self, length):
-        return ' '*length
-
-class OutFileStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InFilePortStub
-
-    def _createPort(self):
-        return bulkio.OutFilePort('dataFile_out')
-
-    def _createData(self, length):
-        return ' '*length
+register_test('OutBitStreamTest', OutStreamTest, helper=BitTestHelper())
+register_test('OutXMLStreamTest', OutStreamTest, helper=XMLTestHelper())
+register_test('OutFileStreamTest', OutStreamTest, helper=FileTestHelper())
+register_test('OutCharStreamTest', OutStreamTest, helper=CharTestHelper())
+register_test('OutOctetStreamTest', OutStreamTest, helper=OctetTestHelper())
+register_test('OutShortStreamTest', OutStreamTest, helper=ShortTestHelper())
+register_test('OutUShortStreamTest', OutStreamTest, helper=UShortTestHelper())
+register_test('OutLongStreamTest', OutStreamTest, helper=LongTestHelper())
+register_test('OutULongStreamTest', OutStreamTest, helper=ULongTestHelper())
+register_test('OutLongLongStreamTest', OutStreamTest, helper=LongLongTestHelper())
+register_test('OutULongLongStreamTest', OutStreamTest, helper=ULongLongTestHelper())
+register_test('OutFloatStreamTest', OutStreamTest, helper=FloatTestHelper())
+register_test('OutDoubleStreamTest', OutStreamTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
+    from ossie.utils.log4py import logging
     logging.basicConfig()
-    #logging.getLogger().setLevel(logging.TRACE)
+    logging.getLogger().setLevel(logging.TRACE)
 
+    from omniORB import CORBA
     orb = CORBA.ORB_init()
     root_poa = orb.resolve_initial_references("RootPOA")
     manager = root_poa._get_the_POAManager()
