@@ -9,30 +9,39 @@ class StreamBase(object):
     def sri(self):
         return self._sri
 
+    @property
     def xstart(self):
         return self._sri.xstart
 
+    @property
     def xdelta(self):
         return self._sri.xdelta
 
+    @property
     def xunits(self):
         return self._sri.xunits
 
+    @property
     def subsize(self):
         return self._sri.subsize
 
+    @property
     def ystart(self):
         return self._sri.ystart
 
+    @property
     def ydelta(self):
         return self._sri.ydelta
 
+    @property
     def yunits(self):
         return self._sri.yunits
 
+    @property
     def complex(self):
         return self._sri.mode != 0
 
+    @property
     def blocking(self):
         return self._sri.blocking
 

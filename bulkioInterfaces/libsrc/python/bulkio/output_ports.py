@@ -30,10 +30,11 @@ from ossie.utils import uuid
 from ossie.properties import simple_property
 import logging
 from bulkio.statistics import OutStats
-from bulkio import sri
+import bulkio.sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
+from bulkio.output_streams import OutputStream, OutCharStream, OutOctetStream, OutBitStream, OutXMLStream, OutFileStream
 import traceback
 
 class connection_descriptor_struct(object):
@@ -73,6 +74,8 @@ class connection_descriptor_struct(object):
 
 
 class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
+
+    StreamType = OutputStream
     
     class SriMapStruct:
         def __init__( self, sri=None, connections=None, time=None): 
@@ -105,6 +108,8 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         # Make sure maxSamplesPerPush is even so that complex data case is handled properly
         if self.maxSamplesPerPush%2 != 0:
             self.maxSamplesPerPush = self.maxSamplesPerPush - 1
+
+        self._streams = {}
 
         if self.logger == None:
             self.logger = logging.getLogger("redhawk.bulkio.outport."+name)
@@ -293,6 +298,40 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushSRI EXIT ')
 
+    def getStream(self, streamID):
+        with self.port_lock:
+            return self._streams.get(streamID, None)
+
+    def getStreams(self):
+        with self.port_lock:
+            return self._streams.values()
+
+    def createStream(self, stream):
+        with self.port_lock:
+            if isinstance(stream, BULKIO.StreamSRI):
+                # Try to find an existing stream with the same streamID, and
+                # update it
+                sri = stream
+                stream = self._streams.get(sri.streamID, None)
+                if stream:
+                    # Update the stream's SRI from the argument
+                    stream.sri
+                    return stream
+            else:
+                # Assume we were given a stream ID
+                stream_id = stream
+                stream = self._streams.get(stream_id, None)
+                if stream:
+                    return stream
+
+                # Create an SRI with the given streamID
+                sri = bulkio.sri.create(stream_id)
+
+            # No existing stream was found, create one
+            stream = self.StreamType(sri, self)
+            self._streams[sri.streamID] = stream
+            return stream
+
     def _pushOversizedPacket(self, data, T, EOS, streamID):
         # If there is no need to break data into smaller packets, skip straight
         # to the pushPacket call and return.
@@ -378,7 +417,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                             port.pushSRI(self.sriDict[streamID].sri)
                             self.sriDict[streamID].connections.add(connId)
                         port.pushPacket(data, T, EOS, streamID)
-                        self.stats.update(len(data), 0, EOS, streamID, connId)
+                        self.stats.update(self._packetSize(data), 0, EOS, streamID, connId)
                 except Exception, e:
                     if self.reportConnectionErrors(connId)  :
                         if self.logger:
@@ -396,11 +435,10 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
             self.pushSRI(sri)
 
-        self.port_lock.acquire()
-        try:
+        with self.port_lock:
             self._pushOversizedPacket(data, T, EOS, streamID)
-        finally:
-            self.port_lock.release()
+            if EOS:
+                del self._streams[streamID]
 
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket EXIT ')
@@ -411,11 +449,13 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
 
 class OutCharPort(OutPort):
     TRANSFER_TYPE = 'c'
+    StreamType = OutCharStream
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE , logger, noData='' )
 
 class OutOctetPort(OutPort):
     TRANSFER_TYPE = 'B'
+    StreamType = OutOctetStream
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE , logger, noData='')
 
@@ -461,14 +501,16 @@ class OutDoublePort(OutPort):
 
 class OutBitPort(OutPort):
     TRANSFER_TYPE = 'B'
+    StreamType = OutBitStream
     def __init__(self, name, logger=None):
-        OutPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger)
+        OutPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, noData=BULKIO.BitSequence('',0))
 
     def _packetSize(self, data):
         return len(data.data)
 
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
+    StreamType = OutFileStream
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger, noData='' )
 
@@ -506,9 +548,10 @@ class OutFilePort(OutPort):
                             port.pushPacket(URL, T, EOS, streamID)
                             self.stats.update(1, 0, EOS, streamID, connId)
                     except Exception, e:
+                        print URL
                         if self.reportConnectionErrors(connId) :
                             if self.logger :
-                                self.logger.error("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
+                                self.logger.exception("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -520,6 +563,7 @@ class OutFilePort(OutPort):
  
 class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
+    StreamType = OutXMLStream
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger, noData='' )
 
@@ -555,7 +599,7 @@ class OutXMLPort(OutPort):
                         if port != None:
                             port.pushPacket(xml_string, EOS, streamID)
                             self.stats.update(len(xml_string), 0, EOS, streamID, connId)
-                    except Exception:
+                    except Exception as e:
                         if self.reportConnectionErrors(connId) :
                             if self.logger :
                                 self.logger.error("PUSH-PACKET (xml port) FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
