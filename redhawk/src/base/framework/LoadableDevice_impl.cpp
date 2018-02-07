@@ -173,7 +173,7 @@ void LoadableDevice_impl::_init () {
 
   // Default to the current working directory
   cacheDirectory = ossie::getCurrentDirName();
-  setLogger(_log->getChildLogger("LoadableDevice", "system"));
+  setLogger(this->_baseLog->getChildLogger("LoadableDevice", "system"));
 }
 
 /* LoadableDevice_impl ****************************************************************************

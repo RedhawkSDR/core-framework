@@ -33,7 +33,7 @@ Resource_impl::Resource_impl (const char* _uuid) :
     _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
-    this->setLogger(this->_log->getChildLogger("Resource", "system"));
+    this->setLogger(this->_baseLog->getChildLogger("Resource", "system"));
 }
 
 
@@ -47,7 +47,7 @@ Resource_impl::Resource_impl (const char* _uuid, const char *label) :
     _domMgr(new redhawk::DomainManagerContainer()),
     _initialized(false)
 {
-    this->setLogger(this->_log->getChildLogger("Resource", "system"));
+    this->setLogger(this->_baseLog->getChildLogger("Resource", "system"));
 }
 
 Resource_impl::~Resource_impl ()
@@ -102,8 +102,8 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
 void Resource_impl::setLogger(rh_logger::LoggerPtr logptr)
 {
     _resource_log = logptr;
-    PropertySet_impl::setLogger(this->_log->getChildLogger("PropertySet", "system"));
-    PortSupplier_impl::setLogger(this->_log->getChildLogger("PortSupplier", "system"));
+    PropertySet_impl::setLogger(this->_baseLog->getChildLogger("PropertySet", "system"));
+    PortSupplier_impl::setLogger(this->_baseLog->getChildLogger("PortSupplier", "system"));
 }
 
 redhawk::DomainManagerContainer* Resource_impl::getDomainManager()
@@ -147,7 +147,7 @@ throw (CORBA::SystemException)
 
 CF::StringSequence* Resource_impl::getNamedLoggers() {
     CF::StringSequence_var retval = new CF::StringSequence();
-    std::vector<std::string> _loggers = this->_log->getNamedLoggers();
+    std::vector<std::string> _loggers = this->_baseLog->getNamedLoggers();
     retval->length(_loggers.size());
     for (unsigned int i=0; i<_loggers.size(); i++) {
         retval[i] = CORBA::string_dup(_loggers[i].c_str());

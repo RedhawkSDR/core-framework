@@ -99,7 +99,7 @@ ExecutableDevice_impl::ExecutableDevice_impl (char* devMgr_ior, char* id, char* 
 
 void ExecutableDevice_impl::_init()
 {
-    setLogger(_log->getChildLogger("ExecutableDevice", "system"));
+    setLogger(this->_baseLog->getChildLogger("ExecutableDevice", "system"));
 }
 
 void ExecutableDevice_impl::setLogger(rh_logger::LoggerPtr logptr)

@@ -88,7 +88,7 @@ void Device_impl::initResources (char* devMgr_ior, char* _id,
 
     useNewAllocation = false;
     this->_devMgr = NULL;
-    setLogger(_log->getChildLogger("Device", "system"));
+    setLogger(this->_baseLog->getChildLogger("Device", "system"));
 }
 
 Device_impl::Device_impl (char* devMgr_ior, char* _id, char* lbl, char* sftwrPrfl) : Resource_impl(_id, lbl)

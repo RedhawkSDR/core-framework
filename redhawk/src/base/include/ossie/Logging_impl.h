@@ -306,7 +306,7 @@ class Logging_impl
 
  public:
 
-  rh_logger::LoggerPtr _log;
+  rh_logger::LoggerPtr _baseLog;
 
  private:
 
