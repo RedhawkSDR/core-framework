@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,9 +20,7 @@
 #
 
 import unittest
-import collections
 import math
-from new import classobj
 
 from omniORB import CORBA
 from omniORB.any import to_any
@@ -30,38 +29,9 @@ from ossie.cf import CF
 from ossie.utils.log4py import logging
 
 import bulkio
-from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
+from bulkio.bulkioInterfaces import BULKIO
 
-class InPortStub(object):
-    Packet = collections.namedtuple('Packet', 'data T EOS streamID')
-
-    def __init__(self):
-        self.H = []
-        self.packets = []
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    def pushSRI(self, H):
-        self.logger.debug("pushSRI '%s'", H.streamID)
-        self.H.append(H)
-
-    def pushPacket(self, data, T, EOS, streamID):
-        self.logger.debug("pushPacket '%s'", streamID)
-        self._queuePacket(InPortStub.Packet(data, T, EOS, streamID))
-
-    @classmethod
-    def create(cls, portType):
-        name = 'In%sPortStub' % portType.__name__[4:]
-        return classobj(name, (portType, cls), {})
-
-    def _queuePacket(self, packet):
-        self.packets.append(packet)
-
-class InXMLPortStub(BULKIO__POA.dataXML, InPortStub):
-    Packet = collections.namedtuple('Packet', 'data EOS streamID')
-
-    def pushPacket(self, data, EOS, streamID):
-        self.logger.debug("pushPacket '%s'", streamID)
-        self._queuePacket(InXMLPortStub.Packet(data, EOS, streamID))
+from inport_stubs import *
 
 class OutStreamTest(object):
     def setUp(self):
@@ -216,11 +186,8 @@ class OutStreamTest(object):
     def _createData(self, length):
         return range(length)
 
-# (replace-string "//" "#")
-# (replace-regexp ";$" "")
-
 class OutCharStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataChar)
+    StubType = InCharPortStub
 
     def _createPort(self):
         return bulkio.OutCharPort('dataChar_out')
@@ -229,7 +196,7 @@ class OutCharStreamTest(OutStreamTest, unittest.TestCase):
         return '\x00'*length
 
 class OutOctetStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataOctet)
+    StubType = InOctetPortStub
 
     def _createPort(self):
         return bulkio.OutOctetPort('dataOctet_out')
@@ -238,7 +205,7 @@ class OutOctetStreamTest(OutStreamTest, unittest.TestCase):
         return '\x00'*length
 
 class OutBitStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataBit)
+    StubType = InBitPortStub
 
     def _createPort(self):
         return bulkio.OutBitPort('dataBit_out')
@@ -251,49 +218,49 @@ class OutBitStreamTest(OutStreamTest, unittest.TestCase):
         return data.bits
 
 class OutShortStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataShort)
+    StubType = InShortPortStub
 
     def _createPort(self):
         return bulkio.OutShortPort('dataShort_out')
 
 class OutUShortStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataUshort)
+    StubType = InUshortPortStub
 
     def _createPort(self):
         return bulkio.OutUShortPort('dataUShort_out')
 
 class OutLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataLong)
+    StubType = InLongPortStub
 
     def _createPort(self):
         return bulkio.OutLongPort('dataLong_out')
 
 class OutULongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataUlong)
+    StubType = InUlongPortStub
 
     def _createPort(self):
         return bulkio.OutULongPort('dataULong_out')
 
 class OutLongLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataLongLong)
+    StubType = InLongLongPortStub
 
     def _createPort(self):
         return bulkio.OutLongLongPort('dataLongLong_out')
 
 class OutULongLongStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataUlongLong)
+    StubType = InUlongLongPortStub
 
     def _createPort(self):
         return bulkio.OutULongLongPort('dataULongLong_out')
 
 class OutFloatStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataFloat)
+    StubType = InFloatPortStub
 
     def _createPort(self):
         return bulkio.OutFloatPort('dataFloat_out')
 
 class OutDoubleStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataDouble)
+    StubType = InDoublePortStub
 
     def _createPort(self):
         return bulkio.OutDoublePort('dataDouble_out')
@@ -308,7 +275,7 @@ class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
         return ' '*length
 
 class OutFileStreamTest(OutStreamTest, unittest.TestCase):
-    StubType = InPortStub.create(BULKIO__POA.dataFile)
+    StubType = InFilePortStub
 
     def _createPort(self):
         return bulkio.OutFilePort('dataFile_out')

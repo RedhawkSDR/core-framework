@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
