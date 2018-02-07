@@ -302,6 +302,7 @@ class Logging_impl
   ossie::logging::MacroTable     _loggingMacros;
 
   bool haveLogger(const std::string &name);
+  bool haveLoggerHierarchy(const std::string &name);
 
  public:
 
@@ -319,6 +320,8 @@ class Logging_impl
   ossie::logging::ResourceCtxPtr _origCtx;
 
   ossie::logging::ResourceCtxPtr _loggingCtx;
+
+  bool _origLevelSet;
 
   // Event channel to listen for configuration and log level changes
   boost::shared_ptr< ossie::events::PushEventConsumer > logConfigChannel;

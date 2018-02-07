@@ -67,6 +67,8 @@ namespace rh_logger {
 
     std::vector<std::string> getNamedLoggers();
 
+    bool isLoggerInHierarchy(const std::string& search_name);
+
   private:
 
     typedef boost::shared_ptr< L4Logger > L4LoggerPtr;

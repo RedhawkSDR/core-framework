@@ -52,6 +52,8 @@ namespace rh_logger {
 
     std::vector<std::string> getNamedLoggers();
 
+    bool isLoggerInHierarchy(const std::string& search_name);
+
   protected:
 
 

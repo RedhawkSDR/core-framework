@@ -174,6 +174,18 @@ public:
 
     redhawk::ApplicationComponent* getComponent(const std::string& identifier);
 
+    // set the log level for one of the loggers on a component on the waveform
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+
+    // get the log level from one of the loggers on a component on the waveform
+    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+
+    // retrieves the list of named loggers from all the components associated with the waveform
+    CF::StringSequence* getNamedLoggers();
+
+    // reset the loggers on all components on the waveform
+    void resetLog();
+
 private:
     Application_impl (); // No default constructor
     Application_impl(Application_impl&);  // No copying

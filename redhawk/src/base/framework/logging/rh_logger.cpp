@@ -551,14 +551,33 @@ namespace rh_logger {
     return  log_records;
   }
 
+  bool Logger::isLoggerInHierarchy(const std::string& search_name) {
+    std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
+        size_t _idx = it->find(name);
+        if (_idx == 0) {
+            if (it->size() > name.size())
+                if ((*it)[name.size()] != '.')
+                    continue;
+            if (it->find(search_name) != 0)
+                continue;
+            if (it->size() > search_name.size()) {
+                if ((not search_name.empty()) and ((*it)[search_name.size()] != '.')) {
+                    continue;
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+  }
+
   std::vector<std::string> Logger::getNamedLoggers() {
     std::vector<std::string> ret;
     std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
     for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
         size_t _idx = it->find(name);
-        if (_idx != std::string::npos) {
-            if (_idx != 0)
-                continue;
+        if (_idx == 0) {
             if (it->size() > name.size())
                 if ((*it)[name.size()] != '.')
                     continue;
@@ -614,6 +633,12 @@ namespace rh_logger {
     }
     STDOUT_DEBUG( " StdOutLogger  getRootLogger END");
     return _rootLogger;
+  }
+
+  bool StdOutLogger::isLoggerInHierarchy(const std::string& search_name) {
+    if (search_name == name)
+        return true;
+    return false;
   }
 
   std::vector<std::string> StdOutLogger::getNamedLoggers() {
@@ -811,6 +836,29 @@ namespace rh_logger {
     }
   }
 
+  bool L4Logger::isLoggerInHierarchy(const std::string& search_name) {
+    log4cxx::spi::LoggerRepositoryPtr repo = log4cxx::Logger::getRootLogger()->getLoggerRepository();
+    log4cxx::LoggerList list = repo->getCurrentLoggers();
+    for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
+        std::string _name((*it)->getName());
+        size_t _idx = _name.find(name);
+        if (_idx == 0) {
+            if (_name.size() > name.size())
+                if (_name[name.size()] != '.')
+                    continue;
+            if (_name.find(search_name) != 0)
+                continue;
+            if (_name.size() > search_name.size()) {
+                if ((not search_name.empty()) and (_name[search_name.size()] != '.')) {
+                    continue;
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+  }
+
   std::vector<std::string> L4Logger::getNamedLoggers() {
     std::vector<std::string> ret;
     log4cxx::spi::LoggerRepositoryPtr repo = log4cxx::Logger::getRootLogger()->getLoggerRepository();
@@ -818,9 +866,7 @@ namespace rh_logger {
     for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
         std::string _name((*it)->getName());
         size_t _idx = _name.find(name);
-        if (_idx != std::string::npos) {
-            if (_idx != 0)
-                continue;
+        if (_idx == 0) {
             if (_name.size() > name.size())
                 if (_name[name.size()] != '.')
                     continue;

@@ -44,7 +44,8 @@ Logging_impl::Logging_impl(std::string logger_name) :
   _logCfgContents(),
   _logCfgURL(""),
   _origLogCfgURL(""),
-  _loggingCtx()
+  _loggingCtx(),
+  _origLevelSet(false)
 {
 
   // get default set of macros to fill in
@@ -193,7 +194,8 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
       }
   }
 
-  if (_origLogCfgURL.empty()) {
+  if (not _origLevelSet) {
+      _origLevelSet = true;
       _origLogCfgURL = _logCfgURL;
       _origLogLevel = _logLevel;
       _origCtx = ctx;
@@ -275,6 +277,8 @@ void Logging_impl::setLogConfigURL( const char *in_url ) {
 void Logging_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) 
   throw (CF::UnknownIdentifier)
 {
+  if (not haveLoggerHierarchy(logger_id))
+    throw (CF::UnknownIdentifier());
   _logLevel = newLevel;
   if ( logLevelCallback ) {
     (*logLevelCallback)(logger_id, newLevel);
@@ -303,10 +307,15 @@ bool Logging_impl::haveLogger(const std::string &name)
     return found_logger;
 }
 
+bool Logging_impl::haveLoggerHierarchy(const std::string &name)
+{
+    return this->_log->isLoggerInHierarchy(name);
+}
+
 CF::LogLevel Logging_impl::getLogLevel( const char *logger_id ) 
   throw (CF::UnknownIdentifier)
 {
-    if (not haveLogger(logger_id))
+    if (not haveLoggerHierarchy(logger_id))
         throw (CF::UnknownIdentifier());
     rh_logger::LoggerPtr tmp_logger(this->_log->getLogger(logger_id));
     int _level = tmp_logger->getLevel()->toInt();
@@ -318,7 +327,7 @@ CF::LogLevel Logging_impl::getLogLevel( const char *logger_id )
 }
 
 void Logging_impl::resetLog() {
-    if (not _origLogCfgURL.empty()) {
+    if (_origLevelSet) {
         std::vector<std::string> loggers = this->_log->getNamedLoggers();
         for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); it++) {
             rh_logger::LoggerPtr _tmplog = rh_logger::Logger::getLogger(*it);
@@ -334,7 +343,7 @@ CF::StringSequence* Logging_impl::getNamedLoggers() {
     for (unsigned int i=0; i<loggers.size(); i++) {
         ossie::corba::push_back(retval, CORBA::string_dup(loggers[i].c_str()));
     }
-    
+
     return retval._retn();
 }
 

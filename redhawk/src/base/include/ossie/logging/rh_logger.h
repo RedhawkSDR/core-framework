@@ -329,6 +329,8 @@ namespace rh_logger {
 
     virtual std::vector<std::string> getNamedLoggers();
 
+    virtual bool isLoggerInHierarchy(const std::string& search_name);
+
   protected:
 
     Logger( const char *name );

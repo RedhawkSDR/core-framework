@@ -19,9 +19,107 @@
 #
 
 from _unitTestHelpers import scatest
-from ossie.utils import sb
+from ossie.utils import sb, redhawk
 import unittest, contextlib, time, os
 from ossie.cf import CF
+
+@scatest.requireLog4cxx
+class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+        redhawk.setTrackApps(False)
+
+    def test_applicationAccess(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
+        loggers = app.getNamedLoggers()
+
+        orig_loggers = {}
+        orig_loggers['logger_1'] = app.getLogLevel('logger_1')
+        orig_loggers['logger_1.lower'] = app.getLogLevel('logger_1.lower')
+        orig_loggers['logger_1.namespace.lower'] = app.getLogLevel('logger_1.namespace.lower')
+        orig_loggers['logger_1.user.more_stuff'] = app.getLogLevel('logger_1.user.more_stuff')
+        orig_loggers['logger_1.user.some_stuff'] = app.getLogLevel('logger_1.user.some_stuff')
+
+        self.assertTrue('logger_1' in loggers)
+        self.assertTrue('logger_1.lower' in loggers)
+        self.assertTrue('logger_1.namespace.lower' in loggers)
+        self.assertTrue('logger_1.system.PortSupplier' in loggers)
+        self.assertTrue('logger_1.system.PropertySet' in loggers)
+        self.assertTrue('logger_1.system.Resource' in loggers)
+        self.assertTrue('logger_1.user.more_stuff' in loggers)
+        self.assertTrue('logger_1.user.some_stuff' in loggers)
+
+        self.assertTrue('logger_2' in loggers)
+        self.assertTrue('logger_2.lower' in loggers)
+        self.assertTrue('logger_2.namespace.lower' in loggers)
+        self.assertTrue('logger_2.system.PortSupplier' in loggers)
+        self.assertTrue('logger_2.system.PropertySet' in loggers)
+        self.assertTrue('logger_2.system.Resource' in loggers)
+        self.assertTrue('logger_2.user.more_stuff' in loggers)
+        self.assertTrue('logger_2.user.some_stuff' in loggers)
+
+        self.assertRaises(CF.UnknownIdentifier, app.setLogLevel, 'logger_1.foo', 'all')
+        self.assertRaises(CF.UnknownIdentifier, app.getLogLevel, 'logger_1.foo')
+
+        app.setLogLevel('logger_1', 'all')
+        self.assertEquals(app.getLogLevel('logger_1'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.ALL)
+        app.setLogLevel('logger_1', 'off')
+        self.assertEquals(app.getLogLevel('logger_1'), CF.LogLevels.OFF)
+        self.assertEquals(app.getLogLevel('logger_1.lower'), CF.LogLevels.OFF)
+        self.assertEquals(app.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.OFF)
+        self.assertEquals(app.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.OFF)
+        self.assertEquals(app.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.OFF)
+
+        # break the level inheritance
+        app.setLogLevel('logger_1.user', 'trace')
+        app.setLogLevel('logger_1', 'all')
+        self.assertEquals(app.getLogLevel('logger_1'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(app.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.TRACE)
+        self.assertEquals(app.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.TRACE)
+
+        # set the log with a value rather than the string
+        app.setLogLevel('logger_1', CF.LogLevels.DEBUG)
+        self.assertEquals(app.getLogLevel('logger_1'), CF.LogLevels.DEBUG)
+        self.assertEquals(app.getLogLevel('logger_1.lower'), CF.LogLevels.DEBUG)
+        self.assertEquals(app.getLogLevel('logger_1.namespace.lower'), CF.LogLevels.DEBUG)
+        self.assertEquals(app.getLogLevel('logger_1.user.more_stuff'), CF.LogLevels.TRACE)
+        self.assertEquals(app.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.TRACE)
+
+        app.resetLog()
+        self.assertEquals(orig_loggers['logger_1'], app.getLogLevel('logger_1'))
+        self.assertEquals(orig_loggers['logger_1.lower'], app.getLogLevel('logger_1.lower'))
+        self.assertEquals(orig_loggers['logger_1.namespace.lower'], app.getLogLevel('logger_1.namespace.lower'))
+        self.assertEquals(orig_loggers['logger_1.user.more_stuff'], app.getLogLevel('logger_1.user.more_stuff'))
+        self.assertEquals(orig_loggers['logger_1.user.some_stuff'], app.getLogLevel('logger_1.user.some_stuff'))
+
+        # verify that inheritance is re-established
+        app.setLogLevel('logger_1', 'all')
+        self.assertEquals(CF.LogLevels.ALL, app.getLogLevel('logger_1'))
+        self.assertEquals(CF.LogLevels.ALL, app.getLogLevel('logger_1.lower'))
+        self.assertEquals(CF.LogLevels.ALL, app.getLogLevel('logger_1.namespace.lower'))
+        self.assertEquals(CF.LogLevels.ALL, app.getLogLevel('logger_1.user.more_stuff'))
+        self.assertEquals(CF.LogLevels.ALL, app.getLogLevel('logger_1.user.some_stuff'))
 
 @scatest.requireLog4cxx
 class CppHierarchicalLogging(scatest.CorbaTestCase):
@@ -70,7 +168,10 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
         self.assertTrue('logger_1.namespace.lower' in loggers)
         self.assertTrue('logger_1.user.more_stuff' in loggers)
         self.assertTrue('logger_1.user.some_stuff' in loggers)
-        self.assertEquals(len(loggers),5)
+        self.assertTrue('logger_1.system.PortSupplier' in loggers)
+        self.assertTrue('logger_1.system.PropertySet' in loggers)
+        self.assertTrue('logger_1.system.Resource' in loggers)
+        self.assertEquals(len(loggers),8)
 
         # verify that the logger level is inherited
         self.comp.setLogLevel('logger_1', 'all')
@@ -166,7 +267,7 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
         self.assertEquals(self.comp.getLogLevel('logger_1.user.some_stuff'), CF.LogLevels.TRACE)
 
         # verify that the levels are reset back to their original level
-        self.comp.ref.resetLog()
+        self.comp.resetLog()
         self.assertEquals(orig_loggers['logger_1'], self.comp.getLogLevel('logger_1'))
         self.assertEquals(orig_loggers['logger_1.lower'], self.comp.getLogLevel('logger_1.lower'))
         self.assertEquals(orig_loggers['logger_1.namespace.lower'], self.comp.getLogLevel('logger_1.namespace.lower'))
@@ -185,7 +286,6 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
 
     def test_single_log_level(self):
         self.comp = sb.launch(self.cname, properties={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
-        fdjkfs
         self.comp.start()
         loggers = self.comp.getNamedLoggers()
         self.assertRaises(Exception, self.comp.setLogLevel, 'logger_1.user.more_stuff', 'hello')

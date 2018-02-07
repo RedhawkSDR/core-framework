@@ -217,6 +217,61 @@ CORBA::Boolean Application_impl::started () throw (CORBA::SystemException)
     return this->_started;
 }
 
+void Application_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            resource_ref->setLogLevel(logger_id, newLevel);
+            return;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::LogLevel Application_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            CF::LogLevel level = resource_ref->getLogLevel(logger_id);
+            return level;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::StringSequence* Application_impl::getNamedLoggers()
+{
+    CF::StringSequence_var retval = new CF::StringSequence();
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        CF::StringSequence_var component_logger_list = resource_ref->getNamedLoggers();
+        for (unsigned int i=0; i<component_logger_list->length(); i++) {
+            ossie::corba::push_back(retval, CORBA::string_dup(component_logger_list[i]));
+        }
+    }
+    return retval._retn();
+}
+
+void Application_impl::resetLog()
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        resource_ref->resetLog();
+    }
+}
+
 void Application_impl::start ()
 throw (CORBA::SystemException, CF::Resource::StartError)
 {
