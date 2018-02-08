@@ -740,6 +740,8 @@ namespace frontend {
         for (CORBA::ULong ii = 0; ii < capacities.length(); ++ii) {
             try{
                 const std::string id = (const char*) capacities[ii].id;
+                if (id == "FRONTEND::scanner_allocation")
+                    continue;
                 if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation"){
                     LOG_INFO(FrontendTunerDevice<TunerStatusStructType>,"deallocateCapacity: UNKNOWN ALLOCATION PROPERTY");
                     throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY", capacities);

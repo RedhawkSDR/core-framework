@@ -49,6 +49,8 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertFalse(self.comp.allocateCapacity([_good_tuner, _bad_scanner]))
         self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _good_scanner]))
         self.assertTrue(self.comp.allocateCapacity([_good_tuner, _good_scanner]))
+        self.comp.deallocateCapacity([_good_tuner, _good_scanner])
+        self.assertTrue(self.comp.allocateCapacity([_good_scanner, _good_tuner]))
         self.comp.stop()
 
 if __name__ == "__main__":
