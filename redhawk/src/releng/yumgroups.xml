@@ -32,9 +32,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
             <packagereq type="mandatory">redhawk-codegen</packagereq>
             <packagereq type="mandatory">redhawk-devel</packagereq>
             <packagereq type="default">redhawk-debuginfo</packagereq>
-            <packagereq type="default">redhawk-enterprise-integration-dist-jetty</packagereq>
-            <packagereq type="default">redhawk-enterprise-integration-dist-karaf</packagereq>
-            <packagereq type="default">redhawk-enterprise-integration-dist-shell</packagereq>
             <packagereq type="mandatory">redhawk-ide</packagereq>
             <packagereq type="default">redhawk-qt-tools</packagereq>
             <packagereq type="mandatory">redhawk-sdrroot-dev-mgr</packagereq>
