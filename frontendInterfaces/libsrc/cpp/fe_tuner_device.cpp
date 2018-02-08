@@ -661,8 +661,9 @@ namespace frontend {
                     frontend_tuner_status[tuner_id].allocation_id_csv = createAllocationIdCsv(tuner_id);
                     this->assignListener(frontend_listener_allocation.listener_allocation_id,frontend_listener_allocation.existing_allocation_id);
                     return true;
-                }
-                else {
+                } else if (id == "FRONTEND::scanner_allocation") {
+                    continue;
+                } else {
                     LOG_INFO(FrontendTunerDevice<TunerStatusStructType>,"allocateCapacity: UNKNOWN ALLOCATION PROPERTY2");
                     throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY2", capacities);
                 }
