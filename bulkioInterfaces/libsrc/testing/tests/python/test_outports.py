@@ -67,8 +67,31 @@ class OutPortTest(object):
                 pass
         self.__servants = []
 
+    def testLegacyAPI(self):
+        # Test to ensure old API methods and some inadvertently public members
+        # still behave as expected (within reason)
+
+        # sriDict member
+        self.assertEqual(0, len(self.port.sriDict))
+
+        sri = bulkio.sri.create('test_legacy_api')
+        self.port.pushSRI(sri)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(1, len(self.port.sriDict))
+
+        sri2 = bulkio.sri.create('test_legacy_api_2')
+        self.port.pushSRI(sri2)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri2.streamID)
+        self.assertEqual(2, len(self.port.sriDict))
+
+        self._pushTestPacket(0, bulkio.timestamp.notSet(), True, sri.streamID)
+        self.assertEqual(1, len(self.port.sriDict))
+
+        # enableStats
+        self.port.enableStats(False)
+
     def testConnections(self):
-        # Should start with one connection, to the in self.port stub
+        # Should start with one connection, to the in port stub
         connections = self.port._get_connections()
         self.assertEqual(1, len(connections))
         self.assertEqual(BULKIO.ACTIVE, self.port._get_state())
@@ -94,7 +117,7 @@ class OutPortTest(object):
         # Bad connection ID on disconnect
         self.assertRaises(CF.Port.InvalidPort, self.port.disconnectPort, 'connection_bad')
 
-        # Disconnect the default stub; self.port should go to idle
+        # Disconnect the default stub; port should go to idle
         self.port.disconnectPort('test_connection')
         connections = self.port._get_connections()
         self.assertEqual(0, len(connections))
@@ -324,7 +347,7 @@ register_test('OutDoublePortTest', NumericOutPortTest, helper=DoubleTestHelper()
 if __name__ == '__main__':
     from ossie.utils.log4py import logging
     logging.basicConfig()
-    logging.getLogger().setLevel(logging.TRACE)
+    #logging.getLogger().setLevel(logging.TRACE)
 
     from omniORB import CORBA
     orb = CORBA.ORB_init()

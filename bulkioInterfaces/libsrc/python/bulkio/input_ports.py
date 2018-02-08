@@ -223,6 +223,8 @@ class InPort:
             # Return an empty packet instead of None for backwards
             # compatibility
             packet = InPort.DataTransfer(None, None, None, None, None, None, None)
+        else:
+            packet = InPort.DataTransfer(packet.buffer, packet.T, packet.EOS, packet.streamID, packet.SRI, packet.sriChanged, packet.inputQueueFlushed)
 
         if self.logger:
             self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )

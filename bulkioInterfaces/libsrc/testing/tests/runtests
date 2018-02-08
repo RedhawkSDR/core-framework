@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Runs relative to bulkio project
 #
@@ -16,9 +17,7 @@ export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${bulkio_top}/BULKIOInterfaces.
 export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
 
 #
-#  Run Python based testing..
-#   test_xxx_vector.py -- uses sandbox to load components and test data flow
-#   test_python_helpers.py -- test sri and time helpers
+#  Run Python Sandbox based testing..
 #
 
 if [ $# -gt 0 ]
@@ -33,14 +32,7 @@ else
 fi
 
 #
-#  Run Java based testing
-#   InVector_Port - test vector based bulkio ports
-#   InString_Port - test string based bulkio ports
-#   InSDDS_Port - test SDDS based bulkio ports
-#   OutVector_Port - test vector based bulkio ports
-#   OutString_Port - test string based bulkio ports
-#   OutSDDS_Port - test SDDS based bulkio ports
-#
+#  Run Java unit tests
 #
 if command -v ant 2>/dev/null
 then
@@ -51,16 +43,16 @@ fi
 
 
 #
-#  Run C++ based testing
-#   Bulkio_InPort_Fixture - test vector based bulkio ports
-#   Bulkio_OutPort_Fixture - test vector based bulkio ports
-#   Bulkio_Helper_Fixture - test bulkio helper api
-#
+#  Run C++ unit tests
 #
 cd cpp
 ./runtests
 cd -
 
+#
+# Run Python unit tests
+#
+(cd python && ./runtests.py)
 
 #
 #  Run Large Packet Size Test
@@ -101,5 +93,3 @@ cd -
 cd ../devices/dev_src/tests/
 python test_dev_src.py
 cd -
-
-rm $bulkio_libsrc_top/build/lib/bulkio/bulkioInterfaces
