@@ -40,11 +40,16 @@ __version__ = "0.1"
 
 import logging
 
-# Define a TRACE logging level.
+# Define additional logging levels
 logging.TRACE = 5
-logging.addLevelName(logging.TRACE, "TRACE")
+logging.ALL = 1
 logging.OFF = logging.FATAL+1
+logging.addLevelName(logging.TRACE, "TRACE")
+logging.addLevelName(logging.ALL, "ALL")
 logging.addLevelName(logging.OFF, "OFF")
+
+USER_LOGS = 'user'
+SYSTEM_LOGS = 'system'
 
 # Add a free-standing trace method.
 def _trace(msg, *args, **kw):
@@ -56,9 +61,41 @@ del _trace
 # Extend logging class to add a "trace" method, and "getChild" if necessary.
 LoggerBase = logging.getLoggerClass()
 class RedhawkLogger(LoggerBase):
+  def __init__(self, name, level=0):
+      LoggerBase.__init__(self, name, level)
+      self._loggers = [name]
+
   _ECM = None
   def trace(self, msg, *args, **kw):
     self.log(logging.TRACE, msg, *args, **kw)
+
+  def getCurrentLoggers(self):
+    return self._loggers
+
+  def isLoggerInHierarchy(self, search_name):
+    for _name in self._loggers:
+        _idx = _name.find(self.name);
+        if (_idx == 0):
+            if len(_name) > len(self.name):
+                if _name[len(self.name)] != '.':
+                    continue
+            if _name.find(search_name) != 0:
+                continue
+            if len(_name) > len(search_name):
+                if (len(search_name) != 0) and (_name[len(search_name)] != '.'):
+                    continue
+            return True
+    return False
+
+  def getChildLogger(self, logname, ns=USER_LOGS):
+      _full_name = ''
+      if ns and ((ns != USER_LOGS) or ((ns == USER_LOGS) and (not ('.'+USER_LOGS+'.' in self.name)))):
+          _full_name = self.name + '.' + ns + '.' + logname
+      else:
+          _full_name = self.name + '.' + logname
+      if not _full_name in self._loggers:
+          self._loggers.append(_full_name)
+      return logging.getLogger(_full_name)
 
   @staticmethod
   def SetEventChannelManager(ECM):
@@ -67,7 +104,6 @@ class RedhawkLogger(LoggerBase):
     RH_LogEventAppender.ECM = ECM
     for app in logging._handlerList:
       if isinstance(app, RH_LogEventAppender ):
-        #print "RedhawkLogger....setEventChannelManager, " + str(ECM)
         app.setEventChannelManager(ECM)
 
   if not hasattr(LoggerBase, 'getChild'):
@@ -75,6 +111,6 @@ class RedhawkLogger(LoggerBase):
       return logging.getLogger(self.name + '.' + suffix)
 
 
-del LoggerBase
+#del LoggerBase
 
 logging.setLoggerClass(RedhawkLogger)

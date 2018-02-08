@@ -82,7 +82,7 @@ class Manager:
                 self._logger.debug("Acquired reference to EventChannelManager")
             except:
                 #print traceback.format_exc()
-                self._logger.warn("EventChannelManager - unable to resolve DomainManager's EventChannelManager ")
+                self._logger.debug("EventChannelManager - unable to resolve DomainManager's EventChannelManager ")
                 pass
 
 
