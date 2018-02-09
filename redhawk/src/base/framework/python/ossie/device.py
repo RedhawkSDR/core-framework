@@ -189,7 +189,10 @@ class Device(resource.Resource):
     def __init__(self, devmgr, identifier, label, softwareProfile, compositeDevice, execparams, propertydefs=(),loggerName=None):
         if not loggerName and label: loggerName = label.rsplit("_", 1)[0]
         resource.Resource.__init__(self, identifier, execparams, propertydefs, loggerName=loggerName)
-        self._log.debug("Initializing Device %s %s %s %s", identifier, execparams, propertydefs, loggerName)
+        self._deviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)
+        self._loadableDeviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)
+        self._executableDeviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)
+        self._deviceLog.debug("Initializing Device %s %s %s %s", identifier, execparams, propertydefs, loggerName)
         self._label = label
         self._name = label
         self._softwareProfile = softwareProfile
@@ -222,11 +225,11 @@ class Device(resource.Resource):
         This should be called by the process that instantiates the device.
         """
         if self._devmgr:
-            self._log.info("Registering Device:" + str(self._label) )
+            self._deviceLog.info("Registering Device:" + str(self._label) )
             self._register()
 
         if self._compositeDevice:
-            self._log.info("Adding Device:" + str(self._label)  + " to parent" )
+            self._deviceLog.info("Adding Device:" + str(self._label)  + " to parent" )
             deviceAdded = False
             while not deviceAdded:
                 try:
@@ -253,7 +256,7 @@ class Device(resource.Resource):
 
 
     def connectIDMChannel(self, idm_ior=None ):
-        self._log.debug("Connecting to IDM CHANNEL idm_ior:" + str(idm_ior) )
+        self._deviceLog.debug("Connecting to IDM CHANNEL idm_ior:" + str(idm_ior) )
 
         if self._idm_publisher == None:
             if idm_ior != None and idm_ior != "":
@@ -264,26 +267,26 @@ class Device(resource.Resource):
                     idm_channel_obj = resource.createOrb().string_to_object(idm_ior)
                     idm_channel = idm_channel_obj._narrow(CosEventChannelAdmin.EventChannel)
                     self._idm_publisher = Publisher( idm_channel )
-                    self._log.info("Connected to IDM CHANNEL, (command line IOR).... DEV-ID:" + self._id )
+                    self._deviceLog.info("Connected to IDM CHANNEL, (command line IOR).... DEV-ID:" + self._id )
                 except Exception, err:
                     #traceback.print_exc()
-                    self._log.warn("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
+                    self._deviceLog.warn("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
             else:
                 try:
                     # make sure we have access to get to the EventChanneManager for the domain
                     if self._domMgr:
                         if self._ecm == None:
-                            self._log.debug("Setting up EventManager .... DEV-ID:" + self._id )
+                            self._deviceLog.debug("Setting up EventManager .... DEV-ID:" + self._id )
                             evt_mgr= Manager.GetManager(self)
                             self._ecm = evt_mgr
                         else:
                             evt_mgr = self._ecm
-                        self._log.debug("Requesting registration with IDM Channel .... DEV-ID:" + self._id )
+                        self._deviceLog.debug("Requesting registration with IDM Channel .... DEV-ID:" + self._id )
                         self._idm_publisher = evt_mgr.Publisher( ossie.events.IDM_Channel_Spec )
-                        self._log.info("Registered with IDM CHANNEL (Domain::EventChannelManager).... DEV-ID:" + self._id )
+                        self._deviceLog.info("Registered with IDM CHANNEL (Domain::EventChannelManager).... DEV-ID:" + self._id )
                 except:
                     #traceback.print_exc()
-                    self._log.warn("Unable to connect to IDM channel (Domain::EventChannelManager).... DEV-ID:" + self._id )
+                    self._deviceLog.warn("Unable to connect to IDM channel (Domain::EventChannelManager).... DEV-ID:" + self._id )
 
 
 
@@ -295,7 +298,7 @@ class Device(resource.Resource):
         self.__initialize()
 
     def releaseObject(self):
-        self._log.debug("releaseObject()")
+        self._resourceLog.debug("releaseObject()")
         if self._adminState == CF.Device.UNLOCKED:
             self._adminState = CF.Device.SHUTTING_DOWN
 
@@ -328,19 +331,19 @@ class Device(resource.Resource):
         try:
             resource.Resource.releaseObject(self)
         except:
-            self._log.error("failed releaseObject()")
+            self._resourceLog.error("failed releaseObject()")
 
     ###########################################
     # CF::Device
     def _validateAllocProps(self, properties):
-        self._log.debug("validating")
+        self._deviceLog.debug("validating")
         # Validate before trying to consume
         for prop in properties:
             try:
                 if not self._props.isAllocatable(prop.id):
                     raise exceptions.Exception()
             except:
-                self._log.error("Property %s is not allocatable", prop.id)
+                self._deviceLog.error("Property %s is not allocatable", prop.id)
                 raise CF.Device.InvalidCapacity("Invalid capacity %s" % prop.id, [prop])
 
     def _allocateCapacities(self, propDict={}):
@@ -358,7 +361,7 @@ class Device(resource.Resource):
             otherwise        
         """
         
-        self._log.debug("_allocateCapacities(%s)" % str(propDict))
+        self._deviceLog.debug("_allocateCapacities(%s)" % str(propDict))
         if self.isEnabled() and self.isUnLocked():
             successfulAllocations = {}
             self._capacityLock.acquire()
@@ -377,7 +380,7 @@ class Device(resource.Resource):
                         if success:
                             successfulAllocations[key] = val
                         else:
-                            self._log.debug("property %s, could not be set to %s" % 
+                            self._deviceLog.debug("property %s, could not be set to %s" % 
                                             (key, val))
                             break
                     # If we couldn't allocate enough capacity, add it back
@@ -385,26 +388,26 @@ class Device(resource.Resource):
                 
                     # if the allocations were not successful, then deallocate 
                     if not success:
-                        self._log.debug("failed")
+                        self._deviceLog.debug("failed")
                         self._deallocateCapacities(successfulAllocations)
                         
             finally:
                 self._capacityLock.release()
                 
-            self._log.debug("update")
+            self._deviceLog.debug("update")
             # Update usage state
             self.updateUsageState()
-            self._log.debug("allocateCapacity() --> %s", success)
+            self._deviceLog.debug("allocateCapacity() --> %s", success)
             return success
         else:
-            self._log.error("allocate capacity failed due to InvalidState")
-            self._log.debug("%s %s %s", self._adminState, self._operationalState, self._usageState)
+            self._deviceLog.error("allocate capacity failed due to InvalidState")
+            self._deviceLog.debug("%s %s %s", self._adminState, self._operationalState, self._usageState)
             raise CF.Device.InvalidState("System is not ENABLED and UNLOCKED")
         
     
     def _allocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
-        self._log.debug("_allocateCapacity(%s, %s)", propname, value)
+        self._deviceLog.debug("_allocateCapacity(%s, %s)", propname, value)
         if self._allocationCallbacks.has_key(propname):
             return self._allocationCallbacks[propname]._allocate(value)
         
@@ -416,10 +419,10 @@ class Device(resource.Resource):
                 modified_propname += '_'
         allocate = _getCallback(self, "allocate_%s" % modified_propname)
         if allocate:
-            self._log.debug("using callback for _allocateCapacity()", )
+            self._deviceLog.debug("using callback for _allocateCapacity()", )
             return allocate(value)
         else:
-            self._log.debug("no callback for _allocateCapacity()", )
+            self._deviceLog.debug("no callback for _allocateCapacity()", )
             return False
 
     def updateUsageState(self):
@@ -447,7 +450,7 @@ class Device(resource.Resource):
             Returns true if all the allocations were done successfully or false
             otherwise
         """
-        self._log.debug("allocateCapacity(%s)", properties)
+        self._deviceLog.debug("allocateCapacity(%s)", properties)
         # Validate
         self._validateAllocProps(properties)
         # Consume
@@ -463,7 +466,7 @@ class Device(resource.Resource):
         except CF.Device.InvalidState:
             raise  # re-raise valid exceptions
         except Exception, e:
-            self._log.exception("Unexpected error in _allocateCapacities: %s", str(e))
+            self._deviceLog.exception("Unexpected error in _allocateCapacities: %s", str(e))
             return False
 
 
@@ -481,7 +484,7 @@ class Device(resource.Resource):
         Output:
             None
         """
-        self._log.debug("_deallocateCapacities(%s)" % str(propDict))
+        self._deviceLog.debug("_deallocateCapacities(%s)" % str(propDict))
         if self.isEnabled() and self.isUnLocked():
             # Determine if the deallocateCapacities method exists 
             deallocate = _getCallback(self, 'deallocateCapacities')
@@ -495,8 +498,8 @@ class Device(resource.Resource):
                     propname = self._props.getPropName(id)
                     self._deallocateCapacity(propname, val)
         else:
-            self._log.error("deallocate capacity failed due to InvalidState")
-            self._log.debug("%s %s %s", self._adminState, self._operationalState, self._usageState)
+            self._deviceLog.error("deallocate capacity failed due to InvalidState")
+            self._deviceLog.debug("%s %s %s", self._adminState, self._operationalState, self._usageState)
             raise CF.Device.InvalidState("Cannot deallocate capacity. System is not DISABLED and UNLOCKED")
 
     def _deallocateCapacity(self, propname, value):
@@ -519,7 +522,7 @@ class Device(resource.Resource):
         Output:
             None
         """
-        self._log.debug("deallocateCapacity(%s)", properties)
+        self._deviceLog.debug("deallocateCapacity(%s)", properties)
         # Validate
         self._validateAllocProps(properties)
         # Consume
@@ -537,7 +540,7 @@ class Device(resource.Resource):
         # Update usage state
         self.updateUsageState()
 
-        self._log.debug("deallocateCapacity() -->")
+        self._deviceLog.debug("deallocateCapacity() -->")
 
     def _get_usageState(self):
         return self._usageState
@@ -553,7 +556,7 @@ class Device(resource.Resource):
 
     def _set_adminState(self, state):
         if (self._adminState, state) not in Device._adminStateTransitions:
-            self._log.debug("Ignoring invalid admin state transition %s->%s", self._adminState, state)
+            self._deviceLog.debug("Ignoring invalid admin state transition %s->%s", self._adminState, state)
             return
         self._adminState = state
 
@@ -579,11 +582,11 @@ class Device(resource.Resource):
 
         """
         def _logUnregisterFailure(msg = ""):
-            self._log.error("Could not unregister from DeviceManager: %s", msg)
+            self._deviceLog.error("Could not unregister from DeviceManager: %s", msg)
                 
         def _unregisterThreadFunction():
             if self._devmgr:
-                self._log.debug("Unregistering from DeviceManager")
+                self._deviceLog.debug("Unregistering from DeviceManager")
                 try:
                     self._devmgr.unregisterDevice(self._this())
                 except CORBA.Exception, e:
@@ -608,14 +611,14 @@ class Device(resource.Resource):
 
         """
         def _logRegisterFailure(msg = ""):
-            self._log.error("Could not register with DeviceManager: %s", msg)
+            self._deviceLog.error("Could not register with DeviceManager: %s", msg)
 
         def _logRegisterWarning(msg = ""):
-            self._log.warn("May not have registered with DeviceManager: %s", msg)
+            self._deviceLog.warn("May not have registered with DeviceManager: %s", msg)
                 
         def _registerThreadFunction():
             if self._devmgr:
-                self._log.debug("Registering with DeviceManager")
+                self._deviceLog.debug("Registering with DeviceManager")
                 try:
                     self._devmgr.registerDevice(self._this())
                 except CORBA.Exception, e:
@@ -648,13 +651,13 @@ class Device(resource.Resource):
             event = StandardEvent.StateChangeEventType(self._id, self._id, eventType, stateMap[fromState], stateMap[toState])
 
         except:
-            self._log.warn("Error creating StateChangeEvent")
+            self._deviceLog.warn("Error creating StateChangeEvent")
 
         try:
             if self._idm_publisher.push(any.to_any(event)) != 0 :
-                self._log.debug("Sending state change event......" + str((self._id, self._id, eventType, stateMap[fromState], stateMap[toState])) )
+                self._deviceLog.debug("Sending state change event......" + str((self._id, self._id, eventType, stateMap[fromState], stateMap[toState])) )
         except:
-            self._log.warn("Error sending event")
+            self._deviceLog.warn("Error sending event")
 
     def __setattr__ (self, attr, value):
         # Detect when the usage state and administrative state change, so that
@@ -721,7 +724,7 @@ class LoadableDevice(Device):
         try:
             self._cmdLock.acquire()
             loadedPaths = []
-            self._log.debug("load(%s, %s)", fileName, loadType)
+            self._loadableDeviceLog.debug("load(%s, %s)", fileName, loadType)
             if not fileName.startswith("/"):
                 raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute, given '%s'"%fileName)
 
@@ -742,7 +745,7 @@ class LoadableDevice(Device):
                 try:
                     for dir in dirs:
                         if dir != "":
-                            self._log.debug("Creating dir %s", dir)
+                            self._loadableDeviceLog.debug("Creating dir %s", dir)
                             loadPoint = os.path.join(loadPoint, dir)
                             if not os.path.exists(loadPoint):
                                 os.mkdir(loadPoint)
@@ -760,12 +763,12 @@ class LoadableDevice(Device):
                         if exist == False:
                             break
                         exist = exist & os.path.exists(loadedFile)
-                    self._log.debug("File %s has reference count %s and local file existence is %s", fileName, refCnt, exist)
+                    self._loadableDeviceLog.debug("File %s has reference count %s and local file existence is %s", fileName, refCnt, exist)
 
                     # Check if the remote file is newer than the local file, and if so, update the file
                     # in the cache. No consideration is given to clock sync differences between systems.
                     if exist and self._modTime(fileSystem, fileName) > os.path.getmtime(localFilePath):
-                        self._log.debug("Remote file is newer than local file")
+                        self._loadableDeviceLog.debug("Remote file is newer than local file")
                         exist = False
                     if refCnt == 0 or not exist:
                         loadedFiles = self._loadTree(fileSystem, os.path.normpath(fileName), loadPoint)
@@ -782,7 +785,7 @@ class LoadableDevice(Device):
                 self._setEnvVars(localFilePath, fileName)
 
         except Exception, e:
-            self._log.exception(e)
+            self._loadableDeviceLog.exception(e)
             raise CF.LoadableDevice.LoadFail(CF.CF_EINVAL, "Unknown Error loading '%s'"%fileName)
         finally:
             self._cmdLock.release()
@@ -884,7 +887,7 @@ class LoadableDevice(Device):
                 newFileValue = importFile
             candidatePath = currentdir+'/'+aggregateChange
             env_changes.addModification('PYTHONPATH', candidatePath)
-            self._log.debug("PYTHONPATH : ADDING:" + str(candidatePath) + " PATH:" + str(os.environ['PYTHONPATH']) )
+            self._loadableDeviceLog.debug("PYTHONPATH : ADDING:" + str(candidatePath) + " PATH:" + str(os.environ['PYTHONPATH']) )
 
             matchesPattern = True
         except:
@@ -927,7 +930,7 @@ class LoadableDevice(Device):
         return 0
 
     def _copyFile(self, fileSystem, remotePath, localPath):
-        self._log.debug("Copy file %s -> %s", remotePath, os.path.abspath(localPath))
+        self._loadableDeviceLog.debug("Copy file %s -> %s", remotePath, os.path.abspath(localPath))
         modifiedName = None
         fileToLoad = fileSystem.open(remotePath, True)
         try:
@@ -958,20 +961,20 @@ class LoadableDevice(Device):
         # This is a breadth-first load
         loadedFiles = []
         fis = fileSystem.list(remotePath)
-        self._log.debug("Loading Tree %s %s %s", remotePath, localPath, fis)
+        self._loadableDeviceLog.debug("Loading Tree %s %s %s", remotePath, localPath, fis)
         if len(fis) == 0:
             # check to see if this is an empty directory
             if remotePath[-1] == '/':
                 fis = fileSystem.list(remotePath[:-1])
                 return loadedFiles
             # SR:431
-            self._log.error("File %s could not be loaded", remotePath)
+            self._loadableDeviceLog.error("File %s could not be loaded", remotePath)
             raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % remotePath)
 
         for fileInformation in fis:
             if fileInformation.kind == CF.FileSystem.PLAIN:
                 localFile = os.path.join(localPath, fileInformation.name)
-                self._log.debug("Reading file %s -> %s", fileInformation.name, localFile)
+                self._loadableDeviceLog.debug("Reading file %s -> %s", fileInformation.name, localFile)
                 if remotePath.endswith("/"):
                     modified_file = self._copyFile(fileSystem, remotePath + fileInformation.name, localFile)
                 else:
@@ -987,10 +990,10 @@ class LoadableDevice(Device):
             elif fileInformation.kind == CF.FileSystem.DIRECTORY:
                 localDirectory = os.path.join(localPath, fileInformation.name)
                 if not os.path.exists(localDirectory):
-                    self._log.debug("Making directory %s", localDirectory)
+                    self._loadableDeviceLog.debug("Making directory %s", localDirectory)
                     os.mkdir(localDirectory)
                 if remotePath.endswith("/"):
-                    self._log.debug("From %s loading directory %s -> %s", remotePath, fileInformation.name, localPath)
+                    self._loadableDeviceLog.debug("From %s loading directory %s -> %s", remotePath, fileInformation.name, localPath)
                     loadedFiles.append(localDirectory)
                     loadedFiles.extend(self._loadTree(fileSystem, remotePath + "/" + fileInformation.name, localPath))
                 else:
@@ -1001,10 +1004,10 @@ class LoadableDevice(Device):
     def _unloadAll(self):
         for fileName in self._loadedFiles.keys():
             try:
-                self._log.debug("Forcing unload(%s)", fileName)
+                self._loadableDeviceLog.debug("Forcing unload(%s)", fileName)
                 self._unload(fileName, force=True)
             except Exception:
-                self._log.exception("Failed to unload file %s", fileName)
+                self._loadableDeviceLog.exception("Failed to unload file %s", fileName)
 
     def _unload(self, fileName, force=False):
         self.__cacheLock.acquire()
@@ -1020,7 +1023,7 @@ class LoadableDevice(Device):
                     refCnt = refCnt - 1
             except KeyError:
                 # SR:336
-                self._log.error("File %s could not be unloaded", fileName)
+                self._loadableDeviceLog.error("File %s could not be unloaded", fileName)
                 raise CF.InvalidFileName(CF.CF_EINVAL, "File %s could not be found" % fileName)
 
             if refCnt == 0:
@@ -1057,7 +1060,7 @@ class LoadableDevice(Device):
     def unload(self, fileName):
         try:
             self._cmdLock.acquire()
-            self._log.debug("unload(%s)", fileName)
+            self._loadableDeviceLog.debug("unload(%s)", fileName)
             # SR:435
             if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
             if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
@@ -1091,7 +1094,7 @@ class ExecutableDevice(LoadableDevice):
     def execute(self, name, options, parameters):
         try:
             self._cmdLock.acquire()
-            self._log.debug("execute(%s, %s, %s)", name, options, parameters)
+            self._executableDeviceLog.debug("execute(%s, %s, %s)", name, options, parameters)
             if not name.startswith("/"):
                 raise CF.InvalidFileName(CF.CF_EINVAL, "Filename must be absolute")
 
@@ -1114,11 +1117,11 @@ class ExecutableDevice(LoadableDevice):
                     else:
                         stack_size = val
             if len(invalidOptions) > 0:
-                self._log.error("execute() received invalid options %s", invalidOptions)
+                self._executableDeviceLog.error("execute() received invalid options %s", invalidOptions)
                 raise CF.ExecutableDevice.InvalidOptions(invalidOptions)
 
             command = name[1:] # This is relative to our CWD
-            self._log.debug("Running %s %s", command, os.getcwd())
+            self._executableDeviceLog.debug("Running %s %s", command, os.getcwd())
 
             if not os.path.isfile(command):
                 raise CF.InvalidFileName(CF.CF_EINVAL, "File could not be found %s" % command)
@@ -1148,7 +1151,7 @@ class ExecutableDevice(LoadableDevice):
     def terminate(self, pid):
         try:
             self._cmdLock.acquire()
-            self._log.debug("terminate(%s)", pid)
+            self._executableDeviceLog.debug("terminate(%s)", pid)
             # SR:457
             if self.isLocked(): raise CF.Device.InvalidState("System is locked down")
             if self.isDisabled(): raise CF.Device.InvalidState("System is disabled")
@@ -1179,7 +1182,7 @@ class ExecutableDevice(LoadableDevice):
                     args.append(str(param.value.value()))
                 except:
                     raise CF.ExecutableDevice.InvalidParameters([param])
-        self._log.debug("Popen %s %s", command, args)
+        self._executableDeviceLog.debug("Popen %s %s", command, args)
 
         # SR:445
         try:
@@ -1188,14 +1191,14 @@ class ExecutableDevice(LoadableDevice):
             # SR:455
             # CF error codes do not map directly to errno codes, so at present
             # we omit the enumerated value.
-            self._log.error("subprocess.Popen: %s", e.strerror)
+            self._executableDeviceLog.error("subprocess.Popen: %s", e.strerror)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, e.strerror)
 
         pid = sp.pid
         self._applications[pid] = sp
         # SR:449
-        self._log.debug("execute() --> %s", pid)
-        self._log.debug("APPLICATIONS %s", self._applications)
+        self._executableDeviceLog.debug("execute() --> %s", pid)
+        self._executableDeviceLog.debug("APPLICATIONS %s", self._applications)
         return pid
 
     def _terminate(self, pid):
@@ -1205,7 +1208,7 @@ class ExecutableDevice(LoadableDevice):
         subclasses to have more control over the termination of components.
         """
         # SR:458
-        self._log.debug("%s", self._applications)
+        self._executableDeviceLog.debug("%s", self._applications)
         if not self._applications.has_key(pid):
             raise CF.ExecutableDevice.InvalidProcess(CF.CF_ENOENT,
                 "Cannot terminate.  Process %s does not exist." % str(pid))
@@ -1217,7 +1220,7 @@ class ExecutableDevice(LoadableDevice):
                     break
 
                 try:
-                    self._log.debug('Sending signal %d to process group %d', sig, pid)
+                    self._executableDeviceLog.debug('Sending signal %d to process group %d', sig, pid)
                     # the group id is used to handle child processes (if they exist) of the component being cleaned up
                     os.killpg(pid, sig)
                 except OSError:
@@ -1228,14 +1231,14 @@ class ExecutableDevice(LoadableDevice):
                     time.sleep(0.1)
 
             try:
-                self._log.debug(' Delete APP (_terminate)  %d', pid)
+                self._executableDeviceLog.debug(' Delete APP (_terminate)  %d', pid)
                 proc = self._applications[pid]
                 del self._applications[pid]
 
                 # check if pid has finished
                 status = proc.poll()
                 if status is not None: 
-                    self._log.debug('Process has stopped...process group %d status %d', pid, status)
+                    self._executableDeviceLog.debug('Process has stopped...process group %d status %d', pid, status)
             except KeyError:
                 # The SIGCHLD handler must have been called in the interim, and
                 # removed the entry
@@ -1258,9 +1261,9 @@ class ExecutableDevice(LoadableDevice):
             if status == None:
                 continue
             if status < 0:
-                self._log.error("Child process %d terminated with signal %s", pid, -status)
+                self._executableDeviceLog.error("Child process %d terminated with signal %s", pid, -status)
                 try:
-                    self._log.debug(' Delete APP (_child_handler)  %d', pid)
+                    self._executableDeviceLog.debug(' Delete APP (_child_handler)  %d', pid)
                     del self._applications[pid]
                 except:
                     pass
@@ -1278,11 +1281,11 @@ class AggregateDevice:
     ###########################################
     # CF::AggregateDevice
     def addDevice(self, associatedDevice):
-        self._log.debug("addDevice(%s)", associatedDevice)
+        self._deviceLog.debug("addDevice(%s)", associatedDevice)
         self._childDevices.append(associatedDevice)
 
     def removeDevice(self, associatedDevice):
-        self._log.debug("removeDevice(%s)", associatedDevice)
+        self._deviceLog.debug("removeDevice(%s)", associatedDevice)
 
         for childdev in self._childDevices:
             if childdev._get_identifier() == associatedDevice._get_identifier():
