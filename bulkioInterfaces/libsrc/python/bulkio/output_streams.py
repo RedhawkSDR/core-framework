@@ -18,6 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import copy
+
+import omniORB.any
+
+from ossie.cf import CF
+
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 from bulkio.stream_base import StreamBase
@@ -100,6 +106,31 @@ class OutputStream(StreamBase):
     def blocking(self, blocking):
         self._setStreamMetadata('blocking', 1 if blocking else 0)
 
+    @property
+    def keywords(self):
+        return StreamBase.keywords.fget(self)
+
+    @keywords.setter
+    def keywords(self, keywords):
+        self._modifyingStreamMetadata()
+        # Copy the sequence, but not the values
+        self._sri.keywords = keywords[:]
+
+    def setKeyword(self, name, value):
+        self._modifyingStreamMetadata()
+        for dt in self._sri.keywords:
+            if dt.id == name:
+                dt.value = omniORB.any.to_any(value)
+                return
+        self._sri.keywords.append(CF.DataType(name, omniORB.any.to_any(value)))
+
+    def eraseKeyword(self, name):
+        for index in xrange(len(self._sri.keywords)):
+            if self._sri.keywords[index].id == name:
+                self._modifyingStreamMetadata();
+                del self._sri.keywords[index]
+                return
+
     def write(self, data, time):
         self._send(data, time, False)
 
@@ -110,7 +141,6 @@ class OutputStream(StreamBase):
     def _setStreamMetadata(self, attr, value):
         field = getattr(self._sri, attr)
         if field != value:
-            self.__sriModified = True
             self._modifyingStreamMetadata()
             setattr(self._sri, attr, value)
 
@@ -124,16 +154,89 @@ class OutputStream(StreamBase):
         port.pushPacket(data, time, eos, streamID)
 
     def _modifyingStreamMetadata(self):
-        pass
+        self.__sriModified = True
 
     def _emptyPacket(self):
         return []
 
-class OutCharStream(OutputStream):
+class BufferedOutputStream(OutputStream):
+    def __init__(self, sri, port):
+        OutputStream.__init__(self, sri, port)
+        self.__buffer = self._emptyPacket()
+        self.__bufferSize = 0
+        self.__bufferTime = bulkio.timestamp.notSet()
+
+    def write(self, data, time):
+        # If buffering is disabled, or the buffer is empty and the input data
+        # is large enough for a full buffer, send it immediately
+        if self.__bufferSize == 0 or (not self.__buffer and (len(data) >= self.__bufferSize)):
+            OutputStream.write(self, data, time);
+        else:
+            self._doBuffer(data, time);
+
+    def bufferSize(self):
+        return self.__bufferSize
+
+    def setBufferSize(self, size):
+        # Avoid needless thrashing
+        if size == self.__bufferSize:
+            return
+        self.__bufferSize = int(size)
+
+        # If the new buffer size is less than (or exactly equal to) the
+        # currently buffered data size, flush
+        if self.__bufferSize <= len(self.__buffer):
+            self.flush()
+
+    def flush(self):
+        if not self.__buffer:
+            return
+        self._flush(False)
+
+    def close(self):
+        if self.__buffer:
+            # Add the end-of-stream marker to the buffered data and its
+            # timestamp
+            self._flush(True)
+        else:
+            OutputStream.close(self)
+
+    def _modifyingStreamMetadata(self):
+        # Flush any data queued with the old SRI
+        self.flush()
+
+        # Post-extend base class method
+        OutputStream._modifyingStreamMetadata(self)
+
+    def _flush(self, eos):
+        self._send(self.__buffer, self.__bufferTime, eos)
+        self.__buffer = self._emptyPacket()
+
+    def _doBuffer(self, data, time):
+        # If this is the first data being queued, use its timestamp for the
+        # start time of the buffered data
+        if not self.__buffer:
+            self.__bufferTime = copy.copy(time)
+
+        # Only buffer up to the currently configured buffer size
+        count = min(len(data), self.__bufferSize - len(self.__buffer));
+        self.__buffer += data[:count]
+
+        # Flush if the buffer is full
+        if len(self.__buffer) >= self.__bufferSize:
+            self._flush(False)
+
+        # Handle remaining data
+        if count < len(data):
+            next = time + self.xdelta * count
+            self._doBuffer(data[count:], next)
+
+
+class OutCharStream(BufferedOutputStream):
     def _emptyPacket(self):
         return str()
 
-class OutOctetStream(OutputStream):
+class OutOctetStream(BufferedOutputStream):
     def _emptyPacket(self):
         return str()
 

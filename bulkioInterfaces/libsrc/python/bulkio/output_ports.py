@@ -34,7 +34,7 @@ import bulkio.sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
-from bulkio.output_streams import OutputStream, OutCharStream, OutOctetStream, OutBitStream, OutXMLStream, OutFileStream
+from bulkio.output_streams import BufferedOutputStream, OutCharStream, OutOctetStream, OutBitStream, OutXMLStream, OutFileStream
 import traceback
 
 class connection_descriptor_struct(object):
@@ -75,7 +75,7 @@ class connection_descriptor_struct(object):
 
 class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
 
-    StreamType = OutputStream
+    StreamType = BufferedOutputStream
     
     class SriMapStruct:
         def __init__( self, sri=None, connections=None, time=None): 
