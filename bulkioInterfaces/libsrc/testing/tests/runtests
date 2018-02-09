@@ -50,9 +50,9 @@ cd cpp
 cd -
 
 #
-# Run Python unit tests
+# Run Python unit tests with XML output
 #
-(cd python && ./runtests.py)
+(cd python && ./runtests.py -x)
 
 #
 #  Run Large Packet Size Test
