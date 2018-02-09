@@ -122,4 +122,5 @@ class StreamSRITest(unittest.TestCase):
         self.assertEqual( bulkio.sri.compare( a_sri, c_sri ), False, " bulkio.sri.compare method - different - keywords name mismatch  ")
 
 if __name__ == '__main__':
-    unittest.main()
+    import runtests
+    runtests.main()

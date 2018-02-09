@@ -23,8 +23,6 @@ import unittest
 import threading
 import time
 
-from ossie.utils.log4py import logging
-
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
@@ -308,5 +306,5 @@ register_test('InFloatPortTest', InPortTest, helper=FloatTestHelper())
 register_test('InDoublePortTest', InPortTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
-    logging.basicConfig()
-    unittest.main()
+    import runtests
+    runtests.main()

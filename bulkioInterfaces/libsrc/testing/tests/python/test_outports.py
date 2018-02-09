@@ -345,16 +345,5 @@ register_test('OutFloatPortTest', NumericOutPortTest, helper=FloatTestHelper())
 register_test('OutDoublePortTest', NumericOutPortTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
-    from ossie.utils.log4py import logging
-    logging.basicConfig()
-    #logging.getLogger().setLevel(logging.TRACE)
-
-    from omniORB import CORBA
-    orb = CORBA.ORB_init()
-    root_poa = orb.resolve_initial_references("RootPOA")
-    manager = root_poa._get_the_POAManager()
-    manager.activate()
-
-    unittest.main()
-
-    orb.shutdown(True)
+    import runtests
+    runtests.main()

@@ -372,4 +372,5 @@ register_test('InFloatStreamTest', NumericInStreamTest, helper=FloatTestHelper()
 register_test('InDoubleStreamTest', NumericInStreamTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
-    unittest.main()
+    import runtests
+    runtests.main()

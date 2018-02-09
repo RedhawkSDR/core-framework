@@ -212,4 +212,5 @@ class PrecisionUTCTimeTest(unittest.TestCase):
         self.assertEqual("2016:01:04::18:59:27.289357", str(tstamp))
 
 if __name__ == '__main__':
-    unittest.main()
+    import runtests
+    runtests.main()
