@@ -265,7 +265,7 @@ namespace frontend {
             digital_tuner_delegation *parent;
     };
 
-    class InAnalogScanningTunerPort : public virtual POA_FRONTEND::DigitalScanningTuner, public InAnalogTunerPort
+    class InAnalogScanningTunerPort : public virtual POA_FRONTEND::AnalogScanningTuner, public InAnalogTunerPort
     {
         public:
             typedef InAnalogTunerPort super;
