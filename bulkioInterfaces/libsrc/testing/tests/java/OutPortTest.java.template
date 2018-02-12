@@ -29,6 +29,8 @@ import org.junit.runners.JUnit4;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.omg.PortableServer.Servant;
+
 import bulkio.Out@name@Port;
 
 import stubs.In@name@PortStub;
@@ -43,6 +45,7 @@ public class Out@name@PortTest {
     protected @name@TestHelper helper = new @name@TestHelper();
 
     protected List<bulkio.connection_descriptor_struct> connectionTable = new ArrayList<bulkio.connection_descriptor_struct>();
+    protected List<Servant> servants = new ArrayList<Servant>();
 
     @Before
     public void setUp() throws org.omg.CORBA.UserException
@@ -50,11 +53,11 @@ public class Out@name@PortTest {
         org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init(new String[0], null);
 
         port = new Out@name@Port(helper.getName() + "_out");
-        port._this_object(orb);
+        org.ossie.corba.utils.RootPOA().activate_object(port);
 
         stub = _createStub();
 
-        org.omg.CORBA.Object objref = stub._this_object(orb);
+        org.omg.CORBA.Object objref = stub._this();
         port.connectPort(objref, "connection_1");
     }
 
@@ -77,18 +80,23 @@ public class Out@name@PortTest {
 
     protected void _releaseServants()
     {
-        try {
-            org.omg.PortableServer.POA poa = stub._default_POA();
-            byte[] object_id = poa.servant_to_id(stub);
-            poa.deactivate_object(object_id);
-        } catch (Throwable exc) {
-            // Ignore CORBA exceptions
+        for (Servant servant : servants) {
+            try {
+                org.omg.PortableServer.POA poa = servant._default_POA();
+                byte[] object_id = poa.servant_to_id(servant);
+                poa.deactivate_object(object_id);
+            } catch (Throwable exc) {
+                // Ignore CORBA exceptions
+            }
         }
     }
 
-    protected In@name@PortStub _createStub()
+    protected In@name@PortStub _createStub() throws org.omg.CORBA.UserException
     {
-        return new In@name@PortStub();
+        In@name@PortStub new_stub = new In@name@PortStub();
+        org.ossie.corba.utils.RootPOA().activate_object(new_stub);
+        servants.add(new_stub);
+        return new_stub;
     }
 
     @Test
@@ -99,7 +107,7 @@ public class Out@name@PortTest {
         Assert.assertNotNull(connections);
         Assert.assertEquals(1, connections.length);
         Assert.assertEquals("connection_1", connections[0].connectionId);
-        org.omg.CORBA.Object objref = stub._this_object(org.ossie.corba.utils.Orb());
+        org.omg.CORBA.Object objref = stub._this();
         Assert.assertTrue(connections[0].port._is_equivalent(objref));
         Assert.assertEquals("Port state should be active", BULKIO.PortUsageType.ACTIVE, port.state());
 
@@ -113,7 +121,7 @@ public class Out@name@PortTest {
 
         // Normal connection
         In@name@PortStub stub2 = _createStub();
-        objref = stub2._this_object(org.ossie.corba.utils.Orb());
+        objref = stub2._this();
         port.connectPort(objref, "connection_2");
         connections = port.connections();
         Assert.assertNotNull(connections);
@@ -194,7 +202,7 @@ public class Out@name@PortTest {
     public void testMultiOut() throws org.omg.CORBA.UserException
     {
         In@name@PortStub stub2 = _createStub();
-        org.omg.CORBA.Object objref = stub2._this_object(org.ossie.corba.utils.Orb());
+        org.omg.CORBA.Object objref = stub2._this();
         port.connectPort(objref, "connection_2");
 
         // Set up a connection table that only routes the filtered stream to the
