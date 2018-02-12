@@ -54,8 +54,6 @@ import org.junit.runners.Suite.SuiteClasses;
         InStringPort_Test.class,
         InSDDSPort_Test.class,
         BulkioHelpers_Test.class,
-        OutVectorPort_Test.class,
-        OutStringPort_Test.class,
         OutSDDSPort_Test.class
 })
 public class AllTests {
