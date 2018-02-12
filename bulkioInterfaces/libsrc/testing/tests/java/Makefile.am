@@ -57,7 +57,6 @@ bulkio_test_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_test_jar_SOURCE += helpers/XMLTestHelper.java
 bulkio_test_jar_SOURCE += InVectorPort_Test.java InStringPort_Test.java  InSDDSPort_Test.java BulkioHelpers_Test.java
 bulkio_test_jar_SOURCE += OutVectorPort_Test.java OutStringPort_Test.java OutSDDSPort_Test.java 
-bulkio_test_jar_SOURCE += MultiOutInt8_Test.java MultiOutInt16_Test.java  MultiOutInt32_Test.java MultiOutInt64_Test.java MultiOutFloat_Test.java MultiOutDouble_Test.java MultiOutUInt8_Test.java MultiOutUInt16_Test.java  MultiOutUInt32_Test.java MultiOutUInt64_Test.java
 
 bulkio_test_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
 bulkio_test_jar_JAVACFLAGS = -g -Xlint
@@ -66,9 +65,14 @@ bulkio_test_jar_JAVACFLAGS = -g -Xlint
 TEST_CLASSES = $(patsubst %Test.java,%Test,$(filter %Test.java,$(bulkio_test_jar_SOURCE)))
 
 Bulkio : bulkio_test.jar Makefile.am
-	@echo "#!/bin/sh" > $@
+	@echo "#!/bin/bash" > $@
+	@echo "if [[ \$$# == 0 ]]; then" >> $@
+	@echo "  tests=\"$(TEST_CLASSES)\"" >> $@
+	@echo "else" >> $@
+	@echo "  tests=\"\$$*\"" >> $@
+	@echo "fi" >> $@
 	@echo "export LD_LIBRARY_PATH=$(top_builddir)/jni/.libs:$(OSSIE_HOME)/lib:$(OSSIE_HOME)/lib64" >> $@
-	@echo "exec java -cp bulkio_test.jar:$(bulkio_test_jar_CLASSPATH) -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore $(TEST_CLASSES)" >> $@
+	@echo "exec java -cp bulkio_test.jar:$(bulkio_test_jar_CLASSPATH) -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore \$$tests" >> $@
 	@chmod +x $@
 
 CLEANFILES = Bulkio $(BUILT_SOURCES)

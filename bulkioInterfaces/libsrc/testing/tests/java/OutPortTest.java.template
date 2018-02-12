@@ -24,6 +24,9 @@
 
 import org.junit.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import bulkio.Out@name@Port;
 
 import stubs.In@name@PortStub;
@@ -32,9 +35,11 @@ import helpers.@name@TestHelper;
 public class Out@name@PortTest {
 
     protected Out@name@Port port;
-    protected stubs.In@name@PortStub stub;
+    protected In@name@PortStub stub;
 
     protected @name@TestHelper helper = new @name@TestHelper();
+
+    protected List<bulkio.connection_descriptor_struct> connectionTable = new ArrayList<bulkio.connection_descriptor_struct>();
 
     @Before
     public void setUp() throws org.omg.CORBA.UserException
@@ -78,9 +83,9 @@ public class Out@name@PortTest {
         }
     }
 
-    protected stubs.In@name@PortStub _createStub()
+    protected In@name@PortStub _createStub()
     {
-        return new stubs.In@name@PortStub();
+        return new In@name@PortStub();
     }
 
     @Test
@@ -104,7 +109,7 @@ public class Out@name@PortTest {
         }
 
         // Normal connection
-        stubs.In@name@PortStub stub2 = _createStub();
+        In@name@PortStub stub2 = _createStub();
         objref = stub2._this_object(org.ossie.corba.utils.Orb());
         port.connectPort(objref, "connection_2");
         connections = port.connections();
@@ -170,5 +175,83 @@ public class Out@name@PortTest {
         Assert.assertTrue(stats.elementsPerSecond > 0.0);
         int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
         Assert.assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
+    }
+
+    protected void _addStreamFilter(String streamId, String connectionId)
+    {
+        bulkio.connection_descriptor_struct desc = new bulkio.connection_descriptor_struct();
+        desc.stream_id.setValue(streamId);
+        desc.connection_id.setValue(connectionId);
+        desc.port_name.setValue(port.getName());
+        connectionTable.add(desc);
+        port.updateConnectionFilter(connectionTable);
+    }
+
+    @Test
+    public void testMultiOut() throws org.omg.CORBA.UserException
+    {
+        In@name@PortStub stub2 = _createStub();
+        org.omg.CORBA.Object objref = stub2._this_object(org.ossie.corba.utils.Orb());
+        port.connectPort(objref, "connection_2");
+
+        // Set up a connection table that only routes the filtered stream to the
+        // second stub, and another stream to both connections
+        final String filter_stream_id = "filter_stream";
+        _addStreamFilter(filter_stream_id, "connection_2");
+        final String all_stream_id = "all_stream";
+        _addStreamFilter(all_stream_id, "connection_1");
+        _addStreamFilter(all_stream_id, "connection_2");
+
+        // Push an SRI for the filtered stream; it should only be received by the
+        // second stub
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create(filter_stream_id, 2.5e6);
+        port.pushSRI(sri);
+        Assert.assertTrue(stub.H.isEmpty());
+        Assert.assertEquals(1, stub2.H.size());
+        Assert.assertEquals(filter_stream_id, stub2.H.get(0).streamID);
+
+        // Push a packet for the filtered stream; again, only received by #2
+        helper.pushTestPacket(port, 91, bulkio.time.utils.now(), false, filter_stream_id);
+        Assert.assertTrue(stub.packets.isEmpty());
+        Assert.assertEquals(1, stub2.packets.size());
+        Assert.assertEquals(91, helper.dataLength(stub2.packets.get(0).data));
+
+        // Unknown (to the connection filter) stream should get dropped
+        final String unknown_stream_id = "unknown_stream";
+        sri = bulkio.sri.utils.create(unknown_stream_id);
+        port.pushSRI(sri);
+        Assert.assertTrue(stub.H.isEmpty());
+        Assert.assertEquals(1, stub2.H.size());
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), false, unknown_stream_id);
+        Assert.assertTrue(stub.packets.isEmpty());
+        Assert.assertEquals(1, stub2.packets.size());
+
+        // Check SRI routed to both connections...
+        sri = bulkio.sri.utils.create(all_stream_id, 1e6);
+        port.pushSRI(sri);
+        Assert.assertEquals(1, stub.H.size());
+        Assert.assertEquals(2, stub2.H.size());
+        Assert.assertEquals(all_stream_id, stub.H.get(0).streamID);
+        Assert.assertEquals(all_stream_id, stub2.H.get(1).streamID);
+
+        // ...and data
+        helper.pushTestPacket(port, 256, bulkio.time.utils.now(), false, all_stream_id);
+        Assert.assertEquals(1, stub.packets.size());
+        Assert.assertEquals(256, helper.dataLength(stub.packets.get(0).data));
+        Assert.assertEquals(2, stub2.packets.size());
+        Assert.assertEquals(256, helper.dataLength(stub2.packets.get(1).data));
+
+        // Reset the connection filter and push data for the filtered stream again,
+        // which should trigger an SRI push to the first stub
+        connectionTable.clear();
+        port.updateConnectionFilter(connectionTable);
+        helper.pushTestPacket(port, 9, bulkio.time.utils.now(), false, filter_stream_id);
+        Assert.assertEquals(2, stub.H.size());
+        Assert.assertEquals(filter_stream_id, stub.H.get(1).streamID);
+        Assert.assertEquals(2, stub.packets.size());
+        Assert.assertEquals(9, helper.dataLength(stub.packets.get(1).data));
+        Assert.assertEquals(2, stub2.H.size());
+        Assert.assertEquals(3, stub2.packets.size());
+        Assert.assertEquals(9, helper.dataLength(stub2.packets.get(2).data));
     }
 }

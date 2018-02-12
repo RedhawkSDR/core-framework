@@ -29,7 +29,15 @@ import java.util.List;
 
 public class In@name@PortStub extends BULKIO.@idl@POA {
 
-    class Packet {
+    public class Packet {
+        public Packet(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
+        {
+            this.data = data;
+            this.T = T;
+            this.EOS = EOS;
+            this.streamID = streamID;
+        }
+
         public @type@[] data;
         BULKIO.PrecisionUTCTime T;
         boolean EOS;
@@ -61,5 +69,6 @@ public class In@name@PortStub extends BULKIO.@idl@POA {
 
     public void pushPacket(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
     {
+        packets.add(new Packet(data, T, EOS, streamID));
     }
 }
