@@ -50,8 +50,6 @@ import org.junit.runners.Suite.SuiteClasses;
         OutFilePortTest.class,
         InXMLPortTest.class,
         OutXMLPortTest.class,
-        InVectorPort_Test.class,
-        InStringPort_Test.class,
         InSDDSPort_Test.class,
         BulkioHelpers_Test.class,
         OutSDDSPort_Test.class

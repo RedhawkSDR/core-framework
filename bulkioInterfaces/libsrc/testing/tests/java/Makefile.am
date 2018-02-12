@@ -63,7 +63,7 @@ bulkio_test_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_test_jar_SOURCE += helpers/XMLTestHelper.java
 bulkio_test_jar_SOURCE += helpers/ConnectionListener.java
 bulkio_test_jar_SOURCE += AllTests.java
-bulkio_test_jar_SOURCE += InVectorPort_Test.java InStringPort_Test.java  InSDDSPort_Test.java BulkioHelpers_Test.java
+bulkio_test_jar_SOURCE += InSDDSPort_Test.java BulkioHelpers_Test.java
 bulkio_test_jar_SOURCE += OutSDDSPort_Test.java 
 
 bulkio_test_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
