@@ -23,6 +23,8 @@
  */
 
 import org.junit.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,7 @@ import bulkio.Out@name@Port;
 import stubs.In@name@PortStub;
 import helpers.@name@TestHelper;
 
+@RunWith(JUnit4.class)
 public class Out@name@PortTest {
 
     protected Out@name@Port port;
