@@ -1,2 +1,13 @@
 *.class
 Bulkio
+In*PortTest.java
+CharTestHelper.java
+OctetTestHelper.java
+ShortTestHelper.java
+UShortTestHelper.java
+LongTestHelper.java
+ULongTestHelper.java
+LongLongTestHelper.java
+ULongLongTestHelper.java
+FloatTestHelper.java
+DoubleTestHelper.java

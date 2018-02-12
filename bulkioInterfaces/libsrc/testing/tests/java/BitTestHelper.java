@@ -18,20 +18,28 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-package bulkio.sri;
+import bulkio.InBitPort;
+import bulkio.OutBitPort;
 
-import BULKIO.StreamSRI;
-
-public class DefaultComparator implements bulkio.sri.Comparator {
-
-    public boolean compare(StreamSRI SRI_1, StreamSRI SRI_2)
+public class BitTestHelper {
+    public BitTestHelper()
     {
-	if ((SRI_1 == null) || (SRI_2 == null)) {
-	    return false;
-        }
-        return utils.compare(SRI_1, SRI_2);
-    } 
+    }
 
+    public InBitPort createInPort()
+    {
+        return new InBitPort("dataBit_in");
+    }
+
+    void pushTestPacket(InBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    {
+        int bytes = (length + 7) / 8;
+        BULKIO.BitSequence data = new BULKIO.BitSequence(new byte[bytes], length);
+        port.pushPacket(data, time, eos, streamID);
+    }
+
+    int dataLength(BULKIO.BitSequence data)
+    {
+        return data.bits;
+    }
 }
-
-

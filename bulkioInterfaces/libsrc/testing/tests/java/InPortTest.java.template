@@ -1,0 +1,183 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK bulkioInterfaces.
+ *
+ * REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+/*
+ * WARNING: This file is generated from InPortTest.java.template.
+ *          Do not modify directly.
+ */
+
+import junit.framework.*;
+
+import bulkio.In@name@Port;
+
+public class In@name@PortTest extends TestCase {
+    protected In@name@Port port;
+
+    protected @name@TestHelper helper = new @name@TestHelper();
+
+    public class SriListener implements bulkio.SriListener {
+        public BULKIO.StreamSRI sri;
+        public int newCalls;
+        public int changedCalls;
+
+        public SriListener()
+        {
+            reset();
+        }
+
+        public void newSRI(BULKIO.StreamSRI sri)
+        {
+            newCalls++;
+            this.sri = sri;
+        }
+
+        public boolean changedSRI(BULKIO.StreamSRI sri)
+        {
+            changedCalls++;
+            this.sri = sri;
+            return true;
+        }
+
+        public void reset()
+        {
+            sri = null;
+            newCalls = 0;
+            changedCalls = 0;
+        }
+    }
+
+    protected void setUp()
+    {
+        port = helper.createInPort();
+    }
+
+    public void testGetPacket()
+    {
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_get_packet");
+        port.pushSRI(sri);
+
+        BULKIO.PrecisionUTCTime ts = bulkio.time.utils.now();
+        helper.pushTestPacket(port, 50, ts, false, sri.streamID);
+
+        // Check result of getPacket
+        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(sri.streamID, packet.streamID);
+        Assert.assertTrue(bulkio.sri.utils.compare(packet.SRI, sri));
+        Assert.assertEquals(true, packet.sriChanged);
+        Assert.assertEquals(false, packet.inputQueueFlushed);
+
+        // No packet, should return null
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNull(packet);
+
+        // Change mode to complex and push another packet with EOS set
+        // NB: Have to create a new instance because the input port doesn't
+        //     copy the SRI, it just shares the reference
+        sri = bulkio.sri.utils.create(sri.streamID);
+        sri.mode = 1;
+        port.pushSRI(sri);
+        helper.pushTestPacket(port, 100, ts, true, sri.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(true, packet.EOS);
+        Assert.assertEquals(true, packet.sriChanged);
+        Assert.assertEquals(1, packet.SRI.mode);
+    }
+
+    /**
+     * Tests that SRI changes are reported correctly from getPacket().
+     */
+    public void testSriChanged()
+    {
+        // Create a default SRI and push it
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("sri_changed");
+        port.pushSRI(sri);
+
+        // SRI should report changed for first packet
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertTrue(packet.sriChanged);
+
+        // No SRI change for second packet
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertFalse(packet.sriChanged);
+
+        // Reduce the queue size so we can force a flush
+        port.setMaxQueueDepth(2);
+
+        // Push a packet, change the SRI, and push two more packets so that the
+        // packet with the associated SRI change gets flushed
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        sri = bulkio.sri.utils.create("sri_changed", 2.0);
+        port.pushSRI(sri);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+
+        // Get the last packet and verify that the queue has flushed, and the
+        // SRI change is still reported
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(packet.sriChanged);
+    }
+
+    /**
+     * Tests that the callback is triggered and SRI changes are reported for an
+     * unknown stream ID.
+     */
+    public void testSriChangedInvalidStream()
+    {
+        final String stream_id = "invalid_stream";
+
+        // Push data without an SRI to check that the sriChanged flag is still
+        // set and the SRI callback gets called
+        SriListener listener = new SriListener();
+        port.setSriListener(listener);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, stream_id);
+        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(1, listener.newCalls);
+        Assert.assertEquals(0, listener.changedCalls);
+        Assert.assertNotNull(listener.sri);
+        Assert.assertEquals(stream_id, listener.sri.streamID);
+
+        // Push again to the same stream ID; sriChanged should now be false and the
+        // SRI callback should not get called
+        listener.reset();
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, stream_id);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertFalse(packet.sriChanged);
+        Assert.assertEquals(0, listener.newCalls);
+        Assert.assertEquals(0, listener.changedCalls);
+        Assert.assertNull(listener.sri);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        port.setLogger(null);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, "null_logger");
+    }
+}

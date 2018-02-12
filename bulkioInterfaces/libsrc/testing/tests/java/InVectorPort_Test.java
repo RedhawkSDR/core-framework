@@ -219,34 +219,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -345,34 +317,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -471,34 +415,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
     @Test
@@ -596,34 +512,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -722,34 +610,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -848,34 +708,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -974,34 +806,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
     @Test
@@ -1099,34 +903,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -1225,34 +1001,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -1351,34 +1099,6 @@ public class InVectorPort_Test {
 	assertTrue("Stream SRI Sequence - SRI",  streams != null );
 	assertTrue("Stream SRI Sequence - length",  streams.length !=1 );
 	assertTrue("Stream SRI Sequence - length",  streams.length ==0 );
-
-        // Push data without an SRI to check that the sriChanged flag is still
-        // set and the SRI callback gets called
-        ctx.sid = "invalid_stream";
-        int new_calls = ctx.new_calls + 1;
-        int changed_calls = ctx.changed_calls;
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive packet without SRI", pkt != null);
-        assertEquals("Receive packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertTrue("Receive packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push again to the same stream ID; sriChanged should now be false and the
-        // SRI callback should not get called
-        port.pushPacket(v, TS, false, "invalid_stream");
-        pkt = port.getPacket(bulkio.Const.BLOCKING);
-        assertTrue("Receive second packet without SRI", pkt != null);
-        assertEquals("Receive second packet without SRI, streamID", pkt.streamID, "invalid_stream");
-        assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
-        assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
-        assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
-
-        // Push to an invalid stream with no logger, ensure that nothing fails
-        ctx.sid = "null_logger";
-        port.setLogger(null);
-        port.pushPacket(v, TS, false, "null_logger");
     }
 
 }

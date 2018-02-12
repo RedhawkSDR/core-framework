@@ -18,20 +18,27 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-package bulkio.sri;
+import bulkio.InXMLPort;
+import bulkio.OutXMLPort;
 
-import BULKIO.StreamSRI;
-
-public class DefaultComparator implements bulkio.sri.Comparator {
-
-    public boolean compare(StreamSRI SRI_1, StreamSRI SRI_2)
+public class XMLTestHelper {
+    public XMLTestHelper()
     {
-	if ((SRI_1 == null) || (SRI_2 == null)) {
-	    return false;
-        }
-        return utils.compare(SRI_1, SRI_2);
-    } 
+    }
 
+    public InXMLPort createInPort()
+    {
+        return new InXMLPort("dataXML_in");
+    }
+
+    void pushTestPacket(InXMLPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    {
+        String data = new String(new char[length]);
+        port.pushPacket(data, eos, streamID);
+    }
+
+    int dataLength(String data)
+    {
+        return data.length();
+    }
 }
-
-
