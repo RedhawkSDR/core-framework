@@ -47,11 +47,17 @@ BUILT_SOURCES += helpers/LongLongTestHelper.java stubs/InLongLongPortStub.java I
 BUILT_SOURCES += helpers/ULongLongTestHelper.java stubs/InULongLongPortStub.java InULongLongPortTest.java OutULongLongPortTest.java
 BUILT_SOURCES += helpers/FloatTestHelper.java stubs/InFloatPortStub.java InFloatPortTest.java OutFloatPortTest.java
 BUILT_SOURCES += helpers/DoubleTestHelper.java stubs/InDoublePortStub.java InDoublePortTest.java OutDoublePortTest.java
-BUILT_SOURCES += InBitPortTest.java InFilePortTest.java InXMLPortTest.java
+BUILT_SOURCES += InBitPortTest.java OutBitPortTest.java
+BUILT_SOURCES += InFilePortTest.java OutFilePortTest.java
+BUILT_SOURCES += InXMLPortTest.java OutXMLPortTest.java
 
 noinst_java_JARFILES = bulkio_test.jar
 
 bulkio_test_jar_SOURCE = $(BUILT_SOURCES)
+bulkio_test_jar_SOURCE += stubs/Packet.java
+bulkio_test_jar_SOURCE += stubs/InBitPortStub.java
+bulkio_test_jar_SOURCE += stubs/InFilePortStub.java
+bulkio_test_jar_SOURCE += stubs/InXMLPortStub.java
 bulkio_test_jar_SOURCE += helpers/BitTestHelper.java
 bulkio_test_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_test_jar_SOURCE += helpers/XMLTestHelper.java

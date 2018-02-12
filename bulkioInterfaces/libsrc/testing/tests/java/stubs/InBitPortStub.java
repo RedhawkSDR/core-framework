@@ -17,20 +17,16 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*
- * WARNING: This file is generated from InPortStub.java.template.
- *          Do not modify directly.
- */
 
 package stubs;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class In@name@PortStub extends BULKIO.@idl@POA {
+public class InBitPortStub extends BULKIO.dataBitPOA {
 
     public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
-    public List<Packet<@type@[]>> packets = new ArrayList<Packet<@type@[]>>();
+    public List<Packet<BULKIO.BitSequence>> packets = new ArrayList<Packet<BULKIO.BitSequence>>();
 
     public void pushSRI(BULKIO.StreamSRI H)
     {
@@ -52,8 +48,8 @@ public class In@name@PortStub extends BULKIO.@idl@POA {
         return new BULKIO.StreamSRI[0];
     }
 
-    public void pushPacket(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
+    public void pushPacket(BULKIO.BitSequence data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
     {
-        packets.add(new Packet<@type@[]>(data, T, EOS, streamID));
+        packets.add(new Packet<BULKIO.BitSequence>(data, T, EOS, streamID));
     }
 }

@@ -17,43 +17,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*
- * WARNING: This file is generated from InPortStub.java.template.
- *          Do not modify directly.
- */
 
 package stubs;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class In@name@PortStub extends BULKIO.@idl@POA {
-
-    public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
-    public List<Packet<@type@[]>> packets = new ArrayList<Packet<@type@[]>>();
-
-    public void pushSRI(BULKIO.StreamSRI H)
+public class Packet<E> {
+    public Packet(E data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
     {
-        this.H.add(H);
+        this.data = data;
+        this.T = T;
+        this.EOS = EOS;
+        this.streamID = streamID;
     }
 
-    public BULKIO.PortUsageType state()
-    {
-        return BULKIO.PortUsageType.IDLE;
-    }
-
-    public BULKIO.PortStatistics statistics()
-    {
-        return null;
-    }
-
-    public BULKIO.StreamSRI[] activeSRIs()
-    {
-        return new BULKIO.StreamSRI[0];
-    }
-
-    public void pushPacket(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
-    {
-        packets.add(new Packet<@type@[]>(data, T, EOS, streamID));
-    }
+    public E data;
+    BULKIO.PrecisionUTCTime T;
+    boolean EOS;
+    String streamID;
 }
