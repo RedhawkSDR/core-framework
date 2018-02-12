@@ -22,20 +22,21 @@
  *          Do not modify directly.
  */
 
-import junit.framework.TestCase;
+import org.junit.*;
 
 import bulkio.Out@name@Port;
 
 import stubs.In@name@PortStub;
 import helpers.@name@TestHelper;
 
-public class Out@name@PortTest extends TestCase {
+public class Out@name@PortTest {
 
     protected Out@name@Port port;
     protected stubs.In@name@PortStub stub;
 
     protected @name@TestHelper helper = new @name@TestHelper();
 
+    @Before
     public void setUp() throws org.omg.CORBA.UserException
     {
         org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init(new String[0], null);
@@ -49,6 +50,7 @@ public class Out@name@PortTest extends TestCase {
         port.connectPort(objref, "connection_1");
     }
 
+    @After
     public void tearDown()
     {
         _disconnectPorts();
@@ -81,21 +83,22 @@ public class Out@name@PortTest extends TestCase {
         return new stubs.In@name@PortStub();
     }
 
+    @Test
     public void testConnections() throws org.omg.CORBA.UserException
     {
         // Should start with one connection, to the in port stub
         ExtendedCF.UsesConnection[] connections = port.connections();
-        assertNotNull(connections);
-        assertEquals(1, connections.length);
-        assertEquals("connection_1", connections[0].connectionId);
+        Assert.assertNotNull(connections);
+        Assert.assertEquals(1, connections.length);
+        Assert.assertEquals("connection_1", connections[0].connectionId);
         org.omg.CORBA.Object objref = stub._this_object(org.ossie.corba.utils.Orb());
-        assertTrue(connections[0].port._is_equivalent(objref));
-        assertEquals("Port state should be active", BULKIO.PortUsageType.ACTIVE, port.state());
+        Assert.assertTrue(connections[0].port._is_equivalent(objref));
+        Assert.assertEquals("Port state should be active", BULKIO.PortUsageType.ACTIVE, port.state());
 
         // Should throw an invalid port on a nil
         try {
             port.connectPort(null, "connection_nil");
-            fail("No exception thrown on connection to nil object");
+            Assert.fail("No exception thrown on connection to nil object");
         } catch (CF.PortPackage.InvalidPort exc) {
             // Test passed
         }
@@ -105,20 +108,20 @@ public class Out@name@PortTest extends TestCase {
         objref = stub2._this_object(org.ossie.corba.utils.Orb());
         port.connectPort(objref, "connection_2");
         connections = port.connections();
-        assertNotNull(connections);
-        assertEquals(2, connections.length);
+        Assert.assertNotNull(connections);
+        Assert.assertEquals(2, connections.length);
         for (ExtendedCF.UsesConnection connection : connections) {
             if (connection.connectionId.equals("connection_2")) {
-                assertTrue(connection.port._is_equivalent(objref));
+                Assert.assertTrue(connection.port._is_equivalent(objref));
             } else if (!connection.connectionId.equals("connection_1")) {
-                fail("Invalid connectionId in connections(): '" + connection.connectionId + "'");
+                Assert.fail("Invalid connectionId in connections(): '" + connection.connectionId + "'");
             }
         }
 
         // Cannot reuse connection ID
         try {
             port.connectPort(objref, "connection_2");
-            fail("No exception thrown on duplicate connectionId");
+            Assert.fail("No exception thrown on duplicate connectionId");
         } catch (CF.PortPackage.OccupiedPort exc) {
             // Test passed
         }
@@ -126,14 +129,14 @@ public class Out@name@PortTest extends TestCase {
         // Disconnect second connection
         port.disconnectPort("connection_2");
         connections = port.connections();
-        assertNotNull(connections);
-        assertEquals(1, connections.length);
-        assertEquals("connection_1", connections[0].connectionId);
+        Assert.assertNotNull(connections);
+        Assert.assertEquals(1, connections.length);
+        Assert.assertEquals("connection_1", connections[0].connectionId);
 
         // Bad connection ID on disconnect
         try {
             port.disconnectPort("connection_bad");
-            fail("No exception thrown on invalid connectionId");
+            Assert.fail("No exception thrown on invalid connectionId");
         } catch (CF.PortPackage.InvalidPort exc) {
             // Test passed
         }
@@ -141,17 +144,18 @@ public class Out@name@PortTest extends TestCase {
         // Disconnect the default stub; port should go to idle
         port.disconnectPort("connection_1");
         connections = port.connections();
-        assertNotNull(connections);
-        assertEquals(0, connections.length);
-        assertEquals("Port state should be idle", BULKIO.PortUsageType.IDLE, port.state());
+        Assert.assertNotNull(connections);
+        Assert.assertEquals(0, connections.length);
+        Assert.assertEquals("Port state should be idle", BULKIO.PortUsageType.IDLE, port.state());
     }
 
+    @Test
     public void testStatistics()
     {
         BULKIO.UsesPortStatistics[] uses_stats = port.statistics();
-        assertNotNull(uses_stats);
-        assertEquals(1, uses_stats.length);
-        assertEquals("connection_1", uses_stats[0].connectionId);
+        Assert.assertNotNull(uses_stats);
+        Assert.assertEquals(1, uses_stats.length);
+        Assert.assertEquals("connection_1", uses_stats[0].connectionId);
 
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("port_stats");
         port.pushSRI(sri);
@@ -159,12 +163,12 @@ public class Out@name@PortTest extends TestCase {
         helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, sri.streamID);
 
         uses_stats = port.statistics();
-        assertNotNull(uses_stats);
-        assertEquals(1, uses_stats.length);
+        Assert.assertNotNull(uses_stats);
+        Assert.assertEquals(1, uses_stats.length);
         BULKIO.PortStatistics stats = uses_stats[0].statistics;
 
-        assertTrue(stats.elementsPerSecond > 0.0);
+        Assert.assertTrue(stats.elementsPerSecond > 0.0);
         int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
-        assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
+        Assert.assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
     }
 }

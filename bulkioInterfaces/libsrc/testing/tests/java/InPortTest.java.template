@@ -22,13 +22,13 @@
  *          Do not modify directly.
  */
 
-import junit.framework.*;
+import org.junit.*;
 
 import bulkio.In@name@Port;
 
 import helpers.@name@TestHelper;
 
-public class In@name@PortTest extends TestCase {
+public class In@name@PortTest {
     protected In@name@Port port;
 
     protected @name@TestHelper helper = new @name@TestHelper();
@@ -64,11 +64,13 @@ public class In@name@PortTest extends TestCase {
         }
     }
 
-    protected void setUp()
+    @Before
+    public void setUp()
     {
         port = new In@name@Port(helper.getName() + "_in");
     }
 
+    @Test
     public void testGetPacket()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_get_packet");
@@ -109,6 +111,7 @@ public class In@name@PortTest extends TestCase {
     /**
      * Tests that SRI changes are reported correctly from getPacket().
      */
+    @Test
     public void testSriChanged()
     {
         // Create a default SRI and push it
@@ -150,6 +153,7 @@ public class In@name@PortTest extends TestCase {
      * Tests that the callback is triggered and SRI changes are reported for an
      * unknown stream ID.
      */
+    @Test
     public void testSriChangedInvalidStream()
     {
         final String stream_id = "invalid_stream";
