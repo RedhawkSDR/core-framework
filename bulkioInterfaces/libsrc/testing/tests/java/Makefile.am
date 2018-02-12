@@ -18,13 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-Bulkio_CLASSES = InVectorPort_Test.class InStringPort_Test.class  InSDDSPort_Test.class BulkioHelpers_Test.class
-Bulkio_CLASSES += OutVectorPort_Test.class OutStringPort_Test.class OutSDDSPort_Test.class 
-Bulkio_CLASSES += MultiOutInt8_Test.class MultiOutInt16_Test.class  MultiOutInt32_Test.class MultiOutInt64_Test.class MultiOutFloat_Test.class MultiOutDouble_Test.class MultiOutUInt8_Test.class MultiOutUInt16_Test.class  MultiOutUInt32_Test.class MultiOutUInt64_Test.class
-
-Bulkio_CLASSPATH = .:$(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH)
-
-TEST_CLASSES = $(patsubst %.class,%,$(Bulkio_CLASSES))
+@rh_jarfile_rules@
 
 TESTS = Bulkio
 check_SCRIPTS = Bulkio
@@ -55,41 +49,26 @@ BUILT_SOURCES += helpers/FloatTestHelper.java stubs/InFloatPortStub.java InFloat
 BUILT_SOURCES += helpers/DoubleTestHelper.java stubs/InDoublePortStub.java InDoublePortTest.java OutDoublePortTest.java
 BUILT_SOURCES += InBitPortTest.java InFilePortTest.java InXMLPortTest.java
 
-Bulkio_CLASSES += InCharPortTest.class OutCharPortTest.class
-Bulkio_CLASSES += InOctetPortTest.class OutOctetPortTest.class
-Bulkio_CLASSES += InShortPortTest.class OutShortPortTest.class
-Bulkio_CLASSES += InUShortPortTest.class OutUShortPortTest.class
-Bulkio_CLASSES += InLongPortTest.class OutLongPortTest.class
-Bulkio_CLASSES += InULongPortTest.class OutULongPortTest.class
-Bulkio_CLASSES += InLongLongPortTest.class OutLongLongPortTest.class
-Bulkio_CLASSES += InULongLongPortTest.class OutULongLongPortTest.class
-Bulkio_CLASSES += InFloatPortTest.class OutFloatPortTest.class
-Bulkio_CLASSES += InDoublePortTest.class OutDoublePortTest.class
-Bulkio_CLASSES += InBitPortTest.class
-Bulkio_CLASSES += InFilePortTest.class
-Bulkio_CLASSES += InXMLPortTest.class
+noinst_java_JARFILES = bulkio_test.jar
 
-Helper_CLASSES = helpers/CharTestHelper.class stubs/InCharPortStub.class
-Helper_CLASSES += helpers/OctetTestHelper.class stubs/InOctetPortStub.class
-Helper_CLASSES += helpers/ShortTestHelper.class stubs/InShortPortStub.class
-Helper_CLASSES += helpers/UShortTestHelper.class stubs/InUShortPortStub.class
-Helper_CLASSES += helpers/LongTestHelper.class stubs/InLongPortStub.class
-Helper_CLASSES += helpers/ULongTestHelper.class stubs/InULongPortStub.class
-Helper_CLASSES += helpers/LongLongTestHelper.class stubs/InLongLongPortStub.class
-Helper_CLASSES += helpers/ULongLongTestHelper.class stubs/InULongLongPortStub.class
-Helper_CLASSES += helpers/FloatTestHelper.class stubs/InFloatPortStub.class
-Helper_CLASSES += helpers/DoubleTestHelper.class stubs/InDoublePortStub.class
-Helper_CLASSES += helpers/BitTestHelper.class
-Helper_CLASSES += helpers/FileTestHelper.class
-Helper_CLASSES += helpers/XMLTestHelper.class
+bulkio_test_jar_SOURCE = $(BUILT_SOURCES)
+bulkio_test_jar_SOURCE += helpers/BitTestHelper.java
+bulkio_test_jar_SOURCE += helpers/FileTestHelper.java
+bulkio_test_jar_SOURCE += helpers/XMLTestHelper.java
+bulkio_test_jar_SOURCE += InVectorPort_Test.java InStringPort_Test.java  InSDDSPort_Test.java BulkioHelpers_Test.java
+bulkio_test_jar_SOURCE += OutVectorPort_Test.java OutStringPort_Test.java OutSDDSPort_Test.java 
+bulkio_test_jar_SOURCE += MultiOutInt8_Test.java MultiOutInt16_Test.java  MultiOutInt32_Test.java MultiOutInt64_Test.java MultiOutFloat_Test.java MultiOutDouble_Test.java MultiOutUInt8_Test.java MultiOutUInt16_Test.java  MultiOutUInt32_Test.java MultiOutUInt64_Test.java
 
-%.class : %.java
-	$(AM_V_at)$(JAVAC) -d $(builddir) -cp $(Bulkio_CLASSPATH) -g -Xlint $<
+bulkio_test_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
+bulkio_test_jar_JAVACFLAGS = -g -Xlint
 
-Bulkio : $(Bulkio_CLASSES) $(Helper_CLASSES) Makefile.am
+# Filter out just the tests and get just their class names
+TEST_CLASSES = $(patsubst %Test.java,%Test,$(filter %Test.java,$(bulkio_test_jar_SOURCE)))
+
+Bulkio : bulkio_test.jar Makefile.am
 	@echo "#!/bin/sh" > $@
 	@echo "export LD_LIBRARY_PATH=$(top_builddir)/jni/.libs:$(OSSIE_HOME)/lib:$(OSSIE_HOME)/lib64" >> $@
-	@echo "exec java -cp $(Bulkio_CLASSPATH):. -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore $(TEST_CLASSES)" >> $@
+	@echo "exec java -cp bulkio_test.jar:$(bulkio_test_jar_CLASSPATH) -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore $(TEST_CLASSES)" >> $@
 	@chmod +x $@
 
-CLEANFILES = Bulkio $(BUILT_SOURCES) *.class
+CLEANFILES = Bulkio $(BUILT_SOURCES)
