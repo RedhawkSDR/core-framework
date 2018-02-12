@@ -26,6 +26,8 @@ import junit.framework.*;
 
 import bulkio.In@name@Port;
 
+import helpers.@name@TestHelper;
+
 public class In@name@PortTest extends TestCase {
     protected In@name@Port port;
 
@@ -64,7 +66,7 @@ public class In@name@PortTest extends TestCase {
 
     protected void setUp()
     {
-        port = helper.createInPort();
+        port = new In@name@Port(helper.getName() + "_in");
     }
 
     public void testGetPacket()

@@ -1127,7 +1127,7 @@ public class OutVectorPort_Test {
                                  test_fact ctx)
     {
         try {
-            port.connectPort(sink, ctx.cid);
+            //port.connectPort(sink, ctx.cid);
             port.connectPort(sink, ctx.cid2);
         } catch (final CF.PortPackage.OccupiedPort ex) {
             fail("Port should never throw CF.Port.OccupiedPort");

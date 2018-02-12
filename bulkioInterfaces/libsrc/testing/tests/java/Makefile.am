@@ -33,49 +33,55 @@ check_SCRIPTS = Bulkio
 In%PortTest.java : InPortTest.java.template
 	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
 
-# Test helpers are generated for numeric types.
-%TestHelper.java : sed/%.sed TestHelper.java.template
+Out%PortTest.java : OutPortTest.java.template
+	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
+
+# Test helpers and port stubs are generated for numeric types.
+helpers/%TestHelper.java : sed/%.sed helpers/TestHelper.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
-BUILT_SOURCES = CharTestHelper.java InCharPortTest.java
-BUILT_SOURCES += OctetTestHelper.java InOctetPortTest.java
-BUILT_SOURCES += ShortTestHelper.java InShortPortTest.java
-BUILT_SOURCES += UShortTestHelper.java InUShortPortTest.java
-BUILT_SOURCES += LongTestHelper.java InLongPortTest.java
-BUILT_SOURCES += ULongTestHelper.java InULongPortTest.java
-BUILT_SOURCES += LongLongTestHelper.java InLongLongPortTest.java
-BUILT_SOURCES += ULongLongTestHelper.java InULongLongPortTest.java
-BUILT_SOURCES += FloatTestHelper.java InFloatPortTest.java
-BUILT_SOURCES += DoubleTestHelper.java InDoublePortTest.java
+stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
+BUILT_SOURCES = helpers/CharTestHelper.java stubs/InCharPortStub.java InCharPortTest.java OutCharPortTest.java
+BUILT_SOURCES += helpers/OctetTestHelper.java stubs/InOctetPortStub.java InOctetPortTest.java OutOctetPortTest.java
+BUILT_SOURCES += helpers/ShortTestHelper.java stubs/InShortPortStub.java InShortPortTest.java OutShortPortTest.java
+BUILT_SOURCES += helpers/UShortTestHelper.java stubs/InUShortPortStub.java InUShortPortTest.java OutUShortPortTest.java
+BUILT_SOURCES += helpers/LongTestHelper.java stubs/InLongPortStub.java InLongPortTest.java OutLongPortTest.java
+BUILT_SOURCES += helpers/ULongTestHelper.java stubs/InULongPortStub.java InULongPortTest.java OutULongPortTest.java
+BUILT_SOURCES += helpers/LongLongTestHelper.java stubs/InLongLongPortStub.java InLongLongPortTest.java OutLongLongPortTest.java
+BUILT_SOURCES += helpers/ULongLongTestHelper.java stubs/InULongLongPortStub.java InULongLongPortTest.java OutULongLongPortTest.java
+BUILT_SOURCES += helpers/FloatTestHelper.java stubs/InFloatPortStub.java InFloatPortTest.java OutFloatPortTest.java
+BUILT_SOURCES += helpers/DoubleTestHelper.java stubs/InDoublePortStub.java InDoublePortTest.java OutDoublePortTest.java
 BUILT_SOURCES += InBitPortTest.java InFilePortTest.java InXMLPortTest.java
 
-Bulkio_CLASSES += InCharPortTest.class
-Bulkio_CLASSES += InOctetPortTest.class
-Bulkio_CLASSES += InShortPortTest.class
-Bulkio_CLASSES += InUShortPortTest.class
-Bulkio_CLASSES += InLongPortTest.class
-Bulkio_CLASSES += InULongPortTest.class
-Bulkio_CLASSES += InLongLongPortTest.class
-Bulkio_CLASSES += InULongLongPortTest.class
-Bulkio_CLASSES += InFloatPortTest.class
-Bulkio_CLASSES += InDoublePortTest.class
+Bulkio_CLASSES += InCharPortTest.class OutCharPortTest.class
+Bulkio_CLASSES += InOctetPortTest.class OutOctetPortTest.class
+Bulkio_CLASSES += InShortPortTest.class OutShortPortTest.class
+Bulkio_CLASSES += InUShortPortTest.class OutUShortPortTest.class
+Bulkio_CLASSES += InLongPortTest.class OutLongPortTest.class
+Bulkio_CLASSES += InULongPortTest.class OutULongPortTest.class
+Bulkio_CLASSES += InLongLongPortTest.class OutLongLongPortTest.class
+Bulkio_CLASSES += InULongLongPortTest.class OutULongLongPortTest.class
+Bulkio_CLASSES += InFloatPortTest.class OutFloatPortTest.class
+Bulkio_CLASSES += InDoublePortTest.class OutDoublePortTest.class
 Bulkio_CLASSES += InBitPortTest.class
 Bulkio_CLASSES += InFilePortTest.class
 Bulkio_CLASSES += InXMLPortTest.class
 
-Helper_CLASSES = CharTestHelper.class
-Helper_CLASSES += OctetTestHelper.class
-Helper_CLASSES += ShortTestHelper.class
-Helper_CLASSES += UShortTestHelper.class
-Helper_CLASSES += LongTestHelper.class
-Helper_CLASSES += ULongTestHelper.class
-Helper_CLASSES += LongLongTestHelper.class
-Helper_CLASSES += ULongLongTestHelper.class
-Helper_CLASSES += FloatTestHelper.class
-Helper_CLASSES += DoubleTestHelper.class
-Helper_CLASSES += BitTestHelper.class
-Helper_CLASSES += FileTestHelper.class
-Helper_CLASSES += XMLTestHelper.class
+Helper_CLASSES = helpers/CharTestHelper.class stubs/InCharPortStub.class
+Helper_CLASSES += helpers/OctetTestHelper.class stubs/InOctetPortStub.class
+Helper_CLASSES += helpers/ShortTestHelper.class stubs/InShortPortStub.class
+Helper_CLASSES += helpers/UShortTestHelper.class stubs/InUShortPortStub.class
+Helper_CLASSES += helpers/LongTestHelper.class stubs/InLongPortStub.class
+Helper_CLASSES += helpers/ULongTestHelper.class stubs/InULongPortStub.class
+Helper_CLASSES += helpers/LongLongTestHelper.class stubs/InLongLongPortStub.class
+Helper_CLASSES += helpers/ULongLongTestHelper.class stubs/InULongLongPortStub.class
+Helper_CLASSES += helpers/FloatTestHelper.class stubs/InFloatPortStub.class
+Helper_CLASSES += helpers/DoubleTestHelper.class stubs/InDoublePortStub.class
+Helper_CLASSES += helpers/BitTestHelper.class
+Helper_CLASSES += helpers/FileTestHelper.class
+Helper_CLASSES += helpers/XMLTestHelper.class
 
 %.class : %.java
 	$(AM_V_at)$(JAVAC) -d $(builddir) -cp $(Bulkio_CLASSPATH) -g -Xlint $<

@@ -18,28 +18,43 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-import bulkio.InBitPort;
-import bulkio.OutBitPort;
+package helpers;
 
-public class BitTestHelper {
-    public BitTestHelper()
+import bulkio.InFilePort;
+import bulkio.OutFilePort;
+
+public class FileTestHelper {
+
+    public static final int BITS_PER_ELEMENT = 8;
+
+    public FileTestHelper()
     {
     }
 
-    public InBitPort createInPort()
+    public String getName()
     {
-        return new InBitPort("dataBit_in");
+        return "dataFile";
     }
 
-    void pushTestPacket(InBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(InFilePort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        int bytes = (length + 7) / 8;
-        BULKIO.BitSequence data = new BULKIO.BitSequence(new byte[bytes], length);
+        String data = makeData(length);
         port.pushPacket(data, time, eos, streamID);
     }
 
-    int dataLength(BULKIO.BitSequence data)
+    public void pushTestPacket(OutFilePort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        return data.bits;
+        String data = makeData(length);
+        port.pushPacket(data, time, eos, streamID);
+    }
+
+    public int dataLength(String data)
+    {
+        return data.length();
+    }
+
+    public String makeData(int length)
+    {
+        return new String(new char[length]);
     }
 }

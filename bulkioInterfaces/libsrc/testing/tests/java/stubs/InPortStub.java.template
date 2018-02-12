@@ -17,28 +17,49 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from InPortStub.java.template.
+ *          Do not modify directly.
+ */
 
-import bulkio.InXMLPort;
-import bulkio.OutXMLPort;
+package stubs;
 
-public class XMLTestHelper {
-    public XMLTestHelper()
-    {
+import java.util.ArrayList;
+import java.util.List;
+
+public class In@name@PortStub extends BULKIO.@idl@POA {
+
+    class Packet {
+        public @type@[] data;
+        BULKIO.PrecisionUTCTime T;
+        boolean EOS;
+        String streamID;
     }
 
-    public InXMLPort createInPort()
+    public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
+    public List<Packet> packets = new ArrayList<Packet>();
+
+    public void pushSRI(BULKIO.StreamSRI H)
     {
-        return new InXMLPort("dataXML_in");
+        this.H.add(H);
     }
 
-    void pushTestPacket(InXMLPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public BULKIO.PortUsageType state()
     {
-        String data = new String(new char[length]);
-        port.pushPacket(data, eos, streamID);
+        return BULKIO.PortUsageType.IDLE;
     }
 
-    int dataLength(String data)
+    public BULKIO.PortStatistics statistics()
     {
-        return data.length();
+        return null;
+    }
+
+    public BULKIO.StreamSRI[] activeSRIs()
+    {
+        return new BULKIO.StreamSRI[0];
+    }
+
+    public void pushPacket(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
+    {
     }
 }

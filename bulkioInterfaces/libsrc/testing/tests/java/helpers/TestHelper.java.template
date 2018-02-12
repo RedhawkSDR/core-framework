@@ -17,28 +17,48 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from TestHelper.java.template.
+ *          Do not modify directly.
+ */
 
-import bulkio.InFilePort;
-import bulkio.OutFilePort;
+package helpers;
 
-public class FileTestHelper {
-    public FileTestHelper()
+import bulkio.In@name@Port;
+import bulkio.Out@name@Port;
+
+public class @name@TestHelper {
+
+    public static final int BITS_PER_ELEMENT = @size@ * 8;
+
+    public @name@TestHelper()
     {
     }
 
-    public InFilePort createInPort()
+    public String getName()
     {
-        return new InFilePort("dataFile_in");
+        return "@idl@";
     }
 
-    void pushTestPacket(InFilePort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(In@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        String data = new String(new char[length]);
+        @type@[] data = makeData(length);
         port.pushPacket(data, time, eos, streamID);
     }
 
-    int dataLength(String data)
+    public void pushTestPacket(Out@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        return data.length();
+        @type@[] data = makeData(length);
+        port.pushPacket(data, time, eos, streamID);
+    }
+
+    public int dataLength(@type@[] data)
+    {
+        return data.length;
+    }
+
+    public @type@[] makeData(int length)
+    {
+        return new @type@[length];
     }
 }

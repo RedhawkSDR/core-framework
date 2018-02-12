@@ -17,34 +17,45 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*
- * WARNING: This file is generated from TestHelper.java.template.
- *          Do not modify directly.
- */
 
-import org.junit.Ignore;
+package helpers;
 
-import bulkio.In@name@Port;
-import bulkio.Out@name@Port;
+import bulkio.InBitPort;
+import bulkio.OutBitPort;
 
-public class @name@TestHelper {
-    public @name@TestHelper()
+public class BitTestHelper {
+
+    public static final int BITS_PER_ELEMENT = 1;
+
+    public BitTestHelper()
     {
     }
 
-    public In@name@Port createInPort()
+    public String getName()
     {
-        return new In@name@Port("@idl@_in");
+        return "dataBit";
     }
 
-    void pushTestPacket(In@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(InBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        @type@[] data = new @type@[length];
+        BULKIO.BitSequence data = makeData(length);
         port.pushPacket(data, time, eos, streamID);
     }
 
-    int dataLength(@type@[] data)
+    public void pushTestPacket(OutBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        return data.length;
+        BULKIO.BitSequence data = makeData(length);
+        port.pushPacket(data, time, eos, streamID);
+    }
+
+    public int dataLength(BULKIO.BitSequence data)
+    {
+        return data.bits;
+    }
+
+    public BULKIO.BitSequence makeData(int length)
+    {
+        int bytes = (length + 7) / 8;
+        return new BULKIO.BitSequence(new byte[bytes], length);
     }
 }
