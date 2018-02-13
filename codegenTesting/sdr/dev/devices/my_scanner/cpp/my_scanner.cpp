@@ -494,18 +494,27 @@ frontend::ScanStatus my_scanner_i::getScanStatus(const std::string& allocation_i
     return retval;
 }
 
-void my_scanner_i::setScanStartTime(const std::string& allocation_id, BULKIO::PrecisionUTCTime& start_time) {
+void my_scanner_i::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 
-void my_scanner_i::setScanStrategy(const std::string& allocation_id, frontend::ScanStrategy& scan_strategy) {
+void my_scanner_i::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+    if (dynamic_cast<const frontend::ManualStrategy*>(scan_strategy) != NULL) {
+    	this->strategy_request = "manual";
+    }
+    if (dynamic_cast<const frontend::SpanStrategy*>(scan_strategy) != NULL) {
+    	this->strategy_request = "span";
+    }
+    if (dynamic_cast<const frontend::DiscreteStrategy*>(scan_strategy) != NULL) {
+    	this->strategy_request = "discrete";
+    }
 }
 
 /*************************************************************

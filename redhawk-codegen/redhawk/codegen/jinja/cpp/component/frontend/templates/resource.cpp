@@ -238,7 +238,7 @@ void ${className}::setScanStartTime(const std::string& allocation_id, const BULK
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 
-void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy& scan_strategy) {
+void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))

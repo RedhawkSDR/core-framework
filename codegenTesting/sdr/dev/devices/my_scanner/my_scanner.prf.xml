@@ -124,4 +124,9 @@ False: Does not need control and can just attach to any currently tasked device 
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
+  <simple id="strategy_request" mode="readwrite" type="string">
+    <value>initial</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

@@ -528,16 +528,27 @@ public class my_scanner extends my_scanner_base {
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
-            throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
+        if(!allocation_id.equals(getControlAllocationId(idx))) {
+            throw new FRONTEND.FrontendException("ID "+allocation_id+" does not have authorization to modify the tuner");
+        }
     }
 
     public void setScanStrategy(String allocation_id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
-            throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
+        if(!allocation_id.equals(getControlAllocationId(idx))) {
+            throw new FRONTEND.FrontendException("ID "+allocation_id+" does not have authorization to modify the tuner");
+        }
+        if (scan_strategy.scan_mode.equals(FRONTEND.ScanningTunerPackage.ScanMode.MANUAL_SCAN)) {
+            this.strategy_request.setValue("manual");
+        }
+        if (scan_strategy.scan_mode.equals(FRONTEND.ScanningTunerPackage.ScanMode.DISCRETE_SCAN)) {
+            this.strategy_request.setValue("discrete");
+        }
+        if (scan_strategy.scan_mode.equals(FRONTEND.ScanningTunerPackage.ScanMode.SPAN_SCAN)) {
+            this.strategy_request.setValue("span");
+        }
     }
 
 

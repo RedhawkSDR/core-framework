@@ -55,7 +55,7 @@ ${super()}
 /*{% if 'ScanningTuner' in component.implements %}*/
         frontend::ScanStatus getScanStatus(const std::string& allocation_id);
         void setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time);
-        void setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy& scan_strategy);
+        void setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy);
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
         frontend::GPSInfo get_gps_info(const std::string& port_name);

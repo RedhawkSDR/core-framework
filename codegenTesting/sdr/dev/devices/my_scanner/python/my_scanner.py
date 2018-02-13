@@ -378,6 +378,12 @@ class my_scanner_i(my_scanner_base):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
 
     def setScanStrategy(self, allocation_id, scan_strategy):
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.MANUAL_SCAN and hasattr(scan_strategy.scan_definition, 'center_frequency'):
+            self.strategy_request = 'manual'
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.DISCRETE_SCAN and hasattr(scan_strategy.scan_definition, 'discrete_freq_list'):
+            self.strategy_request = 'discrete'
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.SPAN_SCAN and hasattr(scan_strategy.scan_definition, 'freq_scan_list'):
+            self.strategy_request = 'span'
         idx = self.getTunerMapping(allocation_id)
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
