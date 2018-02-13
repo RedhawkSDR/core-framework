@@ -42,6 +42,7 @@ public:
 
 protected:
     typedef typename TestBase::StubType StubType;
+    typedef typename Port::CorbaType CorbaType;
 
     void _addStreamFilter(const std::string& streamId, const std::string& connectionId);
 

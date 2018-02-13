@@ -28,16 +28,31 @@ class InPortTest : public InPortTestFixture<Port>
     typedef InPortTestFixture<Port> TestBase;
 
     CPPUNIT_TEST_SUITE(InPortTest);
-    CPPUNIT_TEST(testBasicAPI);
-    CPPUNIT_TEST(testSriChange);
+    CPPUNIT_TEST(testLegacyAPI);
+    CPPUNIT_TEST(testGetPacket);
+    CPPUNIT_TEST(testActiveSRIs);
+    CPPUNIT_TEST(testQueueDepth);
+    CPPUNIT_TEST(testState);
+    CPPUNIT_TEST(testSriChanged);
+    CPPUNIT_TEST(testSriChangedFlush);
+    CPPUNIT_TEST(testSriChangedInvalidStream);
+    CPPUNIT_TEST(testStatistics);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void testBasicAPI();
-    void testSriChange();
+    void testLegacyAPI();
+    void testGetPacket();
+    void testActiveSRIs();
+    void testQueueDepth();
+    void testState();
+    void testSriChanged();
+    void testSriChangedFlush();
+    void testSriChangedInvalidStream();
+    void testStatistics();
 
 protected:
     typedef typename Port::dataTransfer PacketType;
+    typedef typename Port::CorbaType CorbaType;
 
     using TestBase::port;
 };

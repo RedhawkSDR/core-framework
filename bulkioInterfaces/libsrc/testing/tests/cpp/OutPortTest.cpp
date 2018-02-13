@@ -103,11 +103,13 @@ void OutPortTest<Port>::testStatistics()
 
     uses_stats = port->statistics();
     CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 1, uses_stats->length());
-    const BULKIO::PortStatistics& stats = uses_stats[0].statistics;
 
+    // Check that the statistics report the right element size
+    const BULKIO::PortStatistics& stats = uses_stats[0].statistics;
     CPPUNIT_ASSERT(stats.elementsPerSecond > 0.0);
     size_t bits_per_element = round(stats.bitsPerSecond / stats.elementsPerSecond);
-    //CPPUNIT_ASSERT_EQUAL(8 * sizeof(typename Port::NativeType), bits_per_element);
+    const size_t expected_bits = bulkio::NativeTraits<CorbaType>::bits;
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", expected_bits, bits_per_element);
 }
 
 template <class Port>
