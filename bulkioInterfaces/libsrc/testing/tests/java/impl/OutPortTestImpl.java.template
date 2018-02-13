@@ -18,9 +18,11 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 /*
- * WARNING: This file is generated from OutPortTest.java.template.
+ * WARNING: This file is generated from OutPortTestImpl.java.template.
  *          Do not modify directly.
  */
+
+package impl;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -37,7 +39,7 @@ import stubs.In@name@PortStub;
 import helpers.@name@TestHelper;
 
 @RunWith(JUnit4.class)
-public class Out@name@PortTest {
+public class Out@name@PortTestImpl {
 
     protected Out@name@Port port;
     protected In@name@PortStub stub;

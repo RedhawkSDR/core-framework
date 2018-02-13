@@ -37,9 +37,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
 
     protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
         super(portName, logger, connectionListener, helper);
-        // Make sure max samples per push is even so that complex data case is
-        // handled properly
-        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/helper.elementSize()) & 0xFFFFFFFE;
+        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/helper.elementSize());
     }
 
     /**
@@ -57,37 +55,32 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
     private void pushOversizedPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
         final int length = helper.arraySize(data);
 
-        SriMapStruct sriStruct = this.currentSRIs.get(streamID);
-        if (sriStruct.sri.subsize != 0) {
-            if (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
-                this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/this.helper.elementSize()) & 0xFFFFFFFE;
-                while (this.maxSamplesPerPush%sriStruct.sri.subsize != 0) {
-                    this.maxSamplesPerPush -= this.maxSamplesPerPush%sriStruct.sri.subsize;
-                    if (this.maxSamplesPerPush%2 != 0){
-                        this.maxSamplesPerPush--;
-                    }
-                }
-            }
-        }
         // If there is no need to break data into smaller packets, skip
         // straight to the pushPacket call and return.
-        if (length <= this.maxSamplesPerPush) {
+        if (length <= maxSamplesPerPush) {
             this.pushSinglePacket(data, time, endOfStream, streamID);
             return;
         }
 
-        // Determine xdelta for this streamID to be used for time increment for subpackets
-        SriMapStruct sriMap = this.currentSRIs.get(streamID);
-        double xdelta = 0.0;
-        if (sriMap != null){
-            xdelta = sriMap.sri.xdelta;
+        BULKIO.StreamSRI sri = this.currentSRIs.get(streamID).sri;
+        double xdelta = sri.xdelta;
+        int item_size = 1;
+        if (sri.mode != 0) {
+            item_size = 2;
         }
+        int frame_size = item_size;
+        if (sri.subsize > 0) {
+            frame_size *= sri.subsize;
+        }
+        // Quantize the push size (in terms of scalars) to the nearest frame,
+        // which takes both the complex mode and subsize into account
+        final int max_push_size = (maxSamplesPerPush/frame_size) * frame_size;
 
         // Initialize time of first subpacket
         PrecisionUTCTime packetTime = time;
         for (int offset = 0; offset < length;) {
             // Don't send more samples than are remaining
-            final int pushSize = java.lang.Math.min(length-offset, this.maxSamplesPerPush);
+            final int pushSize = java.lang.Math.min(length-offset, max_push_size);
 
             // Copy the range for this sub-packet and advance the offset
             A subPacket = copyOfRange(data, offset, offset+pushSize);
@@ -105,12 +98,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
                 logger.trace("bulkio.OutPort pushOversizedPacket() calling pushPacket with pushSize " + pushSize + " and packetTime twsec: " + packetTime.twsec + " tfsec: " + packetTime.tfsec);
             }
             this.pushSinglePacket(subPacket, packetTime, packetEOS, streamID);
-            int data_xfer_len = pushSize;
-            if (sriMap != null){
-                if (sriMap.sri.mode == 1) {
-                    data_xfer_len = data_xfer_len / 2;
-                }
-            }
+            int data_xfer_len = pushSize / item_size;
             packetTime = bulkio.time.utils.addSampleOffset(packetTime, data_xfer_len, xdelta);
         }
     }

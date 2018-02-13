@@ -17,20 +17,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from PortTest.java.template.
+ *          Do not modify directly.
+ */
 
-package stubs;
-
-public class Packet<E> {
-    public Packet(E data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
+public class @name@PortTest extends impl.@base@PortTestImpl
+{
+    public @name@PortTest()
     {
-        this.data = data;
-        this.T = T;
-        this.EOS = EOS;
-        this.streamID = streamID;
     }
-
-    public E data;
-    public BULKIO.PrecisionUTCTime T;
-    public boolean EOS;
-    public String streamID;
 }
