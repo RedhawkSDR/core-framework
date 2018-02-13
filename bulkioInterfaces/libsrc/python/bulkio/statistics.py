@@ -35,7 +35,7 @@ class InStats:
     def __init__(self, name, element_type='', bits=0):
         # Backwards-compatibility: accept an element type string for use with
         # struct.calcsize
-        if not bits:
+        if bits == 0:
             bits = struct.calcsize(element_type) * 8
         self.enabled = True
         self.flushTime = None
@@ -43,7 +43,7 @@ class InStats:
         self.receivedStatistics = []
         self.name = name
         self.receivedStatistics_idx = 0
-        self.bitSize = struct.calcsize(element_type) * 8
+        self.bitSize = bits
         self.activeStreamIDs = []
         for i in range(self.historyWindow):
             self.receivedStatistics.append(self.statPoint())

@@ -158,6 +158,21 @@ class InPortTest(object):
         self.failUnless(packet.inputQueueFlushed)
         self.failUnless(packet.sriChanged)
 
+    def testStatistics(self):
+        """
+        Tests that statistics reports the expected information.
+        """
+        # Push a packet of data to trigger meaningful statistics
+        sri = bulkio.sri.create("port_stats")
+        self.port.pushSRI(sri)
+        self._pushTestPacket(1024, bulkio.timestamp.now(), False, sri.streamID);
+
+        # Check that the statistics report the right element size
+        stats = self.port._get_statistics()
+        self.failUnless(stats.elementsPerSecond > 0.0)
+        bits_per_element = int(round(stats.bitsPerSecond / stats.elementsPerSecond))
+        self.assertEqual(self.helper.BITS_PER_ELEMENT, bits_per_element)
+
     def testStatisticsStreamIDs(self):
         """
         Tests that the stream IDs reported in statistics are correct.
