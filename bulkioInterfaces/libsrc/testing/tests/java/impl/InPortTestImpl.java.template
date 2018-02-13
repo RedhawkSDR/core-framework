@@ -294,4 +294,19 @@ public class In@name@PortTestImpl {
         port.setLogger(null);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, "null_logger");
     }
+
+    @Test
+    public void testStatistics()
+    {
+        // Push a packet of data to trigger meaningful statistics
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("port_stats");
+        port.pushSRI(sri);
+        helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, sri.streamID);
+       
+        // Check that the statistics report the right element size
+        BULKIO.PortStatistics stats = port.statistics();
+        Assert.assertTrue(stats.elementsPerSecond > 0.0);
+        int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
+        Assert.assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
+    }
 }
