@@ -97,6 +97,8 @@ class CharTestHelper(PortTestHelper):
     OutPortType = bulkio.OutCharPort
     InStubType = InCharPortStub
 
+    BITS_PER_ELEMENT = 8
+
     def createData(self, length):
         return '\x00'*length
 
@@ -105,6 +107,8 @@ class OctetTestHelper(PortTestHelper):
     InPortType = bulkio.InOctetPort
     OutPortType = bulkio.OutOctetPort
     InStubType = InOctetPortStub
+
+    BITS_PER_ELEMENT = 8
 
     def createData(self, length):
         return '\x00'*length
@@ -115,11 +119,15 @@ class ShortTestHelper(PortTestHelper):
     OutPortType = bulkio.OutShortPort
     InStubType = InShortPortStub
 
+    BITS_PER_ELEMENT = 16
+
 class UShortTestHelper(PortTestHelper):
     PortType = BULKIO.dataUshort
     InPortType = bulkio.InUShortPort
     OutPortType = bulkio.OutUShortPort
     InStubType = InUshortPortStub
+
+    BITS_PER_ELEMENT = 16
 
 class LongTestHelper(PortTestHelper):
     PortType = BULKIO.dataLong
@@ -127,11 +135,15 @@ class LongTestHelper(PortTestHelper):
     OutPortType = bulkio.OutLongPort
     InStubType = InLongPortStub
 
+    BITS_PER_ELEMENT = 32
+
 class ULongTestHelper(PortTestHelper):
     PortType = BULKIO.dataUlong
     InPortType = bulkio.InULongPort
     OutPortType = bulkio.OutULongPort
     InStubType = InUlongPortStub
+
+    BITS_PER_ELEMENT = 32
 
 class LongLongTestHelper(PortTestHelper):
     PortType = BULKIO.dataLongLong
@@ -139,11 +151,15 @@ class LongLongTestHelper(PortTestHelper):
     OutPortType = bulkio.OutLongLongPort
     InStubType = InLongLongPortStub
 
+    BITS_PER_ELEMENT = 64
+
 class ULongLongTestHelper(PortTestHelper):
     PortType = BULKIO.dataUlongLong
     InPortType = bulkio.InULongLongPort
     OutPortType = bulkio.OutULongLongPort
     InStubType = InUlongLongPortStub
+
+    BITS_PER_ELEMENT = 64
 
 class FloatTestHelper(PortTestHelper):
     PortType = BULKIO.dataFloat
@@ -151,17 +167,23 @@ class FloatTestHelper(PortTestHelper):
     OutPortType = bulkio.OutFloatPort
     InStubType = InFloatPortStub
 
+    BITS_PER_ELEMENT = 32
+
 class DoubleTestHelper(PortTestHelper):
     PortType = BULKIO.dataDouble
     InPortType = bulkio.InDoublePort
     OutPortType = bulkio.OutDoublePort
     InStubType = InDoublePortStub
 
+    BITS_PER_ELEMENT = 64
+
 class BitTestHelper(PortTestHelper):
     PortType = BULKIO.dataBit
     InPortType = bulkio.InBitPort
     OutPortType = bulkio.OutBitPort
     InStubType = InBitPortStub
+
+    BITS_PER_ELEMENT = 1
 
     def createData(self, length):
         bytes = '\x00' * int((length+7)/8)
@@ -176,6 +198,8 @@ class FileTestHelper(PortTestHelper):
     OutPortType = bulkio.OutFilePort
     InStubType = InFilePortStub
 
+    BITS_PER_ELEMENT = 8
+
     def createData(self, length):
         return ' '*length
 
@@ -184,6 +208,8 @@ class XMLTestHelper(PortTestHelper):
     InPortType = bulkio.InXMLPort
     OutPortType = bulkio.OutXMLPort
     InStubType = InXMLPortStub
+
+    BITS_PER_ELEMENT = 8
 
     def createData(self, length):
         return ' '*length

@@ -32,7 +32,11 @@ class InStats:
             self.queueSize = 0.0
             self.secs = 0.0
 
-    def __init__(self, name, element_type ):
+    def __init__(self, name, element_type='', bits=0):
+        # Backwards-compatibility: accept an element type string for use with
+        # struct.calcsize
+        if not bits:
+            bits = struct.calcsize(element_type) * 8
         self.enabled = True
         self.flushTime = None
         self.historyWindow = 10
@@ -123,9 +127,13 @@ class OutStats:
             self.secs = 0.0
             self.streamID = ""
 
-    def __init__(self, name, element_type ):
+    def __init__(self, name, element_type='', bits=0):
+        # Backwards-compatibility: accept an element type string for use with
+        # struct.calcsize
+        if not bits:
+            bits = struct.calcsize(element_type) * 8
         self.enabled = True
-        self.bitSize = struct.calcsize(element_type) * 8
+        self.bitSize = bits
         self.historyWindow = 10
         self.receivedStatistics = {}
         self.name = name
@@ -144,6 +152,11 @@ class OutStats:
         self.connection_errors.setdefault(connection_id,0)
         self.connection_errors[connection_id] = self.connection_errors[connection_id]+n
         return self.connection_errors[connection_id]
+
+    def add(self, connectionId):
+        self.receivedStatistics[connectionId] = [self.statPoint() for xx in xrange(self.historyWindow)]
+        self.receivedStatistics_idx[connectionId] = 0
+        self.connection_errors[connectionId] = 0
     
     def remove(self, connectionId):
         if self.receivedStatistics.has_key(connectionId):
@@ -157,24 +170,14 @@ class OutStats:
         if not self.enabled:
             return
 
-        if self.receivedStatistics.has_key(connectionId):
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].elements = elementsReceived
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].queueSize = queueSize
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].secs = time.time()
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].streamID = streamID
-            self.receivedStatistics_idx[connectionId] += 1
-            self.receivedStatistics_idx[connectionId] = self.receivedStatistics_idx[connectionId]%self.historyWindow
-        else:
-            self.receivedStatistics[connectionId] = []
-            self.receivedStatistics_idx[connectionId] = 0
-            for i in range(self.historyWindow):
-                self.receivedStatistics[connectionId].append(self.statPoint())
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].elements = elementsReceived
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].queueSize = queueSize
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].secs = time.time()
-            self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].streamID = streamID
-            self.receivedStatistics_idx[connectionId] += 1
-            self.receivedStatistics_idx[connectionId] = self.receivedStatistics_idx[connectionId] % self.historyWindow
+        if not self.receivedStatistics.has_key(connectionId):
+            self.add(connectionId)
+        self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].elements = elementsReceived
+        self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].queueSize = queueSize
+        self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].secs = time.time()
+        self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].streamID = streamID
+        self.receivedStatistics_idx[connectionId] += 1
+        self.receivedStatistics_idx[connectionId] = self.receivedStatistics_idx[connectionId]%self.historyWindow
 
     def retrieve(self):
         if not self.enabled:
