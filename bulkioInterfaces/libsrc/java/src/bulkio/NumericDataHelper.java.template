@@ -23,9 +23,15 @@
  */
 package bulkio;
 
+import java.util.Arrays;
+
 class @name@DataHelper implements DataHelper<@type@[]> {
     public int elementSize() {
         return @size@;
+    }
+
+    public int bitSize() {
+        return @size@ * 8;
     }
 
     public int arraySize(@type@[] data) {
@@ -34,5 +40,9 @@ class @name@DataHelper implements DataHelper<@type@[]> {
 
     public @type@[] emptyArray() {
         return new @type@[0];
+    }
+
+    public @type@[] slice(@type@[] data, int start, int end) {
+        return Arrays.copyOfRange(data, start, end);
     }
 }

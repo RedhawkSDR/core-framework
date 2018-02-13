@@ -39,6 +39,9 @@ impl/Out%PortTestImpl.java : impl/OutPortTestImpl.java.template
 impl/ChunkingOut%PortTestImpl.java : impl/ChunkingOutPortTestImpl.java.template
 	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
 
+impl/NumericOut%PortTestImpl.java : impl/NumericOutPortTestImpl.java.template
+	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
+
 # Test helpers and port stubs are generated for numeric types.
 helpers/%TestHelper.java : sed/%.sed helpers/TestHelper.java.template
 	$(AM_V_GEN)sed -f $^ > $@
@@ -47,13 +50,18 @@ stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
 # Override the test base class for numeric classes to include the extended
-# tests for data chunking
-NUMERIC_TESTS = $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
-$(NUMERIC_TESTS) : TEST_BASE=Chunking
+# tests for data chunking (including complex)
+NUMERIC_OUT_TESTS = $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
+$(NUMERIC_OUT_TESTS) : TEST_BASE=Numeric
+
+# Output bit ports support chunking, but not complex data
+OutBitPortTest.java : TEST_BASE=Chunking
 
 BUILT_SOURCES = $(patsubst %,impl/In%PortTestImpl.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,impl/Out%PortTestImpl.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,impl/ChunkingOut%PortTestImpl.java,$(NUMERIC_TYPES))
+BUILT_SOURCES += impl/ChunkingOutBitPortTestImpl.java
+BUILT_SOURCES += $(patsubst %,impl/NumericOut%PortTestImpl.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES))
 

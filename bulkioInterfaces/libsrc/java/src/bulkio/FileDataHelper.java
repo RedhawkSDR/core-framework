@@ -24,11 +24,19 @@ class FileDataHelper implements DataHelper<String> {
         return 1;
     }
 
+    public int bitSize() {
+        return 8;
+    }
+
     public int arraySize(String data) {
         return data.length();
     }
 
     public String emptyArray() {
         return "";
+    }
+
+    public String slice(String data, int start, int end) {
+        return data.substring(start, end);
     }
 }

@@ -19,9 +19,15 @@
  */
 package bulkio;
 
+import java.util.Arrays;
+
 class BitDataHelper implements DataHelper<BULKIO.BitSequence> {
     public int elementSize() {
         // TODO: handle less than byte-sized elements
+        return 1;
+    }
+
+    public int bitSize() {
         return 1;
     }
 
@@ -34,5 +40,18 @@ class BitDataHelper implements DataHelper<BULKIO.BitSequence> {
         array.data = new byte[0];
         array.bits = 0;
         return array;
+    }
+
+    public BULKIO.BitSequence slice(BULKIO.BitSequence data, int start, int end) {
+        // Without a bit array API, limit slicing to byte boundaries
+        if (start % 8 != 0) {
+            throw new IllegalArgumentException("start index <" + start + "> is not byte-aligned");
+        } else if (end % 8 != 0) {
+            throw new IllegalArgumentException("end index <" + end + "> is not byte-aligned");
+        }
+        BULKIO.BitSequence result = new BULKIO.BitSequence();
+        result.data = Arrays.copyOfRange(data.data, start/8, end/8);
+        result.bits = end - start;
+        return result;
     }
 }

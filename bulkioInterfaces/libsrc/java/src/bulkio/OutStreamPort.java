@@ -37,7 +37,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
 
     protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
         super(portName, logger, connectionListener, helper);
-        this.maxSamplesPerPush = (MAX_PAYLOAD_SIZE/helper.elementSize());
+        this.maxSamplesPerPush = (8 * MAX_PAYLOAD_SIZE) / helper.bitSize();
     }
 
     /**
@@ -83,7 +83,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
             final int pushSize = java.lang.Math.min(length-offset, max_push_size);
 
             // Copy the range for this sub-packet and advance the offset
-            A subPacket = copyOfRange(data, offset, offset+pushSize);
+            A subPacket = helper.slice(data, offset, offset+pushSize);
             offset += pushSize;
 
             // Send end-of-stream as false for all sub-packets except for the
@@ -102,6 +102,4 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
             packetTime = bulkio.time.utils.addSampleOffset(packetTime, data_xfer_len, xdelta);
         }
     }
-
-    protected abstract A copyOfRange(A array, int start, int end);
 }

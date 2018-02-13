@@ -118,6 +118,9 @@ public class InPortImpl<A> {
         this.name = portName;
         this.logger = logger;
         this.stats = new linkStatistics(this.name, helper.elementSize());
+        // Update bit size from the helper, because element size does not take
+        // sub-byte elements (i.e., dataBit) into account.
+        this.stats.setBitSize(helper.bitSize());
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();

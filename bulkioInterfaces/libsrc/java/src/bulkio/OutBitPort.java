@@ -22,10 +22,12 @@ package bulkio;
 import org.apache.log4j.Logger;
 
 import BULKIO.PrecisionUTCTime;
-import BULKIO.StreamSRI;
 import BULKIO.dataBitOperations;
 
-public class OutBitPort extends OutDataPort<dataBitOperations,BULKIO.BitSequence> {
+/**
+ * BulkIO output port implementation for dataBit.
+ */
+public class OutBitPort extends OutStreamPort<dataBitOperations,BULKIO.BitSequence> {
 
     public OutBitPort(String portName) {
         this(portName, null, null);
@@ -42,20 +44,15 @@ public class OutBitPort extends OutDataPort<dataBitOperations,BULKIO.BitSequence
         }
     }
 
-    public String getRepid() {
-        return BULKIO.dataBitHelper.id();
-    }
-
-    public void pushPacket(BULKIO.BitSequence data, PrecisionUTCTime time, boolean endOfStream, String streamID)
-    {
-        super.pushPacket(data, time, endOfStream, streamID);
-    }
-
     protected dataBitOperations narrow(org.omg.CORBA.Object obj) {
         return BULKIO.jni.dataBitHelper.narrow(obj);
     }
 
     protected void sendPacket(dataBitOperations port, BULKIO.BitSequence data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
         port.pushPacket(data, time, endOfStream, streamID);
+    }
+
+    public String getRepid() {
+        return BULKIO.dataBitHelper.id();
     }
 }
