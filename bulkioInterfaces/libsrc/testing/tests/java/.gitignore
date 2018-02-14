@@ -1,7 +1,16 @@
 *.class
 Bulkio
 In*PortTest.java
-Out*PortTest.java
+OutCharPortTest.java
+OutOctetPortTest.java
+OutShortPortTest.java
+OutUShortPortTest.java
+OutLongPortTest.java
+OutULongPortTest.java
+OutLongLongPortTest.java
+OutULongLongPortTest.java
+OutFloatPortTest.java
+OutDoublePortTest.java
 helpers/CharTestHelper.java
 helpers/OctetTestHelper.java
 helpers/ShortTestHelper.java

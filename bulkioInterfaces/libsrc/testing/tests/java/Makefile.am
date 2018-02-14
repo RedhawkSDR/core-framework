@@ -39,8 +39,8 @@ impl/Out%PortTestImpl.java : impl/OutPortTestImpl.java.template
 impl/ChunkingOut%PortTestImpl.java : impl/ChunkingOutPortTestImpl.java.template
 	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
 
-impl/NumericOut%PortTestImpl.java : impl/NumericOutPortTestImpl.java.template
-	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
+impl/NumericOut%PortTestImpl.java : sed/%.sed impl/NumericOutPortTestImpl.java.template
+	$(AM_V_GEN)sed -f $^ > $@
 
 # Test helpers and port stubs are generated for numeric types.
 helpers/%TestHelper.java : sed/%.sed helpers/TestHelper.java.template
@@ -54,19 +54,19 @@ stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
 NUMERIC_OUT_TESTS = $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 $(NUMERIC_OUT_TESTS) : TEST_BASE=Numeric
 
-# Output bit ports support chunking, but not complex data
-OutBitPortTest.java : TEST_BASE=Chunking
+# Final output port tests for bit, file and XML are not generated
+OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java :
 
 BUILT_SOURCES = $(patsubst %,impl/In%PortTestImpl.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,impl/Out%PortTestImpl.java,$(ALL_TYPES))
-BUILT_SOURCES += $(patsubst %,impl/ChunkingOut%PortTestImpl.java,$(NUMERIC_TYPES))
-BUILT_SOURCES += impl/ChunkingOutBitPortTestImpl.java
+# All numeric types plus bit support chunking
+BUILT_SOURCES += $(patsubst %,impl/ChunkingOut%PortTestImpl.java,$(NUMERIC_TYPES) Bit)
 BUILT_SOURCES += $(patsubst %,impl/NumericOut%PortTestImpl.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES))
 
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
-BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(ALL_TYPES))
+BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 
 noinst_java_JARFILES = bulkio-tests.jar
 
@@ -80,6 +80,9 @@ bulkio_tests_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/XMLTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/ConnectionListener.java
 bulkio_tests_jar_SOURCE += AllTests.java
+bulkio_tests_jar_SOURCE += OutBitPortTest.java
+bulkio_tests_jar_SOURCE += OutFilePortTest.java
+bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java BulkioHelpers_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java 
 bulkio_tests_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
