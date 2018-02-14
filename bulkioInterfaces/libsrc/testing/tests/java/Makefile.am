@@ -37,9 +37,6 @@ Out%PortTest.java : sed/%.sed NumericOutPortTest.java.template
 # Explicitly disable out port test generation for bit, file and XML.
 OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java : ;
 
-impl/In%PortTestImpl.java : impl/InPortTestImpl.java.template
-	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
-
 # Test helpers are generated for numeric types.
 helpers/%TestHelper.java : sed/%.sed helpers/NumericTestHelper.java.template
 	$(AM_V_GEN)sed -f $^ > $@
@@ -55,15 +52,12 @@ stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
 stubs/stub/InXMLPortStub.java : ;
 
 
-BUILT_SOURCES = $(patsubst %,impl/In%PortTestImpl.java,$(ALL_TYPES))
-BUILT_SOURCES += $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
+BUILT_SOURCES := $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
-
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 
 noinst_java_JARFILES = bulkio-tests.jar
-
 
 bulkio_tests_jar_SOURCE = $(BUILT_SOURCES)
 bulkio_tests_jar_SOURCE += stubs/Packet.java
@@ -80,6 +74,7 @@ bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java BulkioHelpers_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
+bulkio_tests_jar_SOURCE += impl/InPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/OutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/ChunkingOutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/NumericOutPortTestImpl.java

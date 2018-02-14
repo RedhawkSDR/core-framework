@@ -17,22 +17,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*
- * WARNING: This file is generated from InPortTest.java.template.
- *          Do not modify directly.
- */
+package bulkio;
 
-import org.junit.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.apache.log4j.Logger;
 
-import helpers.@name@TestHelper;
+import org.ossie.component.PortBase;
 
-@RunWith(JUnit4.class)
-public class In@name@PortTest extends impl.InPortTestImpl<BULKIO.@idl@Operations,@type@>
-{
-    public In@name@PortTest()
-    {
-        super(new @name@TestHelper());
-    }
+public interface InDataPort<E,A> extends PortBase {
+    public String getName();
+
+    public void setLogger(Logger logger);
+
+    public void setSriListener(bulkio.SriListener sriCallback);
+
+    public int getCurrentQueueDepth();
+    public int getMaxQueueDepth();
+    public void setMaxQueueDepth(int newDepth);
+
+    public DataTransfer<A> getPacket(long wait);
+
+    public void enableStats(boolean enable);
 }

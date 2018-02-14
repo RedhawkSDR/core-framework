@@ -20,6 +20,7 @@
 
 package helpers;
 
+import bulkio.InDataPort;
 import bulkio.InBitPort;
 import bulkio.OutDataPort;
 import bulkio.OutBitPort;
@@ -36,9 +37,14 @@ public class BitTestHelper implements TestHelper<BULKIO.dataBitOperations, BULKI
         return BitTestHelper.BITS_PER_ELEMENT;
     }
 
-    public bulkio.OutBitPort createOutPort(String name)
+    public InBitPort createInPort(String name)
     {
-        return new bulkio.OutBitPort(name);
+        return new InBitPort(name);
+    }
+
+    public OutBitPort createOutPort(String name)
+    {
+        return new OutBitPort(name);
     }
 
     public Stub<BULKIO.BitSequence> createStub()
@@ -51,10 +57,16 @@ public class BitTestHelper implements TestHelper<BULKIO.dataBitOperations, BULKI
         return "dataBit";
     }
 
-    public void pushTestPacket(InBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public BULKIO.dataBitOperations toCorbaType(InDataPort<BULKIO.dataBitOperations,BULKIO.BitSequence> port)
+    {
+        return (BULKIO.dataBitOperations) port;
+    }
+
+    public void pushTestPacket(InDataPort<BULKIO.dataBitOperations,BULKIO.BitSequence> port,
+                               int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         BULKIO.BitSequence data = makeData(length);
-        port.pushPacket(data, time, eos, streamID);
+        toCorbaType(port).pushPacket(data, time, eos, streamID);
     }
 
     public void pushTestPacket(OutDataPort<BULKIO.dataBitOperations, BULKIO.BitSequence> port,

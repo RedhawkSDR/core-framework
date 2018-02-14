@@ -28,20 +28,37 @@ import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import bulkio.In@name@Port;
+import bulkio.InDataPort;
+import bulkio.DataTransfer;
 
-import helpers.@name@TestHelper;
+import helpers.TestHelper;
 
 @RunWith(JUnit4.class)
-public class In@name@PortTestImpl {
-    protected In@name@Port port;
+public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.ProvidesPortStatisticsProviderOperations,A> {
 
-    protected @name@TestHelper helper = new @name@TestHelper();
+    /**
+     * Input port being tested (using generic interface).
+     */
+    protected InDataPort<E,A> port;
+
+    /**
+     * External CORBA interface to the tested port.
+     */
+    protected E corbaPort;
+
+    protected TestHelper<E,A> helper;
+
+    public InPortTestImpl(TestHelper<E,A> helper)
+    {
+        this.helper = helper;
+    }
 
     @Before
     public void setUp()
     {
-        port = new In@name@Port(helper.getName() + "_in");
+        String name = helper.getName() + "_out";
+        port = helper.createInPort(name);
+        corbaPort = helper.toCorbaType(port);
     }
 
     @Test
@@ -56,16 +73,20 @@ public class In@name@PortTestImpl {
     public void testGetPacket()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_get_packet");
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
 
         BULKIO.PrecisionUTCTime ts = bulkio.time.utils.now();
         helper.pushTestPacket(port, 50, ts, false, sri.streamID);
 
         // Check result of getPacket
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertNotNull(packet.dataBuffer);
         Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        // For all types except XML, the timestamp should be preserved
+        if (!(corbaPort instanceof BULKIO.dataXMLOperations)) {
+            Assert.assertEquals(0, bulkio.time.utils.compare(ts, packet.T));
+        }
         Assert.assertEquals(false, packet.EOS);
         Assert.assertEquals(sri.streamID, packet.streamID);
         Assert.assertTrue(bulkio.sri.utils.compare(packet.SRI, sri));
@@ -81,7 +102,7 @@ public class In@name@PortTestImpl {
         //     copy the SRI, it just shares the reference
         sri = bulkio.sri.utils.create(sri.streamID);
         sri.mode = 1;
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         helper.pushTestPacket(port, 100, ts, true, sri.streamID);
         packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
@@ -93,21 +114,21 @@ public class In@name@PortTestImpl {
     @Test
     public void testActiveSRIs()
     {
-        BULKIO.StreamSRI[] active_sris = port.activeSRIs();
+        BULKIO.StreamSRI[] active_sris = corbaPort.activeSRIs();
         Assert.assertEquals(0, active_sris.length);
 
         // Push a new SRI, and make sure that it is immediately visible and
         // correct in activeSRIs
         BULKIO.StreamSRI sri_1 = bulkio.sri.utils.create("active_sri_1");
-        port.pushSRI(sri_1);
-        active_sris = port.activeSRIs();
+        corbaPort.pushSRI(sri_1);
+        active_sris = corbaPort.activeSRIs();
         Assert.assertEquals(1, active_sris.length);
         Assert.assertTrue(bulkio.sri.utils.compare(active_sris[0], sri_1));
 
         // Push a second SRI, and make sure that activeSRIs is up-to-date
         BULKIO.StreamSRI sri_2 = bulkio.sri.utils.create("active_sri_2");
-        port.pushSRI(sri_2);
-        active_sris = port.activeSRIs();
+        corbaPort.pushSRI(sri_2);
+        active_sris = corbaPort.activeSRIs();
         Assert.assertEquals(2, active_sris.length);
         for (BULKIO.StreamSRI current_sri : active_sris) {
             if (current_sri.streamID.equals("active_sri_2")) {
@@ -120,10 +141,10 @@ public class In@name@PortTestImpl {
         // Push an end-of-stream, retrieve the packet, and verify that the
         // stream is no longer in activeSRIs
         helper.pushTestPacket(port, 0, bulkio.time.utils.notSet(), true, sri_1.streamID);
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertTrue(packet.EOS);
-        active_sris = port.activeSRIs();
+        active_sris = corbaPort.activeSRIs();
         Assert.assertEquals(1, active_sris.length);
         Assert.assertEquals(active_sris[0].streamID, sri_2.streamID);
     }
@@ -137,7 +158,7 @@ public class In@name@PortTestImpl {
         // Use a non-blocking stream to allow queue flushing
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_depth");
         sri.blocking = false;
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
 
         // Push some test packets, the queue should start growing
         for (int ii = 0; ii < 4; ii++) {
@@ -146,7 +167,7 @@ public class In@name@PortTestImpl {
         Assert.assertEquals(4, port.getCurrentQueueDepth());
 
         // Read a packet and make sure the current depth drops
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertEquals(3, port.getCurrentQueueDepth());
 
@@ -171,28 +192,28 @@ public class In@name@PortTestImpl {
     public void testState()
     {
         // Port starts out idle
-        Assert.assertEquals(BULKIO.PortUsageType.IDLE, port.state());
+        Assert.assertEquals(BULKIO.PortUsageType.IDLE, corbaPort.state());
 
         // Push one test packet, state goes to active
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_state");
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
-        Assert.assertEquals(BULKIO.PortUsageType.ACTIVE, port.state());
+        Assert.assertEquals(BULKIO.PortUsageType.ACTIVE, corbaPort.state());
 
         // Full queue should report busy
         port.setMaxQueueDepth(2);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
-        Assert.assertEquals(BULKIO.PortUsageType.BUSY, port.state());
+        Assert.assertEquals(BULKIO.PortUsageType.BUSY, corbaPort.state());
 
         // Drop below max, back to active
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
-        Assert.assertEquals(BULKIO.PortUsageType.ACTIVE, port.state());
+        Assert.assertEquals(BULKIO.PortUsageType.ACTIVE, corbaPort.state());
 
         // Empty queue, back to idle
         packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
-        Assert.assertEquals(BULKIO.PortUsageType.IDLE, port.state());
+        Assert.assertEquals(BULKIO.PortUsageType.IDLE, corbaPort.state());
     }
 
     /**
@@ -206,12 +227,12 @@ public class In@name@PortTestImpl {
 
         // Create a default SRI and push it, which should trigger the callback
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("sri_changed");
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         Assert.assertEquals(1, listener.newSRIs.size());
 
         // SRI should report changed for first packet
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertTrue(packet.sriChanged);
 
@@ -225,7 +246,7 @@ public class In@name@PortTestImpl {
         // Change the SRI, should call the change listener and flag the packet
         sri = bulkio.sri.utils.create("sri_changed");
         sri.mode = 1;
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         Assert.assertEquals(1, listener.newSRIs.size());
         Assert.assertEquals(1, listener.changedSRIs.size());
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
@@ -238,7 +259,7 @@ public class In@name@PortTestImpl {
     public void testSriChangedFlush()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("sri_changed_flush");
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
 
         // Reduce the queue size so we can force a flush
         port.setMaxQueueDepth(2);
@@ -248,13 +269,13 @@ public class In@name@PortTestImpl {
         // with the associated SRI change gets flushed
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
         sri = bulkio.sri.utils.create(sri.streamID, 2.0);
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
 
         // Get the last packet and verify that the queue has flushed, and the
         // SRI change is still reported
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertTrue(packet.inputQueueFlushed);
         Assert.assertTrue(packet.sriChanged);
@@ -274,7 +295,7 @@ public class In@name@PortTestImpl {
         helpers.SriListener listener = new helpers.SriListener();
         port.setSriListener(listener);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, stream_id);
-        In@name@Port.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertTrue(packet.sriChanged);
         Assert.assertEquals(1, listener.newSRIs.size());
@@ -300,13 +321,13 @@ public class In@name@PortTestImpl {
     {
         // Push a packet of data to trigger meaningful statistics
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("port_stats");
-        port.pushSRI(sri);
+        corbaPort.pushSRI(sri);
         helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, sri.streamID);
        
         // Check that the statistics report the right element size
-        BULKIO.PortStatistics stats = port.statistics();
+        BULKIO.PortStatistics stats = corbaPort.statistics();
         Assert.assertTrue(stats.elementsPerSecond > 0.0);
         int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
-        Assert.assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
+        Assert.assertEquals(helper.bitsPerElement(), bits_per_element);
     }
 }

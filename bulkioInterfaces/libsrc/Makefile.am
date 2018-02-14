@@ -140,6 +140,7 @@ InULongLongPort.java \
 InULongPort.java \
 InUShortPort.java \
 InXMLPort.java \
+InDataPort.java \
 InPortImpl.java \
 linkStatistics.java \
 OutBitPort.java \

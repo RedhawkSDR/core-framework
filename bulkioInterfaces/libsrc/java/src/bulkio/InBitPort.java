@@ -26,12 +26,10 @@ import BULKIO.StreamSRI;
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 
-import org.ossie.component.PortBase;
-
 /**
  * 
  */
-public class InBitPort extends BULKIO.jni.dataBitPOA implements PortBase {
+public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKIO.dataBitOperations,BULKIO.BitSequence> {
 
     /**
      * A class to hold packet data.

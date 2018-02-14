@@ -33,4 +33,3 @@ stubs/InFloatPortStub.java
 stubs/InDoublePortStub.java
 stubs/InBitPortStub.java
 stubs/InFilePortStub.java
-impl/In*PortTestImpl.java

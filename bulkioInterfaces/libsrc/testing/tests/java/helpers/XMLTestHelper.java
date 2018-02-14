@@ -20,6 +20,7 @@
 
 package helpers;
 
+import bulkio.InDataPort;
 import bulkio.InXMLPort;
 import bulkio.OutDataPort;
 import bulkio.OutXMLPort;
@@ -34,6 +35,11 @@ public class XMLTestHelper implements TestHelper<BULKIO.dataXMLOperations,String
     public int bitsPerElement()
     {
         return XMLTestHelper.BITS_PER_ELEMENT;
+    }
+
+    public InXMLPort createInPort(String name)
+    {
+        return new InXMLPort(name);
     }
 
     public OutXMLPort createOutPort(String name)
@@ -51,10 +57,15 @@ public class XMLTestHelper implements TestHelper<BULKIO.dataXMLOperations,String
         return "dataXML";
     }
 
-    public void pushTestPacket(InXMLPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public BULKIO.dataXMLOperations toCorbaType(InDataPort<BULKIO.dataXMLOperations,String> port)
+    {
+        return (BULKIO.dataXMLOperations) port;
+    }
+
+    public void pushTestPacket(InDataPort<BULKIO.dataXMLOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         String data = makeData(length);
-        port.pushPacket(data, eos, streamID);
+        toCorbaType(port).pushPacket(data, eos, streamID);
     }
 
     public void pushTestPacket(OutDataPort<BULKIO.dataXMLOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)

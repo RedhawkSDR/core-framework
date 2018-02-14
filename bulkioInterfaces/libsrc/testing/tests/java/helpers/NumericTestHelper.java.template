@@ -24,6 +24,7 @@
 
 package helpers;
 
+import bulkio.InDataPort;
 import bulkio.In@name@Port;
 import bulkio.OutDataPort;
 import bulkio.Out@name@Port;
@@ -40,9 +41,14 @@ public class @name@TestHelper implements TestHelper<BULKIO.@idl@Operations,@type
         return @name@TestHelper.BITS_PER_ELEMENT;
     }
 
+    public In@name@Port createInPort(String name)
+    {
+        return new In@name@Port(name);
+    }
+
     public Out@name@Port createOutPort(String name)
     {
-        return new bulkio.Out@name@Port(name);
+        return new Out@name@Port(name);
     }
 
     public Stub<@type@> createStub()
@@ -59,10 +65,15 @@ public class @name@TestHelper implements TestHelper<BULKIO.@idl@Operations,@type
         return "@idl@";
     }
 
-    public void pushTestPacket(In@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public BULKIO.@idl@Operations toCorbaType(InDataPort<BULKIO.@idl@Operations,@type@> port)
+    {
+        return (BULKIO.@idl@Operations) port;
+    }
+
+    public void pushTestPacket(InDataPort<BULKIO.@idl@Operations,@type@> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         @type@ data = makeData(length);
-        port.pushPacket(data, time, eos, streamID);
+        toCorbaType(port).pushPacket(data, time, eos, streamID);
     }
 
     public void pushTestPacket(OutDataPort<BULKIO.@idl@Operations,@type@> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)

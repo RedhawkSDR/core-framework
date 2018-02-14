@@ -20,6 +20,7 @@
 
 package helpers;
 
+import bulkio.InDataPort;
 import bulkio.InFilePort;
 import bulkio.OutDataPort;
 import bulkio.OutFilePort;
@@ -34,6 +35,11 @@ public class FileTestHelper implements TestHelper<BULKIO.dataFileOperations,Stri
     public int bitsPerElement()
     {
         return FileTestHelper.BITS_PER_ELEMENT;
+    }
+
+    public InFilePort createInPort(String name)
+    {
+        return new InFilePort(name);
     }
 
     public OutFilePort createOutPort(String name)
@@ -51,10 +57,15 @@ public class FileTestHelper implements TestHelper<BULKIO.dataFileOperations,Stri
         return "dataFile";
     }
 
-    public void pushTestPacket(InFilePort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public BULKIO.dataFileOperations toCorbaType(InDataPort<BULKIO.dataFileOperations,String> port)
+    {
+        return (BULKIO.dataFileOperations) port;
+    }
+
+    public void pushTestPacket(InDataPort<BULKIO.dataFileOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         String data = makeData(length);
-        port.pushPacket(data, time, eos, streamID);
+        toCorbaType(port).pushPacket(data, time, eos, streamID);
     }
 
     public void pushTestPacket(OutDataPort<BULKIO.dataFileOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)

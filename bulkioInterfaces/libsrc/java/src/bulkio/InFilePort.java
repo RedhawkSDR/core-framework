@@ -26,12 +26,10 @@ import BULKIO.StreamSRI;
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 
-import org.ossie.component.PortBase;
-
 /**
  * 
  */
-public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
+public class InFilePort extends BULKIO.jni.dataFilePOA implements InDataPort<BULKIO.dataFileOperations,String> {
 
     /**
      * A class to hold packet data.

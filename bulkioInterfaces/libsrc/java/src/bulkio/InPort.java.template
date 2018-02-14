@@ -30,12 +30,10 @@ import BULKIO.PortUsageType;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 
-import org.ossie.component.PortBase;
-
 /**
  * 
  */
-public class In@name@Port extends BULKIO.jni.@idl@POA implements org.ossie.component.PortBase {
+public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULKIO.@idl@Operations,@type@[]> {
 
     /**
      * A class to hold packet data.
