@@ -17,14 +17,23 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-/*
- * WARNING: This file is generated from PortTest.java.template.
- *          Do not modify directly.
- */
 
-public class @name@PortTest extends impl.@base@PortTestImpl
-{
-    public @name@PortTest()
-    {
-    }
+package helpers;
+
+import bulkio.OutDataPort;
+
+public interface TestHelper<E extends BULKIO.updateSRIOperations,A> {
+    public String getName();
+
+    public int bitsPerElement();
+
+    public OutDataPort<E,A> createOutPort(String name);
+
+    public stubs.Stub<A> createStub();
+
+    public int dataLength(A data);
+
+    public A makeData(int length);
+
+    public void pushTestPacket(OutDataPort<E,A> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID);
 }

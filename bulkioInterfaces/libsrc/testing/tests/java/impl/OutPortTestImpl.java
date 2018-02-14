@@ -33,28 +33,34 @@ import java.util.List;
 
 import org.omg.PortableServer.Servant;
 
-import bulkio.Out@name@Port;
+import bulkio.OutDataPort;
 
-import stubs.In@name@PortStub;
-import helpers.@name@TestHelper;
+import stubs.Stub;
+import helpers.TestHelper;
 
 @RunWith(JUnit4.class)
-public class Out@name@PortTestImpl {
+public class OutPortTestImpl<E extends BULKIO.updateSRIOperations,A> {
 
-    protected Out@name@Port port;
-    protected In@name@PortStub stub;
+    protected OutDataPort<E,A> port;
+    protected Stub<A> stub;
 
-    protected @name@TestHelper helper = new @name@TestHelper();
+    protected TestHelper<E,A> helper;
 
     protected List<bulkio.connection_descriptor_struct> connectionTable = new ArrayList<bulkio.connection_descriptor_struct>();
     protected List<Servant> servants = new ArrayList<Servant>();
+
+    public OutPortTestImpl(TestHelper<E,A> helper)
+    {
+        this.helper = helper;
+    }
 
     @Before
     public void setUp() throws org.omg.CORBA.UserException
     {
         org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init(new String[0], null);
 
-        port = new Out@name@Port(helper.getName() + "_out");
+        String name = helper.getName() + "_out";
+        port = helper.createOutPort(name);
         org.ossie.corba.utils.RootPOA().activate_object(port);
 
         stub = _createStub();
@@ -93,9 +99,9 @@ public class Out@name@PortTestImpl {
         }
     }
 
-    protected In@name@PortStub _createStub() throws org.omg.CORBA.UserException
+    protected Stub<A> _createStub() throws org.omg.CORBA.UserException
     {
-        In@name@PortStub new_stub = new In@name@PortStub();
+        Stub<A> new_stub = helper.createStub();
         org.omg.PortableServer.Servant servant = new_stub.servant();
         org.ossie.corba.utils.RootPOA().activate_object(servant);
         servants.add(servant);
@@ -126,7 +132,7 @@ public class Out@name@PortTestImpl {
         port.setConnectionEventListener(listener);
 
         // Make a new connection
-        In@name@PortStub stub2 = _createStub();
+        Stub<A> stub2 = _createStub();
         port.connectPort(stub2._this(), "connection_2");
         Assert.assertEquals(1, listener.connected.size());
         Assert.assertEquals(0, listener.disconnected.size());
@@ -166,7 +172,7 @@ public class Out@name@PortTestImpl {
         }
 
         // Normal connection
-        In@name@PortStub stub2 = _createStub();
+        Stub<A> stub2 = _createStub();
         objref = stub2._this();
         port.connectPort(objref, "connection_2");
         connections = port.connections();
@@ -233,10 +239,10 @@ public class Out@name@PortTestImpl {
         // Check that the statistics report the right element size
         Assert.assertTrue(stats.elementsPerSecond > 0.0);
         int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
-        Assert.assertEquals(@name@TestHelper.BITS_PER_ELEMENT, bits_per_element);
+        Assert.assertEquals(helper.bitsPerElement(), bits_per_element);
 
         // Test that statistics are returned for all connections
-        In@name@PortStub stub2 = _createStub();
+        Stub<A> stub2 = _createStub();
         port.connectPort(stub2._this(), "connection_2");
         uses_stats = port.statistics();
         Assert.assertEquals("List of statistics does not match number of connections", 2, uses_stats.length);
@@ -290,7 +296,7 @@ public class Out@name@PortTestImpl {
     @Test
     public void testMultiOut() throws org.omg.CORBA.UserException
     {
-        In@name@PortStub stub2 = _createStub();
+        Stub<A> stub2 = _createStub();
         org.omg.CORBA.Object objref = stub2._this();
         port.connectPort(objref, "connection_2");
 

@@ -17,20 +17,25 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from NumericOutPortTest.java.template.
+ *          Do not modify directly.
+ */
+
+import java.util.Arrays;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import stubs.Packet;
-import helpers.FileTestHelper;
+import helpers.@name@TestHelper;
 
 @RunWith(JUnit4.class)
-public class OutFilePortTest extends impl.OutPortTestImpl<BULKIO.dataFileOperations,String>
+public class Out@name@PortTest extends impl.NumericOutPortTestImpl<BULKIO.@idl@Operations,@type@>
 {
-    public OutFilePortTest()
+    public Out@name@PortTest()
     {
-        super(new FileTestHelper());
+        super(new @name@TestHelper());
     }
 
     @Test
@@ -39,12 +44,16 @@ public class OutFilePortTest extends impl.OutPortTestImpl<BULKIO.dataFileOperati
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("push_packet");
         port.pushSRI(sri);
 
-        String uri = "file:///tmp/test.dat";
+        // Create an array and fill it with a ramp
+        @type@ data = new @elem@[1024];
+        for (int ii = 0; ii < data.length; ++ii) {
+            data[ii] = (@elem@) ii;
+        }
 
-        // Check the received data is consistent
-        port.pushPacket(uri, bulkio.time.utils.now(), false, sri.streamID);
+        port.pushPacket(data, bulkio.time.utils.now(), false, sri.streamID);
         Assert.assertEquals(1, stub.packets.size());
-        Packet<String> packet = stub.packets.get(0);
-        Assert.assertEquals(uri, packet.data);
+        // NB: Assert.assertArrayEquals does not support float[] or double[],
+        //     and we want strict equality anyway
+        Assert.assertTrue(Arrays.equals(data, stub.packets.get(0).data));
     }
 }

@@ -28,24 +28,29 @@ import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import static helpers.@name@TestHelper.BITS_PER_ELEMENT;
+import helpers.TestHelper;
 
 @RunWith(JUnit4.class)
-public class ChunkingOut@name@PortTestImpl extends Out@name@PortTestImpl {
+public class ChunkingOutPortTestImpl<E extends BULKIO.updateSRIOperations,A> extends OutPortTestImpl<E,A> {
+
+    public ChunkingOutPortTestImpl(TestHelper<E,A> helper)
+    {
+        super(helper);
+    }
 
     protected void _testPushOversizedPacket(BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         // Pick a sufficiently large number of samples that the packet has to span
         // multiple packets
         final int max_bits = 8 * (int) bulkio.Const.MAX_TRANSFER_BYTES;
-        int count = 2 * max_bits / BITS_PER_ELEMENT;
+        int count = 2 * max_bits / helper.bitsPerElement();
         helper.pushTestPacket(port, count, time, eos, streamID);
 
         // More than one packet must have been received, and no packet can
         // exceed the max transfer size
         Assert.assertTrue(stub.packets.size() > 1);
         for (int index = 0; index < stub.packets.size(); ++index) {
-            int packet_bits = helper.dataLength(stub.packets.get(index).data) * BITS_PER_ELEMENT;
+            int packet_bits = helper.dataLength(stub.packets.get(index).data) * helper.bitsPerElement();
             Assert.assertTrue("Packet too large", packet_bits < max_bits);
         }
     }

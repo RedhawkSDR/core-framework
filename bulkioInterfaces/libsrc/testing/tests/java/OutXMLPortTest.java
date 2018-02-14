@@ -23,12 +23,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import stubs.Packet;
+import helpers.XMLTestHelper;
 
 @RunWith(JUnit4.class)
-public class OutXMLPortTest extends impl.OutXMLPortTestImpl
+public class OutXMLPortTest extends impl.OutPortTestImpl<BULKIO.dataXMLOperations,String>
 {
     public OutXMLPortTest()
     {
+        super(new XMLTestHelper());
     }
 
     @Test
@@ -40,7 +42,7 @@ public class OutXMLPortTest extends impl.OutXMLPortTestImpl
         String document = "<document><body attribute=\"value\"/></document>";
 
         // Check the received data is consistent
-        port.pushPacket(document, false, sri.streamID);
+        port.pushPacket(document, null, false, sri.streamID);
         Assert.assertEquals(1, stub.packets.size());
         Packet<String> packet = stub.packets.get(0);
         Assert.assertEquals(document, packet.data);

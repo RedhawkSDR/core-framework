@@ -25,11 +25,30 @@
 package helpers;
 
 import bulkio.In@name@Port;
+import bulkio.OutDataPort;
 import bulkio.Out@name@Port;
 
-public class @name@TestHelper {
+import stubs.Stub;
+import stubs.In@name@PortStub;
+
+public class @name@TestHelper implements TestHelper<BULKIO.@idl@Operations,@type@> {
 
     public static final int BITS_PER_ELEMENT = @size@ * 8;
+
+    public int bitsPerElement()
+    {
+        return @name@TestHelper.BITS_PER_ELEMENT;
+    }
+
+    public Out@name@Port createOutPort(String name)
+    {
+        return new bulkio.Out@name@Port(name);
+    }
+
+    public Stub<@type@> createStub()
+    {
+        return new In@name@PortStub();
+    }
 
     public @name@TestHelper()
     {
@@ -46,7 +65,7 @@ public class @name@TestHelper {
         port.pushPacket(data, time, eos, streamID);
     }
 
-    public void pushTestPacket(Out@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(OutDataPort<BULKIO.@idl@Operations,@type@> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         @type@ data = makeData(length);
         port.pushPacket(data, time, eos, streamID);

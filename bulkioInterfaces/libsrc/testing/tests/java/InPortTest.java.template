@@ -17,34 +17,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from InPortTest.java.template.
+ *          Do not modify directly.
+ */
 
-import org.junit.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import stubs.Packet;
-import helpers.FileTestHelper;
-
-@RunWith(JUnit4.class)
-public class OutFilePortTest extends impl.OutPortTestImpl<BULKIO.dataFileOperations,String>
+public class In@name@PortTest extends impl.In@name@PortTestImpl
 {
-    public OutFilePortTest()
-    {
-        super(new FileTestHelper());
-    }
-
-    @Test
-    public void testPushPacketData()
-    {
-        BULKIO.StreamSRI sri = bulkio.sri.utils.create("push_packet");
-        port.pushSRI(sri);
-
-        String uri = "file:///tmp/test.dat";
-
-        // Check the received data is consistent
-        port.pushPacket(uri, bulkio.time.utils.now(), false, sri.streamID);
-        Assert.assertEquals(1, stub.packets.size());
-        Packet<String> packet = stub.packets.get(0);
-        Assert.assertEquals(uri, packet.data);
-    }
 }

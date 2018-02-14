@@ -21,14 +21,29 @@
 package helpers;
 
 import bulkio.InBitPort;
+import bulkio.OutDataPort;
 import bulkio.OutBitPort;
 
-public class BitTestHelper {
+import stubs.Stub;
+import stubs.InBitPortStub;
+
+public class BitTestHelper implements TestHelper<BULKIO.dataBitOperations, BULKIO.BitSequence> {
 
     public static final int BITS_PER_ELEMENT = 1;
 
-    public BitTestHelper()
+    public int bitsPerElement()
     {
+        return BitTestHelper.BITS_PER_ELEMENT;
+    }
+
+    public bulkio.OutBitPort createOutPort(String name)
+    {
+        return new bulkio.OutBitPort(name);
+    }
+
+    public Stub<BULKIO.BitSequence> createStub()
+    {
+        return new InBitPortStub();
     }
 
     public String getName()
@@ -42,7 +57,8 @@ public class BitTestHelper {
         port.pushPacket(data, time, eos, streamID);
     }
 
-    public void pushTestPacket(OutBitPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(OutDataPort<BULKIO.dataBitOperations, BULKIO.BitSequence> port,
+                               int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         BULKIO.BitSequence data = makeData(length);
         port.pushPacket(data, time, eos, streamID);

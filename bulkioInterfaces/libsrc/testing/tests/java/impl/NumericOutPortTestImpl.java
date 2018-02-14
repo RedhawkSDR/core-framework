@@ -30,8 +30,15 @@ import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import helpers.TestHelper;
+
 @RunWith(JUnit4.class)
-public class NumericOut@name@PortTestImpl extends ChunkingOut@name@PortTestImpl {
+public class NumericOutPortTestImpl<E extends BULKIO.updateSRIOperations,A> extends ChunkingOutPortTestImpl<E,A> {
+
+    public NumericOutPortTestImpl(TestHelper<E,A> helper)
+    {
+        super(helper);
+    }
 
     @Test
     public void testPushChunkingComplex()
@@ -83,24 +90,5 @@ public class NumericOut@name@PortTestImpl extends ChunkingOut@name@PortTestImpl 
             int packet_length = helper.dataLength(stub.packets.get(index).data);
             Assert.assertEquals("Packet size is not a multiple of subsize", 0, packet_length % frame_size);
         }
-    }
-
-    @Test
-    public void testPushPacketData()
-    {
-        BULKIO.StreamSRI sri = bulkio.sri.utils.create("push_packet");
-        port.pushSRI(sri);
-
-        // Create an array and fill it with a ramp
-        @type@ data = new @elem@[1024];
-        for (int ii = 0; ii < data.length; ++ii) {
-            data[ii] = (@elem@) ii;
-        }
-
-        port.pushPacket(data, bulkio.time.utils.now(), false, sri.streamID);
-        Assert.assertEquals(1, stub.packets.size());
-        // NB: Assert.assertArrayEquals does not support float[] or double[],
-        //     and we want strict equality anyway
-        Assert.assertTrue(Arrays.equals(data, stub.packets.get(0).data));
     }
 }

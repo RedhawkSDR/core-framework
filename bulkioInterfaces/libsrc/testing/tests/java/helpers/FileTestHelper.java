@@ -21,14 +21,29 @@
 package helpers;
 
 import bulkio.InFilePort;
+import bulkio.OutDataPort;
 import bulkio.OutFilePort;
 
-public class FileTestHelper {
+import stubs.Stub;
+import stubs.InFilePortStub;
+
+public class FileTestHelper implements TestHelper<BULKIO.dataFileOperations,String> {
 
     public static final int BITS_PER_ELEMENT = 8;
 
-    public FileTestHelper()
+    public int bitsPerElement()
     {
+        return FileTestHelper.BITS_PER_ELEMENT;
+    }
+
+    public OutFilePort createOutPort(String name)
+    {
+        return new OutFilePort(name);
+    }
+
+    public Stub<String> createStub()
+    {
+        return new InFilePortStub();
     }
 
     public String getName()
@@ -42,7 +57,7 @@ public class FileTestHelper {
         port.pushPacket(data, time, eos, streamID);
     }
 
-    public void pushTestPacket(OutFilePort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(OutDataPort<BULKIO.dataFileOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         String data = makeData(length);
         port.pushPacket(data, time, eos, streamID);

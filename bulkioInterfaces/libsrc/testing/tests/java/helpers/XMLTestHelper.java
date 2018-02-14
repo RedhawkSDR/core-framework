@@ -21,14 +21,29 @@
 package helpers;
 
 import bulkio.InXMLPort;
+import bulkio.OutDataPort;
 import bulkio.OutXMLPort;
 
-public class XMLTestHelper {
+import stubs.Stub;
+import stubs.InXMLPortStub;
+
+public class XMLTestHelper implements TestHelper<BULKIO.dataXMLOperations,String> {
 
     public static final int BITS_PER_ELEMENT = 8;
 
-    public XMLTestHelper()
+    public int bitsPerElement()
     {
+        return XMLTestHelper.BITS_PER_ELEMENT;
+    }
+
+    public OutXMLPort createOutPort(String name)
+    {
+        return new OutXMLPort(name);
+    }
+
+    public Stub<String> createStub()
+    {
+        return new InXMLPortStub();
     }
 
     public String getName()
@@ -42,10 +57,10 @@ public class XMLTestHelper {
         port.pushPacket(data, eos, streamID);
     }
 
-    public void pushTestPacket(OutXMLPort port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushTestPacket(OutDataPort<BULKIO.dataXMLOperations,String> port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
         String data = makeData(length);
-        port.pushPacket(data, eos, streamID);
+        port.pushPacket(data, null, eos, streamID);
     }
 
     public int dataLength(String data)

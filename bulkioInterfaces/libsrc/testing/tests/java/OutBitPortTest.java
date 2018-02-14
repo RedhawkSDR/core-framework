@@ -23,12 +23,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import stubs.Packet;
+import helpers.BitTestHelper;
 
 @RunWith(JUnit4.class)
-public class OutBitPortTest extends impl.ChunkingOutBitPortTestImpl
+public class OutBitPortTest extends impl.ChunkingOutPortTestImpl<BULKIO.dataBitOperations,BULKIO.BitSequence>
 {
     public OutBitPortTest()
     {
+        super(new BitTestHelper());
     }
 
     @Test

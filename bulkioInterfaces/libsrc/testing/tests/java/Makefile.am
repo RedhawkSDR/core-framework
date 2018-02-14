@@ -27,44 +27,35 @@ NUMERIC_TYPES = Char Octet Short UShort Long ULong LongLong ULongLong Float Doub
 ALL_TYPES = $(NUMERIC_TYPES) Bit File XML
 
 # Tests are generated via sed for ease of maintenance.
-%PortTest.java : PortTest.java.template
-	$(AM_V_GEN)sed -e 's/@name@/$*/g' -e 's/@base@/$(TEST_BASE)$*/g' $< > $@
+In%PortTest.java : sed/%.sed InPortTest.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
+# Numeric out port tests are generated.
+Out%PortTest.java : sed/%.sed NumericOutPortTest.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
+# Explicitly disable out port test generation for bit, file and XML.
+OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java : ;
 
 impl/In%PortTestImpl.java : impl/InPortTestImpl.java.template
 	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
 
-impl/Out%PortTestImpl.java : sed/%.sed impl/OutPortTestImpl.java.template
+# Test helpers are generated for numeric types.
+helpers/%TestHelper.java : sed/%.sed helpers/NumericTestHelper.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
-impl/ChunkingOut%PortTestImpl.java : sed/%.sed impl/ChunkingOutPortTestImpl.java.template
-	$(AM_V_GEN)sed -f $^ > $@
+# Explicitly disable helper generation for bit, file and XML.
+helpers/BitTestHelper.java helpers/FileTestHelper.java helpers/XMLTestHelper.java : ;
 
-impl/NumericOut%PortTestImpl.java : sed/%.sed impl/NumericOutPortTestImpl.java.template
-	$(AM_V_GEN)sed -f $^ > $@
-
-# Test helpers and port stubs are generated for numeric types.
-helpers/%TestHelper.java : sed/%.sed helpers/TestHelper.java.template
-	$(AM_V_GEN)sed -f $^ > $@
-
+# Most port stubs are generated.
 stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
-# Override the test base class for numeric classes to include the extended
-# tests for data chunking (including complex)
-NUMERIC_OUT_TESTS = $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
-$(NUMERIC_OUT_TESTS) : TEST_BASE=Numeric
+# Explicitly disable stub generation for XML.
+stubs/stub/InXMLPortStub.java : ;
 
-# Final output port tests, stubs and test helpers for bit, file and
-# XML are not generated
-OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java: ;
-stubs/stub/InXMLPortStub.java: ;
-helpers/BitTestHelper.java helpers/FileTestHelper.java helpers/XMLTestHelper.java: ;
 
 BUILT_SOURCES = $(patsubst %,impl/In%PortTestImpl.java,$(ALL_TYPES))
-BUILT_SOURCES += $(patsubst %,impl/Out%PortTestImpl.java,$(ALL_TYPES))
-# All numeric types plus bit support chunking
-BUILT_SOURCES += $(patsubst %,impl/ChunkingOut%PortTestImpl.java,$(NUMERIC_TYPES) Bit)
-BUILT_SOURCES += $(patsubst %,impl/NumericOut%PortTestImpl.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
 
@@ -76,7 +67,9 @@ noinst_java_JARFILES = bulkio-tests.jar
 
 bulkio_tests_jar_SOURCE = $(BUILT_SOURCES)
 bulkio_tests_jar_SOURCE += stubs/Packet.java
+bulkio_tests_jar_SOURCE += stubs/Stub.java
 bulkio_tests_jar_SOURCE += stubs/InXMLPortStub.java
+bulkio_tests_jar_SOURCE += helpers/TestHelper.java
 bulkio_tests_jar_SOURCE += helpers/BitTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/XMLTestHelper.java
@@ -86,7 +79,10 @@ bulkio_tests_jar_SOURCE += OutBitPortTest.java
 bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java BulkioHelpers_Test.java
-bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java 
+bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
+bulkio_tests_jar_SOURCE += impl/OutPortTestImpl.java
+bulkio_tests_jar_SOURCE += impl/ChunkingOutPortTestImpl.java
+bulkio_tests_jar_SOURCE += impl/NumericOutPortTestImpl.java
 bulkio_tests_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
 bulkio_tests_jar_JAVACFLAGS = -g -Xlint
 
