@@ -20,36 +20,18 @@
 
 package stubs;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.omg.PortableServer.Servant;
 
-public class InXMLPortStub extends BULKIO.dataXMLPOA {
-
-    public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
-    public List<Packet<String>> packets = new ArrayList<Packet<String>>();
-
-    public void pushSRI(BULKIO.StreamSRI H)
-    {
-        this.H.add(H);
-    }
-
-    public BULKIO.PortUsageType state()
-    {
-        return BULKIO.PortUsageType.IDLE;
-    }
-
-    public BULKIO.PortStatistics statistics()
-    {
-        return null;
-    }
-
-    public BULKIO.StreamSRI[] activeSRIs()
-    {
-        return new BULKIO.StreamSRI[0];
-    }
+public class InXMLPortStub extends Stub<String> implements BULKIO.dataXMLOperations {
 
     public void pushPacket(String data, boolean EOS, String streamID)
     {
+        // Add a null time stamp to adapt XML to the base class
         packets.add(new Packet<String>(data, null, EOS, streamID));
+    }
+
+    protected Servant _makeServant()
+    {
+        return new BULKIO.dataXMLPOATie(this);
     }
 }

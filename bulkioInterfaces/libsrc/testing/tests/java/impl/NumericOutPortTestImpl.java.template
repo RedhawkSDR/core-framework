@@ -92,9 +92,9 @@ public class NumericOut@name@PortTestImpl extends ChunkingOut@name@PortTestImpl 
         port.pushSRI(sri);
 
         // Create an array and fill it with a ramp
-        @type@[] data = new @type@[1024];
+        @type@ data = new @elem@[1024];
         for (int ii = 0; ii < data.length; ++ii) {
-            data[ii] = (@type@) ii;
+            data[ii] = (@elem@) ii;
         }
 
         port.pushPacket(data, bulkio.time.utils.now(), false, sri.streamID);

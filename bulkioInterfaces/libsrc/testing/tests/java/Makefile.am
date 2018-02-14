@@ -33,11 +33,11 @@ ALL_TYPES = $(NUMERIC_TYPES) Bit File XML
 impl/In%PortTestImpl.java : impl/InPortTestImpl.java.template
 	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
 
-impl/Out%PortTestImpl.java : impl/OutPortTestImpl.java.template
-	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
+impl/Out%PortTestImpl.java : sed/%.sed impl/OutPortTestImpl.java.template
+	$(AM_V_GEN)sed -f $^ > $@
 
-impl/ChunkingOut%PortTestImpl.java : impl/ChunkingOutPortTestImpl.java.template
-	$(AM_V_GEN)sed 's/@name@/$*/g' $< > $@
+impl/ChunkingOut%PortTestImpl.java : sed/%.sed impl/ChunkingOutPortTestImpl.java.template
+	$(AM_V_GEN)sed -f $^ > $@
 
 impl/NumericOut%PortTestImpl.java : sed/%.sed impl/NumericOutPortTestImpl.java.template
 	$(AM_V_GEN)sed -f $^ > $@
@@ -54,8 +54,11 @@ stubs/In%PortStub.java : sed/%.sed stubs/InPortStub.java.template
 NUMERIC_OUT_TESTS = $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 $(NUMERIC_OUT_TESTS) : TEST_BASE=Numeric
 
-# Final output port tests for bit, file and XML are not generated
-OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java :
+# Final output port tests, stubs and test helpers for bit, file and
+# XML are not generated
+OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java: ;
+stubs/stub/InXMLPortStub.java: ;
+helpers/BitTestHelper.java helpers/FileTestHelper.java helpers/XMLTestHelper.java: ;
 
 BUILT_SOURCES = $(patsubst %,impl/In%PortTestImpl.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,impl/Out%PortTestImpl.java,$(ALL_TYPES))
@@ -63,17 +66,16 @@ BUILT_SOURCES += $(patsubst %,impl/Out%PortTestImpl.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,impl/ChunkingOut%PortTestImpl.java,$(NUMERIC_TYPES) Bit)
 BUILT_SOURCES += $(patsubst %,impl/NumericOut%PortTestImpl.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
-BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES))
+BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
 
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 
 noinst_java_JARFILES = bulkio-tests.jar
 
+
 bulkio_tests_jar_SOURCE = $(BUILT_SOURCES)
 bulkio_tests_jar_SOURCE += stubs/Packet.java
-bulkio_tests_jar_SOURCE += stubs/InBitPortStub.java
-bulkio_tests_jar_SOURCE += stubs/InFilePortStub.java
 bulkio_tests_jar_SOURCE += stubs/InXMLPortStub.java
 bulkio_tests_jar_SOURCE += helpers/BitTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/FileTestHelper.java

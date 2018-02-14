@@ -31,4 +31,6 @@ stubs/InLongLongPortStub.java
 stubs/InULongLongPortStub.java
 stubs/InFloatPortStub.java
 stubs/InDoublePortStub.java
+stubs/InBitPortStub.java
+stubs/InFilePortStub.java
 impl/*.java

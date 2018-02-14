@@ -23,14 +23,21 @@ package stubs;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InFilePortStub extends BULKIO.dataFilePOA {
+import org.omg.PortableServer.Servant;
 
+public abstract class Stub<E> implements BULKIO.updateSRIOperations,
+                                         BULKIO.ProvidesPortStatisticsProviderOperations {
     public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
-    public List<Packet<String>> packets = new ArrayList<Packet<String>>();
+    public List<Packet<E>> packets = new ArrayList<Packet<E>>();
 
     public void pushSRI(BULKIO.StreamSRI H)
     {
         this.H.add(H);
+    }
+
+    public BULKIO.StreamSRI[] activeSRIs()
+    {
+        return new BULKIO.StreamSRI[0];
     }
 
     public BULKIO.PortUsageType state()
@@ -43,13 +50,19 @@ public class InFilePortStub extends BULKIO.dataFilePOA {
         return null;
     }
 
-    public BULKIO.StreamSRI[] activeSRIs()
+    public Servant servant()
     {
-        return new BULKIO.StreamSRI[0];
+        if (_servant == null) {
+            _servant = _makeServant();
+        }
+        return _servant;
     }
 
-    public void pushPacket(String data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
+    public org.omg.CORBA.Object _this()
     {
-        packets.add(new Packet<String>(data, T, EOS, streamID));
+        return servant()._this_object();
     }
+
+    protected abstract Servant _makeServant();
+    private Servant _servant = null;
 }

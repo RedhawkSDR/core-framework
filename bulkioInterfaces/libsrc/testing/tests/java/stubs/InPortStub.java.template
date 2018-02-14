@@ -24,36 +24,17 @@
 
 package stubs;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.omg.PortableServer.Servant;
 
-public class In@name@PortStub extends BULKIO.@idl@POA {
+public class In@name@PortStub extends Stub<@type@> implements BULKIO.@idl@Operations {
 
-    public List<BULKIO.StreamSRI> H = new ArrayList<BULKIO.StreamSRI>();
-    public List<Packet<@type@[]>> packets = new ArrayList<Packet<@type@[]>>();
-
-    public void pushSRI(BULKIO.StreamSRI H)
+    public void pushPacket(@type@ data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
     {
-        this.H.add(H);
+        packets.add(new Packet<@type@>(data, T, EOS, streamID));
     }
 
-    public BULKIO.PortUsageType state()
+    protected Servant _makeServant()
     {
-        return BULKIO.PortUsageType.IDLE;
-    }
-
-    public BULKIO.PortStatistics statistics()
-    {
-        return null;
-    }
-
-    public BULKIO.StreamSRI[] activeSRIs()
-    {
-        return new BULKIO.StreamSRI[0];
-    }
-
-    public void pushPacket(@type@[] data, BULKIO.PrecisionUTCTime T, boolean EOS, String streamID)
-    {
-        packets.add(new Packet<@type@[]>(data, T, EOS, streamID));
+        return new BULKIO.@idl@POATie(this);
     }
 }

@@ -42,23 +42,23 @@ public class @name@TestHelper {
 
     public void pushTestPacket(In@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        @type@[] data = makeData(length);
+        @type@ data = makeData(length);
         port.pushPacket(data, time, eos, streamID);
     }
 
     public void pushTestPacket(Out@name@Port port, int length, BULKIO.PrecisionUTCTime time, boolean eos, String streamID)
     {
-        @type@[] data = makeData(length);
+        @type@ data = makeData(length);
         port.pushPacket(data, time, eos, streamID);
     }
 
-    public int dataLength(@type@[] data)
+    public int dataLength(@type@ data)
     {
         return data.length;
     }
 
-    public @type@[] makeData(int length)
+    public @type@ makeData(int length)
     {
-        return new @type@[length];
+        return new @elem@[length];
     }
 }

@@ -96,8 +96,9 @@ public class Out@name@PortTestImpl {
     protected In@name@PortStub _createStub() throws org.omg.CORBA.UserException
     {
         In@name@PortStub new_stub = new In@name@PortStub();
-        org.ossie.corba.utils.RootPOA().activate_object(new_stub);
-        servants.add(new_stub);
+        org.omg.PortableServer.Servant servant = new_stub.servant();
+        org.ossie.corba.utils.RootPOA().activate_object(servant);
+        servants.add(servant);
         return new_stub;
     }
 
