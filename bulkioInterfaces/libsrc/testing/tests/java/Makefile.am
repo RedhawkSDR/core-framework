@@ -63,6 +63,7 @@ bulkio_tests_jar_SOURCE = $(BUILT_SOURCES)
 bulkio_tests_jar_SOURCE += stubs/Packet.java
 bulkio_tests_jar_SOURCE += stubs/Stub.java
 bulkio_tests_jar_SOURCE += stubs/InXMLPortStub.java
+bulkio_tests_jar_SOURCE += helpers/ArrayData.java
 bulkio_tests_jar_SOURCE += helpers/TestHelper.java
 bulkio_tests_jar_SOURCE += helpers/BitTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/FileTestHelper.java
