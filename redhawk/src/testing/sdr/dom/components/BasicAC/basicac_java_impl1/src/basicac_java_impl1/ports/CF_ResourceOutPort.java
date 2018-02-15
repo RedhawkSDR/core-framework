@@ -116,6 +116,40 @@ public class CF_ResourceOutPort extends UsesPort<ResourceOperations> implements 
         return retval;
     }
 
+    public void resetLog() {
+        synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
+            if (this.active) {
+                for (ResourceOperations p : this.outConnections.values()) {
+                       p.resetLog();
+                }
+            }
+        }    // don't want to process while command information is coming in
+    }
+
+    public String[] getNamedLoggers() {
+        String[] retval = new String[0];
+        synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
+            if (this.active) {
+                for (ResourceOperations p : this.outConnections.values()) {
+                       retval = p.getNamedLoggers();
+                }
+            }
+        }    // don't want to process while command information is coming in
+        return retval;
+    }
+
+    public int getLogLevel(String logger_id) throws CF.UnknownIdentifier {
+        int retval = -1;
+        synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
+            if (this.active) {
+                for (ResourceOperations p : this.outConnections.values()) {
+                       retval = p.getLogLevel(logger_id);
+                }
+            }
+        }    // don't want to process while command information is coming in
+        return retval;
+    }
+
     public void initializeProperties(CF.DataType[] configProperties) throws CF.PropertySetPackage.InvalidConfiguration, CF.PropertySetPackage.PartialConfiguration
     {
     }

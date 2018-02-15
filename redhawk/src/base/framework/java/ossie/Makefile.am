@@ -102,6 +102,7 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/component/QueryableUsesPort.java \
 		   src/org/ossie/component/PropertyChangeRec.java \
 		   src/org/ossie/component/Resource.java \
+		   src/org/ossie/component/RHLogger.java \
 		   src/org/ossie/component/Component.java \
 		   src/org/ossie/component/ThreadedComponent.java \
 		   src/org/ossie/component/ThreadedDevice.java \

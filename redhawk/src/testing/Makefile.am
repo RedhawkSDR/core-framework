@@ -105,6 +105,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/huge_msg_java/java \
            sdr/dom/components/msg_through_java/java \
            sdr/dom/components/timeprop_java/java \
+           sdr/dom/components/logger_java/java \
            sdr/dom/components/time_ja_now/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \

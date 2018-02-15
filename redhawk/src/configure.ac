@@ -366,6 +366,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/huge_msg_java/java/Makefile \
                 testing/sdr/dom/components/timeprop_java/java/Makefile \
+                testing/sdr/dom/components/logger_java/java/Makefile \
                 testing/sdr/dom/components/time_ja_now/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \

@@ -217,13 +217,13 @@ public abstract class Device extends Resource implements DeviceOperations {
             EventChannel idm_channel=null;
             // Get DomainManager incoming event channel and connect the device to it, where applicable
             try {
-                logger.debug("connectIDMChannel: idm_channel_ior:" + idm_channel_ior);
+                this._deviceLog.debug("connectIDMChannel: idm_channel_ior:" + idm_channel_ior);
                 Object idm_channel_obj = orb.string_to_object(idm_channel_ior);
                 idm_channel = org.omg.CosEventChannelAdmin.EventChannelHelper.narrow(idm_channel_obj);
                 idm_publisher = new org.ossie.events.Publisher(idm_channel);
             } 
             catch (Exception e){
-                logger.warn("Error connecting to IDM channel.");
+                this._deviceLog.warn("Error connecting to IDM channel.");
             }
 
         }
@@ -234,16 +234,18 @@ public abstract class Device extends Resource implements DeviceOperations {
                 idm_publisher = evt_mgr.Publisher( Manager.IDM_CHANNEL_SPEC );
             }
             catch( Manager.OperationFailed e) {
-                logger.warn("Failed to connect to IDM channel.");
+                this._deviceLog.warn("Failed to connect to IDM channel.");
             }
             catch( RegistrationExists e) {
-                logger.warn("Failed to connect to IDM channel.");
+                this._deviceLog.warn("Failed to connect to IDM channel.");
             }
             catch( RegistrationFailed e) {
-                logger.warn("Failed to connect to IDM channel.");
+                this._deviceLog.warn("Failed to connect to IDM channel.");
             }
         }
     }
+
+    protected RHLogger _deviceLog;
 
     /**
      * The setup() function exists to make it easy for start_device to invoke the no-arg constructor.
@@ -268,6 +270,7 @@ public abstract class Device extends Resource implements DeviceOperations {
             final POA poa) throws InvalidObjectReference, ServantNotActive, WrongPolicy {
         super.setup(compId, label, softwareProfile, orb, poa);
         this.label = label;
+        this._deviceLog = this._baseLog.getChildLogger("Device", "system");
 
         DevicePOATie tie = new DevicePOATie(this, poa);
         tie._this(orb);
@@ -294,7 +297,7 @@ public abstract class Device extends Resource implements DeviceOperations {
             try {
                 this._ecm = org.ossie.events.Manager.GetManager(this);
             }catch( Manager.OperationFailed e){
-                logger.warn("Unable to resolve EventChannelManager");
+                this._deviceLog.warn("Unable to resolve EventChannelManager");
             }
         }
 
@@ -528,11 +531,11 @@ public abstract class Device extends Resource implements DeviceOperations {
      */
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
 
-        logger.debug("allocateCapacity : " + capacities.toString());
+        this._deviceLog.debug("allocateCapacity : " + capacities.toString());
 
         // Checks for empty
         if (capacities.length == 0){
-            logger.trace("No capacities to allocate.");
+            this._deviceLog.trace("No capacities to allocate.");
             return true;
         }
 
@@ -546,7 +549,7 @@ public abstract class Device extends Resource implements DeviceOperations {
             } else {
                 invalidState = "SHUTTING_DOWN";
             }
-            logger.debug("Cannot allocate capacity: System is " + invalidState);
+            this._deviceLog.debug("Cannot allocate capacity: System is " + invalidState);
             throw new InvalidState(invalidState);
         }
 
@@ -563,7 +566,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                 // Checks to see if the device has a call back function registered
                 if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).allocate(cap)){
                     // If it does, use it
-                    logger.trace("Capacity allocated by user-defined function.");
+                    this._deviceLog.trace("Capacity allocated by user-defined function.");
                     allocations.add(cap);
                 } else {
                     // Otherwise defer to the property's allocator.
@@ -572,7 +575,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                         if (property.allocate(cap.value)) {
                             allocations.add(cap);
                         } else {
-                            logger.debug("Cannot allocate capacity. Insufficient capacity for property '" + cap.id + "'");
+                            this._deviceLog.debug("Cannot allocate capacity. Insufficient capacity for property '" + cap.id + "'");
                             return false;
                         }
                     } catch (final RuntimeException ex) {
@@ -606,7 +609,7 @@ public abstract class Device extends Resource implements DeviceOperations {
     public void deallocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
         /* Verify that the device is in a valid state */
         if (adminState == AdminType.LOCKED || operationState == OperationalType.DISABLED){
-            logger.warn("Cannot deallocate capacity. System is either LOCKED or DISABLED.");
+            this._deviceLog.warn("Cannot deallocate capacity. System is either LOCKED or DISABLED.");
             throw new InvalidState("Cannot deallocate capacity. System is either LOCKED or DISABLED.");
         }
 
@@ -619,7 +622,7 @@ public abstract class Device extends Resource implements DeviceOperations {
             // Checks to see if the device has a callback function registered
             if (callbacks.containsKey(cap.id) && callbacks.get(cap.id).deallocate(cap)){
                 // If it does, use it
-                logger.trace("Capacity allocated by user-defined function.");
+                this._deviceLog.trace("Capacity allocated by user-defined function.");
             } else {
                 // Otherwise defer to the property's deallocator.
                 final IProperty property = this.propSet.get(cap.id);
@@ -628,7 +631,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                     for(  DataType ov : originalCap ) {
                         if ( ov.id.equals(property.getId()) ) {
                             if ( AnyUtils.compareAnys(property.toAny(),ov.value,"gt") ) {
-                                logger.debug("deallocation exceeds bounds for " + property );
+                                this._deviceLog.debug("deallocation exceeds bounds for " + property );
                                 overCaps.add(cap);
                                 property.allocate(cap.value);
                                 break;
@@ -637,7 +640,7 @@ public abstract class Device extends Resource implements DeviceOperations {
                     }
 
                 } catch (final RuntimeException ex) {
-                    logger.debug("Exception during dealloaction...property: " + property );
+                    this._deviceLog.debug("Exception during dealloaction...property: " + property );
                     invalidProps.add(cap);
                 }
 
@@ -847,11 +850,11 @@ public abstract class Device extends Resource implements DeviceOperations {
             try {
                 if ( idm_publisher != null ) {
                     idm_publisher.push(AnyUtils.toAny(event, TCKind.tk_objref) );
-                    logger.debug("Sent device StateChangeEvent - USAGE ");
+                    this._deviceLog.debug("Sent device StateChangeEvent - USAGE ");
                 }
             }
             catch (Exception e) {
-                logger.warn("Error sending event.");
+                this._deviceLog.warn("Error sending event.");
             }
 
             usageState = newUsageState;
@@ -908,7 +911,7 @@ public abstract class Device extends Resource implements DeviceOperations {
         // Warn about mixed legacy and new-style properties, if we have not already.
         if (isMixed && !this.warnedLegacyAllocProps) {
             this.warnedLegacyAllocProps = true;
-            logger.warn("Device uses mix of deprecated and new-style allocation properties. Allocation behavior may be inconsistent.");
+            this._propertysetLog.warn("Device uses mix of deprecated and new-style allocation properties. Allocation behavior may be inconsistent.");
         }
     }
 
@@ -955,11 +958,11 @@ public abstract class Device extends Resource implements DeviceOperations {
             try {
                 if ( idm_publisher != null ) {
                     idm_publisher.push(AnyUtils.toAny(event, TCKind.tk_objref) );
-                    logger.debug("Sent device StateChangeEvent - ADMIN ");
+                    this._deviceLog.debug("Sent device StateChangeEvent - ADMIN ");
                 }
             }
             catch (Exception e) {
-                logger.warn("Error sending event.");
+                this._deviceLog.warn("Error sending event.");
             }
 
             adminState = newAdminState;
@@ -1002,11 +1005,11 @@ public abstract class Device extends Resource implements DeviceOperations {
             try {
                 if ( idm_publisher != null ) {
                     idm_publisher.push(AnyUtils.toAny(event, TCKind.tk_objref) );
-                    logger.debug("Sent device StateChangeEvent - OPERATIONAL ");
+                    this._deviceLog.debug("Sent device StateChangeEvent - OPERATIONAL ");
                 }
             }
             catch (Exception e) {
-                logger.warn("Error sending event.");
+                this._deviceLog.warn("Error sending event.");
             }
 
             operationState = newOperationState;

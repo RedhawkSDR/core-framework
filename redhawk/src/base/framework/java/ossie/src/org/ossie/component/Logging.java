@@ -82,6 +82,8 @@ abstract public class Logging {
     /** internal log4j logger object */
     protected Logger               _logger;
 
+    public RHLogger                _baseLog;
+
     /** log identifier, by default uses root logger or "" **/
     protected String               logName;
 
@@ -103,6 +105,12 @@ abstract public class Logging {
     /** holds the url for the logging configuration */
     protected String               loggingURL;
 
+    /** hold initial values to restore logging after reset */
+    protected boolean _origLevelSet;
+    protected String _origLogCfgURL;
+    protected int _origLogLevel;
+    protected logging.ResourceCtx _origCtx;
+
     /**
        Constructor that sets the base logging context for a resource. The logger that is passed in is 
        established by Domain base classes: Resource, Device, and Service, to maintain backwards
@@ -122,12 +130,17 @@ abstract public class Logging {
             _logger = Logger.getLogger(logName);
         }
 
+    this._baseLog=null;
 	this.logName=logName;
 	this.logLevel=CF.LogLevels.INFO;
 	this.logConfig ="";
 	this.logListener=null;
 	this.loggingCtx = null;
 	this.loggingURL = null;
+    this._origLevelSet = false;
+    this._origLogCfgURL = "";
+    this._origLogLevel = -1;
+    this._origCtx = null;
 	this.loggingMacros=logging.GetDefaultMacros();
 	logging.ResolveHostInfo( this.loggingMacros );
     }
@@ -336,6 +349,12 @@ abstract public class Logging {
         // Domain awareness is established
         logging.SetEventChannelManager( ECM );
         
+        if (!_origLevelSet) {
+            _origLevelSet = true;
+            _origLogCfgURL = logcfg_url;
+            _origLogLevel = oldstyle_loglevel;
+            _origCtx = ctx;
+        }
     }
 
     public void  setEventChannelManager( org.ossie.events.Manager ECM ) {
@@ -448,31 +467,87 @@ abstract public class Logging {
      */
     public void setLogLevel( String logger_id, int newLogLevel ) throws UnknownIdentifier {
 
-	if ( this.logListener != null ) {
-	    if ( logger_id == logName ){
-		this.logLevel = newLogLevel;
-	    }
+        if ( this.logListener != null ) {
+            if ( logger_id == logName ){
+                this.logLevel = newLogLevel;
+            }
 
-	    this.logListener.logLevelChanged( logger_id, newLogLevel );
-	}
-	else {
-	    Level tlevel=Level.INFO;
-	    tlevel = logging.ConvertToLog4Level(newLogLevel);	       
-	    
-	    if ( logger_id != null ){
-		Logger logger = Logger.getLogger( logger_id );
-		if ( logger != null ) {
-		    logger.setLevel( tlevel );
+            this.logListener.logLevelChanged( logger_id, newLogLevel );
+        } else {
+            Level tlevel=Level.INFO;
+            tlevel = logging.ConvertToLog4Level(newLogLevel);
+
+            if ( logger_id != null ) {
+                RHLogger logger = this._baseLog.getLogger( logger_id );
+                if ( logger != null ) {
+                    logger.setLevel( tlevel );
                     if ( logger_id == logName ) {
                         logLevel=newLogLevel;
                     }
-		}
-	    }
-	    else {
-		Logger.getRootLogger().setLevel(tlevel);
-	    }
+                }
+            } else {
+                this._baseLog.getRootLogger().setLevel(tlevel);
+            }
+        }
+    }
 
-	}
+    /**
+     *  haveLoggerHierarchy
+     * 
+     *  Determine whether or not the log name is in this component's hierarchy
+     *
+     * @returns boolean value
+     */
+    protected boolean haveLoggerHierarchy(String name)
+    {
+        return this._baseLog.isLoggerInHierarchy(name);
+    }
+
+    /**
+     *  getLogLevel
+     * 
+     *  Get the logging level for a named logger associated with this resource
+     *
+     * @returns int value of a CF::LogLevels enumeration
+     */
+    public int getLogLevel( String logger_id ) throws UnknownIdentifier {
+        if (!haveLoggerHierarchy(logger_id))
+            throw new CF.UnknownIdentifier();
+        RHLogger tmp_logger = this._baseLog.getLogger(logger_id);
+        Level _level = tmp_logger.getEffectiveLevel();
+        return logging.ConvertLog4ToCFLevel(_level);
+    }
+
+    /**
+     *  getNamedLoggers
+     * 
+     *  Get a list of the named loggers in this resource
+     *
+     * @returns array of strings with the logger names
+     */
+    public String[] getNamedLoggers() {
+        String[] retval = new String[0];
+        if (this._baseLog != null) {
+            retval = this._baseLog.getNamedLoggers();
+        }
+        return retval;
+    }
+
+    /**
+     *  resetLog
+     * 
+     *  Reset the logger to its initial state
+     *
+     */
+    public void resetLog() {
+        if (_origLevelSet) {
+            String[] loggers = this._baseLog.getNamedLoggers();
+            for (String logger: loggers) {
+                RHLogger _tmplog = this._baseLog.getLogger(logger);
+                _tmplog.setLevel(null);
+            }
+            this.setLoggingContext(this._origLogCfgURL, this._origLogLevel, this._origCtx);
+        }
     }
 
     /**

@@ -347,6 +347,55 @@ class PyHierarchicalLogging(scatest.CorbaTestCase):
     def test_py_selective_log_setting(self):
         selective_log_setting(self)
 
+@scatest.requireJava
+class JavaHierarchicalLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        self.cname = "logger_java"
+
+    def readLogFile(self, filename):
+        fp = open(filename,'r')
+        stuff = fp.read()
+        return stuff
+
+    def tearDown(self):
+        sb.release()
+
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        try:
+            os.remove('logger_test.log')
+        except:
+            pass
+
+        # Try to clean up the event channel, if it was created
+        context = None
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def test_java_all_log_levels(self):
+        all_log_levels(self)
+
+    def test_java_reset_logger(self):
+        reset_logger(self)
+
+    def test_java_single_log_level(self):
+        single_log_level(self)
+
+    def test_java_selective_log_setting(self):
+        selective_log_setting(self)
+
 @scatest.requireLog4cxx
 class CppHierarchicalLogging(scatest.CorbaTestCase):
     def setUp(self):

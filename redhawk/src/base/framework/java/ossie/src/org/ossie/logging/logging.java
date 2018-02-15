@@ -388,6 +388,7 @@ public class logging {
 	if ( newlevel == CF.LogLevels.DEBUG ) return Level.DEBUG;
 	if ( newlevel == CF.LogLevels.TRACE ) return Level.TRACE;
         if ( newlevel ==  CF.LogLevels.ALL )  return Level.ALL;
+        if ( newlevel ==  -1 )  return null;
         return Level.INFO;
     };
 
