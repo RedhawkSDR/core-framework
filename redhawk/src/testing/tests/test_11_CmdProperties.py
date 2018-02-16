@@ -129,3 +129,69 @@ class TestAllTypes(scatest.CorbaTestCase):
         self.assertEquals(writeonly_cmdline_val, 'i')
         self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
         self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+
+
+    def test_CleanCmdlineOverride(self):
+        self.preconditions()
+        self._app = self.dom.createApplication('/waveforms/no_property_value_w/no_property_value_w.sad.xml', 'test_app', {'readonly_cmdline':'g','readwrite_cmdline':'h','writeonly_cmdline':'i'})
+        self.assertNotEqual(self._app, None, "Application not created")
+        comp_pid = int(self._app._get_componentProcessIds()[0].processId)
+        fp=open('/proc/'+str(comp_pid)+'/cmdline','r')
+        comp_contents = fp.read()
+        fp.close()
+        items = comp_contents.split('\x00')
+        readonly_cmdline_idx = items.index('readonly_cmdline')
+        readonly_cmdline_val = items[readonly_cmdline_idx+1]
+        readwrite_cmdline_idx = items.index('readwrite_cmdline')
+        readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
+        writeonly_cmdline_idx = items.index('writeonly_cmdline')
+        writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
+        self.assertEquals(readonly_cmdline_val, 'g')
+        self.assertEquals(readwrite_cmdline_val, 'h')
+        self.assertEquals(writeonly_cmdline_val, 'i')
+        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+
+    def test_CmdlineOverride(self):
+        self.preconditions()
+        self._app = self.dom.createApplication('/waveforms/PRF_def_property_w/PRF_def_property_w.sad.xml', 'test_app', {'readonly_cmdline':'g','readwrite_cmdline':'h','writeonly_cmdline':'i'})
+        self.assertNotEqual(self._app, None, "Application not created")
+        comp_pid = int(self._app._get_componentProcessIds()[0].processId)
+        fp=open('/proc/'+str(comp_pid)+'/cmdline','r')
+        comp_contents = fp.read()
+        fp.close()
+        items = comp_contents.split('\x00')
+        readonly_cmdline_idx = items.index('readonly_cmdline')
+        readonly_cmdline_val = items[readonly_cmdline_idx+1]
+        readwrite_cmdline_idx = items.index('readwrite_cmdline')
+        readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
+        writeonly_cmdline_idx = items.index('writeonly_cmdline')
+        writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
+        self.assertEquals(readonly_cmdline_val, 'g')
+        self.assertEquals(readwrite_cmdline_val, 'h')
+        self.assertEquals(writeonly_cmdline_val, 'i')
+        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+
+
+    def test_NoCmdlineOverride(self):
+        self.preconditions()
+        self._app = self.dom.createApplication('/waveforms/PRF_def_property_w/PRF_def_property_w.sad.xml')
+        self.assertNotEqual(self._app, None, "Application not created")
+        comp_pid = int(self._app._get_componentProcessIds()[0].processId)
+        fp=open('/proc/'+str(comp_pid)+'/cmdline','r')
+        comp_contents = fp.read()
+        fp.close()
+        items = comp_contents.split('\x00')
+        readonly_cmdline_idx = items.index('readonly_cmdline')
+        readonly_cmdline_val = items[readonly_cmdline_idx+1]
+        readwrite_cmdline_idx = items.index('readwrite_cmdline')
+        readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
+        writeonly_cmdline_idx = items.index('writeonly_cmdline')
+        writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
+        self.assertEquals(readonly_cmdline_val, 'a')
+        self.assertEquals(readwrite_cmdline_val, 'b')
+        self.assertEquals(writeonly_cmdline_val, 'c')
+        self.assertEquals(self._app.comps[0].readonly_cmdline, 'a')
+        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'b')
+

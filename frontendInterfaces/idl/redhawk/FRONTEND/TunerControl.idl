@@ -49,8 +49,8 @@ module FRONTEND {
                     Name || ID || Type || Description
                     - min_freq || FRONTEND::scanner_allocation::min_freq || double || Requested lower edge of the scanning band
                     - max_freq || FRONTEND::scanner_allocation::max_freq || double || Requested upper edge of the scanning band
-                    - mode || FRONTEND::scanner_allocation::mode || string || SPAN_SCAN or DISCRETE_SCAN
-                    - control_mode || FRONTEND::scanner_allocation::control_mode || string|| TIME_BASED or SAMPLE_BASED
+                    - mode || FRONTEND::scanner_allocation::mode || enum string || SPAN_SCAN or DISCRETE_SCAN
+                    - control_mode || FRONTEND::scanner_allocation::control_mode || enum string|| TIME_BASED or SAMPLE_BASED
                     - control_limit || FRONTEND::scanner_allocation::control_limit || double || Either the fastest hop rate (TIME_BASED) or shortest set of samples (SAMPLE_BASED) that the scanner is expected to support. In samples, the number that will be needed before the next retune, equivalent to control_limit >= sample_rate/(max_settle_time+min_dwell_time) is met before the next retune
 			(3) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
 					but can not modify the settings of the tuner	       

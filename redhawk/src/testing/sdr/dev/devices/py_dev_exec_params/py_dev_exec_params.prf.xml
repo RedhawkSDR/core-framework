@@ -53,4 +53,9 @@
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
+  <simple id="exec_read_only_bool" mode="readonly" type="boolean" commandline="true">
+     <value>false</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

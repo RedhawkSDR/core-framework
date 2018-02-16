@@ -204,9 +204,12 @@ class my_scanner_i(my_scanner_base):
         fts.enabled = False
         return
 
-    def deviceSetTuning(self,request, scan_request, fts, tuner_id):
+    def deviceSetTuningScan(self,request, scan_request, fts, tuner_id):
         '''
         ************************************************************
+
+        This function is called when the allocation request contains a scanner allocation
+
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         
         The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
@@ -221,6 +224,26 @@ class my_scanner_i(my_scanner_base):
         ************************************************************'''
         if ((request.bandwidth == 1000) and (scan_request.min_freq==10000)):
             return True
+        return False
+
+    def deviceSetTuning(self,request, fts, tuner_id):
+        '''
+        ************************************************************
+
+        This function is called when the allocation request does not contain a scanner allocation
+
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth = request.bandwidth
+        fts.center_frequency = request.center_frequency
+        fts.sample_rate = request.sample_rate
+        
+        return True if the tuning succeeded, and False if it failed
+        ************************************************************'''
         return False
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -355,6 +378,12 @@ class my_scanner_i(my_scanner_base):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
 
     def setScanStrategy(self, allocation_id, scan_strategy):
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.MANUAL_SCAN and hasattr(scan_strategy.scan_definition, 'center_frequency'):
+            self.strategy_request = 'manual'
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.DISCRETE_SCAN and hasattr(scan_strategy.scan_definition, 'discrete_freq_list'):
+            self.strategy_request = 'discrete'
+        if scan_strategy.scan_mode == FRONTEND.ScanningTuner.SPAN_SCAN and hasattr(scan_strategy.scan_definition, 'freq_scan_list'):
+            self.strategy_request = 'span'
         idx = self.getTunerMapping(allocation_id)
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):

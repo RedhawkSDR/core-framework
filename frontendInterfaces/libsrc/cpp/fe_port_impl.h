@@ -71,7 +71,7 @@ namespace frontend {
     FRONTEND::ScanningTuner::ScanStatus* returnScanStatus(const frontend::ScanStatus &val);
     frontend::ScanStatus returnScanStatus(const FRONTEND::ScanningTuner::ScanStatus &tmpVal);
     FRONTEND::ScanningTuner::ScanStrategy* returnScanStrategy(const frontend::ScanStrategy &val);
-    frontend::ScanStrategy returnScanStrategy(const FRONTEND::ScanningTuner::ScanStrategy &tmpVal);
+    frontend::ScanStrategy* returnScanStrategy(const FRONTEND::ScanningTuner::ScanStrategy &tmpVal);
 
     // ----------------------------------------------------------------------------------------
     // OutFrontendPort declaration

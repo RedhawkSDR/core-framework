@@ -292,66 +292,6 @@ class frontend_listener_allocation(object):
     def getMembers(self):
         return [("FRONTEND::listener_allocation::existing_allocation_id",self.existing_allocation_id),("FRONTEND::listener_allocation::listener_allocation_id",self.listener_allocation_id)]
 
-        class FrontendScannerAllocation(object):
-            min_freq = simple_property(
-                                       id_="FRONTEND::scanner_allocation::min_freq",
-                                       
-                                       name="min_freq",
-                                       type_="double")
-        
-            max_freq = simple_property(
-                                       id_="FRONTEND::scanner_allocation::max_freq",
-                                       
-                                       name="max_freq",
-                                       type_="double")
-        
-            mode = simple_property(
-                                   id_="FRONTEND::scanner_allocation::mode",
-                                   
-                                   name="mode",
-                                   type_="double")
-        
-            control_mode = simple_property(
-                                           id_="FRONTEND::scanner_allocation::control_mode",
-                                           
-                                           name="control_mode",
-                                           type_="double")
-        
-            control_limit = simple_property(
-                                            id_="FRONTEND::scanner_allocation::control_limit",
-                                            
-                                            name="control_limit",
-                                            type_="double")
-        
-            def __init__(self, **kw):
-                """Construct an initialized instance of this struct definition"""
-                for classattr in type(self).__dict__.itervalues():
-                    if isinstance(classattr, (simple_property, simpleseq_property)):
-                        classattr.initialize(self)
-                for k,v in kw.items():
-                    setattr(self,k,v)
-        
-            def __str__(self):
-                """Return a string representation of this structure"""
-                d = {}
-                d["min_freq"] = self.min_freq
-                d["max_freq"] = self.max_freq
-                d["mode"] = self.mode
-                d["control_mode"] = self.control_mode
-                d["control_limit"] = self.control_limit
-                return str(d)
-        
-            @classmethod
-            def getId(cls):
-                return "FRONTEND::scanner_allocation"
-        
-            @classmethod
-            def isStruct(cls):
-                return True
-        
-            def getMembers(self):
-                return [("min_freq",self.min_freq),("max_freq",self.max_freq),("mode",self.mode),("control_mode",self.control_mode),("control_limit",self.control_limit)]
-
 class frontend_scanner_allocation(object):
             min_freq = simple_property(id_="FRONTEND::scanner_allocation::min_freq",
                                        name="min_freq",
@@ -364,10 +304,10 @@ class frontend_scanner_allocation(object):
                                    type_="double")
             control_mode = simple_property(id_="FRONTEND::scanner_allocation::control_mode",
                                            name="control_mode",
-                                           type_="double")
+                                           type_="string")
             control_limit = simple_property(id_="FRONTEND::scanner_allocation::control_limit",
                                             name="control_limit",
-                                            type_="double")
+                                            type_="string")
 
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""

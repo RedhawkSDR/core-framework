@@ -65,12 +65,36 @@ import CF.InvalidObjectReference;
         return;
     }
 /*{% if 'ScanningTuner' in component.implements %}*/
-    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
-/*{% else %}*/
-    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, frontend_tuner_status_struct_struct fts, int tuner_id)
-/*{% endif %}*/
+    public boolean deviceSetTuningScan(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
     {
         /************************************************************
+
+        This function is called when the allocation request contains a scanner allocation
+
+        modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth.setValue(request.bandwidth.getValue());
+        fts.center_frequency.setValue(request.center_frequency.getValue());
+        fts.sample_rate.setValue(request.sample_rate.getValue());
+        
+        return true if the tuning succeeded, and false if it failed
+        ************************************************************/
+        System.out.println("deviceSetTuning(): Evaluate whether or not a tuner is added  *********");
+        return true;
+    }
+/*{% endif %}*/
+    public boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, frontend_tuner_status_struct_struct fts, int tuner_id)
+    {
+        /************************************************************
+/*{% if 'ScanningTuner' in component.implements %}*/
+
+        This function is called when the allocation request does not contain a scanner allocation
+
+/*{% endif %}*/
         modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
         
         The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
@@ -135,7 +159,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
         if (freq<0) throw new FRONTEND.BadParameterException("Center frequency cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
@@ -153,7 +177,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
         if (bw<0) throw new FRONTEND.BadParameterException("Bandwidth cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
@@ -201,7 +225,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
         // set hardware to new value. Raise an exception if it's not possible
         this.frontend_tuner_status.getValue().get(idx).enabled.setValue(enable);
@@ -220,7 +244,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
         if (sr<0) throw new FRONTEND.BadParameterException("Sample rate cannot be less than 0");
         // set hardware to new value. Raise an exception if it's not possible
@@ -248,7 +272,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
     }
 
@@ -256,7 +280,7 @@ import CF.InvalidObjectReference;
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        if(allocation_id != getControlAllocationId(idx))
+        if (!allocation_id.equals(getControlAllocationId(idx)))
             throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
     }
 

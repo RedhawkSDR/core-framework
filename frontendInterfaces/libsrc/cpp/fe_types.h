@@ -221,13 +221,13 @@ namespace frontend {
         }
 
         static const char* getFormat() {
-            return "ddddd";
+            return "ddssd";
         }
 
         double min_freq;
         double max_freq;
-        double mode;
-        double control_mode;
+        std::string mode;
+        std::string control_mode;
         double control_limit;
     };
 

@@ -61,8 +61,18 @@
     <description>Frontend Interfaces scanner allocation structure</description>
     <simple id="FRONTEND::scanner_allocation::min_freq" name="min_freq" type="double"/>
     <simple id="FRONTEND::scanner_allocation::max_freq" name="max_freq" type="double"/>
-    <simple id="FRONTEND::scanner_allocation::mode" name="mode" type="double"/>
-    <simple id="FRONTEND::scanner_allocation::control_mode" name="control_mode" type="double"/>
+    <simple id="FRONTEND::scanner_allocation::mode" name="mode" type="string">
+      <enumerations>
+        <enumeration label="SPAN_SCAN" value="SPAN_SCAN"/>
+        <enumeration label="DISCRETE_SCAN" value="DISCRETE_SCAN"/>
+      </enumerations>
+    </simple>
+    <simple id="FRONTEND::scanner_allocation::control_mode" name="control_mode" type="string">
+      <enumerations>
+        <enumeration label="TIME_BASED" value="TIME_BASED"/>
+        <enumeration label="SAMPLE_BASED" value="SAMPLE_BASED"/>
+      </enumerations>
+    </simple>
     <simple id="FRONTEND::scanner_allocation::control_limit" name="control_limit" type="double"/>
     <configurationkind kindtype="allocation"/>
   </struct>
@@ -114,4 +124,9 @@ False: Does not need control and can just attach to any currently tasked device 
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
+  <simple id="strategy_request" mode="readwrite" type="string">
+    <value>initial</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

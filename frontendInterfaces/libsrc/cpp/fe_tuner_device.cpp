@@ -304,7 +304,10 @@ namespace frontend {
 
     template < typename TunerStatusStructType >
     bool FrontendScanningTunerDevice<TunerStatusStructType>::callDeviceSetTuning(size_t tuner_id) {
-        return deviceSetTuning(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, frontend_scanner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
+        if (this->_has_scanner) {
+            return deviceSetTuningScan(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, frontend_scanner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
+        }
+        return deviceSetTuning(FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_allocation, FrontendTunerDevice<TunerStatusStructType>::frontend_tuner_status[tuner_id], tuner_id);
     }
 
     template < typename TunerStatusStructType >
@@ -323,10 +326,14 @@ namespace frontend {
 
     template < typename TunerStatusStructType >
     void FrontendScanningTunerDevice<TunerStatusStructType>::checkValidIds(const CF::Properties & capacities) {
+        this->_has_scanner = false;
         for (unsigned int ii = 0; ii < capacities.length(); ++ii) {
             const std::string id = (const char*) capacities[ii].id;
             if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation" && id != "FRONTEND::scanner_allocation"){
                 throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY1", capacities);
+            }
+            if (id == "FRONTEND::scanner_allocation") {
+                this->_has_scanner = true;
             }
             PropertyInterface* property = this->getPropertyFromId(id);
             if(!property){
@@ -339,11 +346,6 @@ namespace frontend {
                 throw CF::Device::InvalidCapacity("COULD NOT PARSE CAPACITY", capacities);
             };
         }
-    }
-
-    template < typename TunerStatusStructType >
-    bool FrontendScanningTunerDevice<TunerStatusStructType>::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id) {
-        return false;
     }
 
     template < typename TunerStatusStructType >
@@ -659,8 +661,9 @@ namespace frontend {
                     frontend_tuner_status[tuner_id].allocation_id_csv = createAllocationIdCsv(tuner_id);
                     this->assignListener(frontend_listener_allocation.listener_allocation_id,frontend_listener_allocation.existing_allocation_id);
                     return true;
-                }
-                else {
+                } else if (id == "FRONTEND::scanner_allocation") {
+                    continue;
+                } else {
                     LOG_INFO(FrontendTunerDevice<TunerStatusStructType>,"allocateCapacity: UNKNOWN ALLOCATION PROPERTY2");
                     throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY2", capacities);
                 }
@@ -737,6 +740,8 @@ namespace frontend {
         for (CORBA::ULong ii = 0; ii < capacities.length(); ++ii) {
             try{
                 const std::string id = (const char*) capacities[ii].id;
+                if (id == "FRONTEND::scanner_allocation")
+                    continue;
                 if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation"){
                     LOG_INFO(FrontendTunerDevice<TunerStatusStructType>,"deallocateCapacity: UNKNOWN ALLOCATION PROPERTY");
                     throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY", capacities);

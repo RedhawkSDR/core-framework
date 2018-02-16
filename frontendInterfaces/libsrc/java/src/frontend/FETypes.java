@@ -557,8 +557,8 @@ public class FETypes {
                 Action.EXTERNAL, //action
                 new Kind[] {Kind.CONFIGURE}
                 );
-        public final DoubleProperty mode =
-            new DoubleProperty(
+        public final StringProperty mode =
+            new StringProperty(
                 "FRONTEND::scanner_allocation::mode", //id
                 "mode", //name
                 null, //default value
@@ -566,8 +566,8 @@ public class FETypes {
                 Action.EXTERNAL, //action
                 new Kind[] {Kind.CONFIGURE}
                 );
-        public final DoubleProperty control_mode =
-            new DoubleProperty(
+        public final StringProperty control_mode =
+            new StringProperty(
                 "FRONTEND::scanner_allocation::control_mode", //id
                 "control_mode", //name
                 null, //default value
@@ -588,7 +588,7 @@ public class FETypes {
         /**
          * @generated
          */
-        public frontend_scanner_allocation_struct(Double min_freq, Double max_freq, Double mode, Double control_mode, Double control_limit) {
+        public frontend_scanner_allocation_struct(Double min_freq, Double max_freq, String mode, String control_mode, Double control_limit) {
             this();
             this.min_freq.setValue(min_freq);
             this.max_freq.setValue(max_freq);
@@ -612,16 +612,16 @@ public class FETypes {
         public Double get_max_freq() {
             return this.max_freq.getValue();
         }
-        public void set_mode(Double mode) {
+        public void set_mode(String mode) {
             this.mode.setValue(mode);
         }
-        public Double get_mode() {
+        public String get_mode() {
             return this.mode.getValue();
         }
-        public void set_control_mode(Double control_mode) {
+        public void set_control_mode(String control_mode) {
             this.control_mode.setValue(control_mode);
         }
-        public Double get_control_mode() {
+        public String get_control_mode() {
             return this.control_mode.getValue();
         }
         public void set_control_limit(Double control_limit) {

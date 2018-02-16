@@ -313,13 +313,13 @@ class BlueFileHelpers(unittest.TestCase):
         # Check that the first timestamp (nearly) matches the timestamp created
         # above
         offset, ts = tstamps[0]
-        self.assertAlmostEqual(start - ts, 0.0)
+        self.assertAlmostEqual(start - ts, 0.0, 5)
 
         # Check that the synthesized timestamps match our expectations
         for offset, tnext in tstamps[1:]:
             # Offset is in samples, not frames (and/or complex pairs)
             offset /= float(framesize)
-            self.assertAlmostEqual(tnext - ts, offset*delta)
+            self.assertAlmostEqual(tnext - ts, offset*delta,5)
 
     def test_FileSourceTimecode(self):
         # Create a ramp file
@@ -387,7 +387,7 @@ class BlueFileHelpers(unittest.TestCase):
         # Read back the timecode from the output file
         hdr = bluefile.readheader(filename)
         time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
-        self.assertAlmostEqual(time_in, time_out)
+        self.assertAlmostEqual(time_in, time_out,5)
 
     def test_keywords_retrieval_int(self):
         filename='bf-kw-test.out'

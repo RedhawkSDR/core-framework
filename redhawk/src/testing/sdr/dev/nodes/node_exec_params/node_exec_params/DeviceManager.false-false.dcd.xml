@@ -17,12 +17,12 @@
         <componentproperties>
           <simpleref refid="config_prop_normal" value="prop_ok_normal"/>
           <simpleref refid="exec_read_only" value="cmd_ok_read_only"/>
-          <simpleref refid="exec_read_only_empty" value="cmd_ok_read_only_empty"/>
-          <simpleref refid="exec_read_only_number" value="54321"/>
-          <simpleref refid="exec_read_only_empty_number" value="654321"/>
-          <simpleref refid="exec_read_only_boolean" value="true"/>
+          <simpleref refid="exec_read_only_empty" value=""/>
+          <simpleref refid="exec_read_only_number" value="12345"/>
+          <simpleref refid="exec_read_only_bool" value="false"/>
+          <simpleref refid="exec_read_only_empty_number" value=""/>
           <simpleref refid="exec_cmd" value="cmd_ok"/>
-          <simpleref refid="exec_cmd_empty" value="cmd_ok_empty"/>
+          <simpleref refid="exec_cmd_empty" value=""/>
         </componentproperties>
       </componentinstantiation>
     </componentplacement>

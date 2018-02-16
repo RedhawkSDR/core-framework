@@ -1345,8 +1345,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         self.assertRaises(CF.PropertySet.InvalidConfiguration, svc_pre.configure, [CF.DataType(id='fake', value=any.to_any(None))] )
 
-    def test_DeviceExecParamReadonly_0(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_exec_params/DeviceManager.dcd.xml")
+    def _test_DeviceExecParamReadonly_(self, dcdfile, true_or_false ):
+        devmgr_nb, devMgr = self.launchDeviceManager(dcdfile)
         self.assertNotEqual(devMgr, None)
 
         from ossie.utils import redhawk
@@ -1377,6 +1377,9 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         val = dev.exec_read_only_empty_number.queryValue()
         self.assertEqual(val,0)
 
+        val = dev.exec_read_only_bool.queryValue()
+        self.assertEqual(val,true_or_false)
+
         val = dev.exec_cmd.queryValue()
         self.assertEqual(val,"cmd_ok")
 
@@ -1384,7 +1387,29 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(val,None)
 
 
+    def test_DeviceExecParamReadonly_0(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.dcd.xml", False )
+
     def test_DeviceExecParamReadonly_1(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.true-true.dcd.xml", True )
+
+    def test_DeviceExecParamReadonly_1_1(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.true-tRuE.dcd.xml", True )
+
+    def test_DeviceExecParamReadonly_2(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.true-1.dcd.xml", True )
+
+    def test_DeviceExecParamReadonly_3(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.false-0.dcd.xml", False )
+
+    def test_DeviceExecParamReadonly_4(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.false-false.dcd.xml", False )
+
+    def test_DeviceExecParamReadonly_4_1(self):
+        self._test_DeviceExecParamReadonly_("/nodes/node_exec_params/node_exec_params/DeviceManager.false-fAlSe.dcd.xml", False )
+
+
+    def test_DeviceExecParamReadonly_NoEmpty(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_exec_params_no_empty/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
@@ -1428,12 +1453,25 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         p=None
         for l in lines:
             if l.find(pname) != -1 :
-                p=l.find(match_str)
+                if l.find(match_str) != -1:
+                    p=l
+                    break
 
         return p
 
-    def test_ServiceExecParamReadonly_0(self):
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.dcd.xml")
+    def _get_match_exec(self):
+        return { "exec_cmd" : "exec_cmd cmd_ok",
+                     "exec_cmd_empty" : "exec_cmd_empty cmd_ok_empty",
+                     "exec_read_only" : "exec_read_only cmd_ok_read_only",
+                     "exec_read_only_nochange" :  "exec_read_only_nochange nochange",
+                     "exec_read_only_empty" :  "exec_read_only_empty cmd_ok_empty",
+                     "exec_read_only_number" : "exec_read_only_number 54321",
+                     "exec_read_only_empty_number" : "exec_read_only_empty_number 654321",
+                     "exec_read_only_bool" : "exec_read_only_bool FALSE",
+                     "exec_read_only_bool_missing" : None };
+
+    def _test_ServiceExecParamReadonly_(self, dcd_file, match_exec):
+        devmgr_nb, devMgr = self.launchDeviceManager(dcd_file)
         self.assertNotEqual(devMgr, None)
 
         from ossie.utils import redhawk
@@ -1442,25 +1480,131 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svc=d.services[0]
         self.assertNotEqual(svc, None)
         
-        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params"')]
+        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params" | grep  -v "grep"')]
         
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
-        self.assertNotEqual(p, None)
+        k="exec_cmd"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k] )
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only cmd_ok_read_only")
-        self.assertNotEqual(p, None)
+        k="exec_cmd_empty"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params", match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_nochange nochange")
-        self.assertNotEqual(p, None)
+        k="exec_read_only"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_number 54321")
-        self.assertNotEqual(p, None)
+        k="exec_read_only_empty"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty_number 654321")
-        self.assertNotEqual(p, None)
+        k="exec_read_only_nochange"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
 
+        k="exec_read_only_number"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
+
+        k="exec_read_only_empty_number"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
+
+        k="exec_read_only_bool"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
+
+        k="exec_read_only_bool_missing"
+        if  match_exec[k]:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  match_exec[k])
+            self.assertNotEqual(p, None)
+        else:
+            p=self._find_exec_param(lines, "py_svc_exec_params",  k+" " )
+            self.assertEqual(p, None)
+
+    def test_ServiceExecParamReadonly_0(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]=None
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.dcd.xml", match_exec)
 
     def test_ServiceExecParamReadonly_1(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool true"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.true-true.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_1_1(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool tRuE"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.true-tRuE.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_2(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool 1"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.true-1.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_3(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool 0"
+        match_exec["exec_read_only_bool_missing"]="exec_read_only_bool_missing FaLsE"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.false-0.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_4(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool False"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.false-false.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_4_1(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_read_only_bool"]="exec_read_only_bool fAlSe"
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.false-fAlSe.dcd.xml", match_exec)
+
+    def test_ServiceExecParamReadonly_5(self):
+        match_exec=self._get_match_exec()
+        match_exec["exec_cmd"] = "exec_cmd changeme"
+        match_exec["exec_cmd_empty"] = None
+        match_exec["exec_read_only"] = "exec_read_only changeme"
+        match_exec["exec_read_only_empty"] = None
+        match_exec["exec_read_only_nochange"] = "exec_read_only_nochange nochange"
+        match_exec["exec_read_only_number"] = "exec_read_only_number 1000"
+        match_exec["exec_read_only_empty_number"] = None
+        match_exec["exec_read_only_bool"]="exec_read_only_bool FALSE"
+        match_exec["exec_read_only_bool_missing"]=None
+        self._test_ServiceExecParamReadonly_("/nodes/node_exec_params/node_svc_exec_params/DeviceManager.missing.dcd.xml", match_exec)
+
+
+    def test_ServiceExecParamReadonly_NoEmpty(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_exec_params/node_svc_exec_params_no_empty/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
@@ -1475,8 +1619,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
         self.assertNotEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd_empty cmd_ok_empty")
-        self.assertNotEqual(p, None)
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd_empty ")
+        self.assertEqual(p, None)
 
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only cmd_ok_read_only")
         self.assertNotEqual(p, None)
@@ -1484,15 +1628,17 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_nochange nochange")
         self.assertNotEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty cmd_ok_empty")
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty ")
+        self.assertEqual(p, None)
+
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_number 12345")
         self.assertNotEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_number 54321")
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty_number 0")
         self.assertNotEqual(p, None)
 
-        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_empty_number 654321")
+        p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_bool True")
         self.assertNotEqual(p, None)
-
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):
     def setUp(self):

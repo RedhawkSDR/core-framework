@@ -102,7 +102,7 @@ namespace frontend {
             virtual void setScanStartTime(const std::string& id, const BULKIO::PrecisionUTCTime& start_time) {
                 throw FRONTEND::NotSupportedException("setScanStartTime not supported");
             }
-            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy& scan_strategy) {
+            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy* scan_strategy) {
                 throw FRONTEND::NotSupportedException("setScanStrategy not supported");
             }
     };
@@ -115,7 +115,7 @@ namespace frontend {
             virtual void setScanStartTime(const std::string& id, const BULKIO::PrecisionUTCTime& start_time) {
                 throw FRONTEND::NotSupportedException("setScanStartTime not supported");
             }
-            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy& scan_strategy) {
+            virtual void setScanStrategy(const std::string& id, const frontend::ScanStrategy* scan_strategy) {
                 throw FRONTEND::NotSupportedException("setScanStrategy not supported");
             }
     };
@@ -265,7 +265,7 @@ namespace frontend {
             digital_tuner_delegation *parent;
     };
 
-    class InAnalogScanningTunerPort : public virtual POA_FRONTEND::DigitalScanningTuner, public InAnalogTunerPort
+    class InAnalogScanningTunerPort : public virtual POA_FRONTEND::AnalogScanningTuner, public InAnalogTunerPort
     {
         public:
             typedef InAnalogTunerPort super;
@@ -287,7 +287,8 @@ namespace frontend {
             void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
                 boost::mutex::scoped_lock lock(this->portAccess);
                 std::string _id(id);
-                this->parent->setScanStrategy(_id, returnScanStrategy(scan_strategy));
+                std::auto_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
+                this->parent->setScanStrategy(_id, _strat.get());
             };
             std::string getRepid() const {
                 return "IDL:FRONTEND/AnalogScanningTuner:1.0";
@@ -318,7 +319,8 @@ namespace frontend {
             void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
                 boost::mutex::scoped_lock lock(this->portAccess);
                 std::string _id(id);
-                this->parent->setScanStrategy(_id, returnScanStrategy(scan_strategy));
+                std::auto_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
+                this->parent->setScanStrategy(_id, _strat.get());
             };
             std::string getRepid() const {
                 return "IDL:FRONTEND/DigitalScanningTuner:1.0";

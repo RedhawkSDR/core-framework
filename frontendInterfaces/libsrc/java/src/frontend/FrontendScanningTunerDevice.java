@@ -74,24 +74,29 @@ public abstract class FrontendScanningTunerDevice<TunerStatusStructType extends 
     }
 
     public boolean callDeviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct frontend_tuner_allocation, TunerStatusStructType fts, int tuner_id) {
-        return deviceSetTuning(frontend_tuner_allocation, frontend_scanner_allocation.getValue(), fts, tuner_id);
+        if (this._has_scanner) {
+            return deviceSetTuningScan(frontend_tuner_allocation, frontend_scanner_allocation.getValue(), fts, tuner_id);
+        }
+        return deviceSetTuning(frontend_tuner_allocation, fts, tuner_id);
     }
 
     public void checkValidIds(DataType[] capacities) throws InvalidCapacity, InvalidState {
+        this._has_scanner = false;
         for (DataType cap : capacities) {
             if (!cap.id.equals("FRONTEND::tuner_allocation") && !cap.id.equals("FRONTEND::listener_allocation") && (!cap.id.equals("FRONTEND::scanner_allocation"))) {
                 throw new CF.DevicePackage.InvalidCapacity("Invalid allocation property", capacities);
             }
+            if (cap.id.equals("FRONTEND::scanner_allocation")) {
+                this._has_scanner = true;
+            }
         }
     }
 
-    protected abstract boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, TunerStatusStructType fts, int tuner_id);
-
-    protected boolean deviceSetTuning(final frontend.FETypes.frontend_tuner_allocation_struct request, TunerStatusStructType fts, int tuner_id) {
-        return false;
-    }
+    protected abstract boolean deviceSetTuningScan(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, TunerStatusStructType fts, int tuner_id);
 
     protected StructProperty<frontend.FETypes.frontend_scanner_allocation_struct> frontend_scanner_allocation;
+
+    private boolean _has_scanner = false;
 
     // this is implemented in the generated base class once all properties are known
     public void loadProperties(){

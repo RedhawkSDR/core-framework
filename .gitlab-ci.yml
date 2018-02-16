@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $yum_repo_url/redhawk-dependencies
-  redhawk_version: '2.1.2'
+  redhawk_version: '2.1.3'
 
 stages:
  - package-redhawk-codegen
@@ -318,7 +318,7 @@ test-trigger:release:
   stage: deploy
   dependencies: []
   variables:
-    redhawk_version: '2.1.2'
+    redhawk_version: '2.1.3'
   script:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token

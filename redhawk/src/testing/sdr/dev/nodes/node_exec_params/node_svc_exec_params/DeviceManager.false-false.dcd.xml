@@ -5,22 +5,21 @@
     <localfile name="/mgr/DeviceManager.spd.xml"/>
   </devicemanagersoftpkg>
   <componentfiles>
-    <componentfile id="py_dev_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773" type="SPD">
-      <localfile name="/devices/py_dev_exec_params/py_dev_exec_params.spd.xml"/>
+    <componentfile id="py_svc_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773" type="SPD">
+      <localfile name="/services/py_svc_exec_params/py_svc_exec_params.spd.xml"/>
     </componentfile>
   </componentfiles>
   <partitioning>
     <componentplacement>
-      <componentfileref refid="py_dev_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773"/>
-      <componentinstantiation id="node_exec_params:py_dev_exec_params_1">
-        <usagename>py_dev_exec_params_1</usagename>
+      <componentfileref refid="py_svc_exec_params_676bc4ea-ebd1-462c-8b3e-ebf23ef23773"/>
+      <componentinstantiation id="node_exec_params:py_svc_exec_params_1">
+        <usagename>py_svc_exec_params_1</usagename>
         <componentproperties>
-          <simpleref refid="config_prop_normal" value="prop_ok_normal"/>
           <simpleref refid="exec_read_only" value="cmd_ok_read_only"/>
-          <simpleref refid="exec_read_only_empty" value="cmd_ok_read_only_empty"/>
+          <simpleref refid="exec_read_only_empty" value="cmd_ok_empty"/>
           <simpleref refid="exec_read_only_number" value="54321"/>
+          <simpleref refid="exec_read_only_bool" value="False"/>
           <simpleref refid="exec_read_only_empty_number" value="654321"/>
-          <simpleref refid="exec_read_only_boolean" value="true"/>
           <simpleref refid="exec_cmd" value="cmd_ok"/>
           <simpleref refid="exec_cmd_empty" value="cmd_ok_empty"/>
         </componentproperties>

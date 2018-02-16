@@ -3,6 +3,7 @@
 import ossie.utils.testing
 from ossie.utils import sb
 import frontend
+from redhawk.frontendInterfaces import FRONTEND
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -49,6 +50,23 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertFalse(self.comp.allocateCapacity([_good_tuner, _bad_scanner]))
         self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _good_scanner]))
         self.assertTrue(self.comp.allocateCapacity([_good_tuner, _good_scanner]))
+        self.comp.deallocateCapacity([_good_tuner, _good_scanner])
+        self.assertTrue(self.comp.allocateCapacity([_good_scanner, _good_tuner]))
+        _ref = None
+        for port in self.comp.ports:
+            if port.name == 'DigitalScanningTuner_in':
+                _ref = port.ref
+                break
+        self.assertEquals(self.comp.strategy_request, 'initial')
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        _ref.setScanStrategy('1', _scan_strategy)
+        self.assertEquals(self.comp.strategy_request, 'manual')
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.DISCRETE_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(discrete_freq_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        _ref.setScanStrategy('1', _scan_strategy)
+        self.assertEquals(self.comp.strategy_request, 'discrete')
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.SPAN_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(freq_scan_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        _ref.setScanStrategy('1', _scan_strategy)
+        self.assertEquals(self.comp.strategy_request, 'span')
         self.comp.stop()
 
 if __name__ == "__main__":

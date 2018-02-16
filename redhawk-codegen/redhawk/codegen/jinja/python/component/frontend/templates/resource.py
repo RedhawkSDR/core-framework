@@ -52,12 +52,36 @@
         return
 
 #{% if 'ScanningTuner' in component.implements %}
-    def deviceSetTuning(self,request, scan_request, fts, tuner_id):
-#{% else %}
-    def deviceSetTuning(self,request, fts, tuner_id):
-#{% endif %}
+    def deviceSetTuningScan(self,request, scan_request, fts, tuner_id):
         '''
         ************************************************************
+
+        This function is called when the allocation request contains a scanner allocation
+
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth = request.bandwidth
+        fts.center_frequency = request.center_frequency
+        fts.sample_rate = request.sample_rate
+        
+        return True if the tuning succeeded, and False if it failed
+        ************************************************************'''
+        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        return True
+#{% endif %}
+
+    def deviceSetTuning(self,request, fts, tuner_id):
+        '''
+        ************************************************************
+#{% if 'ScanningTuner' in component.implements %}
+
+        This function is called when the allocation request does not contain a scanner allocation
+
+#{% endif %}
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         
         The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
