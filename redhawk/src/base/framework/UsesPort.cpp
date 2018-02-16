@@ -177,6 +177,11 @@ namespace redhawk {
         return retVal._retn();
     }
 
+    LOGGER UsesPort::getLogger()
+    {
+        return logger;
+    }
+
     void UsesPort::setLogger(LOGGER newLogger)
     {
         logger = newLogger;

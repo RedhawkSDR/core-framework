@@ -109,8 +109,10 @@ int main(int argc, char* argv[])
         test_path = argv[optind];
     }
 
-    // Run the tests (don't pause, write output, don't print progress).
-    bool success = runner.run(test_path, false, true, false);
+    // Run the tests: don't pause, write output, don't print progress in
+    // verbose mode (which seems ironic, but the test progress listener will
+    // print each test name)
+    bool success = runner.run(test_path, false, true, !verbose);
 
     // Write XML file, if requested.
     if (xunit_file) {

@@ -21,7 +21,8 @@
 TESTS = Bulkio
 check_PROGRAMS = $(TESTS)
 
-Bulkio_SOURCES = Bulkio.cpp Bulkio_MultiOut_Port.cpp
+Bulkio_SOURCES = main.cpp
+Bulkio_SOURCES += Bulkio_MultiOut_Port.cpp
 Bulkio_SOURCES += InPortTest.h InPortTest.cpp
 Bulkio_SOURCES += InStreamTest.h InStreamTest.cpp
 Bulkio_SOURCES += OutPortTest.h OutPortTest.cpp

@@ -48,6 +48,7 @@ namespace redhawk {
                                                                   const CF::Properties& transportProperties);
         virtual void disconnectTransport(const char* transportId);
 
+        LOGGER getLogger();
         void setLogger(LOGGER newLogger);
 
     protected:

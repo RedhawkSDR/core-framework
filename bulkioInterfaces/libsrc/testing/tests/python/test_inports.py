@@ -23,6 +23,8 @@ import unittest
 import threading
 import time
 
+from ossie.utils.log4py import logging
+
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
@@ -198,6 +200,9 @@ class InPortTest(object):
         an unknown stream ID.
         """
         stream_id = 'invalid_stream'
+
+        # Turn off the port's logging to avoid dumping a warning to the screen
+        self.port.logger.setLevel(logging.OFF);
 
         # Push data without an SRI to check that the sriChanged flag is still
         # set and the SRI callback gets called

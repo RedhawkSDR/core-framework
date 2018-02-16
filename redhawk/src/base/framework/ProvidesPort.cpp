@@ -168,6 +168,11 @@ namespace redhawk {
         _transports.erase(transport);
     }
 
+    LOGGER NegotiableProvidesPortBase::getLogger()
+    {
+        return logger;
+    }
+
     void NegotiableProvidesPortBase::setLogger(LOGGER newLogger)
     {
         logger = newLogger;

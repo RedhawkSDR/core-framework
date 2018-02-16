@@ -269,6 +269,9 @@ void InPortTest<Port>::testSriChangedInvalidStream()
 {
     const char* stream_id = "invalid_stream";
 
+    // Turn off the port's logging to avoid dumping a warning to the screen
+    port->getLogger()->setLevel(rh_logger::Level::getOff());
+
     SriListener listener;
     port->setNewStreamListener(&listener, &SriListener::updateSRI);
     CPPUNIT_ASSERT(listener.sri.empty());
