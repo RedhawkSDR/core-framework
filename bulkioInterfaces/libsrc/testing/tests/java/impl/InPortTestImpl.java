@@ -26,14 +26,14 @@ package impl;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
+import org.apache.log4j.Level;
 
 import bulkio.InDataPort;
 import bulkio.DataTransfer;
 
 import helpers.TestHelper;
 
-@RunWith(JUnit4.class)
 public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.ProvidesPortStatisticsProviderOperations,A> {
 
     /**
@@ -289,6 +289,9 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
     public void testSriChangedInvalidStream()
     {
         final String stream_id = "invalid_stream";
+
+        // Turn off the port's logging to avoid dumping a warning to the screen
+        port.getLogger().setLevel(Level.OFF);
 
         // Push data without an SRI to check that the sriChanged flag is still
         // set and the SRI callback gets called

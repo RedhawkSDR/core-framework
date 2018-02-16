@@ -74,6 +74,10 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements InDataPort<BUL
         impl = new InPortImpl<String>(portName, logger, compareSRI, sriCallback, new FileDataHelper());
     }
 
+    public Logger getLogger() {
+        return impl.getLogger();
+    }
+
     public void setLogger(Logger logger){
         impl.setLogger(logger);
     }

@@ -142,7 +142,13 @@ public class InPortImpl<A> {
         this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
     }
 
-    public void setLogger( Logger newlogger ){
+    public Logger getLogger() {
+        synchronized (this.sriUpdateLock) {
+            return logger;
+        }
+    }
+
+    public void setLogger(Logger newlogger) {
         synchronized (this.sriUpdateLock) {
             logger = newlogger;
         }

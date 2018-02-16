@@ -78,6 +78,10 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
         impl = new InPortImpl<@type@[]>(portName, logger, compareSRI, sriCallback, new @name@DataHelper());
     }
 
+    public Logger getLogger() {
+        return impl.getLogger();
+    }
+
     public void setLogger(Logger logger){
         impl.setLogger(logger);
     }

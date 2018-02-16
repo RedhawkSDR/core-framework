@@ -26,11 +26,9 @@ package impl;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import helpers.TestHelper;
 
-@RunWith(JUnit4.class)
 public class ChunkingOutPortTestImpl<E extends BULKIO.updateSRIOperations,A> extends OutPortTestImpl<E,A> {
 
     public ChunkingOutPortTestImpl(TestHelper<E,A> helper)

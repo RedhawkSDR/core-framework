@@ -50,8 +50,9 @@ import org.junit.runners.Suite.SuiteClasses;
         OutFilePortTest.class,
         InXMLPortTest.class,
         OutXMLPortTest.class,
+        PrecisionUTCTimeTest.class,
+        StreamSRITest.class,
         InSDDSPort_Test.class,
-        BulkioHelpers_Test.class,
         OutSDDSPort_Test.class
 })
 public class AllTests {

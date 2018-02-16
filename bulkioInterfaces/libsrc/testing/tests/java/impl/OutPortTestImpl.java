@@ -26,7 +26,6 @@ package impl;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +37,6 @@ import bulkio.OutDataPort;
 import stubs.Stub;
 import helpers.TestHelper;
 
-@RunWith(JUnit4.class)
 public class OutPortTestImpl<E extends BULKIO.updateSRIOperations,A> {
 
     protected OutDataPort<E,A> port;

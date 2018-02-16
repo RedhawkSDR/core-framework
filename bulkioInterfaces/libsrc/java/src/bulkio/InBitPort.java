@@ -55,6 +55,10 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
         impl = new InPortImpl<BULKIO.BitSequence>(name, logger, new bulkio.sri.DefaultComparator(), null, new BitDataHelper());
     }
 
+    public Logger getLogger() {
+        return impl.getLogger();
+    }
+
     public void setLogger(Logger logger) {
         impl.setLogger(logger);
     }

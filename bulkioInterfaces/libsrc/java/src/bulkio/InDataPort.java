@@ -26,6 +26,7 @@ import org.ossie.component.PortBase;
 public interface InDataPort<E,A> extends PortBase {
     public String getName();
 
+    public Logger getLogger();
     public void setLogger(Logger logger);
 
     public void setSriListener(bulkio.SriListener sriCallback);
