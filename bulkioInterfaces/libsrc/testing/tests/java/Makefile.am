@@ -69,7 +69,11 @@ bulkio_tests_jar_SOURCE += helpers/BitTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/FileTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/XMLTestHelper.java
 bulkio_tests_jar_SOURCE += helpers/ConnectionListener.java
+bulkio_tests_jar_SOURCE += utils/TestFilter.java
+bulkio_tests_jar_SOURCE += utils/ChainFilter.java
+bulkio_tests_jar_SOURCE += utils/TextListener.java
 bulkio_tests_jar_SOURCE += AllTests.java
+bulkio_tests_jar_SOURCE += Main.java
 bulkio_tests_jar_SOURCE += OutBitPortTest.java
 bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
@@ -79,18 +83,14 @@ bulkio_tests_jar_SOURCE += impl/InPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/OutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/ChunkingOutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/NumericOutPortTestImpl.java
+
 bulkio_tests_jar_CLASSPATH = $(BULKIO_CLASSPATH):$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
 bulkio_tests_jar_JAVACFLAGS = -g -Xlint
 
-Bulkio : bulkio-tests.jar Makefile.am
+Bulkio : bulkio-tests.jar Makefile
 	@echo "#!/bin/bash" > $@
-	@echo "if [[ \$$# == 0 ]]; then" >> $@
-	@echo "  tests=AllTests" >> $@
-	@echo "else" >> $@
-	@echo "  tests=\"\$$*\"" >> $@
-	@echo "fi" >> $@
 	@echo "export LD_LIBRARY_PATH=$(top_builddir)/jni/.libs:$(OSSIE_HOME)/lib:$(OSSIE_HOME)/lib64" >> $@
-	@echo "exec java -cp bulkio-tests.jar:$(bulkio_tests_jar_CLASSPATH) -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt org.junit.runner.JUnitCore \$$tests" >> $@
+	@echo "exec java -cp bulkio-tests.jar:$(bulkio_tests_jar_CLASSPATH) -Dlog4j.configuration=file:$(srcdir)/log4j_config.txt Main \$$*" >> $@
 	@chmod +x $@
 
 CLEANFILES = Bulkio $(BUILT_SOURCES)
