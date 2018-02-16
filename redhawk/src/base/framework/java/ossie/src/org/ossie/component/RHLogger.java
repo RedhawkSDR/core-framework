@@ -36,7 +36,7 @@ import org.ossie.logging.logging;
 
  */
 
-public class RHLogger extends Logger {
+public class RHLogger {
 
     private Logger l4logger;
     private String logname;
@@ -44,7 +44,6 @@ public class RHLogger extends Logger {
     static public RHLogger _rootLogger;
 
     public RHLogger ( String logName ) {
-        super(logName);
         this.l4logger = Logger.getLogger(logName);
         this.logname = logName;
         this._rootLogger = null;
@@ -143,7 +142,7 @@ public class RHLogger extends Logger {
         return this.l4logger.getEffectiveLevel();
     }
 
-    public Level _getLevel() {
+    public Level getLevel() {
         Level retval = this.l4logger.getLevel();
         if (retval == null) {
             retval = this.getEffectiveLevel();
@@ -168,5 +167,24 @@ public class RHLogger extends Logger {
     }
     public void fatal(Object message) {
         this.l4logger.fatal(message);
+    }
+
+    public void trace(Object message, Throwable t) {
+        this.l4logger.trace(message, t);
+    }
+    public void debug(Object message, Throwable t) {
+        this.l4logger.debug(message, t);
+    }
+    public void info(Object message, Throwable t) {
+        this.l4logger.info(message, t);
+    }
+    public void warn(Object message, Throwable t) {
+        this.l4logger.warn(message, t);
+    }
+    public void error(Object message, Throwable t) {
+        this.l4logger.error(message, t);
+    }
+    public void fatal(Object message, Throwable t) {
+        this.l4logger.fatal(message, t);
     }
 }

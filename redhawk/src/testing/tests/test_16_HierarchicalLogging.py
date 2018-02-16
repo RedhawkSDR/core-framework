@@ -49,6 +49,11 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.cname = "logger_py"
         self.applicationAccess("/waveforms/logger_py_w/logger_py_w.sad.xml")
 
+    @scatest.requireJava
+    def test_application_java_access(self):
+        self.cname = "logger_java"
+        self.applicationAccess("/waveforms/logger_java_w/logger_java_w.sad.xml")
+
     def applicationAccess(self, sadfile):
         # Automatically clean up
         redhawk.setTrackApps(True)
