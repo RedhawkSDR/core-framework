@@ -42,8 +42,12 @@ namespace bulkio {
     maxQueue(100),
     breakBlock(false),
     blocking(false),
-    stats(new linkStatistics(port_name, sizeof(TransportType)))
+    stats(new linkStatistics(port_name))
   {
+    // Manually set the bit size because the statistics ctor only takes a byte
+    // count
+    stats->setBitSize(NativeTraits<PortType>::bits);
+
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 

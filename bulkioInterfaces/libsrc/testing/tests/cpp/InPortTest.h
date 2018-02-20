@@ -54,6 +54,8 @@ protected:
     typedef typename Port::dataTransfer PacketType;
     typedef typename Port::CorbaType CorbaType;
 
+    static const size_t BITS_PER_ELEMENT;
+
     using TestBase::port;
 };
 

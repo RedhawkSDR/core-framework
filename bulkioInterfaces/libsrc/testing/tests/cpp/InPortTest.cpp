@@ -308,28 +308,29 @@ void InPortTest<Port>::testStatistics()
     BULKIO::PortStatistics_var stats = port->statistics();
     CPPUNIT_ASSERT(stats->elementsPerSecond > 0.0);
     size_t bits_per_element = round(stats->bitsPerSecond / stats->elementsPerSecond);
-    const size_t expected_bits = bulkio::NativeTraits<CorbaType>::bits;
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", expected_bits, bits_per_element);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", BITS_PER_ELEMENT, bits_per_element);
 }
 
-#define CREATE_TEST(x)                                                 \
+#define CREATE_TEST(x,BITS)                                             \
     class In##x##PortTest : public InPortTest<bulkio::In##x##Port>      \
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(In##x##PortTest, InPortTest<bulkio::In##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
     };                                                                  \
+    template <>                                                         \
+    const size_t InPortTest<bulkio::In##x##Port>::BITS_PER_ELEMENT = BITS; \
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##PortTest);
 
-CREATE_TEST(Octet);
-CREATE_TEST(Char);
-CREATE_TEST(Short);
-CREATE_TEST(UShort);
-CREATE_TEST(Long);
-CREATE_TEST(ULong);
-CREATE_TEST(LongLong);
-CREATE_TEST(ULongLong);
-CREATE_TEST(Float);
-CREATE_TEST(Double);
-CREATE_TEST(Bit);
-CREATE_TEST(XML);
-CREATE_TEST(File);
+CREATE_TEST(Octet, 8);
+CREATE_TEST(Char, 8);
+CREATE_TEST(Short, 16);
+CREATE_TEST(UShort, 16);
+CREATE_TEST(Long, 32);
+CREATE_TEST(ULong, 32);
+CREATE_TEST(LongLong, 64);
+CREATE_TEST(ULongLong, 64);
+CREATE_TEST(Float, 32);
+CREATE_TEST(Double, 64);
+CREATE_TEST(Bit, 1);
+CREATE_TEST(XML, 8);
+CREATE_TEST(File, 8);

@@ -44,6 +44,8 @@ protected:
     typedef typename TestBase::StubType StubType;
     typedef typename Port::CorbaType CorbaType;
 
+    static const size_t BITS_PER_ELEMENT;
+
     void _addStreamFilter(const std::string& streamId, const std::string& connectionId);
 
     using TestBase::port;
@@ -73,6 +75,7 @@ protected:
 
     void _testPushOversizedPacket(const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId);
 
+    using TestBase::BITS_PER_ELEMENT;
     using TestBase::port;
     using TestBase::stub;
 };

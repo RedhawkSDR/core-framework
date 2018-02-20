@@ -108,8 +108,7 @@ void OutPortTest<Port>::testStatistics()
     const BULKIO::PortStatistics& stats = uses_stats[0].statistics;
     CPPUNIT_ASSERT(stats.elementsPerSecond > 0.0);
     size_t bits_per_element = round(stats.bitsPerSecond / stats.elementsPerSecond);
-    const size_t expected_bits = bulkio::NativeTraits<CorbaType>::bits;
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", expected_bits, bits_per_element);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", BITS_PER_ELEMENT, bits_per_element);
 }
 
 template <class Port>
@@ -255,15 +254,14 @@ void ChunkingOutPortTest<Port>::_testPushOversizedPacket(const BULKIO::Precision
     // Pick a sufficiently large number of samples that the packet has to span
     // multiple packets
     const size_t max_bits = 8 * bulkio::Const::MaxTransferBytes();
-    const size_t bits_per_element = bulkio::NativeTraits<CorbaType>::bits;
-    const size_t count = 2 * max_bits / bits_per_element;
+    const size_t count = 2 * max_bits / BITS_PER_ELEMENT;
     this->_pushTestPacket(count, time, eos, streamID);
 
     // More than one packet must have been received, and no packet can exceed
     // the max transfer size
     CPPUNIT_ASSERT(stub->packets.size() > 1);
     for (size_t index = 0; index < stub->packets.size(); ++index) {
-        size_t packet_bits = stub->packets[index].size() * bits_per_element;
+        size_t packet_bits = stub->packets[index].size() * BITS_PER_ELEMENT;
         CPPUNIT_ASSERT_MESSAGE("Packet too large", packet_bits < max_bits);
     }
 }
@@ -374,6 +372,9 @@ protected:
     using TestBase::stub;
 };
 
+template <>
+const size_t OutPortTest<bulkio::OutCharPort>::BITS_PER_ELEMENT = 8;
+
 CPPUNIT_TEST_SUITE_REGISTRATION(OutCharPortTest);
 
 class OutBitPortTest : public ChunkingOutPortTest<bulkio::OutBitPort>
@@ -436,6 +437,9 @@ protected:
     using TestBase::stub;
 };
 
+template <>
+const size_t OutPortTest<bulkio::OutBitPort>::BITS_PER_ELEMENT = 1;
+
 CPPUNIT_TEST_SUITE_REGISTRATION(OutBitPortTest);
 
 class OutXMLPortTest : public OutPortTest<bulkio::OutXMLPort>
@@ -461,6 +465,11 @@ public:
     }
 };
 
+template <>
+const size_t OutPortTest<bulkio::OutXMLPort>::BITS_PER_ELEMENT = 8;
+
+CPPUNIT_TEST_SUITE_REGISTRATION(OutXMLPortTest);
+
 class OutFilePortTest : public OutPortTest<bulkio::OutFilePort>
 {
     typedef OutPortTest<bulkio::OutFilePort> TestBase;
@@ -484,24 +493,29 @@ public:
     }
 };
 
+template <>
+const size_t OutPortTest<bulkio::OutFilePort>::BITS_PER_ELEMENT = 8;
+
 CPPUNIT_TEST_SUITE_REGISTRATION(OutFilePortTest);
 
-#define CREATE_TEST(x,BASE)                                             \
+#define CREATE_TEST(x,BASE,BITS)                                        \
     class Out##x##PortTest : public BASE<bulkio::Out##x##Port>          \
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(Out##x##PortTest, BASE<bulkio::Out##x##Port>); \
         CPPUNIT_TEST_SUITE_END();                                       \
     };                                                                  \
+    template <>                                                         \
+    const size_t OutPortTest<bulkio::Out##x##Port>::BITS_PER_ELEMENT = BITS; \
     CPPUNIT_TEST_SUITE_REGISTRATION(Out##x##PortTest);
 
-#define CREATE_NUMERIC_TEST(x) CREATE_TEST(x,NumericOutPortTest)
+#define CREATE_NUMERIC_TEST(x,BITS) CREATE_TEST(x,NumericOutPortTest,BITS)
 
-CREATE_NUMERIC_TEST(Octet);
-CREATE_NUMERIC_TEST(Short);
-CREATE_NUMERIC_TEST(UShort);
-CREATE_NUMERIC_TEST(Long);
-CREATE_NUMERIC_TEST(ULong);
-CREATE_NUMERIC_TEST(LongLong);
-CREATE_NUMERIC_TEST(ULongLong);
-CREATE_NUMERIC_TEST(Float);
-CREATE_NUMERIC_TEST(Double);
+CREATE_NUMERIC_TEST(Octet, 8);
+CREATE_NUMERIC_TEST(Short, 16);
+CREATE_NUMERIC_TEST(UShort, 16);
+CREATE_NUMERIC_TEST(Long, 32);
+CREATE_NUMERIC_TEST(ULong, 32);
+CREATE_NUMERIC_TEST(LongLong, 64);
+CREATE_NUMERIC_TEST(ULongLong, 64);
+CREATE_NUMERIC_TEST(Float, 32);
+CREATE_NUMERIC_TEST(Double, 64);

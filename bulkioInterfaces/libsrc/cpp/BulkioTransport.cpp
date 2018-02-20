@@ -31,8 +31,11 @@ namespace bulkio {
         redhawk::UsesTransport(port),
         _port(port),
         _objref(PortType::_duplicate(objref)),
-        _stats(port->getName(), sizeof(NativeType))
+        _stats(port->getName())
     {
+        // Manually set the bit size because the statistics ctor only takes a
+        // byte count
+        _stats.setBitSize(NativeTraits<PortType>::bits);
     }
 
     template <typename PortType>
