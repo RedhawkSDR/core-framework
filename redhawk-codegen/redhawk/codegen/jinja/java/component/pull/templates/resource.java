@@ -69,7 +69,7 @@ public class ${classname} extends ${baseclass} {
      *       //Add the following method to the class:
      *       private void scaleValueChanged(Float oldValue, Float newValue)
      *       {
-     *          logger.debug("Changed scaleValue " + oldValue + " to " + newValue);
+     *          _baseLog.debug("Changed scaleValue " + oldValue + " to " + newValue);
      *       }
      *
      * The recommended practice is for the implementation of valueChanged() to
@@ -315,6 +315,17 @@ public class ${classname} extends ${baseclass} {
      *    type. The standard Java type coercion rules apply (e.g., truncation
      *    of floating point values when converting to integer types).
      *
+     * Logging:
+     *
+     *    The member _baseLog is a logger whose base name is the component (or device) instance name.
+     *    New logs should be created based on this logger name.
+     *
+     *    To create a new logger,
+     *        RHLogger my_logger = this._baseLog.getChildLogger("foo");
+     *
+     *    Assuming component instance name abc_1, my_logger will then be created with the 
+     *    name "abc_1.user.foo".
+     *
      * Example:
      *
      *    This example assumes that the ${artifactType} has two ports:
@@ -347,7 +358,7 @@ public class ${classname} extends ${baseclass} {
      *
      */
     protected int serviceFunction() {
-        logger.debug("serviceFunction() example log message");
+        _baseLog.debug("serviceFunction() example log message");
 
         return NOOP;
     }

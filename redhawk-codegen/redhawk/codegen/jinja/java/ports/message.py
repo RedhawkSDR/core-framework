@@ -40,7 +40,7 @@ class MessageConsumerPortGenerator(BuiltinJavaPort):
         BuiltinJavaPort.__init__(self, 'org.ossie.events.MessageConsumerPort', port)
 
     def _ctorArgs(self, name):
-        return (java.stringLiteral(name),"this.logger")
+        return (java.stringLiteral(name),"this._baseLog")
 
 class MessageSupplierPortGenerator(BuiltinJavaPort):
     def __init__(self, port):
