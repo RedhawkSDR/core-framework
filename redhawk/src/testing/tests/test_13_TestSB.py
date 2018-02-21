@@ -1778,10 +1778,16 @@ class BulkioTest(unittest.TestCase):
         t_bad=BULKIO.PrecisionUTCTime(1,BULKIO.TCS_INVALID,0,0,0)
 
         # Retrieve the data
+        # push good timestamp and data
         port.pushPacket([1,2,3,4],t_good,False,'hello')
+        # push bad timestamp and data (should get the bad timestamp)
+        port.pushPacket([1,2,3],t_bad,False,'hello')
+        # push bad timestamp and no data (should not get the bad timestamp)
+        port.pushPacket([],t_bad,False,'hello')
+        # push bad timestamp, no data, and EOS (should not get the bad timestamp)
         port.pushPacket([],t_bad,True,'hello')
         data, tstamps = datasink.getData(eos_block=True, tstamps=True)
-        self.assertEquals(len(tstamps), 1)
+        self.assertEquals(len(tstamps), 2)
 
     def test_XMLDataSource(self):
         source = sb.DataSource(dataFormat='xml')
