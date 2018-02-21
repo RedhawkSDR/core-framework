@@ -192,7 +192,7 @@ namespace burstio {
     template <class Traits>
     OutPort<Traits>::Queue::Queue(OutPort<Traits>* port, const std::string& streamID, size_t maxBursts, size_t thresholdBytes, long thresholdLatency) :
         port_(port),
-        logger(port->logger),
+        logger(port->_portLog),
         maxBursts_(maxBursts),
         thresholdBytes_(thresholdBytes),
         thresholdLatency_(boost::posix_time::microseconds(thresholdLatency)),
@@ -426,7 +426,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::addConnectionFilter (const std::string& streamID, const std::string& connectionID)
     {
-        RH_DEBUG(logger, "Routing stream " << streamID << " to connection " << connectionID);
+        RH_DEBUG(_portLog, "Routing stream " << streamID << " to connection " << connectionID);
         boost::mutex::scoped_lock lock(updatingPortsLock);
         routes_[streamID].insert(connectionID);
     }
@@ -434,7 +434,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::removeConnectionFilter (const std::string& streamID, const std::string& connectionID)
     {
-        RH_DEBUG(logger, "Unrouting stream " << streamID << " from connection " << connectionID);
+        RH_DEBUG(_portLog, "Unrouting stream " << streamID << " from connection " << connectionID);
         boost::mutex::scoped_lock lock(updatingPortsLock);
         RouteTable::iterator route = routes_.find(streamID);
         if (route != routes_.end()) {
@@ -516,7 +516,7 @@ namespace burstio {
     template <class Traits>
     void OutPort<Traits>::sendBursts(const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID)
     {
-        RH_TRACE(logger, "Sending " << bursts.length() << " bursts");
+        RH_TRACE(_portLog, "Sending " << bursts.length() << " bursts");
 
         // Create a non-owning view to prevent local transport from stealing
         // the burst buffer; for N local connections, this will lead to making
@@ -534,18 +534,18 @@ namespace burstio {
 
             const std::string& connection_id = connection.connectionId();
             if (!isStreamRoutedToConnection(streamID, connection_id)) {
-                RH_TRACE(logger, "Stream " << streamID << " is not routed to connection " << connection_id);
+                RH_TRACE(_portLog, "Stream " << streamID << " is not routed to connection " << connection_id);
                 continue;
             }
 
-            RH_TRACE(logger, "Pushing " << const_bursts.length() << " bursts to connection " << connection_id);
+            RH_TRACE(_portLog, "Pushing " << const_bursts.length() << " bursts to connection " << connection_id);
             try {
                 transport->pushBursts(const_bursts, startTime, queueDepth);
             } catch (const redhawk::FatalTransportError& exc) {
-                RH_ERROR(logger, "pushBursts to " << connection_id << " failed: " << exc.what());
+                RH_ERROR(_portLog, "pushBursts to " << connection_id << " failed: " << exc.what());
                 transport->setAlive(false);
             } catch (const redhawk::TransportError& exc) {
-                RH_ERROR(logger, "pushBursts to " << connection_id << " failed: " << exc.what());
+                RH_ERROR(_portLog, "pushBursts to " << connection_id << " failed: " << exc.what());
             }
         }
     }
@@ -560,7 +560,7 @@ namespace burstio {
         queue.queueBurst(data, sri, timestamp, eos, isComplex);
         if (eos) {
             if (ROUTE_ALL_INTERLEAVED != routingMode_) {
-                RH_DEBUG(logger, "Flushing '" << streamID << " on EOS");
+                RH_DEBUG(_portLog, "Flushing '" << streamID << " on EOS");
                 queue.flush();
                 delete streamQueues_[streamID];
             }
@@ -593,10 +593,10 @@ namespace burstio {
     {
         boost::mutex::scoped_lock lock(queueMutex_);
         if (ROUTE_ALL_INTERLEAVED == routingMode_) {
-            RH_DEBUG(logger, "Forcing flush of default queue");
+            RH_DEBUG(_portLog, "Forcing flush of default queue");
             defaultQueue_.flush();
         } else {
-            RH_DEBUG(logger, "Forcing flush of all queues");
+            RH_DEBUG(_portLog, "Forcing flush of all queues");
             for (typename QueueMap::iterator queue = streamQueues_.begin(); queue != streamQueues_.end(); ++queue) {
                 queue->second->flush();
             }

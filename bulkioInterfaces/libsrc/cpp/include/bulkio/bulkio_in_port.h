@@ -305,7 +305,7 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
     InPort(std::string port_name, 
-           LOGGER_PTR   logger,
+           LOGGER_PTR   new_logger,
            bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
            SriListener *newStreamCB = NULL );
 
@@ -489,7 +489,7 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
     InNumericPort(std::string port_name, 
-                  LOGGER_PTR logger,
+                  LOGGER_PTR new_logger,
                   bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
                   SriListener *newStreamCB = NULL);
 
@@ -525,7 +525,7 @@ namespace bulkio {
 
     typedef InPort<PortType> super;
     using super::packetWaiters;
-    using super::logger;
+    using super::_portLog;
     typedef typename super::StreamMap StreamMap;
     using super::streams;
     using super::streamsMutex;
@@ -558,7 +558,7 @@ namespace bulkio {
     // @param newStreamCB interface that is called when new SRI.streamID is received
 
     InFilePort(std::string port_name, 
-               LOGGER_PTR  logger,
+               LOGGER_PTR  new_logger,
                bulkio::sri::Compare=bulkio::sri::DefaultComparator,
                SriListener* newStreamCB=0);
 
@@ -583,7 +583,7 @@ namespace bulkio {
   class InXMLPort : public InPort<BULKIO::dataXML>
   {
   public:
-    InXMLPort(std::string port_name, LOGGER_PTR logger,
+    InXMLPort(std::string port_name, LOGGER_PTR new_logger,
               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
               SriListener* newStreamCB=NULL);
 

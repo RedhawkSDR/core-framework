@@ -39,7 +39,7 @@ void Port_impl::disconnectPort(const char* connectionId)
 
 void PortBase::setLogger(LOGGER newLogger)
 {
-    logger = newLogger;
+    _portLog = newLogger;
 }
 
 namespace redhawk {

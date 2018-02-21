@@ -338,7 +338,7 @@ public:
 protected:
     std::string name;
     std::string description;
-    LOGGER logger;
+    LOGGER _portLog;
 };
 
 class Port_Uses_base_impl : public PortBase
