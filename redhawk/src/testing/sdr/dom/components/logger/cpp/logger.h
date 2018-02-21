@@ -2,6 +2,7 @@
 #define LOGGER_I_IMPL_H
 
 #include "logger_base.h"
+#include <logging/rh_logger_p.h>
 
 class logger_i : public logger_base
 {
@@ -17,6 +18,8 @@ class logger_i : public logger_base
         rh_logger::LoggerPtr baseline_2_logger;
         rh_logger::LoggerPtr namespaced_logger;
         rh_logger::LoggerPtr basetree_logger;
+        log4cxx::LoggerPtr my_l4;
+        rh_logger::LoggerPtr basel4_logger;
 };
 
 #endif // LOGGER_I_IMPL_H

@@ -438,6 +438,17 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
         # or failures will probably occur.
         scatest.CorbaTestCase.tearDown(self)
 
+    def test_access_log4cxx(self):
+        self.comp = sb.launch(self.cname, properties={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
+        self.comp.start()
+        loggers = self.comp.getNamedLoggers()
+        self.assertTrue(self.cname+'_1.l4.access' in loggers)
+        self.comp.setLogLevel(self.cname+'_1.l4.access', 'info')
+        time.sleep(0.5)
+        self.comp.stop()
+        content = self.readLogFile('foo/bar/test.log')
+        self.assertNotEqual(content.find('this is the log4cxx logger'), -1)
+
     def test_all_log_levels(self):
         all_log_levels(self)
 
