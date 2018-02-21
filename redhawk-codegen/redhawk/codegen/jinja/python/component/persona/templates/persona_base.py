@@ -53,7 +53,7 @@ class ${className}(${baseClass}):
             self.terminate(pid)
 
 #{% endif %}
-        self._log.debug("releaseObject()")
+        self._baseLog.debug("releaseObject()")
         if self._adminState == CF.Device.UNLOCKED:
             self._adminState = CF.Device.SHUTTING_DOWN
 
@@ -67,22 +67,22 @@ class ${className}(${baseClass}):
             objid = self._default_POA().servant_to_id(self)
             self._default_POA().deactivate_object(objid)
         except:
-            self._log.error("failed releaseObject()")
+            self._baseLog.error("failed releaseObject()")
 
     def attemptToProgramParent(self):
         if (not self._parentDevice):
-            self._log.error("Unable to Program parent: No reference to parent device exists!")
+            self._baseLog.error("Unable to Program parent: No reference to parent device exists!")
             return False
 
         if (not self._parentAllocated):
-            self._log.debug("About to allocate parent device!")
+            self._baseLog.debug("About to allocate parent device!")
 
             self.beforeHardwareProgrammed()
             requestProps   = self.hwLoadRequest()
             formattedProps = self._formatRequestProps(requestProps)
 
             if not formattedProps:
-                self._log.error("Failed to format hw_load_request props for parent device")
+                self._baseLog.error("Failed to format hw_load_request props for parent device")
                 return False
 
             self._parentAllocated = self._parentDevice.allocateCapacity(formattedProps)
@@ -97,14 +97,14 @@ class ${className}(${baseClass}):
 
     def attemptToUnprogramParent(self):
         if (not self._parentDevice):
-            self._log.error("Unable to Program parent: No reference to parent device exists!")
+            self._baseLog.error("Unable to Program parent: No reference to parent device exists!")
             return False
 
         if self._parentAllocated:
-            self._log.debug("About to deallocate parent device!")
+            self._baseLog.debug("About to deallocate parent device!")
 
             if (not self._previousRequestProps):
-                self._log.error("Previously requested hw_load props empty!")
+                self._baseLog.error("Previously requested hw_load props empty!")
                 return False
 
             self._parentDevice.deallocateCapacity(self._previousRequestProps)
@@ -120,14 +120,14 @@ class ${className}(${baseClass}):
             propId = param.id
             propVal = param.value.value()
             if type(propVal) == str:
-                self._log.debug("InstantiateResourceProp: ID['" + 
+                self._baseLog.debug("InstantiateResourceProp: ID['" + 
                     str(propId) + "'] = " + str(propVal))
 
         resource = instantiateResource(name, options, parameters)
         
         if not resource:
             msg = "Unable to dynamically instantiate resource!"
-            self._log.error(msg)
+            self._baseLog.error(msg)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, msg)
 
         resourceId = resource._get_identifier()
@@ -203,18 +203,18 @@ class ${className}(${baseClass}):
     def _formatRequestProps(self, requestProps):
         # Sanity check... Can't format nothing!
         if not requestProps:
-            self._log.error("Unable to format hw_load_request_properties.  Properties are empty!")
+            self._baseLog.error("Unable to format hw_load_request_properties.  Properties are empty!")
             return None
 
         # Sanity check... Make sure the type has an id field!
         if not hasattr(requestProps[0], "id"):
-            self._log.error("Unable to format hw_load_request_properties.  Properties must be of list of 'CF.Datatype'")
+            self._baseLog.error("Unable to format hw_load_request_properties.  Properties must be of list of 'CF.Datatype'")
             return None
 
         # Case 1 - Properties are already formatted properly
         if len(requestProps) == 1:
             if requestProps[0].id == "hw_load_requests":
-                self._log.debug("No formatting occurred - Assumed formatting is proper")
+                self._baseLog.debug("No formatting occurred - Assumed formatting is proper")
                 return requestProps
 
         # Further inspection of properties
@@ -227,16 +227,16 @@ class ${className}(${baseClass}):
 
         # Case 2 - Properties are list of hw_load_request structs
         if allPropsAreHwLoadRequest:
-            self._log.debug("Found hw_load_request list - Formatting to structseq")
+            self._baseLog.debug("Found hw_load_request list - Formatting to structseq")
             return [CF.DataType(id="hw_load_requests", value=requestProps)]
 
         # Case 3 - Properties represent the contents of a single hw_load_request
         if foundRequestId:
-            self._log.debug("Found hw_load_request contents - Formatting to structseq")
+            self._baseLog.debug("Found hw_load_request contents - Formatting to structseq")
             structProp = CF.DataType(id="hw_load_request", value=requestProps)
             return [CF.DataType(id="hw_load_requests", value=structProp)]
 
-        self._log.error("Unable to format hw_load_request_properties.  Properties are empty!")
+        self._baseLog.error("Unable to format hw_load_request_properties.  Properties are empty!")
         return None
 
 

@@ -157,7 +157,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             try:
                 self.stop()
             except Exception:
-                self._log.exception("Error stopping")
+                self._baseLog.exception("Error stopping")
             self.threadControlLock.acquire()
             try:
                 ${superclass}.releaseObject(self)

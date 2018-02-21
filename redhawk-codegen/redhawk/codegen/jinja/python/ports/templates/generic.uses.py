@@ -121,7 +121,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
                     try:
                         ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
                     except Exception:
-                        self.parent._log.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
+                        self.parent._baseLog.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
                         raise
                 if not found_connection:
                     raise PortCallError("Connection id "+__connection_id__+" not found.", self.getConnectionIds())
@@ -130,7 +130,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
                     try:
                         ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
                     except Exception:
-                        self.parent._log.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
+                        self.parent._baseLog.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
                         raise
         finally:
             self.port_lock.release()
