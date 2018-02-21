@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $yum_repo_url/redhawk-dependencies
-  redhawk_version: '2.0.8'
+  redhawk_version: '2.0.9'
 
 stages:
  - package-redhawk-codegen
@@ -55,6 +55,7 @@ stages:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
 .deploy-common: &deploy-common
   image: centos:7
@@ -67,6 +68,7 @@ stages:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -291,21 +293,14 @@ mvn:deploy:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
+    - /^feature.*$/
 
 #Trigger a Jenkins job to aggregate artifacts there
 deploy:
   variables:
     jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
   <<: *deploy-common
-  only:
-    - branches
-
-deploy-release:
-  variables:
-    jenkins_job: $redhawk_version/job/core-framework
-  <<: *deploy-common
-  only:
-    - tags
 
 #Trigger separate tests pipeline
 test-trigger:
@@ -320,6 +315,8 @@ test-trigger:
                               $test_url
   only:
     - branches
+  except:
+    - master
 
 test-trigger:release:
   image: centos:7
