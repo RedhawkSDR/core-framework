@@ -25,16 +25,11 @@
 #include <ossie/debug.h>
 
 #ifdef HAVE_LOG4CXX
-#include <log4cxx/logger.h>
-#include <log4cxx/level.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/helpers/messagebuffer.h>
 #include <fstream>
 #endif 
 
 // internal logging classes for std::out and log4cxx
-#include "./rh_logger_p.h"
+#include <ossie/logging/rh_logger_p.h>
 
 //
 // deprecate this method... moving to ossie:logging  and rh_logger 

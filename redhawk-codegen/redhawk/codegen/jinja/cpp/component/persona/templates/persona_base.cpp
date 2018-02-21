@@ -147,9 +147,9 @@ void ${className}::releaseObject()
     releaseOutPorts();
 
     // SR:419
-    LOG_DEBUG(${className}, __FUNCTION__ << ": Receive releaseObject call");
+    RH_DEBUG(this->_device_log, __FUNCTION__ << ": Receive releaseObject call");
     if (_adminState == CF::Device::UNLOCKED) {
-        LOG_DEBUG(${className}, __FUNCTION__ << ": Releasing Device")
+        RH_DEBUG(${className}, __FUNCTION__ << ": Releasing Device")
         setAdminState(CF::Device::SHUTTING_DOWN);
 
         // SR:418
@@ -161,7 +161,7 @@ void ${className}::releaseObject()
             }
         }
 
-        LOG_DEBUG(${className}, __FUNCTION__ << ": Done Releasing Device")
+        RH_DEBUG(this->_device_log, __FUNCTION__ << ": Done Releasing Device")
     }
 }
 
@@ -170,14 +170,14 @@ CORBA::Boolean ${className}::attemptToProgramParent()
 {
     // Return false if there is no reference to the parent
     if (_parentDevice == NULL) {
-        LOG_ERROR(${className}, __FUNCTION__ << 
+        RH_ERROR(this->_device_log, __FUNCTION__ << 
             ": No reference to parent exists!");
         return false;
     }
 
     if (_parentAllocated == false) {
 
-        LOG_DEBUG(${className}, __FUNCTION__ << 
+        RH_DEBUG(this->_device_log, __FUNCTION__ << 
             ": About to allocate parent device");
         
         beforeHardwareProgrammed();
@@ -205,7 +205,7 @@ CORBA::Boolean ${className}::attemptToUnprogramParent()
 {
     // Return false if there is no reference to the parent
     if (_parentDevice == NULL) {
-        LOG_ERROR(${className}, __FUNCTION__ << ": No reference to parent exists!");
+        RH_ERROR(this->_device_log, __FUNCTION__ << ": No reference to parent exists!");
         return false;
     }
     
@@ -214,7 +214,7 @@ CORBA::Boolean ${className}::attemptToUnprogramParent()
         
         // Grab previous user-defined allocation request
         if (_previousRequestProps.length() == 0) {
-            LOG_ERROR(${className}, __FUNCTION__ << ": Previously requested hw_load Props empty!");
+            RH_ERROR(this->_device_log, __FUNCTION__ << ": Previously requested hw_load Props empty!");
             return false;
         }
 
@@ -249,14 +249,14 @@ CF::ExecutableDevice::ProcessID_Type ${className}::execute (
     for (unsigned int ii = 0; ii < parameters.length(); ii++) {
         propId = parameters[ii].id;
         propValue = ossie::any_to_string(parameters[ii].value);
-        LOG_DEBUG(${className}, __FUNCTION__ << 
+        RH_DEBUG(this->_device_log, __FUNCTION__ << 
             ": InstantiateResourceProp: ID['" << propId << "'] = " << propValue);
     }
 
     // Attempt to create and verify the resource
     resourcePtr = instantiateResource(name, options, parameters);
     if (resourcePtr == NULL) {
-        LOG_FATAL(${className}, __FUNCTION__ << 
+        RH_FATAL(this->_device_log, __FUNCTION__ << 
             ": Unable to instantiate '" << name << "'");
         throw (CF::ExecutableDevice::ExecuteFail());
     }
@@ -333,7 +333,7 @@ Resource_impl* ${className}::instantiateResource(
     pHandle = dlopen(absPath.c_str(), RTLD_NOW);
     if (!pHandle) {
         errorMsg = dlerror();
-        LOG_FATAL(${className}, __FUNCTION__ <<  
+        RH_FATAL(this->_device_log, __FUNCTION__ <<  
                 ": Unable to open library '" << absPath.c_str() << "': " << errorMsg);
         return NULL;
     }
@@ -363,7 +363,7 @@ Resource_impl* ${className}::instantiateResource(
     fnPtr = dlsym(pHandle, symbol);
     if (!fnPtr) {
         errorMsg = dlerror();
-        LOG_FATAL(${className}, __FUNCTION__ << 
+        RH_FATAL(this->_device_log, __FUNCTION__ << 
             ": Unable to find symbol '" << symbol << "': " << errorMsg);
         return NULL;
     }
@@ -375,7 +375,7 @@ Resource_impl* ${className}::instantiateResource(
     try {
         resourcePtr = generateResource(argc, argv, constructorPtr, libraryName);
     } catch (...) {
-        LOG_FATAL(${className}, __FUNCTION__ << 
+        RH_FATAL(this->_device_log, __FUNCTION__ << 
             ": Unable to construct persona device: '" << argv[0] << "'");
     }
 
@@ -401,7 +401,7 @@ void ${className}::formatRequestProps(
 
     // Sanity check - Kick out if properties are empty
     if (requestProps.length() == 0) {
-        LOG_ERROR(${className}, __FUNCTION__ << 
+        RH_ERROR(this->_device_log, __FUNCTION__ << 
             ": Unable to format hw_load_request properties.  Properties are empty!");
         return;
     }
@@ -410,7 +410,7 @@ void ${className}::formatRequestProps(
     if (requestProps.length() == 1) {
         propId = requestProps[0].id;
         if (propId == "hw_load_requests") {
-            LOG_DEBUG(${className}, __FUNCTION__ <<
+            RH_DEBUG(this->_device_log, __FUNCTION__ <<
                 ": No formatting occurred - Request properties are properly formatted!");
             formattedProps = requestProps;
             return;
@@ -429,7 +429,7 @@ void ${className}::formatRequestProps(
   
     // Case 2 - Properties are multiple hw_load_request structs
     if (allPropsAreHwLoadRequest) {
-        LOG_DEBUG(${className}, __FUNCTION__ << 
+        RH_DEBUG(this->_device_log, __FUNCTION__ << 
             ": Found hw_load_request array - Formatting to structseq");
         formattedProps.length(1);
         formattedProps[0].id = "hw_load_requests";
@@ -439,7 +439,7 @@ void ${className}::formatRequestProps(
 
     // Case 3 - Properties reprensent the contents of a single hw_load_request
     if (foundRequestId) {
-        LOG_DEBUG(${className}, __FUNCTION__ <<
+        RH_DEBUG(this->_device_log, __FUNCTION__ <<
             ": Found hw_load_request contents - Formatting to struct and structseq");
         
         hwLoadRequest.length(1);
@@ -452,6 +452,6 @@ void ${className}::formatRequestProps(
         return;
     }
     
-    LOG_ERROR(${className}, __FUNCTION__ <<
+    RH_ERROR(this->_device_log, __FUNCTION__ <<
         ": Unable to format hw_load_request properties - Format unknown!");
 }

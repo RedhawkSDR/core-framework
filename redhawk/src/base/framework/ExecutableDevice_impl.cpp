@@ -51,7 +51,7 @@
 #include "ossie/ExecutableDevice_impl.h"
 #include "ossie/prop_helpers.h"
 #include "ossie/affinity.h"
-#include "logging/rh_logger_stdout.h"
+#include <ossie/logging/rh_logger_stdout.h>
 
 PREPARE_CF_LOGGING(ExecutableDevice_impl)
 

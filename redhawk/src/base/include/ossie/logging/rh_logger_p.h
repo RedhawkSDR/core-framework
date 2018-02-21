@@ -24,6 +24,15 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+
+#ifdef HAVE_LOG4CXX
+#include <log4cxx/logger.h>
+#include <log4cxx/level.h>
+#include <log4cxx/logstring.h>
+#include <log4cxx/patternlayout.h>
+#include <log4cxx/helpers/messagebuffer.h>
+#endif
+
 #include <ossie/logging/rh_logger.h>
 #include "rh_logger_stdout.h"
 
@@ -69,13 +78,13 @@ namespace rh_logger {
 
     bool isLoggerInHierarchy(const std::string& search_name);
 
+    log4cxx::LoggerPtr  l4logger;
+
   private:
 
     typedef boost::shared_ptr< L4Logger > L4LoggerPtr;
 
     static L4LoggerPtr   _rootLogger;
-
-    log4cxx::LoggerPtr  l4logger;
 
     uint32_t               _error_count;
   };
