@@ -168,11 +168,6 @@ namespace redhawk {
         _transports.erase(transport);
     }
 
-    void NegotiableProvidesPortBase::setLogger(LOGGER newLogger)
-    {
-        logger = newLogger;
-    }
-
     ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& transportType)
     {
         for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
