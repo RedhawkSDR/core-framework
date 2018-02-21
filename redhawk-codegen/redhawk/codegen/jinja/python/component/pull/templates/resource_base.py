@@ -101,6 +101,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             # Instantiate the default implementations for all ports on this ${artifactType}
 #{% for port in component.ports %}
             self.${port.pyname} = ${port.constructor}
+            self.${port.pyname}._portLog = self._baseLog.getChildLogger('${port.name}', 'ports')
 #{% endfor %}
 #{% if component.hasmultioutport %}
             self.addPropertyChangeListener('connectionTable',self.updated_connectionTable)

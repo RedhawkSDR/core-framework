@@ -50,7 +50,7 @@ class InPort:
 
     def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
         self.name = name
-        self.logger = logger
+        self._portLog = logger
         self.queue = collections.deque()
         self._maxSize = maxsize
         self.port_lock = threading.Lock()
@@ -64,8 +64,8 @@ class InPort:
         self.sriChangeCallback = sriChangeCallback
         self.sriDict = {} # key=streamID, value=StreamSRI
 
-        if logger==None:
-            self.logger = logging.getLogger("redhawk.bulkio.input."+name)
+        if self._portLog==None:
+            self._portLog = logging.getLogger("redhawk.bulkio.input."+name)
 
         _cmpMsg  = "DEFAULT"
         _newSriMsg  = "EMPTY"
@@ -77,8 +77,8 @@ class InPort:
         if sriChangeCallback:
             _sriChangeMsg  = "USER_DEFINED"
 
-        if self.logger:
-            self.logger.debug( "bulkio::InPort CTOR port:" + str(name) +
+        if self._portLog:
+            self._portLog.debug( "bulkio::InPort CTOR port:" + str(name) +
                           " Blocking/MaxInputQueueSize " + str(self.blocking) + "/"  + str(maxsize) +
                           " SriCompare/NewSriCallback/SriChangeCallback " +  _cmpMsg + "/" + _newSriMsg + "/" + _sriChangeMsg );
 
@@ -168,15 +168,15 @@ class InPort:
 
     def pushSRI(self, H):
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort pushSRI ENTER (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace( "bulkio::InPort pushSRI ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         try:
             if H.streamID not in self.sriDict:
                 sriChanged = True
-                if self.logger:
-                    self.logger.debug( "pushSRI PORT:" + str(self.name) + " NEW SRI:" + str(H.streamID) )
+                if self._portLog:
+                    self._portLog.debug( "pushSRI PORT:" + str(self.name) + " NEW SRI:" + str(H.streamID) )
                 if self.newSriCallback:
                     self.newSriCallback( H )
                 self.sriDict[H.streamID] = (copy.deepcopy(H), True)
@@ -194,20 +194,20 @@ class InPort:
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort pushSRI EXIT (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace( "bulkio::InPort pushSRI EXIT (port=" + str(self.name) +")" )
 
 
     def pushPacket(self, data, T, EOS, streamID):
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort pushPacket ENTER (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace( "bulkio::InPort pushPacket ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         try:
             if self._maxSize == 0:
-                if self.logger:
-                    self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
+                if self._portLog:
+                    self._portLog.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
                 return
             if self.sriDict.has_key(streamID):
                 sri, sriChanged = self.sriDict[streamID]
@@ -217,8 +217,8 @@ class InPort:
                     self.sriDict[streamID] = (sri, False)
             else:
                 # Create a default SRI for the stream ID
-                if self.logger:
-                    self.logger.warn("bulkio::InPort pushPacket received data for stream '%s' with no SRI", streamID)
+                if self._portLog:
+                    self._portLog.warn("bulkio::InPort pushPacket received data for stream '%s' with no SRI", streamID)
                 sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
                 if self.newSriCallback:
                     self.newSriCallback(sri)
@@ -235,8 +235,8 @@ class InPort:
                 #  current length of queue is >= maxSize
                 if len(self.queue) >= self._maxSize and self._maxSize > -1:
                     queueFlushed = True
-                    if self.logger:
-                        self.logger.debug("bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE=%d)", len(self.queue))
+                    if self._portLog:
+                        self._portLog.debug("bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE=%d)", len(self.queue))
 
                     foundSRIChanged = False
                     for data, T, EOS, streamID, sri, sriChangeHappened, inputQueueFlushed in self.queue:
@@ -253,8 +253,8 @@ class InPort:
                 EOS = True
             packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, queueFlushed)
             self.stats.update(self._packetSize(data), float(len(self.queue))/float(self._maxSize), EOS, streamID, queueFlushed)
-            if self.logger:
-                self.logger.trace("bulkio::InPort pushPacket NEW Packet (QUEUE=%d)", len(self.queue))
+            if self._portLog:
+                self._portLog.trace("bulkio::InPort pushPacket NEW Packet (QUEUE=%d)", len(self.queue))
             self.queue.append(packet)
 
             # Let one waiting getPacket call know there is a packet available
@@ -262,13 +262,13 @@ class InPort:
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
 
     def getPacket(self, timeout=const.NON_BLOCKING):
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort getPacket ENTER (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace( "bulkio::InPort getPacket ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         try:
@@ -308,8 +308,8 @@ class InPort:
         finally:
             self.port_lock.release()
 
-            if self.logger:
-                self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
+            if self._portLog:
+                self._portLog.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
 
     def _packetSize(self, data):
         return len(data)
@@ -392,7 +392,7 @@ class InAttachablePort:
     _TYPE_='b'
     def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=sri.compare, timeCmp=timestamp.compare, PortType = _TYPE_, newSriCallback=None, sriChangeCallback=None,interface=None):
         self.name = name
-        self.logger = logger
+        self._portLog = logger
         self.port_lock = threading.Lock()
         self.sri_query_lock = threading.Lock()
         self._attachedStreams = {} # key=attach_id, value = (streamDef, userid)
@@ -405,13 +405,11 @@ class InAttachablePort:
         self.time_cmp = timeCmp
         self.sriChanged = False
         if not interface:
-            if self.logger:
-                self.logger.error("InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
+            if self._portLog:
+                self._portLog.error("InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
             raise Port.InvalidPort(1, "InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
         self.interface=interface # BULKIO port interface (valid options are BULKIO.dataSDDS or BULKIO.dataVITA49)
         self.setNewAttachDetachListener(attachDetachCallback)
-        if self.logger:
-            self.logger.debug("bulkio::InAttachablePort CTOR port:" + str(self.name) + " using interface " + str(self.interface))
 
     def setNewAttachDetachListener(self, attachDetachCallback ):
         self.port_lock.acquire()
@@ -519,21 +517,21 @@ class InAttachablePort:
 
     def attach(self, streamDef, userid):
 
-        if self.logger:
-            self.logger.trace("bulkio::InAttachablePort attach ENTER  (port=" + str(self.name) +")" )
-            self.logger.debug("InAttachablePort.attach() - ATTACH REQUEST, STREAM/USER"  + str(streamDef) + '/' + str(userid))
+        if self._portLog:
+            self._portLog.trace("bulkio::InAttachablePort attach ENTER  (port=" + str(self.name) +")" )
+            self._portLog.debug("InAttachablePort.attach() - ATTACH REQUEST, STREAM/USER"  + str(streamDef) + '/' + str(userid))
 
         attachId = None
         self.port_lock.acquire()
         try:
             try:
-                if self.logger:
-                    self.logger.debug("InAttachablePort.attach() - CALLING ATTACH CALLBACK, STREAM/USER"  + str(streamDef) + '/' + str(userid) )
+                if self._portLog:
+                    self._portLog.debug("InAttachablePort.attach() - CALLING ATTACH CALLBACK, STREAM/USER"  + str(streamDef) + '/' + str(userid) )
                 if self._attach_cb != None:
                     attachId = self._attach_cb(streamDef, userid)
             except Exception, e:
-                if self.logger:
-                    self.logger.error("InAttachablePort.attach() - ATTACH CALLBACK EXCEPTION : " + str(e) + " STREAM/USER"  + str(streamDef) + '/' + str(userid) )
+                if self._portLog:
+                    self._portLog.error("InAttachablePort.attach() - ATTACH CALLBACK EXCEPTION : " + str(e) + " STREAM/USER"  + str(streamDef) + '/' + str(userid) )
                 raise self.interface.AttachError(str(e))
 
             if attachId == None:
@@ -544,24 +542,24 @@ class InAttachablePort:
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.debug("InAttachablePort.attach() - ATTACH COMPLETED,  ID:" + str(attachId) + " STREAM/USER: " + str(streamDef) + '/' + str(userid))
-            self.logger.trace("bulkio::InAttachablePort attach EXIT (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.debug("InAttachablePort.attach() - ATTACH COMPLETED,  ID:" + str(attachId) + " STREAM/USER: " + str(streamDef) + '/' + str(userid))
+            self._portLog.trace("bulkio::InAttachablePort attach EXIT (port=" + str(self.name) +")" )
 
         return attachId
 
     def detach(self, attachId):
 
-        if self.logger:
-            self.logger.trace("bulkio::InAttachablePort detach ENTER (port=" + str(self.name) +")" )
-            self.logger.debug("InAttachablePort.detach() - DETACH REQUESTED, ID:" + str(attachId) )
+        if self._portLog:
+            self._portLog.trace("bulkio::InAttachablePort detach ENTER (port=" + str(self.name) +")" )
+            self._portLog.debug("InAttachablePort.detach() - DETACH REQUESTED, ID:" + str(attachId) )
 
         self.port_lock.acquire()
         try:
             if not self._attachedStreams.has_key(attachId):
 
-                if self.logger:
-                    self.logger.debug("InAttachablePort.detach() - DETACH UNKNOWN ID:" + str(attachId) )
+                if self._portLog:
+                    self._portLog.debug("InAttachablePort.detach() - DETACH UNKNOWN ID:" + str(attachId) )
 
                 if attachId:
                     raise self.interface.DetachError("Stream %s not attached" % str(attachId))
@@ -574,14 +572,14 @@ class InAttachablePort:
             # Deallocate capacity here if applicable
             #
             try:
-                if self.logger:
-                    self.logger.debug("InAttachablePort.detach() - CALLING DETACH CALLBACK, ID:" + str(attachId) )
+                if self._portLog:
+                    self._portLog.debug("InAttachablePort.detach() - CALLING DETACH CALLBACK, ID:" + str(attachId) )
 
                 if self._detach_cb != None:
                     self._detach_cb(attachId)
             except Exception, e:
-                if self.logger:
-                    self.logger.error("InAttachablePort.detach() - DETACH CALLBACK EXCEPTION: " + str(e) )
+                if self._portLog:
+                    self._portLog.error("InAttachablePort.detach() - DETACH CALLBACK EXCEPTION: " + str(e) )
                 raise self.interface.DetachError(str(e))
 
             # Remove the attachment from our list
@@ -590,9 +588,9 @@ class InAttachablePort:
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.debug("InAttachablePort.detach() - DETACH SUCCESS, ID:" + str(attachId) )
-            self.logger.trace("bulkio::InAttachablePort detach EXIT (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.debug("InAttachablePort.detach() - DETACH SUCCESS, ID:" + str(attachId) )
+            self._portLog.trace("bulkio::InAttachablePort detach EXIT (port=" + str(self.name) +")" )
 
     def getStreamDefinition(self, attachId):
         try:
@@ -616,8 +614,8 @@ class InAttachablePort:
 
     def pushSRI(self, H, T):
 
-        if self.logger:
-            self.logger.trace("bulkio::InAttachablePort pushSRI ENTER (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace("bulkio::InAttachablePort pushSRI ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         try:
@@ -653,8 +651,8 @@ class InAttachablePort:
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.trace("bulkio::InAttachablePort pushSRI EXIT (port=" + str(self.name) +")" )
+        if self._portLog:
+            self._portLog.trace("bulkio::InAttachablePort pushSRI EXIT (port=" + str(self.name) +")" )
 
 class InSDDSPort(BULKIO__POA.dataSDDS,InAttachablePort):
     def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = 'b', newSriCallback=None, sriChangeCallback=None ):
