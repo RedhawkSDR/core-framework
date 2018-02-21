@@ -147,7 +147,8 @@ def all_log_levels(_obj):
     _obj.assertTrue(_obj.cname+'_1.system.PortSupplier' in loggers)
     _obj.assertTrue(_obj.cname+'_1.system.PropertySet' in loggers)
     _obj.assertTrue(_obj.cname+'_1.system.Resource' in loggers)
-    _obj.assertEquals(len(loggers),8)
+    for logger in loggers:
+        _obj.assertTrue(_obj.cname+'_1' in logger)
 
     # verify that the logger level is inherited
     _obj.comp.setLogLevel(_obj.cname+'_1', 'all')
@@ -299,9 +300,10 @@ def selective_log_setting(_obj):
     logger_test_content = _obj.readLogFile('logger_test.log')
     count_test = test_content.count('message from baseline_2_logger')
     count_newline = test_content.count('\n')
+    count_log4cxx_test = test_content.count('this is the log4cxx logger')
     count_logger_test = logger_test_content.count('message from namespaced_logger')
     count_logger_newline = logger_test_content.count('\n')
-    _obj.assertEquals(count_test, count_newline)
+    _obj.assertEquals(count_test, count_newline-count_log4cxx_test)
     _obj.assertEquals(count_logger_test, count_logger_newline)
 
 class PyHierarchicalLogging(scatest.CorbaTestCase):
