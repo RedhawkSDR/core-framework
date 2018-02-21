@@ -186,7 +186,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is provides and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''provides port(s)'''
+'''provides port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}
@@ -194,7 +194,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is uses and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''uses port(s)'''
+'''uses port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}
