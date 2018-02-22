@@ -149,7 +149,7 @@ void ${className}::releaseObject()
     // SR:419
     RH_DEBUG(this->_deviceLog, __FUNCTION__ << ": Receive releaseObject call");
     if (_adminState == CF::Device::UNLOCKED) {
-        RH_DEBUG(${className}, __FUNCTION__ << ": Releasing Device")
+        RH_DEBUG(this->_deviceLog, __FUNCTION__ << ": Releasing Device")
         setAdminState(CF::Device::SHUTTING_DOWN);
 
         // SR:418
