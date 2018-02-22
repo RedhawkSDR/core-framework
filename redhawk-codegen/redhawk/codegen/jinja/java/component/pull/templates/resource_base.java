@@ -221,6 +221,12 @@ public abstract class ${classname} extends ${superClass} {
 /*{% endif %}*/
     }
 
+    protected void setupPortLoggers() {
+/*{% for port in component.ports %}*/
+        ${port.javaname}.setLogger(this._baseLog.getChildLogger("${port.name}", "ports"));
+/*{% endfor %}*/
+    }
+
 /*{% if component.events %}*/
     /**
      * @generated

@@ -1079,6 +1079,8 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         this._propertysetLog = this._baseLog.getChildLogger("PropertySet", "system");
         this._portsupplierLog = this._baseLog.getChildLogger("PortSupplier", "system");
 
+        this.setupPortLoggers();
+
         ResourcePOATie tie = new ResourcePOATie(this, poa);
         tie._this(orb);
         resource = ResourceHelper.narrow(poa.servant_to_reference((Servant)tie));
@@ -1100,6 +1102,9 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         CF.Resource result = this.setup(compId, compName, orb, poa);
         this.softwareProfile = softwareProfile;
         return result;
+    }
+
+    protected void setupPortLoggers() {
     }
 
     /**

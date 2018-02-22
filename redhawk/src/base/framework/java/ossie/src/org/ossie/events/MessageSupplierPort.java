@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 
 import org.ossie.component.QueryableUsesPort;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 import org.ossie.properties.StructDef;
 
 public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperations> implements EventChannelOperations, PortBase {
@@ -63,6 +64,7 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         final String connectionId;
     }
 
+    public RHLogger _portLog;
     private Logger logger = Logger.getLogger(MessageSupplierPort.class.getName());
     private Map<String,PushConsumer> consumers = new HashMap<String,PushConsumer>();
     private Map<String,SupplierAdapter> suppliers = new HashMap<String,SupplierAdapter>();
@@ -82,7 +84,12 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
     {
         this.logger = logger;
     }
-    
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
+
     public void connectPort(final org.omg.CORBA.Object connection, final String connectionId) throws CF.PortPackage.InvalidPort, CF.PortPackage.OccupiedPort {
         // Give a specific exception message for nil
         if (connection == null) {

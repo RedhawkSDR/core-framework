@@ -23,6 +23,7 @@ import FRONTEND.NavigationPacket;
 import FRONTEND.NavDataHelper;
 import frontend.NavDataDelegate;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 // ----------------------------------------------------------------------------------------
 // InNavDataPort definition
@@ -44,6 +45,12 @@ public class InNavDataPort extends FRONTEND.NavDataPOA implements PortBase {
         this.name = portName;
         this.delegate = d;
         this.portAccess = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public NavigationPacket nav_packet() {

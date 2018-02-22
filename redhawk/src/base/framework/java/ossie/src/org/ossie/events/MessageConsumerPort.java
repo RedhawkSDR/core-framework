@@ -36,6 +36,7 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.apache.log4j.Logger;
 
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 import org.ossie.properties.StructDef;
 
 /**
@@ -45,6 +46,7 @@ import org.ossie.properties.StructDef;
 @SuppressWarnings("deprecation")
 public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implements PortBase {
     public Object updatingPortsLock = new Object();
+    public RHLogger _portLog;
 
     protected HashMap<String, EventCallback> callbacks = new HashMap<String, EventCallback>();
     protected boolean active = false;
@@ -146,6 +148,11 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
     public void setLogger(Logger logger)
     {
         this.logger = logger;
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public String getRepid()

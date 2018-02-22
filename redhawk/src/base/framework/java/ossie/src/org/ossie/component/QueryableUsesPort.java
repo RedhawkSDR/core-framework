@@ -28,9 +28,9 @@ import java.util.Map;
 import java.util.HashMap;
 
 import org.ossie.component.UsesPort;
-//import ExtendedCF.QueryablePortPOA;
 import ExtendedCF.*;
 import org.ossie.redhawk.PortCallError;
+import org.ossie.component.RHLogger;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -47,6 +47,12 @@ public abstract class QueryableUsesPort< E > extends QueryablePortPOA { // SUPPR
         this.active = false;
         this.name = portName;
         this.updatingPortsLock = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public List<String> getConnectionIds() {

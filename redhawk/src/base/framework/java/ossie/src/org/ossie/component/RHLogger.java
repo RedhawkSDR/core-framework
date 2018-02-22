@@ -49,6 +49,10 @@ public class RHLogger {
         this._rootLogger = null;
     }
 
+    public Logger getL4Logger() {
+        return this.l4logger;
+    }
+
     static public RHLogger getRootLogger() {
         if ( _rootLogger == null ) {
             _rootLogger = new RHLogger("");

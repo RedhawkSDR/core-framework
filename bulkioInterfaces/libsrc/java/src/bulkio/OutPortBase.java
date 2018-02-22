@@ -31,6 +31,7 @@ import ExtendedCF.UsesConnection;
 import ExtendedCF.TransportInfo;
 import ExtendedCF.ConnectionStatus;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 import BULKIO.PortUsageType;
 import BULKIO.StreamSRI;
@@ -66,6 +67,8 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
      * Target for port logging
      */
     protected Logger logger;
+
+    public RHLogger _portLog = null;
 
     /**
      * Event listener when connect/disconnet events happen
@@ -124,6 +127,11 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
         synchronized (this.updatingPortsLock) {
 	    this.logger = newlogger;
 	}
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     /**
@@ -193,8 +201,8 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
     {
         boolean retval=reportConnectionErrors(cid );
         if ( retval ) {
-            if ( logger != null ) {
-                logger.error(msg);
+            if ( _portLog != null ) {
+                _portLog.error(msg);
             }
         }
        return retval;
@@ -267,8 +275,8 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
 
             if (connectionID.equals(filter.connection_id.getValue()) &&
                 streamID.equals(filter.stream_id.getValue())) {
-                if (logger != null) {
-                    logger.trace("OutPort FilterMatch port:" + this.name + " connection:" + connectionID +
+                if (_portLog != null) {
+                    _portLog.trace("OutPort FilterMatch port:" + this.name + " connection:" + connectionID +
                                  " streamID:" + streamID);
                 }
                 return true;
@@ -279,8 +287,8 @@ public abstract class OutPortBase<E> extends BULKIO.UsesPortStatisticsProviderPO
         // filter in effect, so send the packet or SRI; otherwise, it was
         // listed and there is no route.
         if (!portListed) {
-            if (logger != null) {
-                logger.trace("OutPort NO Filter port:" + this.name + " connection:" + connectionID +
+            if (_portLog != null) {
+                _portLog.trace("OutPort NO Filter port:" + this.name + " connection:" + connectionID +
                              " streamID:" + streamID);
             }
             return true;
