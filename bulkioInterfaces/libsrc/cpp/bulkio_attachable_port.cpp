@@ -85,6 +85,11 @@ namespace bulkio {
 
 
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  void InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::setLogger(LOGGER_PTR newLogger) {
+    _portLog = newLogger;
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   bool InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::hasSriChanged () {
     return sriChanged;
   }
