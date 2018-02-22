@@ -65,6 +65,12 @@ namespace burstio {
     }
 
     template <class Traits>
+    void InPort<Traits>::setLogger (rh_logger::LoggerPtr newLogger)
+    {
+        _portLog = newLogger;
+    }
+
+    template <class Traits>
     void InPort<Traits>::start ()
     {
         boost::mutex::scoped_lock lock(queueMutex_);
