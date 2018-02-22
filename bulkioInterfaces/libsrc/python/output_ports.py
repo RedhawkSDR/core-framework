@@ -160,13 +160,13 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                                 self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
                             except Exception, e:
                                 if self._portLog:
-                                    self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                    self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
                 else:
                     try:
                         self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
                     except Exception, e:
                         if self._portLog:
-                            self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                            self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
 
             self.outConnections.pop(connId, None)
@@ -272,7 +272,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                         except Exception, e:
                             if self.reportConnectionErrors(connId) :
                                 if self._portLog:
-                                    self._portLog.error("PUSH-SRI FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                    self._portLog.exception("PUSH-SRI FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -283,7 +283,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     except Exception, e:
                         if self.reportConnectionErrors(connId)  :
                             if self._portLog:
-                                self._portLog.error("PUSH-SRI FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                self._portLog.exception("PUSH-SRI FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
         finally:
             self.port_lock.release()
@@ -361,7 +361,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     except Exception, e:
                         if self.reportConnectionErrors(connId)  :
                             if self._portLog:
-                                self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
         if not portListed:
             for connId, port in self.outConnections.items():
@@ -378,7 +378,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                 except Exception, e:
                     if self.reportConnectionErrors(connId)  :
                         if self._portLog:
-                            self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                            self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
         if EOS==True:
             if self.sriDict.has_key(streamID):
                 tmp = self.sriDict.pop(streamID)
@@ -482,7 +482,7 @@ class OutFilePort(OutPort):
                         except Exception, e :
                             if self.reportConnectionErrors(connId) :
                                 if self._portLog:
-                                    self._portLog.error("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
+                                    self._portLog.exception("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -493,7 +493,7 @@ class OutFilePort(OutPort):
                     except Exception, e:
                         if self.reportConnectionErrors(connId) :
                             if self._portLog :
-                                self._portLog.error("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
+                                self._portLog.exception("PUSH-PACKET (file port) FAILED, PORT/CONNECTION: %s/%s ,  EXCEPTION: %s", self.name, connId, str(e))
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -533,7 +533,7 @@ class OutXMLPort(OutPort):
                         except Exception:
                             if self.reportConnectionErrors(connId) :
                                 if self._portLog :
-                                    self._portLog.error("PUSH-PACKET (xml port) FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                    self._portLog.exception("PUSH-PACKET (xml port) FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
             if not portListed:
                 for connId, port in self.outConnections.items():
                     try:
@@ -543,7 +543,7 @@ class OutXMLPort(OutPort):
                     except Exception:
                         if self.reportConnectionErrors(connId) :
                             if self._portLog :
-                                self._portLog.error("PUSH-PACKET (xml port) FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                self._portLog.exception("PUSH-PACKET (xml port) FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -577,13 +577,13 @@ class OutXMLPort(OutPort):
                                 self.outConnections[connId].pushPacket(self.noData, True, sid)
                             except Exception, e:
                                 if self._portLog:
-                                    self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                                    self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
                 else:
                     try:
                         self.outConnections[connId].pushPacket(self.noData, True, sid)
                     except Exception, e:
                         if self._portLog:
-                            self._portLog.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                            self._portLog.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
             self.outConnections.pop(connId, None)
             for key,value in self.sriDict.items():
@@ -1127,7 +1127,7 @@ class OutAttachablePort(OutPort):
                         except Exception, e:
                             if  self.reportConnectionErrors(connId) :
                                 if self._portLog:
-                                    self._portLog.error("PUSH-SRI (attachable) FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s ", str(self.name), connId, str(e))
+                                    self._portLog.exception("PUSH-SRI (attachable) FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s ", str(self.name), connId, str(e))
 
             if not portListed:
                 for connId, port in self.outConnections.items():
@@ -1138,7 +1138,7 @@ class OutAttachablePort(OutPort):
                     except Exception, e:
                         if  self.reportConnectionErrors(connId) :
                             if self._portLog:
-                                self._portLog.error("PUSH-SRI (attachable) FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s ", str(self.name), connId, str(e))
+                                self._portLog.exception("PUSH-SRI (attachable) FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s ", str(self.name), connId, str(e))
         finally:
             self.port_lock.release() 
 
