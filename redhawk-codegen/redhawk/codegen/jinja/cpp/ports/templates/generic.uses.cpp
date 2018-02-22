@@ -55,7 +55,7 @@ ${operation.returns} ${classname}::${operation.name}() {
     return _get_${operation.name}("");
 }
 
-${operation.returns} ${classname}::${operation.name}(const std::string __connection_id__)
+${operation.returns} ${classname}::_get_${operation.name}(const std::string __connection_id__)
 /*{%  else %}*/
 /*{%   if operation.arglist %}*/
 ${operation.returns} ${classname}::${operation.name}(${operation.arglist}, const std::string __connection_id__)

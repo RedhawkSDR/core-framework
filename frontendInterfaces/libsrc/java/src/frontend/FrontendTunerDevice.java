@@ -538,10 +538,12 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         for (DataType cap : capacities) {
             final IProperty property = this.propSet.get(cap.id);
             if (cap.id.equals("FRONTEND::tuner_allocation")) {
+                frontend_tuner_allocation.configure(cap.value);
                 deallocateTuner(frontend_tuner_allocation.getValue());
             }
             if (cap.id.equals("FRONTEND::listener_allocation")) {
                 try {
+                    frontend_listener_allocation.configure(cap.value);
                     deallocateListener(frontend_listener_allocation.getValue());
                 } catch (CF.DevicePackage.InvalidCapacity e) {
                     invalidProps.add(cap);

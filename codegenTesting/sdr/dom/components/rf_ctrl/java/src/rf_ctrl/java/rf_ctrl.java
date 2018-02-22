@@ -544,7 +544,7 @@ public class rf_ctrl extends rf_ctrl_base {
         	this.set_nav_packet.setValue(e.getMessage());
         }
         
-        return NOOP;
+        return FINISH;
     }
 
     /**
