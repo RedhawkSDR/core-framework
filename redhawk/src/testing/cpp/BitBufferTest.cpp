@@ -387,7 +387,7 @@ void BitBufferTest::testReplace()
     CPPUNIT_ASSERT_EQUAL((data_type) 0x46, data[0]);
     CPPUNIT_ASSERT_EQUAL((data_type) 0x40, data[1]);
 
-    // 4-argument version: replace 12 bits at offset 22, starting with the 4th
+    // 4-argument version: replace 13 bits at offset 22, starting with the 4th
     // bit of the source
     //   1000(11 00|110001 10|1)101
     // 000000(11|00 110001|10 1)0xxxx = 0x0331A
