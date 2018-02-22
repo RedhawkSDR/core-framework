@@ -281,7 +281,7 @@ mvn:deploy:
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
-     - /^feature.*$/
+    - /^feature.*$/
 
 deploy:
   image: centos:7
