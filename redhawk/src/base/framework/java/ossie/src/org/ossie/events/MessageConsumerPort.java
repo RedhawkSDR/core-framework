@@ -133,6 +133,12 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         this.logger = logger;
     }
     
+   public MessageConsumerPort(String portName, RHLogger logger) 
+    {
+        this(portName);
+        this._portLog = logger;
+    }
+    
     public boolean isActive() {
         return this.active;
     }

@@ -73,11 +73,17 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
     {
         super(portName);
     }
-    
+
     public MessageSupplierPort(String portName, Logger logger)
     {
         this(portName);
         this.logger = logger;
+    }
+
+    public MessageSupplierPort(String portName, RHLogger logger)
+    {
+        this(portName);
+        this._portLog = logger;
     }
 
     public void setLogger(Logger logger)
