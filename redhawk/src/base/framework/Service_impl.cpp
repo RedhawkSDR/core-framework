@@ -32,30 +32,30 @@ void Service_impl::initResources (char* devMgr_ior, char* name)
     _devMgr_ior = devMgr_ior;
     initialConfiguration = true;
     _log = rh_logger::Logger::getResourceLogger(_name);
-    _service_log = _log->getChildLogger("Service", "system");
+    _serviceLog = _log->getChildLogger("Service", "system");
 }
 
 Service_impl::Service_impl (char* devMgr_ior, char* _name) :
     component_running_mutex(),
     component_running(&component_running_mutex)
 {
-    RH_TRACE(_service_log, "Constructing Device")
+    RH_TRACE(_serviceLog, "Constructing Device")
     initResources(devMgr_ior, _name);
-    RH_TRACE(_service_log, "Done Constructing Device")
+    RH_TRACE(_serviceLog, "Done Constructing Device")
 }
 
 void  Service_impl::resolveDeviceManager ()
 {
-    RH_TRACE(_service_log, "entering resolveDeviceManager()");
+    RH_TRACE(_serviceLog, "entering resolveDeviceManager()");
     _deviceManager = CF::DeviceManager::_nil();
     CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(_devMgr_ior.c_str());
     if (CORBA::is_nil(obj)) {
-        RH_ERROR(_service_log, "Invalid device manager IOR");
+        RH_ERROR(_serviceLog, "Invalid device manager IOR");
         exit(-1);
     }
     _deviceManager = CF::DeviceManager::_narrow(obj);
     if (CORBA::is_nil(_deviceManager)) {
-        RH_ERROR(_service_log, "Could not narrow device manager IOR");
+        RH_ERROR(_serviceLog, "Could not narrow device manager IOR");
         exit(-1);
     }
     this->_devMgr = new redhawk::DeviceManagerContainer(_deviceManager);
@@ -63,7 +63,7 @@ void  Service_impl::resolveDeviceManager ()
         this->_domMgr = new redhawk::DomainManagerContainer(_deviceManager->domMgr());
         return;
     }
-    RH_TRACE(_service_log, "leaving resolveDeviceManager()");
+    RH_TRACE(_serviceLog, "leaving resolveDeviceManager()");
 }
 
 void  Service_impl::registerServiceWithDevMgr ()
@@ -73,16 +73,16 @@ void  Service_impl::registerServiceWithDevMgr ()
 
 void  Service_impl::run ()
 {
-    RH_TRACE(_service_log, "handling CORBA requests");
+    RH_TRACE(_serviceLog, "handling CORBA requests");
     component_running.wait();
-    RH_TRACE(_service_log, "leaving run()");
+    RH_TRACE(_serviceLog, "leaving run()");
 }
 
 void  Service_impl::halt ()
 {
-    RH_DEBUG(_service_log, "Halting Service")
+    RH_DEBUG(_serviceLog, "Halting Service")
     component_running.signal();
-    RH_TRACE(_service_log, "Done sending service running signal");
+    RH_TRACE(_serviceLog, "Done sending service running signal");
 }
 
 void Service_impl::terminateService ()

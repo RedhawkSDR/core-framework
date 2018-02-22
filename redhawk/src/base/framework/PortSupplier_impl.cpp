@@ -37,27 +37,27 @@ CORBA::Object* PortSupplier_impl::getPort (const char* name) throw (CORBA::Syste
 
 void PortSupplier_impl::addPort (const std::string& name, PortBase* servant)
 {
-    RH_TRACE(_portsupplier_log, "Adding port '" << name << "'");
+    RH_TRACE(_portsupplierLog, "Adding port '" << name << "'");
     insertPort(name, servant);
 
     // Activate the port in its default POA (usually, the root)
-    RH_TRACE(_portsupplier_log, "Activating port '" << name << "'");
+    RH_TRACE(_portsupplierLog, "Activating port '" << name << "'");
     PortableServer::POA_var poa = servant->_default_POA();
     PortableServer::ObjectId_var oid = poa->activate_object(servant);
 
     // Allow additional post-activation initialization
-    RH_TRACE(_portsupplier_log, "Initializing port '" << name << "'");
+    RH_TRACE(_portsupplierLog, "Initializing port '" << name << "'");
     servant->initializePort();
 }
 
 void PortSupplier_impl::setLogger(rh_logger::LoggerPtr logptr)
 {
-    _portsupplier_log = logptr;
+    _portsupplierLog = logptr;
 }
 
 void PortSupplier_impl::addPort (const std::string& name, const std::string& description, PortBase* servant)
 {
-    RH_TRACE(_portsupplier_log, "Adding port '" << name << "': " << description);
+    RH_TRACE(_portsupplierLog, "Adding port '" << name << "': " << description);
     addPort(name, servant);
     servant->setDescription(description);
 }
@@ -93,7 +93,7 @@ void PortSupplier_impl::releasePorts ()
 
 void PortSupplier_impl::deactivatePort (PortBase* servant)
 {
-    RH_TRACE(_portsupplier_log, "Deactivating port '" << servant->getName() << "'");
+    RH_TRACE(_portsupplierLog, "Deactivating port '" << servant->getName() << "'");
     PortableServer::POA_var poa = servant->_default_POA();
     PortableServer::ObjectId_var oid = poa->servant_to_id(servant);
     poa->deactivate_object(oid);
@@ -105,7 +105,7 @@ void PortSupplier_impl::insertPort (const std::string& name, PortBase* servant)
     if (existing != _portServants.end()) {
         // A port is already registered with the given name, assume that the
         // new one must replace the old one
-        RH_DEBUG(_portsupplier_log, "Replacing existing port '" << name << "'");
+        RH_DEBUG(_portsupplierLog, "Replacing existing port '" << name << "'");
         deactivatePort(existing->second);
     }
     _portServants[name] = servant;

@@ -231,6 +231,8 @@ protected:
         return this->_devMgr;
     }
 
+    rh_logger::LoggerPtr _deviceLog;
+
 private:
     // Adapter template function for device constructors. This is the only part of
     // device creation that requires type-specific knowledge.
@@ -264,8 +266,6 @@ private:
     void deallocateCapacityLegacy (const CF::Properties& capacities);
     // container to the Device Manager
     redhawk::DeviceManagerContainer *_devMgr;
-
-    rh_logger::LoggerPtr _device_log;
 
 
  private:

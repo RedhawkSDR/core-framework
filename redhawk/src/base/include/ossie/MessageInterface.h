@@ -167,13 +167,12 @@ public:
 	std::string getRepid() const;
 
 	std::string getDirection() const;
-    
-private:
-
-    rh_logger::LoggerPtr _messageconsumer_log;
 
 protected:
+
     friend class MessageSupplierPort;
+
+    rh_logger::LoggerPtr _messageconsumerLog;
 
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 

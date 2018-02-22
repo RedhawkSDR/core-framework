@@ -378,7 +378,7 @@ private:
     typedef redhawk::callback<void (const std::string&)> PropertyCallback;
     void setPropertyCallback (const std::string& id, PropertyCallback callback);
 
-    rh_logger::LoggerPtr _propertyset_log;
+    rh_logger::LoggerPtr _propertysetLog;
 
     typedef std::map<std::string, PropertyCallback> PropertyCallbackMap;
     PropertyCallbackMap propCallbacks;

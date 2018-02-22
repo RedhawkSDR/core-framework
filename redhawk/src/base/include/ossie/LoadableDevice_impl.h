@@ -229,6 +229,7 @@ protected:
 
     // Returns the base directory in use for the file cache
     const std::string& getCacheDirectory();
+    rh_logger::LoggerPtr _loadabledeviceLog;
 
  private:
     LoadableDevice_impl(); // No default constructor
@@ -242,8 +243,6 @@ protected:
     void _deleteTree(const std::string &fileKey);
     bool _treeIntact(const std::string &fileKey);
     void _copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey);
-
-    rh_logger::LoggerPtr _loadabledevice_log;
 };
 
 #endif

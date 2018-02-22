@@ -156,7 +156,7 @@ private:
         return component;
     }
 
-    rh_logger::LoggerPtr _resource_log;
+    rh_logger::LoggerPtr _resourceLog;
 
     // Generic implementation of start_component, taking a function pointer to
     // a component constructor (via make_component).

@@ -61,47 +61,47 @@ void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::s
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     CORBA::Object_var applicationRegistrarObject = CORBA::Object::_nil();
     try {
-      RH_TRACE(_resource_log, "narrow to Registrar object:" << application_registrar_ior );
+      RH_TRACE(_resourceLog, "narrow to Registrar object:" << application_registrar_ior );
       applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
     } catch ( ... ) {
-      RH_WARN(_resource_log, "No  Registrar... create empty container");
+      RH_WARN(_resourceLog, "No  Registrar... create empty container");
       setDomainManager(CF::DomainManager::_nil());
       return;
     }
     CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
     if (!CORBA::is_nil(applicationRegistrar)) {
       try {
-          RH_TRACE(_resource_log, "Get DomainManager from Registrar object:" << application_registrar_ior );
+          RH_TRACE(_resourceLog, "Get DomainManager from Registrar object:" << application_registrar_ior );
           CF::DomainManager_var dm=applicationRegistrar->domMgr();
           setDomainManager(dm);
           return;
       }
       catch(...){
-          RH_WARN(_resource_log, "ApplicationRegistrar Failure to get DomainManager container");
+          RH_WARN(_resourceLog, "ApplicationRegistrar Failure to get DomainManager container");
       }
     }
 
-    RH_TRACE(_resource_log, "Resolve DeviceManager...");
+    RH_TRACE(_resourceLog, "Resolve DeviceManager...");
     CF::DeviceManager_var devMgr = ossie::corba::_narrowSafe<CF::DeviceManager>(applicationRegistrarObject);
     if (!CORBA::is_nil(devMgr)) {
         try {
-            RH_TRACE(_resource_log, "Resolving DomainManager from DeviceManager...");
+            RH_TRACE(_resourceLog, "Resolving DomainManager from DeviceManager...");
             CF::DomainManager_var dm=devMgr->domMgr();
             setDomainManager(dm);
             return;
         }
         catch(...){
-            RH_WARN(_resource_log, "DeviceManager... Failure to get DomainManager container");
+            RH_WARN(_resourceLog, "DeviceManager... Failure to get DomainManager container");
         }
     }
 
-    RH_DEBUG(_resource_log, "All else failed.... use empty container");
+    RH_DEBUG(_resourceLog, "All else failed.... use empty container");
     setDomainManager(CF::DomainManager::_nil());
 }
 
 void Resource_impl::setLogger(rh_logger::LoggerPtr logptr)
 {
-    _resource_log = logptr;
+    _resourceLog = logptr;
     PropertySet_impl::setLogger(this->_baseLog->getChildLogger("PropertySet", "system"));
     PortSupplier_impl::setLogger(this->_baseLog->getChildLogger("PortSupplier", "system"));
 }
@@ -170,7 +170,7 @@ void Resource_impl::initialize () throw (CF::LifeCycle::InitializeError, CORBA::
       try {
           constructor();
       } catch (const std::exception& exc) {
-          RH_ERROR(_resource_log, "initialize(): " << exc.what());
+          RH_ERROR(_resourceLog, "initialize(): " << exc.what());
           CF::StringSequence messages;
           ossie::corba::push_back(messages, exc.what());
           throw CF::LifeCycle::InitializeError(messages);
@@ -193,17 +193,17 @@ void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle
 
 void Resource_impl::run() {
     // Start handling CORBA requests
-    RH_TRACE(_resource_log, "handling CORBA requests");
+    RH_TRACE(_resourceLog, "handling CORBA requests");
     component_running.wait();
-    RH_TRACE(_resource_log, "leaving run()");
+    RH_TRACE(_resourceLog, "leaving run()");
 }
 
 void Resource_impl::halt() {
-    RH_DEBUG(_resource_log, "Halting component")
+    RH_DEBUG(_resourceLog, "Halting component")
 
-    RH_TRACE(_resource_log, "Sending device running signal");
+    RH_TRACE(_resourceLog, "Sending device running signal");
     component_running.signal();
-    RH_TRACE(_resource_log, "Done sending device running signal");
+    RH_TRACE(_resourceLog, "Done sending device running signal");
 }
 
 const std::string& Resource_impl::getIdentifier() const

@@ -250,12 +250,12 @@ protected:
     omni_mutex component_running_mutex;
     omni_condition component_running;
 
+    rh_logger::LoggerPtr _serviceLog;
+
 private:
     void initResources(char*, char*);
     redhawk::DeviceManagerContainer *_devMgr;
     redhawk::DomainManagerContainer *_domMgr;
-
-    rh_logger::LoggerPtr _service_log;
 };
 
 

@@ -80,7 +80,7 @@ private:
     void insertPort (const std::string& name, PortBase* servant);
     void deactivatePort (PortBase* servant);
 
-    rh_logger::LoggerPtr _portsupplier_log;
+    rh_logger::LoggerPtr _portsupplierLog;
 
 };
 
