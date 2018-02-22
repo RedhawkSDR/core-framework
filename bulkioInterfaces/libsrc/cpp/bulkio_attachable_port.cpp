@@ -67,8 +67,6 @@ namespace bulkio {
   {
       stats = new linkStatistics(port_name);
 
-      LOG_DEBUG( _portLog, "bulkio::InAttachablePort CTOR port:" << port_name );
-
       if ( newSriCB ) {
         newSRICallback = *newSriCB;
       }
