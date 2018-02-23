@@ -911,7 +911,7 @@ public abstract class Device extends Resource implements DeviceOperations {
         // Warn about mixed legacy and new-style properties, if we have not already.
         if (isMixed && !this.warnedLegacyAllocProps) {
             this.warnedLegacyAllocProps = true;
-            this._propertysetLog.warn("Device uses mix of deprecated and new-style allocation properties. Allocation behavior may be inconsistent.");
+            logger.warn("Device uses mix of deprecated and new-style allocation properties. Allocation behavior may be inconsistent.");
         }
     }
 
