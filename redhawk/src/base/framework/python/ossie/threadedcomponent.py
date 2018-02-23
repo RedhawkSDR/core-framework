@@ -49,7 +49,7 @@ class ProcessThread(threading.Thread):
             try:
                 state = self.target()
             except Exception as exc:
-                log = getattr(self.target.__self__, '_log', None)
+                log = getattr(self.target.__self__, '_baseLog', None)
                 if log:
                     log.fatal("Unhandled exception in process function: %s", exc, exc_info=True)
                 # Terminate the process on unhandled exceptions (sys.exit only

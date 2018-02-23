@@ -163,7 +163,7 @@ def fileConfig(f, category=None):
   return _config(props,category)
 
 
-def _config(props, category=None, disable_existing_loggers=1):
+def _config(props, category=None, disable_existing_loggers=False):
   logging.shutdown()
 
   # critical section
