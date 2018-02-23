@@ -209,6 +209,23 @@ namespace redhawk {
                  const byte* patt, size_t pstart, size_t plen,
                  int maxdist);
 
+        /**
+         * @brief  Performs a take/skip operation.
+         * @param dest    Destination bit string.
+         * @param dstart  Index of first bit in @p dest.
+         * @param src     Source bit string.
+         * @param sstart  Index of first bit in @p src.
+         * @param slen    Length of @p src.
+         * @param take    Number of bits to copy per iteration.
+         * @param skip    Number of bits to skip per iteration.
+         * @returns  Number of bits copied.
+         *
+         * Alternately copies @a take bits and skips @a skip bits from @a src
+         * into @a dest.
+         */
+        size_t takeskip(byte* dest, size_t dstart,
+                        const byte* src, size_t sstart, size_t slen,
+                        size_t take, size_t skip);
     }
 
 }

@@ -1119,6 +1119,55 @@ void BitopsTest::testFind()
                                                   pattern, 0, pattern_bits, 3));
 }
 
+void BitopsTest::testTakeSkip()
+{
+    // Use a non byte-aligned starting offset and a repeating pattern of an
+    // irregular length, where the discarded part is disjoint
+    // 10000100001/1001 = 0x4219
+    size_t patt_len = 15;
+    const size_t src_start = 5;
+    size_t src_bits = 5 * patt_len;
+    std::vector<unsigned char> src((src_start + src_bits + 7) / 8);
+    for (size_t pos = src_start; pos < (src_start+src_bits); pos += patt_len) {
+        redhawk::bitops::setint(&src[0], pos, 0x4219, patt_len);
+    }
+
+    // Take 11 and skip 4 for the extent of the input string, using a different
+    // non byte-aligned starting offset
+    const size_t take_len = 11;
+    const size_t dest_start = 3;
+    const size_t dest_bits = 5 * take_len;
+
+    // Allocate memory and intialize with alternating 0/1 bit pattern
+    std::vector<unsigned char> dest((dest_start + dest_bits +7) / 8, 0x55);
+
+    // Ensure that the take/skip copies the correct number of bits, and that
+    // the destination now contains the first 11 bits of the pattern repeated
+    size_t count = redhawk::bitops::takeskip(&dest[0], dest_start, &src[0], src_start, src_bits, take_len, 4);
+    CPPUNIT_ASSERT_EQUAL(dest_bits, count);
+    for (size_t pos = dest_start; pos < (dest_start+dest_bits); pos += take_len) {
+        CPPUNIT_ASSERT_EQUAL((uint64_t) 0x421, redhawk::bitops::getint(&dest[0], pos, take_len));
+    }
+
+    // Make sure it didn't disturb any existing values
+    // front: 010xxxxx
+    // back:  xx010101
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 2, redhawk::bitops::getint(&dest[0], 0, dest_start));
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 0x15, redhawk::bitops::getint(&dest[0], dest_start+dest_bits, 6));
+
+    // Use a source length that truncates the last take and verify that only
+    // bits up to that point are taken
+    // src  = (10000100001100110000)10000
+    //        (10000xxx00110xxx0000) = 10000001100000
+    // dest = (01010101010101)01
+    //        (10000001100000)xx
+    //         10000001100000 01 = 0x8181
+    std::fill(dest.begin(), dest.end(), 0x55);
+    count = redhawk::bitops::takeskip(&dest[0], 0, &src[0], src_start, 20, 5, 3);
+    CPPUNIT_ASSERT_EQUAL((size_t) 14, count);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) 0x8181, redhawk::bitops::getint(&dest[0], 0, 16));
+}
+
 void BitopsTest::_flipBit(unsigned char* buffer, size_t offset)
 {
     redhawk::bitops::setbit(buffer, offset, !(redhawk::bitops::getbit(buffer, offset)));

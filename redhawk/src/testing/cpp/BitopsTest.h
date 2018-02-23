@@ -56,6 +56,7 @@ class BitopsTest : public CppUnit::TestFixture {
     CPPUNIT_TEST(testCopyUnaligned);
     CPPUNIT_TEST(testCopyLarge);
     CPPUNIT_TEST(testFind);
+    CPPUNIT_TEST(testTakeSkip);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -103,6 +104,7 @@ public:
     void testCopyLarge();
 
     void testFind();
+    void testTakeSkip();
 
 private:
     void _flipBit(unsigned char* buffer, size_t offset);

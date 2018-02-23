@@ -954,5 +954,19 @@ namespace bitops {
         return -1;
     }
 
+    size_t takeskip(byte* dest, size_t dstart,
+                  const byte* src, size_t sstart, size_t slen,
+                  size_t take, size_t skip)
+    {
+        size_t dest_pos = dstart;
+        size_t end = sstart + slen;
+        for (; sstart < end; sstart += (take+skip)) {
+            size_t pass = std::min(take, end-sstart);
+            copy(dest, dest_pos, src, sstart, pass);
+            dest_pos += pass;
+        }
+        return dest_pos - dstart;
+    }
+
 } // namespace bitops
 } // namespace redhawk
