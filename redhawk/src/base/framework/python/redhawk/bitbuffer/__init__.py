@@ -22,7 +22,7 @@ import copy
 import itertools
 import numbers
 
-__all__ = ('bitbuffer',)
+__all__ = ('bitbuffer', 'takeskip')
 
 def _bits_to_bytes(bits):
     return int((bits + 7)/8)
@@ -73,9 +73,24 @@ def _iterable_to_bytes(iterable, func):
             value = 0
             shift = 7
 
+    # If the shift value is not 7, there are some bits stored in value that
+    # must be returned
     if shift != 7:
         yield value
 
+
+def takeskip(iterable, take, skip):
+    """
+    Generator function to perform a take/skip operation on any iterable.
+    Returns 'take' elements from the iterable, then discards 'skip' elements,
+    until the iterable is exhausted.
+    """
+    it = iter(iterable)
+    while True:
+        for _ in xrange(take):
+            yield it.next()
+        for _ in xrange(skip):
+            it.next()
 
 class bitbuffer(object):
     """
@@ -261,8 +276,8 @@ class bitbuffer(object):
         pattern = bitbuffer(pattern)
         length = len(pattern)
 
-        # Use slice to set bounded indices for start and end (ignoring step)
-        start, end, step = slice(start, end, None).indices(len(self))
+        # Get bounded indices for start and end (ignoring step)
+        start, end, step = self._indices(start, end)
 
         # Clamp end to the last position at which there is a full pattern
         # length to do the comparison
@@ -272,6 +287,14 @@ class bitbuffer(object):
             if pattern.distance(self[pos:pos+length]) <= maxDistance:
                 return pos
         return -1
+
+    def takeskip(self, take, skip, start=0, end=None):
+        start, end, step = self._indices(start, end)
+        return bitbuffer(takeskip(self[start:end], take, skip))
+
+    def _indices(self, start, end, step=None):
+        # Use slice to return properly bounded indices
+        return slice(start, end, step).indices(len(self))
 
     def _check_index(self, pos):
         if pos < 0:

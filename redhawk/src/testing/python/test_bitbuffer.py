@@ -412,6 +412,29 @@ class BitBufferTest(unittest.TestCase):
         # but without an exception
         self.assertEqual(-1, buf.find(pattern, start=len(buf)))
 
+    def testTakeSkip(self):
+        # Use a repeating pattern of an irregular length, where the discarded
+        # part is disjoint
+        taken = '10000100001'
+        skipped = '1001'
+        buf = bitbuffer((taken+skipped) * 5)
+        expected = bitbuffer(taken * 5)
+        self.assertEqual(expected, buf.takeskip(11, 4))
+
+        # Use ASCII text, where the high bit is always zero; a start offset is
+        # required
+        msg = 'Here is some text'
+        buf = bitbuffer(bytearray(msg))
+        ascii = buf.takeskip(7, 1, start=1)
+
+        # Reconstruct the input text by taking 7 bits at a time
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        self.assertEqual(msg, result)
+
+        # Repeat with a starting and ending offset
+        ascii = buf.takeskip(7, 1, start=41, end=97)
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        self.assertEqual(msg[5:12], result)
 
 if __name__ == '__main__':
     import runtests
