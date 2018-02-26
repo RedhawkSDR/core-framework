@@ -226,6 +226,17 @@ class bitbuffer(object):
         # and numpy arrays.
         return bitbuffer(bytearray(self.__data), self.__bits, self.__start)
 
+    def __add__(self, other):
+        # Convert incoming value to a bitbuffer, because at the very least we
+        # need to know its size
+        if not isinstance(other, bitbuffer):
+            other = bitbuffer(other)
+        bits = len(self) + len(other)
+        result = bitbuffer(bits=bits)
+        result[:len(self)] = self
+        result[len(self):] = other
+        return result
+
     def bytes(self):
         """
         Returns a raw byte string containing all bits from this bitbuffer,

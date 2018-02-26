@@ -36,7 +36,7 @@ import bulkio.sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
-from bulkio.output_streams import BufferedOutputStream, OutCharStream, OutOctetStream, OutBitStream, OutXMLStream, OutFileStream
+from bulkio.output_streams import OutputStream, BufferedOutputStream, OutXMLStream
 import traceback
 
 class connection_descriptor_struct(object):
@@ -259,7 +259,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         with self.port_lock:
             self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set()) 
             if not H.streamID in self._streams:
-                self._streams[H.streamID] = self.StreamType(copy.deepcopy(H), self)
+                self._streams[H.streamID] = self._createStream(copy.deepcopy(H))
 
             for connId, port in self.outConnections.iteritems():
                 if not self._isStreamRoutedToConnection(H.streamID, connId):
@@ -306,9 +306,12 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                 sri = bulkio.sri.create(stream_id)
 
             # No existing stream was found, create one
-            stream = self.StreamType(sri, self)
+            stream = self._createStream(sri)
             self._streams[sri.streamID] = stream
             return stream
+
+    def _createStream(self, sri):
+        return self.StreamType(sri, self, self._dtype)
 
     def _pushPacket(self, data, T, EOS, streamID):
         # Prerequisite: caller holds self.port_lock
@@ -418,13 +421,11 @@ class OutNumericPort(OutPort):
 
 class OutCharPort(OutNumericPort):
     TRANSFER_TYPE = 'c'
-    StreamType = OutCharStream
     def __init__(self, name, logger=None ):
         OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
 class OutOctetPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
-    StreamType = OutOctetStream
     def __init__(self, name, logger=None ):
         OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
@@ -470,7 +471,6 @@ class OutDoublePort(OutNumericPort):
 
 class OutBitPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
-    StreamType = OutBitStream
     def __init__(self, name, logger=None):
         OutNumericPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, dtype=bitbuffer, bits=1)
 
@@ -480,7 +480,7 @@ class OutBitPort(OutNumericPort):
 
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
-    StreamType = OutFileStream
+    StreamType = OutputStream
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 

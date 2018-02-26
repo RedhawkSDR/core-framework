@@ -244,7 +244,7 @@ class BufferedOutStreamTest(OutStreamTest):
         # but only up to the buffer size (48*3 == 144)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(stream.bufferSize(), len(self.stub.packets[-1].data))
+        self.assertEqual(stream.bufferSize(), self.helper.packetLength(self.stub.packets[-1].data))
 
         # There should now be 16 samples in the queue; writing another 48 should
         # not trigger a push
@@ -254,13 +254,13 @@ class BufferedOutStreamTest(OutStreamTest):
         # Flush the stream and make sure we get as many samples as expected
         stream.flush()
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(64, len(self.stub.packets[-1].data))
+        self.assertEqual(64, self.helper.packetLength(self.stub.packets[-1].data))
 
         # Disable buffering; push should happen immediately
         stream.setBufferSize(0)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(3, len(self.stub.packets))
-        self.assertEqual(len(data), len(self.stub.packets[-1].data))
+        self.assertEqual(len(data), self.helper.packetLength(self.stub.packets[-1].data))
 
     def testWriteSkipBuffer(self):
         # Turn on buffering
@@ -271,7 +271,7 @@ class BufferedOutStreamTest(OutStreamTest):
         data = self.helper.createData(256)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(len(data), len(self.stub.packets[-1].data))
+        self.assertEqual(len(data), self.helper.packetLength(self.stub.packets[-1].data))
 
         # Queue up a bit of data
         data = self.helper.createData(16)
@@ -283,7 +283,7 @@ class BufferedOutStreamTest(OutStreamTest):
         data = self.helper.createData(128)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(stream.bufferSize(), len(self.stub.packets[-1].data))
+        self.assertEqual(stream.bufferSize(), self.helper.packetLength(self.stub.packets[-1].data))
 
     def testFlush(self):
         # Turn on buffering
@@ -300,7 +300,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.flush()
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(len(data), len(self.stub.packets[-1].data))
+        self.assertEqual(len(data), self.helper.packetLength(self.stub.packets[-1].data))
         self.assertEqual(False, self.stub.packets[-1].EOS)
 
     def testFlushOnClose(self):
@@ -317,7 +317,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.close()
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(len(data), len(self.stub.packets[-1].data))
+        self.assertEqual(len(data), self.helper.packetLength(self.stub.packets[-1].data))
         self.assertEqual(True, self.stub.packets[-1].EOS)
 
     def testFlushOnSriChange(self):
@@ -415,7 +415,7 @@ class BufferedOutStreamTest(OutStreamTest):
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-register_test('OutBitStreamTest', OutStreamTest, helper=BitTestHelper())
+register_test('OutBitStreamTest', BufferedOutStreamTest, helper=BitTestHelper())
 register_test('OutXMLStreamTest', OutStreamTest, helper=XMLTestHelper())
 register_test('OutFileStreamTest', OutStreamTest, helper=FileTestHelper())
 register_test('OutCharStreamTest', BufferedOutStreamTest, helper=CharTestHelper())

@@ -30,10 +30,11 @@ from bulkio.bulkioInterfaces import BULKIO
 from bulkio.stream_base import StreamBase
 
 class OutputStream(StreamBase):
-    def __init__(self, sri, port):
+    def __init__(self, sri, port, dtype=list):
         StreamBase.__init__(self, sri)
         self.__port = port
         self.__sriModified = False
+        self._dtype = dtype
 
     @property
     def xstart(self):
@@ -136,7 +137,7 @@ class OutputStream(StreamBase):
         self._send(data, time, False)
 
     def close(self):
-        data = self._emptyPacket()
+        data = self._dtype()
         self._send(data, bulkio.timestamp.notSet(), True)
 
     def _setStreamMetadata(self, attr, value):
@@ -157,13 +158,11 @@ class OutputStream(StreamBase):
     def _modifyingStreamMetadata(self):
         self.__sriModified = True
 
-    def _emptyPacket(self):
-        return []
 
 class BufferedOutputStream(OutputStream):
-    def __init__(self, sri, port):
-        OutputStream.__init__(self, sri, port)
-        self.__buffer = self._emptyPacket()
+    def __init__(self, sri, port, dtype=list):
+        OutputStream.__init__(self, sri, port, dtype)
+        self.__buffer = self._dtype()
         self.__bufferSize = 0
         self.__bufferTime = bulkio.timestamp.notSet()
 
@@ -211,7 +210,7 @@ class BufferedOutputStream(OutputStream):
 
     def _flush(self, eos):
         self._send(self.__buffer, self.__bufferTime, eos)
-        self.__buffer = self._emptyPacket()
+        self.__buffer = self._dtype()
 
     def _doBuffer(self, data, time):
         # If this is the first data being queued, use its timestamp for the
@@ -233,25 +232,6 @@ class BufferedOutputStream(OutputStream):
             self._doBuffer(data[count:], next)
 
 
-class OutCharStream(BufferedOutputStream):
-    def _emptyPacket(self):
-        return str()
-
-class OutOctetStream(BufferedOutputStream):
-    def _emptyPacket(self):
-        return str()
-
-class OutBitStream(OutputStream):
-    def _emptyPacket(self):
-        return bitbuffer()
-
 class OutXMLStream(OutputStream):
-    def _emptyPacket(self):
-        return str()
-
     def _pushPacket(self, port, data, time, eos, streamID):
         port.pushPacket(data, eos, streamID)
-
-class OutFileStream(OutputStream):
-    def _emptyPacket(self):
-        return str()
