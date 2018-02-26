@@ -80,7 +80,7 @@ class InPortTest(object):
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(packet is None)
         self.failIf(packet.dataBuffer is None, 'packet.dataBuffer is empty')
-        self.assertEqual(50, self.helper.dataLength(packet.dataBuffer))
+        self.assertEqual(50, len(packet.dataBuffer))
         if isinstance(self.port, bulkio.InXMLPort):
             # XML does not use timestamp
             self.failUnless(packet.T is None)
@@ -117,7 +117,7 @@ class InPortTest(object):
         self.port.pushSRI(sri)
         self._pushTestPacket(100, ts, True, sri.streamID)
         packet = self.port.getPacket()
-        self.assertEqual(100, self.helper.dataLength(packet.dataBuffer))
+        self.assertEqual(100, len(packet.dataBuffer))
         self.assertEqual(True, packet.EOS, 'packet.EOS should be True')
         self.assertEqual(True, packet.sriChanged, 'packet.sriChanged should be True')
         self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')

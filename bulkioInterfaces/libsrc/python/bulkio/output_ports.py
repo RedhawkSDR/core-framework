@@ -28,7 +28,9 @@ from ossie.cf import CF, ExtendedCF
 from ossie.cf.CF import Port
 from ossie.utils import uuid
 from ossie.properties import simple_property
-import logging
+from ossie.utils.log4py import logging
+from redhawk.bitbuffer import bitbuffer
+
 from bulkio.statistics import OutStats
 import bulkio.sri
 from bulkio import timestamp
@@ -83,8 +85,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             self.connections = connections #set of connection ID strings that have received this SRI
             self.time=time
 
-    TRANSFER_TYPE='c'
-    def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None, noData=None, bits=0):
+    def __init__(self, name, PortTypeClass, PortTransferType, logger=None, dtype=list, bits=0):
         # Backwards-compatibility: accept an element type string for use with
         # struct.calcsize
         if bits == 0:
@@ -98,10 +99,11 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         self.port_lock = threading.Lock()
         self.sriDict = {} # key=streamID  value=SriMapStruct
         self.filterTable = []
-        if noData==None:
-           self.noData = []
-        else:
-           self.noData = noData
+
+        # Data type class
+        self._dtype = dtype
+        # Retain noData member for backwards-compatibility
+        self.noData = dtype()
 
         # Determine maximum transfer size in advance
         self._bitSize = bits
@@ -168,7 +170,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     continue
 
                 try:
-                    self._sendPacket(port, self.noData, timestamp.notSet(), True, stream_id)
+                    self._sendPacket(port, self._dtype(), timestamp.notSet(), True, stream_id)
                 except Exception, e:
                     if self.logger:
                         self.logger.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connectionId, e)
@@ -315,7 +317,6 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             self.logger.trace("_pushPacket() sending packet size=%d time=%s EOS=%s streamID='%s'", 
                               packet_size, T, EOS, streamID)
         
-        portListed = False
         for connId, port in self.outConnections.iteritems():
             if not self._isStreamRoutedToConnection(streamID, connId):
                 continue
@@ -327,11 +328,11 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     port.pushSRI(self.sriDict[streamID].sri)
                     self.sriDict[streamID].connections.add(connId)
                 self._sendPacket(port, data, T, EOS, streamID)
-                self.stats.update(self._packetSize(data), 0, EOS, streamID, connId)
+                self.stats.update(packet_size, 0, EOS, streamID, connId)
             except Exception, e:
                 if self.reportConnectionErrors(connId)  :
                     if self.logger:
-                        self.logger.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
+                        self.logger.exception("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connId, str(e))
 
         if EOS:
             if self.sriDict.has_key(streamID):
@@ -374,7 +375,7 @@ class OutNumericPort(OutPort):
     def _pushPacket(self, data, T, EOS, streamID):
         # If there is no need to break data into smaller packets, skip straight
         # to the pushPacket call and return.
-        elements = self._packetSize(data)
+        elements = len(data)
         if elements <= self.maxSamplesPerPush:
             return OutPort._pushPacket(self, data, T, EOS, streamID);
 
@@ -392,7 +393,7 @@ class OutNumericPort(OutPort):
         packetTime = T
 
         # Push sub-packets max_samples at a time
-        count = self._packetSize(data)
+        count = len(data)
         for start in xrange(0, count, max_samples):
             # The end index of the packet may exceed the length of the data;
             # the Python slice operator will clamp it to the actual end
@@ -407,28 +408,25 @@ class OutNumericPort(OutPort):
                 packetEOS = False
 
             # Push the current slice of the input data
-            OutPort._pushPacket(self, self._slice(data, start, end), packetTime, packetEOS, streamID);
+            OutPort._pushPacket(self, data[start:end], packetTime, packetEOS, streamID);
 
             # Synthesize the next packet timestamp
             if packetTime.tcstatus == BULKIO.TCS_VALID:
                 push_size = min(end, count) - start
                 packetTime = packetTime + (push_size/item_size) * sri.xdelta
 
-    def _slice(self, data, start, end):
-        return data[start:end]
-
 
 class OutCharPort(OutNumericPort):
     TRANSFER_TYPE = 'c'
     StreamType = OutCharStream
     def __init__(self, name, logger=None ):
-        OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, noData='', bits=8)
+        OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
 class OutOctetPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
     StreamType = OutOctetStream
     def __init__(self, name, logger=None ):
-        OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, noData='', bits=8)
+        OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
 class OutShortPort(OutNumericPort):
     TRANSFER_TYPE = 'h'
@@ -438,7 +436,7 @@ class OutShortPort(OutNumericPort):
 class OutUShortPort(OutNumericPort):
     TRANSFER_TYPE = 'H'
     def __init__(self, name, logger=None ):
-        OutNumericPort.__init__(self, name, BULKIO.dataUshort, OutUShortPort.TRANSFER_TYPE, logger, bits=16 )
+        OutNumericPort.__init__(self, name, BULKIO.dataUshort, OutUShortPort.TRANSFER_TYPE, logger, bits=16)
 
 class OutLongPort(OutNumericPort):
     TRANSFER_TYPE = 'i'
@@ -474,29 +472,23 @@ class OutBitPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
     StreamType = OutBitStream
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, noData=BULKIO.BitSequence('',0), bits=1)
+        OutNumericPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, dtype=bitbuffer, bits=1)
 
-    def _packetSize(self, data):
-        return data.bits
-
-    def _slice(self, data, start, end):
-        if start % 8 != 0:
-            raise RuntimeError
-        elif end % 8 != 0:
-            raise RuntimeError
-        return BULKIO.BitSequence(data.data[start/8:end/8], end-start)
+    def _sendPacket(self, port, data, T, EOS, streamID):
+        data = BULKIO.BitSequence(data.bytes(), len(data))
+        port.pushPacket(data, T, EOS, streamID)
 
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
     StreamType = OutFileStream
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger, noData='', bits=8)
+        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
 class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
     StreamType = OutXMLStream
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger, noData='', bits=8)
+        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
 
     def pushPacket(self, xml_string, EOS, streamID):
         OutPort.pushPacket(self, xml_string, None, EOS, streamID)

@@ -18,10 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import itertools
+
+from redhawk.bitbuffer import bitbuffer
+
 import bulkio.sri
 from bulkio.bulkioInterfaces import BULKIO
-
-import itertools
 
 __all__ = ('SampleDataBlock', 'BitDataBlock', 'StringDataBlock')
 
@@ -122,11 +124,8 @@ class SampleDataBlock(DataBlock):
 class BitDataBlock(DataBlock):
     def __init__(self, sri, data=None):
         if data is None:
-            data = BULKIO.BitSequence('', 0)
+            data = bitbuffer()
         DataBlock.__init__(self, sri, data)
-
-    def size(self):
-        return self._data.bits
 
 class StringDataBlock(DataBlock):
     def __init__(self, sri, data=''):

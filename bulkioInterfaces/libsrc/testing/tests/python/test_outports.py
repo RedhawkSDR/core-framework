@@ -173,7 +173,7 @@ class OutPortTest(object):
         self._pushTestPacket(91, bulkio.timestamp.now(), False, filter_stream_id)
         self.assertEqual(0, len(self.stub.packets))
         self.assertEqual(1, len(stub2.packets))
-        self.assertEqual(91, self.helper.dataLength(stub2.packets[-1].data))
+        self.assertEqual(91, self.helper.packetLength(stub2.packets[-1].data))
 
         # Unknown (to the connection filter) stream should get dropped
         unknown_stream_id = 'unknown_stream'
@@ -196,9 +196,9 @@ class OutPortTest(object):
         # ...and data
         self._pushTestPacket(256, bulkio.timestamp.now(), False, all_stream_id)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(256, self.helper.dataLength(self.stub.packets[-1].data))
+        self.assertEqual(256, self.helper.packetLength(self.stub.packets[-1].data))
         self.assertEqual(2, len(stub2.packets))
-        self.assertEqual(256, self.helper.dataLength(stub2.packets[-1].data))
+        self.assertEqual(256, self.helper.packetLength(stub2.packets[-1].data))
 
         # Reset the connection filter and push data for the filtered stream again,
         # which should trigger an SRI push to the first stub
@@ -208,9 +208,9 @@ class OutPortTest(object):
         self.assertEqual(2, len(self.stub.H))
         self.assertEqual(filter_stream_id, self.stub.H[-1].streamID)
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(9, self.helper.dataLength(self.stub.packets[-1].data))
+        self.assertEqual(9, self.helper.packetLength(self.stub.packets[-1].data))
         self.assertEqual(3, len(stub2.packets))
-        self.assertEqual(9, self.helper.dataLength(stub2.packets[-1].data))
+        self.assertEqual(9, self.helper.packetLength(stub2.packets[-1].data))
 
     def _addStreamFilter(self, streamId, connectionId):
         desc = bulkio.connection_descriptor_struct(connectionId, streamId, self.port.name)
@@ -237,7 +237,7 @@ class ChunkingOutPortTest(OutPortTest):
         # time
         last = self.stub.packets[0]
         for packet in self.stub.packets[1:]:
-            expected = self.helper.dataLength(last.data) * sri.xdelta
+            expected = self.helper.packetLength(last.data) * sri.xdelta
             elapsed = packet.T - last.T
             self.assertEqual(expected, elapsed, 'Incorrect time stamp delta')
             last = packet
@@ -269,7 +269,7 @@ class ChunkingOutPortTest(OutPortTest):
         # because the oversized packet was not explicitly quantized to be an
         # exact multiple)
         for packet in self.stub.packets[:-1]:
-            self.assertEqual(0, self.helper.dataLength(packet.data) % 1023, 'Packet size is not a multiple of subsize')
+            self.assertEqual(0, self.helper.packetLength(packet.data) % 1023, 'Packet size is not a multiple of subsize')
 
     def _testPushOversizedPacket(self, time, eos, streamID):
         # Pick a sufficiently large number of samples that the packet has to
@@ -283,7 +283,7 @@ class ChunkingOutPortTest(OutPortTest):
         # exceed the max transfer size
         self.failUnless(len(self.stub.packets) > 1)
         for packet in self.stub.packets:
-            packet_bits = self.helper.dataLength(packet.data) * bits_per_element
+            packet_bits = self.helper.packetLength(packet.data) * bits_per_element
             self.failUnless(packet_bits < max_bits, 'Packet too large')
 
 class NumericOutPortTest(ChunkingOutPortTest):
@@ -302,12 +302,12 @@ class NumericOutPortTest(ChunkingOutPortTest):
         # Check that each packet contains an even number of samples (i.e., no
         # complex value was split)
         for packet in self.stub.packets:
-            self.assertEqual(0, self.helper.dataLength(packet.data) % 2, 'Packet contains a partial complex value')
+            self.assertEqual(0, self.helper.packetLength(packet.data) % 2, 'Packet contains a partial complex value')
 
         # Check that the synthesized time stamp(s) advanced by the expected time
         last = self.stub.packets[0]
         for packet in self.stub.packets[1:]:
-            expected = self.helper.dataLength(last.data) * 0.5 * sri.xdelta
+            expected = self.helper.packetLength(last.data) * 0.5 * sri.xdelta
             elapsed = packet.T - last.T
             self.assertEqual(expected, elapsed, 'Incorrect time stamp delta')
             last = packet
@@ -326,7 +326,7 @@ class NumericOutPortTest(ChunkingOutPortTest):
         # because the oversized packet was not explicitly quantized to be an exact
         # multiple)
         for packet in self.stub.packets[:-1]:
-            self.assertEqual(0, self.helper.dataLength(packet.data) % 4096, 'Packet size is not a multiple of subsize')
+            self.assertEqual(0, self.helper.packetLength(packet.data) % 4096, 'Packet size is not a multiple of subsize')
 
 
 def register_test(name, testbase, **kwargs):

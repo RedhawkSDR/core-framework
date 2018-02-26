@@ -28,6 +28,7 @@ from ossie.utils import uuid
 from ossie.cf.CF import Port
 from ossie.utils.notify import notification
 from ossie.utils.log4py import logging
+from redhawk.bitbuffer import bitbuffer
 
 from bulkio.statistics import InStats
 import bulkio.sri
@@ -575,8 +576,12 @@ class InBitPort(InPort, BULKIO__POA.dataBit):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InBitPort._TYPE_, bits=1)
 
-    def _packetSize(self, data):
-        return data.bits
+    def pushPacket(self, data, T, EOS, streamID):
+        self.logger.trace("pushPacket ENTER")
+        if isinstance(data, BULKIO.BitSequence):
+            data = bitbuffer(bytearray(data.data), data.bits)
+        self._queuePacket(data, T, EOS, streamID)
+        self.logger.trace("pushPacket EXIT")
 
 
 class InFilePort(InPort, BULKIO__POA.dataFile):

@@ -65,7 +65,7 @@ class OutStreamTest(object):
         time = bulkio.timestamp.now()
         self._writeSinglePacket(stream, 256, time)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(256, self.helper.dataLength(self.stub.packets[0].data))
+        self.assertEqual(256, self.helper.packetLength(self.stub.packets[0].data))
         self.failIf(self.stub.packets[0].EOS)
         self.assertEqual(stream.streamID, self.stub.packets[0].streamID)
 

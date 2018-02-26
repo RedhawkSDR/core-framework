@@ -431,9 +431,6 @@ class BufferedInputStream(InputStream):
 class InBitStream(InputStream):
     DataBlockType = BitDataBlock
 
-    def _length(self, data):
-        return data.bits
-
 class InFileStream(InputStream):
     DataBlockType = StringDataBlock
 

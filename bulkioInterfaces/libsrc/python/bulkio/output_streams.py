@@ -23,6 +23,7 @@ import copy
 import omniORB.any
 
 from ossie.cf import CF
+from redhawk.bitbuffer import bitbuffer
 
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
@@ -242,7 +243,7 @@ class OutOctetStream(BufferedOutputStream):
 
 class OutBitStream(OutputStream):
     def _emptyPacket(self):
-        return BULKIO.BitSequence('', 0)
+        return bitbuffer()
 
 class OutXMLStream(OutputStream):
     def _emptyPacket(self):

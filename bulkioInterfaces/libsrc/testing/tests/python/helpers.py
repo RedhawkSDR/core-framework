@@ -21,6 +21,7 @@
 import collections
 
 from ossie.utils.log4py import logging
+from redhawk.bitbuffer import bitbuffer
 
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -77,7 +78,7 @@ class PortTestHelper(object):
     def createInStub(self):
         return self.InStubType()
 
-    def dataLength(self, data):
+    def packetLength(self, data):
         return len(data)
 
     def _getName(self):
@@ -186,10 +187,9 @@ class BitTestHelper(PortTestHelper):
     BITS_PER_ELEMENT = 1
 
     def createData(self, length):
-        bytes = '\x00' * int((length+7)/8)
-        return BULKIO.BitSequence(bytes, length)
+        return bitbuffer(bits=length)
 
-    def dataLength(self, data):
+    def packetLength(self, data):
         return data.bits
 
 class FileTestHelper(PortTestHelper):
