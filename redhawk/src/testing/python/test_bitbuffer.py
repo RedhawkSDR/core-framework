@@ -42,10 +42,8 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(0xBADC0DE, 28)
         self.assertEqual(28, len(buf))
         data = buf.bytes()
-        self.assertEqual(0xBA, data[0])
-        self.assertEqual(0xDC, data[1])
-        self.assertEqual(0x0D, data[2])
-        self.assertEqual(0xE0, data[3] & 0xF0)
+        self.assertEqual('\xBA\xDC\x0D', data[:3])
+        self.assertEqual(0xE0, ord(data[3]) & 0xF0)
 
     def testFromArray(self):
         # Test with a large array, using the default behavior for number of
@@ -60,8 +58,7 @@ class BitBufferTest(unittest.TestCase):
         self.assertEqual(18, len(buf))
         # Expected bytes are input array shifted left one nibble (easy to
         # calulate) with the last 6 bits masked off
-        expected = bytearray('\x12\x34\x40')
-        self.assertEqual(expected, buf.bytes())
+        self.assertEqual(b'\x12\x34\x40', buf.bytes())
 
     def testFromGenerator(self):
         # Use a generator expresion to populate the bit data (0111, repeating)
@@ -93,14 +90,16 @@ class BitBufferTest(unittest.TestCase):
         self.assertRaises(ValueError, bitbuffer, '01011002')
 
     def testBytes(self):
+        # Empty bitbuffer should still support bytes()
+        buf = bitbuffer()
+        data = buf.bytes()
+        self.assertEqual(0, len(data))
+
         # Start with a 32-bit value, with no offset and an exact byte length
         buf = bitbuffer(0xB552B4E1, 32)
         data = buf.bytes()
         self.assertEqual(4, len(data))
-        self.assertEqual(0xB5, data[0])
-        self.assertEqual(0x52, data[1])
-        self.assertEqual(0xB4, data[2])
-        self.assertEqual(0xE1, data[3])
+        self.assertEqual(b'\xB5\x52\xB4\xE1', data)
 
         # Offset, not byte-aligned slice; bytes() should create a new copy of
         # the byte array
@@ -108,8 +107,8 @@ class BitBufferTest(unittest.TestCase):
         #     10101010|1001010x = 0xAA94
         data = buf[3:18].bytes()
         self.assertEqual(2, len(data))
-        self.assertEqual(0xAA, data[0])
-        self.assertEqual(0x94, data[1] & 0xFE)
+        self.assertEqual('\xAA', data[0])
+        self.assertEqual(0x94, ord(data[1]) & 0xFE)
 
     def testEquals(self):
         # Fill a bit buffer with a known pattern
@@ -195,10 +194,7 @@ class BitBufferTest(unittest.TestCase):
         # Fill a subset of the bitbuffer with ones
         buf[9:33] = 1
         data = buf.bytes()
-        self.assertEqual(0x7f, data[1])
-        self.assertEqual(0xFF, data[2])
-        self.assertEqual(0xFF, data[3])
-        self.assertEqual(0x80, data[4])
+        self.assertEqual(b'\x7F\xFF\xFF\x80', data[1:5])
 
         # Implicit offset and non-byte-aligned end
         buf = buf[42:47]
@@ -222,6 +218,12 @@ class BitBufferTest(unittest.TestCase):
         self.assertEqual(1, buf2[1])
         self.assertEqual(0, buf2[2])
         self.assertEqual(0, buf2[3])
+
+        # Exceptions
+        # Index past end
+        self.assertRaises(IndexError, buf.__getitem__, len(buf))
+        # Negative index past beginning
+        self.assertRaises(IndexError, buf.__getitem__, -(len(buf) + 1))
 
     def testGetItemSlice(self):
         # Fill a new bit buffer with alternating 0's and 1's
@@ -258,30 +260,36 @@ class BitBufferTest(unittest.TestCase):
         # Basic bit setting
         buf[3] = 1
         data = buf.bytes()
-        self.assertEqual(0x10, data[0], 'Set bit')
+        self.assertEqual(0x10, ord(data[0]), 'Set bit')
 
         # Two bits in the same byte
         buf[8] = 1
         buf[13] = 1
         data = buf.bytes()
-        self.assertEqual(0x84, data[1], 'Set two bits in same byte')
+        self.assertEqual(0x84, ord(data[1]), 'Set two bits in same byte')
 
         # Any non-zero integer should be interpreted as a 1
         buf[18] = 2
         buf[22] = -5289
         data = buf.bytes()
-        self.assertEqual(0x22, data[2], 'Set non-zero integer')
+        self.assertEqual(0x22, ord(data[2]), 'Set non-zero integer')
 
         # 0 should clear an existing bit
         buf[8] = 0
         data = buf.bytes()
-        self.assertEqual(0x04, data[1], 'Clear bit')
+        self.assertEqual(0x04, ord(data[1]), 'Clear bit')
 
         # Use a slice to test that offsets are accounted for (the slice shares
         # the same backing byte array)
         buf2 = buf[35:47]
         buf2[1] = 1
         self.assertEqual(1, buf[36], 'Slice with offset')
+
+        # Exceptions
+        # Index past end
+        self.assertRaises(IndexError, buf.__setitem__, len(buf), 0)
+        # Negative index past beginning
+        self.assertRaises(IndexError, buf.__setitem__, -(len(buf) + 1), 0)
 
     def testSetItemSlice(self):
         # Destination is all 0's (allocating ctor zeros byte array)
@@ -295,23 +303,21 @@ class BitBufferTest(unittest.TestCase):
         # 0(1000110|0 1)000000 = 0x4640
         dest[1:10] = src[:9]
         data = dest.bytes()
-        self.assertEqual(0x46, data[0])
-        self.assertEqual(0x40, data[1])
+        self.assertEqual(b'\x46\x40', data[:2])
 
         # Replace 13 bits at offset 22, starting with the 4th bit of the source
         #   1000(11 00|110001 10|1)101
         # 000000(11|00 110001|10 1)0xxxx = 0x0331A
         dest[22:35] = src[4:17]
         data = dest.bytes()
-        self.assertEqual(0x03, data[2])
-        self.assertEqual(0x31, data[3])
-        self.assertEqual(0xA0, data[4] & 0xF0)
+        self.assertEqual(b'\x03\x31', data[2:4])
+        self.assertEqual(0xA0, ord(data[4]) & 0xF0)
 
         # Negative indices should be from end; invert first 3 of the last 4
         # bits (prior value above is 1010)
         dest[-4:-1] = bitbuffer('010')
         data = dest.bytes()
-        self.assertEqual(0x40, data[4] & 0xF0)
+        self.assertEqual(0x40, ord(data[4]) & 0xF0)
 
     def testToInt(self):
         # Use a 96-bit long

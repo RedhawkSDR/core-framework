@@ -18,7 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import copy
 import itertools
 import numbers
 
@@ -161,6 +160,7 @@ class bitbuffer(object):
                 return bitbuffer(self[pos] for pos in xrange(start, stop, step))
         else:
             # Get an individual bit
+            pos = self._check_index(pos)
             byte, bit = self._split_index(pos)
             return (self.__data[byte] >> (7-bit)) & 1
 
@@ -184,6 +184,7 @@ class bitbuffer(object):
                 self[index] = val
         else:
             # Set an individual bit
+            pos = self._check_index(pos)
             byte, bit = self._split_index(pos)
             mask = 1 << (7 - bit)
             value = mask if int(value) else 0
@@ -223,18 +224,19 @@ class bitbuffer(object):
         # Make a copy of the data array so that modifications to the copy do
         # not affect this instance. This is consistent with bytearray itself
         # and numpy arrays.
-        return bitbuffer(copy.copy(self.__data), self.__bits, self.__start)
+        return bitbuffer(bytearray(self.__data), self.__bits, self.__start)
 
     def bytes(self):
         """
-        Returns a left-aligned byte array containing all bits from this
-        bitbuffer.
+        Returns a raw byte string containing all bits from this bitbuffer,
+        left-aligned.
         """
         byte, bit = self._split_index(0)
         if bit == 0:
-            return self.__data[byte:]
+            data = self.__data[byte:]
         else:
-            return bytearray(_iterable_to_bytes(self, int))
+            data = bytearray(_iterable_to_bytes(self, int))
+        return bytes(data)
 
     def resize(self, bits):
         """
@@ -306,6 +308,5 @@ class bitbuffer(object):
     def _split_index(self, pos):
         # Given a bit index, returns the index of the byte that contains that
         # bit index, and its index relative to that byte.
-        pos = self._check_index(pos)
         pos += self.__start
         return (pos / 8, pos % 8)
