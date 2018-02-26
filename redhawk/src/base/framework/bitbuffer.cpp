@@ -76,18 +76,15 @@ int shared_bitbuffer::operator[] (size_t pos) const
 
 uint64_t shared_bitbuffer::getint(size_t pos, size_t bits) const
 {
-    _M_check_pos(pos + bits, "redhawk::shared_bitbuffer::getint()");
+    _M_check_pos(pos + bits, size(), "redhawk::shared_bitbuffer::getint()");
     return bitops::getint(data(), offset() + pos, bits);
 }
 
 void shared_bitbuffer::trim(size_t start, size_t end)
 {
-    _M_check_pos(start, "redhawk::shared_bitbuffer::trim");
-    if (end < start) {
-        throw std::invalid_argument("redhawk::shared_bitbuffer::trim end is before start");
-    }
-    // Limit end index to one past the last bit
-    end = std::min(end, size());
+    // Check indices for range, which may update end if it was not given, or
+    // larger than the source size.
+    _M_check_range(start, end, size(), "redhawk::shared_bitbuffer::trim");
     _M_offset += start;
     _M_size = (end - start);
 
@@ -136,11 +133,28 @@ shared_bitbuffer shared_bitbuffer::make_transient(const data_type* data, size_t 
     return result;
 }
 
-void shared_bitbuffer::_M_check_pos(size_t pos, const char* name) const
+void shared_bitbuffer::_M_check_pos(size_t pos, size_t size, const char* name)
 {
-    if (pos > size()) {
+    if (pos > size) {
         throw std::out_of_range(name);
     }
+}
+
+void shared_bitbuffer::_M_check_range(size_t start, size_t& end, size_t size, const char* name)
+{
+    _M_check_pos(start, size, name);
+    if (end < start) {
+        throw std::invalid_argument(std::string(name) + " end is before start");
+    }
+    end = std::min(end, size);
+}
+
+size_t shared_bitbuffer::_M_takeskip_size(size_t size, size_t take, size_t skip)
+{
+    size_t pass = take + skip;
+    size_t iterations = size / pass;
+    size_t remain = std::min(take, size % pass);
+    return (iterations * take) + remain;
 }
 
 //
@@ -194,13 +208,13 @@ bitbuffer::reference bitbuffer::operator[] (size_t pos)
 
 void bitbuffer::setint(size_t pos, uint64_t value, size_t bits)
 {
-    _M_check_pos(pos + bits, "redhawk::bitbuffer::setint()");
+    _M_check_pos(pos + bits, size(), "redhawk::bitbuffer::setint()");
     bitops::setint(data(), offset() + pos, value, bits);
 }
 
 bitbuffer bitbuffer::slice(size_t start, size_t end)
 {
-    _M_check_pos(start, "redhawk::bitbuffer::slice()");
+    _M_check_pos(start, size(), "redhawk::bitbuffer::slice()");
     bitbuffer temp(*this);
     temp.trim(start, end);
     return temp;
@@ -209,6 +223,23 @@ bitbuffer bitbuffer::slice(size_t start, size_t end)
 void bitbuffer::replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos)
 {
     redhawk::bitops::copy(data(), offset() + pos, src.data(), src.offset() + srcpos, bits);
+}
+
+size_t bitbuffer::takeskip(size_t pos, const shared_bitbuffer& src, size_t take, size_t skip, size_t start, size_t end)
+{
+    // Check indices for range, which may update end if it was not given, or
+    // larger than the source size.
+    _M_check_range(start, end, src.size(), "redhawk::bitbuffer::takeskip");
+    // Check size of destination to ensure it can hold enough bits
+    size_t count = end - start;
+    size_t required = _M_takeskip_size(count, take, skip);
+    if ((size() - pos) < required) {
+        throw std::length_error("redhawk::bitbuffer::takeskip");
+    }
+    // Account for internal bit offsets
+    pos += offset();
+    start += src.offset();
+    return bitops::takeskip(data(), pos, src.data(), start, count, take, skip);
 }
 
 void bitbuffer::swap(bitbuffer& other)

@@ -195,6 +195,23 @@ namespace redhawk {
         bitbuffer copy(const Alloc& allocator) const;
 
         /**
+         * @brief  Performs a take/skip operation into a new bitbuffer.
+         * @param take   Number of bits to copy per iteration.
+         * @param skip   Number of bits to skip per iteration.
+         * @param start  Index of first bit (default 0).
+         * @param end    Index of last bit, exclusive (default end).
+         * @return  New bitbuffer with requested bits.
+         * @throw std::out_of_range      If @p start > size().
+         * @throw std::invalid_argument  If @p end < @p start.
+         * @throw std::length_error      If @p dest is not large enough.
+         * @see bitbuffer::takeskip
+         *
+         * Alternately copies @a take bits and skips @a skip bits from the
+         * range [@a start, @a end) into a new bitbuffer.
+         */
+        bitbuffer takeskip(size_t take, size_t skip, size_t start=0, size_t end=npos) const;
+
+        /**
          * @brief  Swap contents with another bit buffer.
          * @param other  The %shared_bitbuffer to swap with.
          */
@@ -310,7 +327,31 @@ namespace redhawk {
             return (bits + 7) / 8;
         }
 
-        void _M_check_pos(size_t pos, const char* name) const;
+        /**
+         * @brief  Checks index for validity.
+         * @param pos   Index to check.
+         * @param size  Size of container.
+         * @param name   Name of calling method for exception message.
+         * @throw std::out_of_range  If @p start > @p size.
+         */
+        static void _M_check_pos(size_t pos, size_t size, const char* name);
+
+        /**
+         * @brief  Checks start and end indices for validity.
+         * @param start  Start index.
+         * @param end    End index (in/out).
+         * @param size   Size of container.
+         * @param name   Name of calling method for exception message.
+         * @throw std::out_of_range      If @p start > @p size.
+         * @throw std::invalid_argument  If @p end < @p start.
+         * @post  @p end <= @p size
+         * 
+         * Checks the indices @a start and @a end for validity against @a size
+         * and each other, and clamps @a end to be no larger than @a size.
+         */
+        static void _M_check_range(size_t start, size_t& end, size_t size, const char* name);
+
+        static size_t _M_takeskip_size(size_t size, size_t take, size_t skip);
 
     private:
         // Prevent user code from calling swap with a bitbuffer.
@@ -580,6 +621,48 @@ namespace redhawk {
          */
         void replace(size_t pos, size_t bits, const shared_bitbuffer& src, size_t srcpos);
 
+        using shared_bitbuffer::takeskip;
+
+        /**
+         * @brief  Performs a take/skip operation into this bitbuffer.
+         * @param src    Source bit buffer.
+         * @param take   Number of bits to copy per iteration.
+         * @param skip   Number of bits to skip per iteration.
+         * @param start  Index of first bit in @p src (default 0).
+         * @param end    Index of last bit in @p src, exclusive (default
+         *               @p src.size()).
+         * @return  Number of bits copied.
+         * @throw std::out_of_range      If @p start > @p src.size().
+         * @throw std::invalid_argument  If @p end < @p start.
+         * @throw std::length_error      If this bitbuffer is not large enough.
+         *
+         * Alternately copies @a take bits and skips @a skip bits into this bit
+         * buffer from @a src.
+         */
+        size_t takeskip(const shared_bitbuffer& src, size_t take, size_t skip, size_t start=0, size_t end=npos)
+        {
+            return takeskip(0, src, take, skip, start, end);
+        }
+
+        /**
+         * @brief  Performs a take/skip operation into this bitbuffer.
+         * @param pos    Index of first bit to write to.
+         * @param src    Source bit buffer.
+         * @param take   Number of bits to copy per iteration.
+         * @param skip   Number of bits to skip per iteration.
+         * @param start  Index of first bit in @p src (default 0).
+         * @param end    Index of last bit in @p src, exclusive (default
+         *               @p src.size()).
+         * @return  Number of bits copied.
+         * @throw std::out_of_range      If @p start > @p src.size().
+         * @throw std::invalid_argument  If @p end < @p start.
+         * @throw std::length_error      If this bitbuffer is not large enough.
+         *
+         * Alternately copies @a take bits and skips @a skip bits into this bit
+         * buffer from @a src.
+         */
+        size_t takeskip(size_t pos, const shared_bitbuffer& src, size_t take, size_t skip, size_t start=0, size_t end=npos);
+
         /**
          * @brief  Swap contents with another bitbuffer.
          * @param other  The bitbuffer to swap with.
@@ -606,6 +689,17 @@ namespace redhawk {
         //     is incomplete at that point
         bitbuffer result(size(), allocator);
         result.replace(0, result.size(), *this);
+        return result;
+    }
+
+    inline bitbuffer shared_bitbuffer::takeskip(size_t take, size_t skip, size_t start, size_t end) const
+    {
+        // NB: Implementation cannot be done in-line because the buffer class
+        //     is incomplete at that point
+        _M_check_range(start, end, size(), "redhawk::shared_bitbuffer::takeskip");
+        size_t bits = _M_takeskip_size(end-start, take, skip);
+        bitbuffer result(bits);
+        result.takeskip(*this, take, skip, start, end);
         return result;
     }
 

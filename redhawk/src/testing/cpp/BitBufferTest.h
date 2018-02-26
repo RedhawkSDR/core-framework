@@ -48,6 +48,8 @@ class BitBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testPopcount);
     CPPUNIT_TEST(testDistance);
     CPPUNIT_TEST(testFind);
+    CPPUNIT_TEST(testTakeSkip);
+    CPPUNIT_TEST(testTakeSkipIntoBuffer);
     CPPUNIT_TEST_SUITE_END();
 
     typedef redhawk::shared_bitbuffer::data_type data_type;
@@ -78,6 +80,8 @@ public:
     void testPopcount();
     void testDistance();
     void testFind();
+    void testTakeSkip();
+    void testTakeSkipIntoBuffer();
 };
 
 #endif // BITBUFFER_TEST_H

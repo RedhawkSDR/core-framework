@@ -529,3 +529,91 @@ void BitBufferTest::testFind()
     // but without an exception (or crash)
     CPPUNIT_ASSERT_EQUAL(redhawk::bitbuffer::npos, buffer.find(buffer.size(), pattern, 0));
 }
+
+
+static std::string ascii7toString(const redhawk::shared_bitbuffer& ascii)
+{
+    std::string result;
+    result.resize(ascii.size() / 7);
+    for (size_t bit = 0; bit < ascii.size(); bit += 7) {
+        result[bit/7] = (char) ascii.getint(bit, 7);
+    }
+    return result;
+}
+
+void BitBufferTest::testTakeSkip()
+{
+    // Use ASCII text, where the high bit is always zero; a start offset is
+    // required
+    const std::string msg = "Here is some text";
+    redhawk::shared_bitbuffer buffer = redhawk::bitbuffer::from_array((unsigned char*) msg.c_str(), msg.size() * 8);
+    // Take 7, skip 1, start at 1
+    redhawk::bitbuffer ascii = buffer.takeskip(7, 1, 1);
+    CPPUNIT_ASSERT_EQUAL(msg.size() * 7, ascii.size());
+
+    // Reconstruct the input text by taking 7 bits at a time
+    std::string result = ascii7toString(ascii);
+    CPPUNIT_ASSERT_EQUAL(msg, result);
+
+    // Repeat with a starting and ending offset
+    // char 5 = bit 40 (+1 to skip high bit)
+    // char 12 = bit 96 (+1 to skip high bit)
+    ascii = buffer.takeskip(7, 1, 41, 97);
+    result = ascii7toString(ascii);
+    CPPUNIT_ASSERT_EQUAL(msg.substr(5, 7), result);
+
+    // Exceptions
+    // Start index past end of source
+    CPPUNIT_ASSERT_THROW(buffer.takeskip(7, 1, buffer.size() + 1), std::out_of_range);
+    // End less than start
+    CPPUNIT_ASSERT_THROW(buffer.takeskip(7, 1, 19, 18), std::invalid_argument);
+}
+
+void BitBufferTest::testTakeSkipIntoBuffer()
+{
+    // Use a 28-bit marker and an 8-bit counter
+    const uint32_t marker = 0x7C3ABA9;
+    uint8_t counter = 0;
+
+    // Source buffer holds 8 "frames"
+    redhawk::bitbuffer src(288);
+    src.fill(0);
+    for (size_t pos = 0; pos < src.size(); pos += 36) {
+        src.setint(pos, marker, 28);
+        src.setint(pos+28, counter, 8);
+        ++counter;
+    }
+
+    // Do a take/skip to copy just the markers out of the source
+    redhawk::bitbuffer dest(28*8);
+    dest.fill(0);
+    size_t bits = dest.takeskip(src, 28, 8);
+    CPPUNIT_ASSERT_EQUAL(dest.size(), bits);
+    for (size_t pos = 0; pos < dest.size(); pos += 28) {
+        std::ostringstream oss;
+        oss << "position " << pos;
+        CPPUNIT_ASSERT_EQUAL_MESSAGE(oss.str(), (uint64_t) marker, dest.getint(pos, 28));
+    }
+
+    // Use a start index to copy the counters, and an end index to limit the
+    // bits copied
+    dest = redhawk::bitbuffer(6*8);
+    dest.fill(0);
+    bits = dest.takeskip(src, 8, 28, 28, 6*36);
+    CPPUNIT_ASSERT_EQUAL(dest.size(), bits);
+    counter = 0;
+    for (size_t pos = 0; pos < dest.size(); pos += 8) {
+        std::ostringstream oss;
+        oss << "position " << pos;
+        CPPUNIT_ASSERT_EQUAL_MESSAGE(oss.str(), (uint64_t) counter, dest.getint(pos, 8));
+        ++counter;
+    }
+
+    // Exceptions
+    // Start index past end of source
+    CPPUNIT_ASSERT_THROW(dest.takeskip(src, 28, 8, src.size() + 1), std::out_of_range);
+    // End less than start
+    CPPUNIT_ASSERT_THROW(dest.takeskip(src, 28, 8, 1, 0), std::invalid_argument);
+    // Destination too small
+    CPPUNIT_ASSERT_THROW(dest.takeskip(src, 40, 1), std::length_error);
+}
