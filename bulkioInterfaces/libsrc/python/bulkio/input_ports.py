@@ -249,11 +249,12 @@ class InPort(object):
         # Otherwise, return the stream that owns the next packet on the queue,
         # potentially waiting for one to be received
         with self._dataBufferLock:
-            if self.queue:
-                packet = self._peekPacket(timeout)
-                return self.getStream(packet.streamID)
+            packet = self._peekPacket(timeout)
 
-        return None
+        if packet:
+            return self.getStream(packet.streamID)
+        else:
+            return None
 
     def getStream(self, streamID):
         """
@@ -372,7 +373,6 @@ class InPort(object):
             self.streamAdded(new_stream)
 
         return False;
-            
 
     def _peekPacket(self, timeout):
         # Requires self._dataBufferLock
@@ -386,7 +386,7 @@ class InPort(object):
                     break
                 self._dataAvailable.wait(wait_time)
             else:
-                print self._dataAvailable.wait()
+                self._dataAvailable.wait()
 
         if self._breakBlock or not self.queue:
             return None
