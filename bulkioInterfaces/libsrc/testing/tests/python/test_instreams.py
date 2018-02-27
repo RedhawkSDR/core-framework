@@ -279,6 +279,47 @@ class BufferedInStreamTest(InStreamTest):
         block = stream.read(10000)
         self.failUnless(not block)
 
+    def testReadMultiplePackets(self):
+        sri = bulkio.sri.create('multiple_packets')
+        self.port.pushSRI(sri)
+        for _ in xrange(4):
+            self._pushTestPacket(100, bulkio.timestamp.now(), False, sri.streamID)
+
+        # Get the input stream
+        stream = self.port.getStream(sri.streamID)
+        self.failIf(not stream)
+
+        # Read a block that spans two packets but does not consume the entire
+        # second packet
+        block = stream.read(150)
+        self.failIf(not block)
+        self.assertEqual(150, block.size())
+
+        # Read a block that spans the remainder of the prior packet, an entire
+        # middle packet, and part of the next
+        block = stream.read(200)
+        self.failIf(not block)
+        self.assertEqual(200, block.size())
+
+    def testReadSubPacket(self):
+        sri = bulkio.sri.create('sub_packet')
+        self.port.pushSRI(sri)
+        self._pushTestPacket(400, bulkio.timestamp.now(), False, sri.streamID)
+
+        # Get the input stream and read the packet
+        stream = self.port.getStream(sri.streamID)
+        self.failIf(not stream)
+
+        # Read half
+        block = stream.read(200)
+        self.failIf(not block)
+        self.assertEqual(200, block.size())
+
+        # Read a smaller packet
+        block = stream.read(100)
+        self.failIf(not block)
+        self.assertEqual(100, block.size())
+
     def testDisableDiscard(self):
         stream_id = "disable_discard"
 
@@ -354,10 +395,26 @@ class NumericInStreamTest(BufferedInStreamTest):
         self.failUnless(block.sriChanged())
         self.failUnless(block.sriChangeFlags & bulkio.sri.MODE)
 
+    def testReadComplex(self):
+        sri = bulkio.sri.create('read_complex')
+        sri.mode = 1
+        self.port.pushSRI(sri)
+        self._pushTestPacket(128, bulkio.timestamp.now(), False, sri.streamID)
+
+        # Get the input stream and read the packet
+        stream = self.port.getStream(sri.streamID)
+        self.failIf(not stream)
+        block = stream.read()
+        self.failIf(not block)
+
+        self.failUnless(block.complex())
+        self.assertEqual(64, block.cxsize())
+
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-register_test('InBitStreamTest', InStreamTest, helper=BitTestHelper())
+register_test('InBitStreamTest', BufferedInStreamTest, helper=BitTestHelper())
 register_test('InXMLStreamTest', InStreamTest, helper=XMLTestHelper())
 register_test('InFileStreamTest', InStreamTest, helper=FileTestHelper())
 register_test('InCharStreamTest', NumericInStreamTest, helper=CharTestHelper())

@@ -19,10 +19,10 @@
 #
 
 from bulkio.stream_base import StreamBase
-from bulkio.datablock import SampleDataBlock, BitDataBlock, StringDataBlock
+from bulkio.datablock import DataBlock, SampleDataBlock
 import bulkio.const
 
-__all__ = ('BufferedInputStream', 'InBitStream', 'InFileStream', 'InXMLStream')
+__all__ = ('InputStream', 'BufferedInputStream', 'NumericInputStream')
 
 EOS_NONE = 0
 EOS_RECEIVED = 1
@@ -32,7 +32,7 @@ EOS_REPORTED = 3
 class InputStream(StreamBase):
     def __init__(self, sri, port):
         StreamBase.__init__(self, sri)
-        self.__port = port
+        self._port = port
         self._eosState = EOS_NONE
         self.__enabled = True
         self.__newstream = True
@@ -57,19 +57,19 @@ class InputStream(StreamBase):
         # that calls enable is the one doing the reading, it is not necessary
         # to apply mutual exclusion across the entire public stream API, just
         # enable/disable.
-        with self.__port._streamsMutex:
+        with self._port._streamsMutex:
             self.__enabled = True
 
     def disable(self):
         # See above re: locking
-        with self.__port._streamsMutex:
+        with self._port._streamsMutex:
             self.__enabled = False
 
         # Unless end-of-stream has been received by the port (meaning any further
         # packets with this stream ID are for a different instance), purge any
         # packets for this stream from the port's queue
         if self._eosState == EOS_NONE:
-            self.__port._discardPacketsForStream(self.streamID);
+            self._port._discardPacketsForStream(self.streamID);
 
     def eos(self):
         self._reportIfEosReached()
@@ -95,12 +95,12 @@ class InputStream(StreamBase):
         packet = self._fetchNextPacket(blocking)
         if self._eosState == EOS_RECEIVED:
             self._eosState = EOS_REACHED
-        if not packet or (packet.EOS and (self._length(packet.buffer) == 0)):
+        if not packet or (packet.EOS and (len(packet.buffer) == 0)):
             self._reportIfEosReached()
             return None
 
         # Turn packet into a data block
-        block = self.DataBlockType(packet.SRI, packet.buffer)
+        block = self._createBlock(packet.SRI, packet.buffer)
         block.addTimestamp(packet.T)
         self._setBlockFlags(block, packet)
 
@@ -121,7 +121,7 @@ class InputStream(StreamBase):
             timeout = bulkio.const.BLOCKING
         else:
             timeout = bulkio.const.NON_BLOCKING
-        packet = self.__port._nextPacket(timeout, self.streamID)
+        packet = self._port._nextPacket(timeout, self.streamID)
         if packet and packet.EOS:
             self._eosState = EOS_RECEIVED
 
@@ -132,7 +132,7 @@ class InputStream(StreamBase):
             # This is the first time end-of-stream has been checked since it
             # was reached; remove the stream from the port now, since the
             # caller knows that the stream ended
-            self.__port._removeStream(self.streamID);
+            self._port._removeStream(self.streamID);
             self._eosState = EOS_REPORTED;
 
     def _setBlockFlags(self, block, packet):
@@ -144,13 +144,11 @@ class InputStream(StreamBase):
         if packet.inputQueueFlushed:
             block.inputQueueFlushed = True
 
-    def _length(self, data):
-        return len(data)
+    def _createBlock(self, *args, **kwargs):
+        return DataBlock(*args, **kwargs)
 
 
 class BufferedInputStream(InputStream):
-    DataBlockType = SampleDataBlock
-
     def __init__(self, sri, port):
         InputStream.__init__(self, sri, port)
         self.__queue = []
@@ -303,68 +301,80 @@ class BufferedInputStream(InputStream):
             self.__pending = 0
 
     def _readData(self, count, consume):
-        # Acknowledge pending SRI change
+        # SRI and flags are taken from the front packet
         front = self.__queue[0]
 
-        # Allocate empty data block and propagate the SRI change and input
-        # queue flush flags
-        data = self.DataBlockType(front.SRI)
-        self._setBlockFlags(data, front);
+        last_offset = self.__sampleOffset + count
+        if last_offset <= len(front.buffer):
+            # The requsted sample count can be satisfied from the first packet
+            time_stamps = [self._getTimestamp(front.SRI, self.__sampleOffset, 0, front.T)]
+            data = front.buffer[self.__sampleOffset:last_offset]
+        else:
+            # We have to span multiple packets to get the data
+            time_stamps, data = self._mergePacketData(count)
+
+        # Allocate data block and propagate the SRI change and input queue
+        # flush flags
+        block = self._createBlock(front.SRI, data)
+        self._setBlockFlags(block, front);
         if front.sriChanged:
             # Update the stream metadata
             self._sri = front.SRI
+
+        # Add time stamps calculated above
+        for (ts, offset, synthetic) in time_stamps:
+            block.addTimestamp(ts, offset, synthetic)
 
         # Clear flags from packet, since they've been reported
         front.sriChanged = False;
         front.inputQueueFlushed = False;
 
-        last_offset = self.__sampleOffset + count
-        if last_offset <= len(front.buffer):
-            # The requsted sample count can be satisfied from the first packet
-            self._addTimestamp(data, self.__sampleOffset, 0, front.T);
-            buf = front.buffer[self.__sampleOffset:last_offset]
-        else:
-            # We have to span multiple packets to get the data
-            buf = []
-            data_offset = 0
-
-            # Assemble data spanning several input packets into the output
-            # buffer
-            packet_offset = self.__sampleOffset
-            for packet in self.__queue:
-                # Add the timestamp for this pass
-                self._addTimestamp(data, packet_offset, data_offset, packet.T)
-
-                # The number of samples copied on this pass may be less than
-                # the total remaining
-                available = len(packet.buffer) - packet_offset;
-                nelem = min(available, count);
-
-                buf.extend(packet.buffer[packet_offset:nelem])
-                data_offset += nelem
-                count -= nelem
-                # Next chunk (if any) will be from the next packet, starting at
-                # the beginning
-                packet_offset = 0
-
-                # Finished?
-                if count == 0:
-                    break
-
         # Advance the read pointers
         self._consumeData(consume)
 
-        data._data = buf
+        return block
 
-        return data
+    def _mergePacketData(self, count):
+        # Assembles data and calculates time stamps spanning several input
+        # packets
+        front = self.__queue[0]
 
-    def _addTimestamp(self, block, inputOffset, outputOffset, time):
+        data = type(front.buffer)()
+        time_stamps = []
+        data_offset = 0
+
+        packet_offset = self.__sampleOffset
+        for packet in self.__queue:
+            # Add the timestamp for this pass
+            time_stamps.append(self._getTimestamp(front.SRI, packet_offset, data_offset, packet.T))
+
+            # The number of samples copied on this pass may be less than
+            # the total remaining
+            available = len(packet.buffer) - packet_offset;
+            nelem = min(available, count);
+
+            # Append chunk to buffer and advance counters
+            data += packet.buffer[packet_offset:packet_offset+nelem]
+            data_offset += nelem
+            count -= nelem
+
+            # Next chunk (if any) will be from the next packet, starting at
+            # the beginning
+            packet_offset = 0
+
+            # Finished?
+            if count == 0:
+                break
+
+        return (time_stamps, data)
+
+    def _getTimestamp(self, sri, inputOffset, outputOffset, time):
         # Determine the timestamp of this chunk of data; if this is the first
         # chunk, the packet offset (number of samples already read) must be
         # accounted for, so adjust the timestamp based on the SRI.  Otherwise,
         # the adjustment is a noop.
-        time_offset = inputOffset * block.xdelta()
-        if block.complex():
+        time_offset = inputOffset * sri.xdelta
+        if sri.mode != 0:
             # Complex data; each sample is two values
             time_offset /= 2.0
             outputOffset /= 2
@@ -378,8 +388,7 @@ class BufferedInputStream(InputStream):
         else:
             synthetic = False
 
-        block.addTimestamp(time, outputOffset, synthetic)
-        
+        return (time, outputOffset, synthetic)
 
     def _nextSRI(self, blocking):
         if not self.__queue:
@@ -398,7 +407,7 @@ class BufferedInputStream(InputStream):
         if not packet:
             return False
 
-        if not self.__queue or self_canBridge(packet):
+        if not self.__queue or self._canBridge(packet):
             return self._queuePacket(packet)
         else:
             self.__pending = packet;
@@ -428,11 +437,13 @@ class BufferedInputStream(InputStream):
         return not (packet.sriChanged or packet.inputQueueFlushed)
 
 
-class InBitStream(InputStream):
-    DataBlockType = BitDataBlock
+class NumericInputStream(BufferedInputStream):
+    def _createBlock(self, *args, **kwargs):
+        return SampleDataBlock(*args, **kwargs)
 
-class InFileStream(InputStream):
-    DataBlockType = StringDataBlock
-
-class InXMLStream(InputStream):
-    DataBlockType = StringDataBlock
+    def _fetchNextPacket(self, blocking):
+        packet = BufferedInputStream._fetchNextPacket(self, blocking)
+        if packet:
+            # Data conversion (no-op for all types except dataChar/dataByte)
+            packet.buffer = self._port._reformat(packet.buffer)
+        return packet

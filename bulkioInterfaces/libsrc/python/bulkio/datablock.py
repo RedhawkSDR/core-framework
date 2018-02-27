@@ -107,11 +107,6 @@ class DataBlock(object):
 
 
 class SampleDataBlock(DataBlock):
-    def __init__(self, sri, data=None):
-        if data is None:
-            data = []
-        DataBlock.__init__(self, sri, data)
-
     def complex(self):
         return self._sri.mode != 0
 
@@ -120,13 +115,3 @@ class SampleDataBlock(DataBlock):
 
     def cxsize(self):
         return self.size() / 2
-
-class BitDataBlock(DataBlock):
-    def __init__(self, sri, data=None):
-        if data is None:
-            data = bitbuffer()
-        DataBlock.__init__(self, sri, data)
-
-class StringDataBlock(DataBlock):
-    def __init__(self, sri, data=''):
-        DataBlock.__init__(self, sri, data)
