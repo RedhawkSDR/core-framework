@@ -8,10 +8,13 @@ package burstio;
 import burstio.traits.@name@Traits;
 
 import org.ossie.component.StartablePort;
+import org.ossie.component.RHLogger;
 
 public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>, StartablePort
 {
     private final InPortImpl<BURSTIO.@name@Burst> impl_;
+
+    public RHLogger _portLog = null;
 
     public Burst@name@In (final String name)
     {
@@ -101,6 +104,11 @@ public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<
     public String getRepid ()
     {
         return BURSTIO.burst@name@Helper.id();
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public String getDirection ()
