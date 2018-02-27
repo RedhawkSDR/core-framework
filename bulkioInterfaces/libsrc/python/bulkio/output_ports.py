@@ -83,7 +83,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             self.connections = connections #set of connection ID strings that have received this SRI
             self.time=time
 
-    def __init__(self, name, PortTypeClass, PortTransferType, logger=None, dtype=list, bits=0):
+    def __init__(self, name, PortTypeClass, PortTransferType, logger=None, dataType=list, bits=0):
         # Backwards-compatibility: accept an element type string for use with
         # struct.calcsize
         if bits == 0:
@@ -99,9 +99,9 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         self.filterTable = []
 
         # Data type class
-        self._dtype = dtype
+        self._dataType = dataType
         # Retain noData member for backwards-compatibility
-        self.noData = dtype()
+        self.noData = dataType()
 
         # Determine maximum transfer size in advance
         self._bitSize = bits
@@ -168,7 +168,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                     continue
 
                 try:
-                    self._sendPacket(port, self._dtype(), timestamp.notSet(), True, stream_id)
+                    self._sendPacket(port, self._dataType(), timestamp.notSet(), True, stream_id)
                 except Exception, e:
                     if self.logger:
                         self.logger.error("PUSH-PACKET FAILED, PORT/CONNECTION: %s/%s , EXCEPTION: %s", self.name, connectionId, e)
@@ -309,7 +309,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             return stream
 
     def _createStream(self, sri):
-        return OutputStream(sri, self, self._dtype)
+        return OutputStream(sri, self, self._dataType)
 
     def _pushPacket(self, data, T, EOS, streamID):
         # Prerequisite: caller holds self.port_lock
@@ -373,6 +373,11 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         return len(data)
 
 class OutNumericPort(OutPort):
+    def __init__(self, *args, **kwargs):
+        elemType = kwargs.pop('elemType', int)
+        OutPort.__init__(self, *args, **kwargs)
+        self._elemType = elemType
+
     def _pushPacket(self, data, T, EOS, streamID):
         # If there is no need to break data into smaller packets, skip straight
         # to the pushPacket call and return.
@@ -417,7 +422,7 @@ class OutNumericPort(OutPort):
                 packetTime = packetTime + (push_size/item_size) * sri.xdelta
 
     def _createStream(self, sri):
-        return NumericOutputStream(sri, self, self._dtype)
+        return NumericOutputStream(sri, self, self._dataType, self._elemType)
 
     def _reformat(self, data):
         return data
@@ -425,7 +430,7 @@ class OutNumericPort(OutPort):
 class OutCharPort(OutNumericPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
+        OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
     def _reformat(self, data):
         return struct.pack('%db' % len(data), *data)
@@ -433,7 +438,7 @@ class OutCharPort(OutNumericPort):
 class OutOctetPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
+        OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
     def _reformat(self, data):
         return struct.pack('%dB' % len(data), *data)
@@ -471,18 +476,18 @@ class OutULongLongPort(OutNumericPort):
 class OutFloatPort(OutNumericPort):
     TRANSFER_TYPE = 'f'
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataFloat, OutFloatPort.TRANSFER_TYPE, logger, bits=32)
+        OutNumericPort.__init__(self, name, BULKIO.dataFloat, OutFloatPort.TRANSFER_TYPE, logger, elemType=float, bits=32)
 
 class OutDoublePort(OutNumericPort):
     TRANSFER_TYPE = 'd'
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataDouble, OutDoublePort.TRANSFER_TYPE, logger, bits=64)
+        OutNumericPort.__init__(self, name, BULKIO.dataDouble, OutDoublePort.TRANSFER_TYPE, logger, elemType=float, bits=64)
 
 class OutBitPort(OutNumericPort):
     TRANSFER_TYPE = 'B'
 
     def __init__(self, name, logger=None):
-        OutNumericPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, dtype=bitbuffer, bits=1)
+        OutNumericPort.__init__(self, name, BULKIO.dataBit, OutBitPort.TRANSFER_TYPE, logger, dataType=bitbuffer, bits=1)
 
     def _sendPacket(self, port, data, T, EOS, streamID):
         data = BULKIO.BitSequence(data.bytes(), len(data))
@@ -494,12 +499,12 @@ class OutBitPort(OutNumericPort):
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None):
-        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE, logger, dtype=str, bits=8)
+        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
 class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None):
-        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE, logger, dtype=str, bits=8)
+        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
     def pushPacket(self, xml_string, EOS, streamID):
         OutPort.pushPacket(self, xml_string, None, EOS, streamID)

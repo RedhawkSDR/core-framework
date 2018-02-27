@@ -330,7 +330,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.subsize = 0
 
         # Queue data (should not flush)
-        data = self.helper.createStreamData(48)
+        data = self.helper.createStreamData(24)
         stream.write(data, bulkio.timestamp.now())
 
         # Change the xdelta to cause a flush; the received data should be using
@@ -416,7 +416,26 @@ class NumericOutStreamTest(BufferedOutStreamTest):
         stream = self.port.createStream("test_write_complex")
         stream.complex = True
 
-        #stream.write([complex(0) for _ in xrange(128)], bulkio.timestamp.now())
+        # Write a list of complex values, which should get turned into a list
+        # of real values that is twice as long
+        data = [complex(1,0) for _ in xrange(100)]
+        stream.write(data, bulkio.timestamp.now())
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(200, len(self.stub.packets[-1].data))
+
+        # Write a list of real values, each of which is interpreted as a
+        # complex value (with an imaginary component of 0)
+        data = self.helper.createStreamData(100)
+        stream.write(data, bulkio.timestamp.now())
+        self.assertEqual(2, len(self.stub.packets))
+        self.assertEqual(200, len(self.stub.packets[-1].data))
+
+        # Write pre-formatted data; no conversion should occur
+        data = self.helper.createData(200)
+        stream.write(data, bulkio.timestamp.now(), formatted=True)
+        self.assertEqual(3, len(self.stub.packets))
+        self.assertEqual(200, len(self.stub.packets[-1].data))
+
 
 class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
     helper = XMLTestHelper()

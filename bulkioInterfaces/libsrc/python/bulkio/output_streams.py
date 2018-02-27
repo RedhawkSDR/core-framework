@@ -242,9 +242,24 @@ class BufferedOutputStream(OutputStream):
             next = time + self.xdelta * count
             self._doBuffer(data[count:], next)
 
+def _unpack_complex(data, dtype):
+    for item in data:
+        yield dtype(item.real)
+        yield dtype(item.imag)
+    
+def _complex_to_interleaved(data, dtype):
+    return list(_unpack_complex(data, dtype))
+
 class NumericOutputStream(BufferedOutputStream):
-    def write(self, data, time):
-        data = self._port._reformat(data)
+    def __init__(self, sri, port, dtype, elemType):
+        BufferedOutputStream.__init__(self, sri, port, dtype)
+        self._elemType = elemType
+
+    def write(self, data, time, formatted=False):
+        if not formatted:
+            if self.complex:
+                data = _complex_to_interleaved(data, self._elemType)
+            data = self._port._reformat(data)
         BufferedOutputStream.write(self, data, time)
 
 class OutXMLStream(OutputStream):
