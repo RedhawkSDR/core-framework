@@ -20,51 +20,45 @@
 
 import itertools
 
-from redhawk.bitbuffer import bitbuffer
-
 import bulkio.sri
-from bulkio.bulkioInterfaces import BULKIO
-
-__all__ = ('SampleDataBlock', 'BitDataBlock', 'StringDataBlock')
 
 def _get_drift(begin, end, xdelta):
     real = end.time - begin.time
     expected = (end.offset - begin.offset) * self._sri.xdelta
     return real - expected
 
-def packed_to_complex(values):
+def _interleaved_to_complex(values):
     real = itertools.islice(values, 0, len(values), 2)
     imag = itertools.islice(values, 1, len(values), 2)
     return [complex(re,im) for re, im in zip(real, imag)]
 
 class SampleTimestamp(object):
+    __slots__ = ('time', 'offset', 'synthetic')
     def __init__(self, time, offset=0, synthetic=False):
         self.time = time
         self.offset = offset
         self.synthetic = synthetic
 
 class DataBlock(object):
+    __slots__ = ('sri', 'data', 'sriChangeFlags', 'inputQueueFlushed', '_timestamps')
     def __init__(self, sri, data):
-        self._sri = sri
-        self._data = data
+        self.sri = sri
+        self.data = data
         self._timestamps = []
         self.sriChangeFlags = bulkio.sri.NONE
         self.inputQueueFlushed = False
 
-    def sri(self):
-        return self._sri
-
+    @property
     def xdelta(self):
-        return self._sri.xdelta
-
+        return self.sri.xdelta
+    
+    @property
     def sriChanged(self):
         return self.sriChangeFlags != bulkio.sri.NONE
 
-    def data(self):
-        return self._data
-
+    @property
     def size(self):
-        return len(self._data)
+        return len(self.data)
 
     def getStartTime(self):
         return self._timestamps[0].time
@@ -107,11 +101,14 @@ class DataBlock(object):
 
 
 class SampleDataBlock(DataBlock):
+    @property
     def complex(self):
-        return self._sri.mode != 0
+        return self.sri.mode != 0
 
+    @property
     def cxdata(self):
-        return packed_to_complex(self._data)
+        return _interleaved_to_complex(self.data)
 
+    @property
     def cxsize(self):
-        return self.size() / 2
+        return self.size / 2
