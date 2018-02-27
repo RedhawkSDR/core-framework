@@ -28,6 +28,7 @@ class StreamBase(object):
     def streamID(self):
         return self._sri.streamID
 
+    @property
     def sri(self):
         return self._sri
 

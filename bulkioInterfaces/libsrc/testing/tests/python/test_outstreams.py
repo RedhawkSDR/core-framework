@@ -150,7 +150,7 @@ class OutStreamTest(object):
         # Trigger SRI update and verify that it matches
         self._writeSinglePacket(stream, 1024)
         self.assertEqual(len(self.stub.H), 4)
-        self.failUnless(bulkio.sri.compare(stream.sri(), self.stub.H[-1]))
+        self.failUnless(bulkio.sri.compare(stream.sri, self.stub.H[-1]))
 
     def testKeywords(self):
         stream = self.port.createStream("test_keywords")

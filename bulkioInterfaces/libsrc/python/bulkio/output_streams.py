@@ -37,6 +37,17 @@ class OutputStream(StreamBase):
         self._dtype = dtype
 
     @property
+    def sri(self):
+        return StreamBase.sri.fget(self)
+
+    @sri.setter
+    def sri(self, sri):
+        if not isinstance(sri, BULKIO.StreamSRI):
+            raise TypeError('sri must be a BULKIO.StreamSRI') 
+        self._modifyingStreamMetadata()
+        self._sri = copy.deepcopy(sri)
+
+    @property
     def xstart(self):
         return StreamBase.xstart.fget(self)
 
