@@ -26,15 +26,15 @@ import time
 import struct
 
 from ossie.utils import uuid
-from ossie.cf.CF import Port
+from ossie.cf import CF
 from ossie.utils.notify import notification
 from ossie.utils.log4py import logging
 from redhawk.bitbuffer import bitbuffer
 
 from bulkio.statistics import InStats
 import bulkio.sri
-from bulkio import timestamp
-from bulkio import const
+import bulkio.timestamp
+from bulkio.const import BLOCKING, NON_BLOCKING
 from bulkio.in_stream import InputStream, BufferedInputStream, NumericInputStream
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 
@@ -219,7 +219,7 @@ class InPort(object):
         if self.logger:
             self.logger.trace( "bulkio::InPort pushSRI EXIT (port=" + str(self.name) +")" )
 
-    def getPacket(self, timeout=const.NON_BLOCKING):
+    def getPacket(self, timeout=NON_BLOCKING):
         if self.logger:
             self.logger.trace( "bulkio::InPort getPacket ENTER (port=" + str(self.name) +")" )
 
@@ -236,7 +236,7 @@ class InPort(object):
 
         return packet
 
-    def getCurrentStream(self, timeout=const.BLOCKING):
+    def getCurrentStream(self, timeout=BLOCKING):
         """
         Gets the stream that should be used for the next basic read.
         """
@@ -586,7 +586,7 @@ class InXMLPort(InPort, BULKIO__POA.dataXML):
 
 class InAttachablePort:
     _TYPE_='b'
-    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=bulkio.sri.compare, timeCmp=timestamp.compare, PortType = _TYPE_, newSriCallback=None, sriChangeCallback=None,interface=None):
+    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=bulkio.sri.compare, timeCmp=bulkio.timestamp.compare, PortType = _TYPE_, newSriCallback=None, sriChangeCallback=None,interface=None):
         self.name = name
         self.logger = logger
         self.port_lock = threading.Lock()
@@ -603,7 +603,7 @@ class InAttachablePort:
         if not interface:
             if self.logger:
                 self.logger.error("InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
-            raise Port.InvalidPort(1, "InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
+            raise CF.Port.InvalidPort(1, "InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
         self.interface=interface # BULKIO port interface (valid options are BULKIO.dataSDDS or BULKIO.dataVITA49)
         self.setNewAttachDetachListener(attachDetachCallback)
         if self.logger:
