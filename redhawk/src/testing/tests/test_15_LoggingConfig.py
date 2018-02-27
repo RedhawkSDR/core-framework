@@ -68,6 +68,7 @@ class CppLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Try to clean up the event channel, if it was created
         context = None
@@ -198,6 +199,7 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -306,6 +308,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
     def tearDown(self):
         if self.comp:
            self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -383,10 +386,11 @@ class FileLoggingConfig(scatest.CorbaTestCase):
 class PythonLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
-        self.comp = sb.launch(self.cname, impl="python" )
-        
+        self.comp = sb.launch(self.cname, impl="python", instanceName="TestLoggingAPI_1" )
+
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -482,7 +486,6 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
 
 
     def test_log_callback(self):
-        self.comp = sb.launch(self.cname, impl="python", instanceName="TestLoggingAPI_1" )
         cfg = "log4j.rootLogger=ERROR,STDOUT,pse\n" + \
             "# Direct log messages to STDOUT \n" + \
             "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
@@ -529,6 +532,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -674,6 +678,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     def tearDown(self):
         if self.comp:
             self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
