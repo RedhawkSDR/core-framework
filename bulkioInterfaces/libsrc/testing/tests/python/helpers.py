@@ -67,6 +67,15 @@ class PortTestHelper(object):
         port.pushPacket(data, time, eos, streamID)
 
     def createData(self, length):
+        """
+        Creates a data object suitable for a pushPacket call.
+        """
+        return self.createStreamData(length)
+
+    def createStreamData(self, length):
+        """
+        Creates a data object suitable for writing to an output stream.
+        """
         return [0]*length
 
     def createInPort(self):
@@ -186,7 +195,7 @@ class BitTestHelper(PortTestHelper):
 
     BITS_PER_ELEMENT = 1
 
-    def createData(self, length):
+    def createStreamData(self, length):
         return bitbuffer(bits=length)
 
     def packetLength(self, data):
@@ -200,7 +209,7 @@ class FileTestHelper(PortTestHelper):
 
     BITS_PER_ELEMENT = 8
 
-    def createData(self, length):
+    def createStreamData(self, length):
         return ' '*length
 
 class XMLTestHelper(PortTestHelper):
@@ -211,7 +220,7 @@ class XMLTestHelper(PortTestHelper):
 
     BITS_PER_ELEMENT = 8
 
-    def createData(self, length):
+    def createStreamData(self, length):
         return ' '*length
 
     def pushPacket(self, port, data, time, eos, streamID):

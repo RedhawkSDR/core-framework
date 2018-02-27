@@ -32,9 +32,9 @@ from bulkio.stream_base import StreamBase
 class OutputStream(StreamBase):
     def __init__(self, sri, port, dtype=list):
         StreamBase.__init__(self, sri)
-        self.__port = port
-        self.__sriModified = False
+        self._port = port
         self._dtype = dtype
+        self.__sriModified = False
 
     @property
     def sri(self):
@@ -159,9 +159,9 @@ class OutputStream(StreamBase):
 
     def _send(self, data, time, eos):
         if self.__sriModified:
-            self.__port.pushSRI(self._sri)
+            self._port.pushSRI(self._sri)
             self.__sriModified = False
-        self._pushPacket(self.__port, data, time, eos, self.streamID)
+        self._pushPacket(self._port, data, time, eos, self.streamID)
 
     def _pushPacket(self, port, data, time, eos, streamID):
         port.pushPacket(data, time, eos, streamID)
@@ -242,7 +242,17 @@ class BufferedOutputStream(OutputStream):
             next = time + self.xdelta * count
             self._doBuffer(data[count:], next)
 
+class NumericOutputStream(BufferedOutputStream):
+    def write(self, data, time):
+        data = self._port._reformat(data)
+        BufferedOutputStream.write(self, data, time)
 
 class OutXMLStream(OutputStream):
+    def __init__(self, sri, port):
+        OutputStream.__init__(self, sri, port, str)
+
+    def write(self, data):
+        OutputStream.write(self, data, None)
+
     def _pushPacket(self, port, data, time, eos, streamID):
         port.pushPacket(data, eos, streamID)

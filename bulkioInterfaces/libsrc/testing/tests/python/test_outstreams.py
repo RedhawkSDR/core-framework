@@ -219,7 +219,7 @@ class OutStreamTest(object):
     def _writeSinglePacket(self, stream, length, time=None):
         if time is None:
             time = bulkio.timestamp.now()
-        data = self.helper.createData(length)
+        data = self.helper.createStreamData(length)
         stream.write(data, time)
 
 class BufferedOutStreamTest(OutStreamTest):
@@ -232,7 +232,7 @@ class BufferedOutStreamTest(OutStreamTest):
         self.assertEqual(0, len(self.stub.packets))
 
         # First write is below the buffer size
-        data = self.helper.createData(48)
+        data = self.helper.createStreamData(48)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(0, len(self.stub.packets))
 
@@ -268,19 +268,19 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.setBufferSize(100)
 
         # With an empty queue, large write should go right through
-        data = self.helper.createData(256)
+        data = self.helper.createStreamData(256)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
         self.assertEqual(len(data), self.helper.packetLength(self.stub.packets[-1].data))
 
         # Queue up a bit of data
-        data = self.helper.createData(16)
+        data = self.helper.createStreamData(16)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
 
         # With queued data, the large write should get broken up into a buffer-
         # sized packet
-        data = self.helper.createData(128)
+        data = self.helper.createStreamData(128)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(stream.bufferSize(), self.helper.packetLength(self.stub.packets[-1].data))
@@ -291,7 +291,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.setBufferSize(64)
 
         # Queue data (should not flush)
-        data = self.helper.createData(48)
+        data = self.helper.createStreamData(48)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(0, len(self.stub.H))
         self.assertEqual(0, len(self.stub.packets))
@@ -308,7 +308,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.setBufferSize(64)
 
         # Queue data (should not flush)
-        data = self.helper.createData(48)
+        data = self.helper.createStreamData(48)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(0, len(self.stub.H))
         self.assertEqual(0, len(self.stub.packets))
@@ -330,7 +330,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.subsize = 0
 
         # Queue data (should not flush)
-        data = self.helper.createData(48)
+        data = self.helper.createStreamData(48)
         stream.write(data, bulkio.timestamp.now())
 
         # Change the xdelta to cause a flush; the received data should be using
@@ -381,7 +381,7 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.setBufferSize(64)
 
         # Queue data (should not flush)
-        data = self.helper.createData(48)
+        data = self.helper.createStreamData(48)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(0, len(self.stub.packets))
 
@@ -392,7 +392,7 @@ class BufferedOutStreamTest(OutStreamTest):
 
         # Reduce the buffer size again, but not down to the queue size, should
         # not trigger a flush
-        data = self.helper.createData(16)
+        data = self.helper.createStreamData(16)
         stream.write(data, bulkio.timestamp.now())
         stream.setBufferSize(24)
         self.assertEqual(1, len(self.stub.packets), "Reducing buffer size above queue size flushed")
@@ -402,7 +402,7 @@ class BufferedOutStreamTest(OutStreamTest):
         self.assertEqual(2, len(self.stub.packets), "Reducing buffer size to exact size did not flush")
 
         # Increasing the buffer size should not trigger a flush
-        data = self.helper.createData(8)
+        data = self.helper.createStreamData(8)
         stream.write(data, bulkio.timestamp.now())
         stream.setBufferSize(128)
         self.assertEqual(2, len(self.stub.packets), "Increasing buffer size flushed")
@@ -411,23 +411,35 @@ class BufferedOutStreamTest(OutStreamTest):
         stream.setBufferSize(0)
         self.assertEqual(3, len(self.stub.packets), "Disabling buffering did not flush")
 
+class NumericOutStreamTest(BufferedOutStreamTest):
+    def testWriteComplex(self):
+        stream = self.port.createStream("test_write_complex")
+        stream.complex = True
+
+        #stream.write([complex(0) for _ in xrange(128)], bulkio.timestamp.now())
+
+class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
+    helper = XMLTestHelper()
+
+    def _writeSinglePacket(self, stream, length, time=None):
+        data = self.helper.createStreamData(length)
+        stream.write(data)
 
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
 register_test('OutBitStreamTest', BufferedOutStreamTest, helper=BitTestHelper())
-register_test('OutXMLStreamTest', OutStreamTest, helper=XMLTestHelper())
 register_test('OutFileStreamTest', OutStreamTest, helper=FileTestHelper())
-register_test('OutCharStreamTest', BufferedOutStreamTest, helper=CharTestHelper())
-register_test('OutOctetStreamTest', BufferedOutStreamTest, helper=OctetTestHelper())
-register_test('OutShortStreamTest', BufferedOutStreamTest, helper=ShortTestHelper())
-register_test('OutUShortStreamTest', BufferedOutStreamTest, helper=UShortTestHelper())
-register_test('OutLongStreamTest', BufferedOutStreamTest, helper=LongTestHelper())
-register_test('OutULongStreamTest', BufferedOutStreamTest, helper=ULongTestHelper())
-register_test('OutLongLongStreamTest', BufferedOutStreamTest, helper=LongLongTestHelper())
-register_test('OutULongLongStreamTest', BufferedOutStreamTest, helper=ULongLongTestHelper())
-register_test('OutFloatStreamTest', BufferedOutStreamTest, helper=FloatTestHelper())
-register_test('OutDoubleStreamTest', BufferedOutStreamTest, helper=DoubleTestHelper())
+register_test('OutCharStreamTest', NumericOutStreamTest, helper=CharTestHelper())
+register_test('OutOctetStreamTest', NumericOutStreamTest, helper=OctetTestHelper())
+register_test('OutShortStreamTest', NumericOutStreamTest, helper=ShortTestHelper())
+register_test('OutUShortStreamTest', NumericOutStreamTest, helper=UShortTestHelper())
+register_test('OutLongStreamTest', NumericOutStreamTest, helper=LongTestHelper())
+register_test('OutULongStreamTest', NumericOutStreamTest, helper=ULongTestHelper())
+register_test('OutLongLongStreamTest', NumericOutStreamTest, helper=LongLongTestHelper())
+register_test('OutULongLongStreamTest', NumericOutStreamTest, helper=ULongLongTestHelper())
+register_test('OutFloatStreamTest', NumericOutStreamTest, helper=FloatTestHelper())
+register_test('OutDoubleStreamTest', NumericOutStreamTest, helper=DoubleTestHelper())
 
 if __name__ == '__main__':
     import runtests
