@@ -382,6 +382,7 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
             }
             if (name ==  "LOGGING_CONFIG_URI") {
                 logcfg_uri = value;
+                cmdlineProps[name] = value;
             } else if (name == "DEBUG_LEVEL") {
                 debug_level = atoi(value.c_str());
             } else if (name == "DOM_PATH") {
@@ -413,11 +414,6 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
     try {
         // Create the servant.
         Resource_impl* resource = create_component(ctor, cmdlineProps);
-
-        if ( !skip_run ) {
-            // assign the logging context to the resource to support logging interface
-            resource->saveLoggingContext( logcfg_uri, debug_level, ctx );
-        }
 
         std::string pathAndFile = argv[0];
         unsigned lastSlash      = pathAndFile.find_last_of("/");

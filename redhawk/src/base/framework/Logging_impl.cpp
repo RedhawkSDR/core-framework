@@ -40,7 +40,7 @@ struct null_deleter
 Logging_impl::Logging_impl(std::string logger_name) :
   _logName(""),
   _logLevel(CF::LogLevels::INFO),
-  _baseLog(rh_logger::Logger::getResourceLogger(logger_name)),
+  _baseLog(rh_logger::Logger::getLogger(logger_name)),
   _logCfgContents(),
   _logCfgURL(""),
   _origLogCfgURL(""),
@@ -138,7 +138,6 @@ void Logging_impl::setLoggingContext( const std::string &logcfg_url, int logLeve
 
 
 void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLevel, ossie::logging::ResourceCtxPtr ctx ) {
-
   STDOUT_DEBUG("Logging_impl saveLoggingContext START:");
   if ( ctx ) {
     STDOUT_DEBUG( "Logging_impl saveLoggingContext Apply Macro Context:");
