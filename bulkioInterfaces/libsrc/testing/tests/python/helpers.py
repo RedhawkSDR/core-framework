@@ -19,6 +19,7 @@
 #
 
 import collections
+import struct
 
 from ossie.utils.log4py import logging
 from redhawk.bitbuffer import bitbuffer
@@ -70,13 +71,27 @@ class PortTestHelper(object):
         """
         Creates a data object suitable for a pushPacket call.
         """
-        return self.createStreamData(length)
+        data = self.createStreamData(length)
+        return self.pack(data)
 
     def createStreamData(self, length):
         """
         Creates a data object suitable for writing to an output stream.
         """
         return [0]*length
+
+    def pack(self, data):
+        """
+        Converts a Python array into a data object suitable for a pushPacket
+        call.
+        """
+        return data
+
+    def unpack(self, data):
+        """
+        Converts the payload from a pushPacket into a Python object.
+        """
+        return data
 
     def createInPort(self):
         return self.InPortType(self._getName() + '_in')
@@ -109,8 +124,11 @@ class CharTestHelper(PortTestHelper):
 
     BITS_PER_ELEMENT = 8
 
-    def createData(self, length):
-        return '\x00'*length
+    def pack(self, data):
+        return struct.pack('%db' % len(data), *data)
+
+    def unpack(self, data):
+        return list(struct.unpack('%db' % len(data), data))
 
 class OctetTestHelper(PortTestHelper):
     PortType = BULKIO.dataOctet
@@ -120,8 +138,11 @@ class OctetTestHelper(PortTestHelper):
 
     BITS_PER_ELEMENT = 8
 
-    def createData(self, length):
-        return '\x00'*length
+    def pack(self, data):
+        return struct.pack('%dB' % len(data), *data)
+
+    def unpack(self, data):
+        return list(struct.unpack('%dB' % len(data), data))
 
 class ShortTestHelper(PortTestHelper):
     PortType = BULKIO.dataShort

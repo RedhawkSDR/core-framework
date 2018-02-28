@@ -45,7 +45,12 @@ class OutputStream(StreamBase):
         if not isinstance(sri, BULKIO.StreamSRI):
             raise TypeError('sri must be a BULKIO.StreamSRI') 
         self._modifyingStreamMetadata()
-        self._sri = copy.deepcopy(sri)
+        # Deep copy to avoid accidental updates to the SRI via the caller's
+        # reference
+        sri = copy.deepcopy(sri)
+        # Preserve stream ID
+        sri.streamID = self.streamID
+        self._sri = sri
 
     @property
     def xstart(self):

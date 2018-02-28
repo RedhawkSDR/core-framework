@@ -152,6 +152,35 @@ class OutStreamTest(object):
         self.assertEqual(len(self.stub.H), 4)
         self.failUnless(bulkio.sri.compare(stream.sri, self.stub.H[-1]))
 
+    def testSriReplace(self):
+        # Create initial stream
+        stream = self.port.createStream("test_sri_replace")
+
+        # Create a new SRI with a different stream ID
+        new_sri = bulkio.sri.create("modified_sri")
+        new_sri.mode = 1
+        new_sri.blocking = 1
+        new_sri.subsize = 16
+        new_sri.xstart = -math.pi
+        new_sri.xdelta = 2.0 * math.pi / 1024.0
+        new_sri.xunits = BULKIO.UNITS_FREQUENCY
+        new_sri.ydelta = 1024.0 / 1.25e6
+        new_sri.yunits = BULKIO.UNITS_TIME
+
+        # Replace the SRI and ensure that everything *except* the streamID has
+        # changed
+        stream.sri = new_sri
+        self.assertEqual(stream.streamID, "test_sri_replace")
+        self.assertEqual(stream.xstart, new_sri.xstart)
+        self.assertEqual(stream.xdelta, new_sri.xdelta)
+        self.assertEqual(stream.xunits, new_sri.xunits)
+        self.assertEqual(stream.subsize, new_sri.subsize)
+        self.assertEqual(stream.ystart, new_sri.ystart)
+        self.assertEqual(stream.ydelta, new_sri.ydelta)
+        self.assertEqual(stream.yunits, new_sri.yunits)
+        self.failUnless(stream.complex)
+        self.failUnless(stream.blocking)
+
     def testKeywords(self):
         stream = self.port.createStream("test_keywords")
         self._writeSinglePacket(stream, 1)
@@ -418,23 +447,30 @@ class NumericOutStreamTest(BufferedOutStreamTest):
 
         # Write a list of complex values, which should get turned into a list
         # of real values that is twice as long
-        data = [complex(1,0) for _ in xrange(100)]
+        data = [complex(ii,0) for ii in xrange(100)]
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(200, len(self.stub.packets[-1].data))
+        result = self.helper.unpack(self.stub.packets[-1].data)
+        self.assertEqual(200, len(result))
+        self.assertEqual([ii.real for ii in data], result[::2])
+        self.assertEqual([ii.imag for ii in data], result[1::2])
 
         # Write a list of real values, each of which is interpreted as a
         # complex value (with an imaginary component of 0)
-        data = self.helper.createStreamData(100)
+        data = range(100)
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(200, len(self.stub.packets[-1].data))
+        result = self.helper.unpack(self.stub.packets[-1].data)
+        self.assertEqual(200, len(result))
+        self.assertEqual(data, result[::2])
+        self.assertEqual([0] * 100, result[1::2])
 
         # Write pre-formatted data; no conversion should occur
-        data = self.helper.createData(200)
+        data = self.helper.pack(range(100))
         stream.write(data, bulkio.timestamp.now(), formatted=True)
         self.assertEqual(3, len(self.stub.packets))
-        self.assertEqual(200, len(self.stub.packets[-1].data))
+        self.assertEqual(100, len(self.stub.packets[-1].data))
+        self.assertEqual(data, self.stub.packets[-1].data)
 
 
 class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
