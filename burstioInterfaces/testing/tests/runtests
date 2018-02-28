@@ -39,8 +39,5 @@ fi
 #
 #  Run C++ based testing
 #
-cd cpp
-./runtests
-cd -
-
+make -j 6 -C cpp check
 
