@@ -38,7 +38,7 @@
 #include <ossie/affinity.h>
 #include "spdSupport.h"
 #include "DeviceManager_impl.h"
-#include <ossie/logging/rh_logger_stdout.h>
+#include "rh_logger_stdout.h"
 
 namespace fs = boost::filesystem;
 

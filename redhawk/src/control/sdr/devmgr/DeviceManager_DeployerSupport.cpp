@@ -32,7 +32,7 @@
 #include <ossie/prop_utils.h>
 #include <ossie/logging/loghelpers.h>
 #include "DeviceManager_impl.h"
-#include <ossie/logging/rh_logger_stdout.h>
+#include "rh_logger_stdout.h"
 
 namespace fs = boost::filesystem;
 

@@ -17,33 +17,18 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef  RH_LOGGER_P_H
-#define  RH_LOGGER_P_H
+#ifndef  RH_LOGGER_P_STDOUT_H
+#define  RH_LOGGER_P_STDOUT_H
 
 #include <values.h>
 #include <iostream>
 #include <fstream>
 #include <cstdio>
-
-#ifdef HAVE_LOG4CXX
-#include <log4cxx/logger.h>
-#include <log4cxx/level.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/helpers/messagebuffer.h>
-#endif
-
 #include <ossie/logging/rh_logger.h>
-#include "rh_logger_stdout.h"
 
 namespace rh_logger {
 
-#ifdef HAVE_LOG4CXX
-
-  log4cxx::LevelPtr ConvertRHLevelToLog4 ( rh_logger::LevelPtr rh_level );
-  rh_logger::LevelPtr ConvertLog4ToRHLevel ( log4cxx::LevelPtr l4_level );
-
-  class L4Logger : public Logger {
+  class StdOutLogger : public Logger {
 
   public:
 
@@ -51,22 +36,13 @@ namespace rh_logger {
     static  LoggerPtr  getLogger( const std::string &name );
     static  LoggerPtr  getLogger( const char *name );
 
-    virtual ~L4Logger() {}
+    virtual ~StdOutLogger() {}
     
-    L4Logger( const std::string &name );
+    StdOutLogger( const std::string &name );
 
-    L4Logger( const char *name );
-
-    bool isFatalEnabled() const;
-    bool isErrorEnabled() const;
-    bool isWarnEnabled() const;
-    bool isInfoEnabled() const;
-    bool isDebugEnabled() const;
-    bool isTraceEnabled() const;
+    StdOutLogger( const char *name );
 
     void setLevel ( const LevelPtr &newLevel );
-
-    LevelPtr getLevel () const;
 
     void handleLogEvent( const LevelPtr &lvl, const std::string &msg ) ;
 
@@ -78,19 +54,21 @@ namespace rh_logger {
 
     bool isLoggerInHierarchy(const std::string& search_name);
 
-    log4cxx::LoggerPtr  l4logger;
+    void* getUnderlyingLogger();
+
+  protected:
+
 
   private:
 
-    typedef boost::shared_ptr< L4Logger > L4LoggerPtr;
+    typedef boost::shared_ptr< StdOutLogger > StdOutLoggerPtr;
 
-    static L4LoggerPtr   _rootLogger;
+    static StdOutLoggerPtr   _rootLogger;
 
-    uint32_t               _error_count;
+    std::ostream   &_os;
+
   };
 
-#endif
-
-};   // end of rh_logger namespace
+};
 
 #endif

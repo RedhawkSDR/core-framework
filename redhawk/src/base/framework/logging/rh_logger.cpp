@@ -29,7 +29,7 @@
 #endif 
 
 // internal logging classes for std::out and log4cxx
-#include <ossie/logging/rh_logger_p.h>
+#include "./rh_logger_p.h"
 
 //
 // deprecate this method... moving to ossie:logging  and rh_logger 
@@ -567,6 +567,10 @@ namespace rh_logger {
     return false;
   }
 
+  void* Logger::getUnderlyingLogger() {
+      return NULL;
+  }
+
   std::vector<std::string> Logger::getNamedLoggers() {
     std::vector<std::string> ret;
     std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
@@ -634,6 +638,10 @@ namespace rh_logger {
     if (search_name == name)
         return true;
     return false;
+  }
+
+  void* StdOutLogger::getUnderlyingLogger() {
+      return NULL;
   }
 
   std::vector<std::string> StdOutLogger::getNamedLoggers() {
@@ -852,6 +860,10 @@ namespace rh_logger {
         }
     }
     return false;
+  }
+
+  void* L4Logger::getUnderlyingLogger() {
+      return static_cast<void *>(l4logger);
   }
 
   std::vector<std::string> L4Logger::getNamedLoggers() {

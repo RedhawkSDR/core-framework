@@ -2,7 +2,10 @@
 #define LOGGER_I_IMPL_H
 
 #include "logger_base.h"
-#include <logging/rh_logger_p.h>
+
+#ifdef HAVE_LOG4CXX
+#include <log4cxx/logger.h>
+#endif
 
 class logger_i : public logger_base
 {
@@ -18,8 +21,10 @@ class logger_i : public logger_base
         rh_logger::LoggerPtr baseline_2_logger;
         rh_logger::LoggerPtr namespaced_logger;
         rh_logger::LoggerPtr basetree_logger;
-        log4cxx::LoggerPtr my_l4;
         rh_logger::LoggerPtr basel4_logger;
+#ifdef HAVE_LOG4CXX
+        log4cxx::LoggerPtr my_l4;
+#endif
 };
 
 #endif // LOGGER_I_IMPL_H

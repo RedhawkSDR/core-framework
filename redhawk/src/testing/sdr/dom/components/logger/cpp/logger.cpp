@@ -29,7 +29,9 @@ void logger_i::constructor()
 	namespaced_logger = this->_baseLog->getChildLogger("lower", "namespace");
 	basetree_logger = this->_baseLog->getChildLogger("lower", "");
     basel4_logger = this->_baseLog->getChildLogger("access", "l4");
-    my_l4 = ((rh_logger::L4Logger *)basel4_logger.get())->l4logger;
+#ifdef HAVE_LOG4CXX
+    my_l4 = log4cxx::LoggerPtr(static_cast<log4cxx::Logger*>(basel4_logger->getUnderlyingLogger()));
+#endif
 }
 
 /***********************************************************************************************
@@ -251,8 +253,10 @@ int logger_i::serviceFunction()
     RH_DEBUG(baseline_2_logger, "message from baseline_2_logger");
     RH_DEBUG(namespaced_logger, "message from namespaced_logger");
     RH_DEBUG(basetree_logger, "message from basetree_logger");
+#ifdef HAVE_LOG4CXX
     my_l4->info("this is the log4cxx logger");
-    
+#endif
+
     return NOOP;
 }
 
