@@ -32,6 +32,71 @@ def _char_to_bit(ch):
         raise ValueError("invalid character '%s'" % ch)
     return bit
 
+def _bitmask(bits):
+    return (1<<bits)-1
+
+def _split_index(pos):
+    byte = pos // 8
+    bit = pos & 7
+    return byte, bit
+
+def _write_bits(dest, dbyte, dbit, value, bits):
+    # Preserves leftmost and rightmost bits as necessary
+    shift = 8 - (dbit + bits)
+    mask = _bitmask(bits) << shift
+    dest[dbyte] = (dest[dbyte] & ~mask) | ((value << shift) & mask)
+
+def _read_split_byte(src, sbyte, offset):
+    shift = 8 - offset
+    return ((src[sbyte] << 8) | (src[sbyte+1]) >> shift) & 0xFF
+
+def _read_split_bits(src, sbyte, offset, bits):
+    value = src[sbyte] << 8
+    last = offset + bits - 1
+    value |= src[sbyte + last/8]
+    shift = 15 - last
+    return (value >> shift) & ((1 << bits) - 1)
+
+def _copy_bits(dest, dstart, src, sstart, count):
+    dbyte, dbit = _split_index(dstart)
+    sbyte, sbit = _split_index(sstart)
+
+    # If the left hand side is not byte-aligned, copy a sub-byte number of bits
+    # so that remaining iterations are aligned
+    if dbit > 0:
+        nbits = min(8 - dbit, count)
+        value = _read_split_bits(src, sbyte, sbit, nbits)
+        _write_bits(dest, dbyte, dbit, value, nbits)
+
+        # Advance to the next byte for the left hand side, and adjust
+        # the offset for the right hand side (which may advance to the
+        # next byte as well)
+        dbyte += 1
+        sbit += nbits
+        sbyte += sbit / 8
+        sbit = sbit & 7
+        count -= nbits
+
+    # Left offset is now guaranteed to be 0; if the right offset is also 0,
+    # then both sides are exactly byte-aligned
+    bytes = count // 8
+    if sbit == 0:
+        dest[dbyte:dbyte+bytes] = src[sbyte:sbyte+bytes]
+    else:
+        # The two bit arrays are not exactly aligned; iterate through each
+        # byte from the left-hand side
+        for _ in xrange(bytes):
+            dest[dbyte] = _read_split_byte(src, sbyte, sbit)
+            dbyte += 1
+            sbyte += 1
+
+    # If less than a full byte remains, process it
+    remain = count & 7
+    if remain > 0:
+        value = _read_split_bits(src, sbyte, sbit, remain)
+        _write_bits(dest, dbyte, 0, value, remain)
+
+
 class counted_iterator(object):
     """
     Helper iterator wrapper that keeps track of the number of iterations that
@@ -169,6 +234,13 @@ class bitbuffer(object):
             # Set via a slice object; indices() takes care of start/stop range,
             # there is no need for an explicit check
             start, stop, step = pos.indices(len(self))
+
+            # With normal stride and a bitbuffer as the source, use byte-wise
+            # copy method (~1000x faster in some cases)
+            if step == 1 and isinstance(value, bitbuffer):
+                self._assign(start, stop, value)
+                return
+
             indices = xrange(start, stop, step)
             bits = len(indices)
             try:
@@ -305,6 +377,12 @@ class bitbuffer(object):
         start, end, step = self._indices(start, end)
         return bitbuffer(takeskip(self[start:end], take, skip))
 
+    def _assign(self, start, end, other):
+        bits = end - start
+        if bits != len(other):
+            raise ValueError('attempt to assign sequence of size %d to extended slice of size %d' % (len(other), bits))
+        _copy_bits(self.__data, self.__start + start, other.__data, other.__start, bits)
+
     def _indices(self, start, end, step=None):
         # Use slice to return properly bounded indices
         return slice(start, end, step).indices(len(self))
@@ -319,5 +397,4 @@ class bitbuffer(object):
     def _split_index(self, pos):
         # Given a bit index, returns the index of the byte that contains that
         # bit index, and its index relative to that byte.
-        pos += self.__start
-        return (pos / 8, pos % 8)
+        return _split_index(pos + self.__start)
