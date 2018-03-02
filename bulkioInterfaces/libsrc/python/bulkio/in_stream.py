@@ -424,7 +424,7 @@ class BufferedInputStream(InputStream):
             else:
                 # Assign the end-of-stream flag to the last packet in the queue
                 # so that it is handled on read
-                _queue[-1].EOS = True
+                self.__queue[-1].EOS = True
             # Let the caller know that no more sample data is forthcoming
             return False
         else:
