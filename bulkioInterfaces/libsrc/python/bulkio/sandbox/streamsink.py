@@ -22,11 +22,9 @@ import operator
 import threading
 import time
 
-from ossie.threadedcomponent import *
+from ossie.utils.sandbox.helper import ThreadedSandboxHelper, ThreadStatus
 
 from bulkio.input_ports import *
-
-from .helper import SandboxPortHelper
 
 _PORT_MAP = {
     'char' : (InCharPort, 'IDL:BULKIO/dataChar:1.0'),
@@ -98,10 +96,9 @@ class StreamContainer(object):
         return StreamData(sris, data, timestamps, self.eos)
 
 
-class StreamSink(SandboxPortHelper, ThreadedComponent):
+class StreamSink(ThreadedSandboxHelper):
     def __init__(self, format=None):
-        SandboxPortHelper.__init__(self)
-        ThreadedComponent.__init__(self)
+        ThreadedSandboxHelper.__init__(self)
         if format:
             formats = [format]
         else:
@@ -181,25 +178,9 @@ class StreamSink(SandboxPortHelper, ThreadedComponent):
 
         return None
 
-    def start(self):
-        SandboxPortHelper.start(self)
-        self.startThread()
-
-    def stop(self):
-        SandboxPortHelper.stop(self)
-        self.stopThread()
-
-    def process(self):
-        try:
-            self._process()
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            return FINISH
-
-    def _process(self):
+    def _threadFunc(self):
         if not self._port:
-            return NOOP
+            return ThreadStatus.NOOP
 
         stream = self._port.getCurrentStream()
         if not stream:
@@ -213,7 +194,7 @@ class StreamSink(SandboxPortHelper, ThreadedComponent):
 
             if not block:
                 if not stream.eos():
-                    return NORMAL
+                    return ThreadStatus.NORMAL
             else:
                 data.append(block)
                 self._streamReady.notify()
@@ -224,4 +205,4 @@ class StreamSink(SandboxPortHelper, ThreadedComponent):
                 self._finishedStreams.append(data)
                 self._streamEnded.notify()
 
-        return NORMAL
+        return ThreadStatus.NORMAL

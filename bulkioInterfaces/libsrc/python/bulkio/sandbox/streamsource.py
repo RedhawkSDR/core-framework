@@ -18,10 +18,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from ossie.utils.sandbox.helper import SandboxHelper
+
 import bulkio
 from bulkio.output_ports import *
-
-from .helper import SandboxPortHelper
 
 _PORT_MAP = {
     'char' : (OutCharPort, 'IDL:BULKIO/dataChar:1.0'),
@@ -39,9 +39,9 @@ _PORT_MAP = {
     'XML' : (OutXMLPort, 'IDL:BULKIO/dataXML:1.0')
 }
 
-class StreamSource(SandboxPortHelper):
+class StreamSource(SandboxHelper):
     def __init__(self, streamID='StreamSource_stream', format=None):
-        SandboxPortHelper.__init__(self)
+        SandboxHelper.__init__(self)
 
         if format:
             formats = [format]
