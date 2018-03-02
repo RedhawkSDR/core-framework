@@ -23,9 +23,26 @@ import threading
 import time
 
 from ossie.threadedcomponent import *
-from ossie.utils.sb.io_helpers import _SinkBase
 
 from bulkio.input_ports import *
+
+from .helper import SandboxPortHelper
+
+_PORT_MAP = {
+    'char' : (InCharPort, 'IDL:BULKIO/dataChar:1.0'),
+    'octet': (InOctetPort, 'IDL:BULKIO/dataOctet:1.0'),
+    'short' : (InShortPort, 'IDL:BULKIO/dataShort:1.0'),
+    'ushort' : (InUShortPort, 'IDL:BULKIO/dataUshort:1.0'),
+    'long' : (InLongPort, 'IDL:BULKIO/dataLong:1.0'),
+    'ulong' : (InULongPort, 'IDL:BULKIO/dataUlong:1.0'),
+    'longlong' : (InLongLongPort, 'IDL:BULKIO/dataLongLong:1.0'),
+    'ulonglong' : (InULongLongPort, 'IDL:BULKIO/dataUlongLong:1.0'),
+    'float' : (InFloatPort, 'IDL:BULKIO/dataFloat:1.0'),
+    'double' : (InDoublePort, 'IDL:BULKIO/dataDouble:1.0'),
+    'bit' : (InBitPort, 'IDL:BULKIO/dataBit:1.0'),
+    'file' : (InFilePort, 'IDL:BULKIO/dataFile:1.0'),
+    'XML' : (InXMLPort, 'IDL:BULKIO/dataXML:1.0')
+}
 
 class StreamData(object):
     def __init__(self, sris, data, timestamps, eos):
@@ -81,46 +98,25 @@ class StreamContainer(object):
         return StreamData(sris, data, timestamps, self.eos)
 
 
-class StreamSink(_SinkBase, ThreadedComponent):
+class StreamSink(SandboxPortHelper, ThreadedComponent):
     def __init__(self, format=None):
-        if format is None:
-            formats = ['char', 'octet', 'short', 'ushort', 'long', 'ulong',
-                       'longlong', 'ulonglong', 'float', 'double', 'bit', 'file', 'xml']
-        else:
-            formats = [format]
-        _SinkBase.__init__(self, formats=formats)
+        SandboxPortHelper.__init__(self)
         ThreadedComponent.__init__(self)
+        if format:
+            formats = [format]
+        else:
+            formats = _PORT_MAP.keys()
+        for format in formats:
+            clazz, repo_id = _PORT_MAP[format]
+            self._addProvidesPort(format+'In', repo_id, clazz)
+
         self._port = None
-        self._portClasses = {
-            'char': InCharPort,
-            'octet': InOctetPort,
-            'short': InShortPort,
-            'ushort': InUShortPort,
-            'long': InLongPort,
-            'ulong': InULongPort,
-            'longlong': InLongLongPort,
-            'ulonglong': InULongLongPort,
-            'float': InFloatPort,
-            'double': InDoublePort,
-            'file': InFilePort,
-            'xml': InXMLPort,
-            'bit': InBitPort
-        }
+
         self._streamLock = threading.Lock()
         self._streamReady = threading.Condition(self._streamLock)
         self._streamEnded = threading.Condition(self._streamLock)
         self._finishedStreams = []
         self._activeStreams = {}
-
-    def getPort(self, portName):
-        if self._port:
-            if portName != self._port.name:
-                raise RuntimeError('StreamSink only supports 1 port type at a time')
-        else:
-            interface = portName[:-2]
-            self._port = self._portClasses[interface](portName)
-
-        return self._port._this()
 
     def streamIDs(self):
         return [sri.streamID for sri in self.activeSRIs()]
@@ -186,14 +182,11 @@ class StreamSink(_SinkBase, ThreadedComponent):
         return None
 
     def start(self):
-        if self._port:
-            if hasattr(self._port, 'startPort'):
-                self._port.startPort()
+        SandboxPortHelper.start(self)
         self.startThread()
 
     def stop(self):
-        if self._port and hasattr(self._port, 'stopPort'):
-            self._port.stopPort()
+        SandboxPortHelper.stop(self)
         self.stopThread()
 
     def process(self):
