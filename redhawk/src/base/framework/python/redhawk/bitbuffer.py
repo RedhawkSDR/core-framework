@@ -97,6 +97,24 @@ def _copy_bits(dest, dstart, src, sstart, count):
         value = _read_split_bits(src, sbyte, sbit, remain)
         _write_bits(dest, dbyte, 0, value, remain)
 
+def _unpack(src, start, count):
+    byte, bit = _split_index(start)
+
+    last_byte = byte + (bit + count + 7) // 8
+    for pos in xrange(byte, last_byte):
+        nbits = min(8 - bit, count)
+
+        # Use the first (inclusive) and last (exclusive) bits to determine the
+        # shift range
+        first = 7 - bit
+        last = first - nbits
+        value = src[pos]
+        for shift in range(first, last, -1):
+            yield (value >> shift) & 1
+
+        # Subsequent bytes should be aligned
+        bit = 0
+        count -= nbits
 
 class counted_iterator(object):
     """
@@ -339,7 +357,7 @@ class bitbuffer(object):
         """
         Unpacks the bits into a list of integers, one per bit.
         """
-        return [x for x in self]
+        return list(_unpack(self.__data, self.__start, self.__bits))
 
     def popcount(self):
         """

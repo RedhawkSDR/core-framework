@@ -349,10 +349,18 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(expected)
         self.assertEqual(expected, buf.unpack())
 
+        # Medium, partial byte at end
+        buf2 = buf[:-3]
+        self.assertEqual(expected[:-3], buf2.unpack())
+
+        # Medium, unaligned
+        buf2 = buf[3:]
+        self.assertEqual(expected[3:], buf2.unpack())
+
         # Small, sub-byte, unaligned
         buf = bitbuffer('0101001', bits=6, start=1)
         self.assertEqual(6, len(buf))
-        self.assertEqual([1, 0, 1, 0, 0, 1], buf)
+        self.assertEqual([1, 0, 1, 0, 0, 1], buf.unpack())
 
     def testPopcount(self):
         buf = bitbuffer('10111001000100011101000110111100001')
