@@ -116,6 +116,32 @@ def _unpack(src, start, count):
         bit = 0
         count -= nbits
 
+# Lookup table with each byte exploded into a list of 8 bit values
+_exploded = [[(x>>shift)&1 for shift in range(7,-1,-1)] for x in range(256)]
+
+def _unpack(src, start, count):
+    byte, bit = _split_index(start)
+
+    if bit > 0:
+        nbits = min(8 - bit, count)
+        items = _exploded[src[byte]]
+        for item in items[bit:bit+nbits]:
+            yield item
+        count -= nbits
+        byte += 1
+
+    bytes = count // 8
+    for value in src[byte:byte+bytes]:
+        for item in _exploded[value]:
+            yield item
+    byte += bytes
+
+    remain = count & 7
+    if remain > 0:
+        items = _exploded[src[byte]]
+        for item in items[:remain]:
+            yield item
+
 class counted_iterator(object):
     """
     Helper iterator wrapper that keeps track of the number of iterations that
@@ -281,6 +307,9 @@ class bitbuffer(object):
             value = mask if int(value) else 0
             self.__data[byte] = (self.__data[byte] & ~mask) | value
 
+    def __iter__(self):
+        return _unpack(self.__data, self.__start, self.__bits)
+
     def __len__(self):
         return self.__bits
 
@@ -335,10 +364,14 @@ class bitbuffer(object):
         """
         byte, bit = self._split_index(0)
         if bit == 0:
-            data = self.__data[byte:]
+            # Bit data is byte aligned, convert the backing array to bytes
+            return bytes(self.__data[byte:])
         else:
-            data = bytearray(_iterable_to_bytes(self, int))
-        return bytes(data)
+            # Unaligned, create a new bitbuffer with a copy of the data, which
+            # will be aligned
+            temp = bitbuffer(bits=len(self))
+            temp[:] = self
+            return temp.bytes()
 
     def resize(self, bits):
         """
@@ -347,8 +380,7 @@ class bitbuffer(object):
         # Create a new backing bytearray and copy existing values (up to a
         # maximum of 'bits') into it
         data = bytearray(_bits_to_bytes(bits))
-        for pos, val in enumerate(_iterable_to_bytes(self[:bits], int)):
-            data[pos] = val
+        _copy_bits(data, 0, self.__data, self.__start, min(bits, self.__bits))
         self.__data = data
         self.__bits = bits
         self.__start = 0
@@ -357,7 +389,7 @@ class bitbuffer(object):
         """
         Unpacks the bits into a list of integers, one per bit.
         """
-        return list(_unpack(self.__data, self.__start, self.__bits))
+        return list(iter(self))
 
     def popcount(self):
         """
