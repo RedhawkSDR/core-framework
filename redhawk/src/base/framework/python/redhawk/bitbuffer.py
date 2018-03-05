@@ -48,12 +48,13 @@ def _write_bits(dest, dbyte, dbit, value, bits):
 
 def _read_split_byte(src, sbyte, offset):
     shift = 8 - offset
-    return ((src[sbyte] << 8) | (src[sbyte+1]) >> shift) & 0xFF
+    value = ((src[sbyte] << 8) | src[sbyte+1]) >> shift
+    return value & 0xFF
 
 def _read_split_bits(src, sbyte, offset, bits):
     value = src[sbyte] << 8
     last = offset + bits - 1
-    value |= src[sbyte + last/8]
+    value |= src[sbyte + (last//8)]
     shift = 15 - last
     return (value >> shift) & ((1 << bits) - 1)
 
@@ -85,10 +86,10 @@ def _copy_bits(dest, dstart, src, sstart, count):
     else:
         # The two bit arrays are not exactly aligned; iterate through each
         # byte from the left-hand side
-        for _ in xrange(bytes):
-            dest[dbyte] = _read_split_byte(src, sbyte, sbit)
-            dbyte += 1
-            sbyte += 1
+        for pos in xrange(bytes):
+            dest[dbyte+pos] = _read_split_byte(src, sbyte+pos, sbit)
+    dbyte += bytes
+    sbyte += bytes
 
     # If less than a full byte remains, process it
     remain = count & 7
