@@ -544,6 +544,9 @@ class RasterBase(PlotBase):
     def _setBitMode(self):
         pass
 
+    def _getReadSize(self):
+        return self._readSize
+
     def _update(self):
         if not self._port:
             return False
@@ -552,13 +555,13 @@ class RasterBase(PlotBase):
         stream = self._port.getCurrentStream(bulkio.const.NON_BLOCKING)
         if not stream:
             return False
-        block = stream.read(self._readSize)
+        block = stream.read(self._getReadSize())
         if not block:
             return False
-        data = self._formatData(block, stream)
 
         # Update the framebuffer
         frame_size = self._getFrameSize(stream)
+        data = self._formatData(block, stream)
 
         redraw = False
         if len(self._buffer) != (frame_size*frame_size):
@@ -649,6 +652,18 @@ class RasterBase(PlotBase):
     def zmax(self, zmax):
         self._check_zrange(self._zmin, zmax)
         self._update_zrange(self._zmin, zmax)
+
+    @property
+    def readSize(self):
+        return self._readSize
+
+    @readSize.setter
+    def readSize(self, size):
+        if size is not None:
+            size = int(size)
+            if size <= 0:
+                raise ValueError('read size must be a positive integer')
+        self._readSize = size
 
 
 class RasterPlot(RasterBase):
@@ -771,9 +786,7 @@ class RasterPSD(RasterBase, PSDBase):
         If the size of the PSD output (nfft/2+1) is not equal to the image
         width, the PSD output will be linearly resampled to the image width.
         """
-        if not frameSize:
-            frameSize = nfft
-        RasterBase.__init__(self, zmin, zmax, readSize=frameSize)
+        RasterBase.__init__(self, zmin, zmax, imageWidth, imageHeight, readSize=frameSize)
         PSDBase.__init__(self, nfft)
 
     def _getNorm(self, zmin, zmax):
@@ -796,6 +809,11 @@ class RasterPSD(RasterBase, PSDBase):
             return self._nfft
         else:
             return (self._nfft//2) + 1
+
+    def _getReadSize(self):
+        if self._readSize is not None:
+            return self._readSize
+        return self._nfft
 
     def _formatData(self, block, stream):
         if self._bitMode:
