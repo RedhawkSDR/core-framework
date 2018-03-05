@@ -512,9 +512,12 @@ class RasterBase(PlotBase):
         self._buffer = self._createImageData(1, 1)
         self._bufferOffset = 0
         image_data = self._buffer.reshape((1, 1))
-        self._image = self._plot.imshow(image_data, interpolation='nearest', extent=(0, 1, 1, 0))
+        self._image = self._plot.imshow(image_data, extent=(0, 1, 1, 0))
         norm = self._getNorm(self._zmin, self._zmax)
         self._image.set_norm(norm)
+
+        # Use a horizontal yellow line to indicate the redraw position
+        self._line = self._plot.axhline(y=0, color='y')
 
         self._stateLock = threading.Lock()
 
@@ -527,11 +530,12 @@ class RasterBase(PlotBase):
         port = super(RasterBase,self)._createPort(cls, name)
         if name == 'bitIn':
             self._bitMode = True
+            self._image.set_interpolation('nearest')
             self._setBitMode()
         else:
             # Add a colorbar
             self._colorbar = self._figure.colorbar(self._image)
-            
+
         return port
 
     def _formatData(self, block, stream):
@@ -558,7 +562,7 @@ class RasterBase(PlotBase):
 
         redraw = False
         if len(self._buffer) != (frame_size*frame_size):
-            # Save references to old buffer
+            # Save references to old buffer?
             self._buffer = self._createImageData(frame_size, frame_size)
             self._bufferOffset = 0
             redraw = True
@@ -574,20 +578,30 @@ class RasterBase(PlotBase):
             x_range = x_max - x_min
             y_range = y_max - y_min
             self._plot.set_aspect(x_range/y_range)
+        else:
+            x_min, x_max, y_min, y_max = self._image.get_extent()
+            x_range = x_max - x_min
+            y_range = y_max - y_min
 
         start = self._bufferOffset
         end = start + len(data)
         self._writeBuffer(self._buffer, start, end, data)
-        last_row = start // frame_size
-        new_row = end // frame_size
         self._bufferOffset = end % len(self._buffer)
+
+        last_row = start // frame_size
+        new_row  = self._bufferOffset // frame_size
         if new_row != last_row:
+            # Move the draw position indicator
+            ypos = abs(new_row * y_range) / frame_size
+            self._line.set_ydata([ypos, ypos])
+
+            # Force a redraw; by only doing a redraw when at least one row is
+            # completed, we can reduce the number of redraws
             redraw = True
 
-        # Only redraw the image from the framebuffer if we've advanced a row,
-        # or something else has changed
+        # Only redraw the image from the framebuffer if something has changed
         if redraw:
-            self._image.set_array(self._buffer.reshape(frame_size, frame_size))
+            self._image.set_data(self._buffer.reshape(frame_size, frame_size))
             return True
         else:
             return False
@@ -643,7 +657,7 @@ class RasterPlot(RasterBase):
     while the X-axis represents intra-frame time. The Z-axis, mapped to a color
     range, represents the magnitude of each sample.
     """
-    def __init__(self, frameSize=1024, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0):
+    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0):
         """
         Create a new raster plot.
 
@@ -696,7 +710,15 @@ class RasterPlot(RasterBase):
             return block.data
 
     def _getFrameSize(self, stream):
-        return self._frameSize
+        if self._frameSize is not None:
+            # Explicit frame size override
+            return self._frameSize
+        elif stream.subsize > 0:
+            # Stream is 2-dimensional, use frame size
+            return stream.subsize
+        else:
+            # Auto frame size, default to 1K
+            return 1024
 
     def _check_zrange(self, zmin, zmax):
         if zmin != 0:
@@ -711,9 +733,10 @@ class RasterPlot(RasterBase):
 
     @frameSize.setter
     def frameSize(self, frameSize):
-        frameSize = int(frameSize)
-        if frameSize <= 0:
-            raise ValueError('frame size must be a positive value')
+        if framesize is not None:
+            frameSize = int(frameSize)
+            if frameSize <= 0:
+                raise ValueError('frame size must be a positive value')
         with self._stateLock:
             self._frameSize = frameSize
 
