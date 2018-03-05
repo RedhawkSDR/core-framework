@@ -570,8 +570,8 @@ class RasterBase(PlotBase):
         # If xdelta changes, update the X and Y ranges.
         if block.sriChanged or redraw:
             # Update the X and Y ranges
-            x_min, x_max = self._getXRange(stream)
-            y_min, y_max = self._getYRange(stream)
+            x_min, x_max = self._getXRange(stream, frame_size)
+            y_min, y_max = self._getYRange(stream, frame_size)
             self._image.set_extent((x_min, x_max, y_max, y_min))
 
             # Preserve the aspect ratio based on the image size.
@@ -688,17 +688,17 @@ class RasterPlot(RasterBase):
         self._plot.xaxis.set_label_text('Time offset (s)')
         self._plot.yaxis.set_label_text('Time (s)')
 
-    def _getXRange(self, sri):
+    def _getXRange(self, sri, frameSize):
         # X range is time per line.
-        return 0, sri.xdelta * self._frameSize
+        return 0, sri.xdelta * frameSize
 
-    def _getYRange(self, sri):
+    def _getYRange(self, sri, frameSize):
         # First, get the X range.
-        x_min, x_max = self._getXRange(sri)
+        x_min, x_max = self._getXRange(sri, frameSize)
         x_range = x_max - x_min
 
         # Y range is the total time across all lines.
-        return 0, self._frameSize*x_range
+        return 0, frameSize*x_range
 
     def _formatData(self, block, stream):
         # Image data cannot be complex; just use the real component.
@@ -733,7 +733,7 @@ class RasterPlot(RasterBase):
 
     @frameSize.setter
     def frameSize(self, frameSize):
-        if framesize is not None:
+        if frameSize is not None:
             frameSize = int(frameSize)
             if frameSize <= 0:
                 raise ValueError('frame size must be a positive value')
@@ -783,13 +783,13 @@ class RasterPSD(RasterBase, PSDBase):
         self._plot.xaxis.set_label_text('Frequency (Hz)')
         self._plot.yaxis.set_label_text('Time (s)')
 
-    def _getXRange(self, sri):
+    def _getXRange(self, sri, frameSize):
         return self._getFreqRange(sri)
 
-    def _getYRange(self, stream):
+    def _getYRange(self, stream, frameSize):
         # Y range is the total time across all lines.
         dtime = stream.xdelta * self._nfft
-        return 0, self._getFrameSize(stream) *dtime
+        return 0, frameSize *dtime
 
     def _getFrameSize(self, stream):
         if stream.complex:
