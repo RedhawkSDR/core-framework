@@ -489,7 +489,7 @@ class LinePSD(LineBase, PSDBase):
         data, freqs = self._psd(data, stream)
 
         # Return x data (frequencies) and y data (magnitudes)
-        return freqs, data.reshape(len(data))
+        return freqs, data.reshape(-1)
 
     def _getXRange(self, sri):
         return self._getFreqRange(sri)
@@ -506,13 +506,14 @@ class RasterBase(PlotBase):
         self._zmin = zmin
         self._zmax = zmax
         self._readSize = readSize
+        self._frameSize = None
         self._bitMode = False
 
         # Raster state: start with a 1x1 image with the default value
-        self._buffer = self._createImageData(1, 1)
+        self._imageData = self._createImageData(1, 1)
+        self._buffer = self._imageData.reshape((1,))
         self._bufferOffset = 0
-        image_data = self._buffer.reshape((1, 1))
-        self._image = self._plot.imshow(image_data, extent=(0, 1, 1, 0))
+        self._image = self._plot.imshow(self._imageData, extent=(0, 1, 1, 0))
         norm = self._getNorm(self._zmin, self._zmax)
         self._image.set_norm(norm)
 
@@ -522,7 +523,7 @@ class RasterBase(PlotBase):
         self._stateLock = threading.Lock()
 
     def _createImageData(self, width, height):
-        data = numpy.empty((width*height,))
+        data = numpy.empty((width, height))
         data[:] = self._zmin
         return data
 
@@ -559,14 +560,17 @@ class RasterBase(PlotBase):
         if not block:
             return False
 
-        # Update the framebuffer
         frame_size = self._getFrameSize(stream)
-        data = self._formatData(block, stream)
 
         redraw = False
-        if len(self._buffer) != (frame_size*frame_size):
-            # Save references to old buffer?
-            self._buffer = self._createImageData(frame_size, frame_size)
+        if self._frameSize != frame_size:
+            self._frameSize = frame_size
+
+            # TODO: Save references to old buffer?
+            image_height = frame_size
+            image_width = frame_size
+            self._imageData = self._createImageData(image_width, image_height)
+            self._buffer = self._imageData.reshape(-1)
             self._bufferOffset = 0
             redraw = True
 
@@ -586,6 +590,8 @@ class RasterBase(PlotBase):
             x_range = x_max - x_min
             y_range = y_max - y_min
 
+        # Update the framebuffer
+        data = self._formatData(block, stream)
         start = self._bufferOffset
         end = start + len(data)
         self._writeBuffer(self._buffer, start, end, data)
@@ -604,7 +610,7 @@ class RasterBase(PlotBase):
 
         # Only redraw the image from the framebuffer if something has changed
         if redraw:
-            self._image.set_data(self._buffer.reshape(frame_size, frame_size))
+            self._image.set_data(self._imageData)
             return True
         else:
             return False
@@ -688,7 +694,7 @@ class RasterPlot(RasterBase):
         be linearly resampled to the image width.
         """
         super(RasterPlot,self).__init__(zmin, zmax)
-        self._frameSize = frameSize
+        self._frameSizeOverride = frameSize
 
     def _getNorm(self, zmin, zmax):
         if self._bitMode:
@@ -725,9 +731,9 @@ class RasterPlot(RasterBase):
             return block.data
 
     def _getFrameSize(self, stream):
-        if self._frameSize is not None:
+        if self._frameSizeOverride is not None:
             # Explicit frame size override
-            return self._frameSize
+            return self._frameSizeOverride
         elif stream.subsize > 0:
             # Stream is 2-dimensional, use frame size
             return stream.subsize
@@ -744,7 +750,7 @@ class RasterPlot(RasterBase):
 
     @property
     def frameSize(self):
-        return self._frameSize
+        return self._frameSizeOverride
 
     @frameSize.setter
     def frameSize(self, frameSize):
@@ -753,7 +759,7 @@ class RasterPlot(RasterBase):
             if frameSize <= 0:
                 raise ValueError('frame size must be a positive value')
         with self._stateLock:
-            self._frameSize = frameSize
+            self._frameSizeOverride = frameSize
 
 
 class RasterPSD(RasterBase, PSDBase):
@@ -786,7 +792,7 @@ class RasterPSD(RasterBase, PSDBase):
         If the size of the PSD output (nfft/2+1) is not equal to the image
         width, the PSD output will be linearly resampled to the image width.
         """
-        RasterBase.__init__(self, zmin, zmax, imageWidth, imageHeight, readSize=frameSize)
+        RasterBase.__init__(self, zmin, zmax, readSize=frameSize)
         PSDBase.__init__(self, nfft)
 
     def _getNorm(self, zmin, zmax):
@@ -825,7 +831,7 @@ class RasterPSD(RasterBase, PSDBase):
 
         # Calculate PSD of input data.
         data, freqs = self._psd(data, stream)
-        return data.reshape(len(data))
+        return data.reshape(-1)
 
     @property
     def nfft(self):
