@@ -34,7 +34,7 @@ class OutputStream(StreamBase):
         StreamBase.__init__(self, sri)
         self._port = port
         self._dtype = dtype
-        self.__sriModified = False
+        self.__sriModified = True
 
     @StreamBase.sri.setter
     def sri(self, sri):

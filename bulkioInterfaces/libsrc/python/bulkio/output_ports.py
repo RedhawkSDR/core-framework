@@ -255,9 +255,10 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             self.logger.trace('bulkio::OutPort pushSRI ENTER ')
 
         with self.port_lock:
-            self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set()) 
+            sri = copy.deepcopy(H)
+            self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=sri, connections=set()) 
             if not H.streamID in self._streams:
-                self._streams[H.streamID] = self._createStream(copy.deepcopy(H))
+                self._streams[H.streamID] = self._createStream(sri)
 
             for connId, port in self.outConnections.iteritems():
                 if not self._isStreamRoutedToConnection(H.streamID, connId):
@@ -291,7 +292,7 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
                 stream = self._streams.get(sri.streamID, None)
                 if stream:
                     # Update the stream's SRI from the argument
-                    stream.sri
+                    stream.sri = sri
                     return stream
             else:
                 # Assume we were given a stream ID
