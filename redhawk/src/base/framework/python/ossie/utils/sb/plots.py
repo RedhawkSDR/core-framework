@@ -18,12 +18,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import logging
 import threading
 import time
 import struct
+import warnings
 
 from omniORB.any import from_any
+
+from ossie.utils.log4py import logging
 
 def _deferred_imports():
     # Importing PyQt4 and matplotlib may take a long time--more than a second
@@ -543,7 +545,7 @@ class RasterBase(PlotBase):
     Y-axis, while magnitude (Z-axis) is displayed using a color map. The
     meaning of the X-axis varies depending on the data being displayed.
     """
-    def __init__(self, zmin, zmax, readSize=None):
+    def __init__(self, zmin, zmax, lines=None, readSize=None):
         PlotBase.__init__(self)
         self._zmin = zmin
         self._zmax = zmax
@@ -551,6 +553,10 @@ class RasterBase(PlotBase):
         self._frameSize = None
         self._frameOffset = 0
         self._bitMode = False
+        if lines is None:
+            self._lines = 512
+        else:
+            self._lines = self._check_lines(lines)
 
         # Raster state: start with a 1x1 image with the default value
         self._imageData = self._createImageData(1, 1)
@@ -559,6 +565,7 @@ class RasterBase(PlotBase):
         self._image = self._plot.imshow(self._imageData, extent=(0, 1, 1, 0))
         norm = self._getNorm(self._zmin, self._zmax)
         self._image.set_norm(norm)
+        self._plot.set_aspect('auto')
 
         # Use a horizontal yellow line to indicate the redraw position
         self._line = self._plot.axhline(y=0, color='y')
@@ -566,15 +573,18 @@ class RasterBase(PlotBase):
         self._stateLock = threading.Lock()
 
     def _createImageData(self, width, height):
-        data = numpy.empty((width, height))
+        data = numpy.empty((height, width))
         data[:] = self._zmin
         return data
 
+    def _getImageSize(self):
+        return (self._frameSize, self._lines)
+
     def _createPort(self, cls, name):
         port = super(RasterBase,self)._createPort(cls, name)
+        self._image.set_interpolation('nearest')
         if name == 'bitIn':
             self._bitMode = True
-            self._image.set_interpolation('nearest')
             self._setBitMode()
         else:
             # Add a colorbar
@@ -604,36 +614,30 @@ class RasterBase(PlotBase):
             return False
 
         with self._stateLock:
-            frame_size = self._getFrameSize(stream)
+            self._frameSize = self._getFrameSize(stream)
             frame_offset = self._frameOffset
+            image_width, image_height = self._getImageSize()
 
-        redraw = False
-        if self._frameSize != frame_size:
-            self._frameSize = frame_size
-
+        update_image = False
+        if self._imageData.shape != (image_height,image_width):
             # TODO: Save references to old buffer?
-            image_height = frame_size
-            image_width = frame_size
             self._imageData = self._createImageData(image_width, image_height)
             self._buffer = self._imageData.reshape(-1)
             self._bufferOffset = 0
-            redraw = True
+            update_image = True
 
         # If xdelta changes, update the X and Y ranges.
-        if block.sriChanged or redraw:
+        redraw = True
+        if block.sriChanged or update_image:
             # Update the X and Y ranges
-            x_min, x_max = self._getXRange(stream, frame_size)
-            y_min, y_max = self._getYRange(stream, frame_size)
+            x_min, x_max = self._getXRange(stream, self._frameSize)
+            y_min, y_max = self._getYRange(stream, self._frameSize)
             self._image.set_extent((x_min, x_max, y_max, y_min))
 
-            # Preserve the aspect ratio based on the image size.
-            x_range = x_max - x_min
-            y_range = y_max - y_min
-            self._plot.set_aspect(x_range/y_range)
+            # Trigger a redraw to update the axes
+            redraw = True
         else:
             x_min, x_max, y_min, y_max = self._image.get_extent()
-            x_range = x_max - x_min
-            y_range = y_max - y_min
 
         # Update the framebuffer
         data = self._formatData(block, stream)
@@ -642,23 +646,24 @@ class RasterBase(PlotBase):
         self._writeBuffer(self._buffer, start, end, data)
         self._bufferOffset = (self._bufferOffset + len(data)) % len(self._buffer)
 
-        last_row = start // frame_size
-        new_row  = self._bufferOffset // frame_size
+        last_row = start // self._frameSize
+        new_row  = self._bufferOffset // self._frameSize
         if new_row != last_row:
             # Move the draw position indicator
-            ypos = abs(new_row * y_range) / frame_size
+            y_range = y_max - y_min
+            ypos = abs(y_min + ((new_row+1) * y_range)) / self._imageData.shape[0]
             self._line.set_ydata([ypos, ypos])
 
-            # Force a redraw; by only doing a redraw when at least one row is
-            # completed, we can reduce the number of redraws
-            redraw = True
+            # Update the image; by only doing this when at least one row is
+            # completed, we can reduce the amount of time spent in redraws
+            update_image = True
 
         # Only redraw the image from the framebuffer if something has changed
-        if redraw:
+        if update_image:
             self._image.set_data(self._imageData)
-            return True
-        else:
-            return False
+            redraw = True
+
+        return redraw
 
     def _writeBuffer(self, dest, start, end, data):
         if end <= len(dest):
@@ -670,6 +675,24 @@ class RasterBase(PlotBase):
             dest[:remain] = data[count:]
 
     # Plot settings
+    def _check_lines(self, lines):
+        lines = int(lines)
+        if lines <= 0:
+            raise ValueError('lines must be a positive integer')
+        return lines
+
+    @property
+    def lines(self):
+        """
+        Number of frames worth of history to display. Must be greater than 0.
+        """
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines):
+        with self._stateLock:
+            self._lines = self._check_lines(lines)
+
     def _check_zrange(self, zmin, zmax):
         if zmax < zmin:
             raise ValueError, 'Z-axis bounds cannot overlap (%d > %d)' % (zmin, zmax)
@@ -723,24 +746,30 @@ class RasterPlot(RasterBase):
     while the X-axis represents intra-frame time. The Z-axis, mapped to a color
     range, represents the magnitude of each sample.
     """
-    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0, readSize=None):
+    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0, lines=None, readSize=None):
         """
         Create a new raster plot.
 
         Arguments:
 
           frameSize   - Number of elements to draw per line
-          imageWidth  - Width of the backing image in pixels
-          imageHeight - Height of the backing image in pixels
           zmin, zmax  - Z-axis (magnitude) constraints. Data is clamped to the
                         range [zmin, zmax].
+          lines       - Number of frames worth of history to display (default 512).
           readSize    - Number of elements to read from the data stream at a
                         time (default is to use packet size)
 
-        If the frame size is not equal to the image width, the input line will
-        be linearly resampled to the image width.
+        Deprecated arguments:
+          imageWidth  - Width of the backing image in pixels (width is always
+                        effective frame size)
+          imageHeight - Height of the backing image in pixels (use lines)
         """
-        super(RasterPlot,self).__init__(zmin, zmax, readSize=readSize)
+        if imageHeight is not None:
+            if lines is not None:
+                raise ValueError("'lines' and 'imageHeight' cannot be combined")
+            warnings.warn('imageHeight is deprecated, use lines', DeprecationWarning)
+            lines = imageHeight
+        super(RasterPlot,self).__init__(zmin, zmax, lines=lines, readSize=readSize)
         self._frameSizeOverride = frameSize
 
     def _getNorm(self, zmin, zmax):
@@ -841,7 +870,7 @@ class RasterPSD(RasterBase, PSDBase):
 
     The Z-axis (magnitude) is displayed using a logarithmic scale.
     """
-    def __init__(self, nfft=1024, frameSize=None, imageWidth=1024, imageHeight=1024, zmin=1.0e-16, zmax=1.0):
+    def __init__(self, nfft=1024, frameSize=None, imageWidth=None, imageHeight=None, zmin=1.0e-16, zmax=1.0, lines=None):
         """
         Create a new raster PSD plot.
 
@@ -852,14 +881,24 @@ class RasterPSD(RasterBase, PSDBase):
                         defaults to the FFT size. Must be less than or equal to
                         FFT size.
           imageWidth  - Width of the backing image in pixels
-          imageHeight - Height of the backing image in pixels
           zmin, zmax  - Z-axis (magnitude) constraints. Data is clamped to the
                         range [zmin, zmax].
+          lines       - Number of frames worth of history to display (default 512).
 
-        If the size of the PSD output (nfft/2+1) is not equal to the image
-        width, the PSD output will be linearly resampled to the image width.
+
+        Deprecated arguments:
+          imageWidth  - Width of the backing image in pixels (width is always
+                        determined from nfft)
+          imageHeight - Height of the backing image in pixels (use lines)
         """
-        RasterBase.__init__(self, zmin, zmax, readSize=frameSize)
+        if imageWidth is not None:
+            warnings.warn('imageWidth is deprecated', DeprecationWarning)
+        if imageHeight is not None:
+            if lines is not None:
+                raise ValueError("'lines' and 'imageHeight' cannot be combined")
+            warnings.warn('imageHeight is deprecated, use lines', DeprecationWarning)
+            lines = imageHeight
+        RasterBase.__init__(self, zmin, zmax, lines=lines, readSize=frameSize)
         PSDBase.__init__(self, nfft)
 
     def _getNorm(self, zmin, zmax):
