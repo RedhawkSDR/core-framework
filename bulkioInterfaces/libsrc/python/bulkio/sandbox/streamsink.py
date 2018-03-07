@@ -147,7 +147,11 @@ class StreamSink(ThreadedSandboxHelper):
                     break
 
                 if end is None:
-                    cond.wait()
+                    # Even though we don't want the read call to timeout, using
+                    # a timeout argument to read ensures that ^C interrupts the
+                    # wait. Otherwise, it can deadlock and the only way to get
+                    # out is to terminate the Python interpreter process.
+                    cond.wait(timeout=1.0)
                 else:
                     now = time.time()
                     if now >= end:
