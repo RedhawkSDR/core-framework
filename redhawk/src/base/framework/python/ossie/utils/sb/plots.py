@@ -380,41 +380,39 @@ class LineBase(PlotBase):
         self._plot.set_xlim(xmin, xmax)
         self._redraw()
 
-    def get_ymin(self):
-        """
-        The lower bound of the Y-axis. If set to None, the lower bound will be
-        determined automatically per-frame based on the data.
-        """
-        return self._ymin
-
-    def set_ymin(self, ymin):
-        self._check_yrange(ymin, self._ymax)
-        self._ymin = ymin
-        self._setYView(self._ymin, self._ymax)
-
-    ymin = property(get_ymin, set_ymin)
-    del get_ymin, set_ymin
-
-    def get_ymax(self):
-        """
-        The upper bound of the Y-axis. If set to None, the upper bound will be
-        determined automatically per-frame based on the data.
-        """
-        return self._ymax
-
     def _check_yrange(self, ymin, ymax):
         if ymin is None or ymax is None:
             return
         if ymax < ymin:
             raise ValueError, 'Y-axis bounds cannot overlap (%d > %d)' % (ymin, ymax)
 
-    def set_ymax(self, ymax):
+    @property
+    def ymin(self):
+        """
+        The lower bound of the Y-axis. If set to None, the lower bound will be
+        determined automatically per-frame based on the data.
+        """
+        return self._ymin
+
+    @ymin.setter
+    def ymin(self, ymin):
+        self._check_yrange(ymin, self._ymax)
+        self._ymin = ymin
+        self._setYView(self._ymin, self._ymax)
+
+    @property
+    def ymax(self):
+        """
+        The upper bound of the Y-axis. If set to None, the upper bound will be
+        determined automatically per-frame based on the data.
+        """
+        return self._ymax
+
+    @ymax.setter
+    def ymax(self, ymax):
         self._check_yrange(self._ymin, ymax)
         self._ymax = ymax
         self._setYView(self._ymin, self._ymax)
-
-    ymax = property(get_ymax, set_ymax)
-    del get_ymax, set_ymax
 
 
 class LinePlot(LineBase):
