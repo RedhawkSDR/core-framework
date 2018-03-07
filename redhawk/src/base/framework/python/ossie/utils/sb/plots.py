@@ -549,6 +549,7 @@ class RasterBase(PlotBase):
         self._zmax = zmax
         self._readSize = readSize
         self._frameSize = None
+        self._frameOffset = 0
         self._bitMode = False
 
         # Raster state: start with a 1x1 image with the default value
@@ -602,7 +603,9 @@ class RasterBase(PlotBase):
         if not block:
             return False
 
-        frame_size = self._getFrameSize(stream)
+        with self._stateLock:
+            frame_size = self._getFrameSize(stream)
+            frame_offset = self._frameOffset
 
         redraw = False
         if self._frameSize != frame_size:
@@ -634,10 +637,10 @@ class RasterBase(PlotBase):
 
         # Update the framebuffer
         data = self._formatData(block, stream)
-        start = self._bufferOffset
+        start = (self._bufferOffset + frame_offset) % len(self._buffer)
         end = start + len(data)
         self._writeBuffer(self._buffer, start, end, data)
-        self._bufferOffset = end % len(self._buffer)
+        self._bufferOffset = (self._bufferOffset + len(data)) % len(self._buffer)
 
         last_row = start // frame_size
         new_row  = self._bufferOffset // frame_size
@@ -720,7 +723,7 @@ class RasterPlot(RasterBase):
     while the X-axis represents intra-frame time. The Z-axis, mapped to a color
     range, represents the magnitude of each sample.
     """
-    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0):
+    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0, readSize=None):
         """
         Create a new raster plot.
 
@@ -731,11 +734,13 @@ class RasterPlot(RasterBase):
           imageHeight - Height of the backing image in pixels
           zmin, zmax  - Z-axis (magnitude) constraints. Data is clamped to the
                         range [zmin, zmax].
+          readSize    - Number of elements to read from the data stream at a
+                        time (default is to use packet size)
 
         If the frame size is not equal to the image width, the input line will
         be linearly resampled to the image width.
         """
-        super(RasterPlot,self).__init__(zmin, zmax)
+        super(RasterPlot,self).__init__(zmin, zmax, readSize=readSize)
         self._frameSizeOverride = frameSize
 
     def _getNorm(self, zmin, zmax):
@@ -794,6 +799,12 @@ class RasterPlot(RasterBase):
 
     @property
     def frameSize(self):
+        """
+        The number of elements in a single frame (in other words, a single line
+        of the raster). If set to None, the frame size is automatically
+        determined from the data stream's subsize, defaulting to 1024 if
+        subsize is 0.
+        """
         return self._frameSizeOverride
 
     @frameSize.setter
@@ -805,6 +816,18 @@ class RasterPlot(RasterBase):
         with self._stateLock:
             self._frameSizeOverride = frameSize
 
+    @property
+    def frameOffset(self):
+        """
+        Offset, in number of real samples, to adjust the frame start.
+        """
+        return self._frameOffset
+
+    @frameOffset.setter
+    def frameOffset(self, offset):
+        frameOffset = int(offset)
+        with self._stateLock:
+            self._frameOffset = offset
 
 class RasterPSD(RasterBase, PSDBase):
     """
