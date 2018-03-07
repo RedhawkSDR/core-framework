@@ -36,11 +36,7 @@ class OutputStream(StreamBase):
         self._dtype = dtype
         self.__sriModified = False
 
-    @property
-    def sri(self):
-        return StreamBase.sri.fget(self)
-
-    @sri.setter
+    @StreamBase.sri.setter
     def sri(self, sri):
         if not isinstance(sri, BULKIO.StreamSRI):
             raise TypeError('sri must be a BULKIO.StreamSRI') 
@@ -52,83 +48,43 @@ class OutputStream(StreamBase):
         sri.streamID = self.streamID
         self._sri = sri
 
-    @property
-    def xstart(self):
-        return StreamBase.xstart.fget(self)
-
-    @xstart.setter
+    @StreamBase.xstart.setter
     def xstart(self, xstart):
         self._setStreamMetadata('xstart', float(xstart))
 
-    @property
-    def xdelta(self):
-        return StreamBase.xdelta.fget(self)
-
-    @xdelta.setter
+    @StreamBase.xdelta.setter
     def xdelta(self, xdelta):
         self._setStreamMetadata('xdelta', float(xdelta))
 
-    @property
-    def xunits(self):
-        return StreamBase.xunits.fget(self)
-
-    @xunits.setter
+    @StreamBase.xunits.setter
     def xunits(self, xunits):
         self._setStreamMetadata('xunits', int(xunits))
 
-    @property
-    def subsize(self):
-        return StreamBase.subsize.fget(self)
-
-    @subsize.setter
+    @StreamBase.subsize.setter
     def subsize(self, subsize):
         self._setStreamMetadata('subsize', int(subsize))
 
-    @property
-    def ystart(self):
-        return StreamBase.ystart.fget(self)
-
-    @ystart.setter
+    @StreamBase.ystart.setter
     def ystart(self, ystart):
         self._setStreamMetadata('ystart', float(ystart))
 
-    @property
-    def ydelta(self):
-        return StreamBase.ydelta.fget(self)
-
-    @ydelta.setter
+    @StreamBase.ydelta.setter
     def ydelta(self, ydelta):
         self._setStreamMetadata('ydelta', float(ydelta))
 
-    @property
-    def yunits(self):
-        return StreamBase.yunits.fget(self)
-
-    @yunits.setter
+    @StreamBase.yunits.setter
     def yunits(self, yunits):
         self._setStreamMetadata('yunits', int(yunits))
 
-    @property
-    def complex(self):
-        return StreamBase.complex.fget(self)
-
-    @complex.setter
+    @StreamBase.complex.setter
     def complex(self, mode):
         self._setStreamMetadata('mode', 1 if mode else 0)
 
-    @property
-    def blocking(self):
-        return StreamBase.blocking.fget(self)
-
-    @blocking.setter
+    @StreamBase.blocking.setter
     def blocking(self, blocking):
         self._setStreamMetadata('blocking', 1 if blocking else 0)
 
-    @property
-    def keywords(self):
-        return StreamBase.keywords.fget(self)
-
-    @keywords.setter
+    @StreamBase.keywords.setter
     def keywords(self, keywords):
         self._modifyingStreamMetadata()
         # Copy the sequence, but not the values
