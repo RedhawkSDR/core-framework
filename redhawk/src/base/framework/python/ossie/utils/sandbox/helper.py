@@ -52,6 +52,7 @@ class SandboxHelper(PortSupplier):
 
         self._refid = str(uuid4())
         self._port = None
+        self._started = False
 
     def _registerWithSandbox(self, sandbox):
         self._sandbox = sandbox
@@ -77,11 +78,27 @@ class SandboxHelper(PortSupplier):
     def _createPort(self, cls, name):
         return cls(name)
 
+    @property
+    def started(self):
+        return self._started
+
     def start(self):
+        if self._started:
+            return
+        self._startHelper()
+        self._started = True
+
+    def _startHelper(self):
         if self._port and hasattr(self._port, 'startPort'):
             self._port.startPort()
 
     def stop(self):
+        if not self._started:
+            return
+        self._stopHelper()
+        self._started = False
+
+    def _stopHelper(self):
         if self._port and hasattr(self._port, 'stopPort'):
             self._port.stopPort()
 
@@ -118,12 +135,12 @@ class ThreadedSandboxHelper(SandboxHelper, ThreadedComponent):
         SandboxHelper.__init__(self)
         ThreadedComponent.__init__(self)
     
-    def start(self):
-        super(ThreadedSandboxHelper,self).start()
+    def _startHelper(self):
+        super(ThreadedSandboxHelper,self)._startHelper()
         self.startThread()
 
-    def stop(self):
-        super(ThreadedSandboxHelper,self).stop()
+    def _stopHelper(self):
+        super(ThreadedSandboxHelper,self)._stopHelper()
         self.stopThread()
 
     def process(self):

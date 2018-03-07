@@ -347,9 +347,9 @@ class LineBase(PlotBase):
 
         return redraw
 
-    def start(self):
+    def _startHelper(self):
         log.debug("Starting line plot '%s'", self._instanceName)
-        super(LineBase,self).start()
+        super(LineBase,self)._startHelper()
         # Start all associated ports.
         self._linesLock.acquire()
         try:
@@ -357,9 +357,8 @@ class LineBase(PlotBase):
                 trace['port'].startPort()
         finally:
             self._linesLock.release()
-    start.__doc__ = PlotBase.start.__doc__
 
-    def stop(self):
+    def _stopHelper(self):
         log.debug("Stopping line plot '%s'", self._instanceName)
         # Stop all associated port.
         self._linesLock.acquire()
@@ -368,8 +367,7 @@ class LineBase(PlotBase):
                 trace['port'].stopPort()
         finally:
             self._linesLock.release()
-        super(LineBase,self).stop()
-    stop.__doc__ = PlotBase.stop.__doc__
+        super(LineBase,self)._stopHelper()
 
     # Plot settings
     def _setYView(self, ymin, ymax):
