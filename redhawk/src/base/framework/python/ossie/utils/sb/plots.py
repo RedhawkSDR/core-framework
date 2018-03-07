@@ -40,6 +40,7 @@ def _deferred_imports():
         import numpy
 
         import bulkio
+        from bulkio.bulkioInterfaces import BULKIO
 
         # Rebind the function to do nothing in future calls
         def _deferred_imports():
@@ -93,6 +94,7 @@ class PlotBase(ThreadedSandboxHelper):
 
         # Let subclasses set up the axes.
         self._configureAxes()
+        self._updateAxes()
 
         # Matplotlib 0.99 does not give an easy way to listen for window close
         # events; as a result, we have to get the underlying backend-specific
@@ -186,6 +188,45 @@ class PlotBase(ThreadedSandboxHelper):
         super(PlotBase,self).releaseObject()
         self.close()
 
+    def _getUnitLabel(self, units):
+        return {
+            BULKIO.UNITS_NONE:         '',
+            BULKIO.UNITS_TIME:         'Time (sec)', 
+            BULKIO.UNITS_DELAY:        'Delay (sec)',
+            BULKIO.UNITS_FREQUENCY:    'Frequency (Hz)',
+            BULKIO.UNITS_TIMECODE:     'Time code format',
+            BULKIO.UNITS_DISTANCE:     'Distance (m)',
+            BULKIO.UNITS_VELOCITY:     'Velocity (m/sec)',
+            BULKIO.UNITS_ACCELERATION: 'Acceleration (m/sec^2)',
+            BULKIO.UNITS_JERK:         'Jerk (m/sec^3)',
+            BULKIO.UNITS_DOPPLER:      'Doppler (Hz)',
+            BULKIO.UNITS_DOPPLERRATE:  'Doppler rate (Hz/sec)',
+            BULKIO.UNITS_ENERGY:       'Energy (J)',
+            BULKIO.UNITS_POWER:        'Power (W)',
+            BULKIO.UNITS_MASS:         'Mass (g)'
+        }.get(units, '')
+
+    def _getXLabel(self):
+        return self._getUnitLabel(self._getXUnits())
+
+    def _getXUnits(self):
+        return BULKIO.UNITS_NONE
+
+    def _getYLabel(self):
+        return self._getUnitLabel(self._getYUnits())
+
+    def _getYUnits(self):
+        return BULKIO.UNITS_NONE
+
+    def _configureAxes(self):
+        pass
+
+    def _updateAxes(self):
+        xlabel = self._getXLabel()
+        self._plot.xaxis.set_label_text(xlabel)
+            
+        ylabel = self._getYLabel()
+        self._plot.yaxis.set_label_text(ylabel)
 
 class PlotEndpoint(PortEndpoint):
     def __init__(self, plot, port, connectionId):
@@ -266,10 +307,10 @@ class LineBase(PlotBase):
         # Read next frame.
         stream = port.getCurrentStream(bulkio.const.NON_BLOCKING)
         if not stream:
-            return
+            return False
         block = stream.read(self._frameSize)
         if not block:
-            return
+            return False
         x_data, y_data = self._formatData(block, stream)
         line.set_data(x_data, y_data)
 
@@ -278,15 +319,17 @@ class LineBase(PlotBase):
             trace['xdelta'] = block.xdelta
             xmin, xmax = self._getXRange(stream)
             self._plot.set_xlim(xmin, xmax)
+        return True
 
     def _update(self):
         # Get a copy of the current set of lines to update, then release the
         # lock to do the reads. This allows the read to be interrupted (e.g.,
         # if a source is disconnected) without deadlock.
+        redraw = False
         with self._linesLock:
             traces = self._lines.values()
         for trace in traces:
-            self._updateTrace(trace)
+            redraw = self._updateTrace(trace) or redraw
 
         if self._ymin is None or self._ymax is None:
             self._plot.relim()
@@ -300,8 +343,9 @@ class LineBase(PlotBase):
                 ymax = self._plot.dataLim.y1
             # Update plot scale.
             self._plot.set_ylim(ymin, ymax)
+            redraw = True
 
-        return True
+        return redraw
 
     def start(self):
         log.debug("Starting line plot '%s'", self._instanceName)
@@ -390,8 +434,8 @@ class LinePlot(LineBase):
         """
         super(LinePlot,self).__init__(frameSize, ymin, ymax)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Time (s)')
+    def _getXUnits(self):
+        return BULKIO.UNITS_TIME
 
     def _formatData(self, block, stream):
         data = block.data
@@ -476,8 +520,10 @@ class LinePSD(LineBase, PSDBase):
         PSDBase.__init__(self, nfft)
 
     def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Frequency (Hz)')
         self._plot.set_yscale('log')
+
+    def _getXUnits(self):
+        return BULKIO.UNITS_FREQUENCY
 
     def _formatData(self, block, stream):
         if block.complex:
@@ -705,9 +751,11 @@ class RasterPlot(RasterBase):
     def _setBitMode(self):
         self._update_zrange(0, 1)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Time offset (s)')
-        self._plot.yaxis.set_label_text('Time (s)')
+    def _getXLabel(self):
+        return 'Time offset (s)'
+
+    def _getYUnits(self):
+        return BULKIO.UNITS_TIME
 
     def _getXRange(self, sri, frameSize):
         # X range is time per line.
@@ -798,9 +846,11 @@ class RasterPSD(RasterBase, PSDBase):
     def _getNorm(self, zmin, zmax):
         return matplotlib.colors.LogNorm(zmin, zmax)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Frequency (Hz)')
-        self._plot.yaxis.set_label_text('Time (s)')
+    def _getXUnits(self):
+        return BULKIO.UNITS_FREQUENCY
+
+    def _getYUnits(self):
+        return BULKIO.UNITS_TIME
 
     def _getXRange(self, sri, frameSize):
         return self._getFreqRange(sri)
@@ -872,13 +922,18 @@ class XYPlot(LineBase):
         self._plot.axhline(0, color='black')
         self._plot.axvline(0, color='black')
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Real')
-        self._plot.yaxis.set_label_text('Imaginary')
+    def _getXLabel(self):
+        return 'Real'
+
+    def _getYLabel(self):
+        return 'Imaginary'
 
     def _formatData(self, data, sri):
         # Split real and imaginary components into X and Y coodinates.
-        return [x.real for x in data], [y.imag for y in data]
+        if sri.complex:
+            return data.data[::2], data.data[1::2]
+        else:
+            return data.data, [0.0]*data.size
 
     def _getXRange(self, sri):
         return self._xmin, self._xmax
