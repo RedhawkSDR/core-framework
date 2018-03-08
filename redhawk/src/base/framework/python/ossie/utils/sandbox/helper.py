@@ -30,16 +30,25 @@ def default_sandbox():
 
 class SandboxMeta(type):
     def __call__(self, *args, **kwargs):
+        # Pick off sandbox-specific arguments, which are not given to the
+        # helper class __init__ method
         sandbox = kwargs.pop('sandbox', None)
         if sandbox is None:
             sandbox = default_sandbox()
         auto_start = kwargs.pop('autoStart', True)
 
+        # Create/initialize the helper
         obj = super(SandboxMeta, self).__call__(*args, **kwargs)
-        obj._registerWithSandbox(sandbox)
+
+        # Create a unique instance name, and register with the sandbox
+        name = sandbox._createInstanceName(obj.__class__.__name__)
+        obj._registerWithSandbox(sandbox, name)
+
+        # Perform any post-registration initialization
+        obj._initializeHelper()
 
         # Auto-start helpers
-        if auto_start and sandbox._get_started():
+        if auto_start and sandbox.started:
             obj.start()
 
         return obj
@@ -54,12 +63,13 @@ class SandboxHelper(PortSupplier):
         self._port = None
         self._started = False
 
-    def _registerWithSandbox(self, sandbox):
+    def _registerWithSandbox(self, sandbox, instanceName):
         self._sandbox = sandbox
-
-        # Create a unique instance name and register with the sandbox.
-        self._instanceName = self._sandbox._createInstanceName(self.__class__.__name__)
+        self._instanceName = instanceName
         self._sandbox._registerComponent(self)
+
+    def _initializeHelper(self):
+        pass
 
     def _addUsesPort(self, name, repoID, portClass):
         self._usesPortDict[name] = {

@@ -184,7 +184,8 @@ class Sandbox(object):
     def _removeEventChannel(self, name):
         del self._eventChannels[name]
 
-    def _get_started(self):
+    @property
+    def started(self):
         return self._started
 
     def start(self):
