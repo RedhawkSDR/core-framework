@@ -177,7 +177,7 @@ class InStreamTest(object):
 
         # Disable the stream this should drop the existing packets
         stream.disable()
-        self.failIf(stream.enabled())
+        self.failIf(stream.enabled)
         self.assertEqual(0, self.port.getCurrentQueueDepth(), 'Queued packets for disabled stream were not discarded')
 
         # Push a couple more packets they should get dropped
@@ -317,6 +317,11 @@ class BufferedInStreamTest(InStreamTest):
 
         # Read a smaller packet
         block = stream.read(100)
+        self.failIf(not block)
+        self.assertEqual(100, block.size)
+
+        # Read the remainder of the packet
+        block = stream.tryread()
         self.failIf(not block)
         self.assertEqual(100, block.size)
 

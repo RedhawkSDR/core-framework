@@ -43,6 +43,7 @@ class InputStream(StreamBase):
     def tryread(self):
         return self._readPacket(False)
 
+    @property
     def enabled(self):
         return self.__enabled
 
@@ -217,6 +218,21 @@ class BufferedInputStream(InputStream):
             # Return true if either there are queued or pending packets
             return True
         return InputStream._hasBufferedData(self)
+
+    def _readPacket(self, blocking):
+        if self.__samplesQueued == 0:
+            self._fetchPacket(blocking)
+
+        if self.__samplesQueued == 0:
+            # It's possible that there are no samples queued because of an
+            # end-of-stream; if so, report it so that this stream can be
+            # dissociated from the port
+            self._reportIfEosReached()
+            return None
+
+        # Only read up to the end of the first packet in the queue
+        samples = len(self.__queue[0].buffer) - self.__sampleOffset;
+        return self._readData(samples, samples)
 
     def _read(self, count, consume, blocking):
         # Consume length not specified, consume entire read

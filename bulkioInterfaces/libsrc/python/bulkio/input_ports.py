@@ -347,7 +347,7 @@ class InPort(object):
             # Find the current stream for the stream ID and check whether it's
             # enabled
             stream = self._streams.get(streamID, None);
-            if not stream or stream.enabled():
+            if not stream or stream.enabled:
                 return True
       
             # If there's a pending stream, the packet is designated for that
