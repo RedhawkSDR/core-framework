@@ -18,10 +18,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import collections
 import operator
 import threading
 import time
 
+from ossie.utils.log4py import logging
 from ossie.utils.sandbox.helper import ThreadedSandboxHelper, ThreadStatus
 
 from bulkio.input_ports import *
@@ -42,6 +44,9 @@ _PORT_MAP = {
     'XML' : (InXMLPort, 'IDL:BULKIO/dataXML:1.0')
 }
 
+SRI = collections.namedtuple('SRI', 'offset sri')
+TimeStamp = collections.namedtuple('TimeStamp', 'offset time')
+
 class StreamData(object):
     def __init__(self, sris, data, timestamps, eos):
         self.sris = sris
@@ -59,10 +64,15 @@ class StreamData(object):
         return sri
 
 class StreamContainer(object):
-    def __init__(self, sri):
+    def __init__(self, sri, datatype):
         self.sri = sri
         self.blocks = []
         self.eos = False
+        self.datatype = datatype
+
+    @property
+    def streamID(self):
+        return self.sri.streamID
 
     def append(self, block):
         self.blocks.append(block)
@@ -72,29 +82,48 @@ class StreamContainer(object):
 
     def get(self):
         if not self.blocks:
+            if self.eos:
+                # Return an emtpy data object with EOS set so the called knows
+                # that the stream ended (as opposed to just getting nothing
+                # back, and having to guess)
+                return StreamData([SRI(0, self.sri)], self.datatype(), [], True)
             return None
 
-        # Combine data blocks into a single data object
-        front = self.blocks[0]
-        sris = [(0, front.sri)]
-        data = reduce(operator.add, (block.data for block in self.blocks))
-        timestamps = [(0, front.getStartTime())]
+        # Combine block data into a single data object
+        if self.datatype == str:
+            # For string types (XML, File), return a list of strings
+            data = [block.data for block in self.blocks]
+        else:
+            # All other types, concatenate the block data
+            data = reduce(operator.add, (self._getBlockData(block) for block in self.blocks))
+
+        # Aggregate block metadata
         offset = 0
-        for block in self.blocks[1:]:
-            if block.sriChanged:
-                sris.append((offset, block.sri))
+        sris = []
+        timestamps = []
+        for block in self.blocks:
+            if block.sriChanged or not sris:
+                sris.append(SRI(offset, block.sri))
             for ts in block.getTimestamps():
-                timestamps.append((ts.offset + offset, ts.time))
+                timestamps.append(TimeStamp(ts.offset + offset, ts.time))
             offset += block.size
 
-        # Discard references to data
+        # Discard references to blocks
         self.blocks = []
 
         # Replace SRI with last known SRI
-        self.sri = sris[-1][1]
+        self.sri = sris[-1].sri
 
         return StreamData(sris, data, timestamps, self.eos)
 
+    def _getBlockData(self, block):
+        # If the block data is complex (taking into account that bit and string
+        # data blocks do not have a complex attribute), reformat the data as
+        # complex; otherwise, just return the data
+        if getattr(block, 'complex', False):
+            return block.cxdata
+        else:
+            return block.data
 
 class StreamSink(ThreadedSandboxHelper):
     def __init__(self, format=None):
@@ -107,8 +136,6 @@ class StreamSink(ThreadedSandboxHelper):
             clazz, repo_id = _PORT_MAP[format]
             self._addProvidesPort(format+'In', repo_id, clazz)
 
-        self._port = None
-
         self._streamLock = threading.Lock()
         self._streamReady = threading.Condition(self._streamLock)
         self._streamEnded = threading.Condition(self._streamLock)
@@ -117,6 +144,17 @@ class StreamSink(ThreadedSandboxHelper):
 
     def streamIDs(self):
         return [sri.streamID for sri in self.activeSRIs()]
+
+    def _getDataType(self):
+        # NB: This is a hack.
+        if not self._port:
+            return None
+        if 'bit' in self._port.name:
+            return bitbuffer
+        elif 'XML' in self._port.name or 'File' in self._port.name:
+            return str
+        else:
+            return list
 
     def activeSRIs(self):
         with self._streamLock:
@@ -137,8 +175,8 @@ class StreamSink(ThreadedSandboxHelper):
         else:
             cond = self._streamReady
 
-        with self._streamLock:
-            while True:
+        while True:
+            with self._streamLock:
                 data = self._getNextData(eos, streamID)
                 if data:
                     return data.get()
@@ -191,22 +229,22 @@ class StreamSink(ThreadedSandboxHelper):
             return
         block = stream.read()
         with self._streamLock:
-            data = self._activeStreams.get(stream.streamID, None)
-            if data is None:
-                data = StreamContainer(stream.sri)
-                self._activeStreams[stream.streamID] = data
+            container = self._activeStreams.get(stream.streamID, None)
+            if container is None:
+                container = StreamContainer(stream.sri, self._getDataType())
+                self._activeStreams[stream.streamID] = container
 
             if not block:
                 if not stream.eos():
                     return ThreadStatus.NORMAL
             else:
-                data.append(block)
+                container.append(block)
                 self._streamReady.notify()
 
             if stream.eos():
-                data.eos = True
+                container.eos = True
                 del self._activeStreams[stream.streamID]
-                self._finishedStreams.append(data)
+                self._finishedStreams.append(container)
                 self._streamEnded.notify()
 
         return ThreadStatus.NORMAL
