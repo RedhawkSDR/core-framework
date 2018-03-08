@@ -415,6 +415,53 @@ class NumericInStreamTest(BufferedInStreamTest):
         self.failUnless(block.complex)
         self.assertEqual(64, block.cxsize)
 
+    def testComplexTimeStamps(self):
+        sri = bulkio.sri.create('complex_timestamps')
+        sri.xdelta = 1.0
+        sri.mode = 1
+        self.port.pushSRI(sri)
+
+        # Push several packets and remember the timestamps
+        ts0 = bulkio.timestamp.now()
+        self._pushTestPacket(64, ts0, False, sri.streamID)
+        ts1 = bulkio.timestamp.now()
+        self._pushTestPacket(128, ts1, False, sri.streamID)
+        ts2 = bulkio.timestamp.now()
+        self._pushTestPacket(64, ts2, False, sri.streamID)
+
+        # Read most of all 3 packets using a sized read that splits the last
+        # packet in half; the total is 128 samples, so a read of size 112 gets
+        # 16 of the 32 available complex values
+        stream = self.port.getStream(sri.streamID)
+        self.failIf(not stream)
+        block = stream.read(112)
+        self.failIf(not block)
+        self.failUnless(block.complex)
+        self.assertEqual(112, block.cxsize)
+
+        # Check the block timestamps; the offsets should be in terms of complex
+        # samples (i.e., half of the push sizes above)
+        ts = block.getTimestamps()
+        self.assertEqual(3, len(ts))
+        self.assertEqual(0, ts[0].offset)
+        self.assertEqual(ts0, ts[0].time)
+        self.assertEqual(32, ts[1].offset)
+        self.assertEqual(ts1, ts[1].time)
+        self.assertEqual(96, ts[2].offset)
+        self.assertEqual(ts2, ts[2].time)
+
+        # Read the remaining data
+        block = stream.read()
+        self.failIf(not block)
+        self.failUnless(block.complex)
+        self.assertEqual(16, block.cxsize)
+
+        # Check that the synthesized time is 16 seconds (16 samples * 1.0s)
+        # after the original time
+        ts = block.getTimestamps()
+        self.assertEqual(1, len(ts))
+        self.assertEqual(0, ts[0].offset)
+        self.assertAlmostEqual(16.0, ts[0].time - ts2)
 
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
