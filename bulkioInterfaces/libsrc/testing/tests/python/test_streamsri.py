@@ -20,7 +20,7 @@
 #
 
 import unittest
-from omniORB.any import to_any
+from omniORB.any import to_any, from_any
 
 from ossie.cf import CF
 
@@ -120,6 +120,80 @@ class StreamSRITest(unittest.TestCase):
         c_sri = bulkio.sri.create()
         c_sri.keywords = [kv2]
         self.assertEqual( bulkio.sri.compare( a_sri, c_sri ), False, " bulkio.sri.compare method - different - keywords name mismatch  ")
+
+    def testHasKeyword(self):
+        sri = bulkio.sri.create('has_keyword')
+        sri.keywords.append(CF.DataType('string', to_any('first')))
+        sri.keywords.append(CF.DataType('number', to_any(2.0)))
+        
+        self.failUnless(bulkio.sri.hasKeyword(sri, 'string'))
+        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
+        self.failIf(bulkio.sri.hasKeyword(sri, 'missing'))
+
+    def testGetKeyword(self):
+        sri = bulkio.sri.create('get_keyword')
+        sri.keywords.append(CF.DataType('string', to_any('first')))
+        sri.keywords.append(CF.DataType('number', to_any(2.0)))
+
+        # Basic get
+        self.assertEqual('first', bulkio.sri.getKeyword(sri, 'string'))
+        self.assertEqual(2.0, bulkio.sri.getKeyword(sri, 'number'))
+
+        # Add a duplicate keyword at the end, should still return first value
+        sri.keywords.append(CF.DataType('string', to_any('second')))
+        self.assertEqual('first', bulkio.sri.getKeyword(sri, 'string'))
+
+        self.assertRaises(KeyError, bulkio.sri.getKeyword, sri, 'missing')
+
+    def testSetKeyword(self):
+        sri = bulkio.sri.create('set_keyword')
+        sri.keywords.append(CF.DataType('string', to_any('first')))
+        sri.keywords.append(CF.DataType('number', to_any(2.0)))
+
+        # Update first keyword
+        bulkio.sri.setKeyword(sri, 'string', 'modified')
+        self.assertEqual(2, len(sri.keywords))
+        self.assertEqual('modified', bulkio.sri.getKeyword(sri, 'string'))
+        self.assertEqual(2.0, bulkio.sri.getKeyword(sri, 'number'))
+
+        # Update second keyword
+        bulkio.sri.setKeyword(sri, 'number', -1)
+        self.assertEqual(2, len(sri.keywords))
+        self.assertEqual('modified', bulkio.sri.getKeyword(sri, 'string'))
+        self.assertEqual(-1, bulkio.sri.getKeyword(sri, 'number'))
+
+        # Add new keyword
+        bulkio.sri.setKeyword(sri, 'new', True)
+        self.assertEqual(3, len(sri.keywords))
+        self.assertEqual('modified', bulkio.sri.getKeyword(sri, 'string'))
+        self.assertEqual(-1, bulkio.sri.getKeyword(sri, 'number'))
+        self.assertEqual(True, bulkio.sri.getKeyword(sri, 'new'))
+
+    def testEraseKeyword(self):
+        sri = bulkio.sri.create('erase_keyword')
+        sri.keywords.append(CF.DataType('string', to_any('first')))
+        sri.keywords.append(CF.DataType('number', to_any(2.0)))
+
+        # Basic erase
+        self.failUnless(bulkio.sri.hasKeyword(sri, 'string'))
+        bulkio.sri.eraseKeyword(sri, 'string')
+        self.assertEqual(1, len(sri.keywords))
+        self.failIf(bulkio.sri.hasKeyword(sri, 'string'))
+        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
+
+        # Non-existant key, no modification
+        bulkio.sri.eraseKeyword(sri, 'missing')
+        self.assertEqual(1, len(sri.keywords))
+        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
+
+        # Add some more keywords, including a duplicate; erasing the duplicate
+        # should only erase the first instance
+        sri.keywords.append(CF.DataType('string', to_any('first')))
+        sri.keywords.append(CF.DataType('number', to_any(500)))
+        self.assertEqual(2.0, bulkio.sri.getKeyword(sri, 'number'))
+        bulkio.sri.eraseKeyword(sri, 'number')
+        self.assertEqual(2, len(sri.keywords))
+        self.assertEqual(500, bulkio.sri.getKeyword(sri, 'number'))
 
 if __name__ == '__main__':
     import runtests

@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import omniORB.any
+import bulkio.sri
 
 class StreamBase(object):
     def __init__(self, sri):
@@ -73,13 +73,7 @@ class StreamBase(object):
         return self._sri.keywords
 
     def hasKeyword(self, name):
-        for dt in self._sri.keywords:
-            if dt.id == name:
-                return True
-        return False
+        return bulkio.sri.hasKeyword(self._sri, name)
 
     def getKeyword(self, name):
-        for dt in self._sri.keywords:
-            if dt.id == name:
-                return omniORB.any.from_any(dt.value)
-        raise KeyError(name)
+        return bulkio.sri.getKeyword(self._sri, name)

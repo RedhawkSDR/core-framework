@@ -20,8 +20,6 @@
 
 import copy
 
-import omniORB.any
-
 from ossie.cf import CF
 from redhawk.bitbuffer import bitbuffer
 
@@ -92,18 +90,11 @@ class OutputStream(StreamBase):
 
     def setKeyword(self, name, value):
         self._modifyingStreamMetadata()
-        for dt in self._sri.keywords:
-            if dt.id == name:
-                dt.value = omniORB.any.to_any(value)
-                return
-        self._sri.keywords.append(CF.DataType(name, omniORB.any.to_any(value)))
+        bulkio.sri.setKeyword(self._sri, name, value)
 
     def eraseKeyword(self, name):
-        for index in xrange(len(self._sri.keywords)):
-            if self._sri.keywords[index].id == name:
-                self._modifyingStreamMetadata();
-                del self._sri.keywords[index]
-                return
+        self._modifyingStreamMetadata()
+        bulkio.sri.eraseKeyword(self._sri, name)
 
     def write(self, data, time):
         self._send(data, time, False)
