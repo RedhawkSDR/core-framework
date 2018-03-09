@@ -22,23 +22,24 @@ from ossie.utils.docstring import inherit_doc
 from ossie.utils.sandbox.helper import SandboxHelper
 
 import bulkio
+from bulkio.bulkioInterfaces import BULKIO
 from bulkio.output_ports import *
 from bulkio.output_streams import OutputStream
 
 _PORT_MAP = {
-    'char' : (OutCharPort, 'IDL:BULKIO/dataChar:1.0'),
-    'octet': (OutOctetPort, 'IDL:BULKIO/dataOctet:1.0'),
-    'short' : (OutShortPort, 'IDL:BULKIO/dataShort:1.0'),
-    'ushort' : (OutUShortPort, 'IDL:BULKIO/dataUshort:1.0'),
-    'long' : (OutLongPort, 'IDL:BULKIO/dataLong:1.0'),
-    'ulong' : (OutULongPort, 'IDL:BULKIO/dataUlong:1.0'),
-    'longlong' : (OutLongLongPort, 'IDL:BULKIO/dataLongLong:1.0'),
-    'ulonglong' : (OutULongLongPort, 'IDL:BULKIO/dataUlongLong:1.0'),
-    'float' : (OutFloatPort, 'IDL:BULKIO/dataFloat:1.0'),
-    'double' : (OutDoublePort, 'IDL:BULKIO/dataDouble:1.0'),
-    'bit' : (OutBitPort, 'IDL:BULKIO/dataBit:1.0'),
-    'file' : (OutFilePort, 'IDL:BULKIO/dataFile:1.0'),
-    'XML' : (OutXMLPort, 'IDL:BULKIO/dataXML:1.0')
+    'char' : (OutCharPort, BULKIO.dataChar),
+    'octet': (OutOctetPort, BULKIO.dataOctet),
+    'short' : (OutShortPort, BULKIO.dataShort),
+    'ushort' : (OutUShortPort, BULKIO.dataUshort),
+    'long' : (OutLongPort, BULKIO.dataLong),
+    'ulong' : (OutULongPort, BULKIO.dataUlong),
+    'longlong' : (OutLongLongPort, BULKIO.dataLongLong),
+    'ulonglong' : (OutULongLongPort, BULKIO.dataUlongLong),
+    'float' : (OutFloatPort, BULKIO.dataFloat),
+    'double' : (OutDoublePort, BULKIO.dataDouble),
+    'bit' : (OutBitPort, BULKIO.dataBit),
+    'file' : (OutFilePort, BULKIO.dataFile),
+    'xml' : (OutXMLPort, BULKIO.dataXML)
 }
 
 def proxy(attr):
@@ -72,8 +73,8 @@ class StreamSource(SandboxHelper):
         else:
             formats = _PORT_MAP.keys()
         for format in formats:
-            clazz, repo_id = _PORT_MAP[format]
-            self._addUsesPort(format+'Out', repo_id, clazz)
+            clazz, helper = _PORT_MAP[format]
+            self._addUsesPort(format+'Out', helper._NP_RepositoryId, clazz)
 
     def _initializeHelper(self):
         if not self._streamID:

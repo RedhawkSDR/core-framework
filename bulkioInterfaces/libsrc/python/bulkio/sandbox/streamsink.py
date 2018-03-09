@@ -29,19 +29,19 @@ from bulkio.bulkioInterfaces import BULKIO
 from bulkio.input_ports import *
 
 _PORT_MAP = {
-    'char' : (InCharPort, 'IDL:BULKIO/dataChar:1.0'),
-    'octet': (InOctetPort, 'IDL:BULKIO/dataOctet:1.0'),
-    'short' : (InShortPort, 'IDL:BULKIO/dataShort:1.0'),
-    'ushort' : (InUShortPort, 'IDL:BULKIO/dataUshort:1.0'),
-    'long' : (InLongPort, 'IDL:BULKIO/dataLong:1.0'),
-    'ulong' : (InULongPort, 'IDL:BULKIO/dataUlong:1.0'),
-    'longlong' : (InLongLongPort, 'IDL:BULKIO/dataLongLong:1.0'),
-    'ulonglong' : (InULongLongPort, 'IDL:BULKIO/dataUlongLong:1.0'),
-    'float' : (InFloatPort, 'IDL:BULKIO/dataFloat:1.0'),
-    'double' : (InDoublePort, 'IDL:BULKIO/dataDouble:1.0'),
-    'bit' : (InBitPort, 'IDL:BULKIO/dataBit:1.0'),
-    'file' : (InFilePort, 'IDL:BULKIO/dataFile:1.0'),
-    'xml' : (InXMLPort, 'IDL:BULKIO/dataXML:1.0')
+    'char' : (InCharPort, BULKIO.dataChar),
+    'octet': (InOctetPort, BULKIO.dataOctet),
+    'short' : (InShortPort, BULKIO.dataShort),
+    'ushort' : (InUShortPort, BULKIO.dataUshort),
+    'long' : (InLongPort, BULKIO.dataLong),
+    'ulong' : (InULongPort, BULKIO.dataUlong),
+    'longlong' : (InLongLongPort, BULKIO.dataLongLong),
+    'ulonglong' : (InULongLongPort, BULKIO.dataUlongLong),
+    'float' : (InFloatPort, BULKIO.dataFloat),
+    'double' : (InDoublePort, BULKIO.dataDouble),
+    'bit' : (InBitPort, BULKIO.dataBit),
+    'file' : (InFilePort, BULKIO.dataFile),
+    'xml' : (InXMLPort, BULKIO.dataXML)
 }
 
 SRI = collections.namedtuple('SRI', 'offset sri')
@@ -146,8 +146,8 @@ class StreamSink(SandboxHelper):
         else:
             formats = _PORT_MAP.keys()
         for format in formats:
-            clazz, repo_id = _PORT_MAP[format]
-            self._addProvidesPort(format+'In', repo_id, clazz)
+            clazz, helper = _PORT_MAP[format]
+            self._addProvidesPort(format+'In', helper._NP_RepositoryId, clazz)
 
         self._cachedStreams = {}
         self._cacheClass = StreamContainer
@@ -157,9 +157,9 @@ class StreamSink(SandboxHelper):
 
     def _portCreated(self, port, portDict):
         repo_id = portDict['Port Interface']
-        if repo_id == 'IDL:BULKIO/dataBit:1.0':
+        if repo_id == BULKIO.dataBit._NP_RepositoryId:
             self._cacheClass = BitStreamContainer
-        elif repo_id in ('IDL:BULKIO/dataXML:1.0', 'IDL:BULKIO/dataFile:1.0'):
+        elif repo_id in (BULKIO.dataXML._NP_RepositoryId, BULKIO.dataFile._NP_RepositoryId):
             self._cacheClass = StringStreamContainer
 
     def activeSRIs(self):
