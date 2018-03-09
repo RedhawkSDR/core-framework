@@ -26,8 +26,24 @@ import BULKIO.StreamSRI;
 
 public class utils {
 
-    public static StreamSRI create()
-    {
+    /**
+     * Bit flags for SRI fields.
+     */
+    public static final int NONE     = 0;
+    public static final int HVERSION = (1<<0);
+    public static final int XSTART   = (1<<1);
+    public static final int XDELTA   = (1<<2);
+    public static final int XUNITS   = (1<<3);
+    public static final int SUBSIZE  = (1<<4);
+    public static final int YSTART   = (1<<5);
+    public static final int YDELTA   = (1<<6);
+    public static final int YUNITS   = (1<<7);
+    public static final int MODE     = (1<<8);
+    public static final int STREAMID = (1<<9);
+    public static final int BLOCKING = (1<<10);
+    public static final int KEYWORDS = (1<<11);
+
+    public static StreamSRI  create() {
 	return create("defaultSRI", 1.0, (short)1, false );
     }
 
@@ -123,5 +139,47 @@ public class utils {
             }
         }
         return true;
+    }
+
+    public static int compareFields(BULKIO.StreamSRI sriA, BULKIO.StreamSRI sriB)
+    {
+        int result = NONE;
+        if (sriA.hversion != sriB.hversion) {
+            result |= HVERSION;
+        }
+        if (sriA.xstart != sriB.xstart) {
+            result |= XSTART;
+        }
+        if (sriA.xdelta != sriB.xdelta) {
+            result |= XDELTA;
+        }
+        if (sriA.xunits != sriB.xunits) {
+            result |= XUNITS;
+        }
+        if (sriA.subsize != sriB.subsize) {
+            result |= SUBSIZE;
+        }
+        if (sriA.ystart != sriB.ystart) {
+            result |= YSTART;
+        }
+        if (sriA.ydelta != sriB.ydelta) {
+            result |= YDELTA;
+        }
+        if (sriA.yunits != sriB.yunits) {
+            result |= YUNITS;
+        }
+        if (sriA.mode != sriB.mode) {
+            result |= MODE;
+        }
+        if (sriA.streamID != sriB.streamID) {
+            result |= STREAMID;
+        }
+        if (sriA.blocking != sriB.blocking) {
+            result |= BLOCKING;
+        }
+        if (!_compareKeywords(sriA.keywords, sriB.keywords)) {
+            result |= KEYWORDS;
+        }
+        return result;
     }
 }

@@ -23,7 +23,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import org.omg.CORBA.TCKind;
+
 import org.ossie.properties.AnyUtils;
+
+import static bulkio.sri.utils.*;
 
 @RunWith(JUnit4.class)
 public class StreamSRITest
@@ -119,5 +123,58 @@ public class StreamSRITest
         Assert.assertFalse("bulkio.sri.utils.compare method - different - keywords name mismatch",
                            bulkio.sri.utils.compare(a_sri, c_sri));
 
+    }
+
+    @Test
+    public void testCompareFields()
+    {
+        BULKIO.StreamSRI sri_1 = bulkio.sri.utils.create("compare_fields");
+        BULKIO.StreamSRI sri_2 =  bulkio.sri.utils.create("compare_fields");
+
+        // Identical
+        int flags = NONE;
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+
+        // Stream ID
+        flags = STREAMID;
+        sri_2 = bulkio.sri.utils.create("compare_fields_2");
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+
+        // Framing and axes metadata
+        sri_2 = bulkio.sri.utils.create("compare_fields");
+        sri_2.xstart = -1.0;
+        sri_2.xdelta = 0.25;
+        sri_2.xunits = BULKIO.UNITS_FREQUENCY.value;
+        sri_2.subsize = 9;
+        sri_2.ystart = 0.5;
+        sri_2.yunits = BULKIO.UNITS_TIME.value;
+        sri_2.ydelta = 0.125;
+        flags = XSTART|XDELTA|XUNITS|SUBSIZE|YSTART|YDELTA|YUNITS;
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+
+        // Real->complex and blocking
+        sri_2 = bulkio.sri.utils.create("compare_fields");
+        sri_2.mode = 1;
+        sri_2.blocking = true;
+        flags = MODE|BLOCKING;
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+
+        // Keywords
+        // Adding keywords should register as a change
+        sri_1.keywords = new CF.DataType[2];
+        sri_1.keywords[0] = new CF.DataType("string", AnyUtils.toAny("first"));
+        sri_1.keywords[1] = new CF.DataType("number", AnyUtils.toAny(1.0, TCKind.tk_double));
+        sri_2 = bulkio.sri.utils.create("compare_fields");
+        flags = KEYWORDS;
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+        // Likewise a different value for the same keyword
+        sri_2.keywords = new CF.DataType[2];
+        sri_2.keywords[0] = new CF.DataType("string", AnyUtils.toAny("first"));
+        sri_2.keywords[1] = new CF.DataType("number", AnyUtils.toAny(2.0, TCKind.tk_double));
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
+        // Same values should register as equal
+        flags = NONE;
+        sri_2.keywords[1].value = AnyUtils.toAny(1.0, TCKind.tk_double);
+        Assert.assertEquals(flags, bulkio.sri.utils.compareFields(sri_1, sri_2));
     }
 }
