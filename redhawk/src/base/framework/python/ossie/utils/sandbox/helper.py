@@ -18,6 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from ossie.utils.log4py import logging
 from ossie.utils.model import PortSupplier
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
@@ -25,6 +26,7 @@ from ossie.utils.uuid import uuid4
 from ossie.threadedcomponent import *
 
 def default_sandbox():
+    # Use a deferred import to avoid a circular dependency with the 'sb' module
     from ossie.utils.sb import domainless
     return domainless._getSandbox()
 
@@ -43,6 +45,9 @@ class SandboxMeta(type):
         # Create a unique instance name, and register with the sandbox
         name = sandbox._createInstanceName(obj.__class__.__name__)
         obj._registerWithSandbox(sandbox, name)
+
+        # Set a sensible default logger based on the module and instance name
+        obj.log = logging.getLogger(obj.__module__).getChild(name)
 
         # Perform any post-registration initialization
         obj._initializeHelper()
@@ -85,8 +90,18 @@ class SandboxHelper(PortSupplier):
             'Port Class': portClass
         }
 
-    def _createPort(self, cls, name):
-        return cls(name)
+    def _createPort(self, portDict, name=None):
+        clazz = portDict['Port Class']
+        if not name:
+            name = portDict['Port Name']
+        port = clazz(name)
+        self._portCreated(port, portDict)
+        return port
+
+    def _portCreated(self, port, portDict):
+        # Extension point for subclasses to perform any post port-creation
+        # tasks (e.g., setting a mode based on the port type)
+        pass
 
     @property
     def started(self):
@@ -135,8 +150,7 @@ class SandboxHelper(PortSupplier):
                 port_dict = self._providesPortDict.get(portName, None)
             if port_dict is None:
                 raise RuntimeError("Unknown port '%s'" % portName)
-            cls = port_dict['Port Class']
-            self._port = self._createPort(cls, portName)
+            self._port = self._createPort(port_dict)
 
         return self._port._this()
 

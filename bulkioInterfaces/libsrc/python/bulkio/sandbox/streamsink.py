@@ -25,6 +25,7 @@ import time
 
 from ossie.utils.sandbox.helper import SandboxHelper
 
+from bulkio.bulkioInterfaces import BULKIO
 from bulkio.input_ports import *
 
 _PORT_MAP = {
@@ -154,14 +155,12 @@ class StreamSink(SandboxHelper):
     def streamIDs(self):
         return [sri.streamID for sri in self.activeSRIs()]
 
-    def _createPort(self, cls, name):
-        port = super(StreamSink,self)._createPort(cls, name)
-        # NB: This is kind of a hack.
-        if 'bit' in name:
+    def _portCreated(self, port, portDict):
+        repo_id = portDict['Port Interface']
+        if repo_id == 'IDL:BULKIO/dataBit:1.0':
             self._cacheClass = BitStreamContainer
-        elif 'xml' in name or 'file' in name:
+        elif repo_id in ('IDL:BULKIO/dataXML:1.0', 'IDL:BULKIO/dataFile:1.0'):
             self._cacheClass = StringStreamContainer
-        return port
 
     def activeSRIs(self):
         sris = [c.sri for c in self._cachedStreams.itervalues()]

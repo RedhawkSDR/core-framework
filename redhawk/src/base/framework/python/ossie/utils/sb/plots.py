@@ -134,13 +134,10 @@ class PlotBase(ThreadedSandboxHelper):
                 return manager.window
         return None
 
-    def _createPort(self, cls, name):
-        port = cls(name)
-        #if self._thread:
-        if True:
+    def _portCreated(self, port, portDict):
+        if self.started:
             # Plot is started; start port.
             port.startPort()
-        return port
 
     def _redraw(self):
         """
@@ -580,10 +577,10 @@ class RasterBase(PlotBase):
     def _getImageSize(self):
         return (self._frameSize, self._lines)
 
-    def _createPort(self, cls, name):
-        port = super(RasterBase,self)._createPort(cls, name)
+    def _portCreated(self, port, portDict):
+        super(RasterBase,self)._portCreated(port, portDict)
         self._image.set_interpolation('nearest')
-        if name == 'bitIn':
+        if port.name == 'bitIn':
             self._bitMode = True
             self._setBitMode()
         else:
