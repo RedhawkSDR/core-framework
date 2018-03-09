@@ -23,8 +23,7 @@ import operator
 import threading
 import time
 
-from ossie.utils.log4py import logging
-from ossie.utils.sandbox.helper import ThreadedSandboxHelper, ThreadStatus
+from ossie.utils.sandbox.helper import SandboxHelper
 
 from bulkio.input_ports import *
 
@@ -41,7 +40,7 @@ _PORT_MAP = {
     'double' : (InDoublePort, 'IDL:BULKIO/dataDouble:1.0'),
     'bit' : (InBitPort, 'IDL:BULKIO/dataBit:1.0'),
     'file' : (InFilePort, 'IDL:BULKIO/dataFile:1.0'),
-    'XML' : (InXMLPort, 'IDL:BULKIO/dataXML:1.0')
+    'xml' : (InXMLPort, 'IDL:BULKIO/dataXML:1.0')
 }
 
 SRI = collections.namedtuple('SRI', 'offset sri')
@@ -64,11 +63,10 @@ class StreamData(object):
         return sri
 
 class StreamContainer(object):
-    def __init__(self, sri, datatype):
+    def __init__(self, sri):
         self.sri = sri
         self.blocks = []
         self.eos = False
-        self.datatype = datatype
 
     @property
     def streamID(self):
@@ -78,7 +76,7 @@ class StreamContainer(object):
         self.blocks.append(block)
 
     def ready(self):
-        return bool(self.blocks)
+        return self.eos or bool(self.blocks)
 
     def get(self):
         if not self.blocks:
@@ -86,27 +84,23 @@ class StreamContainer(object):
                 # Return an emtpy data object with EOS set so the called knows
                 # that the stream ended (as opposed to just getting nothing
                 # back, and having to guess)
-                return StreamData([SRI(0, self.sri)], self.datatype(), [], True)
+                return StreamData([SRI(0, self.sri)], self._createEmpty(), [], True)
             return None
 
         # Combine block data into a single data object
-        if self.datatype == str:
-            # For string types (XML, File), return a list of strings
-            data = [block.data for block in self.blocks]
-        else:
-            # All other types, concatenate the block data
-            data = reduce(operator.add, (self._getBlockData(block) for block in self.blocks))
+        data = self._createEmpty()
 
         # Aggregate block metadata
         offset = 0
         sris = []
         timestamps = []
         for block in self.blocks:
+            offset = len(data)
+            data += self._getBlockData(block)
             if block.sriChanged or not sris:
                 sris.append(SRI(offset, block.sri))
             for ts in block.getTimestamps():
                 timestamps.append(TimeStamp(ts.offset + offset, ts.time))
-            offset += block.size
 
         # Discard references to blocks
         self.blocks = []
@@ -116,18 +110,36 @@ class StreamContainer(object):
 
         return StreamData(sris, data, timestamps, self.eos)
 
+    def _createEmpty(self):
+        return []
+
     def _getBlockData(self, block):
-        # If the block data is complex (taking into account that bit and string
-        # data blocks do not have a complex attribute), reformat the data as
-        # complex; otherwise, just return the data
-        if getattr(block, 'complex', False):
+        if block.complex:
             return block.cxdata
         else:
             return block.data
 
-class StreamSink(ThreadedSandboxHelper):
+class StringStreamContainer(StreamContainer):
+    def __init__(self, sri):
+        StreamContainer.__init__(self, sri)
+
+    def _getBlockData(self, block):
+        return [block.data]
+
+class BitStreamContainer(StreamContainer):
+    def __init__(self, sri):
+        StreamContainer.__init__(self, sri)
+
+    def _createEmpty(self):
+        return bitbuffer()
+
+    def _getBlockData(self, block):
+        return block.data
+
+class StreamSink(SandboxHelper):
     def __init__(self, format=None):
-        ThreadedSandboxHelper.__init__(self)
+        SandboxHelper.__init__(self)
+
         if format:
             formats = [format]
         else:
@@ -136,115 +148,91 @@ class StreamSink(ThreadedSandboxHelper):
             clazz, repo_id = _PORT_MAP[format]
             self._addProvidesPort(format+'In', repo_id, clazz)
 
-        self._streamLock = threading.Lock()
-        self._streamReady = threading.Condition(self._streamLock)
-        self._streamEnded = threading.Condition(self._streamLock)
-        self._finishedStreams = []
-        self._activeStreams = {}
+        self._cachedStreams = {}
+        self._cacheClass = StreamContainer
 
     def streamIDs(self):
         return [sri.streamID for sri in self.activeSRIs()]
 
-    def _getDataType(self):
-        # NB: This is a hack.
-        if not self._port:
-            return None
-        if 'bit' in self._port.name:
-            return bitbuffer
-        elif 'XML' in self._port.name or 'File' in self._port.name:
-            return str
-        else:
-            return list
+    def _createPort(self, cls, name):
+        port = super(StreamSink,self)._createPort(cls, name)
+        # NB: This is kind of a hack.
+        if 'bit' in name:
+            self._cacheClass = BitStreamContainer
+        elif 'xml' in name or 'file' in name:
+            self._cacheClass = StringStreamContainer
+        return port
 
     def activeSRIs(self):
-        with self._streamLock:
-            sris = {}
-            for data in self._finishedStreams:
-                sris.setdefault(data.streamID, data.sri)
-            for stream in self._activeStreams.itervalues():
-                sris.setdefault(stream.streamID, stream.sri)
-            return sris.values()
+        sris = [c.sri for c in self._cachedStreams.itervalues()]
+        if self._port:
+            for stream in self._port.getStreams():
+                if stream.streamID not in self._cachedStreams:
+                    sris.append(stream.sri)
+        return sris
 
     def read(self, timeout=-1.0, streamID=None, eos=False):
+        if eos:
+            condition = lambda x: x.eos
+        else:
+            condition = lambda x: x.ready()
+
+        container = self._read(timeout, streamID, condition)
+        if not container:
+            return None
+        if container.eos:
+            self._removeStreamCache(container)
+        return container.get()
+
+    def _read(self, timeout, streamID, condition):
         if timeout >= 0.0:
             end = time.time() + timeout
         else:
             end = None
-        if eos:
-            cond = self._streamEnded
-        else:
-            cond = self._streamReady
 
-        while True:
-            with self._streamLock:
-                data = self._getNextData(eos, streamID)
-                if data:
-                    return data.get()
+        while self.started:
+            # Fetch as much data as possible without blocking
+            while self._fetchData():
+                pass
 
-                if not self.isRunning():
+            for container in self._cachedStreams.itervalues():
+                if streamID and container.streamID != streamID:
+                    continue
+                if condition(container):
+                    return container
+
+            # Sleep to allow more data to come in
+            wait_time = 0.1
+            if end is not None:
+                now = time.time()
+                if now >= end:
                     break
-
-                if end is None:
-                    # Even though we don't want the read call to timeout, using
-                    # a timeout argument to read ensures that ^C interrupts the
-                    # wait. Otherwise, it can deadlock and the only way to get
-                    # out is to terminate the Python interpreter process.
-                    cond.wait(timeout=1.0)
-                else:
-                    now = time.time()
-                    if now >= end:
-                        break
-                    wait_time = end - now
-                    cond.wait(timeout=wait_time)
+                wait_time = min(wait_time, end - now)
+            time.sleep(wait_time)
 
         return None
 
-    def _getNextData(self, eos, streamID):
-        if self._finishedStreams:
-            if streamID:
-                for ii in xrange(len(self._finishedStreams)):
-                    if self._finishedStreams[ii].streamID == streamID:
-                        return self._finishedStreams.pop(ii)
-            else:
-                return self._finishedStreams.pop(0)
-        elif not eos and self._activeStreams:
-            if streamID:
-                if streamID in self._activeStreams:
-                    stream = self._activeStreams[streamID]
-                    if stream.ready():
-                        return stream
-            else:
-                for stream in self._activeStreams.itervalues():
-                    if stream.ready():
-                        return stream
-
-        return None
-
-    def _threadFunc(self):
-        if not self._port:
-            return ThreadStatus.NOOP
-
-        stream = self._port.getCurrentStream()
+    def _fetchData(self):
+        # Use a polling loop instead of waiting in getCurrentStream so that the
+        # operation can be interrupted by ^C
+        stream = self._port.getCurrentStream(0.0)
         if not stream:
-            return
-        block = stream.read()
-        with self._streamLock:
-            container = self._activeStreams.get(stream.streamID, None)
-            if container is None:
-                container = StreamContainer(stream.sri, self._getDataType())
-                self._activeStreams[stream.streamID] = container
+            return False
 
-            if not block:
-                if not stream.eos():
-                    return ThreadStatus.NORMAL
-            else:
-                container.append(block)
-                self._streamReady.notify()
+        container = self._getStreamCache(stream)
+        block = stream.tryread()
+        if block:
+            container.append(block)
+        elif stream.eos():
+            container.eos = True
+        return True
 
-            if stream.eos():
-                container.eos = True
-                del self._activeStreams[stream.streamID]
-                self._finishedStreams.append(container)
-                self._streamEnded.notify()
+    def _getStreamCache(self, stream):
+        container = self._cachedStreams.get(stream.streamID, None)
+        if not container:
+            container = self._cacheClass(stream.sri)
+            self._cachedStreams[stream.streamID] = container
+        return container
 
-        return ThreadStatus.NORMAL
+    def _removeStreamCache(self, container):
+        del self._cachedStreams[container.streamID]
