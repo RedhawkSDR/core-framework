@@ -347,6 +347,57 @@ class BufferedInStreamTest(InStreamTest):
         self.failIf(not block)
         self.assertEqual(100, block.size)
 
+    def testReadTimestamps(self):
+        # Create a new stream and push several packets with known timestamps
+        sri = bulkio.sri.create('read_timestamps')
+        sri.xdelta = 0.0625;
+        self.port.pushSRI(sri)
+
+        # Push packets of size 32, which should advance the time by exactly 2
+        # seconds each
+        ts = bulkio.timestamp.create(4000.0, 0.5)
+        self._pushTestPacket(32, ts, False, sri.streamID)
+        self._pushTestPacket(32, ts+2.0, False, sri.streamID)
+        self._pushTestPacket(32, ts+4.0, False, sri.streamID)
+        self._pushTestPacket(32, ts+6.0, False, sri.streamID)
+
+        # Get the input stream and read several packets as one block, enough to
+        # bisect the third packet
+        stream = self.port.getStream(sri.streamID)
+        self.failIf(not stream)
+        block = stream.read(70)
+        self.failIf(not block)
+        self.assertEqual(70, block.size)
+
+        # There should be 3 timestamps, all non-synthetic
+        timestamps = block.getTimestamps()
+        self.assertEqual(3, len(timestamps))
+        self.assertEqual(ts, timestamps[0].time)
+        self.assertEqual(0, timestamps[0].offset)
+        self.assertEqual(False, timestamps[0].synthetic)
+        self.assertEqual(timestamps[0].time, block.getStartTime(), "getStartTime() doesn't match first timestamp")
+        self.assertEqual(ts+2.0, timestamps[1].time)
+        self.assertEqual(32, timestamps[1].offset)
+        self.assertEqual(False, timestamps[1].synthetic)
+        self.assertEqual(ts+4.0, timestamps[2].time)
+        self.assertEqual(64, timestamps[2].offset)
+        self.assertEqual(False, timestamps[2].synthetic)
+
+        # Read the remaining packet and a half; the first timestamp should be
+        # synthetic
+        block = stream.read(58)
+        self.failIf(not block)
+        self.assertEqual(58, block.size)
+        timestamps = block.getTimestamps()
+        self.assertEqual(2, len(timestamps))
+        self.assertEqual(True, timestamps[0].synthetic, "First timestamp should by synthesized")
+        self.assertEqual(ts+4.375, timestamps[0].time, "Synthesized timestamp is incorrect")
+        self.assertEqual(0, timestamps[0].offset)
+        self.assertEqual(timestamps[0].time, block.getStartTime(), "getStartTime() doesn't match first timestamp")
+        self.assertEqual(ts+6.0, timestamps[1].time)
+        self.assertEqual(26, timestamps[1].offset)
+        self.assertEqual(False, timestamps[1].synthetic)
+
     def testDisableDiscard(self):
         stream_id = "disable_discard"
 
@@ -437,53 +488,61 @@ class NumericInStreamTest(BufferedInStreamTest):
         self.failUnless(block.complex)
         self.assertEqual(64, block.cxsize)
 
-    def testComplexTimeStamps(self):
-        sri = bulkio.sri.create('complex_timestamps')
-        sri.xdelta = 1.0
+    def testReadTimestampsComplex(self):
+        # Create a new complex stream and push several packets with known
+        # timestamps
+        sri = bulkio.sri.create('read_timestamps_cx')
         sri.mode = 1
+        sri.xdelta = 0.125
         self.port.pushSRI(sri)
 
-        # Push several packets and remember the timestamps
-        ts0 = bulkio.timestamp.now()
-        self._pushTestPacket(64, ts0, False, sri.streamID)
-        ts1 = bulkio.timestamp.now()
-        self._pushTestPacket(128, ts1, False, sri.streamID)
-        ts2 = bulkio.timestamp.now()
-        self._pushTestPacket(64, ts2, False, sri.streamID)
+        # Push 8 complex values (16 real), which should advance the time by
+        # exactly 1 second each time
+        ts = bulkio.timestamp.create(100.0, 0.0)
+        self._pushTestPacket(16, ts, False, sri.streamID)
+        self._pushTestPacket(16, ts+1.0, False, sri.streamID)
+        self._pushTestPacket(16, ts+2.0, False, sri.streamID)
+        self._pushTestPacket(16, ts+3.0, False, sri.streamID)
 
-        # Read most of all 3 packets using a sized read that splits the last
-        # packet in half; the total is 128 samples, so a read of size 112 gets
-        # 16 of the 32 available complex values
+        # Get the input stream and read several packets as one block, enough to
+        # bisect the third packet
         stream = self.port.getStream(sri.streamID)
         self.failIf(not stream)
-        block = stream.read(112)
+        block = stream.read(20)
         self.failIf(not block)
         self.failUnless(block.complex)
-        self.assertEqual(112, block.cxsize)
+        self.assertEqual(20, block.cxsize)
 
-        # Check the block timestamps; the offsets should be in terms of complex
-        # samples (i.e., half of the push sizes above)
-        ts = block.getTimestamps()
-        self.assertEqual(3, len(ts))
-        self.assertEqual(0, ts[0].offset)
-        self.assertEqual(ts0, ts[0].time)
-        self.assertEqual(32, ts[1].offset)
-        self.assertEqual(ts1, ts[1].time)
-        self.assertEqual(96, ts[2].offset)
-        self.assertEqual(ts2, ts[2].time)
+        # There should be 3 timestamps, all non-synthetic, with sample offsets
+        # based on the complex type
+        timestamps = block.getTimestamps()
+        self.assertEqual(3, len(timestamps))
+        self.assertEqual(ts, timestamps[0].time)
+        self.assertEqual(0, timestamps[0].offset)
+        self.assertEqual(False, timestamps[0].synthetic)
+        self.assertEqual(timestamps[0].time, block.getStartTime(), "getStartTime() doesn't match first timestamp")
+        self.assertEqual(ts+1.0, timestamps[1].time)
+        self.assertEqual(8, timestamps[1].offset)
+        self.assertEqual(False, timestamps[1].synthetic)
+        self.assertEqual(ts+2.0, timestamps[2].time)
+        self.assertEqual(16, timestamps[2].offset)
+        self.assertEqual(False, timestamps[2].synthetic)
 
-        # Read the remaining data
-        block = stream.read()
+        # Read the remaining packet and a half; the first timestamp should be
+        # synthetic
+        block = stream.read(12)
         self.failIf(not block)
         self.failUnless(block.complex)
-        self.assertEqual(16, block.cxsize)
-
-        # Check that the synthesized time is 16 seconds (16 samples * 1.0s)
-        # after the original time
-        ts = block.getTimestamps()
-        self.assertEqual(1, len(ts))
-        self.assertEqual(0, ts[0].offset)
-        self.assertAlmostEqual(16.0, ts[0].time - ts2)
+        self.assertEqual(12, block.cxsize)
+        timestamps = block.getTimestamps()
+        self.assertEqual(2, len(timestamps))
+        self.assertEqual(True, timestamps[0].synthetic, "First timestamp should by synthesized")
+        self.assertEqual(ts+2.5, timestamps[0].time, "Synthesized timestamp is incorrect")
+        self.assertEqual(0, timestamps[0].offset)
+        self.assertEqual(timestamps[0].time, block.getStartTime(), "getStartTime() doesn't match first timestamp")
+        self.assertEqual(ts+3.0, timestamps[1].time)
+        self.assertEqual(4, timestamps[1].offset)
+        self.assertEqual(False, timestamps[1].synthetic)
 
 
 class InXMLStreamTest(InStreamTest, unittest.TestCase):

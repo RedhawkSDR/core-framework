@@ -61,6 +61,7 @@ class BufferedInStreamTest : public InStreamTest<Port>
     CPPUNIT_TEST(testTryreadPeek);
     CPPUNIT_TEST(testReadPeek);
     CPPUNIT_TEST(testReadPartial);
+    CPPUNIT_TEST(testReadTimestamps);
     CPPUNIT_TEST(testDisableDiscard);
     CPPUNIT_TEST_SUITE_END();
 
@@ -71,6 +72,7 @@ public:
     void testTryreadPeek();
     void testReadPeek();
     void testReadPartial();
+    void testReadTimestamps();
 
     void testDisableDiscard();
 
@@ -87,10 +89,13 @@ class NumericInStreamTest : public BufferedInStreamTest<Port>
     typedef BufferedInStreamTest<Port> TestBase;
     CPPUNIT_TEST_SUB_SUITE(NumericInStreamTest, TestBase);
     CPPUNIT_TEST(testSriModeChanges);
+    CPPUNIT_TEST(testReadTimestampsComplex);
     CPPUNIT_TEST_SUITE_END();
 
 public:
     void testSriModeChanges();
+
+    void testReadTimestampsComplex();
 
 private:
     typedef typename Port::StreamType StreamType;

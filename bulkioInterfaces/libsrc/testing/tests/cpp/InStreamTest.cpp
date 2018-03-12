@@ -329,6 +329,66 @@ void BufferedInStreamTest<Port>::testReadPartial()
 }
 
 template <class Port>
+void BufferedInStreamTest<Port>::testReadTimestamps()
+{
+    const char* stream_id = "read_timestamps";
+
+    // Create a new stream and push several packets with known timestamps
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    sri.xdelta = 0.0625;
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts = bulkio::time::utils::create(4000.0, 0.5);
+    // Push packets of size 32, which should advance the time by exactly 2
+    // seconds each
+    this->_pushTestPacket(32, ts, false, sri.streamID);
+    this->_pushTestPacket(32, ts+2.0, false, sri.streamID);
+    this->_pushTestPacket(32, ts+4.0, false, sri.streamID);
+    this->_pushTestPacket(32, ts+6.0, false, sri.streamID);
+
+    // Get the input stream and read several packets as one block, enough to
+    // bisect the third packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read(70);
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 70, block.size());
+
+    // There should be 3 timestamps, all non-synthetic
+    std::list<bulkio::SampleTimestamp> timestamps = block.getTimestamps();
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, timestamps.size());
+    std::list<bulkio::SampleTimestamp>::iterator it = timestamps.begin();
+    CPPUNIT_ASSERT_EQUAL(ts, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("getStartTime() doesn't match first timestamp", it->time, block.getStartTime());
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+2.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 32, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+4.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 64, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+
+    // Read the remaining packet and a half; the first timestamp should be
+    // synthetic
+    block = stream.read(58);
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 58, block.size());
+    timestamps = block.getTimestamps();
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, timestamps.size());
+    it = timestamps.begin();
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("First timestamp should by synthesized", true, it->synthetic);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Synthesized timestamp is incorrect", ts+4.375, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, it->offset);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("getStartTime() doesn't match first timestamp", it->time, block.getStartTime());
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+6.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 26, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+}
+
+template <class Port>
 void BufferedInStreamTest<Port>::testDisableDiscard()
 {
     const char* stream_id = "disable_discard";
@@ -402,6 +462,69 @@ void NumericInStreamTest<Port>::testSriModeChanges()
     CPPUNIT_ASSERT(!block.complex());
     CPPUNIT_ASSERT(block.sriChanged());
     CPPUNIT_ASSERT(block.sriChangeFlags() & bulkio::sri::MODE);
+}
+
+template <class Port>
+void NumericInStreamTest<Port>::testReadTimestampsComplex()
+{
+    const char* stream_id = "read_timestamps_cx";
+
+    // Create a new complex stream and push several packets with known
+    // timestamps
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    sri.mode = 1;
+    sri.xdelta = 0.125;
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts = bulkio::time::utils::create(100.0, 0.0);
+    // Push 8 complex values (16 real), which should advance the time by
+    // exactly 1 second each time
+    this->_pushTestPacket(16, ts, false, sri.streamID);
+    this->_pushTestPacket(16, ts+1.0, false, sri.streamID);
+    this->_pushTestPacket(16, ts+2.0, false, sri.streamID);
+    this->_pushTestPacket(16, ts+3.0, false, sri.streamID);
+
+    // Get the input stream and read several packets as one block, enough to
+    // bisect the third packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read(20);
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 20, block.cxsize());
+
+    // There should be 3 timestamps, all non-synthetic, with sample offsets
+    // based on the complex type
+    std::list<bulkio::SampleTimestamp> timestamps = block.getTimestamps();
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, timestamps.size());
+    std::list<bulkio::SampleTimestamp>::iterator it = timestamps.begin();
+    CPPUNIT_ASSERT_EQUAL(ts, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("getStartTime() doesn't match first timestamp", it->time, block.getStartTime());
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+1.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 8, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+2.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 16, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
+
+    // Read the remaining packet and a half; the first timestamp should be
+    // synthetic
+    block = stream.read(12);
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 12, block.cxsize());
+    timestamps = block.getTimestamps();
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, timestamps.size());
+    it = timestamps.begin();
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("First timestamp should by synthesized", true, it->synthetic);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Synthesized timestamp is incorrect", ts+2.5, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, it->offset);
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("getStartTime() doesn't match first timestamp", it->time, block.getStartTime());
+    ++it;
+    CPPUNIT_ASSERT_EQUAL(ts+3.0, it->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 4, it->offset);
+    CPPUNIT_ASSERT_EQUAL(false, it->synthetic);
 }
 
 #define CREATE_TEST(x, BASE)                                            \
