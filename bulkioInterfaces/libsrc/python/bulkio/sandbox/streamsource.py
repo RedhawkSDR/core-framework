@@ -67,6 +67,7 @@ class StreamSource(SandboxHelper):
         SandboxHelper.__init__(self)
         self._streamID = streamID
         self._stream = None
+        self._isXML = False
 
         if format:
             formats = [format]
@@ -81,6 +82,11 @@ class StreamSource(SandboxHelper):
             self._streamID = self._instanceName
         self._sri = bulkio.sri.create(self._streamID)
 
+    def _portCreated(self, port, portDict):
+        repo_id = portDict['Port Interface']
+        if repo_id == BULKIO.dataXML._NP_RepositoryId:
+            self._isXML = True
+
     def write(self, data, timestamp=None):
         if not self._port:
             # Not connected to anything
@@ -92,7 +98,7 @@ class StreamSource(SandboxHelper):
             self._stream = self._port.createStream(self._sri)
 
         args = [data]
-        if not 'XML' in self._port.name:
+        if not self._isXML:
             if timestamp is None:
                 timestamp = bulkio.timestamp.now()
             args.append(timestamp)
