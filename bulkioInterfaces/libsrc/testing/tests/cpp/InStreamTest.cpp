@@ -22,6 +22,50 @@
 #include "bulkio.h"
 
 template <class Port>
+void InStreamTest<Port>::testTimestamp()
+{
+    // Create a new stream and push data with a known timestamp to it
+    BULKIO::StreamSRI sri = bulkio::sri::create("time_stamp");
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts = bulkio::time::utils::create(1520883276.8045831);
+    this->_pushTestPacket(16, ts, false, sri.streamID);
+
+    // Get the input stream and read the packet as a data block; it should
+    // contain exactly 1 timestamp, equal to the one that was pushed
+    StreamType stream = port->getStream("time_stamp");
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read();
+    CPPUNIT_ASSERT(block);
+    std::list<bulkio::SampleTimestamp> timestamps = block.getTimestamps();
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, timestamps.size());
+    CPPUNIT_ASSERT_EQUAL(ts, timestamps.begin()->time);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, timestamps.begin()->offset);
+    CPPUNIT_ASSERT_EQUAL(false, timestamps.begin()->synthetic);
+
+    // getStartTime() should always return the first timestamp
+    CPPUNIT_ASSERT_EQUAL(ts, block.getStartTime());
+}
+
+// Specialization for XML ports, which do not pass timestamp information
+template <>
+void InStreamTest<bulkio::InXMLPort>::testTimestamp()
+{
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create("time_stamp");
+    port->pushSRI(sri);
+    this->_pushTestPacket(16, bulkio::time::utils::notSet(), false, sri.streamID);
+
+    // Get the input stream and read the packet as a data block; it should not
+    // contain any timestamps
+    StreamType stream = port->getStream("time_stamp");
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read();
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, block.getTimestamps().size());
+    // Calling getStartTime() may seg fault, or otherwise behave unreliably
+}
+
+template <class Port>
 void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
 {
     // Create a new stream and push some data to it

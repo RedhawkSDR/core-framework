@@ -102,7 +102,11 @@ class InputStream(StreamBase):
 
         # Turn packet into a data block
         block = self._createBlock(packet.SRI, packet.buffer)
-        block.addTimestamp(packet.T)
+        # Only add a timestamp if one was given (XML does not include one in
+        # the CORBA interface, but passes a None to adapt to the common port
+        # implementation)
+        if packet.T is not None:
+            block.addTimestamp(packet.T)
         self._setBlockFlags(block, packet)
 
         # Update local SRI from packet

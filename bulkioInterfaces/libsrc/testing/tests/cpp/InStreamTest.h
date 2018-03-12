@@ -28,6 +28,7 @@ class InStreamTest : public InPortTestFixture<Port>
     typedef InPortTestFixture<Port> TestBase;
 
     CPPUNIT_TEST_SUITE(InStreamTest);
+    CPPUNIT_TEST(testTimestamp);
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
     CPPUNIT_TEST(testSriChanges);
@@ -35,6 +36,8 @@ class InStreamTest : public InPortTestFixture<Port>
     CPPUNIT_TEST_SUITE_END();
 
 public:
+    void testTimestamp();
+
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
     void testSriChanges();

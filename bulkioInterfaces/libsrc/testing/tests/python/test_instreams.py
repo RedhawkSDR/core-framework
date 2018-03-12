@@ -41,6 +41,28 @@ class InStreamTest(object):
         data = self.helper.createData(length)
         self.helper.pushPacket(self.port, data, time, eos, streamID)
 
+    def testTimestamp(self):
+        # Create a new stream and push data with a known timestamp to it
+        sri = bulkio.sri.create("time_stamp")
+        self.port.pushSRI(sri)
+        ts = bulkio.timestamp.create(1520883276.8045831)
+        self._pushTestPacket(16, ts, False, sri.streamID)
+
+        # Get the input stream and read the packet as a data block; it should
+        # contain exactly 1 timestamp, equal to the one that was pushed
+        stream = self.port.getStream("time_stamp")
+        self.failIf(not stream)
+        block = stream.read()
+        self.failIf(not block)
+        timestamps = block.getTimestamps()
+        self.assertEqual(1, len(timestamps))
+        self.assertEqual(ts, timestamps[0].time)
+        self.assertEqual(0, timestamps[0].offset)
+        self.assertEqual(False, timestamps[0].synthetic)
+
+        # getStartTime() should always return the first timestamp
+        self.assertEqual(ts, block.getStartTime())
+
     def testGetCurrentStreamEmptyEos(self):
         # Create a new stream and push some data to it
         sri = bulkio.sri.create("empty_eos")
@@ -463,11 +485,32 @@ class NumericInStreamTest(BufferedInStreamTest):
         self.assertEqual(0, ts[0].offset)
         self.assertAlmostEqual(16.0, ts[0].time - ts2)
 
+
+class InXMLStreamTest(InStreamTest, unittest.TestCase):
+    helper = XMLTestHelper()
+
+    def testTimestamp(self):
+        # Override for XML ports, which do not pass timestamp information
+        # Create a new stream and push some data to it
+        sri = bulkio.sri.create("time_stamp")
+        self.port.pushSRI(sri)
+        self._pushTestPacket(16, None, False, sri.streamID)
+
+        # Get the input stream and read the packet as a data block; it should
+        # not contain any timestamps
+        stream = self.port.getStream("time_stamp")
+        self.failIf(not stream)
+        block = stream.read()
+        self.failIf(not block)
+        timestamps = block.getTimestamps()
+        self.assertEqual(0, len(timestamps))
+
+        # Calling getStartTime() will throw an IndexError
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
 register_test('InBitStreamTest', BufferedInStreamTest, helper=BitTestHelper())
-register_test('InXMLStreamTest', InStreamTest, helper=XMLTestHelper())
 register_test('InFileStreamTest', InStreamTest, helper=FileTestHelper())
 register_test('InCharStreamTest', NumericInStreamTest, helper=CharTestHelper())
 register_test('InOctetStreamTest', NumericInStreamTest, helper=OctetTestHelper())

@@ -65,7 +65,8 @@ public:
             return DataBlockType();
         }
         DataBlockType block(packet->SRI, packet->buffer);
-        block.addTimestamp(packet->T);
+        // Add timestamp via a templatized method so that dataXML can omit it
+        _addTimestamp(block, packet->T);
         _setBlockFlags(block, *packet);
         // Update local SRI from packet
         StreamDescriptor::operator=(packet->SRI);
@@ -193,11 +194,26 @@ protected:
         }
     }
 
+    void _addTimestamp(DataBlockType& block, const BULKIO::PrecisionUTCTime& time)
+    {
+        block.addTimestamp(time);
+    }
+
     InPortType* _port;
     EosState _eosState;
     bool _enabled;
     bool _newstream;
 };
+
+namespace bulkio {
+    template <>
+    void InputStream<BULKIO::dataXML>::Impl::_addTimestamp(bulkio::StringDataBlock& block,
+                                                           const BULKIO::PrecisionUTCTime&)
+    {
+        // Discard the time stamp, which was created by the input port to adapt to
+        // the common template implementation
+    }
+}
 
 template <class PortType>
 InputStream<PortType>::InputStream() :
