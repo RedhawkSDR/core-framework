@@ -76,43 +76,100 @@ class StreamContainer(object):
     def append(self, block):
         self.blocks.append(block)
 
-    def ready(self):
-        return self.eos or bool(self.blocks)
+    def ready(self, size=None):
+        if self.eos:
+            return True
 
-    def get(self):
+        if size is None:
+            # No size given, any data is sufficient
+            size = 1
+
+        # Count up the block sizes until it exceeds the requested size, or we
+        # run out of blocks
+        count = 0
+        for block in self.blocks:
+            count += self._getBlockSize(block)
+            if count >= size:
+                return True
+        return False
+
+    def _mergeBlocks(self, data, blocks):
+        for block in blocks:
+            offset = len(data.data)
+            data.data += self._getBlockData(block)
+            if block.sriChanged or not data.sris:
+                data.sris.append(SRI(offset, block.sri))
+            for ts in block.getTimestamps():
+                data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
+
+    def get(self, size=None):
         if not self.blocks:
             if self.eos:
-                # Return an emtpy data object with EOS set so the called knows
+                # Return an empty data object with EOS set so the called knows
                 # that the stream ended (as opposed to just getting nothing
                 # back, and having to guess)
                 return StreamData([SRI(0, self.sri)], self._createEmpty(), [], True)
             return None
 
         # Combine block data into a single data object
-        data = self._createEmpty()
+        data = StreamData([], self._createEmpty(), [], False)
 
         # Aggregate block metadata
-        offset = 0
-        sris = []
-        timestamps = []
-        for block in self.blocks:
-            offset = len(data)
-            data += self._getBlockData(block)
-            if block.sriChanged or not sris:
-                sris.append(SRI(offset, block.sri))
-            for ts in block.getTimestamps():
-                timestamps.append(TimeStamp(ts.offset + offset, ts.time))
+        if size is None:
+            self._mergeBlocks(data, self.blocks)
 
-        # Discard references to blocks
-        self.blocks = []
+            # Discard references to blocks
+            self.blocks = []
+        else:
+            # Count up the data from each block to identify the last block
+            # needed to get enough data
+            count = 0
+            for index in xrange(len(self.blocks)):
+                count += self._getBlockSize(self.blocks[index])
+                if count >= size:
+                    break
+
+            # Merge all the blocks up to the last index
+            self._mergeBlocks(data, self.blocks[:index])
+
+            # Discard up to last used block
+            del self.blocks[:index]
+
+            if count == size:
+                # Exact size, merge in and discard the last block
+                self._mergeBlocks(data, self.blocks[0:1])
+                del self.blocks[:1]
+            else:
+                offset = len(data.data)
+                remain = size - offset
+                block = self.blocks[0]
+                chunk = self._getBlockData(block)
+                data.data += chunk[:remain]
+                if block.sriChanged or not data.sris:
+                    data.sris.append(SRI(offset, block.sri))
+                for ts in block.getTimestamps():
+                    if ts.offset < remain:
+                        data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
+
+                # TODO: save leftover block
 
         # Replace SRI with last known SRI
-        self.sri = sris[-1].sri
+        self.sri = data.sris[-1].sri
 
-        return StreamData(sris, data, timestamps, self.eos)
+        # Apply EOS flag if stream has ended and there is no saved data
+        if not self.blocks and self.eos:
+            data.eos = self.eos
+
+        return data
 
     def _createEmpty(self):
         return []
+
+    def _getBlockSize(self, block):
+        if block.complex:
+            return block.cxsize
+        else:
+            return block.size
 
     def _getBlockData(self, block):
         if block.complex:
@@ -124,6 +181,9 @@ class StringStreamContainer(StreamContainer):
     def __init__(self, sri):
         StreamContainer.__init__(self, sri)
 
+    def _getBlockSize(self, block):
+        return 1
+
     def _getBlockData(self, block):
         return [block.data]
 
@@ -133,6 +193,9 @@ class BitStreamContainer(StreamContainer):
 
     def _createEmpty(self):
         return bitbuffer()
+
+    def _getBlockSize(self, block):
+        return block.size
 
     def _getBlockData(self, block):
         return block.data
@@ -170,18 +233,20 @@ class StreamSink(SandboxHelper):
                     sris.append(stream.sri)
         return sris
 
-    def read(self, timeout=-1.0, streamID=None, eos=False):
+    def read(self, size=None, timeout=-1.0, streamID=None, eos=False):
         if eos:
+            if size is not None:
+                raise ValueError('size cannot be specified with eos')
             condition = lambda x: x.eos
         else:
-            condition = lambda x: x.ready()
+            condition = lambda x: x.ready(size)
 
         container = self._read(timeout, streamID, condition)
         if not container:
             return None
         if container.eos:
             self._removeStreamCache(container)
-        return container.get()
+        return container.get(size)
 
     def _read(self, timeout, streamID, condition):
         if timeout >= 0.0:
