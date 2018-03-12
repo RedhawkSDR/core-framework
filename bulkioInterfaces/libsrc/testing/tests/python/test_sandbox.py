@@ -219,6 +219,68 @@ class StreamSinkTest(unittest.TestCase):
         self.assertEqual(range(16), data.data)
         self.assertEqual((0, ts), data.timestamps[0])
 
+    def testTimeStamps(self):
+        # Create a sink and get a direct reference to a port, bypassing the
+        # normal sandbox connection logic
+        sink = bulkio.sandbox.StreamSink()
+        port = sink.getPort('charIn')
+        sb.start()
+
+        # Push a bunch of packets and remember the time stamps
+        sri = bulkio.sri.create('test_time_stamps')
+        port.pushSRI(sri)
+        expected = []
+        ts = bulkio.timestamp.now()
+        port.pushPacket('\x00'*16, ts, False, sri.streamID)
+        expected.append((0, ts))
+        ts = bulkio.timestamp.now()
+        port.pushPacket('\x00'*32, ts, False, sri.streamID)
+        expected.append((16, ts))
+        ts = bulkio.timestamp.now()
+        port.pushPacket('\x00'*16, ts, False, sri.streamID)
+        expected.append((48, ts))
+        port.pushPacket('', bulkio.timestamp.notSet(), True, sri.streamID)
+
+        # Read all of the data and check the timestamps against what was sent
+        data = sink.read(timeout=1.0, eos=True)
+        self.failIf(data is None)
+        self.assertEqual(3, len(data.timestamps))
+        for (exp_off, exp_ts), (act_off, act_ts) in zip(expected, data.timestamps):
+            self.assertEqual(exp_off, act_off)
+            self.assertEqual(exp_ts, act_ts)
+
+    def testTimeStampsComplex(self):
+        # Create a sink and get a direct reference to a port, bypassing the
+        # normal sandbox connection logic
+        sink = bulkio.sandbox.StreamSink()
+        port = sink.getPort('floatIn')
+        sb.start()
+
+        # Push a bunch of packets and remember the time stamps
+        sri = bulkio.sri.create('test_time_stamps_cx')
+        sri.mode = 1
+        port.pushSRI(sri)
+        expected = []
+        ts = bulkio.timestamp.now()
+        port.pushPacket([0] * 32, ts, False, sri.streamID)
+        expected.append((0, ts))
+        ts = bulkio.timestamp.now()
+        port.pushPacket([1] * 64, ts, False, sri.streamID)
+        # NB: The offset advances by the number of complex values, not the
+        # number of scalars
+        expected.append((16, ts))
+        ts = bulkio.timestamp.now()
+        port.pushPacket([22] * 32, ts, False, sri.streamID)
+        expected.append((48, ts))
+        port.pushPacket([], bulkio.timestamp.notSet(), True, sri.streamID)
+
+        data = sink.read(timeout=1.0, eos=True)
+        self.failIf(data is None)
+        self.assertEqual(3, len(data.timestamps))
+        for (exp_off, exp_ts), (act_off, act_ts) in zip(expected, data.timestamps):
+            self.assertEqual(exp_off, act_off)
+            self.assertEqual(exp_ts, act_ts)
+
     def testSriChanges(self):
         # Create a sink and get a direct reference to the float port, bypassing
         # the normal sandbox connection logic
