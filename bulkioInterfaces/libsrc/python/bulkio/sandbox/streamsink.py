@@ -76,33 +76,13 @@ class StreamContainer(object):
     def append(self, block):
         self.blocks.append(block)
 
-    def ready(self, size=None):
+    def ready(self):
         if self.eos:
             return True
+        else:
+            return bool(self.blocks)
 
-        if size is None:
-            # No size given, any data is sufficient
-            size = 1
-
-        # Count up the block sizes until it exceeds the requested size, or we
-        # run out of blocks
-        count = 0
-        for block in self.blocks:
-            count += self._getBlockSize(block)
-            if count >= size:
-                return True
-        return False
-
-    def _mergeBlocks(self, data, blocks):
-        for block in blocks:
-            offset = len(data.data)
-            data.data += self._getBlockData(block)
-            if block.sriChanged or not data.sris:
-                data.sris.append(SRI(offset, block.sri))
-            for ts in block.getTimestamps():
-                data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
-
-    def get(self, size=None):
+    def get(self):
         if not self.blocks:
             if self.eos:
                 # Return an empty data object with EOS set so the called knows
@@ -114,44 +94,17 @@ class StreamContainer(object):
         # Combine block data into a single data object
         data = StreamData([], self._createEmpty(), [], False)
 
-        # Aggregate block metadata
-        if size is None:
-            self._mergeBlocks(data, self.blocks)
+        # Aggregate block data and metadata
+        for block in self.blocks:
+            offset = len(data.data)
+            data.data += self._getBlockData(block)
+            if block.sriChanged or not data.sris:
+                data.sris.append(SRI(offset, block.sri))
+            for ts in block.getTimestamps():
+                data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
 
-            # Discard references to blocks
-            self.blocks = []
-        else:
-            # Count up the data from each block to identify the last block
-            # needed to get enough data
-            count = 0
-            for index in xrange(len(self.blocks)):
-                count += self._getBlockSize(self.blocks[index])
-                if count >= size:
-                    break
-
-            # Merge all the blocks up to the last index
-            self._mergeBlocks(data, self.blocks[:index])
-
-            # Discard up to last used block
-            del self.blocks[:index]
-
-            if count == size:
-                # Exact size, merge in and discard the last block
-                self._mergeBlocks(data, self.blocks[0:1])
-                del self.blocks[:1]
-            else:
-                offset = len(data.data)
-                remain = size - offset
-                block = self.blocks[0]
-                chunk = self._getBlockData(block)
-                data.data += chunk[:remain]
-                if block.sriChanged or not data.sris:
-                    data.sris.append(SRI(offset, block.sri))
-                for ts in block.getTimestamps():
-                    if ts.offset < remain:
-                        data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
-
-                # TODO: save leftover block
+        # Discard references to used blocks
+        self.blocks = []
 
         # Replace SRI with last known SRI
         self.sri = data.sris[-1].sri
@@ -233,20 +186,22 @@ class StreamSink(SandboxHelper):
                     sris.append(stream.sri)
         return sris
 
-    def read(self, size=None, timeout=-1.0, streamID=None, eos=False):
+    @property
+    def port(self):
+        return self._port
+
+    def read(self, timeout=-1.0, streamID=None, eos=False):
         if eos:
-            if size is not None:
-                raise ValueError('size cannot be specified with eos')
             condition = lambda x: x.eos
         else:
-            condition = lambda x: x.ready(size)
+            condition = lambda x: x.ready()
 
         container = self._read(timeout, streamID, condition)
         if not container:
             return None
         if container.eos:
             self._removeStreamCache(container)
-        return container.get(size)
+        return container.get()
 
     def _read(self, timeout, streamID, condition):
         if timeout >= 0.0:
