@@ -424,10 +424,12 @@ class ComponentHost(SandboxComponent):
 
 
 class LocalSandbox(Sandbox):
-    def __init__(self, sdrroot):
+    def __init__(self, sdrroot=None):
         super(LocalSandbox, self).__init__()
         self.__components = {}
         self.__services = {}
+        if not sdrroot:
+            sdrroot = os.environ['SDRROOT']
         self._sdrroot = LocalSdrRoot(sdrroot)
         self.__container = None
 
