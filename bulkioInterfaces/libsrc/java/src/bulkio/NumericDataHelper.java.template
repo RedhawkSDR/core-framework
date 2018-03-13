@@ -26,10 +26,6 @@ package bulkio;
 import java.util.Arrays;
 
 class @name@DataHelper implements DataHelper<@type@[]> {
-    public int elementSize() {
-        return @size@;
-    }
-
     public int bitSize() {
         return @size@ * 8;
     }

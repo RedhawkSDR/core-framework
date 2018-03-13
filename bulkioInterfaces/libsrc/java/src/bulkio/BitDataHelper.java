@@ -22,11 +22,6 @@ package bulkio;
 import java.util.Arrays;
 
 class BitDataHelper implements DataHelper<BULKIO.BitSequence> {
-    public int elementSize() {
-        // TODO: handle less than byte-sized elements
-        return 1;
-    }
-
     public int bitSize() {
         return 1;
     }

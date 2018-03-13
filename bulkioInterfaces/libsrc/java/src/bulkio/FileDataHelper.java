@@ -20,10 +20,6 @@
 package bulkio;
 
 class FileDataHelper implements DataHelper<String> {
-    public int elementSize() {
-        return 1;
-    }
-
     public int bitSize() {
         return 8;
     }

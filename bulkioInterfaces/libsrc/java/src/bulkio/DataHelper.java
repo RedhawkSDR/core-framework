@@ -20,7 +20,6 @@
 package bulkio;
 
 public interface DataHelper<E> {
-    int elementSize();
     int bitSize();
     E emptyArray();
     int arraySize(E data);

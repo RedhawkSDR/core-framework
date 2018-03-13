@@ -117,7 +117,7 @@ public class InPortImpl<A> {
     public InPortImpl(String portName, Logger logger, bulkio.sri.Comparator compareSRI, bulkio.SriListener sriCallback, DataHelper<A> helper) {
         this.name = portName;
         this.logger = logger;
-        this.stats = new linkStatistics(this.name, helper.elementSize());
+        this.stats = new linkStatistics(this.name, 1);
         // Update bit size from the helper, because element size does not take
         // sub-byte elements (i.e., dataBit) into account.
         this.stats.setBitSize(helper.bitSize());

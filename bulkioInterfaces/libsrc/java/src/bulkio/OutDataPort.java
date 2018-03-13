@@ -79,7 +79,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            linkStatistics stats = new linkStatistics(this.name, this.helper.elementSize());
+            linkStatistics stats = new linkStatistics(this.name, 1);
             // Update bit size from the helper, because element size does not
             // take sub-byte elements (i.e., dataBit) into account.
             stats.setBitSize(helper.bitSize());
