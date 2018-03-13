@@ -559,6 +559,124 @@ class StreamSinkTest(unittest.TestCase):
         self.assertEqual([data1, data2, data3], sink_data.data)
         self.assertEqual(0, len(sink_data.timestamps))
 
+    @format('double')
+    def testStreamIDs(self):
+        # Start with no streams
+        self.assertEqual([], self.sink.streamIDs())
+
+        # First stream
+        sri_1 = bulkio.sri.create('test_streamids_1')
+        self.port.pushSRI(sri_1)
+        self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_1.streamID)
+        self.assertEqual([sri_1.streamID], self.sink.streamIDs())
+
+        # Push a second stream; note that order is undefined, so we need to
+        # sort the stream IDs
+        sri_2 = bulkio.sri.create('test_streamids_2')
+        self.port.pushSRI(sri_2)
+        self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_2.streamID)
+        stream_ids = self.sink.streamIDs()
+        stream_ids.sort()
+        self.assertEqual([sri_1.streamID, sri_2.streamID], stream_ids)
+
+        # Send an end-of-stream packet for the first stream and read it all;
+        # only the second stream's ID should remain
+        self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_1.streamID)
+        data = self.sink.read(timeout=1.0, streamID=sri_1.streamID)
+        self.failIf(data is None)
+        self.failUnless(data.eos)
+        self.assertEqual([sri_2.streamID], self.sink.streamIDs())
+
+        # Read all the data from the second stream; it should still be active
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.failIf(data.eos)
+        self.assertEqual([sri_2.streamID], self.sink.streamIDs())
+
+        # Close out the second stream
+        self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_2.streamID)
+        self.assertEqual([sri_2.streamID], self.sink.streamIDs())
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.failUnless(data.eos)
+
+        # Should end up with no streams
+        self.assertEqual([], self.sink.streamIDs())
+
+    @format('ulonglong')
+    def testActiveSRIs(self):
+        # Start with no SRIs
+        self.assertEqual([], self.sink.activeSRIs())
+
+        # First stream
+        sri_1 = bulkio.sri.create('test_activesris_1')
+        sri_1.xdelta = 1.0
+        self.port.pushSRI(sri_1)
+        self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_1.streamID)
+        active_sris = self.sink.activeSRIs()
+        self.assertEqual(1, len(active_sris))
+        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+
+        # Push a second stream
+        sri_2 = bulkio.sri.create('test_streamids_2')
+        self.port.pushSRI(sri_2)
+        self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_2.streamID)
+
+        # Note that order is undefined, so we need to sort on the stream IDs
+        active_sris = self.sink.activeSRIs()
+        self._sortSRIs(active_sris)
+        self.assertEqual(2, len(active_sris))
+        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.failUnless(bulkio.sri.compare(sri_2, active_sris[1]))
+
+        # Send an end-of-stream for the second stream, but don't read it yet
+        self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_2.streamID)
+        active_sris = self.sink.activeSRIs()
+        self._sortSRIs(active_sris)
+        self.assertEqual(2, len(active_sris))
+        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.failUnless(bulkio.sri.compare(sri_2, active_sris[1]))
+
+        # Modify first SRI and push some more data; the active SRI should still
+        # have the original values (xdelta == 1.0)
+        sri_1.xdelta = 2.0
+        self.port.pushSRI(sri_1)
+        self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_1.streamID)
+        active_sris = self.sink.activeSRIs()
+        self._sortSRIs(active_sris)
+        self.assertEqual(2, len(active_sris))
+        self.assertEqual(1.0, active_sris[0].xdelta)
+
+        # Read all of the data from the first stream; afterwards, the active
+        # SRI should have the updated values
+        data = self.sink.read(timeout=1.0, streamID=sri_1.streamID)
+        self.failIf(data is None)
+        active_sris = self.sink.activeSRIs()
+        self._sortSRIs(active_sris)
+        self.assertEqual(2, len(active_sris))
+        self.assertEqual(2.0, active_sris[0].xdelta)
+
+        # Acknowledge the end-of-stream for the second stream, and make sure it
+        # no longer shows up in the active SRIs
+        data = self.sink.read(timeout=1.0, streamID=sri_2.streamID)
+        self.failIf(data is None)
+        self.failUnless(data.eos)
+        active_sris = self.sink.activeSRIs()
+        self.assertEqual(1, len(active_sris))
+        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+
+        # Close out the first stream and make sure there are no more active
+        # SRIs
+        self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_1.streamID)
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.failUnless(data.eos)
+        self.assertEqual([], self.sink.activeSRIs())
+
+    def _sortSRIs(self, sris):
+        # Sorts a list of SRIs by stream ID
+        sris.sort(cmp=lambda x,y: cmp(x.streamID, y.streamID))
+
 if __name__ == '__main__':
     import runtests
     runtests.main()

@@ -83,18 +83,8 @@ class StreamContainer(object):
             return bool(self.blocks)
 
     def get(self):
-        if not self.blocks:
-            if self.eos:
-                # Return an empty data object with EOS set so the called knows
-                # that the stream ended (as opposed to just getting nothing
-                # back, and having to guess)
-                return StreamData([SRI(0, self.sri)], self._createEmpty(), [], True)
-            return None
-
-        # Combine block data into a single data object
-        data = StreamData([], self._createEmpty(), [], False)
-
-        # Aggregate block data and metadata
+        # Combine blocks' data and metadata into a single data object
+        data = StreamData([], self._createEmpty(), [], self.eos)
         for block in self.blocks:
             offset = len(data.data)
             data.data += self._getBlockData(block)
@@ -103,15 +93,10 @@ class StreamContainer(object):
             for ts in block.getTimestamps():
                 data.timestamps.append(TimeStamp(ts.offset + offset, ts.time))
 
-        # Discard references to used blocks
-        self.blocks = []
-
-        # Replace SRI with last known SRI
-        self.sri = data.sris[-1].sri
-
-        # Apply EOS flag if stream has ended and there is no saved data
-        if not self.blocks and self.eos:
-            data.eos = self.eos
+        # In the event that there were no blocks (which can only happen in the
+        # case of an end-of-stream with no data), add the saved SRI
+        if not data.sris:
+            data.sris = [SRI(0, self.sri)]
 
         return data
 
@@ -179,12 +164,12 @@ class StreamSink(SandboxHelper):
             self._cacheClass = StringStreamContainer
 
     def activeSRIs(self):
-        sris = [c.sri for c in self._cachedStreams.itervalues()]
+        sri_list = [c.sri for c in self._cachedStreams.itervalues()]
         if self._port:
             for stream in self._port.getStreams():
                 if stream.streamID not in self._cachedStreams:
-                    sris.append(stream.sri)
-        return sris
+                    sri_list.append(stream.sri)
+        return sri_list
 
     @property
     def port(self):
@@ -199,8 +184,9 @@ class StreamSink(SandboxHelper):
         container = self._read(timeout, streamID, condition)
         if not container:
             return None
-        if container.eos:
-            self._removeStreamCache(container)
+        # The read consumes all cached data for the stream, so we can discard
+        # the cache object
+        self._removeStreamCache(container)
         return container.get()
 
     def _read(self, timeout, streamID, condition):
