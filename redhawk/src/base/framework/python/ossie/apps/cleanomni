@@ -86,7 +86,8 @@ if __name__ == '__main__':
     retval=commands.getstatusoutput('rm -rf /var/log/omniORB/*')
     if options.verbose:
         print "Removing omniEvents log"
-    retval=commands.getstatusoutput('rm -rf /var/lib/omniEvents/*')
+    retval=commands.getstatusoutput('[ -d /var/lib/omniEvents ] && rm -rf /var/lib/omniEvents/*')
+    retval=commands.getstatusoutput('[ -d /var/log/omniEvents ] && rm -rf /var/log/omniEvents/*')
     if options.verbose:
         print "Starting omniNames"
     retval=os.system('/sbin/service omniNames start')
