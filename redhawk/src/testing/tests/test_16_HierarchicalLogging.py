@@ -36,6 +36,10 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         # or failures will probably occur.
         redhawk.core._cleanUpLaunchedApps()
         scatest.CorbaTestCase.tearDown(self)
+        try:
+            os.remove('sdr/dom/waveforms/logger_overload_w/tmp.sad.xml')
+        except:
+            pass
         # need to let event service clean up event channels
         # cycle period is 10 milliseconds
         time.sleep(0.1)
@@ -60,7 +64,14 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         # Automatically clean up
         redhawk.setTrackApps(True)
         # Create Application from $SDRROOT path
-        app_1 = self._rhDom.createApplication("/waveforms/logger_overload_w/logger_overload_w.sad.xml")
+        fp = open('sdr/dom/waveforms/logger_overload_w/logger_overload_w.sad.xml','r')
+        sad_contents = fp.read()
+        fp.close()
+        sad_contents = sad_contents.replace('@@@CWD@@@', os.getcwd())
+        fp = open('sdr/dom/waveforms/logger_overload_w/tmp.sad.xml','w')
+        fp.write(sad_contents)
+        fp.close()
+        app_1 = self._rhDom.createApplication("/waveforms/logger_overload_w/tmp.sad.xml")
         self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
         loggers_1 = app_1.getNamedLoggers()
         app_2 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
@@ -647,6 +658,10 @@ class CppDeviceHierarchicalDomainLogging(scatest.CorbaTestCase):
         # need to let event service clean up event channels
         # cycle period is 10 milliseconds
         time.sleep(0.1)
+        try:
+            os.remove('sdr/dev/nodes/log_test_cpp_override_node/tmp.dcd.xml')
+        except:
+            pass
 
     def test_devMgr_cpp_access(self):
         self.cname = "log_test_cpp"
@@ -741,6 +756,33 @@ class CppDeviceHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.namespace.lower'))
         self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.user.more_stuff'))
         self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.user.some_stuff'))
+
+    def test_devMgr_overload(self):
+        fp = open('sdr/dev/nodes/log_test_cpp_override_node/DeviceManager.dcd.xml','r')
+        dcd_contents = fp.read()
+        fp.close()
+        dcd_contents = dcd_contents.replace('@@@CWD@@@', os.getcwd())
+        fp = open('sdr/dev/nodes/log_test_cpp_override_node/tmp.dcd.xml','w')
+        fp.write(dcd_contents)
+        fp.close()
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/log_test_cpp_override_node/tmp.dcd.xml')
+        devBooter_2, self._devMgr_2 = self.launchDeviceManager('/nodes/log_test_cpp_node/DeviceManager.dcd.xml')
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 2)
+        # Create Application from $SDRROOT path
+        _devMgr_o = None
+        _devMgr = None
+        for _d in self._rhDom.devMgrs:
+            if _d.name == 'log_test_cpp_override_node':
+                _devMgr_o = _d
+            if _d.name == 'log_test_cpp_node':
+                _devMgr = _d
+        self.assertNotEqual(_devMgr, None)
+        self.assertNotEqual(_devMgr_o, None)
+        self.assertEquals(_devMgr_o.getLogLevel('log_test_cpp_1'), 40000)
+        self.assertEquals(_devMgr_o.getLogLevel('log_test_cpp_2'), 30000)
+        self.assertEquals(_devMgr.getLogLevel('log_test_cpp_1'), 40000)
+        self.assertEquals(_devMgr.getLogLevel('log_test_cpp_2'), 40000)
 
 if __name__ == "__main__":
   # Run the unittests
