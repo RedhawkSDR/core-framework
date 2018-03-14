@@ -119,6 +119,10 @@ class StreamSource(SandboxHelper):
         """
         return self._sri.streamID
 
+    @property
+    def port(self):
+        return self._port
+
     def _setStreamMetadata(self, attr, value):
         # This method is required by the proxied setters from the output stream
         # class; it just needs to update the local copy of the SRI
