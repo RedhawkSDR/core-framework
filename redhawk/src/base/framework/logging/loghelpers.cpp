@@ -1109,20 +1109,22 @@ namespace ossie {
           fname = _saveConfig(fileContents );
         }
 
-        if ( ptype == XML_PROPS ) {
-          STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
-          log4cxx::xml::DOMConfigurator::configure(fname);
-        }
-        else {
-          STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
-          log4cxx::helpers::Properties  props;
-          // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
-          log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
-          props.load(is);
-          STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
-          log4cxx::PropertyConfigurator::configure(props);
-
-          if (saveTemp)  boost::filesystem::remove(fname);
+        if (not log4cxx::Logger::getRootLogger()->getLoggerRepository()->isConfigured()) {
+            if ( ptype == XML_PROPS ) {
+                STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
+                log4cxx::xml::DOMConfigurator::configure(fname);
+            } else {
+                STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
+                log4cxx::helpers::Properties  props;
+                // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
+                log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
+                props.load(is);
+                STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
+                log4cxx::PropertyConfigurator::configure(props);
+                if (saveTemp) {
+                    boost::filesystem::remove(fname);
+                }
+            }
         }
 
         cfgContents = fileContents;

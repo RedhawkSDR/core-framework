@@ -257,7 +257,9 @@ namespace rh_logger {
     //
     static LoggerPtr getLogger( const std::string &name );
     static LoggerPtr getLogger( const char *name );
+    static LoggerPtr getNewHierarchy( const std::string &name );
 
+    virtual LoggerPtr getInstanceLogger( const std::string &name );
     LoggerPtr getChildLogger( const std::string &logname, const std::string &ns=USER_LOGS );
 
     static LoggerPtr getResourceLogger( const std::string &name );
@@ -316,6 +318,8 @@ namespace rh_logger {
     //
     virtual void appendLogRecord( const LogRecord &rec);
     virtual void appendLogRecord( const LevelPtr &level, const std::string &msg);
+
+    virtual void configureLogger(const std::string &configuration);
 
     //
     //  Set the logging event history limit

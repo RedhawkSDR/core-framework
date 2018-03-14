@@ -41,6 +41,33 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         time.sleep(0.1)
         redhawk.setTrackApps(False)
 
+    def test_logconfiguri_application(self):
+        self.cname = "logger"
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app_1 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml", initConfiguration={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
+        self.assertEquals(app_1.getLogLevel('logger_1'), 30000)
+        self.assertEquals(app_1.getLogLevel('logger_2'), 20000)
+        loggers_1 = app_1.getNamedLoggers()
+        app_2 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
+        loggers_2 = app_2.getNamedLoggers()
+        self.assertEquals(app_1.getLogLevel('logger_1'), 30000)
+        self.assertEquals(app_2.getLogLevel('logger_1'), 20000)
+
+    def test_logconfiguri_overload(self):
+        self.cname = "logger"
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app_1 = self._rhDom.createApplication("/waveforms/logger_overload_w/logger_overload_w.sad.xml")
+        self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
+        loggers_1 = app_1.getNamedLoggers()
+        app_2 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
+        loggers_2 = app_2.getNamedLoggers()
+        self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
+        self.assertEquals(app_2.getLogLevel('logger_1'), 20000)
+
     def test_application_cpp_access(self):
         self.cname = "logger"
         self.applicationAccess("/waveforms/logger_w/logger_w.sad.xml")
@@ -301,9 +328,10 @@ def selective_log_setting(_obj):
     count_test = test_content.count('message from baseline_2_logger')
     count_newline = test_content.count('\n')
     count_log4cxx_test = test_content.count('this is the log4cxx logger')
+    count_java_eventchannel_messages = test_content.count('Unable to resolve EventChannelManager')
     count_logger_test = logger_test_content.count('message from namespaced_logger')
     count_logger_newline = logger_test_content.count('\n')
-    _obj.assertEquals(count_test, count_newline-count_log4cxx_test)
+    _obj.assertEquals(count_test, count_newline-count_log4cxx_test-count_java_eventchannel_messages)
     _obj.assertEquals(count_logger_test, count_logger_newline)
 
 class PyHierarchicalLogging(scatest.CorbaTestCase):
@@ -462,6 +490,257 @@ class CppHierarchicalLogging(scatest.CorbaTestCase):
 
     def test_selective_log_setting(self):
         selective_log_setting(self)
+
+@scatest.requireLog4cxx
+class CppDeviceHierarchicalLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        self.cname = "log_test_cpp"
+
+    def readLogFile(self, filename):
+        fp = open(filename,'r')
+        stuff = fp.read()
+        return stuff
+
+    def tearDown(self):
+        sb.release()
+
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        try:
+            os.remove('logger_test.log')
+        except:
+            pass
+
+        # Try to clean up the event channel, if it was created
+        context = None
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def test_cpp_dev_all_log_levels(self):
+        all_log_levels(self)
+
+    def test_cpp_dev_reset_logger(self):
+        reset_logger(self)
+
+    def test_cpp_dev_single_log_level(self):
+        single_log_level(self)
+
+    def test_cpp_dev_selective_log_setting(self):
+        selective_log_setting(self)
+
+@scatest.requireJava
+class JavaDeviceHierarchicalLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        self.cname = "log_test_java"
+
+    def readLogFile(self, filename):
+        fp = open(filename,'r')
+        stuff = fp.read()
+        return stuff
+
+    def tearDown(self):
+        sb.release()
+
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        try:
+            os.remove('logger_test.log')
+        except:
+            pass
+
+        # Try to clean up the event channel, if it was created
+        context = None
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def test_java_dev_all_log_levels(self):
+        all_log_levels(self)
+
+    def test_java_dev_reset_logger(self):
+        reset_logger(self)
+
+    def test_java_dev_single_log_level(self):
+        single_log_level(self)
+
+    def test_java_dev_selective_log_setting(self):
+        selective_log_setting(self)
+
+class PyDeviceHierarchicalLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        self.cname = "log_test_py"
+
+    def readLogFile(self, filename):
+        fp = open(filename,'r')
+        stuff = fp.read()
+        return stuff
+
+    def tearDown(self):
+        sb.release()
+
+        try:
+            os.remove('foo/bar/test.log')
+        except:
+            pass
+        try:
+            os.rmdir('foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('foo')
+        except:
+            pass
+        try:
+            os.remove('logger_test.log')
+        except:
+            pass
+
+        # Try to clean up the event channel, if it was created
+        context = None
+
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+
+    def test_py_dev_all_log_levels(self):
+        all_log_levels(self)
+
+    def test_py_dev_reset_logger(self):
+        reset_logger(self)
+
+    def test_py_dev_single_log_level(self):
+        single_log_level(self)
+
+    def test_py_dev_selective_log_setting(self):
+        selective_log_setting(self)
+
+@scatest.requireLog4cxx
+class CppDeviceHierarchicalDomainLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    def test_devMgr_cpp_access(self):
+        self.cname = "log_test_cpp"
+        self.devMgrAccess("/nodes/log_test_cpp_node/DeviceManager.dcd.xml")
+
+    def test_devMgr_py_access(self):
+        self.cname = "log_test_py"
+        self.devMgrAccess("/nodes/log_test_py_node/DeviceManager.dcd.xml")
+
+    @scatest.requireJava
+    def test_devMgr_java_access(self):
+        self.cname = "log_test_java"
+        self.devMgrAccess("/nodes/log_test_java_node/DeviceManager.dcd.xml")
+
+    def devMgrAccess(self, dcdfile):
+        devBooter, self._devMgr = self.launchDeviceManager(dcdfile)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        # Create Application from $SDRROOT path
+        devMgr = self._rhDom.devMgrs[0]
+        loggers = devMgr.getNamedLoggers()
+
+        orig_loggers = {}
+        orig_loggers[self.cname+'_1'] = devMgr.getLogLevel(self.cname+'_1')
+        orig_loggers[self.cname+'_1.lower'] = devMgr.getLogLevel(self.cname+'_1.lower')
+        orig_loggers[self.cname+'_1.namespace.lower'] = devMgr.getLogLevel(self.cname+'_1.namespace.lower')
+        orig_loggers[self.cname+'_1.user.more_stuff'] = devMgr.getLogLevel(self.cname+'_1.user.more_stuff')
+        orig_loggers[self.cname+'_1.user.some_stuff'] = devMgr.getLogLevel(self.cname+'_1.user.some_stuff')
+
+        self.assertTrue(self.cname+'_1' in loggers)
+        self.assertTrue(self.cname+'_1.lower' in loggers)
+        self.assertTrue(self.cname+'_1.namespace.lower' in loggers)
+        self.assertTrue(self.cname+'_1.system.PortSupplier' in loggers)
+        self.assertTrue(self.cname+'_1.system.PropertySet' in loggers)
+        self.assertTrue(self.cname+'_1.system.Resource' in loggers)
+        self.assertTrue(self.cname+'_1.user.more_stuff' in loggers)
+        self.assertTrue(self.cname+'_1.user.some_stuff' in loggers)
+
+        self.assertTrue(self.cname+'_2' in loggers)
+        self.assertTrue(self.cname+'_2.lower' in loggers)
+        self.assertTrue(self.cname+'_2.namespace.lower' in loggers)
+        self.assertTrue(self.cname+'_2.system.PortSupplier' in loggers)
+        self.assertTrue(self.cname+'_2.system.PropertySet' in loggers)
+        self.assertTrue(self.cname+'_2.system.Resource' in loggers)
+        self.assertTrue(self.cname+'_2.user.more_stuff' in loggers)
+        self.assertTrue(self.cname+'_2.user.some_stuff' in loggers)
+
+        self.assertRaises(CF.UnknownIdentifier, devMgr.setLogLevel, self.cname+'_1.foo', 'all')
+        self.assertRaises(CF.UnknownIdentifier, devMgr.getLogLevel, self.cname+'_1.foo')
+
+        devMgr.setLogLevel(self.cname+'_1', 'all')
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.more_stuff'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.some_stuff'), CF.LogLevels.ALL)
+        devMgr.setLogLevel(self.cname+'_1', 'off')
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1'), CF.LogLevels.OFF)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.lower'), CF.LogLevels.OFF)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.namespace.lower'), CF.LogLevels.OFF)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.more_stuff'), CF.LogLevels.OFF)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.some_stuff'), CF.LogLevels.OFF)
+
+        # break the level inheritance
+        devMgr.setLogLevel(self.cname+'_1.user', 'trace')
+        devMgr.setLogLevel(self.cname+'_1', 'all')
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.lower'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.namespace.lower'), CF.LogLevels.ALL)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.more_stuff'), CF.LogLevels.TRACE)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.some_stuff'), CF.LogLevels.TRACE)
+
+        # set the log with a value rather than the string
+        devMgr.setLogLevel(self.cname+'_1', CF.LogLevels.DEBUG)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1'), CF.LogLevels.DEBUG)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.lower'), CF.LogLevels.DEBUG)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.namespace.lower'), CF.LogLevels.DEBUG)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.more_stuff'), CF.LogLevels.TRACE)
+        self.assertEquals(devMgr.getLogLevel(self.cname+'_1.user.some_stuff'), CF.LogLevels.TRACE)
+
+        devMgr.resetLog()
+        self.assertEquals(orig_loggers[self.cname+'_1'], devMgr.getLogLevel(self.cname+'_1'))
+        self.assertEquals(orig_loggers[self.cname+'_1.lower'], devMgr.getLogLevel(self.cname+'_1.lower'))
+        self.assertEquals(orig_loggers[self.cname+'_1.namespace.lower'], devMgr.getLogLevel(self.cname+'_1.namespace.lower'))
+        self.assertEquals(orig_loggers[self.cname+'_1.user.more_stuff'], devMgr.getLogLevel(self.cname+'_1.user.more_stuff'))
+        self.assertEquals(orig_loggers[self.cname+'_1.user.some_stuff'], devMgr.getLogLevel(self.cname+'_1.user.some_stuff'))
+
+        # verify that inheritance is re-established
+        devMgr.setLogLevel(self.cname+'_1', 'all')
+        self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1'))
+        self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.lower'))
+        self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.namespace.lower'))
+        self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.user.more_stuff'))
+        self.assertEquals(CF.LogLevels.ALL, devMgr.getLogLevel(self.cname+'_1.user.some_stuff'))
 
 if __name__ == "__main__":
   # Run the unittests

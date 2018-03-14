@@ -27,6 +27,7 @@
 
 #ifdef HAVE_LOG4CXX
 #include <log4cxx/logger.h>
+#include <log4cxx/hierarchy.h>
 #include <log4cxx/level.h>
 #include <log4cxx/logstring.h>
 #include <log4cxx/patternlayout.h>
@@ -43,16 +44,35 @@ namespace rh_logger {
   log4cxx::LevelPtr ConvertRHLevelToLog4 ( rh_logger::LevelPtr rh_level );
   rh_logger::LevelPtr ConvertLog4ToRHLevel ( log4cxx::LevelPtr l4_level );
 
+  class L4Hierarchy : public log4cxx::Hierarchy {
+  public:
+      L4Hierarchy(const std::string &name) : log4cxx::Hierarchy() {
+          _name = name;
+      };
+      void resetConfiguration() {
+          log4cxx::Hierarchy::resetConfiguration();
+      };
+      std::string _name;
+  };
+
   class L4Logger : public Logger {
+  private:
+    //typedef boost::shared_ptr< L4Hierarchy > L4HierarchyPtr;
+    //typedef boost::shared_ptr< log4cxx::Hierarchy > L4HierarchyPtr;
+    typedef log4cxx::helpers::ObjectPtrT<L4Hierarchy> L4HierarchyPtr;
 
   public:
 
     static  LoggerPtr  getRootLogger( );
     static  LoggerPtr  getLogger( const std::string &name );
+    LoggerPtr getInstanceLogger( const std::string &name );
     static  LoggerPtr  getLogger( const char *name );
+    static  LoggerPtr  getLogger( const std::string &name, bool newroot );
 
     virtual ~L4Logger() {}
     
+    L4Logger( const std::string &name, L4HierarchyPtr hierarchy );
+
     L4Logger( const std::string &name );
 
     L4Logger( const char *name );
@@ -80,13 +100,27 @@ namespace rh_logger {
 
     void* getUnderlyingLogger();
 
+    L4HierarchyPtr getRootHierarchy() {
+        return _rootHierarchy;
+    };
+
+    void setHierarchy(L4HierarchyPtr hierarchy) {
+        _rootHierarchy = hierarchy;
+    };
+
+    void configureLogger(const std::string &configuration);
+
   private:
 
     log4cxx::LoggerPtr  l4logger;
 
     typedef boost::shared_ptr< L4Logger > L4LoggerPtr;
 
-    static L4LoggerPtr   _rootLogger;
+    static L4LoggerPtr _rootLogger;
+
+    log4cxx::LoggerPtr _instanceRootLogger;
+    L4HierarchyPtr _rootHierarchy;
+    log4cxx::PropertyConfigurator prop_conf;
 
     uint32_t               _error_count;
   };

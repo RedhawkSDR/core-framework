@@ -253,6 +253,7 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     container(0),
     appComponent(0)
 {
+    std::string sadLoggingConfig;
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
     if (softpkg->getProperties()) {
@@ -262,6 +263,13 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                 if (override.getID() == "LOGGING_CONFIG_URI") {
                     // It's legal to override the logging configuration, even
                     // if it isn't defined in the PRF
+                    const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&override);
+                    if ( ref ) {
+                        CORBA::Any logging_any;
+                        logging_any <<= ref->getValue();
+                        overrideProperty("LOGGING_CONFIG_URI", logging_any);
+                        sadLoggingConfig = ref->getValue();
+                    }
                 } else {
                     RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override property "
                               << override.getID() << " that does not exist in component");
@@ -276,6 +284,11 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     
     
     ComponentInstantiation::LoggingConfig lcfg = instantiation->getLoggingConfig();
+    // if a LOGGING_CONFIG_URI was provided in the SAD file, override the one from the component's profile
+    if (not sadLoggingConfig.empty()) {
+        lcfg.first = sadLoggingConfig;
+        lcfg.second.clear();
+    }
     if ( !lcfg.first.empty() ){
         RH_NL_TRACE("ApplicationFactory_impl", "Logging Config: <" << lcfg.first << ">" );
         loggingConfig["LOGGING_CONFIG_URI"] = lcfg.first;
@@ -465,6 +478,7 @@ redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
 redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
 {
    redhawk::PropertyMap properties;
+   bool has_LOGGING_CONFIG_URI = false;
    if (softpkg->getProperties()) {
        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
            if (property->isExecParam()) {
@@ -476,10 +490,22 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
            } else if (!(property->isProperty() && property->isCommandLine())) {
                continue;
            }
+           std::string property_id = property->getID();
+           if (property_id == "LOGGING_CONFIG_URI") {
+               has_LOGGING_CONFIG_URI = true;
+           }
            CF::DataType dt = getPropertyValue(property);
            if (!ossie::any::isNull(dt.value)) {
                properties.push_back(dt);
            }
+       }
+   }
+   if (not has_LOGGING_CONFIG_URI) {
+       if (overrides.find("LOGGING_CONFIG_URI") != overrides.end()) {
+           CF::DataType dt;
+           dt.id = CORBA::string_dup("LOGGING_CONFIG_URI");
+           dt.value <<= overrides["LOGGING_CONFIG_URI"].toString().c_str();
+           properties.push_back(dt);
        }
    }
 

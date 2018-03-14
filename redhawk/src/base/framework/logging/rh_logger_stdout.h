@@ -34,6 +34,7 @@ namespace rh_logger {
 
     static  LoggerPtr  getRootLogger( );
     static  LoggerPtr  getLogger( const std::string &name );
+    LoggerPtr getInstanceLogger( const std::string &name );
     static  LoggerPtr  getLogger( const char *name );
 
     virtual ~StdOutLogger() {}
@@ -55,6 +56,8 @@ namespace rh_logger {
     bool isLoggerInHierarchy(const std::string& search_name);
 
     void* getUnderlyingLogger();
+
+    virtual void configureLogger(const std::string &configuration);
 
   protected:
 

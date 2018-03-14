@@ -26,6 +26,12 @@
 
 #ifdef HAVE_LOG4CXX
 #include <fstream>
+#include <log4cxx/propertyconfigurator.h>
+#include <log4cxx/helpers/bytearrayinputstream.h>
+#include <log4cxx/helpers/properties.h>
+#include <log4cxx/stream.h>
+#include "StringInputStream.h"
+#include <memory>
 #endif 
 
 // internal logging classes for std::out and log4cxx
@@ -370,6 +376,10 @@ namespace rh_logger {
       return _rsc_logger_name;
   }
 
+  LoggerPtr Logger::getInstanceLogger( const std::string &name ) {
+    return this->getLogger(name);
+  }
+
   LoggerPtr Logger::getLogger( const std::string &name ) {
     STDOUT_DEBUG( "RH_LOGGER getLogger  BEGIN ");
     LoggerPtr ret;
@@ -380,14 +390,41 @@ namespace rh_logger {
       ret = StdOutLogger::getLogger( name );
 #endif
       if ( ret->getLevel() ) {
-	STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
       }
       else{
-	STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
       }
     }
     else  {
       ret = getRootLogger();
+    }
+    STDOUT_DEBUG( "RH_LOGGER getLogger  END ");
+    return ret;
+  }
+
+  LoggerPtr Logger::getNewHierarchy( const std::string &name ) {
+    STDOUT_DEBUG( "RH_LOGGER getLogger  BEGIN ");
+    LoggerPtr ret;
+    if ( name != "" ) {
+#ifdef HAVE_LOG4CXX
+      ret = L4Logger::getLogger( name, true );
+#else
+      ret = StdOutLogger::getLogger( name );
+#endif
+      if ( ret->getLevel() ) {
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
+      }
+      else{
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
+      }
+    }
+    else  {
+#ifdef HAVE_LOG4CXX
+      ret = L4Logger::getLogger( name, true );
+#else
+      ret = getRootLogger();
+#endif
     }
     STDOUT_DEBUG( "RH_LOGGER getLogger  END ");
     return ret;
@@ -405,7 +442,15 @@ namespace rh_logger {
         _full_name = name+"."+ns+"."+logname;
     else
         _full_name = name+"."+logname;
+#ifdef HAVE_LOG4CXX
+    L4Logger* _this = (L4Logger*)this;
+    LoggerPtr tmp = _this->getInstanceLogger(_full_name);
+    L4Logger* tmpl4 = (L4Logger*)(tmp.get());
+    tmpl4->setHierarchy(_this->getRootHierarchy());
+    return tmp;
+#else
     return getLogger(_full_name);
+#endif
   }
 
   void Logger::setLevel ( const LevelPtr &newLevel ) {
@@ -546,6 +591,12 @@ namespace rh_logger {
     return  log_records;
   }
 
+  void Logger::configureLogger(const std::string &configuration) {
+  }
+
+  void StdOutLogger::configureLogger(const std::string &configuration) {
+  }
+
   bool Logger::isLoggerInHierarchy(const std::string& search_name) {
     std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
     for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
@@ -648,6 +699,11 @@ namespace rh_logger {
       std::vector<std::string> ret;
       ret.push_back(name);
       return ret;
+  }
+
+
+  LoggerPtr StdOutLogger::getInstanceLogger( const std::string &name ) {
+    return this->getLogger(name);
   }
 
   LoggerPtr StdOutLogger::getLogger( const std::string &name ) {
@@ -777,18 +833,43 @@ namespace rh_logger {
     if ( !_rootLogger ) {
       _rootLogger = L4LoggerPtr( new L4Logger("") );
       _rootLogger->l4logger = log4cxx::Logger::getRootLogger();
-     LevelPtr l= _rootLogger->getLevel();
+      LevelPtr l= _rootLogger->getLevel();
     }
     STDOUT_DEBUG(  " L4Logger  getRootLogger:  END ");
     return _rootLogger;
   }
 
+  LoggerPtr L4Logger::getInstanceLogger( const std::string &name ) {
+    LoggerPtr ret;
+    ret = LoggerPtr(new L4Logger( name, this->_rootHierarchy ));
+    return ret;
+  }
+
+  void L4Logger::configureLogger(const std::string &configuration) {
+    log4cxx::helpers::Properties  props;
+    log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( configuration ) );
+    props.load(is);
+    this->_rootHierarchy->resetConfiguration();
+    log4cxx::spi::LoggerRepositoryPtr log_repo = this->_rootHierarchy;
+    prop_conf.doConfigure(props, log_repo);
+  }
+
   LoggerPtr L4Logger::getLogger( const std::string &name ) {
+    return getLogger(name, false);
+  }
+
+  LoggerPtr L4Logger::getLogger( const std::string &name, bool newroot ) {
     STDOUT_DEBUG(  " L4Logger::getLogger:  BEGIN name: " << name  );
 
     LoggerPtr ret;
     if ( name != "" ) {
-      ret = LoggerPtr( new L4Logger( name ) );
+      if (newroot) {
+        //L4HierarchyPtr tmpHierarchy(new log4cxx::Hierarchy());
+        L4HierarchyPtr tmpHierarchy(new L4Hierarchy(name));
+        ret = LoggerPtr( new L4Logger( name, tmpHierarchy ) );
+      } else {
+        ret = LoggerPtr( new L4Logger( name ) );
+      }
       if ( ret->getLevel() )  {
 	STDOUT_DEBUG(  " L4Logger::getLogger: name /level " << ret->getName()  <<  "/" << ret->getLevel()->toString() );
       }
@@ -814,7 +895,15 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
-    //_error_count = 0;
+  }
+
+  L4Logger::L4Logger( const std::string &name, L4HierarchyPtr hierarchy ) : 
+    Logger(name),
+    l4logger()
+  {
+    _instanceRootLogger = hierarchy->getRootLogger();
+    l4logger = hierarchy->getLogger(name);
+    _rootHierarchy = hierarchy;
   }
 
   L4Logger::L4Logger( const char *name ) :
@@ -822,7 +911,6 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
-    // _error_count = 0;
   }
 
   void L4Logger::setLevel ( const rh_logger::LevelPtr &newLevel ) {
@@ -840,8 +928,7 @@ namespace rh_logger {
   }
 
   bool L4Logger::isLoggerInHierarchy(const std::string& search_name) {
-    log4cxx::spi::LoggerRepositoryPtr repo = log4cxx::Logger::getRootLogger()->getLoggerRepository();
-    log4cxx::LoggerList list = repo->getCurrentLoggers();
+    log4cxx::LoggerList list = _rootHierarchy->getCurrentLoggers();
     for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
         std::string _name((*it)->getName());
         size_t _idx = _name.find(name);
@@ -868,8 +955,7 @@ namespace rh_logger {
 
   std::vector<std::string> L4Logger::getNamedLoggers() {
     std::vector<std::string> ret;
-    log4cxx::spi::LoggerRepositoryPtr repo = log4cxx::Logger::getRootLogger()->getLoggerRepository();
-    log4cxx::LoggerList list = repo->getCurrentLoggers();
+    log4cxx::LoggerList list = _rootHierarchy->getCurrentLoggers();
     for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
         std::string _name((*it)->getName());
         size_t _idx = _name.find(name);

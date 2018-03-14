@@ -268,7 +268,7 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
     ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, identifier, dpath ) );
     ossie::logging::Configure(logging_config_uri, debug_level, ctx);
 
-    std::string logname = name_binding+".system.Resource";
+    std::string logname = name_binding+".startup";
     RH_NL_TRACE(logname, "Creating component with identifier '" << identifier << "'");
     Resource_impl* resource = ctor(identifier, name_binding);
 
