@@ -35,7 +35,7 @@ from bulkio.statistics import InStats
 import bulkio.sri
 import bulkio.timestamp
 from bulkio.const import BLOCKING, NON_BLOCKING
-from bulkio.in_stream import InputStream, BufferedInputStream, NumericInputStream
+from bulkio.input_streams import InputStream, BufferedInputStream, NumericInputStream
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 
 class InPort(object):
