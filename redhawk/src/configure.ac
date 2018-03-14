@@ -336,11 +336,13 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dev/devices/base_programmable/cpp/Makefile \
                 testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
+                testing/sdr/dev/devices/log_test_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/writeonly_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/DevC/cpp/Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
+                testing/sdr/dev/devices/log_test_java/java/Makefile \
                 testing/sdr/dev/devices/LongDevice/cpp/Makefile \
                 testing/sdr/dev/devices/dev_alloc_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/devj/java/Makefile \

@@ -42,6 +42,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
           sdr/dev/devices/writeonly_cpp/cpp \
+          sdr/dev/devices/log_test_cpp/cpp \
           sdr/dev/devices/DevC/cpp \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
@@ -95,6 +96,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dev/devices/devj/java \
            sdr/dev/devices/writeonly_java/java \
            sdr/dev/devices/DevC/java \
+           sdr/dev/devices/log_test_java/java \
            sdr/dev/devices/java_dev/java \
            sdr/dev/services/BasicService_java/java \
            sdr/dom/components/BasicAC/basicac_java_impl1 \
