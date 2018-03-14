@@ -48,8 +48,6 @@ import sri
 
 import const
 
-from  input_stream import InputStream, StreamMgr
+from input_ports import *
 
-from  input_ports import *
-
-from  output_ports import *
+from output_ports import *
