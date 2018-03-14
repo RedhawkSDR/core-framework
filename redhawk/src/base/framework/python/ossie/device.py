@@ -188,7 +188,7 @@ class Device(resource.Resource):
 
     def __init__(self, devmgr, identifier, label, softwareProfile, compositeDevice, execparams, propertydefs=(),loggerName=None):
         if not loggerName and label: loggerName = label.rsplit("_", 1)[0]
-        resource.Resource.__init__(self, identifier, execparams, propertydefs, loggerName=loggerName)
+        resource.Resource.__init__(self, identifier, execparams, propertydefs, loggerName=loggerName, baseLogName=label)
         self._deviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)
         self._loadableDeviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)
         self._executableDeviceLog = self._baseLog.getChildLogger('Device', ossie.utils.log4py.SYSTEM_LOGS)

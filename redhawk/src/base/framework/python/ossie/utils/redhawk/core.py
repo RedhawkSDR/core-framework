@@ -855,6 +855,37 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             except:
                 pass
         return retval
+
+    def setLogLevel(self, logger_id, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        if self.ref :
+            try:
+                self.ref.setLogLevel(logger_id, _cf_log_lvl)
+            except:
+                raise
+
+    def getLogLevel(self, logger_id):
+        if self.ref :
+            try:
+                return self.ref.getLogLevel(logger_id)
+            except:
+                raise
+
+    def getNamedLoggers(self):
+        if self.ref :
+            try:
+                return self.ref.getNamedLoggers()
+            except:
+                raise
+
+    def resetLog(self):
+        if self.ref :
+            try:
+                self.ref.resetLog()
+            except:
+                raise
     
     @property
     def domMgr(self):

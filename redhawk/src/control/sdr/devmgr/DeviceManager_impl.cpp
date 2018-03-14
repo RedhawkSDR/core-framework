@@ -25,7 +25,9 @@
 #include <sys/utsname.h>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
+#include <algorithm>
 #include <ossie/debug.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/DeviceManagerConfiguration.h>
@@ -56,6 +58,7 @@ DeviceManager_impl::DeviceManager_impl(
         const char     *cpuBlackList,
         bool*          internalShutdown,
         const std::string &spdFile ):
+    Logging_impl("DeviceManager"),
     DomainWatchThread(NULL),
     _registeredDevices(),
     devmgr_info(0)
@@ -303,6 +306,52 @@ void DeviceManager_impl::reset()
     postConstructor(_domainName.c_str());
 }
 
+void DeviceManager_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
+        CF::Device_var device_ref = _device->device;
+        try {
+            device_ref->setLogLevel(logger_id, newLevel);
+            return;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
+        CF::Device_var device_ref = _device->device;
+        try {
+            CF::LogLevel level = device_ref->getLogLevel(logger_id);
+            return level;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::StringSequence* DeviceManager_impl::getNamedLoggers()
+{
+    CF::StringSequence_var retval = new CF::StringSequence();
+    BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
+        CF::Device_var device_ref = _device->device;
+        CF::StringSequence_var device_logger_list = device_ref->getNamedLoggers();
+        for (unsigned int i=0; i<device_logger_list->length(); i++) {
+            ossie::corba::push_back(retval, CORBA::string_dup(device_logger_list[i]));
+        }
+    }
+    return retval._retn();
+}
+
+void DeviceManager_impl::resetLog()
+{
+    BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
+        CF::Device_var device_ref = _device->device;
+        device_ref->resetLog();
+    }
+}
 
 
 void DeviceManager_impl::parseDeviceConfigurationProfile(const char *overrideDomainName){

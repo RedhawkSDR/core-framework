@@ -313,7 +313,7 @@ class _PropertyChangeRec(object):
                 self.props[id_].recordChanged()
 
 class Resource(object):
-    def __init__(self, identifier, execparams, propertydefs=(), loggerName=None):
+    def __init__(self, identifier, execparams, propertydefs=(), loggerName=None, baseLogName=None):
         """propertydefs is a iterable of tuples that contain
 
         (propid, propname, type, mode, defaultvalue, units, action, kinds)
@@ -352,9 +352,11 @@ class Resource(object):
             self._logid = self._logid.rsplit("_", 1)[0]
         else:
             self._logid = loggerName
+        if baseLogName == None:
+            baseLogName = execparams.get("NAME_BINDING", self._id )
         self._logid = self._logid.replace(":","_")
         self._log = logging.getLogger(self._logid)
-        self._baseLog = logging.getLogger(execparams.get("NAME_BINDING", self._id ))
+        self._baseLog = logging.getLogger(baseLogName)
         self._resourceLog = self._baseLog.getChildLogger('Resource', ossie.utils.log4py.SYSTEM_LOGS)
         self._portSupplierLog = self._baseLog.getChildLogger('PortSupplier', ossie.utils.log4py.SYSTEM_LOGS)
         self._propertySetLog = self._baseLog.getChildLogger('PropertySet', ossie.utils.log4py.SYSTEM_LOGS)

@@ -31,6 +31,7 @@
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/DeviceManagerConfiguration.h>
+#include <ossie/Logging_impl.h>
 #include <ossie/PropertySet_impl.h>
 #include <ossie/PortSet_impl.h>
 #include <ossie/FileManager_impl.h>
@@ -48,6 +49,7 @@ class DomainCheckThread;
 
 class DeviceManager_impl: 
     public virtual POA_CF::DeviceManager,
+    public Logging_impl,
     public PropertySet_impl,
     public PortSet_impl
 {
@@ -116,6 +118,18 @@ public:
     bool isShutdown() { return  _adminState == DEVMGR_SHUTDOWN; };
 
     uint32_t  getClientWaitTime( ) { return CLIENT_WAIT_TIME; }
+
+    // set the log level for one of the loggers on a component on the waveform
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+
+    // get the log level from one of the loggers on a component on the waveform
+    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+
+    // retrieves the list of named loggers from all the components associated with the waveform
+    CF::StringSequence* getNamedLoggers();
+
+    // reset the loggers on all components on the waveform
+    void resetLog();
 
 private:
     DeviceManager_impl ();   // No default constructor
