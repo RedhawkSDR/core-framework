@@ -873,6 +873,41 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             except:
                 raise
 
+    def getLogConfig(self):
+        if self.ref :
+            try:
+                return self.ref.getLogConfig()
+            except:
+                raise
+
+    def setLogConfig(self, new_config):
+        if self.ref :
+            try:
+                self.ref.setLogConfig(new_config)
+            except:
+                raise
+
+    def setLogConfigURL(self, new_config_url):
+        if self.ref :
+            try:
+                self.ref.setLogConfigURL(new_config_url)
+            except:
+                raise
+
+    def _get_log_level(self):
+        if self.ref :
+            try:
+                return self.ref._get_log_level()
+            except:
+                raise
+
+    def _set_log_level(self, value):
+        if self.ref :
+            try:
+                self.ref._set_log_level(value)
+            except:
+                raise
+
     def getNamedLoggers(self):
         if self.ref :
             try:
