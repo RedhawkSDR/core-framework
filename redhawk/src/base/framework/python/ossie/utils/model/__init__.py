@@ -807,9 +807,9 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
         else:
             return 0
 
-    def _set_log_level(self):
+    def _set_log_level(self, value):
         if self.ref:
-            return self.ref._set_log_level()
+            self.ref._set_log_level(value)
         
     def _get_softwareProfile(self):
         if self.ref:

@@ -363,18 +363,19 @@ CF::LogLevel Logging_impl::log_level() {
 
 void Logging_impl::log_level( const CF::LogLevel newLevel ) {
 
+  rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel( newLevel );
   if ( logLevelCallback ) {
     _logLevel = newLevel;
     (*logLevelCallback)( "", newLevel);
   }
   else {
     _logLevel = newLevel;
-    rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel( newLevel );
     // apply new level to resource logger
     if ( _logger ) {
       _logger->setLevel( level );
     }
-  }   
+  }
+  this->_baseLog->setLevel(level);
 }
 
 
