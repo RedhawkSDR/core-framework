@@ -100,6 +100,7 @@ namespace redhawk {
     protected:
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
+        void overrideImpliedProperties(ComponentDeployment* deployment);
 
         ContainerDeployment* getContainer(const std::string& deviceId);
 

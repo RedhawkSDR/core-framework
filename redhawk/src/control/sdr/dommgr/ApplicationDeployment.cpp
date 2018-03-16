@@ -123,6 +123,8 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     }
     overrideExternalProperties(deployment);
 
+    overrideImpliedProperties(deployment);
+
     return deployment;
 }
 
@@ -236,6 +238,15 @@ void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* depl
                           << " (" << property.propid << ") = " << override->getValue().toString());
                 deployment->overrideProperty(property.propid, override->getValue());
             }
+        }
+    }
+}
+
+void ApplicationDeployment::overrideImpliedProperties(ComponentDeployment* deployment) {
+    BOOST_FOREACH(const redhawk::PropertyType& override, initConfiguration) {
+        const std::string propid = override.getId();
+        if (propid == "LOGGING_CONFIG_URI") {
+            deployment->overrideProperty(propid, override.getValue());
         }
     }
 }

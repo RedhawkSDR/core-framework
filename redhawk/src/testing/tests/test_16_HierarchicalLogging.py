@@ -52,12 +52,14 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         # Create Application from $SDRROOT path
         app_1 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml", initConfiguration={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
         self.assertEquals(app_1.getLogLevel('logger_1'), 30000)
-        self.assertEquals(app_1.getLogLevel('logger_2'), 20000)
+        self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
         loggers_1 = app_1.getNamedLoggers()
         app_2 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
         loggers_2 = app_2.getNamedLoggers()
         self.assertEquals(app_1.getLogLevel('logger_1'), 30000)
+        self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
         self.assertEquals(app_2.getLogLevel('logger_1'), 20000)
+        self.assertEquals(app_2.getLogLevel('logger_2'), 20000)
 
     def test_logconfiguri_overload(self):
         self.cname = "logger"
