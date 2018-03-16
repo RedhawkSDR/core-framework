@@ -270,8 +270,8 @@ namespace bulkio {
      * @par
      * To maintain the requested size, partial packets may be buffered, or a
      * read may span multiple packets. Packets are fetched from the input port
-     * needed; however, if an SRI change or input queue flush is encountered,
-     * the operation will stop, therefore, data is only read up to that
+     * as needed. If an SRI change or input queue flush is encountered during
+     * the fetch, the operation will stop and return the data up to that
      * point. The next read operation will continue at the beginning of the
      * packet that contains the new SRI or input queue flush flag.
      *
@@ -301,6 +301,10 @@ namespace bulkio {
      * assumption is that special handling is required due to the pending
      * change, and it is not possible for the stream to interpret the
      * relationship between the read size and consume size.
+     * @par
+     * When the consume length is zero, the read operation becomes a peek. It
+     * returns the data folloing the normal rules but no data is consumed, even
+     * in the case of SRI change, input queue flush, or end-of-stream.
      *
      * @par  Non-Blocking Reads
      * For each @a read method, there is a corresponsing @a tryread method that
@@ -414,8 +418,8 @@ namespace bulkio {
          *   @li SRI change
          *   @li Input queue flush
          *
-         * When this occurs, all of the returned samples are consumed, as it is
-         * assumed that special handling is required.
+         * When this occurs, all of the returned samples are consumed unless
+         * @a consume is 0, as it is assumed that special handling is required.
          *
          * Returns a null data block immediately if:
          *   @li End-of-stream has been reached
@@ -452,6 +456,7 @@ namespace bulkio {
         /**
          * @brief  Non-blocking read with overlap.
          * @param count  Number of samples to read.
+         * @param consume  Number of samples to advance read pointer.
          * @returns  Data block containing up to @p count samples if
          *           successful.
          * @returns  Null data block if the read failed.

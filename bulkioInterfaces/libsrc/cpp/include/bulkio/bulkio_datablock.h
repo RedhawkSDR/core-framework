@@ -490,16 +490,7 @@ namespace bulkio {
         explicit SampleDataBlock(const StreamDescriptor& sri, const ScalarBuffer& buffer=ScalarBuffer());
 
         /**
-         * @brief  Construct a %SampleDataBlock, optionally allocating buffer
-         *         space.
-         * @param sri   The SRI that describes the data.
-         * @param size  Number of samples to allocate.
-         *
-         * Creates a new, valid block providing enough allocated space to hold
-         * @a size real samples in the internal buffer. If the data is complex,
-         * @a size must be twice the desired number of complex samples.
-         *
-         * @deprecated  This method is no longer used by input streams.
+         * @deprecated  Do not use.
          */
         SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size=0);
 
@@ -515,34 +506,12 @@ namespace bulkio {
         SampleDataBlock copy() const;
 
         /**
-         * @brief  Read/write access to real sample data.
-         * @returns  Pointer to first element as a real sample.
-         * @pre  Block is valid.
-         * @see  size()
-         * @see  cxdata()
-         *
-         * @deprecated  Read/write access to data blocks is discouraged.
-         *
-         * Inteprets the internal buffer as real samples. Up to size() samples
-         * may be accessed via the returned pointer.
-         *
-         * To interpret the data as complex samples, use cxdata().
+         * @deprecated  Do not use read/write access methods.
          */
         ScalarType* data();
 
         /**
-         * @brief  Read-only access to real sample data.
-         * @returns  Const pointer to first element as a real sample.
-         * @pre  Block is valid.
-         * @see  size()
-         * @see  cxdata() const
-         *
          * @deprecated  Use buffer() for access to real sample data.
-         *
-         * Inteprets the internal buffer as real samples. Up to size() samples
-         * may be accessed via the returned pointer.
-         *
-         * To interpret the data as complex samples, use cxdata() const.
          */
         const ScalarType* data() const;
 
@@ -554,15 +523,7 @@ namespace bulkio {
         size_t size() const;
 
         /**
-         * @brief  Resizes the sample data buffer.
-         * @param count  Number of scalar samples.
-         * @pre  Block is valid.
-         *
-         * @deprecated  Read/write access to data blocks is discouraged.
-         *
-         * Adjusts the size of the internal buffer to hold @a count scalar samples.
-         * If the data is complex, @a count should be twice the number of complex
-         * samples.
+         * @deprecated  Do not use.
          */
         void resize(size_t count);
 
@@ -580,34 +541,12 @@ namespace bulkio {
         bool complex() const;
 
         /**
-         * @brief  Read/write access to complex sample data.
-         * @returns  Pointer to first element as a complex sample.
-         * @pre  Block is valid.
-         * @see  cxsize()
-         * @see  data()
-         *
-         * @deprecated  Read/write access to data blocks is discouraged.
-         *
-         * Inteprets the internal buffer as complex samples. Up to cxsize()
-         * samples may be accessed via the returned pointer.
-         *
-         * To interpret the data as real samples, use data().
+         * @deprecated  Do not use read/write access methods.
          */
         ComplexType* cxdata();
 
         /**
-         * @brief  Read-only access to complex sample data.
-         * @returns  Const pointer to first element as a complex sample.
-         * @pre  Block is valid.
-         * @see  cxsize()
-         * @see  data() const
-         *
          * @deprecated  Use cxbuffer() for access to complex sample data.
-         *
-         * Inteprets the internal buffer as complex samples. Up to cxsize()
-         * samples may be accessed via the returned pointer.
-         *
-         * To interpret the data as real samples, use data() const.
          */
         const ComplexType* cxdata() const;
 
@@ -620,14 +559,7 @@ namespace bulkio {
         size_t cxsize() const;
 
         /**
-         * @brief  Swaps the internal buffer with a vector.
-         * @param other  Vector of real samples with which to swap.
-         * @pre  Block is valid.
-         *
-         * Exchanges the sample data in the internal buffer with that of
-         * @a other.
-         *
-         * @warning  Use of this method is discouraged.
+         * @deprecated  Do not use.
          */
         void swap(std::vector<ScalarType>& other);
 
