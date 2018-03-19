@@ -210,6 +210,18 @@ class bitbuffer(object):
     common Python sequence operations, such as len(), element access, slicing
     and iteration.
 
+    Creating a bitbuffer from a string:
+    
+        buf = bitbuffer('10101101010011')
+
+    Creating a bitbuffer from an integer, such as a hexadecimal literal:
+
+        buf = bitbuffer(0x1AC07B23, 29)
+
+    Creating a bitbuffer from an iterable:
+
+        buf = bitbuffer(x & 1 for x in xrange(64))
+
     Indexing:
     Individual bits are accessed by index. The value of a bit is treated as an
     int with a value of 0 or 1 (as opposed to a bool). When setting a bit, the
