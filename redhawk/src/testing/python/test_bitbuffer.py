@@ -167,22 +167,6 @@ class BitBufferTest(unittest.TestCase):
         original[2] = 1
         self.assertEqual(0, copied[2])
 
-    def testResize(self):
-        # Fill a bit buffer with known byte data
-        expected = '101100110100011111'
-        buf = bitbuffer(expected)
-
-        # Resize the bit buffer, then check that the values are preserved
-        buf.resize(31);
-        self.assertEqual(31, len(buf))
-        self.assertEqual(expected, buf[:len(expected)])
-
-        # Resize down (which can be done better with slicing, but is still
-        # legal) and check values
-        buf.resize(13);
-        self.assertEqual(13, len(buf))
-        self.assertEqual(expected[:13], buf)
-
     def testFill(self):
         # Create a new bitbuffer, with all bits initialized to one
         buf = bitbuffer([1] * 64)

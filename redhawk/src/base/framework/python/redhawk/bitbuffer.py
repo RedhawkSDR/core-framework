@@ -204,8 +204,80 @@ def takeskip(iterable, take, skip):
 class bitbuffer(object):
     """
     A sequence container for bit data.
+
+    bitbuffer provides read/write bit-level access to a backing array of raw
+    byte data, in addition to higher-level bit string operations. It supports
+    common Python sequence operations, such as len(), element access, slicing
+    and iteration.
+
+    Indexing:
+    Individual bits are accessed by index. The value of a bit is treated as an
+    int with a value of 0 or 1 (as opposed to a bool). When setting a bit, the
+    value is first converted to an int, and any non-zero value is considered to
+    be 1.
+
+    Slicing:
+    Standard Python slice syntax is supported. For example, to select 64 bits
+    starting at offset 16:
+        
+        buf2 = buf[16:80]
+
+    For efficiency, object slices share the backing byte array instead of
+    creating a new copy. Modifications to the slice affect the original buffer,
+    and vice-versa. To make a unique copy that does not share data, use the
+    `copy` module:
+
+        import copy
+        buf2 = copy.copy(buf[16:80])
+
+    Integer Conversion:
+    A bitbuffer may be converted to an integer with the int() method, e.g.:
+
+        val = int(buf)
+
+    Use slicing to select a range of bits:
+
+        val = int(buf[8:16])
+
+    Integer conversion is performed in big-endian order, starting at the most
+    significant bit. The returned value is right-justified (i.e., the least-
+    significant N bits contain the value). If the value exceeds the range of
+    int, it is automatically converted to a long.
     """
     def __init__(self, data=None, bits=None, start=None):
+        """
+        Create a bitbuffer.
+
+        If `data` is not specified, enough space to hold `bits` bits is
+        allocated. The bits are not initialized. If `bits` is not given, a 0-
+        length bitbuffer is created.
+
+        If `data` is given, the initial value depends on the type of `data`:
+            * str:       Parse `data` as a string of 0's and 1's.
+            * bitbuffer: Creates an alias to `data`.
+            * bytearray: Use `data` as backing byte array.
+            * integer:   Store `bits` bits from `data` starting at MSB.
+            * iterable:  Convert each item in `data` to a bit value.
+
+        When `bits` is not given, the resulting number of bits is determined
+        from `data` if possible. If `data` is an integral type (int, long),
+        `bits` must be specified.
+
+        The optional `start` argument may be used to discard bits from the
+        beginning of `data`.
+
+        Args:
+            data:  Object to convert to bitbuffer value.
+            bits:  Number of bits.
+            start: Index of first bit (default 0).
+
+        Raises:
+            TypeError:  If `data` is an int or long but `bits` is not given.
+            ValueError: If `data` is a string and contains characters other
+                        than '0' and '1'.
+            ValueError: If `data` is a sequence or iterable and contains an
+                        item that cannot be converted to int.
+        """
         if data is None:
             # No data given, create a backing byte array
             if bits is None:
@@ -373,18 +445,6 @@ class bitbuffer(object):
             temp[:] = self
             return temp.bytes()
 
-    def resize(self, bits):
-        """
-        Resizes to the specified number of bits.
-        """
-        # Create a new backing bytearray and copy existing values (up to a
-        # maximum of 'bits') into it
-        data = bytearray(_bits_to_bytes(bits))
-        _copy_bits(data, 0, self.__data, self.__start, min(bits, self.__bits))
-        self.__data = data
-        self.__bits = bits
-        self.__start = 0
-
     def unpack(self):
         """
         Unpacks the bits into a list of integers, one per bit.
@@ -400,12 +460,33 @@ class bitbuffer(object):
     def distance(self, other):
         """
         Determines the Hamming distance from a sequence or iterable.
+
+        Args:
+            other: Another bitbuffer or iterable to compare with.
+
+        Returns:
+            int: Number of bits that are different.
         """
         return sum(x^bool(y) for x,y in zip(self, other))
 
     def find(self, pattern, start=0, end=None, maxDistance=0):
         """
         Finds a pattern in this bitbuffer within a maximum Hamming distance.
+
+        Starting from `start` and ending at `end` (or the end of the bitbuffer
+        if `end` is not given), searches forward for a position at which the
+        Hamming distance between this bitbuffer and `pattern` is less than or
+        equal to `maxDistance`.
+
+        Args:
+            pattern:     Bit pattern to search for.
+            start:       Starting bit index.
+            end:         Ending bit index.
+            maxDistance: Maximum allowable Hamming distance.
+
+        Returns:
+            int: Bit index of first occurrence of pattern, or -1 if pattern was
+            not found.
         """
         # Explicitly convert the pattern to a bitbuffer to take care of string
         # parsing, generator functions, etc.
@@ -425,6 +506,21 @@ class bitbuffer(object):
         return -1
 
     def takeskip(self, take, skip, start=0, end=None):
+        """
+        Performs a take/skip operation to create a new bitbuffer.
+
+        Alternately copies `take` bits and skips `skip` bits from the range
+        [start, end) into a new bitbuffer.
+
+        Args:
+            take:  Number of bits to copy per iteration.
+            skip:  Number of bits to skip per iteration.
+            start: Index of first bit (default 0).
+            end:   Index of last bit, exclusive (default end).
+
+        Returns:
+            New bitbuffer with requested bits.
+        """
         start, end, step = self._indices(start, end)
         return bitbuffer(takeskip(self[start:end], take, skip))
 
