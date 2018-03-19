@@ -22,7 +22,7 @@ from bulkio.stream_base import StreamBase
 from bulkio.datablock import DataBlock, SampleDataBlock
 import bulkio.const
 
-__all__ = ('InputStream', 'BufferedInputStream', 'NumericInputStream')
+__all__ = ('InputStream', 'BufferedInputStream')
 
 EOS_NONE = 0
 EOS_RECEIVED = 1
@@ -30,24 +30,106 @@ EOS_REACHED = 2
 EOS_REPORTED = 3
 
 class InputStream(StreamBase):
-    def __init__(self, sri, port):
+    """
+    Basic BulkIO input stream class.
+
+    InputStream encapsulates a single BulkIO stream for reading. It is
+    associated with the input port that created it, providing a file-like API
+    on top of the classic BulkIO getPacket model.
+
+    Notionally, a BulkIO stream represents a contiguous data set and its
+    associated signal-related information (SRI), uniquely identified by a
+    stream ID, from creation until close. The SRI may vary over time, but the
+    stream ID is immutable. Only one stream with a given stream ID can be
+    active at a time.
+
+    Input streams are managed by the input port, and created in response to
+    the arrival of a new SRI. Valid input streams are obtained by either
+    querying the port, or registering a callback.
+
+    End-of-Stream:
+    In normal usage, reading continues until the end of the stream is reached,
+    at which point all future read operations will fail immediately. When a
+    read fails, it is incumbent upon the caller to check the stream's
+    end-of-stream state via eos(). Once the end-of-stream has been
+    acknowledged, either by an explicit check or with a subsequent failed read,
+    the stream is removed from the input port. If the input port has another
+    stream with the same streamID pending, it will become active.
+
+    Although the input port may have received and end-of-stream packet, this
+    state is not reflected in eos(). As with Unix pipes or sockets, the
+    recommended pattern is to continually read until a failure occurs, handling
+    the failure as needed.
+
+    See Also:
+        InPort.getCurrentStream
+        InPort.getStream
+        InPort.getStreams
+        InPort.addStreamListener
+    """
+    def __init__(self, sri, port, blockType=DataBlock):
+        """
+        Create an InputStream.
+
+        Warning:
+            Input streams are created by the input port. This constructor
+            should not be called directly.
+
+        See Also:
+            InPort.getCurrentStream
+            InPort.getStream
+        """        
         StreamBase.__init__(self, sri)
         self._port = port
         self._eosState = EOS_NONE
         self.__enabled = True
         self.__newstream = True
+        self.__blockType = blockType
 
     def read(self):
+        """
+        Blocking read of the next packet for this stream.
+
+        The read may fail if:
+            * End-of-stream has been reached
+            * The input port is stopped
+ 
+        Returns:
+            DataBlock if successful.
+            None if the read failed.
+        """
         return self._readPacket(True)
 
     def tryread(self):
+        """
+        Non-blocking version of read().
+
+        The read returns immediately whether data is available or not.
+
+        Returns:
+            DataBlock if successful.
+            None if no data is available or the read failed.
+        """
         return self._readPacket(False)
 
     @property
     def enabled(self):
+        """
+        bool: Indicates whether this stream can receive data.
+
+        If a stream is enabled, packets received for its stream ID are queued
+        in the input port, and the stream may be used for reading. Conversely,
+        packets for a disabled stream are discarded, and no reading may be
+        performed.
+        """
         return self.__enabled
 
     def enable(self):
+        """
+        Enable this stream for reading data.
+
+        The input port will resume queuing packets for this stream.
+        """
         # Changing the enabled flag requires holding the port's streamsMutex
         # (that controls access to the stream map) to ensure that the change
         # is atomic with respect to handling end-of-stream packets. Otherwise,
@@ -62,6 +144,16 @@ class InputStream(StreamBase):
             self.__enabled = True
 
     def disable(self):
+        """
+        Disable this stream for reading data.
+        
+        The input port will discard any packets that are currently queued for
+        this stream, and all future packets for this stream will be discarded
+        upon receipt until an end-of-stream is received.
+
+        Disabling unwanted streams may improve performance and queueing
+        behavior by reducing the number of queued packets on a port.
+        """
         # See above re: locking
         with self._port._streamsMutex:
             self.__enabled = False
@@ -72,7 +164,39 @@ class InputStream(StreamBase):
         if self._eosState == EOS_NONE:
             self._port._discardPacketsForStream(self.streamID);
 
+        self._disable()
+
+    def _disable(self):
+        # Subclasses may override this method to add additional behavior on
+        # disable()
+        pass
+
     def eos(self):
+        """
+        Checks whether this stream has ended.
+
+        A stream is considered at the end when it has read and consumed all
+        data up to the end-of-stream marker. Once end-of-stream has been
+        reached, all read operations will fail immediately, as no more data
+        will ever be received for this stream.
+
+        The recommended practice is to check @a eos any time a read operation
+        fails or returns fewer samples than requested. When the end-of-stream
+        is acknowledged, either by checking @a eos or when successive reads
+        fail due to an end-of-stream, the stream is removed from the input
+        port. If the input port has another stream with the same streamID
+        pending, it will become active.
+
+        Returns:
+            True if this stream has reached the end.
+            False if the end of stream has not been reached.
+        """
+        return self._checkEos()
+
+    def _checkEos(self):
+        # Internal method to check for end-of-stream. Subclasses should extend
+        # or override this method.
+
         self._reportIfEosReached()
         # At this point, if end-of-stream has been reached, the state is
         # reported (it gets set above), so the checking for the latter is
@@ -101,13 +225,13 @@ class InputStream(StreamBase):
             return None
 
         # Turn packet into a data block
-        block = self._createBlock(packet.SRI, packet.buffer)
+        sri_flags = self._getSriChangeFlags(packet)
+        block = self._createBlock(packet.SRI, packet.buffer, sri_flags, packet.inputQueueFlushed)
         # Only add a timestamp if one was given (XML does not include one in
         # the CORBA interface, but passes a None to adapt to the common port
         # implementation)
         if packet.T is not None:
             block.addTimestamp(packet.T)
-        self._setBlockFlags(block, packet)
 
         # Update local SRI from packet
         self._sri = packet.SRI
@@ -127,8 +251,11 @@ class InputStream(StreamBase):
         else:
             timeout = bulkio.const.NON_BLOCKING
         packet = self._port._nextPacket(timeout, self.streamID)
-        if packet and packet.EOS:
-            self._eosState = EOS_RECEIVED
+        if packet:
+            # Data conversion (no-op for all types except dataChar/dataByte)
+            packet.buffer = self._port._reformat(packet.buffer)
+            if packet.EOS:
+                self._eosState = EOS_RECEIVED
 
         return packet
 
@@ -140,48 +267,206 @@ class InputStream(StreamBase):
             self._port._removeStream(self.streamID);
             self._eosState = EOS_REPORTED;
 
-    def _setBlockFlags(self, block, packet):
+    def _getSriChangeFlags(self, packet):
         if self.__newstream:
             self.__newstream = False
-            block.sriChangeFlags = -1
+            return -1
         elif packet.sriChanged:
-            block.sriChangeFlags = bulkio.sri.compareFields(self._sri, packet.SRI)
-        if packet.inputQueueFlushed:
-            block.inputQueueFlushed = True
+            return bulkio.sri.compareFields(self._sri, packet.SRI)
+        else:
+            return bulkio.sri.NONE
 
     def _createBlock(self, *args, **kwargs):
-        return DataBlock(*args, **kwargs)
+        return self.__blockType(*args, **kwargs)
 
 
 class BufferedInputStream(InputStream):
-    def __init__(self, sri, port):
-        InputStream.__init__(self, sri, port)
+    """
+    BulkIO input stream class with data buffering.
+
+    BufferedInputStream extends InputStream with additional methods for
+    data buffering and overlapped reads.
+
+    Data Buffering:
+    Often, signal processing algorithms prefer to work on regular, fixed-size
+    blocks of data. However, because the producer is working independently,
+    data may be received in entirely different packet sizes. For this use case,
+    the read method accepts an optional size argument that frees the user from
+    managing their own data buffering.
+
+    To maintain the requested size, partial packets may be buffered, or a read
+    may span multiple packets. Packets are fetched from the input port needed;
+    however, if an SRI change or input queue flush is encountered, the
+    operation will stop, therefore, data is only read up to that point. The
+    next read operation will continue at the beginning of the packet that
+    contains the new SRI or input queue flush flag.
+
+    Time Stamps:
+    The data block from a successful read always includes as least one time
+    stamp, at a sample offset of 0. Because buffered reads may not begin on a
+    packet boundary, the input stream can interpolate a time stamp based on the
+    SRI xdelta value and the prior time stamp. When this occurs, the time stamp
+    will be marked as "synthetic."
+
+    Reads that span multiple packets will contain more than one time stamp.
+    The time stamp offsets indicate at which sample the time stamp occurs,
+    taking real or complex samples into account. Only the first time stamp can
+    be synthetic.
+
+    Overlapped Reads:
+    Certain classes of signal processing algorithms need to preserve a portion
+    of the last data set for the next iteration, such as a power spectral
+    density (PSD) calculation with overlap. The read method supports this mode
+    of operation by allowing the reader to consume fewer samples than are
+    read. This can be thought of as a separate read pointer that trails behind
+    the stream's internal buffer.
+
+    When an overlapped read needs to span multiple packets, but an SRI change,
+    input queue flush, or end-of-stream is encountered, all of the available
+    data is returned and consumed, equivalent to read with no consume length
+    specified. The assumption is that special handling is required due to the
+    pending change, and it is not possible for the stream to interpret the
+    relationship between the read size and consume size.
+
+    Non-Blocking Reads:
+    For each read method, there is a corresponsing tryread method that is
+    non-blocking. If there is not enough data currently available to satisfy
+    the request, but more data could become available in the future, the
+    operation will return a null data block immediately.
+
+    End-of-Stream:
+    The end-of-stream behavior of BufferedInputStream is consistent with
+    InputStream, with the additional caveat that a read may return fewer
+    samples than requested if an end-of-stream packet is encountered.
+
+    See Also:
+        InputStream
+    """
+    def __init__(self, sri, port, blockType=SampleDataBlock):
+        """
+        Create a BufferedInputStream.
+
+        Warning:
+            Input streams are created by the input port. This constructor
+            should not be called directly.
+
+        See Also:
+            InPort.getCurrentStream
+            InPort.getStream
+        """        
+        InputStream.__init__(self, sri, port, blockType)
         self.__queue = []
         self.__samplesQueued = 0
         self.__sampleOffset = 0
         self.__pending = None
 
-    def eos(self):
-        if not self.__queue:
-            # Try a non-blocking fetch to see if there's an empty end-of-stream
-            # packet waiting; this helps with the case where the last read
-            # consumes exactly the remaining data, and the stream will never
-            # report a ready state again
-            self._fetchPacket(False)
-
-        return InputStream.eos(self)
-
     def read(self, count=None, consume=None):
+        """
+        Blocking read with optional size and overlap.
+
+        If neither `count` nor `consume` are given, performs a blocking read up
+        to the next packet boundary.
+
+        When `count` is given without `consume`, performs a blocking read of
+        `count` samples worth of data. For signal processing operations that
+        require a fixed input data size, such as fast Fourier transform (FFT),
+        this simplifies buffer management by offloading it to the stream. This
+        usually incurs some computational overhead to copy data between
+        buffers; however, this cost is intrinsic to the algorithm, and the
+        reduced complexity of implementation avoids common errors.
+
+        When both `count` and `consume` are given, performs a blocking read of
+        `count` samples worth of data, but only advances the read pointer by
+        `consume` samples. The remaining `count-consume` samples are buffered
+        and will be returned on the following read operation. This mode is
+        designed to support signal processing operations that require
+        overlapping data sets, such as power spectral density (PSD).
+
+        If the SRI indicates that the data is complex, `count` and `consume`
+        are interpreted in terms of complex samples.
+
+        If any of the following conditions are encountered while fetching
+        packets, the returned data block may contain fewer samples than
+        requested:
+            * End-of-stream
+            * SRI change
+            * Input queue flush
+
+        When this occurs, all of the returned samples are consumed unless
+        `consume` is 0, as it is assumed that special handling is required.
+
+        Args:
+            count:   Number of samples to read.
+            consume: Number of samples to advance read pointer.
+
+        Returns:
+            DataBlock if successful.
+            None if the read failed.
+
+        Raises:
+            ValueError: `consume` was specified without `count`.
+            ValueError: `consume` is larger than `count`.
+        """
         if count is None:
+            if consume is not None:
+                raise ValueError('cannot specify consume without count')
+            elif consume > count:
+                raise ValueError('cannot specify consume larger than count')
             return InputStream.read(self)
         return self._read(count, consume, True)
 
     def tryread(self, count=None, consume=None):
+        """
+        Non-blocking read with optional size and overlap.
+
+        Non-blocking version of read(), returning None immediately when no data
+        is available.
+
+        Args:
+            count:   Number of samples to read.
+            consume: Number of samples to advance read pointer.
+
+        Returns:
+            DataBlock if successful.
+            None if no data is available or the read failed.
+
+        Raises:
+            ValueError: `consume` was specified without `count`.
+            ValueError: `consume` is larger than `count`.
+
+        See Also:
+            BufferedInputStream.read()
+        """
         if count is None:
             return InputStream.tryread(self)
         return self._read(count, consume, False)
 
     def skip(self, count):
+        """
+        Discards data.
+
+        Skips the next `count` samples worth of data and blocks until the
+        requested amount of data is available. If the data is not being used,
+        this is more computationally efficient than the equivalent call to read
+        because no buffering is performed.
+
+        If the SRI indicates that the data is complex, `count` and the return
+        value are in terms of complex samples.
+
+        Skipping behaves like read when fetching packets. If any of the
+        following conditions are encountered, the returned value may be less
+        than count:
+            * End-of-stream
+            * SRI change
+            * Input queue flush
+            * The input port is stopped
+
+        Args:
+            count: Number of samples to skip.
+
+        Returns:
+            int: Actual number of samples skipped.
+        """
         # If the next block of data is complex, double the skip size (which the
         # lower-level I/O handles in terms of scalars) so that the right number
         # of samples is skipped
@@ -204,18 +489,26 @@ class BufferedInputStream(InputStream):
         # Convert scalars back to samples
         return count / item_size
 
-    def disable(self):
-        InputStream.disable(self)
-
-        # NB: The lock is not required to modify the internal stream queue
-        # state, because it should only be accessed by the thread that is
-        # reading from the stream
+    def _disable(self):
+        # NB: A lock is not required to modify the internal stream queue state,
+        # because it should only be accessed by the thread that is reading from
+        # the stream
 
         # Clear queued packets and pending packet
         self.__queue = []
         self.__sampleOffset = 0
         self.__samplesQueued = 0
         self.__pending = 0
+
+    def _checkEos(self):
+        if not self.__queue:
+            # Try a non-blocking fetch to see if there's an empty end-of-stream
+            # packet waiting; this helps with the case where the last read
+            # consumes exactly the remaining data, and the stream will never
+            # report a ready state again
+            self._fetchPacket(False)
+
+        return InputStream._checkEos(self)
 
     def _hasBufferedData(self):
         if self.__queue or self.__pending:
@@ -335,8 +628,8 @@ class BufferedInputStream(InputStream):
 
         # Allocate data block and propagate the SRI change and input queue
         # flush flags
-        block = self._createBlock(front.SRI, data)
-        self._setBlockFlags(block, front);
+        sri_flags = self._getSriChangeFlags(front)
+        block = self._createBlock(front.SRI, data, sri_flags, front.inputQueueFlushed) 
         if front.sriChanged:
             # Update the stream metadata
             self._sri = front.SRI
@@ -455,15 +748,3 @@ class BufferedInputStream(InputStream):
 
     def _canBridge(self, packet):
         return not (packet.sriChanged or packet.inputQueueFlushed)
-
-
-class NumericInputStream(BufferedInputStream):
-    def _createBlock(self, *args, **kwargs):
-        return SampleDataBlock(*args, **kwargs)
-
-    def _fetchNextPacket(self, blocking):
-        packet = BufferedInputStream._fetchNextPacket(self, blocking)
-        if packet:
-            # Data conversion (no-op for all types except dataChar/dataByte)
-            packet.buffer = self._port._reformat(packet.buffer)
-        return packet

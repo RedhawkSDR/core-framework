@@ -28,7 +28,49 @@ from bulkio.bulkioInterfaces import BULKIO
 from bulkio.stream_base import StreamBase
 
 class OutputStream(StreamBase):
+    """
+    Basic BulkIO output stream class.
+
+    OutputStream encapsulates a single BulkIO stream for writing. It is
+    associated with the output port that created it, providing a file-like API
+    on top of the classic BulkIO pushPacket model.
+
+    Notionally, a BulkIO stream represents a contiguous data set and its
+    associated signal-related information (SRI), uniquely identified by a
+    stream ID, from creation until close. The SRI may vary over time, but the
+    stream ID is immutable. Only one stream with a given stream ID can be
+    active at a time.
+
+    OutputStreams help manage the stream lifetime by tying that SRI with an
+    output port and ensuring that all data is associated with a valid stream.
+    When the stream is complete, it may be closed, notifying downstream
+    receivers that no more data is expected.
+
+    OutputStreams must be created via an output port. A stream cannot be
+    associated with more than one port.
+
+    SRI Changes:
+    Updates to the stream that modify or replace its SRI are cached locally
+    until the next write to minimize the number of updates that are published.
+    When there are pending SRI changes, the OutputStream pushes the updated SRI
+    first, followed by the data.
+
+    See Also:
+        OutPort.createStream
+        OutPort.getStream
+    """
     def __init__(self, sri, port, dtype=list):
+        """
+        Create an OutputStream.
+
+        Warning:
+             Output streams are created via an output port. This constructor
+             should not be called directly.
+
+        See Also:
+            OutputPort.createStream
+            OutputPort.getStream
+        """
         StreamBase.__init__(self, sri)
         self._port = port
         self._dtype = dtype
@@ -89,17 +131,45 @@ class OutputStream(StreamBase):
         self._sri.keywords = keywords[:]
 
     def setKeyword(self, name, value):
+        """
+        Sets the current value of a keyword in the SRI.
+
+        If the keyword name already exists, its value is updated to value. If
+        the keyword name does not exist, the new keyword is appended.
+
+        Setting a keyword updates the SRI, which will be pushed on the next
+        write.
+
+        Args:
+            name:  The name of the keyword.
+            value: The new value.
+        """
         self._modifyingStreamMetadata()
         bulkio.sri.setKeyword(self._sri, name, value)
 
     def eraseKeyword(self, name):
+        """
+        Removes a keyword from the SRI.
+
+        Erases the keyword named 'name' from the SRI keywords. If no keyword
+        'name' is found, the keywords are not modified.
+
+        Removing a keyword updates the SRI, which will be pushed on the next
+        write.
+
+        Args:
+            name: The name of the keyword.
+        """
         self._modifyingStreamMetadata()
         bulkio.sri.eraseKeyword(self._sri, name)
 
-    def write(self, data, time):
-        self._send(data, time, False)
-
     def close(self):
+        """
+        Closes this stream.
+        
+        Sends an end-of-stream packet. No further operations should be made on
+        the stream.
+        """
         data = self._dtype()
         self._send(data, bulkio.timestamp.notSet(), True)
 
@@ -123,28 +193,114 @@ class OutputStream(StreamBase):
 
 
 class BufferedOutputStream(OutputStream):
+    """
+    BulkIO output stream class with data buffering.
+
+    BufferedOutputStream can use an internal buffer to queue up multiple
+    packets worth of data into a single push. By default, buffering is
+    disabled.
+
+    Data Buffering:
+    BufferedOutputStreams can combine multiple small chunks of data into a
+    single packet for reduced I/O overhead. Data buffering is enabled by
+    setting a non-zero buffer size via the setBufferSize() method. The output
+    stream creates an internal buffer of the requested size; the stream's
+    complex mode is not taken into account.
+
+    With buffering enabled, each write copies its data into the internal
+    buffer, up to the maximum of the buffer size. When the internal buffer is
+    full, a packet is sent via the output port, using the time stamp of the
+    first buffered sample. After the packet is sent, the internal buffer is
+    reset to its initial state. If there is any remaining data from the write,
+    it is copied into a new buffer and a new starting time stamp is
+    interpolated.
+
+    Time Stamps:
+    When buffering is enabled, the time stamps provided to the write() methods
+    may be discarded. Furthermore, when write sizes do not align exactly with
+    the buffer size, the output time stamp may be interpolated. If precise
+    time stamps are required, buffering should not be used.
+
+    See Also:
+        OutputStream
+    """
     def __init__(self, sri, port, dtype=list):
+        """
+        Create a BufferedOutputStream.
+
+        Warning:
+            Output streams are created via an output port. This constructor
+            should not be called directly.
+
+        See Also:
+            OutputPort.createStream
+            OutputPort.getStream
+        """
         OutputStream.__init__(self, sri, port, dtype)
         self.__buffer = self._dtype()
         self.__bufferSize = 0
         self.__bufferTime = bulkio.timestamp.notSet()
 
     def write(self, data, time):
+        """
+        Writes data to the stream.
+
+        If buffering is disabled, `data` is sent as a single packet with the
+        given time stamp.
+
+        When buffering is enabled, `data` is copied into the internal buffer.
+        If the internal buffer exceeds the configured buffer size, one or more
+        packets will be sent.
+
+        Args:
+            data:      Sample data to write.
+            time:      Time stamp of first sample.
+
+        See Also:
+            bufferSize()
+            setBufferSize()
+        """
         # If buffering is disabled, or the buffer is empty and the input data
         # is large enough for a full buffer, send it immediately
         if self.__bufferSize == 0 or (not self.__buffer and (len(data) >= self.__bufferSize)):
-            OutputStream.write(self, data, time);
+            self._send(data, time, False)
         else:
-            self._doBuffer(data, time);
+            self._doBuffer(data, time)
 
     def bufferSize(self):
+        """
+        Gets the internal buffer size.
+
+        The buffer size is in terms of real samples, ignoring the complex mode
+        of the stream. Complex samples count as two real samples for the
+        purposes of buffering.
+
+        A buffer size of 0 indicates that buffering is disabled.
+
+        Returns:
+            int: Number of real samples to buffer per push.
+        """
         return self.__bufferSize
 
-    def setBufferSize(self, size):
-        # Avoid needless thrashing
-        if size == self.__bufferSize:
-            return
-        self.__bufferSize = int(size)
+    def setBufferSize(self, samples):
+        """
+        Sets the internal buffer size.
+
+        The internal buffer is flushed if samples is less than the number of
+        real samples currently buffered.
+
+        A buffer size of 0 disables buffering, flushing any buffered data.
+
+        Args:
+            samples: Number of real samples to buffer per push.
+
+        Raises:
+            ValueError: If samples is negative.
+        """
+        size = int(samples)
+        if size < 0:
+            raise ValueError('buffer size cannot be negative')
+        self.__bufferSize = size
 
         # If the new buffer size is less than (or exactly equal to) the
         # currently buffered data size, flush
@@ -152,11 +308,22 @@ class BufferedOutputStream(OutputStream):
             self.flush()
 
     def flush(self):
+        """
+        Flushes the internal buffer.
+
+        Any data in the internal buffer is sent to the port to be pushed.
+        """
         if not self.__buffer:
             return
         self._flush(False)
 
     def close(self):
+        """
+        Closes the stream.
+
+        Sends an end-of-stream packet with any remaining buffered data. No
+        further operations should be made on the stream.
+        """
         if self.__buffer:
             # Add the end-of-stream marker to the buffered data and its
             # timestamp
@@ -194,32 +361,148 @@ class BufferedOutputStream(OutputStream):
             next = time + self.xdelta * count
             self._doBuffer(data[count:], next)
 
+
 def _unpack_complex(data, dtype):
+    # Yields alternating real and imaginary elements from a sequence of complex
+    # values (or real values treated as complex values, where the imaginary
+    # portion is always 0), converted to a desired data type
     for item in data:
         yield dtype(item.real)
         yield dtype(item.imag)
     
 def _complex_to_interleaved(data, dtype):
+    # Turns a sequence of complex values into a list with the real and
+    # imaginary elements interleaved
     return list(_unpack_complex(data, dtype))
 
 class NumericOutputStream(BufferedOutputStream):
+    """
+    BulkIO output stream class for numeric data types.
+
+    NumericOutputStream extends BufferedOutputStream to add support for complex
+    data and data reformatting.
+
+    See Also:
+        BufferedOutputStream
+        OutputStream
+    """
     def __init__(self, sri, port, dtype, elemType):
+        """
+        Create a NumericOutputStream.
+
+        Warning:
+            Output streams are created via an output port. This constructor
+            should not be called directly.
+
+        See Also:
+            OutPort.createStream
+            OutPort.getStream
+        """
         BufferedOutputStream.__init__(self, sri, port, dtype)
         self._elemType = elemType
 
     def write(self, data, time, formatted=False):
+        """
+        Writes sample data to the stream.
+
+        If this stream is configured for complex data, `data` is treated as a
+        list of complex values. The real and imaginary elements are interleaved
+        into a list of real numbers.
+
+        For char or octet streams, real values are packed into a binary string
+        after applying complex-to-real conversion (if required).
+
+        When `data` is already in the format required by the port, setting the
+        optional `formatted` keyword argument will disable both complex-to-real
+        conversion and binary packing.
+
+        Buffering behavior is inherited from BufferedOutputStream.write().
+
+        Args:
+            data:      Sample data to write.
+            time:      Time stamp of first sample.
+            formatted: Indicates whether data is preformatted.
+
+        See Also:
+            BufferedOutputStream.write()
+            NumericOutputStream.complex
+        """
         if not formatted:
             if self.complex:
                 data = _complex_to_interleaved(data, self._elemType)
             data = self._port._reformat(data)
         BufferedOutputStream.write(self, data, time)
 
-class OutXMLStream(OutputStream):
+
+class OutFileStream(OutputStream):
+    """
+    File output stream class.
+
+    See Also:
+        OutputStream
+    """
     def __init__(self, sri, port):
+        """
+        Create an OutFileStream.
+
+        Warning:
+            Output streams are created via an output port. This constructor
+            should not be called directly.
+
+        See Also:
+            OutFilePort.createStream
+            OutFilePort.getStream
+        """
+        OutputStream.__init__(self, sri, port, str)
+
+    def write(self, data, time):
+        """
+        Writes a file URI to the stream.
+
+        The URI is sent as a single packet with the given time stamp. File
+        streams do not support buffering.
+
+        Args:
+            data: The file URI to write.
+            time: Time stamp of file URI.
+        """
+        self._send(data, time, False)
+
+
+class OutXMLStream(OutputStream):
+    """
+    XML output stream class.
+
+    See Also:
+        OutputStream
+    """
+    def __init__(self, sri, port):
+        """
+        Create an OutXMLStream.
+
+        Warning:
+            Output streams are created via an output port. This constructor
+            should not be called directly.
+
+        See Also:
+            OutXMLPort.createStream
+            OutXMLPort.getStream
+        """
         OutputStream.__init__(self, sri, port, str)
 
     def write(self, data):
-        OutputStream.write(self, data, None)
+        """
+        Writes XML data to the stream.
+
+        The XML document `data` is sent as a single packet. XML streams do not
+        support time stamps or buffering.
+
+        Args:
+            data: An XML string.
+        """
+        # Add a "null" timestamp to adapt to the base class method
+        self._send(data, None, False)
 
     def _pushPacket(self, port, data, time, eos, streamID):
+        # Drop the time stamp from the base class
         port.pushPacket(data, eos, streamID)

@@ -35,7 +35,8 @@ from bulkio.statistics import InStats
 import bulkio.sri
 import bulkio.timestamp
 from bulkio.const import BLOCKING, NON_BLOCKING
-from bulkio.input_streams import InputStream, BufferedInputStream, NumericInputStream
+from bulkio.input_streams import InputStream, BufferedInputStream
+from bulkio.datablock import DataBlock
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
 
 class InPort(object):
@@ -119,13 +120,31 @@ class InPort(object):
     def streamAdded(self, stream):
         """
         A new input stream was received.
+
+        Args:
+            stream: New input stream.
         """
         pass
 
     def addStreamListener(self, callback):
+        """
+        Registers a callback for new streams.
+
+        When a new input stream is created, `callback` is called with the new
+        input stream as its argument.
+
+        Args:
+            callback: Callable object that takes one argument.
+        """
         self.streamAdded.addListener(callback)
 
-    def removeStreamListener(self, callbac):
+    def removeStreamListener(self, callback):
+        """
+        Unregisters a callback for new streams.
+
+        Args:
+            callback: Previous registered callable object.
+        """
         self.streamAdded.removeListener(callback)
 
     def setNewSriListener(self, newSriCallback):
@@ -239,6 +258,14 @@ class InPort(object):
     def getCurrentStream(self, timeout=BLOCKING):
         """
         Gets the stream that should be used for the next basic read.
+
+        Args:
+            timeout: Seconds to wait for a stream; a negative value waits
+                     indefinitely.
+
+        Returns:
+            InputStream ready for reading on success.
+            None if timeout expires or port is stopped.
         """
         # Prefer a stream that already has buffered data
         with self._streamsMutex:
@@ -259,13 +286,23 @@ class InPort(object):
     def getStream(self, streamID):
         """
         Gets the active stream with the given stream ID.
+
+        Args:
+            streamID: Stream identifier.
+
+        Returns:
+            Input stream for `streamID` if it exists.
+            None if no such stream ID exits.
         """
         with self._streamsMutex:
             return self._streams.get(streamID, None)
 
     def getStreams(self):
         """
-        Returns the current set of active streams.
+        Gets the current set of active streams.
+
+        Returns:
+            List of input streams.
         """
         with self._streamsMutex:
             return self._streams.values()
@@ -496,22 +533,23 @@ class InPort(object):
     def _packetSize(self, data):
         return len(data)
 
+    def _reformat(self, data):
+        # Default behavior: no data reformatting is required
+        return data
 
 class InNumericPort(InPort):
     def __init__(self, name, bits, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize):
         InPort.__init__(self, name, bits, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize)
 
     def _streamType(self, sri, port):
-        return NumericInputStream(sri, port)
-
-    def _reformat(self, data):
-        return data
+        return BufferedInputStream(sri, port)
 
 class InCharPort(InNumericPort, BULKIO__POA.dataChar):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100):
         InNumericPort.__init__(self, name, 8, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize)
 
     def _reformat(self, data):
+        # Unpack the binary string as a list of signed bytes
         return list(struct.unpack('%db' % len(data), data))
 
 class InOctetPort(InNumericPort, BULKIO__POA.dataOctet):
@@ -519,6 +557,7 @@ class InOctetPort(InNumericPort, BULKIO__POA.dataOctet):
         InNumericPort.__init__(self, name, 8, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize)
 
     def _reformat(self, data):
+        # Unpack the binary string as a list of unsigned bytes
         return list(struct.unpack('%dB' % len(data), data))
 
 class InShortPort(InNumericPort, BULKIO__POA.dataShort):
@@ -565,7 +604,7 @@ class InBitPort(InPort, BULKIO__POA.dataBit):
         self.logger.trace("pushPacket EXIT")
 
     def _streamType(self, sri, port):
-        return BufferedInputStream(sri, port)
+        return BufferedInputStream(sri, port, DataBlock)
 
 class InFilePort(InPort, BULKIO__POA.dataFile):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):

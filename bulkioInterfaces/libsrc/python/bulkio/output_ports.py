@@ -36,7 +36,7 @@ import bulkio.sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
-from bulkio.output_streams import OutputStream, BufferedOutputStream, NumericOutputStream, OutXMLStream
+from bulkio.output_streams import *
 import traceback
 
 class connection_descriptor_struct(object):
@@ -276,14 +276,47 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
             self.logger.trace('bulkio::OutPort  pushSRI EXIT ')
 
     def getStream(self, streamID):
+        """
+        Get the active stream with the given stream ID.
+
+        Args:
+            streamID: String stream identifier.
+
+        Returns:
+            Output stream for `streamID` if it exists.
+            None if no such stream ID exists.
+        """
         with self.port_lock:
             return self._streams.get(streamID, None)
 
     def getStreams(self):
+        """
+        Gets the current set of active streams.
+
+        Returns:
+            List of output streams.
+        """
         with self.port_lock:
             return self._streams.values()
 
     def createStream(self, stream):
+        """
+        Creates a new output stream.
+
+        If `stream` is a string, a new output stream is created with stream ID
+        `stream` and default values for the SRI. If an output stream with that
+        stream ID already exists, it is returned unmodified.
+
+        If `stream` is a BULKIO.StreamSRI, a new output stream is created with
+        the same SRI values as `stream`. If an output stream with the same
+        stream ID already exists, its SRI is updated to match `stream`.
+
+        Args:
+            stream: String stream identifier or BULKIO.StreamSRI.
+
+        Returns:
+            Newly-created or updated output stream.
+        """
         with self.port_lock:
             if isinstance(stream, BULKIO.StreamSRI):
                 # Try to find an existing stream with the same streamID, and
@@ -501,6 +534,9 @@ class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None):
         OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE, logger, dataType=str, bits=8)
+
+    def _createStream(self, sri):
+        return OutFileStream(sri, self)
 
 class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
