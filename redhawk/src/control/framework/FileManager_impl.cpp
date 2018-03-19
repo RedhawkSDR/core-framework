@@ -76,22 +76,16 @@ FileManager_impl::FileManager_impl (const char* _fsroot):
     mountedFileSystems(),
     mountsLock()
 {
-    TRACE_ENTER(FileManager_impl);
-    TRACE_EXIT(FileManager_impl);
 }
 
 FileManager_impl::~FileManager_impl()
 {
-    TRACE_ENTER(FileManager_impl)
-    TRACE_EXIT(FileManager_impl);
 }
 
 void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSystem)
     throw (CORBA::SystemException, CF::InvalidFileName,
            CF::FileManager::InvalidFileSystem, CF::FileManager::MountPointAlreadyExists)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (CORBA::is_nil(fileSystem)) {
         throw CF::FileManager::InvalidFileSystem();
     }
@@ -116,16 +110,12 @@ void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSys
 
     RH_TRACE(_fileSysLog, "Mounting remote file system on " << mountPath);
     mountedFileSystems.push_back(MountPoint(mountPath, fileSystem));
-
-    TRACE_EXIT(FileManager_impl)
 }
 
 
 void FileManager_impl::unmount (const char* mountPoint)
     throw (CORBA::SystemException, CF::FileManager::NonExistentMount)
 {
-    TRACE_ENTER(FileManager_impl);
-
     std::string mountPath = normalizeMountPath(mountPoint);
 
     // Exclusive access to the mount table is required.
@@ -136,8 +126,6 @@ void FileManager_impl::unmount (const char* mountPoint)
         if (mount->path == mountPath) {
             RH_TRACE(_fileSysLog, "Unmounting remote file system on " << mountPath);
             mountedFileSystems.erase(mount);
-
-            TRACE_EXIT(FileManager_impl);
             return;
         }
     }
@@ -150,8 +138,6 @@ void FileManager_impl::unmount (const char* mountPoint)
 void FileManager_impl::remove (const char* fileName)
     throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -172,16 +158,12 @@ void FileManager_impl::remove (const char* fileName)
         RH_TRACE(_fileSysLog, "Removing " << filePath << " on remote file system mounted at " << mount->path);
         mount->fs->remove(filePath.c_str());
     }
-
-    TRACE_EXIT(FileManager_impl)
 }
 
 
 void FileManager_impl::copy (const char* sourceFileName, const char* destinationFileName)
     throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileManager_impl);
-
     // Validate absolute file names
     if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid source file name");
@@ -351,16 +333,12 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
     if ( fe ) {
         throw(CF::FileException());
     }
-
-    TRACE_EXIT(FileManager_impl);
 }
 
 
 void FileManager_impl::move (const char* sourceFileName, const char* destinationFileName)
     throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileManager_impl);
-
     // Validate absolute file names
     if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid source file name");
@@ -404,16 +382,12 @@ void FileManager_impl::move (const char* sourceFileName, const char* destination
     // the domain's FileManager from interfering with this operation.
     this->copy(sourceFileName, destinationFileName);
     this->remove(sourceFileName);
-
-    TRACE_EXIT(FileManager_impl);
 }
 
 
 CORBA::Boolean FileManager_impl::exists (const char* fileName)
     throw (CORBA::SystemException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -436,7 +410,6 @@ CORBA::Boolean FileManager_impl::exists (const char* fileName)
         status = mount->fs->exists(filePath.c_str());
     }
 
-    TRACE_EXIT(FileManager_impl);
     return status;
 }
 
@@ -444,8 +417,6 @@ CORBA::Boolean FileManager_impl::exists (const char* fileName)
 CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pattern)
     throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl);
-    
     RH_TRACE(_fileSysLog, "List files with pattern " << pattern);
 
     CF::FileSystem::FileInformationSequence_var result;
@@ -493,7 +464,6 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
         }
     }
 
-    TRACE_EXIT(FileManager_impl);
     return result._retn();
 }
 
@@ -501,8 +471,6 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
 CF::File_ptr FileManager_impl::create (const char* fileName)
     throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -524,7 +492,6 @@ CF::File_ptr FileManager_impl::create (const char* fileName)
         file = mount->fs->create(filePath.c_str());
     }
 
-    TRACE_EXIT(FileManager_impl);
     return file._retn();
 }
 
@@ -532,8 +499,6 @@ CF::File_ptr FileManager_impl::create (const char* fileName)
 CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_Only)
     throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -555,7 +520,6 @@ CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_O
         file = mount->fs->open(filePath.c_str(), read_Only);
     }
 
-    TRACE_EXIT(FileManager_impl);
     return file._retn();
 }
 
@@ -563,8 +527,6 @@ CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_O
 void FileManager_impl::mkdir (const char* directoryName)
     throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
     }
@@ -584,16 +546,12 @@ void FileManager_impl::mkdir (const char* directoryName)
         RH_TRACE(_fileSysLog, "Making directory " << dirPath << " on remote file system mounted at " << mount->path);
         mount->fs->mkdir(dirPath.c_str());
     }
-
-    TRACE_EXIT(FileManager_impl);
 }
 
 
 void FileManager_impl::rmdir (const char* directoryName)
     throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileManager_impl);
-
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
     }
@@ -613,16 +571,12 @@ void FileManager_impl::rmdir (const char* directoryName)
         RH_TRACE(_fileSysLog, "Removing directory " << dirPath << " on remote file system mounted at " << mount->path);
         mount->fs->rmdir(dirPath.c_str());
     }
-
-    TRACE_EXIT(FileManager_impl);
 }
 
 
 void FileManager_impl::query (CF::Properties& fileSysProperties)
     throw (CORBA::SystemException, CF::FileSystem::UnknownFileSystemProperties)
 {
-    TRACE_ENTER(FileManager_impl);
-
     CF::Properties unknownProps;
 
     // Lock the mount table shared to allow others to access the file system,
@@ -660,8 +614,6 @@ void FileManager_impl::query (CF::Properties& fileSysProperties)
     if (unknownProps.length() > 0) {
         throw CF::FileSystem::UnknownFileSystemProperties(unknownProps);
     }
-
-    TRACE_EXIT(FileManager_impl)
 }
 
 CORBA::ULongLong FileManager_impl::getCombinedProperty (const char* propId)
@@ -684,8 +636,6 @@ CORBA::ULongLong FileManager_impl::getCombinedProperty (const char* propId)
 CF::FileManager::MountSequence* FileManager_impl::getMounts ()
     throw (CORBA::SystemException)
 {
-    TRACE_ENTER(FileManager_impl);
-
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
     boost::shared_lock<boost::shared_mutex> lock(mountsLock);
@@ -698,7 +648,6 @@ CF::FileManager::MountSequence* FileManager_impl::getMounts ()
         result[index].fs = CF::FileSystem::_duplicate(ii->fs);
     }
 
-    TRACE_EXIT(FileManager_impl);
     return result._retn();
 }
  

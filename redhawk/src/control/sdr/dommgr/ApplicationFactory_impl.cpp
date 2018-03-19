@@ -850,7 +850,6 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
         CF::ApplicationFactory::InvalidInitConfiguration)
 {
-    TRACE_ENTER(ApplicationFactory_impl);
     RH_TRACE(_appFactoryLog, "Creating application " << name);
 
     // must declare these here, so we can pass to the createHelper instance
@@ -940,7 +939,6 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     }
 
     // return the new Application
-    TRACE_EXIT(ApplicationFactory_impl);
     return new_app;
 }
 
@@ -949,7 +947,6 @@ CF::Application_ptr createHelper::create (
     const CF::Properties&               initConfiguration,
     const DeviceAssignmentMap& deviceAssignments)
 {
-    TRACE_ENTER(ApplicationFactory_impl);
     
     CF::Properties modifiedInitConfiguration;
 
@@ -1733,7 +1730,6 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
             }
         }
     }
-    TRACE_EXIT(ApplicationFactory_impl);
     return response;
 }
 

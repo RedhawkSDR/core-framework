@@ -348,37 +348,31 @@ Property::~Property()
 
 bool Property::isAllocation() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_ALLOCATION;
 }
 
 bool Property::isConfigure() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_CONFIGURE;
 }
 
 bool Property::isProperty() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_PROPERTY;
 }
 
 bool Property::isTest() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_TEST;
 }
 
 bool Property::isExecParam() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_EXECPARAM;
 }
 
 bool Property::isFactoryParam() const
 {
-    TRACE_ENTER(Property);
     return kinds & KIND_FACTORYPARAM;
 }
 

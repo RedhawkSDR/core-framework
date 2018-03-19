@@ -1766,7 +1766,6 @@ void
 DeviceManager_impl::unregisterDevice (CF::Device_ptr registeredDevice)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
-    TRACE_ENTER(DeviceManager_impl)
 
     std::string dev_id;
     std::string dev_name;
@@ -1806,8 +1805,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         RH_ERROR(this->_baseLog, "Cannot unregister Device. registeringDevice was not registered.")
         throw (CF::InvalidObjectReference("Cannot unregister Device. registeringDevice was not registered."));
     }
-
-    TRACE_EXIT(DeviceManager_impl);
 }
 
 void DeviceManager_impl::deleteFileSystems()

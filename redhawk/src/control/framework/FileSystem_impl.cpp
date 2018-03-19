@@ -146,19 +146,14 @@ PREPARE_CF_LOGGING(FileSystem_impl)
 FileSystem_impl::FileSystem_impl (const char* _root):
     root(_root)
 {
-    TRACE_ENTER(FileSystem_impl);
-    TRACE_EXIT(FileSystem_impl);
 }
 
 FileSystem_impl::~FileSystem_impl ()
 {
-    TRACE_ENTER(FileSystem_impl);
-    TRACE_EXIT(FileSystem_impl);
 }
 
 void FileSystem_impl::remove (const char* fileName) throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException)
 {
-    TRACE_ENTER(FileSystem_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
     
     fs::path fname(root / fileName);
@@ -190,13 +185,10 @@ void FileSystem_impl::remove (const char* fileName) throw (CF::FileException, CF
             }
         }
     }
-    
-    TRACE_EXIT(FileSystem_impl);
 }
 
 void FileSystem_impl::move (const char* sourceFileName, const char* destinationFileName) throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileSystem_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     // Validate file names
@@ -229,13 +221,10 @@ void FileSystem_impl::move (const char* sourceFileName, const char* destinationF
     if (rename(sourcePath.string().c_str(), destPath.string().c_str())) {
         throw CF::FileException(CF::CF_EINVAL, "Unexpected failure in move");
     }
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 void FileSystem_impl::copy (const char* sourceFileName, const char* destinationFileName) throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileSystem_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     // Validate file names
@@ -266,14 +255,11 @@ void FileSystem_impl::copy (const char* sourceFileName, const char* destinationF
     // Perform the copy.
     RH_TRACE(_fileSysLog, "Copying local file " << sourcePath << " to " << destPath);
     fsops.copy_file(sourcePath, destPath, fs::copy_option::overwrite_if_exists);
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 CORBA::Boolean FileSystem_impl::exists (const char* fileName)
 throw (CORBA::SystemException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileSystem_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     RH_TRACE(_fileSysLog, "Checking for existence of SCA file " << fileName);
@@ -282,7 +268,6 @@ throw (CORBA::SystemException, CF::InvalidFileName)
     }
     bool status = _local_exists(fileName);
 
-    TRACE_EXIT(FileSystem_impl);
     return status;
 }
 
@@ -302,8 +287,6 @@ bool FileSystem_impl::_local_exists (const char* fileName)
 
 CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* pattern) throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     fs::path filePath(root / pattern);
     fs::path dirPath(filePath.parent_path());
     UnreliableFS fsops;
@@ -373,15 +356,12 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
         }
     }
 
-    TRACE_EXIT(FileSystem_impl);
     return result._retn();
 }
 
 
 CF::File_ptr FileSystem_impl::create (const char* fileName) throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName (CF::CF_EINVAL, "Invalid file name");
     } else if (_local_exists(fileName)) {
@@ -397,7 +377,6 @@ CF::File_ptr FileSystem_impl::create (const char* fileName) throw (CORBA::System
     std::string fileIOR = ossie::corba::objectToString(fileServant);
     file->setIOR(fileIOR);
 
-    TRACE_EXIT(FileSystem_impl);
     return fileServant._retn();
 }
 
@@ -465,7 +444,6 @@ std::vector< std::string > FileSystem_impl::getFileIOR(const std::string& fileNa
 
 CF::File_ptr FileSystem_impl::open (const char* fileName, CORBA::Boolean read_Only) throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
-    TRACE_ENTER(FileSystem_impl);
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     } else if (!_local_exists(fileName)) {
@@ -484,15 +462,12 @@ CF::File_ptr FileSystem_impl::open (const char* fileName, CORBA::Boolean read_On
     incrementFileIORCount(strFileName, fileIOR);
     file->setIOR(fileIOR);
 
-    TRACE_EXIT(FileSystem_impl);
     return fileObj._retn();
 }
 
 
 void FileSystem_impl::mkdir (const char* directoryName) throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -512,14 +487,10 @@ void FileSystem_impl::mkdir (const char* directoryName) throw (CORBA::SystemExce
             throw CF::FileException(CF::CF_ENOTDIR, msg.c_str());
         }
     }
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 void FileSystem_impl::removeDirectory(const fs::path& dirPath, bool doRemove)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     UnreliableFS fsops;
     const fs::directory_iterator end_itr; // past the end
     for (fs::directory_iterator itr = fsops.begin(dirPath); itr != end_itr; fsops.increment(itr)) {
@@ -533,14 +504,10 @@ void FileSystem_impl::removeDirectory(const fs::path& dirPath, bool doRemove)
     if(doRemove) {
         fsops.remove(dirPath);
     }
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 void FileSystem_impl::rmdir (const char* directoryName) throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
     }
@@ -557,15 +524,11 @@ void FileSystem_impl::rmdir (const char* directoryName) throw (CORBA::SystemExce
     // See the JTAP test for rmdir to understand this
     removeDirectory(dirPath, false); // Test for only empty directories
     removeDirectory(dirPath, true);  // Only empty directories, remove them all
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 
 void FileSystem_impl::query (CF::Properties& fileSysProperties) throw (CORBA::SystemException, CF::FileSystem::UnknownFileSystemProperties)
 {
-    TRACE_ENTER(FileSystem_impl);
-
     if (fileSysProperties.length () == 0) {
         RH_TRACE(_fileSysLog, "Query all properties (SIZE, AVAILABLE_SPACE)");
         fileSysProperties.length(2);
@@ -584,8 +547,6 @@ void FileSystem_impl::query (CF::Properties& fileSysProperties) throw (CORBA::Sy
             }
         }
     }
-
-    TRACE_EXIT(FileSystem_impl);
 }
 
 std::string FileSystem_impl::getLocalPath (const char* fileName)

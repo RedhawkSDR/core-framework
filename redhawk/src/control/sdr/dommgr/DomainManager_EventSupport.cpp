@@ -317,8 +317,6 @@ void DomainManager_impl::disconnectDomainManagementChannels() {
 
 ::ossie::events::EventChannel_ptr DomainManager_impl::createEventChannel (const std::string& cname)
 {
-    TRACE_ENTER(DomainManager_impl);
-
     ::ossie::events::EventChannel_var eventChannel = ::ossie::events::EventChannel::_nil();
     if ( _eventChannelMgr ) {
 
@@ -374,14 +372,12 @@ void DomainManager_impl::disconnectDomainManagementChannels() {
     } catch (const ossie::PersistenceException& ex) {
         RH_ERROR(this->_baseLog, "Error persisting change to event channels");
     }
-    TRACE_EXIT(DomainManager_impl);
     return eventChannel._retn();
 }
 
 
 void DomainManager_impl::destroyEventChannel (const std::string& name)
 {
-    TRACE_ENTER(DomainManager_impl);
     if ( _eventChannelMgr ) {
 
       try {
@@ -416,8 +412,6 @@ void DomainManager_impl::destroyEventChannel (const std::string& name)
     } catch (const ossie::PersistenceException& ex) {
         RH_ERROR(this->_baseLog, "Error persisting change to event channels");
     }
-
-    TRACE_EXIT(DomainManager_impl);
 }
 
 

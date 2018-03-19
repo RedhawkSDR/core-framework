@@ -49,7 +49,6 @@ File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOn
   ptrFs(_ptrFs),
   fileIOR("")
 {
-    TRACE_ENTER(File_impl)
 
     RH_TRACE(fileLog, "In constructor with " << fileName << " and path " << fullFileName);
 
@@ -73,16 +72,13 @@ File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOn
         throw CF::FileException(CF::CF_EIO, errmsg.c_str());
     }
 
-    TRACE_EXIT(File_impl)
 }
 
 
 File_impl::~File_impl ()
 {
-  TRACE_ENTER(File_impl);
   RH_TRACE(fileLog, "Closing file..... " << fullFileName );
   if ( fd > 0 ) ::close(fd);
-  TRACE_EXIT(File_impl);
 }
 
 void File_impl::setIOR( const std::string &ior)
@@ -100,7 +96,6 @@ char* File_impl::fileName ()
 void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
     throw (CORBA::SystemException, CF::File::IOException)
 {
-    TRACE_ENTER(File_impl)
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     // GIOP messages cannot exceed a certain (configurable) size, or an unhelpful
@@ -131,15 +126,12 @@ void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
     // it will be a zero-length sequence (which follows the spec).
     RH_TRACE(fileLog, "Read " << count << " bytes from " << fName);
     data = new CF::OctetSequence(length, count, buf, true);
-
-    TRACE_EXIT(File_impl)
 }
 
 
 void File_impl::write (const CF::OctetSequence& data)
     throw (CORBA::SystemException, CF::File::IOException)
 {
-    TRACE_ENTER(File_impl)
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     const char* buffer = reinterpret_cast<const char*>(data.get_buffer());
@@ -152,8 +144,6 @@ void File_impl::write (const CF::OctetSequence& data)
         buffer += count;
         todo -= count;
     }
-
-    TRACE_EXIT(File_impl)
 }
 
 
@@ -161,18 +151,15 @@ CORBA::ULong File_impl::sizeOf ()
     throw (CORBA::SystemException, CF::FileException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    TRACE_ENTER(File_impl);
 
     CORBA::ULong size = getSize();
 
-    TRACE_EXIT(File_impl);
     return size;
 }
 
 void File_impl::close ()
     throw (CORBA::SystemException, CF::FileException)
 {
-    TRACE_ENTER(File_impl)
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     try {
@@ -211,26 +198,22 @@ void File_impl::close ()
         throw CF::FileException(CF::CF_EIO, "Error closing file");
     }
 
-    TRACE_EXIT(File_impl)
 }
 
 
 CORBA::ULong File_impl::filePointer ()
     throw (CORBA::SystemException)
 {
-    TRACE_ENTER(File_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     off_t pos = lseek(fd, 0, SEEK_CUR);
 
-    TRACE_EXIT(File_impl);
     return pos;
 };
 
 void File_impl::setFilePointer (CORBA::ULong _filePointer)
     throw (CORBA::SystemException, CF::File::InvalidFilePointer, CF::FileException)
 {
-    TRACE_ENTER(File_impl)
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     if (_filePointer > getSize()) {
@@ -241,7 +224,6 @@ void File_impl::setFilePointer (CORBA::ULong _filePointer)
         throw CF::FileException(CF::CF_EIO, "Error setting file pointer for file");
     }
 
-    TRACE_EXIT(File_impl)
 }
 
 CORBA::ULong File_impl::getSize ()

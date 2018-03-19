@@ -108,7 +108,6 @@ void AllocationManager_impl::unfilledRequests(CF::AllocationManager::AllocationR
 
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocate(const CF::AllocationManager::AllocationRequestSequence &requests) throw (CF::AllocationManager::AllocationError)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
     // try to fulfill the request locally
@@ -149,15 +148,12 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
         this->_domainManager->updateRemoteAllocations(this->_remoteAllocations);
     }
 
-    TRACE_EXIT(AllocationManager_impl)
     return result._retn();
 }
 
 /* Allocates a set of dependencies only inside the local Domain */
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName) throw (CF::AllocationManager::AllocationError)
 {
-    TRACE_ENTER(AllocationManager_impl);
-
     CF::AllocationManager::AllocationResponseSequence* results;
     if (requests.length() > 0) {
         ossie::DeviceList registeredDevices = this->_domainManager->getRegisteredDevices();
@@ -166,7 +162,6 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
         results = new CF::AllocationManager::AllocationResponseSequence();
     }
 
-    TRACE_EXIT(AllocationManager_impl);
     return results;
 }
 
@@ -555,17 +550,14 @@ bool AllocationManager_impl::checkPartitionMatching( ossie::DeviceNode& node,
 /* Deallocates a set of allocations */
 void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl);
     if (allocationIDs.length() > 0) {
         deallocate(allocationIDs.get_buffer(), allocationIDs.get_buffer() + allocationIDs.length());
     }
-    TRACE_EXIT(AllocationManager_impl);
 }
 
 /* Returns all current allocations on all Domains */
 CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
     CF::AllocationManager::AllocationStatusSequence_var result = new CF::AllocationManager::AllocationStatusSequence();
@@ -612,15 +604,13 @@ CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocat
             throw CF::AllocationManager::InvalidAllocationId(invalid_ids);
         }
     }
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
 /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated */
 CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     CF::AllocationManager::AllocationStatusSequence_var result = new CF::AllocationManager::AllocationStatusSequence();
@@ -652,8 +642,7 @@ CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAl
             throw CF::AllocationManager::InvalidAllocationId(invalid_ids);
         }
     }
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
@@ -693,7 +682,6 @@ void AllocationManager_impl::listAllocations(CF::AllocationManager::AllocationSc
 /* Returns all devices in all Domains that can be seen by any Allocation Manager seen by the local Allocation Manager */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::allDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Start with local devices
@@ -710,28 +698,24 @@ CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::allDevice
         ossie::corba::extend(result, remoteDevices);
     }
     RH_TRACE(_allocMgrLog, result->length() << " total device(s)");
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
 /* Returns all devices after policy is applied by any Allocation Manager seen by the local Allocation Manager */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::authorizedDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Default implementation has no policy engine; return all local devices
     CF::AllocationManager::DeviceLocationSequence_var result = localDevices();
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
 /* Returns all devices that are located within the local Domain */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::localDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Get a point-in-time copy of the domain's devices
@@ -751,16 +735,12 @@ CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::localDevi
     }
     RH_TRACE(_allocMgrLog, result->length() << " local device(s)");
 
-    TRACE_EXIT(AllocationManager_impl)
     return result._retn();
 }
 
 /* Returns a link to the local Domain */
 CF::DomainManager_ptr AllocationManager_impl::domainMgr()
 {
-    TRACE_ENTER(AllocationManager_impl);
-
-    TRACE_EXIT(AllocationManager_impl);
     return _domainManager->_this();
 }
 

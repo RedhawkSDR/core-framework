@@ -307,7 +307,6 @@ void DomainConnectionManager::breakConnection(const std::string& connectionRecor
 
 void DomainConnectionManager::deviceManagerUnregistered(const std::string& deviceManagerName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     boost::mutex::scoped_lock lock(_connectionLock);
     ConnectionTable::iterator devMgr = _connectionsByRequester.find(deviceManagerName);
     if (devMgr == _connectionsByRequester.end()) {
@@ -324,12 +323,10 @@ void DomainConnectionManager::deviceManagerUnregistered(const std::string& devic
         }
     }
     _connectionsByRequester.erase(devMgr);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::deviceRegistered(const std::string& deviceId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::COMPONENT, deviceId);
     } catch ( ossie::InvalidConnection &e ) {
@@ -339,19 +336,15 @@ void DomainConnectionManager::deviceRegistered(const std::string& deviceId)
     } catch ( ... ) {
         RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::deviceUnregistered(const std::string& deviceId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::COMPONENT, deviceId);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::serviceRegistered(const std::string& serviceName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::SERVICENAME, serviceName);
     } catch ( ossie::InvalidConnection &e ) {
@@ -361,19 +354,15 @@ void DomainConnectionManager::serviceRegistered(const std::string& serviceName)
     } catch ( ... ) {
         RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::serviceUnregistered(const std::string& serviceName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::SERVICENAME, serviceName);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::applicationRegistered(const std::string& applicationId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::APPLICATION, applicationId);
     } catch ( ossie::InvalidConnection &e ) {
@@ -383,14 +372,11 @@ void DomainConnectionManager::applicationRegistered(const std::string& applicati
     } catch ( ... ) {
         RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::applicationUnregistered(const std::string& applicationId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::APPLICATION, applicationId);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 const ConnectionTable& DomainConnectionManager::getConnections() const
@@ -422,8 +408,6 @@ std::string DomainConnectionManager::addConnection_(const std::string& requester
 
 void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType type, const std::string& identifier)
 {
-    TRACE_ENTER(DomainConnectionManager);
-
     boost::mutex::scoped_lock lock(_connectionLock);
     for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
@@ -451,13 +435,10 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
             }
         }
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, const std::string& identifier)
 {
-    TRACE_ENTER(DomainConnectionManager);
-
     boost::mutex::scoped_lock lock(_connectionLock);
     for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
@@ -485,8 +466,6 @@ void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, c
             }
         }
     }
-
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 

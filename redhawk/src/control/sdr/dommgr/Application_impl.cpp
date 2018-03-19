@@ -154,14 +154,11 @@ void Application_impl::populateApplication(const CF::DeviceAssignmentSequence& a
                                            std::vector<ConnectionNode>& connections,
                                            std::vector<std::string> allocationIDs)
 {
-    TRACE_ENTER(Application_impl)
     _connections = connections;
     _componentDevices = assignedDevices;
 
     RH_DEBUG(_baseLog, "Creating allocation sequence");
     this->_allocationIDs = allocationIDs;
-
-    TRACE_EXIT(Application_impl)
 }
 
 void Application_impl::setStartOrder(const std::vector<std::string>& startOrder)
@@ -179,8 +176,6 @@ void Application_impl::setStartOrder(const std::vector<std::string>& startOrder)
 
 Application_impl::~Application_impl ()
 {
-    TRACE_ENTER(Application_impl)
-    TRACE_EXIT(Application_impl)
 };
 
 PortableServer::ObjectId* Application_impl::Activate(Application_impl* application)
@@ -938,8 +933,6 @@ throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::Unknow
 void Application_impl::releaseObject ()
 throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
-  TRACE_ENTER(Application_impl);
-      
   try {
     // Make sure releaseObject hasn't already been called, but only hold the
     // lock long enough to check to prevent a potential priority inversion with
@@ -1077,8 +1070,6 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
     message[0] = CORBA::string_dup(errstr.str().c_str());
     throw CF::LifeCycle::ReleaseError(message);
   }
-
-  TRACE_EXIT(Application_impl);
 }
 
 void Application_impl::releaseComponents()
