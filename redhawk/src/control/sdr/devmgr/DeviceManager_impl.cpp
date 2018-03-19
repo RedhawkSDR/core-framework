@@ -238,7 +238,7 @@ int DeviceManager_impl::checkDomain()
         devMgrs = this->_dmnMgr->deviceManagers();
     } catch ( ... ) {
         if ((this->startDomainWarn.tv_sec == 0) and (this->startDomainWarn.tv_usec == 0)) {
-            LOG_WARN(DeviceManager_impl, "Unable to contact the Domain Manager");
+            RH_WARN(this->_baseLog, "Unable to contact the Domain Manager");
             gettimeofday(&startDomainWarn, NULL);
             return DomainCheckThread::NOOP;
         }
@@ -246,7 +246,7 @@ int DeviceManager_impl::checkDomain()
         gettimeofday(&now, NULL);
         float minutes = 15;
         if ((now.tv_sec - startDomainWarn.tv_sec) >= (minutes * 60)) {
-            LOG_WARN(DeviceManager_impl, "Unable to contact the Domain Manager");
+            RH_WARN(this->_baseLog, "Unable to contact the Domain Manager");
             gettimeofday(&startDomainWarn, NULL);
             return DomainCheckThread::NOOP;
         }
@@ -356,32 +356,32 @@ void DeviceManager_impl::resetLog()
 
 void DeviceManager_impl::parseDeviceConfigurationProfile(const char *overrideDomainName){
 
-    LOG_TRACE(DeviceManager_impl, "Using DCD profile " << _deviceConfigurationProfile);
+    RH_TRACE(this->_baseLog, "Using DCD profile " << _deviceConfigurationProfile);
     try {
         _fileSys->exists(_deviceConfigurationProfile.c_str());
     } catch( CF::InvalidFileName& _ex ) {
         std::ostringstream emsg;
         emsg <<"Terminating device manager; DCD file " << _deviceConfigurationProfile << " does not exist; " << _ex.msg;
-        LOG_TRACE(DeviceManager_impl, emsg.str());
+        RH_TRACE(this->_baseLog, emsg.str());
       throw std::runtime_error(emsg.str().c_str());
     } catch ( std::exception& ex ) {
         std::ostringstream emsg;
         emsg << "The following standard exception occurred: "<<ex.what()<<" while checking if " << _deviceConfigurationProfile << " exists";
-        LOG_TRACE(DeviceManager_impl, emsg.str());
+        RH_TRACE(this->_baseLog, emsg.str());
         throw std::runtime_error(emsg.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream emsg;
         emsg << "The following CORBA exception occurred: "<<ex._name()<<" while checking if " << _deviceConfigurationProfile << " exists";
-        LOG_TRACE(DeviceManager_impl, emsg.str());
+        RH_TRACE(this->_baseLog, emsg.str());
         throw std::runtime_error(emsg.str().c_str());
     } catch( ... ) {
         std::ostringstream emsg;
 	emsg << "Terminating device manager; unknown exception checking if " << _deviceConfigurationProfile << " exists; ";
-        LOG_TRACE(DeviceManager_impl, emsg.str());
+        RH_TRACE(this->_baseLog, emsg.str());
         throw std::runtime_error(emsg.str().c_str());
     }
 
-    LOG_TRACE(DeviceManager_impl, "Parsing DCD profile")
+    RH_TRACE(this->_baseLog, "Parsing DCD profile")
     try {
         File_stream _dcd(_fileSys, _deviceConfigurationProfile.c_str());
         node_dcd.load(_dcd);
@@ -391,34 +391,34 @@ void DeviceManager_impl::parseDeviceConfigurationProfile(const char *overrideDom
         std::ostringstream eout;
         eout << "Exiting device manager; failure parsing DCD: " << _deviceConfigurationProfile 
              << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
-        LOG_TRACE(DeviceManager_impl, eout.str());
+        RH_TRACE(this->_baseLog, eout.str());
         throw std::runtime_error(e.what());
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<", while parsing the DCD: " << _deviceConfigurationProfile;
-        LOG_TRACE(DeviceManager_impl, eout.str())
+        RH_TRACE(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<", while parsing the DCD: " << _deviceConfigurationProfile;
-        LOG_TRACE(DeviceManager_impl, eout.str())
+        RH_TRACE(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( ... ) {
-        LOG_TRACE(DeviceManager_impl, "Exiting device manager; Unexpected failure parsing DCD: " << _deviceConfigurationProfile );
+        RH_TRACE(this->_baseLog, "Exiting device manager; Unexpected failure parsing DCD: " << _deviceConfigurationProfile );
         throw std::runtime_error("unexpected error");
     }
 
     _identifier = node_dcd.getID();
     _label = node_dcd.getName();
-    LOG_TRACE(DeviceManager_impl, "DeviceManager id: " << node_dcd.getID() << " name: " << node_dcd.getName());
+    RH_TRACE(this->_baseLog, "DeviceManager id: " << node_dcd.getID() << " name: " << node_dcd.getName());
 
     if (overrideDomainName == NULL) {
-        LOG_TRACE(DeviceManager_impl, "Reading domainname from DCD file")
+        RH_TRACE(this->_baseLog, "Reading domainname from DCD file")
         CORBA::String_var tmp_domainManagerName = node_dcd.getDomainManagerName();
         _domainManagerName = (char *)tmp_domainManagerName;
         _domainName = _domainManagerName.substr(0, _domainManagerName.find_first_of("/"));
     } else {
-        LOG_TRACE(DeviceManager_impl, "Overriding domainname from DCD file")
+        RH_TRACE(this->_baseLog, "Overriding domainname from DCD file")
         _domainName = overrideDomainName;
         _domainManagerName = _domainName + "/" + _domainName;
     }
@@ -443,7 +443,7 @@ void DeviceManager_impl::parseSpd() {
       devmgr_info = local_spd::ProgramProfile::LoadProfile( _fileSys, devmgrsoftpkg.c_str(), _local_dom_filesys );
     }
     catch( std::runtime_error &ex ) {
-        LOG_TRACE(DeviceManager_impl, ex.what() );
+        RH_TRACE(this->_baseLog, ex.what() );
         throw;
     }
         
@@ -480,11 +480,11 @@ void DeviceManager_impl::setupImplementationForHost() {
     pref._id = "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b";
     pref._value = processor_name;
     _my_host.push_back( pref.clone() );
-    LOG_INFO(DeviceManager_impl, "adding in property for :" << pref._id << " value : " << processor_name );
+    RH_INFO(this->_baseLog, "adding in property for :" << pref._id << " value : " << processor_name );
     pref._id = "DCE:4a23ad60-0b25-4121-a630-68803a498f75";
     pref._value = os_name;
     _my_host.push_back( pref.clone() );
-    LOG_INFO(DeviceManager_impl, "adding in property for :" << pref._id << " value : " << os_name );
+    RH_INFO(this->_baseLog, "adding in property for :" << pref._id << " value : " << os_name );
     host_props.override(_my_host);
 
     local_spd::ImplementationInfo::List  _allDevManImpls;
@@ -492,7 +492,7 @@ void DeviceManager_impl::setupImplementationForHost() {
     local_spd::ImplementationInfo::List::const_iterator itr;
     if (_allDevManImpls.size() == 0) {
       std::string emsg="Device manager SPD has no implementations to match against.";
-      LOG_ERROR(DeviceManager_impl, emsg);
+      RH_ERROR(this->_baseLog, emsg);
       throw std::runtime_error(emsg);
     }
 
@@ -509,10 +509,10 @@ void DeviceManager_impl::setupImplementationForHost() {
     if (!found_impl){
         std::ostringstream oss;
         oss << "Unable to find device manager implementation to match processor: " << _uname.machine;
-        LOG_TRACE(DeviceManager_impl, oss.str() );
+        RH_TRACE(this->_baseLog, oss.str() );
         throw std::runtime_error( oss.str().c_str());
     }
-    LOG_TRACE(DeviceManager_impl, "Using device manager implementation " << devmgr_info->getID());
+    RH_TRACE(this->_baseLog, "Using device manager implementation " << devmgr_info->getID());
 }
 
 void DeviceManager_impl::resolveNamingContext(){
@@ -522,12 +522,12 @@ void DeviceManager_impl::resolveNamingContext(){
         try {
             CORBA::Object_var obj = ossie::corba::InitialNamingContext()->resolve(base_context);
             rootContext = CosNaming::NamingContext::_narrow(obj);
-            LOG_TRACE(DeviceManager_impl, "Connected");
+            RH_TRACE(this->_baseLog, "Connected");
             break;
         } catch ( ... ) {
             if (!warnedMissing) {
                 warnedMissing = true;
-                LOG_WARN(DeviceManager_impl, "Unable to find naming context " << _domainManagerName << "; retrying");
+                RH_WARN(this->_baseLog, "Unable to find naming context " << _domainManagerName << "; retrying");
             }
         }
         // Sleep for a tenth of a second to give the DomainManager a chance to
@@ -536,11 +536,11 @@ void DeviceManager_impl::resolveNamingContext(){
 
         // If a shutdown occurs while waiting, turn it into an exception.
         if (*_internalShutdown) {
-            LOG_TRACE(DeviceManager_impl, "Interrupted when waiting to locate DomainManager naming context");
+            RH_TRACE(this->_baseLog, "Interrupted when waiting to locate DomainManager naming context");
             throw std::runtime_error("Interrupted when waiting to locate DomainManager naming context");
         }
     }
-    LOG_TRACE(DeviceManager_impl, "Resolved DomainManager naming context");
+    RH_TRACE(this->_baseLog, "Resolved DomainManager naming context");
 }
 
 /*
@@ -563,29 +563,29 @@ bool DeviceManager_impl::getCodeFilePath(
         FileSystem_impl*&           fs_servant,
 	bool                        useLocalFileSystem ) {
 
-    LOG_TRACE(DeviceManager_impl, "getCodeFile:  spdPath: " << SPDParser.getSPDPath() );
-    LOG_TRACE(DeviceManager_impl, "getCodeFile:  localFileName: " << matchedDeviceImpl.getLocalFileName());
-    LOG_TRACE(DeviceManager_impl, "getCodeFile:  entryPoint: " <<  matchedDeviceImpl.getEntryPoint());
+    RH_TRACE(this->_baseLog, "getCodeFile:  spdPath: " << SPDParser.getSPDPath() );
+    RH_TRACE(this->_baseLog, "getCodeFile:  localFileName: " << matchedDeviceImpl.getLocalFileName());
+    RH_TRACE(this->_baseLog, "getCodeFile:  entryPoint: " <<  matchedDeviceImpl.getEntryPoint());
 
     // get code file (the path to the device that must be run)
     fs::path codeFile = fs::path(matchedDeviceImpl.getLocalFileName());
     if (!codeFile.has_root_directory()) {
         codeFile = fs::path(SPDParser.getSPDPath()) / codeFile;
-        LOG_TRACE(DeviceManager_impl, "code localfile had relative path; absolute path: " << codeFile);
+        RH_TRACE(this->_baseLog, "code localfile had relative path; absolute path: " << codeFile);
     }
     codeFile = codeFile.normalize();
 
     fs::path entryPoint;
     if (matchedDeviceImpl.getEntryPoint().size() != 0) {
-        LOG_TRACE(DeviceManager_impl, "Using provided entry point: " << matchedDeviceImpl.getEntryPoint())
+        RH_TRACE(this->_baseLog, "Using provided entry point: " << matchedDeviceImpl.getEntryPoint())
         entryPoint = fs::path(matchedDeviceImpl.getEntryPoint());
         if (!entryPoint.has_root_directory()) {
             entryPoint = fs::path(SPDParser.getSPDPath()) / entryPoint;
-            LOG_TRACE(DeviceManager_impl, "code entrypoint had relative path; absolute path: " << entryPoint);
+            RH_TRACE(this->_baseLog, "code entrypoint had relative path; absolute path: " << entryPoint);
         }
         entryPoint = entryPoint.normalize();
     } else if (matchedDeviceImpl.getEntryPoint().size() == 0) {
-        LOG_ERROR(DeviceManager_impl, "not instantiating device; no entry point provided");
+        RH_ERROR(this->_baseLog, "not instantiating device; no entry point provided");
         return false;
     }
 
@@ -598,17 +598,17 @@ bool DeviceManager_impl::getCodeFilePath(
     }
 
     if (codeFilePath.length() == 0) {
-        LOG_WARN(DeviceManager_impl, "Invalid device file. Could not find executable for " << codeFile)
+        RH_WARN(this->_baseLog, "Invalid device file. Could not find executable for " << codeFile)
         return false;
     }
 
     if (access(localFilePath.c_str(), F_OK) == -1) {
         std::string errMsg = "Unable to access local filesystem file: " + localFilePath;
-        LOG_ERROR(DeviceManager_impl, errMsg );
+        RH_ERROR(this->_baseLog, errMsg );
         return false;
     }
 
-    LOG_TRACE(DeviceManager_impl, "Code file path: " << codeFilePath)
+    RH_TRACE(this->_baseLog, "Code file path: " << codeFilePath)
 
     return true;
 }
@@ -623,21 +623,21 @@ void DeviceManager_impl::bindNamingContext() {
     try {
         devMgrContext = rootContext->bind_new_context(devMgrContextName);
     } catch (CosNaming::NamingContext::AlreadyBound&) {
-        LOG_WARN(DeviceManager_impl, "Device manager name already bound")
+        RH_WARN(this->_baseLog, "Device manager name already bound")
         rootContext->unbind(devMgrContextName);
         devMgrContext = rootContext->bind_new_context(devMgrContextName);
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the Device Manager naming context";
-        LOG_FATAL(DeviceManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while creating the Device Manager naming context";
-        LOG_FATAL(DeviceManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch( ... ) {
-        LOG_FATAL(DeviceManager_impl, "Unable to create device manager context")
+        RH_FATAL(this->_baseLog, "Unable to create device manager context")
         throw std::runtime_error("unexpected error");
     }
 }
@@ -651,26 +651,26 @@ void DeviceManager_impl::bindNamingContext() {
  */
 void DeviceManager_impl::getDomainManagerReferenceAndCheckExceptions() {
 
-    LOG_INFO(DeviceManager_impl, "Connecting to Domain Manager " << _domainManagerName)
+    RH_INFO(this->_baseLog, "Connecting to Domain Manager " << _domainManagerName)
     try {
         getDomainManagerReference(_domainManagerName);
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to reach the Domain Manager";
-        LOG_FATAL(DeviceManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to reach the Domain Manager";
-        LOG_FATAL(DeviceManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     } catch ( ... ) {
-        LOG_FATAL(DeviceManager_impl, "[DeviceManager::post_constructor] Unable to get a reference to the DomainManager");
+        RH_FATAL(this->_baseLog, "[DeviceManager::post_constructor] Unable to get a reference to the DomainManager");
         throw std::runtime_error("unexpected error");
     }
 
     if (CORBA::is_nil(_dmnMgr)) {
-        LOG_FATAL(DeviceManager_impl, "Failure getting Domain Manager")
+        RH_FATAL(this->_baseLog, "Failure getting Domain Manager")
         throw std::runtime_error("unexpected error");
     }
 }
@@ -678,7 +678,7 @@ void DeviceManager_impl::getDomainManagerReferenceAndCheckExceptions() {
 void DeviceManager_impl::registerDeviceManagerWithDomainManager(
         CF::DeviceManager_var& my_object_var) {
 
-    LOG_TRACE(DeviceManager_impl, "Registering with DomainManager");
+    RH_TRACE(this->_baseLog, "Registering with DomainManager");
     int64_t cnt=0;
     while (true) {
         if (*_internalShutdown) {
@@ -690,30 +690,30 @@ void DeviceManager_impl::registerDeviceManagerWithDomainManager(
             break;
         } catch (const CORBA::TRANSIENT& ex) {
             // The DomainManager isn't currently reachable, but it may become accessible again.
-          if ( !(++cnt % 10) ) {LOG_WARN(DeviceManager_impl, "DomainManager not available,  TRANSIENT condition: retry cnt" << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  TRANSIENT condition: retry cnt" << cnt); }
             usleep(100000);
         } catch (const CORBA::OBJECT_NOT_EXIST& ex) {
             // This error occurs while the DomainManager is still being constructed 
-          if ( !(++cnt % 10) ) {LOG_WARN(DeviceManager_impl, "DomainManager not available,  DOES NOT EXIST condition: retry cnt" << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  DOES NOT EXIST condition: retry cnt" << cnt); }
             usleep(100000);
         } catch (const CF::DomainManager::RegisterError& e) {
-            LOG_ERROR(DeviceManager_impl, "Failed to register with domain manager due to: " << e.msg);
+            RH_ERROR(this->_baseLog, "Failed to register with domain manager due to: " << e.msg);
             throw std::runtime_error("Error registering with Domain Manager");
         } catch (const CF::InvalidObjectReference& _ex) {
-            LOG_FATAL(DeviceManager_impl, "While registering DevMgr with DomMgr: " << _ex.msg);
+            RH_FATAL(this->_baseLog, "While registering DevMgr with DomMgr: " << _ex.msg);
             throw std::runtime_error("Error registering with Domain Manager");
         } catch ( std::exception& ex ) {
             std::ostringstream eout;
             eout << "The following standard exception occurred: "<<ex.what()<<" while registering the Device Manager with the Domain Manager";
-            LOG_FATAL(DeviceManager_impl, eout.str())
+            RH_FATAL(this->_baseLog, eout.str())
             throw std::runtime_error(eout.str().c_str());
         } catch ( CORBA::Exception& ex ) {
             std::ostringstream eout;
             eout << "The following CORBA exception occurred: "<<ex._name()<<" while registering the Device Manager with the Domain Manager";
-            LOG_FATAL(DeviceManager_impl, eout.str())
+            RH_FATAL(this->_baseLog, eout.str())
             throw std::runtime_error(eout.str().c_str());
         } catch (...) {
-            LOG_FATAL(DeviceManager_impl, "While registering DevMgr with DomMgr: Unknown Exception");
+            RH_FATAL(this->_baseLog, "While registering DevMgr with DomMgr: Unknown Exception");
             throw std::runtime_error("Error registering with Domain Manager");
         }
     }
@@ -725,17 +725,17 @@ void DeviceManager_impl::getCompositeDeviceIOR(
         const ossie::DevicePlacement&              componentPlacementInst) {
 
     //see if component is composite part of device
-    LOG_TRACE(DeviceManager_impl, "Checking composite part of device");
+    RH_TRACE(this->_baseLog, "Checking composite part of device");
     if (componentPlacementInst.isCompositePartOf()) {
         std::string parentDeviceRefid = componentPlacementInst.getCompositePartOfDeviceID();
-        LOG_TRACE(DeviceManager_impl, "CompositePartOfDevice: <" << parentDeviceRefid << ">");
+        RH_TRACE(this->_baseLog, "CompositePartOfDevice: <" << parentDeviceRefid << ">");
         //find parent ID and stringify the IOR
         for (unsigned int cp_idx = 0; cp_idx < componentPlacements.size(); cp_idx++) {
             // must match to a particular instance
             for (unsigned int ci_idx = 0; ci_idx < componentPlacements[cp_idx].getInstantiations().size(); ci_idx++) {
                 const std::string& instanceID = componentPlacements[cp_idx].instantiations[ci_idx].getID();
                 if (instanceID == parentDeviceRefid) {
-                    LOG_TRACE(DeviceManager_impl, "CompositePartOfDevice: Found parent device instance <" 
+                    RH_TRACE(this->_baseLog, "CompositePartOfDevice: Found parent device instance <" 
                             << componentPlacements[cp_idx].getInstantiations()[ci_idx].getID() 
                             << "> for child device <" << componentPlacementInst.getFileRefId() << ">");
                     // now get the associated IOR
@@ -743,7 +743,7 @@ void DeviceManager_impl::getCompositeDeviceIOR(
                         std::string tmpior = getIORfromID(instanceID);
                         if (!tmpior.empty()) {
                             compositeDeviceIOR = tmpior;
-                            LOG_TRACE(DeviceManager_impl, "CompositePartOfDevice: Found parent device IOR <" << compositeDeviceIOR << ">");
+                            RH_TRACE(this->_baseLog, "CompositePartOfDevice: Found parent device IOR <" << compositeDeviceIOR << ">");
                             break;
                         }
                         usleep(100);
@@ -761,12 +761,12 @@ CF::Properties DeviceManager_impl::getResourceOptions( const ossie::ComponentIns
   CF::Properties   affinity_options;
   const ossie::ComponentInstantiation::AffinityProperties c_props = instantiation.getAffinity();
   if ( c_props.size() > 0  ){
-    LOG_DEBUG(DeviceManager_impl, "Converting AFFINITY properties, resource: " << instantiation.getUsageName());
+    RH_DEBUG(this->_baseLog, "Converting AFFINITY properties, resource: " << instantiation.getUsageName());
     ossie::convertComponentProperties( instantiation.getAffinity(), affinity_options );
     // Pass all afinity settings under single options list
     for ( uint32_t i=0; i < affinity_options.length(); i++ ) {
       CF::DataType dt = affinity_options[i];
-      LOG_DEBUG(DeviceManager_impl, "Found Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
+      RH_DEBUG(this->_baseLog, "Found Affinity Property: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
     }
   }
 
@@ -775,7 +775,7 @@ CF::Properties DeviceManager_impl::getResourceOptions( const ossie::ComponentIns
     options.length(options.length()+1);
     options[options.length()-1].id = CORBA::string_dup("AFFINITY"); 
     options[options.length()-1].value <<= affinity_options;
-    LOG_DEBUG(DeviceManager_impl,"Extending Options property set with Affinity properties, nprops: " << affinity_options.length());
+    RH_DEBUG(this->_baseLog,"Extending Options property set with Affinity properties, nprops: " << affinity_options.length());
   }
   return options;
 }
@@ -794,7 +794,7 @@ bool DeviceManager_impl::getDeviceOrService(
     bool supported = false;
 
     type = comp->scd.getComponentType();
-    LOG_TRACE(DeviceManager_impl, "Softpkg type " << type)
+    RH_TRACE(this->_baseLog, "Softpkg type " << type)
 
     // Normalize type into either device or service
     // This is contrary to the spec, but existing devices/service may depend
@@ -809,7 +809,7 @@ bool DeviceManager_impl::getDeviceOrService(
         supported = true;
     }
     else {
-        LOG_ERROR(DeviceManager_impl, 
+        RH_ERROR(this->_baseLog, 
                   "Attempt to launch unsupported component type " << type)
     }
 
@@ -834,10 +834,11 @@ void DeviceManager_impl::postConstructor (
     myObj = _this();
 
     // Create the device file system in the DeviceManager POA.
-    LOG_TRACE(DeviceManager_impl, "Creating device file system")
+    RH_TRACE(this->_baseLog, "Creating device file system")
     FileSystem_impl* fs_servant = new FileSystem_impl(_fsroot.c_str());
     PortableServer::POA_var poa = ossie::corba::RootPOA()->find_POA("DeviceManager", 1);
     PortableServer::ObjectId_var oid = poa->activate_object(fs_servant);
+    fs_servant->setLogger(_baseLog->getChildLogger("FileSystem", ""));
     fs_servant->_remove_ref();
     _fileSys = fs_servant->_this();
     fileSysIOR = ossie::corba::objectToString(_fileSys);
@@ -845,8 +846,20 @@ void DeviceManager_impl::postConstructor (
     // create filesystem for local dom root.. used for softpkgs
     FileSystem_impl *local_dom_fs = new FileSystem_impl(_local_domroot.c_str());
     oid = poa->activate_object(local_dom_fs);
+    local_dom_fs->setLogger(_baseLog->getChildLogger("localFileSystem", ""));
     local_dom_fs->_remove_ref();
     _local_dom_filesys = local_dom_fs->_this();
+
+    ossie::proputilsLog = _baseLog->getChildLogger("proputils","");
+    ossie::SpdSupport::spdSupportLog = _baseLog->getChildLogger("spdSupport","");
+    fileLog = _baseLog->getChildLogger("File","");
+
+    std::string std_logconfig_uri;
+    if (!logging_config_uri.empty()) {
+        std_logconfig_uri = logging_config_uri;
+    }
+    std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
+    this->_baseLog->configureLogger(expanded_config);
 
     // 
     // setup DeviceManager context from dcd, software profile, find matching implementation
@@ -888,33 +901,33 @@ void DeviceManager_impl::postConstructor (
         // try fallback method
         idm_registration->channel = ossie::events::connectToEventChannel(rootContext, "IDM_Channel");
         if (CORBA::is_nil(idm_registration->channel)) {
-          LOG_INFO(DeviceManager_impl, "IDM channel not found. Continuing without using the IDM channel");
+          RH_INFO(this->_baseLog, "IDM channel not found. Continuing without using the IDM channel");
         } else {
           IDM_IOR = ossie::corba::objectToString(idm_registration->channel);
         }
       }
     }
     catch(...){
-        LOG_INFO(DeviceManager_impl, "IDM channel not found. Continuing without using the IDM channel");
+        RH_INFO(this->_baseLog, "IDM channel not found. Continuing without using the IDM channel");
     }
 
     _adminState = DEVMGR_REGISTERED;
 
     // create device manager cache location
     std::string devmgrcache(_cacheroot + "/." + _label);
-    LOG_TRACE(DeviceManager_impl, "Creating DevMgr cache: " << devmgrcache)
+    RH_TRACE(this->_baseLog, "Creating DevMgr cache: " << devmgrcache)
     bool retval = this->makeDirectory(devmgrcache);
     if (not retval) {
         std::ostringstream eout;
         eout << "Unable to create the Device Manager cache: " << devmgrcache;
-        LOG_ERROR(DeviceManager_impl, eout.str())
+        RH_ERROR(this->_baseLog, eout.str())
         throw std::runtime_error(eout.str().c_str());
     }
 
     //Parse local components from DCD files
-    LOG_TRACE(DeviceManager_impl, "Grabbing component placements")
+    RH_TRACE(this->_baseLog, "Grabbing component placements")
     const std::vector<ossie::DevicePlacement>& componentPlacements = node_dcd.getComponentPlacements();
-    LOG_TRACE(DeviceManager_impl, "ComponentPlacement size is " << componentPlacements.size())
+    RH_TRACE(this->_baseLog, "ComponentPlacement size is " << componentPlacements.size())
 
     ////////////////////////////////////////////////////////////////////////////
     // Split component placements by compositePartOf tag
@@ -936,7 +949,7 @@ void DeviceManager_impl::postConstructor (
          emsg << "Skipping instantiation of device " << compId;
          try {
              // load up device/service software profile
-             LOG_TRACE(DeviceManager_impl, "Getting file name for refid " << componentPlacement.getFileRefId());
+             RH_TRACE(this->_baseLog, "Getting file name for refid " << componentPlacement.getFileRefId());
              const char* spdFile = node_dcd.getFileNameFromRefId(componentPlacement.getFileRefId().c_str());
              newResource = local_spd::ProgramProfile::LoadProfile( _fileSys, spdFile, _local_dom_filesys );             
 
@@ -969,13 +982,13 @@ void DeviceManager_impl::postConstructor (
 
          }
          catch ( std::runtime_error &ex ) {
-             LOG_ERROR(DeviceManager_impl, ex.what() );
-             LOG_ERROR(DeviceManager_impl, emsg.str() );
+             RH_ERROR(this->_baseLog, ex.what() );
+             RH_ERROR(this->_baseLog, emsg.str() );
             if (newResource) delete newResource;
             continue;
          }
          catch ( ... ) {
-             LOG_ERROR(DeviceManager_impl, emsg.str() );
+             RH_ERROR(this->_baseLog, emsg.str() );
              if (newResource) delete newResource;
              continue;
          }
@@ -992,14 +1005,14 @@ void DeviceManager_impl::postConstructor (
       local_spd::ProgramProfile *compProfile = cIter->second;
       const local_spd::ImplementationInfo *matchingImpl = compProfile->getSelectedImplementation();
       std::string compId(compPlacement.instantiations[0].getID());
-      LOG_INFO(DeviceManager_impl, "Placing Component CompId: " << compId << " ProfileName : " << compProfile->getName() );
+      RH_INFO(this->_baseLog, "Placing Component CompId: " << compId << " ProfileName : " << compProfile->getName() );
 
       // should not happen
       if (!matchingImpl) continue;
 
       ossie::Properties deviceProperties;
       if (!addDeviceImplProperties( compProfile, *matchingImpl )) {
-	LOG_INFO(DeviceManager_impl, "Skipping instantiation of device '" << compProfile->getInstantiationIdentifier() << 
+	RH_INFO(this->_baseLog, "Skipping instantiation of device '" << compProfile->getInstantiationIdentifier() << 
 		 ", failed to merge properties ");
 	continue;
       }
@@ -1015,7 +1028,7 @@ void DeviceManager_impl::postConstructor (
 	   cpInstIter++) {
 
 	const ComponentInstantiation instantiation = *cpInstIter;
-	LOG_TRACE(DeviceManager_impl, "Placing component id: " << instantiation.getID());
+	RH_TRACE(this->_baseLog, "Placing component id: " << instantiation.getID());
 
         // setup profile with instantiation context
         recordComponentInstantiationId(instantiation, matchingImpl->getId());
@@ -1076,10 +1089,10 @@ void DeviceManager_impl::postConstructor (
           compId = compPlacement.instantiations[0].getID();
       }
       else {
-      LOG_FATAL(DeviceManager_impl, "Missing Instantiaion for Placing Composite ParentCompId: " << compositePartDeviceID << " ProfileName : " << compProfile->getName() );
+      RH_FATAL(this->_baseLog, "Missing Instantiaion for Placing Composite ParentCompId: " << compositePartDeviceID << " ProfileName : " << compProfile->getName() );
       }
 
-      LOG_INFO(DeviceManager_impl, "Placing Composite ParentCompId: " << compositePartDeviceID << " ProfileName : " << compProfile->getName() << " CompID " << compId );
+      RH_INFO(this->_baseLog, "Placing Composite ParentCompId: " << compositePartDeviceID << " ProfileName : " << compProfile->getName() << " CompID " << compId );
 
         bool foundCompositeDeployed = false;
         for (cIter =  standaloneComponentPlacements.begin();
@@ -1122,20 +1135,20 @@ void DeviceManager_impl::postConstructor (
             }
 
             if (foundCompositeDeployed == false) {
-                LOG_ERROR(DeviceManager_impl,
+                RH_ERROR(this->_baseLog,
                           "Unable to locate ComppositeParent '" << compositePartDeviceID << " for '" << compositePartDeviceID << "'... Skipping instantiation of '" << compId );
                 continue;
             }
 
             if (matchingImpl == NULL) {
-                LOG_ERROR(DeviceManager_impl,
+                RH_ERROR(this->_baseLog,
                           "Skipping instantiation of device '" << compId << "' - '" << compProfile->spd.getSoftPkgID() << "; "
                           << "no available device implementations match device manager properties")
                     continue;
             }
 
             if (parentImpl == NULL) {
-                LOG_ERROR(DeviceManager_impl,
+                RH_ERROR(this->_baseLog,
                           "Skipping instantiation of device '" << compId << "' - '" << compProfile->spd.getSoftPkgID() << "; "
                           << "Composite parent has no matching implementations")
                     continue;
@@ -1143,7 +1156,7 @@ void DeviceManager_impl::postConstructor (
 
             // store the matchedDeviceImpl's implementation ID in a map for use with "getComponentImplementationId"
             if (!addDeviceImplProperties(compProfile, *matchingImpl)) {
-                LOG_ERROR(DeviceManager_impl,"Skipping instantiation of device '" << compId << "' - '" << compProfile->spd.getSoftPkgID() << "'");
+                RH_ERROR(this->_baseLog,"Skipping instantiation of device '" << compId << "' - '" << compProfile->spd.getSoftPkgID() << "'");
                 continue;
             }
 
@@ -1271,9 +1284,9 @@ bool DeviceManager_impl::resolveSoftpkgDependencies( local_spd::ImplementationIn
         local_spd::ImplementationInfo* spdImplInfo = resolveDependencyImplementation(*pkg, host_props);
         if (spdImplInfo) {
             const_cast< local_spd::SoftpkgInfo* >(pkg)->setSelectedImplementation(spdImplInfo);
-            LOG_DEBUG(DeviceManager_impl, "resolveSoftpkgDependencies: selected: " << pkg->getName());
+            RH_DEBUG(this->_baseLog, "resolveSoftpkgDependencies: selected: " << pkg->getName());
         } else {
-            LOG_DEBUG(DeviceManager_impl, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
+            RH_DEBUG(this->_baseLog, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
             implementation->clearSelectedDependencyImplementations();
             return false;
         }
@@ -1314,7 +1327,7 @@ bool DeviceManager_impl::resolveImplementation( local_spd::ProgramProfile *rsc )
     local_spd::ImplementationInfo::List::iterator itr = impls.begin();
     for ( ; itr != impls.end(); itr++ ) {
         local_spd::ImplementationInfo *impl = *itr;
-        LOG_TRACE(DeviceManager_impl, 
+        RH_TRACE(this->_baseLog, 
                   "Attempting to match device " << rsc->getName() 
                   << " implementation id: " <<  impl->getId()
                   << " to device manager " << devmgr_info->getInstantiationIdentifier() );
@@ -1322,14 +1335,14 @@ bool DeviceManager_impl::resolveImplementation( local_spd::ProgramProfile *rsc )
         if ( impl->checkProcessorAndOs( devmgr_info->prf ) ) {
             rsc->setSelectedImplementation( impl );
             result = true;
-            LOG_TRACE(DeviceManager_impl, 
+            RH_TRACE(this->_baseLog, 
                       "found matching processing device implementation,  device " 
                       << rsc->getName()    << " implementation id: " <<  impl->getId() );
             break;
         }
     }
     
-    LOG_TRACE(DeviceManager_impl, "Done finding matching device implementation");
+    RH_TRACE(this->_baseLog, "Done finding matching device implementation");
     return result;
 }
 
@@ -1344,46 +1357,46 @@ bool DeviceManager_impl::addDeviceImplProperties (local_spd::ProgramProfile *com
     ossie::Properties devProps;
     const std::string prfFile = deviceImpl.getPropertyFile();    
     if (prfFile.size()) {
-        LOG_TRACE(DeviceManager_impl, "deviceImplProps: Joining implementation-specific PRF file " << prfFile);
+        RH_TRACE(this->_baseLog, "deviceImplProps: Joining implementation-specific PRF file " << prfFile);
         if (!joinPRFProperties(prfFile, devProps )) {
             return false;
         }
     } else {
-        LOG_TRACE(DeviceManager_impl, "deviceImplProps: Device does not provide implementation-specific PRF file");
+        RH_TRACE(this->_baseLog, "deviceImplProps: Device does not provide implementation-specific PRF file");
     }
 
     // merge props together...
     compProfile->prf.join(devProps);
 
     // 
-    LOG_TRACE(DeviceManager_impl, "deviceImplProps: Adding factory params");
+    RH_TRACE(this->_baseLog, "deviceImplProps: Adding factory params");
         const std::vector<const Property*>& fprop = devProps.getFactoryParamProperties();
         for (unsigned int i = 0; i < fprop.size(); i++) {
             compProfile->addFactoryParameter(convertPropertyToDataType(fprop[i]));
         }
 
-    LOG_TRACE(DeviceManager_impl, "deviceImpProps: Adding exec params");
+    RH_TRACE(this->_baseLog, "deviceImpProps: Adding exec params");
     const std::vector<const Property*>& eprop = devProps.getExecParamProperties();
     for (unsigned int i = 0; i < eprop.size(); i++) {
         if ( !eprop[i]->isReadOnly() ) {
-            LOG_TRACE(DeviceManager_impl, "deviceImplProps: Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+            RH_TRACE(this->_baseLog, "deviceImplProps: Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
             compProfile->addExecParameter(convertPropertyToDataType(eprop[i]));
         } else {
-            LOG_TRACE(DeviceManager_impl, "deviceImplProps: Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+            RH_TRACE(this->_baseLog, "deviceImplProps: Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
         }
     }
 
     const std::vector<const Property*>& prop = devProps.getConfigureProperties();
     for (unsigned int i = 0; i < prop.size(); i++) {
         if (!prop[i]->isReadOnly()) {
-            LOG_TRACE(DeviceManager_impl, "deviceImplProps: Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
+            RH_TRACE(this->_baseLog, "deviceImplProps: Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
                 compProfile->addConfigureProperty(convertPropertyToDataType(prop[i]));
         }
     }
 
     const std::vector<const Property*>& cprop = devProps.getConstructProperties();
     for (unsigned int i = 0; i < cprop.size(); i++) {
-        LOG_TRACE(DeviceManager_impl, "deviceImplProps: Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
+        RH_TRACE(this->_baseLog, "deviceImplProps: Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
         if (cprop[i]->isCommandLine()) {
             compProfile->addExecParameter(convertPropertyToDataType(cprop[i]));
         } else {
@@ -1400,19 +1413,19 @@ bool DeviceManager_impl::joinPRFProperties (const std::string& prfFile, ossie::P
     try {
         // Check for the existence of the PRF file first so we can give a more meaningful error message.
         if (!_fileSys->exists(prfFile.c_str())) {
-            LOG_ERROR(DeviceManager_impl, "PRF file " << prfFile << " does not exist");
+            RH_ERROR(this->_baseLog, "PRF file " << prfFile << " does not exist");
         } else {
-            LOG_TRACE(DeviceManager_impl, "Loading PRF file " << prfFile);
+            RH_TRACE(this->_baseLog, "Loading PRF file " << prfFile);
             File_stream prfStream(_fileSys, prfFile.c_str());
             properties.join(prfStream);
-            LOG_TRACE(DeviceManager_impl, "Loaded PRF file " << prfFile);
+            RH_TRACE(this->_baseLog, "Loaded PRF file " << prfFile);
             prfStream.close();
             return true;
         }
     } catch (const ossie::parser_error& ex) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-        LOG_ERROR(DeviceManager_impl, "Error parsing PRF: " << prfFile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what());
-    } CATCH_LOG_ERROR(DeviceManager_impl, "Failure parsing PRF: " << prfFile);
+        RH_ERROR(this->_baseLog, "Error parsing PRF: " << prfFile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what());
+    } CATCH_RH_ERROR(this->_baseLog, "Failure parsing PRF: " << prfFile);
 
     return false;
 }
@@ -1429,19 +1442,19 @@ DeviceManager_impl::getDomainManagerReference (const std::string& domainManagerN
         } catch (const CosNaming::NamingContext::NotFound&) {
             if (!warned) {
                 warned = true;
-                LOG_WARN(DeviceManager_impl, "DomainManager not registered with NameService; retrying");
+                RH_WARN(this->_baseLog, "DomainManager not registered with NameService; retrying");
             }
         } catch( CORBA::SystemException& se ) {
-            LOG_ERROR(DeviceManager_impl, "[DeviceManager::getDomainManagerReference] \"get_object_from_name\" failed with CORBA::SystemException")
+            RH_ERROR(this->_baseLog, "[DeviceManager::getDomainManagerReference] \"get_object_from_name\" failed with CORBA::SystemException")
             throw;
         } catch ( std::exception& ex ) {
-            LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while attempting \"get_object_from_name\"")
+            RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting \"get_object_from_name\"")
             throw;
         } catch ( const CORBA::Exception& ex ) {
-            LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while attempting \"get_object_from_name\"")
+            RH_ERROR(this->_baseLog, "The following CORBA exception occurred: "<<ex._name()<<" while attempting \"get_object_from_name\"")
             throw;
         } catch( ... ) {
-            LOG_ERROR(DeviceManager_impl, "[DeviceManager::getDomainManagerReference] \"get_object_from_name\" failed with Unknown Exception")
+            RH_ERROR(this->_baseLog, "[DeviceManager::getDomainManagerReference] \"get_object_from_name\" failed with Unknown Exception")
             throw;
         }
 
@@ -1457,15 +1470,15 @@ DeviceManager_impl::getDomainManagerReference (const std::string& domainManagerN
 
     try {
         _dmnMgr = CF::DomainManager::_narrow (obj);
-        LOG_TRACE(DeviceManager_impl, "Accessing DomainManager : " << domainManagerName);
+        RH_TRACE(this->_baseLog, "Accessing DomainManager : " << domainManagerName);
     } catch ( std::exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while attempting to narrow on the Domain Manager")
+        RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to narrow on the Domain Manager")
         throw;
     } catch ( const CORBA::Exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while attempting to narrow on the Domain Manager")
+        RH_ERROR(this->_baseLog, "The following CORBA exception occurred: "<<ex._name()<<" while attempting to narrow on the Domain Manager")
         throw;
     } catch( ... ) {
-        LOG_ERROR(DeviceManager_impl, "[DeviceManager::getDomainManagerReference] \"CF:DomainManager::_narrow\" failed with Unknown Exception")
+        RH_ERROR(this->_baseLog, "[DeviceManager::getDomainManagerReference] \"CF:DomainManager::_narrow\" failed with Unknown Exception")
         throw;
     }
 }
@@ -1532,7 +1545,7 @@ DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
   if (CORBA::is_nil (registeringDevice)) {
-    LOG_WARN(DeviceManager_impl, "Attempted to register NIL device")
+    RH_WARN(this->_baseLog, "Attempted to register NIL device")
       throw (CF::InvalidObjectReference("[DeviceManager::registerDevice] Cannot register Device. registeringDevice is a nil reference."));
   }
 
@@ -1542,12 +1555,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   ossie::corba::overrideBlockingCall(registeringDevice,getClientWaitTime());
   std::string deviceLabel = ossie::corba::returnString(registeringDevice->label());
   std::string device_id = ossie::corba::returnString(registeringDevice->identifier());
-  LOG_INFO(DeviceManager_impl, "Registering device " << deviceLabel << " device id " << device_id << " on Device Manager " << _label);
+  RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " device id " << device_id << " on Device Manager " << _label);
 
   if ( deviceIsRegistered( registeringDevice ) == true ) {
     std::ostringstream eout;
     eout << "Device is already registred: "<< deviceLabel;
-    LOG_WARN(DeviceManager_impl, eout.str());
+    RH_WARN(this->_baseLog, eout.str());
     return;
   }
 
@@ -1558,7 +1571,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   catch(...) {
       std::ostringstream eout;
       eout << "Loading Device's SPD failed, device:" <<  deviceLabel;
-          LOG_ERROR(DeviceManager_impl, eout.str());
+          RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
   } 
 
@@ -1582,7 +1595,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   std::string spd_name = spdinfo->getName();
   std::string spd_id = spdinfo->getID();
   std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
-  LOG_INFO(DeviceManager_impl, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
+  RH_INFO(this->_baseLog, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
 
 
   //
@@ -1591,10 +1604,10 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   if (spdinfo->isConfigurable ()) {
     try {
       //
-      LOG_DEBUG(DeviceManager_impl, "Initialize properties for spd/device label: " << spd_name << "/" << deviceLabel);
+      RH_DEBUG(this->_baseLog, "Initialize properties for spd/device label: " << spd_name << "/" << deviceLabel);
       const CF::Properties cprops = spdinfo->getNonNilConstructProperties();
       for (unsigned int j = 0; j < cprops.length (); j++) {
-        LOG_DEBUG(DeviceManager_impl, "initializeProperties prop id " << cprops[j].id );
+        RH_DEBUG(this->_baseLog, "initializeProperties prop id " << cprops[j].id );
       }
       // Try to set the initial values for the component's properties
       registeringDevice->initializeProperties(cprops);
@@ -1602,61 +1615,61 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       std::ostringstream eout;
       eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been initialized correctly; "
            << "Call to initializeProperties() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
-      LOG_ERROR(DeviceManager_impl, eout.str());
+      RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch(CF::PropertySet::PartialConfiguration& e) {
       std::ostringstream eout;
       eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
            << "Call to initializeProperties() resulted in PartialConfiguration exception.";
-      LOG_ERROR(DeviceManager_impl, eout.str());
+      RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch ( std::exception& ex ) {
       std::ostringstream eout;
       eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initalizeProperties for  "<<deviceLabel<<". Device registration with Device Manager failed";
-      LOG_ERROR(DeviceManager_impl, eout.str());
+      RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch ( const CORBA::Exception& ex ) {
       std::ostringstream eout;
       eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initializeProperties for "<<deviceLabel<<". Device registration with Device Manager failed";
-      LOG_ERROR(DeviceManager_impl, eout.str());
+      RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch( ... ) {
       std::ostringstream eout;
       eout << "Failed to initialize device properties: '";
       eout << deviceLabel << "' with device id: '" << spd_id;
       eout << "'initializeProperties' failed with Unknown Exception" << "Device registration with Device Manager failed ";
-      LOG_ERROR(DeviceManager_impl, eout.str());
+      RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
     }
   }
 
-  LOG_DEBUG(DeviceManager_impl, "Initializing device " << deviceLabel << " on Device Manager " << _label);
+  RH_DEBUG(this->_baseLog, "Initializing device " << deviceLabel << " on Device Manager " << _label);
   try {
     registeringDevice->initialize();
   } catch (CF::LifeCycle::InitializeError& ex) {
     std::ostringstream eout;
     eout << "Device "<< deviceLabel << " threw a CF::LifeCycle::InitializeError exception"<<". Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch ( std::exception& ex ) {
     std::ostringstream eout;
     eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch ( const CORBA::Exception& ex ) {
     std::ostringstream eout;
     eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   }
 
   //configure properties
   try {  
-    LOG_DEBUG(DeviceManager_impl, "Configuring device " << deviceLabel << " on Device Manager " << _label);
+    RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);
       const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
-    LOG_TRACE(DeviceManager_impl, "Listing configuration properties");
+    RH_TRACE(this->_baseLog, "Listing configuration properties");
     for (unsigned int j=0; j<cprops.length(); j++) {
-      LOG_TRACE(DeviceManager_impl, "Prop id " << cprops[j].id );
+      RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
     }
     if (cprops.length() != 0)
         registeringDevice->configure (cprops);
@@ -1664,23 +1677,23 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     std::ostringstream eout;
     eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
          << "Call to configure() resulted in PartialConfiguration exception.";
-    LOG_ERROR(DeviceManager_impl, eout.str())
+    RH_ERROR(this->_baseLog, eout.str())
       throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch (CF::PropertySet::InvalidConfiguration& ex) {
     std::ostringstream eout;
     eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
          << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch ( std::exception& ex ) {
     std::ostringstream eout;
     eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   } catch ( const CORBA::Exception& ex ) {
     std::ostringstream eout;
     eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-    LOG_ERROR(DeviceManager_impl, eout.str());
+    RH_ERROR(this->_baseLog, eout.str());
     throw(CF::InvalidObjectReference(eout.str().c_str()));
   }
 
@@ -1688,7 +1701,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // registered
   if (!deviceIsRegistered (registeringDevice)) {
     // if the device is not registered, then add it to the naming context
-    LOG_TRACE(DeviceManager_impl, "Binding device to name " << deviceLabel)
+    RH_TRACE(this->_baseLog, "Binding device to name " << deviceLabel)
         CosNaming::Name_var device_name = ossie::corba::stringToName(deviceLabel.c_str());
     try {
       devMgrContext->bind(device_name, registeringDevice);
@@ -1696,12 +1709,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       // there is already something bound to that name
       // from the perspective of this framework implementation, the multiple names are not acceptable
       // consider this a registered device
-      LOG_WARN(DeviceManager_impl, "Device is already registered");
+      RH_WARN(this->_baseLog, "Device is already registered");
       return;
     }
     increment_registeredDevices(registeringDevice);
   } else {
-    LOG_WARN(DeviceManager_impl, "Device is already registered");
+    RH_WARN(this->_baseLog, "Device is already registered");
     return;
   }
 
@@ -1709,20 +1722,20 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   // the new device with the Domain Manager
   if (_adminState == DEVMGR_REGISTERED) { 
       try {
-          LOG_INFO(DeviceManager_impl, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
+          RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
           _dmnMgr->registerDevice (registeringDevice, myObj);
       } catch( CF::DomainManager::RegisterError& e ) {
-          LOG_ERROR(DeviceManager_impl, "Failed to register device to domain manager due to: " << e.msg);
+          RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e.msg);
       } catch ( std::exception& ex ) {
-          LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
+          RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
               } catch( const CORBA::Exception& e ) {
-          LOG_ERROR(DeviceManager_impl, "Failed to register device to domain manager due to: " << e._name());
+          RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e._name());
       }
   } else {
-      LOG_WARN(DeviceManager_impl, "Skipping DomainManager registerDevice because the device manager isn't registered")
+      RH_WARN(this->_baseLog, "Skipping DomainManager registerDevice because the device manager isn't registered")
         }
 
-  LOG_TRACE(DeviceManager_impl, "Done registering device " << deviceLabel);
+  RH_TRACE(this->_baseLog, "Done registering device " << deviceLabel);
   allregistered = verifyAllRegistered();
   }
   if (allregistered) {
@@ -1767,7 +1780,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 //registeredDevice is a nil CORBA object reference or does not exist in the DeviceManagers
 //registeredDevices attribute.
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
-        LOG_ERROR(DeviceManager_impl, "Attempt to unregister nil device")
+        RH_ERROR(this->_baseLog, "Attempt to unregister nil device")
         throw (CF::InvalidObjectReference("Cannot unregister Device. registeringDevice is a nil reference."));
     }
 
@@ -1777,10 +1790,10 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         dev_id = ossie::corba::returnString(registeredDevice->identifier());
         dev_name = ossie::corba::returnString(registeredDevice->label());
     } catch ( std::exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, "The following standard exception occurred: "<<ex.what()<<" while trying to retrieve the identifier and label of the registered device")
+        RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while trying to retrieve the identifier and label of the registered device")
         throw(CF::InvalidObjectReference());
     } catch ( const CORBA::Exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, "The following CORBA exception occurred: "<<ex._name()<<" while trying to retrieve the identifier and label of the registered device")
+        RH_ERROR(this->_baseLog, "The following CORBA exception occurred: "<<ex._name()<<" while trying to retrieve the identifier and label of the registered device")
         throw(CF::InvalidObjectReference());
     } catch ( ... ) {
         throw (CF:: InvalidObjectReference("Cannot Unregister Device. Invalid reference"));
@@ -1790,7 +1803,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     deviceFound = decrement_registeredDevices(registeredDevice);
     if (!deviceFound) {
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
-        LOG_ERROR(DeviceManager_impl, "Cannot unregister Device. registeringDevice was not registered.")
+        RH_ERROR(this->_baseLog, "Cannot unregister Device. registeringDevice was not registered.")
         throw (CF::InvalidObjectReference("Cannot unregister Device. registeringDevice was not registered."));
     }
 
@@ -1847,10 +1860,10 @@ throw (CORBA::SystemException)
         this->DomainWatchThread->stop();
     
     *_internalShutdown = true;
-    LOG_DEBUG(DeviceManager_impl, "SHUTDOWN START........." << *_internalShutdown)
+    RH_DEBUG(this->_baseLog, "SHUTDOWN START........." << *_internalShutdown)
 
     if ((_adminState == DEVMGR_SHUTTING_DOWN) || (_adminState == DEVMGR_SHUTDOWN)) {
-        LOG_DEBUG(DeviceManager_impl, "SHUTTIING DOWN NOW......" );
+        RH_DEBUG(this->_baseLog, "SHUTTIING DOWN NOW......" );
         return;
     }
 
@@ -1866,7 +1879,7 @@ throw (CORBA::SystemException)
         CF::DeviceManager_var self = _this();
         if ( !CORBA::is_nil(_dmnMgr ) ) {
             _dmnMgr->unregisterDeviceManager(self);
-            LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... unregisterDeviceManager ");
+            RH_DEBUG(this->_baseLog, "SHUTDOWN ......... unregisterDeviceManager ");
         }
     } catch( ... ) {
     }
@@ -1878,10 +1891,10 @@ throw (CORBA::SystemException)
         if ( !CORBA::is_nil(_dmnMgr ) ) {
             CF::EventChannelManager_var ecm = _dmnMgr->eventChannelMgr();
             if ( CORBA::is_nil(ecm) == false && idm_registration.operator->() != NULL ){
-                LOG_INFO(DeviceManager_impl, "Unregister IDM CHANNEL:" << idm_registration->reg.reg_id);
+                RH_INFO(this->_baseLog, "Unregister IDM CHANNEL:" << idm_registration->reg.reg_id);
                 ecm->unregister( idm_registration->reg );
             }
-            LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... Unregister IDM_CHANNEL");
+            RH_DEBUG(this->_baseLog, "SHUTDOWN ......... Unregister IDM_CHANNEL");
         }
     }catch(...){
     }
@@ -1895,7 +1908,7 @@ throw (CORBA::SystemException)
     clean_externalServices();
     clean_registeredDevices();
 
-    LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... Unbinding device manager context");
+    RH_DEBUG(this->_baseLog, "SHUTDOWN ......... Unbinding device manager context");
     try {
         CosNaming::Name devMgrContextName;
         devMgrContextName.length(1);
@@ -1917,7 +1930,7 @@ throw (CORBA::SystemException)
     } catch ( ... ) {
     }
 
-    LOG_DEBUG(DeviceManager_impl, "SHUTDOWN ......... completed");
+    RH_DEBUG(this->_baseLog, "SHUTDOWN ......... completed");
 }
 
 void
@@ -1928,7 +1941,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   bool allregistered = false;
   {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
-    LOG_INFO(DeviceManager_impl, "Registering service " << name)
+    RH_INFO(this->_baseLog, "Registering service " << name)
 
     if (CORBA::is_nil (registeringService)) {
         throw (CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference."));
@@ -1939,13 +1952,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     // Register the service with the Device manager, unless it is already
     // registered
     if (serviceIsRegistered(name) == true ) {
-        LOG_WARN(DeviceManager_impl, "Service: " << name << ", is already registered")
+        RH_WARN(this->_baseLog, "Service: " << name << ", is already registered")
         return;
     }
     // Per the specification, service usagenames are not optional and *MUST* be
     // unique per each service type.  Therefore, a domain cannot have two
     // services of the same usagename.
-    LOG_TRACE(DeviceManager_impl, "Binding service to name " << name);
+    RH_TRACE(this->_baseLog, "Binding service to name " << name);
     CosNaming::Name_var service_name = ossie::corba::stringToName(name);
     try {
         rootContext->rebind(service_name, registeringService);
@@ -1953,7 +1966,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         // there is already something bound to that name
         // from the perspective of this framework implementation, the multiple names are not acceptable
         // consider this a registered device
-        LOG_WARN(DeviceManager_impl, "Service is already registered")
+        RH_WARN(this->_baseLog, "Service is already registered")
             return;
     }
 
@@ -1976,7 +1989,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
             CosNaming::Name_var service_name = ossie::corba::stringToName(name);
             rootContext->unbind(service_name);
             _registeredServices.pop_back();
-            LOG_ERROR(DeviceManager_impl, "Failed to register service to the domain manager; unregistering the service from the device manager")
+            RH_ERROR(this->_baseLog, "Failed to register service to the domain manager; unregistering the service from the device manager")
             throw;
         }
     }
@@ -1997,7 +2010,7 @@ DeviceManager_impl::unregisterService (CORBA::Object_ptr registeredService,
                                        const char* name)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
-    LOG_INFO(DeviceManager_impl, "Unregistering service " << name)
+    RH_INFO(this->_baseLog, "Unregistering service " << name)
 
     if (CORBA::is_nil (registeredService)) {
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
@@ -2027,10 +2040,10 @@ local_spd::ProgramProfile *DeviceManager_impl::findProfile (const std::string &c
     DeploymentList::iterator iter;
     for( iter=deployed_comps.begin(); iter != deployed_comps.end(); iter++ ) {
         std::string cid = iter->second->getInstantiationIdentifier();
-        LOG_TRACE(DeviceManager_impl, "Looking for Profile match: RegisteringInstanceID/ProfileInstanceId: " << componentInstantiationId << 
+        RH_TRACE(this->_baseLog, "Looking for Profile match: RegisteringInstanceID/ProfileInstanceId: " << componentInstantiationId << 
                   " / " << iter->second->getInstantiationIdentifier() );
         if ( componentInstantiationId == cid ) {
-            LOG_TRACE(DeviceManager_impl, "Looking for Profile FOUND MATCH " << 
+            RH_TRACE(this->_baseLog, "Looking for Profile FOUND MATCH " << 
                        iter->second->getInstantiationIdentifier() );
             ret=iter->second;
             break;
@@ -2049,17 +2062,17 @@ local_spd::ProgramProfile *DeviceManager_impl::findProfile (const std::string &u
     for( iter=deployed_comps.begin(); iter != deployed_comps.end(); iter++ ) {
         std::string cid = iter->second->getInstantiationIdentifier();
         std::string cname = iter->second->getUsageName();
-        LOG_TRACE(DeviceManager_impl, "Looking for Profile match (InstanceID): Registering/Profile: " << componentInstantiationId << 
+        RH_TRACE(this->_baseLog, "Looking for Profile match (InstanceID): Registering/Profile: " << componentInstantiationId << 
                   " / " << cid );
         if ( componentInstantiationId == cid ) {
-            LOG_TRACE(DeviceManager_impl, "Looking for Profile FOUND MATCH (instantiation) " << cid );
+            RH_TRACE(this->_baseLog, "Looking for Profile FOUND MATCH (instantiation) " << cid );
             ret=iter->second;
             break;
         }
 
-        LOG_TRACE(DeviceManager_impl, "Looking for Profile match (UsageName):  Registering/Profile: " << usageName << "/" << cname );
+        RH_TRACE(this->_baseLog, "Looking for Profile match (UsageName):  Registering/Profile: " << usageName << "/" << cname );
         if ( cname == usageName ) {
-            LOG_TRACE(DeviceManager_impl, "Looking for Profile FOUND MATCH (usageName) " <<  cname );
+            RH_TRACE(this->_baseLog, "Looking for Profile FOUND MATCH (usageName) " <<  cname );
             ret=iter->second;
             break;
         }
@@ -2132,41 +2145,41 @@ bool DeviceManager_impl::makeDirectory(std::string path)
             int retval = mkdir(initialDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
             if (retval == -1) {
                 if (errno == ENOENT) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". Non-existent root directory.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". Non-existent root directory.")
                     success = false;
                 } else if (errno == EEXIST) {
-                    LOG_TRACE(DeviceManager_impl, "Directory (from " << workingFileName << ") " << initialDir <<" already exists. No need to make a new one.")
+                    RH_TRACE(this->_baseLog, "Directory (from " << workingFileName << ") " << initialDir <<" already exists. No need to make a new one.")
                 } else if (errno == EACCES) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". Please check your write permissions.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". Please check your write permissions.")
                     success = false;
                 } else if (errno == ENOTDIR) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". One of the components of the path is not a directory.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". One of the components of the path is not a directory.")
                     success = false;
                 } else if (errno == ELOOP) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". A loop exists in the symbolic links in the path.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". A loop exists in the symbolic links in the path.")
                     success = false;
                 } else if (errno == EMLINK) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". The link count of the parent directory exceeds LINK_MAX.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". The link count of the parent directory exceeds LINK_MAX.")
                     success = false;
                 } else if (errno == ENAMETOOLONG) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". The path name is too long.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". The path name is too long.")
                     success = false;
                 } else if (errno == EROFS) {
-                    LOG_WARN(DeviceManager_impl, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". This is a read-only file system.")
+                    RH_WARN(this->_baseLog, "Failed to create directory (from " << workingFileName << ") " << initialDir <<". This is a read-only file system.")
                     success = false;
                 } else {
-                    LOG_WARN(DeviceManager_impl, "Attempt to create directory (from " << workingFileName << ") " << initialDir <<" failed with the following error number: " << errno)
+                    RH_WARN(this->_baseLog, "Attempt to create directory (from " << workingFileName << ") " << initialDir <<" failed with the following error number: " << errno)
                     success = false;
                 }
             } else {
-                LOG_TRACE(DeviceManager_impl, "Creating directory (from " << workingFileName << ") " << initialDir)
+                RH_TRACE(this->_baseLog, "Creating directory (from " << workingFileName << ") " << initialDir)
             }
             begin_pos = pos + 1;
         }
     }
     bool retval = checkWriteAccess(path);
     if (not retval) {
-        LOG_ERROR(DeviceManager_impl, "The Device Manager (or one of its children) does not have write permission to one or more files in the cache.")
+        RH_ERROR(this->_baseLog, "The Device Manager (or one of its children) does not have write permission to one or more files in the cache.")
         return false;
     }
     return success;
@@ -2179,19 +2192,19 @@ bool DeviceManager_impl::checkWriteAccess(std::string &path)
     dp = opendir(path.c_str());
     if (dp == NULL) {
         if (errno == ENOENT) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<".")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<".")
         } else if (errno == EACCES) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<". Please check your write permissions.")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<". Please check your write permissions.")
         } else if (errno == ENOTDIR) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<". One of the components of the path is not a directory.")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<". One of the components of the path is not a directory.")
         } else if (errno == EMFILE) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<". Too many file descriptors open by the process.")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<". Too many file descriptors open by the process.")
         } else if (errno == ENFILE) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<". Too many file descriptors open by the system.")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<". Too many file descriptors open by the system.")
         } else if (errno == ENOMEM) {
-            LOG_WARN(DeviceManager_impl, "Failed to create directory " << path <<". Insufficient memory to complete the operation.")
+            RH_WARN(this->_baseLog, "Failed to create directory " << path <<". Insufficient memory to complete the operation.")
         } else {
-            LOG_WARN(DeviceManager_impl, "Attempt to create directory " << path <<" failed with the following error number: " << errno)
+            RH_WARN(this->_baseLog, "Attempt to create directory " << path <<" failed with the following error number: " << errno)
         }
         return false;
     }
@@ -2200,7 +2213,7 @@ bool DeviceManager_impl::checkWriteAccess(std::string &path)
         if ((name == ".") or (name == "..")) continue;
         std::string full_name = path + "/" + name;
         if (access(full_name.c_str(), W_OK) == -1) {
-            LOG_WARN(DeviceManager_impl, "The file '" << full_name << "' cannot be overwritten by the Device Manager process (or one of its children).")
+            RH_WARN(this->_baseLog, "The file '" << full_name << "' cannot be overwritten by the Device Manager process (or one of its children).")
             (void) closedir(dp);
             return false;
         }
@@ -2323,7 +2336,7 @@ void DeviceManager_impl::local_unregisterDevice(CF::Device_ptr device, const std
     // Unbind device from the naming service
     CosNaming::Name_var tmpDeviceName = ossie::corba::stringToName(label);
     devMgrContext->unbind(tmpDeviceName);
-  } CATCH_LOG_ERROR(DeviceManager_impl, "Unable to unbind device: " << label )
+  } CATCH_RH_ERROR(this->_baseLog, "Unable to unbind device: " << label )
 
   // Per SR:490, don't unregisterDevice from the domain manager if we are SHUTTING_DOWN
   if (_adminState == DEVMGR_REGISTERED) {
@@ -2363,13 +2376,13 @@ void DeviceManager_impl::startOrder()
         bool started = false;
         for (DeviceList::iterator dev=_registeredDevices.begin(); dev!=_registeredDevices.end(); dev++) {
             if ((*dev)->identifier == item->first) {
-                LOG_TRACE(DeviceManager_impl, "Starting device " << (*dev)->label);
+                RH_TRACE(this->_baseLog, "Starting device " << (*dev)->label);
                 try {
                     (*dev)->device->start();
                 } catch (const CF::Resource::StartError& exc) {
-                    LOG_ERROR(DeviceManager_impl, "Device " << (*dev)->label << " failed to start: " << exc.msg);
+                    RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: " << exc.msg);
                 } catch (const CORBA::SystemException& exc) {
-                    LOG_ERROR(DeviceManager_impl, "Device " << (*dev)->label << " failed to start: "
+                    RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: "
                               << ossie::corba::describeException(exc));
                 }
                 started = true;
@@ -2381,24 +2394,24 @@ void DeviceManager_impl::startOrder()
         for (ServiceList::iterator svc=_registeredServices.begin(); svc!=_registeredServices.end(); svc++) {
             if ((*svc)->identifier == item->first) {
                 const std::string& identifier = (*svc)->identifier;
-                LOG_TRACE(DeviceManager_impl, "Starting service " << identifier);
+                RH_TRACE(this->_baseLog, "Starting service " << identifier);
                 CORBA::Object_ptr obj = (*svc)->service;
                 if (!(obj->_is_a(CF::Resource::_PD_repoId))) {
-                    LOG_WARN(DeviceManager_impl, "Service " << identifier
+                    RH_WARN(this->_baseLog, "Service " << identifier
                              << " has a startorder value but does not inherit from Resource");
                     break;
                 }
                 CF::Resource_var res = ossie::corba::_narrowSafe<CF::Resource>(obj);
                 if (CORBA::is_nil(res)) {
-                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " cannot be narrowed to Resource");
+                    RH_ERROR(this->_baseLog, "Service " << identifier << " cannot be narrowed to Resource");
                     break;
                 }
                 try {
                     res->start();
                 } catch (const CF::Resource::StartError& exc) {
-                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " failed to start: " << exc.msg);
+                    RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: " << exc.msg);
                 } catch (const CORBA::SystemException& exc) {
-                    LOG_ERROR(DeviceManager_impl, "Service " << identifier << " failed to start: "
+                    RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: "
                               << ossie::corba::describeException(exc));
                 }
                 break;
@@ -2427,7 +2440,7 @@ void DeviceManager_impl::increment_registeredServices(CORBA::Object_ptr register
     if (!serviceNode){
         // A service is registering that was not launched by this DeviceManager. Create a node
         // to manage it, but mark the PID as 0, as there is no process to monitor.
-        LOG_WARN(DeviceManager_impl, "Registering service " << name << " was not launched by this DeviceManager");
+        RH_WARN(this->_baseLog, "Registering service " << name << " was not launched by this DeviceManager");
         serviceNode = new ServiceNode;
         serviceNode->identifier = name;
         serviceNode->pid = 0;
@@ -2467,7 +2480,7 @@ void DeviceManager_impl::increment_registeredDevices(CF::Device_ptr registeringD
     if (!deviceNode) {
         // A device is registering that was not launched by this DeviceManager. Create a node
         // to manage it, but mark the PID as 0, as there is no process to monitor.
-        LOG_WARN(DeviceManager_impl, "Registering device " << identifier << " was not launched by this DeviceManager");
+        RH_WARN(this->_baseLog, "Registering device " << identifier << " was not launched by this DeviceManager");
         deviceNode = new DeviceNode;
         deviceNode->identifier = identifier;
         deviceNode->pid = 0;
@@ -2641,7 +2654,7 @@ void DeviceManager_impl::clean_registeredDevices()
         // should update the registered devices list; it is possible that the
         // device node will be deleted before the lock is re-acquired, so local
         // copies of any objects must be used
-        LOG_INFO(DeviceManager_impl, "Releasing device " << label);
+        RH_INFO(this->_baseLog, "Releasing device " << label);
         lock.unlock();
         try {
             // 3 seconds or use cfg option
@@ -2665,7 +2678,7 @@ void DeviceManager_impl::clean_registeredDevices()
         }
     }
 
-    LOG_DEBUG(DeviceManager_impl, "Sending SIGNAL TREE to to device process " );
+    RH_DEBUG(this->_baseLog, "Sending SIGNAL TREE to to device process " );
     // Clean up device processes, starting with an orderly shutdown and
     // escalating as needed
     // NOTE: If the DeviceManager was terminated with a ^C, sending SIGINT may
@@ -2746,7 +2759,7 @@ void DeviceManager_impl::childExited (pid_t pid, int status)
 
     // The pid should always be found; if it is not, it must be a logic error.
     if (!deviceNode && !serviceNode) {
-        LOG_ERROR(DeviceManager_impl, "Process " << pid << " is not associated with a registered device");
+        RH_ERROR(this->_baseLog, "Process " << pid << " is not associated with a registered device");
         return;
     }
 
@@ -2759,12 +2772,12 @@ void DeviceManager_impl::childExited (pid_t pid, int status)
 
     if (WIFSIGNALED(status)) {
         if (deviceNode) {
-            LOG_WARN(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
+            RH_WARN(this->_baseLog, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
         } else { // it's a service, so no termination through signal is the correct behavior
-            LOG_INFO(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
+            RH_INFO(this->_baseLog, "Child process " << label << " (pid " << pid << ") has terminated with signal " << WTERMSIG(status));
         }
     } else {
-        LOG_INFO(DeviceManager_impl, "Child process " << label << " (pid " << pid << ") has exited with status " << WEXITSTATUS(status));
+        RH_INFO(this->_baseLog, "Child process " << label << " (pid " << pid << ") has exited with status " << WEXITSTATUS(status));
     }
 
     if (deviceNode) {
@@ -2798,7 +2811,7 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
         if ( !spdinfo  ) {
             std::ostringstream eout;
             eout << "Unable to find componentplacement information for for Service:" << svc_name;
-            LOG_WARN(DeviceManager_impl, eout.str());
+            RH_WARN(this->_baseLog, eout.str());
             throw(CF::InvalidObjectReference(eout.str().c_str()));
         }
 
@@ -2812,20 +2825,20 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
         std::ostringstream   eout;
         std::string          emsg;
         try {
-            LOG_DEBUG(DeviceManager_impl, "Initialize properties for spd/service: " << spdinfo->getName() << "/" << svc_name);
+            RH_DEBUG(this->_baseLog, "Initialize properties for spd/service: " << spdinfo->getName() << "/" << svc_name);
             const CF::Properties cprops = spdinfo->getNonNilConstructProperties();
             for (unsigned int j = 0; j < cprops.length (); j++) {
-                LOG_DEBUG(DeviceManager_impl, "initializeProperties prop id " << cprops[j].id );
+                RH_DEBUG(this->_baseLog, "initializeProperties prop id " << cprops[j].id );
             }
 
             if ( !CORBA::is_nil(svc_em)) {
                 // Try to set the initial values for the resource
-                LOG_DEBUG(DeviceManager_impl, "Calling Service: " << svc_name << " initializeProperties props: " << cprops.length());
+                RH_DEBUG(this->_baseLog, "Calling Service: " << svc_name << " initializeProperties props: " << cprops.length());
                 svc_em->initializeProperties(cprops);
             }
             else {
                 if ( cprops.length() > 0 ) {
-                    LOG_WARN(DeviceManager_impl,"Service: " << svc_name << " has configuration properties but does not implement PropertEmitter interface.");
+                    RH_WARN(this->_baseLog,"Service: " << svc_name << " has configuration properties but does not implement PropertEmitter interface.");
                 }
             }
 
@@ -2844,19 +2857,19 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
         // handle error conditions
         emsg = eout.str();
         if ( emsg.size() > 0 ) {
-            LOG_WARN(DeviceManager_impl, eout.str() <<  " Continuing with normal service registration.");
+            RH_WARN(this->_baseLog, eout.str() <<  " Continuing with normal service registration.");
             return;
         }
 
-        LOG_DEBUG(DeviceManager_impl, "Initializing Service " << svc_name << " on DeviceManager: " << _label);
+        RH_DEBUG(this->_baseLog, "Initializing Service " << svc_name << " on DeviceManager: " << _label);
         eout.clear(); eout.str("");
         try {
             if ( !CORBA::is_nil(svc_lc)) {
-                LOG_DEBUG(DeviceManager_impl, "Calling Service " << svc_name << " initialize method.");
+                RH_DEBUG(this->_baseLog, "Calling Service " << svc_name << " initialize method.");
                 svc_lc->initialize();
             }
             else {
-                LOG_DEBUG(DeviceManager_impl, "Service does not implement LifeCycle interface.");
+                RH_DEBUG(this->_baseLog, "Service does not implement LifeCycle interface.");
             }
 
         } catch (CF::LifeCycle::InitializeError& ex) {
@@ -2870,22 +2883,22 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
         // handle error conditions
         emsg = eout.str();
         if ( emsg.size() > 0 ) {
-            LOG_WARN(DeviceManager_impl, eout.str() << " Continuing with normal service registration.");
+            RH_WARN(this->_baseLog, eout.str() << " Continuing with normal service registration.");
             return;
         }
 
         eout.clear(); eout.str("");
         //configure properties
         try {
-            LOG_DEBUG(DeviceManager_impl, "Configuring service " << svc_name << " on Device Manager " << _label);
+            RH_DEBUG(this->_baseLog, "Configuring service " << svc_name << " on Device Manager " << _label);
             const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
-            LOG_TRACE(DeviceManager_impl, "Listing configuration properties");
+            RH_TRACE(this->_baseLog, "Listing configuration properties");
             for (unsigned int j=0; j<cprops.length(); j++) {
-                LOG_TRACE(DeviceManager_impl, "Prop id " << cprops[j].id );
+                RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
             }
             if (cprops.length() != 0) {
                 if ( !CORBA::is_nil(svc_ps) ) {
-                    LOG_DEBUG(DeviceManager_impl, "Calling Service's configure method with properties: " << cprops.length());
+                    RH_DEBUG(this->_baseLog, "Calling Service's configure method with properties: " << cprops.length());
                     svc_ps->configure (cprops);
                 }
                 else {
@@ -2906,13 +2919,13 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
         // handle error conditions
         emsg = eout.str();
         if ( emsg.size() > 0 ) {
-            LOG_WARN(DeviceManager_impl, eout.str() <<  " Continuing with normal service registration.");
+            RH_WARN(this->_baseLog, eout.str() <<  " Continuing with normal service registration.");
             return;
         }
 
     }
     catch(...){
-        LOG_WARN(DeviceManager_impl, "Error processing SoftwareProfile for Service: " << svc_name << ", continue with normal registration.");
+        RH_WARN(this->_baseLog, "Error processing SoftwareProfile for Service: " << svc_name << ", continue with normal registration.");
         return;
     }
 

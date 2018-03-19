@@ -38,6 +38,7 @@
 #include <ossie/Events.h>
 #include <ossie/logging/loghelpers.h>
 #include <ossie/FileManager_impl.h>
+#include <ossie/File_impl.h>
 
 #include "PersistenceStore.h"
 #include "connectionSupport.h"

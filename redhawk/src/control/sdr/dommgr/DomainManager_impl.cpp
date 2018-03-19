@@ -146,6 +146,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     _allocationMgr->setLogger(_baseLog->getChildLogger("AllocationManager", ""));
 
     ossie::proputilsLog = _baseLog->getChildLogger("proputils","");
+    fileLog = _baseLog->getChildLogger("File","");
 
     // Likewise, create the domain-level connection manager
     _connectionMgr = new ConnectionManager_impl(this);

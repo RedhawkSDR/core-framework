@@ -178,13 +178,13 @@ void FileSystem_impl::remove (const char* fileName) throw (CF::FileException, CF
     }
 
     std::string searchPattern = BOOST_PATH_STRING(fname.filename());
-    LOG_TRACE(FileSystem_impl, "Remove using search pattern " << searchPattern << " in " << dirPath);
+    RH_TRACE(_fileSysLog, "Remove using search pattern " << searchPattern << " in " << dirPath);
     
     const fs::directory_iterator end_itr; // an end iterator (by boost definition)
     for (fs::directory_iterator itr = fsops.begin(dirPath); itr != end_itr; fsops.increment(itr)) {
         const std::string& filename = BOOST_PATH_STRING(itr->path().filename());
         if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
-            LOG_TRACE(FileSystem_impl, "Removing file " << itr->path().string());  
+            RH_TRACE(_fileSysLog, "Removing file " << itr->path().string());  
             if (!fsops.remove(itr->path())) {
                 throw CF::FileException(CF::CF_EEXIST, "File does not exist");
             }
@@ -225,7 +225,7 @@ void FileSystem_impl::move (const char* sourceFileName, const char* destinationF
     }
 
     // Perform the actual move; this works for directories as well as files.
-    LOG_TRACE(FileSystem_impl, "Moving local file " << sourcePath << " to " << destPath);
+    RH_TRACE(_fileSysLog, "Moving local file " << sourcePath << " to " << destPath);
     if (rename(sourcePath.string().c_str(), destPath.string().c_str())) {
         throw CF::FileException(CF::CF_EINVAL, "Unexpected failure in move");
     }
@@ -264,7 +264,7 @@ void FileSystem_impl::copy (const char* sourceFileName, const char* destinationF
     }
 
     // Perform the copy.
-    LOG_TRACE(FileSystem_impl, "Copying local file " << sourcePath << " to " << destPath);
+    RH_TRACE(_fileSysLog, "Copying local file " << sourcePath << " to " << destPath);
     fsops.copy_file(sourcePath, destPath, fs::copy_option::overwrite_if_exists);
 
     TRACE_EXIT(FileSystem_impl);
@@ -276,7 +276,7 @@ throw (CORBA::SystemException, CF::InvalidFileName)
     TRACE_ENTER(FileSystem_impl);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
-    LOG_TRACE(FileSystem_impl, "Checking for existence of SCA file " << fileName);
+    RH_TRACE(_fileSysLog, "Checking for existence of SCA file " << fileName);
     if (fileName[0] != '/' || !ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
@@ -290,7 +290,7 @@ bool FileSystem_impl::_local_exists (const char* fileName)
 {
     fs::path fname(root / fileName);
     UnreliableFS fsops;
-    LOG_TRACE(FileSystem_impl, "Checking for existence of local file " << fname.string());
+    RH_TRACE(_fileSysLog, "Checking for existence of local file " << fname.string());
     try {
         return fsops.exists(fname);
     } catch (const CF::FileException& exc) {
@@ -321,7 +321,7 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
     if ((searchPattern == ".") && (fsops.is_directory(filePath))) {
         searchPattern = "*";
     }
-    LOG_TRACE(FileSystem_impl, "List using search pattern " << searchPattern << " in " << dirPath);
+    RH_TRACE(_fileSysLog, "List using search pattern " << searchPattern << " in " << dirPath);
 
     CF::FileSystem::FileInformationSequence_var result = new CF::FileSystem::FileInformationSequence;
 
@@ -330,10 +330,10 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
         const std::string filename = BOOST_PATH_STRING(itr->path().filename());
         if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
             if ((filename.length() > 0) && (filename[0] == '.') && (filename != searchPattern)) {
-                LOG_TRACE(FileSystem_impl, "Ignoring hidden match " << filename);
+                RH_TRACE(_fileSysLog, "Ignoring hidden match " << filename);
                 continue;
             }
-            LOG_TRACE(FileSystem_impl, "Match in list with " << filename);
+            RH_TRACE(_fileSysLog, "Match in list with " << filename);
             CORBA::ULong index = result->length();
             result->length(index + 1);
                 
@@ -353,7 +353,7 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
                 } catch ( ... ) {
                     // this file is not good (i.e.: bad link)
                     result->length(index);
-                    LOG_WARN(FileSystem_impl, "File cannot be evaluated, excluding from list: " << filename);
+                    RH_WARN(_fileSysLog, "File cannot be evaluated, excluding from list: " << filename);
                     continue;
                 }
             }
@@ -402,7 +402,7 @@ CF::File_ptr FileSystem_impl::create (const char* fileName) throw (CORBA::System
 }
 
 void FileSystem_impl::closeAllFiles() {
-    LOG_TRACE(FileSystem_impl, "Closing all open file handles");
+    RH_TRACE(_fileSysLog, "Closing all open file handles");
     std::vector<std::string> iors;
     {
         boost::mutex::scoped_lock lock(fileIORCountAccess);
@@ -502,10 +502,10 @@ void FileSystem_impl::mkdir (const char* directoryName) throw (CORBA::SystemExce
     UnreliableFS fsops;
 
     for (fs::path::iterator walkPath = dirPath.begin(); walkPath != dirPath.end(); ++walkPath) {
-        LOG_TRACE(FileSystem_impl, "Walking path to create directories, current path " << currentPath.string());
+        RH_TRACE(_fileSysLog, "Walking path to create directories, current path " << currentPath.string());
         currentPath /= *walkPath;
         if (!fsops.exists(currentPath)) {
-            LOG_TRACE(FileSystem_impl, "Creating directory " << currentPath.string());
+            RH_TRACE(_fileSysLog, "Creating directory " << currentPath.string());
             fsops.create_directory(currentPath);
         } else if (!fsops.is_directory(currentPath)) {
             std::string msg = currentPath.string() + " is not a directory";
@@ -567,7 +567,7 @@ void FileSystem_impl::query (CF::Properties& fileSysProperties) throw (CORBA::Sy
     TRACE_ENTER(FileSystem_impl);
 
     if (fileSysProperties.length () == 0) {
-        LOG_TRACE(FileSystem_impl, "Query all properties (SIZE, AVAILABLE_SPACE)");
+        RH_TRACE(_fileSysLog, "Query all properties (SIZE, AVAILABLE_SPACE)");
         fileSysProperties.length(2);
         fileSysProperties[0].id = CORBA::string_dup("SIZE");
         fileSysProperties[0].value <<= getSize();
@@ -599,7 +599,7 @@ CORBA::ULongLong FileSystem_impl::getSize () const
         fs::space_info space = fs::space(root);
         return space.capacity;
     } catch (const fs::filesystem_error& ex) {
-        LOG_INFO(FileSystem_impl, "Unexpected error querying file system size: " << ex.what());
+        RH_INFO(_fileSysLog, "Unexpected error querying file system size: " << ex.what());
         return 0;
     }
 }
@@ -610,7 +610,7 @@ CORBA::ULongLong FileSystem_impl::getAvailableSpace () const
         fs::space_info space = fs::space(root);
         return space.available;
     } catch (const fs::filesystem_error& ex) {
-        LOG_INFO(FileSystem_impl, "Unexpected error querying file system available space: " << ex.what());
+        RH_INFO(_fileSysLog, "Unexpected error querying file system available space: " << ex.what());
         return 0;
     }
 }

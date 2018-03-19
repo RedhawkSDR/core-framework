@@ -52,7 +52,7 @@ static void addProperty(const CF::DataType& dt, CF::Properties& prop)
     prop[index] = dt;
 }
 
-
+rh_logger::LoggerPtr ossie::SpdSupport::spdSupportLog;
 
 ////////////////////////////////////////////////////
 /*
@@ -79,11 +79,11 @@ ImplementationInfo::ImplementationInfo(const SPD::Implementation& spdImpl) :
     setPropertyFile(spdImpl.getPRFFile());
 
     // Handle allocation property dependencies
-    LOG_TRACE(ImplementationInfo, "Loading component implementation property dependencies")
+    RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation property dependencies")
     const std::vector<ossie::PropertyRef>& dependencies = spdImpl.getDependencies();
     std::vector<ossie::PropertyRef>::const_iterator ii;
     for (ii = dependencies.begin(); ii != dependencies.end(); ++ii) {
-        LOG_TRACE(ImplementationInfo, "Loading component implementation property dependency '" << *ii);
+        RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation property dependency '" << *ii);
         addDependencyProperty(*ii);
     }
 }
@@ -103,11 +103,11 @@ ImplementationInfo *ImplementationInfo::BuildImplementationInfo(CF::FileSystem_p
     std::auto_ptr<ImplementationInfo> impl(new ImplementationInfo(spdImpl));
 
     // Handle allocation property dependencies
-    LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependencies")
+    RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation softpkg dependencies")
     const std::vector<ossie::SPD::SoftPkgRef>& softpkgDependencies = spdImpl.getSoftPkgDependencies();
     std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
     for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
-        LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
+        RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation softpkg dependency '" << *jj);
         std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::BuildSoftpkgInfo(depFileSys, jj->localfile.c_str(),depFileSys));
         impl->addSoftPkgDependency(softpkg.release());
     }
@@ -208,7 +208,7 @@ void ImplementationInfo::setCodeType(const SPD::Code::CodeType _type)
         codeType = CF::LoadableDevice::DRIVER;
         break;
     default:
-        LOG_WARN(ImplementationInfo, "Bad code type " << _type);
+        RH_WARN(spdSupportLog, "Bad code type " << _type);
     }
 }
 
@@ -267,10 +267,10 @@ bool ImplementationInfo::checkProcessorAndOs(const Properties& _prf) const
     bool matchOs = checkOs(osDeps, _prf.getAllocationProperties());
 
     if (!matchProcessor) {
-        LOG_DEBUG(ImplementationInfo, "Failed to match component processor to device allocation properties");
+        RH_DEBUG(spdSupportLog, "Failed to match component processor to device allocation properties");
     }
     if (!matchOs) {
-        LOG_DEBUG(ImplementationInfo, "Failed to match component os to device allocation properties");
+        RH_DEBUG(spdSupportLog, "Failed to match component os to device allocation properties");
     }
     return matchProcessor && matchOs;
 }
@@ -324,7 +324,7 @@ SoftpkgInfo *SoftpkgInfo::BuildSoftpkgInfo(CF::FileSystem_ptr fileSys, const cha
 					   CF::FileSystem_ptr depFileSys )
 
 {
-    LOG_TRACE(SoftpkgInfo, "Building soft package info from file " << spdFileName);
+    RH_TRACE(spdSupportLog, "Building soft package info from file " << spdFileName);
 
     std::auto_ptr<SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
 
@@ -338,7 +338,7 @@ SoftpkgInfo *SoftpkgInfo::BuildSoftpkgInfo(CF::FileSystem_ptr fileSys, const cha
 bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys, CF::FileSystem_ptr depFileSys )
 {
     try {
-        LOG_TRACE(SoftpkgInfo, "Parsing SPD file:  " << _spdFileName );
+        RH_TRACE(spdSupportLog, "Parsing SPD file:  " << _spdFileName );
         File_stream spd_file(fileSys, _spdFileName.c_str());
         spd.load(spd_file, _spdFileName.c_str());
         spd_file.close();
@@ -363,14 +363,14 @@ bool SoftpkgInfo::parseProfile(CF::FileSystem_ptr fileSys, CF::FileSystem_ptr de
 
     // Set name from the SPD
     _identifier = spd.getSoftPkgID();
-    LOG_DEBUG(SoftpkgInfo, "name/id " << spd.getName() << "/" << _identifier);
+    RH_DEBUG(spdSupportLog, "name/id " << spd.getName() << "/" << _identifier);
 
     // Extract implementation data from SPD file
     const std::vector <SPD::Implementation>& spd_i = spd.getImplementations();
 
     for (unsigned int implCount = 0; implCount < spd_i.size(); implCount++) {
         const SPD::Implementation& spdImpl = spd_i[implCount];
-        LOG_TRACE(SoftpkgInfo, "Adding implementation " << spdImpl.getID());
+        RH_TRACE(spdSupportLog, "Adding implementation " << spdImpl.getID());
         ImplementationInfo* newImpl = ImplementationInfo::BuildImplementationInfo(fileSys, spdImpl, depFileSys);
         addImplementation(newImpl);
     }
@@ -433,7 +433,7 @@ ProgramProfile *ProgramProfile::LoadProfile(CF::FileSystem_ptr fileSys,
 					    const char* spdFileName,
 					    CF::FileSystem_ptr depFileSys ) {
   
-    LOG_TRACE(ProgramProfile, "Building component info from file " << spdFileName);
+    RH_TRACE(spdSupportLog, "Building component info from file " << spdFileName);
 
     std::auto_ptr<ProgramProfile> newComponent(new ProgramProfile(spdFileName));
 
@@ -445,7 +445,7 @@ ProgramProfile *ProgramProfile::LoadProfile(CF::FileSystem_ptr fileSys,
 void ProgramProfile::load(CF::FileSystem_ptr fileSys, 
                                     CF::FileSystem_ptr depFileSys ) {
   
-    LOG_TRACE(ProgramProfile, "Building component info from file " << _spdFileName);
+    RH_TRACE(spdSupportLog, "Building component info from file " << _spdFileName);
 
     parseProfile(fileSys, depFileSys);
     
@@ -458,34 +458,34 @@ void ProgramProfile::load(CF::FileSystem_ptr fileSys,
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
             std::ostringstream eout;
             eout << "Building component info problem; error parsing SCD: " << spd.getSCDFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
-            LOG_TRACE(ProgramProfile, eout.str());
+            RH_TRACE(spdSupportLog, eout.str());
             throw std::runtime_error(eout.str().c_str());
         } catch( ... ) {
             std::ostringstream eout;
             eout << "Building component info problem; unknown error parsing SCD: " << spd.getSCDFile();
-            LOG_TRACE(ProgramProfile, eout.str());
+            RH_TRACE(spdSupportLog, eout.str());
             throw std::runtime_error(eout.str().c_str());
         }
     }
 
     if (spd.getPRFFile() != 0) {
-        LOG_DEBUG(ProgramProfile, "Loading component properties from " << spd.getPRFFile());
+        RH_DEBUG(spdSupportLog, "Loading component properties from " << spd.getPRFFile());
         try {
             File_stream _prf(fileSys, spd.getPRFFile());
-            LOG_DEBUG(ProgramProfile, "Parsing component properties");
+            RH_DEBUG(spdSupportLog, "Parsing component properties");
             prf.load(_prf);
-            LOG_TRACE(ProgramProfile, "Closing PRF file")
+            RH_TRACE(spdSupportLog, "Closing PRF file")
             _prf.close();
         } catch (ossie::parser_error& e) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
             std::ostringstream eout;
             eout << "Building component info problem; error parsing PRF: " << spd.getPRFFile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what();
-            LOG_TRACE(ProgramProfile, eout.str());
+            RH_TRACE(spdSupportLog, eout.str());
             throw std::runtime_error(eout.str().c_str());
         } catch( ... ) {
             std::ostringstream eout;
             eout << "Building component info problem; unknown error parsing PRF: " << spd.getPRFFile();
-            LOG_TRACE(ProgramProfile, eout.str());
+            RH_TRACE(spdSupportLog, eout.str());
             throw std::runtime_error(eout.str().c_str());
         }
     }
@@ -495,25 +495,25 @@ void ProgramProfile::load(CF::FileSystem_ptr fileSys,
     // specific PRF file
     if (spd.getPRFFile() != 0) {
         // Handle component properties
-        LOG_TRACE(ProgramProfile, "Adding factory params")
+        RH_TRACE(spdSupportLog, "Adding factory params")
         const std::vector<const Property*>& fprop = prf.getFactoryParamProperties();
         for (unsigned int i = 0; i < fprop.size(); i++) {
             addFactoryParameter(convertPropertyToDataType(fprop[i]));
         }
 
-        LOG_TRACE(ProgramProfile, "Adding exec params")
+        RH_TRACE(spdSupportLog, "Adding exec params")
         const std::vector<const Property*>& eprop = prf.getExecParamProperties();
         for (unsigned int i = 0; i < eprop.size(); i++) {
             if (!eprop[i]->isReadOnly()) {
-                LOG_TRACE(ProgramProfile, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                RH_TRACE(spdSupportLog, "Adding exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 addExecParameter(convertPropertyToDataType(eprop[i]));
             } else {
                 if ( eprop[i]->isProperty() )  {
-                    LOG_TRACE(ProgramProfile, "Adding exec param (readonly property) " << eprop[i]->getID() << " " << eprop[i]->getName());
+                    RH_TRACE(spdSupportLog, "Adding exec param (readonly property) " << eprop[i]->getID() << " " << eprop[i]->getName());
                     addExecParameter(convertPropertyToDataType(eprop[i]));
                 }
                 else {
-                    LOG_TRACE(ProgramProfile, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
+                    RH_TRACE(spdSupportLog, "Ignoring readonly exec param " << eprop[i]->getID() << " " << eprop[i]->getName());
                 }
             }
         }
@@ -531,16 +531,16 @@ void ProgramProfile::load(CF::FileSystem_ptr fileSys,
         const std::vector<const Property*>& prop = prf.getConfigureProperties();
         for (unsigned int i = 0; i < prop.size(); i++) {
             if (!prop[i]->isReadOnly()) {
-                LOG_TRACE(ProgramProfile, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
+                RH_TRACE(spdSupportLog, "Adding configure prop " << prop[i]->getID() << " " << prop[i]->getName() << " " << prop[i]->isReadOnly())
                 addConfigureProperty(convertPropertyToDataType(prop[i]));
             }
         }
 
         const std::vector<const Property*>& cprop = prf.getConstructProperties();
         for (unsigned int i = 0; i < cprop.size(); i++) {
-          LOG_TRACE(ProgramProfile, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
+          RH_TRACE(spdSupportLog, "Adding construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
           if (cprop[i]->isCommandLine()) {
-            LOG_TRACE(ProgramProfile, "Adding (cmdline) construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
+            RH_TRACE(spdSupportLog, "Adding (cmdline) construct prop " << cprop[i]->getID() << " " << cprop[i]->getName() << " " << cprop[i]->isReadOnly());
             addExecParameter(convertPropertyToDataType(cprop[i]));
           } else {
             addConstructProperty(convertPropertyToDataType(cprop[i]));
@@ -549,7 +549,7 @@ void ProgramProfile::load(CF::FileSystem_ptr fileSys,
 
     }
         
-    LOG_TRACE(ProgramProfile, "Done building component info from file " << _spdFileName);
+    RH_TRACE(spdSupportLog, "Done building component info from file " << _spdFileName);
 }
 
 
@@ -675,12 +675,12 @@ void ProgramProfile::overrideProperty(const ossie::ComponentProperty& propref) {
 
 void ProgramProfile::overrideProperty(const ossie::ComponentProperty* propref) {
     std::string propId = propref->getID();
-    LOG_TRACE(ProgramProfile, "Instantiation property id = " << propId)
+    RH_TRACE(spdSupportLog, "Instantiation property id = " << propId)
     const Property* prop = prf.getProperty(propId);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
         if ( propId != "LOGGING_CONFIG_URI" and propId != "LOG_LEVEL" ) {
-            LOG_WARN(ProgramProfile, "Ignoring attempt to override property " << propId << " Reason: Property ID not exist in component")
+            RH_WARN(spdSupportLog, "Ignoring attempt to override property " << propId << " Reason: Property ID not exist in component")
                 return;
         }
 
@@ -688,7 +688,7 @@ void ProgramProfile::overrideProperty(const ossie::ComponentProperty* propref) {
 
     // allow intrinstic properties to be command line
     if ( propId == "LOGGING_CONFIG_URI" or propId == "LOG_LEVEL" ) {
-        LOG_DEBUG(ProgramProfile, "Allowing LOGGING_CONFIG_URI and LOG_LEVEL to be passed to override");
+        RH_DEBUG(spdSupportLog, "Allowing LOGGING_CONFIG_URI and LOG_LEVEL to be passed to override");
         //if (propId == "LOG_LEVEL") propId = "DEBUG_LEVEL";
         CF::DataType prop;
         prop.id = propId.c_str();
@@ -708,7 +708,7 @@ void ProgramProfile::overrideSimpleProperty(const char* id, const std::string &v
     const Property* prop = prf.getProperty(id);
     // Without a prop, we don't know how to convert the strings to the property any type
     if (prop == NULL) {
-        LOG_WARN(ProgramProfile, "Ignoring attempt to override property " << id << " Reason: Property ID does not exist in component");
+        RH_WARN(spdSupportLog, "Ignoring attempt to override property " << id << " Reason: Property ID does not exist in component");
         return;
     }
 
@@ -718,7 +718,7 @@ void ProgramProfile::overrideSimpleProperty(const char* id, const std::string &v
         CORBA::Any val = ossie::string_to_any(value, type);
         overrideProperty(id, val);
     } else {
-        LOG_WARN(ProgramProfile, "attempt to override non-simple property with string value");
+        RH_WARN(spdSupportLog, "attempt to override non-simple property with string value");
     }
 }
 
@@ -729,12 +729,12 @@ void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
     if (prop != NULL) {
         if (prop->isReadOnly()) {
             if ( !prop->isProperty()) {
-                LOG_WARN(ProgramProfile, "Ignoring attempt to override readonly property " << id);
+                RH_WARN(spdSupportLog, "Ignoring attempt to override readonly property " << id);
             }
             else {
                 // allow read-only exec param properties
                 if ( prop->isCommandLine()) {
-                    LOG_TRACE(ProgramProfile, "overrideProperty (read-only command line ) id " << id << 
+                    RH_TRACE(spdSupportLog, "overrideProperty (read-only command line ) id " << id << 
                               " with value " << ossie::any_to_string(value));
                     process_overrides(&execParameters, id, value);
                 }
@@ -755,10 +755,10 @@ void ProgramProfile::overrideProperty(const char* id, const CORBA::Any& value)
 
 void ProgramProfile::process_overrides(CF::Properties* props, const char* id, const CORBA::Any &value)
 {
-    LOG_DEBUG(ProgramProfile, "Attempting to override property " << id);
+    RH_DEBUG(spdSupportLog, "Attempting to override property " << id);
     for (unsigned int i = 0; i < (*props).length(); ++i ) {
         if (strcmp(id, (*props)[i].id) == 0) {
-            LOG_DEBUG(ProgramProfile, "Overriding property " << id << " with value " << ossie::any_to_string(value));
+            RH_DEBUG(spdSupportLog, "Overriding property " << id << " with value " << ossie::any_to_string(value));
             (*props)[i].value = value;
         }
     }

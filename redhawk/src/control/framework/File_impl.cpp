@@ -30,6 +30,7 @@
 
 PREPARE_CF_LOGGING(File_impl)
 
+rh_logger::LoggerPtr fileLog;
 
 File_impl* File_impl::Create (const char* fileName, FileSystem_impl *ptrFs)
 {
@@ -50,7 +51,7 @@ File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOn
 {
     TRACE_ENTER(File_impl)
 
-    LOG_TRACE(File_impl, "In constructor with " << fileName << " and path " << fullFileName);
+    RH_TRACE(fileLog, "In constructor with " << fileName << " and path " << fullFileName);
 
     int flags = 0;
     if (create) {
@@ -79,7 +80,7 @@ File_impl::File_impl (const char* fileName, FileSystem_impl *_ptrFs, bool readOn
 File_impl::~File_impl ()
 {
   TRACE_ENTER(File_impl);
-  LOG_TRACE(File_impl, "Closing file..... " << fullFileName );
+  RH_TRACE(fileLog, "Closing file..... " << fullFileName );
   if ( fd > 0 ) ::close(fd);
   TRACE_EXIT(File_impl);
 }
@@ -111,7 +112,7 @@ void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
         throw CF::File::IOException(CF::CF_EIO, message.str().c_str());
     }
 
-    LOG_TRACE(File_impl, "Reading " << length << " bytes from " << fName);
+    RH_TRACE(fileLog, "Reading " << length << " bytes from " << fName);
 
     // Pre-allocate a buffer long enough to contain the entire read.
     CORBA::Octet* buf = CF::OctetSequence::allocbuf(length);
@@ -128,7 +129,7 @@ void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
 
     // Hand the buffer over to a new OctetSequence; if file pointer was already at the end,
     // it will be a zero-length sequence (which follows the spec).
-    LOG_TRACE(File_impl, "Read " << count << " bytes from " << fName);
+    RH_TRACE(fileLog, "Read " << count << " bytes from " << fName);
     data = new CF::OctetSequence(length, count, buf, true);
 
     TRACE_EXIT(File_impl)

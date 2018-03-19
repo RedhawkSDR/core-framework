@@ -78,10 +78,6 @@ public:
 
     CF::FileManager::MountSequence* getMounts () throw (CORBA::SystemException);
 
-    void setLogger(rh_logger::LoggerPtr logptr) {
-        _fileMgrLog = logptr;
-    };
-
 private:
     struct MountPoint {
         std::string path;
@@ -104,8 +100,6 @@ private:
     MountList::iterator getMountForPath (const std::string& path);
 
     CORBA::ULongLong getCombinedProperty (const char* propId);
-
-    rh_logger::LoggerPtr _fileMgrLog;
 
 };                  /* END CLASS DEFINITION FileManager */
 #endif              /* __FILEMANAGER__ */
