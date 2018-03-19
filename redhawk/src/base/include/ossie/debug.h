@@ -220,12 +220,33 @@
         throw(newexception); \
     }
 
+#define CATCH_THROW_RH_EXCEPTION(logger, expression, levelname, newexception) \
+    catch( std::exception& ex ) { \
+        RH_##levelname(logger, expression << "; std::exception info: " << ex.what()) \
+        throw(newexception); \
+    } \
+    catch( CORBA::Exception& ex ) { \
+        RH_##levelname(logger, expression << "; CORBA::Exception name: " << ex._name()) \
+        throw(newexception); \
+    } \
+    catch( ... ) { \
+        RH_##levelname(logger, expression << "; unknown exception") \
+        throw(newexception); \
+    }
+
 #define CATCH_THROW_LOG_TRACE(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, TRACE, newexception)
 #define CATCH_THROW_LOG_DEBUG(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, DEBUG, newexception)
 #define CATCH_THROW_LOG_INFO(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, INFO, newexception)
 #define CATCH_THROW_LOG_WARN(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, WARN, newexception)
 #define CATCH_THROW_LOG_ERROR(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, ERROR, newexception)
 #define CATCH_THROW_LOG_FATAL(classname, expression, newexception) CATCH_THROW_LOG_EXCEPTION(classname, expression, FATAL, newexception)
+
+#define CATCH_THROW_RH_TRACE(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, TRACE, newexception)
+#define CATCH_THROW_RH_DEBUG(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, DEBUG, newexception)
+#define CATCH_THROW_RH_INFO(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, INFO, newexception)
+#define CATCH_THROW_RH_WARN(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, WARN, newexception)
+#define CATCH_THROW_RH_ERROR(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, ERROR, newexception)
+#define CATCH_THROW_RH_FATAL(logger, expression, newexception) CATCH_THROW_RH_EXCEPTION(logger, expression, FATAL, newexception)
 
 /*
 * Provide standardized exception handling for catching and rethrowing.
@@ -244,12 +265,33 @@
         throw; \
     }
 
+#define CATCH_RETHROW_RH_EXCEPTION(logger, expression, levelname) \
+    catch( std::exception& ex ) { \
+        RH_##levelname(logger, expression << "; std::exception info: " << ex.what()) \
+        throw; \
+    } \
+    catch( CORBA::Exception& ex ) { \
+        RH_##levelname(logger, expression << "; CORBA::Exception name: " << ex._name()) \
+        throw; \
+    } \
+    catch( ... ) { \
+        RH_##levelname(logger, expression << "; unknown exception") \
+        throw; \
+    }
+
 #define CATCH_RETHROW_LOG_TRACE(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, TRACE)
 #define CATCH_RETHROW_LOG_DEBUG(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, DEBUG)
 #define CATCH_RETHROW_LOG_INFO(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, INFO)
 #define CATCH_RETHROW_LOG_WARN(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, WARN)
 #define CATCH_RETHROW_LOG_ERROR(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, ERROR)
 #define CATCH_RETHROW_LOG_FATAL(classname, expression) CATCH_RETHROW_LOG_EXCEPTION(classname, expression, FATAL)
+
+#define CATCH_RETHROW_RH_TRACE(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, TRACE)
+#define CATCH_RETHROW_RH_DEBUG(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, DEBUG)
+#define CATCH_RETHROW_RH_INFO(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, INFO)
+#define CATCH_RETHROW_RH_WARN(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, WARN)
+#define CATCH_RETHROW_RH_ERROR(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, ERROR)
+#define CATCH_RETHROW_RH_FATAL(logger, expression) CATCH_RETHROW_RH_EXCEPTION(logger, expression, FATAL)
 
 
 /*

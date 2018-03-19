@@ -61,14 +61,10 @@ ConnectionManager::~ConnectionManager()
 void ConnectionManager::disconnectAll(std::vector<ConnectionNode>& connections, ossie::DomainLookup* domainLookup)
 {
     // Disconnect all connections made for the application in the reverse order of their creation.
-    LOG_TRACE(ConnectionManager, "Disconnecting " << connections.size() << " ports");
     for (std::vector<ConnectionNode>::reverse_iterator connection = connections.rbegin(); connection != connections.rend(); ++connection) {
-        LOG_TRACE(ConnectionManager, "Disconnecting connection " << connection->identifier);
         connection->disconnect(domainLookup);
     }
     connections.clear();
-
-    LOG_TRACE(ConnectionManager, "All connected ports disconnected");
 }
 
 CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identifier)
@@ -81,7 +77,7 @@ CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identif
         if (exceptionsEnabled()) {
             throw ossie::LookupError("component '" + identifier + "' not found");
         } else {
-            LOG_DEBUG(ConnectionManager, "Could not locate component with instantiation id " << identifier);
+            RH_DEBUG(_connectionLog, "Could not locate component with instantiation id " << identifier);
         }
     }
     return target._retn();
@@ -96,7 +92,7 @@ CORBA::Object_ptr ConnectionManager::resolveDomainObject(const std::string& type
             // Pass the exception on to the caller
             throw;
         } else {
-            LOG_WARN(ConnectionManager, "Failed to resolve domain object: " << error.what());
+            RH_WARN(_connectionLog, "Failed to resolve domain object: " << error.what());
         }
     }
     return CORBA::Object::_nil();
@@ -113,12 +109,12 @@ CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::strin
         findbyName = _namingContext + "/" + name;
     }
     
-    LOG_TRACE(ConnectionManager, "resolveFindByNamingService: The findname that I'm using is: " << findbyName);
+    RH_TRACE(_connectionLog, "resolveFindByNamingService: The findname that I'm using is: " << findbyName);
     try {
         return ossie::corba::objectFromName(findbyName);
     } catch (CosNaming::NamingContext::NotFound) {
         // The name was not found, continue on and return nil.
-    } CATCH_LOG_ERROR(ConnectionManager, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
+    } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
 
     return CORBA::Object::_nil();
 }
@@ -149,11 +145,11 @@ bool AppConnectionManager::resolveConnection(const Connection& connection)
 {
     std::auto_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
-        LOG_ERROR(AppConnectionManager, "Unable to parse connection");
+        RH_ERROR(_connectionLog, "Unable to parse connection");
         return false;
     }
 
-    LOG_TRACE(AppConnectionManager, "Attempting to resolve connection " << connectionNode->identifier);
+    RH_TRACE(_connectionLog, "Attempting to resolve connection " << connectionNode->identifier);
     if (connectionNode->connect(*this)) {
         addConnection_(*connectionNode);
         return true;
@@ -173,13 +169,13 @@ CORBA::Object_ptr AppConnectionManager::resolveFindByNamingService(const std::st
     std::string::size_type islash = _namingContext.find('/');
     if (islash != std::string::npos) {
         std::string findbyName = _namingContext.substr(0, islash + 1) + name;
-        LOG_TRACE(AppConnectionManager, "resolveFindBy: The findname that I'm using is: " << findbyName);
+        RH_TRACE(_connectionLog, "resolveFindBy: The findname that I'm using is: " << findbyName);
         
         try {
             return ossie::corba::objectFromName(findbyName);
         } catch (CosNaming::NamingContext::NotFound) {
             // The name was not found, continue on and return nil.
-        } CATCH_LOG_ERROR(AppConnectionManager, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
+        } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
     }
     return CORBA::Object::_nil();
 }
@@ -206,7 +202,7 @@ const std::vector<ConnectionNode>& AppConnectionManager::getConnections() {
 
 void AppConnectionManager::addConnection_(const ConnectionNode& connection)
 {
-    LOG_TRACE(AppConnectionManager, "Adding connection " << connection.identifier << " to connection list");
+    RH_TRACE(_connectionLog, "Adding connection " << connection.identifier << " to connection list");
     _connections.push_back(connection);
 }
 
@@ -227,19 +223,19 @@ DomainConnectionManager::~DomainConnectionManager()
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceThatLoadedThisComponentRef(const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is devicethatloadedthiscomponentref");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is devicethatloadedthiscomponentref");
     return CF::Device::_nil();
 }
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByThisComponentRef(const std::string&, const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbythiscomponentref ");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is deviceusedbythiscomponentref ");
     return CF::Device::_nil();
 }
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByApplication(const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbyapplication");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is deviceusedbyapplication");
     return CF::Device::_nil();
 }
 
@@ -247,19 +243,19 @@ std::string DomainConnectionManager::addConnection(const std::string& deviceMana
 {
     boost::scoped_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
-        LOG_ERROR(DomainConnectionManager, "Skipping invalid connection for DeviceManager " << deviceManagerId);
+        RH_ERROR(_connectionLog, "Skipping invalid connection for DeviceManager " << deviceManagerId);
         return "";
     }
 
     if (!connectionNode->connect(*this)) {
         if (!connectionNode->allowDeferral()) {
-            LOG_ERROR(DomainConnectionManager, "Connection " << connectionNode->identifier << " is not resolvable");
+            RH_ERROR(_connectionLog, "Connection " << connectionNode->identifier << " is not resolvable");
             return "";
         }
     }
     
     connectionNode.get()->setrequesterId(deviceManagerId);
-    LOG_DEBUG(DomainConnectionManager, "Connection " << connectionNode->identifier << " could not be resolved, marked as pending");
+    RH_DEBUG(_connectionLog, "Connection " << connectionNode->identifier << " could not be resolved, marked as pending");
     std::string connectionRecordId = addConnection_(deviceManagerId, *connectionNode);
     return connectionRecordId;
 }
@@ -319,7 +315,7 @@ void DomainConnectionManager::deviceManagerUnregistered(const std::string& devic
         return;
     }
     ConnectionList& connectionList = devMgr->second;
-    LOG_TRACE(DomainConnectionManager, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerName);
+    RH_TRACE(_connectionLog, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerName);
     for (ConnectionList::iterator connection = connectionList.begin(); connection != connectionList.end(); ++connection) {
         connection->disconnect(_domainLookup);
         try {
@@ -339,9 +335,9 @@ void DomainConnectionManager::deviceRegistered(const std::string& deviceId)
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
     TRACE_EXIT(DomainConnectionManager);
 }
@@ -361,9 +357,9 @@ void DomainConnectionManager::serviceRegistered(const std::string& serviceName)
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
     TRACE_EXIT(DomainConnectionManager);
 }
@@ -383,9 +379,9 @@ void DomainConnectionManager::applicationRegistered(const std::string& applicati
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
     TRACE_EXIT(DomainConnectionManager);
 }
@@ -439,18 +435,18 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
                 connection++;
                 continue;
             }
-            LOG_TRACE(DomainConnectionManager, "Resolving pending connection " << connection->identifier);
+            RH_TRACE(_connectionLog, "Resolving pending connection " << connection->identifier);
             if (!connection->connect(*this)) {
                 if (!connection->allowDeferral()) {
                     // This connection needs to be removed from the list
-                    LOG_ERROR(DomainConnectionManager, "Connection " << connection->identifier << " cannot be resolved");
+                    RH_ERROR(_connectionLog, "Connection " << connection->identifier << " cannot be resolved");
                     connection = connections.erase(connection);
                 } else {
-                    LOG_TRACE(DomainConnectionManager, "Connection " << connection->identifier << " still has pending dependencies");
+                    RH_TRACE(_connectionLog, "Connection " << connection->identifier << " still has pending dependencies");
                     connection++;
                 }
             } else {
-                LOG_DEBUG(DomainConnectionManager, "Connection " << connection->identifier << " resolved");
+                RH_DEBUG(_connectionLog, "Connection " << connection->identifier << " resolved");
                 connection++;
             }
         }
@@ -477,12 +473,12 @@ void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, c
                 }
                 // If the connection is still connected, break it
                 if (connection->connected) {
-                    LOG_TRACE(DomainConnectionManager, "Breaking connection " << connection->identifier);
+                    RH_TRACE(_connectionLog, "Breaking connection " << connection->identifier);
                     connection->disconnect(_domainLookup);
                 }
             }
             if (remove) {
-                LOG_TRACE(DomainConnectionManager, "Removing connection " << connection->identifier << " that does not allow deferral");
+                RH_TRACE(_connectionLog, "Removing connection " << connection->identifier << " that does not allow deferral");
                 connection = connections.erase(connection);
             } else {
                 ++connection;

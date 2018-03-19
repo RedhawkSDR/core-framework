@@ -224,7 +224,7 @@ int old_main(int argc, char* argv[])
 
     dpath= domRootPath.string();
 
-    std::string logname("DomainManager");
+    std::string logname("DomainManagerLoader");
     // setup logging context for a component resource
     std::string logcfg_uri = logfile_uri;
     ossie::logging::DomainCtx *ctx_=new ossie::logging::DomainCtx( name_binding, domainName, dpath );

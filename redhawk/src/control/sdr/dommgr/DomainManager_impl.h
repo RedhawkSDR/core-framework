@@ -235,6 +235,15 @@ public:
 
     rh_logger::LoggerPtr  getLogger() const { return __logger; };
 
+    rh_logger::LoggerPtr  getInstanceLogger(const char *name) {
+        std::string n(name);
+        return getInstanceLogger(n);
+    };
+
+    rh_logger::LoggerPtr  getInstanceLogger(std::string &name) {
+        return this->_baseLog->getChildLogger(name, "");
+    };
+
     bool   bindToDomain() { return _bindToDomain; };
     
     std::string getRedhawkVersion() { return redhawk_version; };

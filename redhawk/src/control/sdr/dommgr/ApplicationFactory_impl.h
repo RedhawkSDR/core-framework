@@ -56,6 +56,7 @@ private:
     // Support for creating a new waveform naming context
     std::string getWaveformContextName(std::string name);
     std::string getBaseWaveformContext(std::string waveform_context);
+    rh_logger::LoggerPtr _appFactoryLog;
 
 public:
     ApplicationFactory_impl (const std::string& softwareProfile, 
@@ -71,6 +72,15 @@ public:
            CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
            CF::ApplicationFactory::CreateApplicationError,
            CORBA::SystemException);
+
+    rh_logger::LoggerPtr returnLogger() const {
+        return _appFactoryLog;
+    }
+
+    void setLogger(rh_logger::LoggerPtr logptr)
+    {
+        _appFactoryLog = logptr;
+    };
 
     // getters for attributes
     char* name () throw (CORBA::SystemException) {

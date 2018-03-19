@@ -87,7 +87,6 @@ void ScopedAllocations::transfer(ScopedAllocations& dest)
 void ScopedAllocations::deallocate()
 {
     if (!_allocations.empty()) {
-        LOG_TRACE(ApplicationFactory_impl, "Deallocating " << _allocations.size() << " allocations");
         _allocator.deallocate(_allocations.begin(), _allocations.end());
     }
 }
@@ -154,7 +153,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     // Get the naming context from the domain
     _domainContext = RH_NamingContext::GetNamingContext( _domainName, !_domainManager->bindToDomain() );
     if (CORBA::is_nil(_domainContext)) {
-        LOG_ERROR(ApplicationFactory_impl, "CosNaming::NamingContext::_narrow threw Unknown Exception");
+        RH_ERROR(_appFactoryLog, "CosNaming::NamingContext::_narrow threw Unknown Exception");
         throw;
     }
 
@@ -163,19 +162,19 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
     } catch ( std::exception& ex ) {
         ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while retrieving the File Manager";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
         ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while retrieving the File Manager";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "domainManager->_fileMgr failed with Unknown Exception");
+        RH_ERROR(_appFactoryLog, "domainManager->_fileMgr failed with Unknown Exception");
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, "Could not get File Manager from Domain Manager");
     }
 
-    LOG_INFO(ApplicationFactory_impl, "Installing application " << _softwareProfile);
+    RH_INFO(_appFactoryLog, "Installing application " << _softwareProfile);
     try {
         if (!_fileMgr->exists(_softwareProfile.c_str())) {
             std::string msg = "File ";
@@ -191,43 +190,43 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
         ostringstream eout;
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
         eout << "Failed to parse SAD file: " << _softwareProfile << ". " << parser_error_line << " The XML parser returned the following error: " << ex.what();
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        RH_ERROR(_appFactoryLog, eout.str());
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch ( std::exception& ex ) {
         ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<". While loading "<<_softwareProfile;
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( CF::InvalidFileName& ex ) {
         ostringstream eout;
         eout << "The following InvalidFileName exception occurred, profile: " << _softwareProfile;
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        RH_ERROR(_appFactoryLog, eout.str());
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, eout.str().c_str());
     } catch ( const CF::FileException& ex ) {
         ostringstream eout;
         eout << "The following FileException occurred: "<<ex.msg<<"  While loading "<<_softwareProfile;
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
         ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" While loading "<<_softwareProfile;
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, eout.str().c_str());
     } catch( ... ) {
         ostringstream eout;
         eout << "Parsing SAD file: " <<_softwareProfile << " Failed with unknown exception.";
-        LOG_ERROR(ApplicationFactory_impl, eout.str());
+        RH_ERROR(_appFactoryLog, eout.str());
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_ENOENT, eout.str().c_str());
     }
 
     // Validate the application using the current domain state; however, we
     // cannot assume that the component SPDs will not change between now and a
     // subsequent create call, so the parsed profiles are not saved
-    redhawk::ApplicationValidator validator(_fileMgr);
+    redhawk::ApplicationValidator validator(_fileMgr, _appFactoryLog);
     try {
         validator.validate(_sadParser);
     } catch (const std::runtime_error& exc) {
-        LOG_ERROR(ApplicationFactory_impl, "SAD " << softwareProfile
+        RH_ERROR(_appFactoryLog, "SAD " << softwareProfile
                   << " failed validation: " << exc.what());
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EBADF, exc.what());
     }
@@ -286,7 +285,7 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
             DeviceAssignmentMap::const_iterator device = devices.find(instantiation.getID());
             if (device != devices.end()) {
                 assigned_device = device->second;
-                LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation.getID()
+                RH_TRACE(_createHelperLog, "Component " << instantiation.getID()
                           << " is assigned to device " << assigned_device);
             }
             redhawk::ComponentDeployment* deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
@@ -295,7 +294,7 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
             // For components that run as shared libraries, create or reuse a
             // matching container deployment
             if (deployment->getImplementation()->getCodeType() == SPD::Code::SHARED_LIBRARY) {
-                LOG_DEBUG(ApplicationFactory_impl, "Component " << deployment->getInstantiation()->getID()
+                RH_DEBUG(_createHelperLog, "Component " << deployment->getInstantiation()->getID()
                           << "' implementation " << deployment->getImplementation()->getID()
                           << " is a shared library");
                 redhawk::ContainerDeployment* container = appDeployment.createContainer(_profileCache, deployment->getAssignedDevice());
@@ -318,14 +317,14 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
 void createHelper::_validateDAS(redhawk::ApplicationDeployment& appDeployment,
                                 const DeviceAssignmentMap& deviceAssignments)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Validating device assignment sequence (length "
+    RH_TRACE(_createHelperLog, "Validating device assignment sequence (length "
               << deviceAssignments.size() << ")");
     for (DeviceAssignmentMap::const_iterator ii = deviceAssignments.begin(); ii != deviceAssignments.end(); ++ii) {
         const std::string& componentId = ii->first;
         const std::string& assignedDeviceId = ii->second;
 
         if (!_appFact._sadParser.getComponentInstantiation(componentId)) {
-            LOG_ERROR(ApplicationFactory_impl, "Failed to create application; "
+            RH_ERROR(_createHelperLog, "Failed to create application; "
                       << "unknown component " << componentId 
                       << " in user assignment (DAS)");
             CF::DeviceAssignmentSequence badDAS;
@@ -351,7 +350,7 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
         // Reached the end of the component deployments; all implementations
         // should be set, so give it a try
         if ( !deviceRequires.empty() ) {
-            LOG_TRACE(ApplicationFactory_impl, "Collocation has devicerequires: " << deviceRequires );
+            RH_TRACE(_createHelperLog, "Collocation has devicerequires: " << deviceRequires );
         }
         return allocateHostCollocation(appDeployment, components, deploymentDevices, processorDeps, osDeps, deviceRequires, reservations );
     }
@@ -360,18 +359,18 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
     // with the processor and OS dependencies
     redhawk::ComponentDeployment* deployment = *current;
     const SPD::Implementations& comp_impls = deployment->getSoftPkg()->getImplementations();
-    LOG_TRACE(ApplicationFactory_impl, "Finding collocation-compatible implementations for component "
+    RH_TRACE(_createHelperLog, "Finding collocation-compatible implementations for component "
               << deployment->getInstantiation()->getID());
     ++current;
     for (SPD::Implementations::const_iterator impl = comp_impls.begin(); impl != comp_impls.end(); ++impl) {
         const ossie::SPD::Implementation* implementation = &(*impl);
-        LOG_TRACE(ApplicationFactory_impl, "Checking implementation " << implementation->getID());
+        RH_TRACE(_createHelperLog, "Checking implementation " << implementation->getID());
 
         // Check that the processor dependencies are compatible, filtering out
         // anything not compatible with the current component
         std::vector<std::string> proc_list = processorDeps;;
         if (!mergeDependencies(proc_list, implementation->getProcessors())) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping implementation " << implementation->getID()
+            RH_TRACE(_createHelperLog, "Skipping implementation " << implementation->getID()
                       << ": no processor match");
             continue;
         }
@@ -380,7 +379,7 @@ bool createHelper::placeHostCollocation(redhawk::ApplicationDeployment& appDeplo
         // anything not compatible with the current component
         std::vector<ossie::SPD::NameVersionPair> os_list = osDeps;
         if (!mergeDependencies(os_list, implementation->getOsDeps())) {
-            LOG_TRACE(ApplicationFactory_impl, "Skipping implementation " << implementation->getID()
+            RH_TRACE(_createHelperLog, "Skipping implementation " << implementation->getID()
                       << ": no OS match");
             continue;
         }
@@ -419,15 +418,15 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
         _allocationProperties["redhawk::reservation_request"].setValue(_struct);
     }
 
-    LOG_TRACE(ApplicationFactory_impl, "Allocating deployment for " << components.size()
+    RH_TRACE(_createHelperLog, "Allocating deployment for " << components.size()
               << " collocated components");
     for (DeploymentList::const_iterator depl = components.begin(); depl != components.end(); ++depl) {
-        LOG_TRACE(ApplicationFactory_impl, "Component " << (*depl)->getInstantiation()->getID()
+        RH_TRACE(_createHelperLog, "Component " << (*depl)->getInstantiation()->getID()
                   << " implementation " << (*depl)->getImplementation()->getID());
     }
 
     if ( !deviceRequires.empty() ) {
-        LOG_TRACE(ApplicationFactory_impl, "Collocation has devicerequires:  " << deviceRequires );
+        RH_TRACE(_createHelperLog, "Collocation has devicerequires:  " << deviceRequires );
     }
 
     const std::string requestid = ossie::generateUUID();
@@ -447,7 +446,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
             // Reset any dependencies that may have been resolved in a prior attempt
             (*depl)->clearDependencies();
             if (!resolveSoftpkgDependencies(appDeployment, *depl, *node)) {
-                LOG_TRACE(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
+                RH_TRACE(_createHelperLog, "Unable to resolve softpackage dependencies for component "
                           << (*depl)->getIdentifier()
                           << " implementation " << (*depl)->getImplementation()->getID());
                 return false;
@@ -462,10 +461,10 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
         // Move the device to the front of the list
         rotateDeviceList(_executableDevices, deviceId);
 
-        LOG_TRACE(ApplicationFactory_impl, "Successful collocation allocation");
+        RH_TRACE(_createHelperLog, "Successful collocation allocation");
         return true;
     }
-    LOG_TRACE(ApplicationFactory_impl, "Failed collocation allocation");
+    RH_TRACE(_createHelperLog, "Failed collocation allocation");
     return false;
  }
 
@@ -498,7 +497,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
                                          const DeviceAssignmentMap& devices,
                                          const std::map<std::string,float>& specialized_reservations)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Placing host collocation " << collocation.getID()
+    RH_TRACE(_createHelperLog, "Placing host collocation " << collocation.getID()
               << " " << collocation.getName());
 
     std::pair < std::string, redhawk::PropertyMap > devReq(std::string(""), redhawk::PropertyMap());
@@ -524,7 +523,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
             if ( !deployment->getDeviceRequires().empty() ) {
                 devReq.first = deployment->getIdentifier();
                 devReq.second = deployment->getDeviceRequires();
-                LOG_DEBUG(ApplicationFactory_impl, "Collocation contains devicerequires instance: " << devReq.first << " props :"  << devReq.second);
+                RH_DEBUG(_createHelperLog, "Collocation contains devicerequires instance: " << devReq.first << " props :"  << devReq.second);
             }
         }
     }
@@ -536,7 +535,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     BOOST_FOREACH(const UsesDeviceRef& devref, collocation.getUsesDeviceRefs()) {
         std::string refid= devref.getID();
         CF::Device_var dev=appDeployment.lookupDeviceUsedByApplication(refid);
-        LOG_DEBUG(ApplicationFactory_impl, "UsesDevice for collocation: " << dev->label() );
+        RH_DEBUG(_createHelperLog, "UsesDevice for collocation: " << dev->label() );
         if ( !CORBA::is_nil(dev) ) {
             req_usesDevices.push_back(dev);
         }
@@ -577,10 +576,10 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     if ( req_usesDevices.size() > 0 ) {
         // from the remaining list of deploymentDevices filter out those that not on the same host
         for ( std::vector< CF::Device_var >::iterator dev = req_usesDevices.begin(); dev != req_usesDevices.end(); ++dev) {
-            LOG_TRACE(ApplicationFactory_impl, "Find GPP for device collocation, device: " << (*dev)->label()  << " Number available GPPs:" << deploymentDevices.size() );
+            RH_TRACE(_createHelperLog, "Find GPP for device collocation, device: " << (*dev)->label()  << " Number available GPPs:" << deploymentDevices.size() );
             for (ossie::DeviceList::iterator node = deploymentDevices.begin(); node != deploymentDevices.end(); ) {
                 bool retval = ossie::sameHost( *dev, (*node)->device );
-                LOG_TRACE(ApplicationFactory_impl, "Check Collocation, Device: " << (*dev)->label()  << " Executable Device: " << (*node)->device->label() << "  --> RESULTS:" << retval );
+                RH_TRACE(_createHelperLog, "Check Collocation, Device: " << (*dev)->label()  << " Executable Device: " << (*node)->device->label() << "  --> RESULTS:" << retval );
                 if ( retval == false )  {
                     node = deploymentDevices.erase(node);
                 }
@@ -597,7 +596,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
                 os << (*dev)->label();
                 if (dev+1 != req_usesDevices.end()) os << ", ";
             }
-            LOG_DEBUG(ApplicationFactory_impl, os.str() );
+            RH_DEBUG(_createHelperLog, os.str() );
             throw redhawk::PlacementFailure(collocation, os.str() );
         }
 
@@ -606,7 +605,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
     // load any collocation-based reservations
     std::vector<Reservation> _overloadedReservations = overloadReservations(collocation, specialized_reservations);
 
-    LOG_TRACE(ApplicationFactory_impl, "Placing " << deployments.size() << " components");
+    RH_TRACE(_createHelperLog, "Placing " << deployments.size() << " components");
     if (!placeHostCollocation(appDeployment, deployments, deployments.begin(), deploymentDevices, devReq.second, _overloadedReservations)) {
         if (_allDevicesBusy(deploymentDevices)) {
             throw redhawk::PlacementFailure(collocation, "all executable devices (GPPs) in the Domain are busy");
@@ -616,7 +615,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
 
     for (DeploymentList::iterator deployment = deployments.begin(); deployment != deployments.end(); deployment++) {
         if ((*deployment)->getImplementation()->getCodeType() == SPD::Code::SHARED_LIBRARY) {
-            LOG_DEBUG(ApplicationFactory_impl, "Component " << (*deployment)->getInstantiation()->getID()
+            RH_DEBUG(_createHelperLog, "Component " << (*deployment)->getInstantiation()->getID()
                 << "' implementation " << (*deployment)->getImplementation()->getID()
                 << " is a shared library");
             redhawk::ContainerDeployment* container = appDeployment.createContainer(_profileCache, (*deployment)->getAssignedDevice());
@@ -632,7 +631,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
         }
     }
 
-    LOG_TRACE(ApplicationFactory_impl, "-- Completed placement for Collocation ID:"
+    RH_TRACE(_createHelperLog, "-- Completed placement for Collocation ID:"
               << collocation.getID() << " Components Placed: " << deployments.size());
 }
 
@@ -709,7 +708,7 @@ void createHelper::_handleUsesDevices(redhawk::ApplicationDeployment& appDeploym
 {
     // Gets all uses device info from the SAD file
     const std::vector<UsesDevice>& usesDevices = _appFact._sadParser.getUsesDevices();
-    LOG_TRACE(ApplicationFactory_impl, "Application has " << usesDevices.size() << " usesdevice dependencies");
+    RH_TRACE(_createHelperLog, "Application has " << usesDevices.size() << " usesdevice dependencies");
 
     // Get the assembly controller's configure properties for context in the
     // allocations
@@ -740,7 +739,7 @@ std::vector<std::string> createHelper::_getFailedUsesDevices(const std::vector<o
 
 void createHelper::checkOptions()
 {
-    LOG_TRACE(ApplicationFactory_impl,
+    RH_TRACE(_createHelperLog,
               "Number of optionss: " << _appFact._sadParser.getOptions().size());
 
     BOOST_FOREACH(const SoftwareAssembly::Option& option, _appFact._sadParser.getOptions()) {
@@ -759,11 +758,11 @@ void createHelper::checkOptions()
 void createHelper::setUpExternalPorts(redhawk::ApplicationDeployment& appDeployment,
                                       Application_impl* application)
 {
-    LOG_TRACE(ApplicationFactory_impl,
+    RH_TRACE(_createHelperLog,
               "Mapping " << _appFact._sadParser.getExternalPorts().size() << " external port(s)");
 
     BOOST_FOREACH(const SoftwareAssembly::Port& port, _appFact._sadParser.getExternalPorts()) {
-        LOG_TRACE(ApplicationFactory_impl, "External port '" << port.getExternalName()
+        RH_TRACE(_createHelperLog, "External port '" << port.getExternalName()
                   << "' from component '" << port.componentrefid
                   << "' identifier '" << port.identifier << "'");
 
@@ -811,9 +810,9 @@ void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDe
                                            Application_impl* application)
 {
     const std::vector<SoftwareAssembly::Property>& props = _appFact._sadParser.getExternalProperties();
-    LOG_TRACE(ApplicationFactory_impl, "Mapping " << props.size() << " external property(ies)");
+    RH_TRACE(_createHelperLog, "Mapping " << props.size() << " external property(ies)");
     for (std::vector<SoftwareAssembly::Property>::const_iterator prop = props.begin(); prop != props.end(); ++prop) {
-        LOG_TRACE(ApplicationFactory_impl, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
+        RH_TRACE(_createHelperLog, "Property component: " << prop->comprefid << " Property identifier: " << prop->propid);
 
         // Get the component from the compref identifier.
         redhawk::ComponentDeployment* deployment = appDeployment.getComponentDeployment(prop->comprefid);
@@ -852,7 +851,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         CF::ApplicationFactory::InvalidInitConfiguration)
 {
     TRACE_ENTER(ApplicationFactory_impl);
-    LOG_TRACE(ApplicationFactory_impl, "Creating application " << name);
+    RH_TRACE(_appFactoryLog, "Creating application " << name);
 
     // must declare these here, so we can pass to the createHelper instance
     string _waveform_context_name;
@@ -861,7 +860,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
 
     ///////////////////////////////////////////////////
     // Establish new naming context for waveform
-    LOG_TRACE(ApplicationFactory_impl, "Establishing waveform naming context");
+    RH_TRACE(_appFactoryLog, "Establishing waveform naming context");
     try {
         // VERY IMPORTANT: we must first lock the operations in this try block
         //    in order to prevent a naming context collision due to multiple create calls
@@ -878,7 +877,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
         WaveformContextName.length(1);
         WaveformContextName[0].id = _waveform_context_name.c_str();
 
-        LOG_TRACE(ApplicationFactory_impl, "Binding new context " << _waveform_context_name.c_str());
+        RH_TRACE(_appFactoryLog, "Binding new context " << _waveform_context_name.c_str());
         try {
             _waveformContext = _domainContext->bind_new_context(WaveformContextName);
         } catch( ... ) {
@@ -888,7 +887,7 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
                 _domainContext->unbind(WaveformContextName);
             } catch ( ... ) {
             }
-            LOG_ERROR(ApplicationFactory_impl, "bind_new_context threw Unknown Exception");
+            RH_ERROR(_appFactoryLog, "bind_new_context threw Unknown Exception");
             throw;
         }
 
@@ -906,37 +905,37 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
     // now use the createHelper class to actually run 'create'
     // - createHelper is needed to allow concurrent calls to 'create' without
     //   each instance stomping on the others
-    LOG_TRACE(ApplicationFactory_impl, "Creating new createHelper class.");
+    RH_TRACE(_appFactoryLog, "Creating new createHelper class.");
     createHelper new_createhelper(*this, _waveform_context_name, base_naming_context, _waveformContext, _domainContext);
 
     // now actually perform the create operation
-    LOG_TRACE(ApplicationFactory_impl, "Performing 'create' function.");
+    RH_TRACE(_appFactoryLog, "Performing 'create' function.");
     CF::Application_ptr new_app;
     try {
         new_app = new_createhelper.create(name, initConfiguration, deviceAssignmentMap);
     } catch (const redhawk::DeploymentError& exc) {
         // Convert from internal error to CORBA exception and report the error
         const std::string message = exc.message();
-        LOG_ERROR(ApplicationFactory_impl, "Failed to create application '" << name << "': " << message);
+        RH_ERROR(_appFactoryLog, "Failed to create application '" << name << "': " << message);
         throw CF::ApplicationFactory::CreateApplicationError(exc.errorNumber(), message.c_str());
     } catch (CF::ApplicationFactory::CreateApplicationError& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Error in application creation; " << ex.msg);
+        RH_ERROR(_appFactoryLog, "Error in application creation; " << ex.msg);
         throw;
     } catch (CF::ApplicationFactory::CreateApplicationRequestError& ex) {
-        LOG_ERROR(ApplicationFactory_impl, "Error in application creation")
+        RH_ERROR(_appFactoryLog, "Error in application creation")
         throw;
     } catch (const std::exception& ex) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while creating the application";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_EBADF, eout.str().c_str());
     } catch (const CORBA::Exception& ex) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while creating the application";
-        LOG_ERROR(ApplicationFactory_impl, eout.str())
+        RH_ERROR(_appFactoryLog, eout.str())
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
     } catch ( ... ) {
-        LOG_ERROR(ApplicationFactory_impl, "Unexpected error in application creation - see log")
+        RH_ERROR(_appFactoryLog, "Unexpected error in application creation - see log")
         throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Unexpected error in application creation - see log.");
     }
 
@@ -1052,7 +1051,7 @@ CF::Application_ptr createHelper::create (
 
     const std::string lastExecutableDevice = _appFact._domainManager->getLastDeviceUsedForDeployment();
     if (!lastExecutableDevice.empty()) {
-        LOG_TRACE(ApplicationFactory_impl, "Placing device " << lastExecutableDevice
+        RH_TRACE(_createHelperLog, "Placing device " << lastExecutableDevice
                   << " first in deployment list");
         rotateDeviceList(_executableDevices, lastExecutableDevice);
     }
@@ -1060,6 +1059,7 @@ CF::Application_ptr createHelper::create (
     //////////////////////////////////////////////////
     // Load the components to instantiate from the SAD
     redhawk::ApplicationDeployment app_deployment(_appFact._sadParser, _waveformContextName, modifiedInitConfiguration);
+    app_deployment.setLogger(_createHelperLog);
 
     ////////////////////////////////////////////////
     // Assign components to devices
@@ -1110,7 +1110,7 @@ CF::Application_ptr createHelper::create (
     waitForComponentRegistration(app_deployment);
 
     // Check that the assembly controller is valid
-    LOG_TRACE(ApplicationFactory_impl, "Checking assembly controller");
+    RH_TRACE(_createHelperLog, "Checking assembly controller");
     redhawk::ComponentDeployment* ac_deployment = app_deployment.getAssemblyController();
     if (!ac_deployment) {
         // This condition should have been prevented by parser validation
@@ -1194,7 +1194,7 @@ CF::Application_ptr createHelper::create (
         _appFact._domainManager->completePendingApplication(_application);
     } catch (CF::DomainManager::ApplicationInstallationError& ex) {
         // something bad happened - clean up
-        LOG_ERROR(ApplicationFactory_impl, ex.msg);
+        RH_ERROR(_createHelperLog, ex.msg);
         throw CF::ApplicationFactory::CreateApplicationError(ex.errorNumber, ex.msg);
     }
 
@@ -1209,7 +1209,7 @@ CF::Application_ptr createHelper::create (
                                           appObj,
                                           StandardEvent::APPLICATION);
 
-    LOG_INFO(ApplicationFactory_impl, "Done creating application " << app_deployment.getIdentifier() << " " << name);
+    RH_INFO(_createHelperLog, "Done creating application " << app_deployment.getIdentifier() << " " << name);
     _isComplete = true;
     return appObj._retn();
 }
@@ -1305,7 +1305,7 @@ void  createHelper::_resolveAssemblyController( redhawk::ApplicationDeployment& 
         const ComponentInstantiation *asm_inst = asm_placement->getInstantiation(asm_refid);
         if ( asm_inst ) {
             std::string inst_id = asm_inst->getID();
-            LOG_DEBUG(ApplicationFactory_impl, "Resolved ASSEMBLY CONTROLLER: " << asm_refid );
+            RH_DEBUG(_createHelperLog, "Resolved ASSEMBLY CONTROLLER: " << asm_refid );
             redhawk::ComponentDeployment *cp  __attribute__((unused));
             cp = appDeployment.createComponentDeployment(softpkg, asm_inst);
             return;
@@ -1368,7 +1368,7 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         const std::vector<UsesDevice>& implUsesDevVec = implementation->getUsesDevices();
         
         if (!allocateUsesDevices(implUsesDevVec, alloc_context, implAssignedDevices, implAllocations)) {
-            LOG_DEBUG(ApplicationFactory_impl, "Unable to satisfy 'usesdevice' dependencies for component "
+            RH_DEBUG(_createHelperLog, "Unable to satisfy 'usesdevice' dependencies for component "
                       << deployment->getIdentifier() << " implementation " << implementation->getID());
             continue;
         }
@@ -1380,13 +1380,13 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         
         // Found an implementation which has its 'usesdevice' dependencies
         // satisfied, now perform assignment/allocation of component to device
-        LOG_DEBUG(ApplicationFactory_impl, "Trying to find the device");
+        RH_DEBUG(_createHelperLog, "Trying to find the device");
         ossie::AllocationResult response = allocateComponentToDevice(deployment, assignedDeviceId,
                                                                      appDeployment.getIdentifier(),
                                                                      specialized_reservations);
         
         if (response.first.empty()) {
-            LOG_DEBUG(ApplicationFactory_impl, "Unable to allocate device for component "
+            RH_DEBUG(_createHelperLog, "Unable to allocate device for component "
                       << deployment->getIdentifier() << " implementation " << implementation->getID());
             continue;
         }
@@ -1400,13 +1400,13 @@ void createHelper::allocateComponent(redhawk::ApplicationDeployment& appDeployme
         const std::string& deviceId = node.identifier;
         
         if (!resolveSoftpkgDependencies(appDeployment, deployment, node)) {
-            LOG_DEBUG(ApplicationFactory_impl, "Unable to resolve softpackage dependencies for component "
+            RH_DEBUG(_createHelperLog, "Unable to resolve softpackage dependencies for component "
                       << deployment->getIdentifier() << " implementation " << implementation->getID());
             continue;
         }
         
         // Allocation to a device succeeded
-        LOG_DEBUG(ApplicationFactory_impl, "Assigned component " << deployment->getInstantiation()->getID()
+        RH_DEBUG(_createHelperLog, "Assigned component " << deployment->getInstantiation()->getID()
                   << " implementation " << implementation->getID() << " to device " << deviceId);
 
         // Move the device to the front of the list
@@ -1439,7 +1439,7 @@ bool createHelper::_allDevicesBusy(ossie::DeviceList& devices)
         try {
             state = (*dev)->device->usageState();
         } catch (...) {
-            LOG_WARN(ApplicationFactory_impl, "Device " << (*dev)->identifier << " is not reachable");
+            RH_WARN(_createHelperLog, "Device " << (*dev)->identifier << " is not reachable");
             continue;
         }
         if (state != CF::Device::BUSY) {
@@ -1472,7 +1472,7 @@ bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevice
     for (unsigned int resp = 0; resp < response->length(); resp++) {
         // Ensure that this allocation is recorded so that it can be cleaned up
         const std::string allocationId(response[resp].allocationID);
-        LOG_TRACE(ApplicationFactory_impl, "Allocated " << allocationId);
+        RH_TRACE(_createHelperLog, "Allocated " << allocationId);
         localAllocations.push_back(allocationId);
         
         // Find the usesdevice that matches the request and update it, removing
@@ -1481,7 +1481,7 @@ bool createHelper::allocateUsesDevices(const std::vector<UsesDevice>& usesDevice
         UsesDeviceMap::iterator uses = usesDeviceMap.find(requestID);
         if (uses == usesDeviceMap.end()) {
             // This condition should never occur
-            LOG_WARN(ApplicationFactory_impl, "Allocation request " << requestID
+            RH_WARN(_createHelperLog, "Allocation request " << requestID
                      << " does not match any usesdevice");
             continue;
         }
@@ -1524,7 +1524,7 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
                 mathStatement.erase(mathStatement.end() - 1, mathStatement.end());
                 std::vector<std::string> args;
                 while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
-                    LOG_TRACE(ApplicationFactory_impl, "__MATH__ ARG: " << mathStatement.substr(0, mathStatement.find(',')) );
+                    RH_TRACE(_createHelperLog, "__MATH__ ARG: " << mathStatement.substr(0, mathStatement.find(',')) );
                     args.push_back(mathStatement.substr(0, mathStatement.find(',')));
                     mathStatement.erase(0, mathStatement.find(',') + 1);
                 }
@@ -1592,7 +1592,7 @@ void createHelper::_evaluateMATHinRequest(CF::Properties &request, const CF::Pro
                 CORBA::TypeCode_var matchingCompPropType = matchingCompProp->value.type();
                 request[math_prop].value = ossie::calculateDynamicProp(operand, compValue, math, matchingCompPropType->kind());
                 std::string retval = ossie::any_to_string(request[math_prop].value);
-                LOG_DEBUG(ApplicationFactory_impl, "__MATH__ RESULT: " << retval << " op1: " << operand << " op2:" << ossie::any_to_string(compValue) );
+                RH_DEBUG(_createHelperLog, "__MATH__ RESULT: " << retval << " op1: " << operand << " op2:" << ossie::any_to_string(compValue) );
             } else {
                 std::ostringstream eout;
                 eout << " invalid __MATH__ statement; '" << mathStatement << "'";
@@ -1618,14 +1618,14 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     const CF::Properties& deviceRequires = deployment->getDeviceRequires();
 
     if ( deviceRequires.length() > 0 ) {
-        LOG_TRACE(ApplicationFactory_impl, "Compnent: '" << deployment->getSoftPkg()->getName() << "' has device requires");
+        RH_TRACE(_createHelperLog, "Compnent: '" << deployment->getSoftPkg()->getName() << "' has device requires");
         // filter out devices that only match devicerequires property set
         ossie::DeviceList::iterator device;
         for (device = devices.begin(); device != devices.end(); ) {
             boost::shared_ptr<ossie::DeviceNode> devnode = *device;
-            LOG_DEBUG(ApplicationFactory_impl, "allocateDevice::PartitionMatching required props: " << devnode->requiresProps );
+            RH_DEBUG(_createHelperLog, "allocateDevice::PartitionMatching required props: " << devnode->requiresProps );
             if ( !checkPartitionMatching( *devnode, deviceRequires ))  {
-                LOG_TRACE(ApplicationFactory_impl, "Partition Matching failed");
+                RH_TRACE(_createHelperLog, "Partition Matching failed");
                 device=devices.erase(device);
                 continue;
             }
@@ -1641,7 +1641,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     // First check to see if the component was assigned in the user provided DAS
     // See if a device was assigned in the DAS
     if (!assignedDeviceId.empty()) {
-        LOG_TRACE(ApplicationFactory_impl, "User-provided DAS: Component: '" << deployment->getSoftPkg()->getName() <<
+        RH_TRACE(_createHelperLog, "User-provided DAS: Component: '" << deployment->getSoftPkg()->getName() <<
                   "'  Assigned device: '" << assignedDeviceId << "'");
         ossie::DeviceList::iterator device;
         for (device = devices.begin(); device != devices.end(); ++device) {
@@ -1651,7 +1651,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
         }
 
         if (device == devices.end()) {
-            LOG_DEBUG(ApplicationFactory_impl, "DAS specified unknown device " << assignedDeviceId <<
+            RH_DEBUG(_createHelperLog, "DAS specified unknown device " << assignedDeviceId <<
                       " for component " << deployment->getIdentifier());
             CF::DeviceAssignmentSequence badDAS;
             badDAS.length(1);
@@ -1673,10 +1673,10 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
     this->_evaluateMATHinRequest(allocationProperties, alloc_context);
     
-    LOG_TRACE(ApplicationFactory_impl, "alloc prop size " << allocationProperties.size() );
+    RH_TRACE(_createHelperLog, "alloc prop size " << allocationProperties.size() );
     redhawk::PropertyMap::iterator iter=allocationProperties.begin();
     for( ; iter != allocationProperties.end(); iter++){
-      LOG_TRACE(ApplicationFactory_impl, "alloc prop: " << iter->id  <<" value:" <<  ossie::any_to_string(iter->value) );
+      RH_TRACE(_createHelperLog, "alloc prop: " << iter->id  <<" value:" <<  ossie::any_to_string(iter->value) );
     }
     
     redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
@@ -1727,7 +1727,7 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
                 std::string identifier = struct_prop["nic_allocation_status::identifier"].toString();
                 if (identifier == alloc_id) {
                     const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
-                    LOG_DEBUG(ApplicationFactory_impl, "Allocation NIC assignment: " << interface );
+                    RH_DEBUG(_createHelperLog, "Allocation NIC assignment: " << interface );
                     deployment->setNicAssignment(interface);
                 }
             }
@@ -1746,23 +1746,23 @@ bool createHelper::checkPartitionMatching( ossie::DeviceNode& devnode,
     //
 
     if ( devnode.requiresProps.size() != devicerequires.length()) {
-        LOG_TRACE(ApplicationFactory_impl, "Number of devicerequired properties for deployment does not match, Device: " << devnode.label );
+        RH_TRACE(_createHelperLog, "Number of devicerequired properties for deployment does not match, Device: " << devnode.label );
         return false;
     }
 
     // Check if the device has a required property set for deployment
     if ( devicerequires.length() == 0 ) {
-        LOG_TRACE(ApplicationFactory_impl, "Component and Device have no devicerequires/deployerrequires property sets.");
+        RH_TRACE(_createHelperLog, "Component and Device have no devicerequires/deployerrequires property sets.");
         return true;
     }
 
     const redhawk::PropertyMap &devReqs = redhawk::PropertyMap::cast( devicerequires );
     for ( redhawk::PropertyMap::const_iterator iter=devReqs.begin(); iter != devReqs.end(); ++iter) {
         std::string pid(iter->getId());
-        LOG_TRACE(ApplicationFactory_impl, "checkPartitionMatching source devicerequires id:  " << pid );
+        RH_TRACE(_createHelperLog, "checkPartitionMatching source devicerequires id:  " << pid );
         redhawk::PropertyMap::const_iterator dev_prop = devnode.requiresProps.find( pid );
         if ( dev_prop == devnode.requiresProps.end() ) {
-            LOG_DEBUG(ApplicationFactory_impl, "Missing devicerequires property: " << pid << " for deployment from Device: " << devnode.label );
+            RH_DEBUG(_createHelperLog, "Missing devicerequires property: " << pid << " for deployment from Device: " << devnode.label );
             return false;
         }
 
@@ -1775,7 +1775,7 @@ bool createHelper::checkPartitionMatching( ossie::DeviceNode& devnode,
         }
     }
 
-    LOG_TRACE(ApplicationFactory_impl, "checkPartitionMatch PASSED, found match with device: " << devnode.label );
+    RH_TRACE(_createHelperLog, "checkPartitionMatch PASSED, found match with device: " << devnode.label );
     return true;
 }
 
@@ -1802,7 +1802,7 @@ bool createHelper::resolveSoftpkgDependencies(redhawk::ApplicationDeployment& ap
         if (dependency) {
             deployment->addDependency(dependency);
         } else {
-            LOG_DEBUG(ApplicationFactory_impl, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
+            RH_DEBUG(_createHelperLog, "resolveSoftpkgDependencies: implementation match not found between soft package dependency and device");
             return false;
         }
     }
@@ -1815,7 +1815,7 @@ createHelper::resolveDependencyImplementation(redhawk::ApplicationDeployment& ap
                                               const ossie::SPD::SoftPkgRef& ref,
                                               ossie::DeviceNode& device)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Resolving dependency " << ref);
+    RH_TRACE(_createHelperLog, "Resolving dependency " << ref);
     const SoftPkg* softpkg = _profileCache.loadSoftPkg(ref.localfile);
     const SPD::Implementations& spd_list = softpkg->getImplementations();
 
@@ -1905,7 +1905,7 @@ string ApplicationFactory_impl::getBaseWaveformContext(string waveform_context)
 void createHelper::loadAndExecuteContainers(const ContainerList& containers,
                                             CF::ApplicationRegistrar_ptr _appReg)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << containers.size() << " containers");
+    RH_TRACE(_createHelperLog, "Loading and Executing " << containers.size() << " containers");
     // TODO: Promote contained component affinity values
 
     BOOST_FOREACH(redhawk::ContainerDeployment* container, containers) {
@@ -1925,7 +1925,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
         container->setApplicationComponent(app_container);
 
         // get the code.localfile
-        LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
+        RH_TRACE(_createHelperLog, "Host is " << device->label << " Local file name is "
                   << container->getLocalFile());
 
         // Get file name, load if it is not empty
@@ -1940,11 +1940,11 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
             std::ostringstream message;
             message << "container " << container->getIdentifier() << " was assigned to non-loadable device "
                     << device->identifier;
-            LOG_ERROR(ApplicationFactory_impl, message);
+            RH_ERROR(_createHelperLog, message);
             throw std::logic_error(message.str());
         }
 
-        LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
+        RH_TRACE(_createHelperLog, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
             container->load(_appFact._fileMgr, device->loadableDevice);
@@ -1962,13 +1962,13 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
 void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
                                             CF::ApplicationRegistrar_ptr _appReg)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Loading and Executing " << deployments.size() << " components");
+    RH_TRACE(_createHelperLog, "Loading and Executing " << deployments.size() << " components");
     // apply application affinity options to required components
     applyApplicationAffinityOptions(deployments);
 
     BOOST_FOREACH(redhawk::ComponentDeployment* deployment, deployments) {
         const std::string& component_id = deployment->getIdentifier();
-        LOG_TRACE(ApplicationFactory_impl, "Loading and executing component '" << component_id << "'");
+        RH_TRACE(_createHelperLog, "Loading and executing component '" << component_id << "'");
 
         boost::shared_ptr<ossie::DeviceNode> device = deployment->getAssignedDevice();
         if (!device) {
@@ -1977,7 +1977,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             throw std::logic_error(message.str());
         }
 
-        LOG_INFO(ApplicationFactory_impl, "Application '" << _waveformContextName << "' component '"
+        RH_INFO(_createHelperLog, "Application '" << _waveformContextName << "' component '"
                  << component_id << "' assigned to device '" << device->label
                  << "' (" << device->identifier << ")");
 
@@ -1993,7 +1993,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
         deployment->setApplicationComponent(app_component);
 
         // get the code.localfile
-        LOG_TRACE(ApplicationFactory_impl, "Host is " << device->label << " Local file name is "
+        RH_TRACE(_createHelperLog, "Host is " << device->label << " Local file name is "
                   << deployment->getLocalFile());
 
         // Get file name, load if it is not empty
@@ -2008,11 +2008,11 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             std::ostringstream message;
             message << "component " << component_id << " was assigned to non-loadable device "
                     << device->identifier;
-            LOG_ERROR(ApplicationFactory_impl, message);
+            RH_ERROR(_createHelperLog, message);
             throw std::logic_error(message.str());
         }
 
-        LOG_TRACE(ApplicationFactory_impl, "Loading " << codeLocalFile << " and dependencies on device "
+        RH_TRACE(_createHelperLog, "Loading " << codeLocalFile << " and dependencies on device "
                   << device->label);
         try {
             deployment->load(_appFact._fileMgr, device->loadableDevice);
@@ -2054,27 +2054,27 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     int  debug_level=-1;
     if ( execParams.contains("LOGGING_CONFIG_URI") ) {
         logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
-        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
+        RH_TRACE(_createHelperLog, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
     }
     if ( execParams.contains("DEBUG_LEVEL") ) {
         debug_level = resolveDebugLevel( execParams["DEBUG_LEVEL"].toString() );
-        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
     }
 
     if ( execParams.contains("LOG_LEVEL") ) {
         debug_level = resolveDebugLevel( execParams["LOG_LEVEL"].toString() );
-        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: exec parameter provided log_level: " << debug_level);
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided log_level: " << debug_level);
     }
 
    // check if logging configuration is part of component placement
     redhawk::PropertyMap log_config=deployment->getLoggingConfiguration();
     if ( log_config.contains("LOGGING_CONFIG_URI") ) {
         logging_uri = log_config["LOGGING_CONFIG_URI"].toString();
-        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig log config: " << logging_uri);
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: loggingconfig log config: " << logging_uri);
     }
     if ( log_config.contains("LOG_LEVEL") ) {
         debug_level = resolveDebugLevel(log_config["LOG_LEVEL"].toString());
-        LOG_TRACE(ApplicationFactory_impl, "resolveLoggingConfig: loggingconfig debug_level: " << debug_level);
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: loggingconfig debug_level: " << debug_level);
     }
 
     // Use the log config resolver (if enabled)
@@ -2085,7 +2085,7 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
             std::string logcfg_path = ossie::logging::GetComponentPath(_appFact._domainName, _waveformContextName,
                                                                        instantiation->getFindByNamingServiceName());
             std::string uri = logcfg_resolver->get_uri(logcfg_path);
-            LOG_TRACE(ApplicationFactory_impl, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg: " << uri );
+            RH_TRACE(_createHelperLog, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg: " << uri );
             if ( !uri.empty() ) logging_uri = uri;
         }
     }
@@ -2093,13 +2093,13 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     // nothing is provided, use DomainManger's context
     if ( logging_uri.empty() ) {
         // Query the DomainManager for the logging configuration
-        LOG_DEBUG(ApplicationFactory_impl, "Checking DomainManager for LOGGING_CONFIG_URI");
+        RH_DEBUG(_createHelperLog, "Checking DomainManager for LOGGING_CONFIG_URI");
         PropertyInterface *log_prop = _appFact._domainManager->getPropertyFromId("LOGGING_CONFIG_URI");
         StringProperty *logProperty = (StringProperty *)log_prop;
         if (!logProperty->isNil()) {
             logging_uri = logProperty->getValue();
         } else {
-            LOG_TRACE(ApplicationFactory_impl, "DomainManager LOGGING_CONFIG_URI is not set");
+            RH_TRACE(_createHelperLog, "DomainManager LOGGING_CONFIG_URI is not set");
         }
 
         rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
@@ -2115,17 +2115,17 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
         if (logging_uri.substr(0, 4) == "sca:") {
             string fileSysIOR = ossie::corba::objectToString(_appFact._domainManager->_fileMgr);
             logging_uri += ("?fs=" + fileSysIOR);
-            LOG_TRACE(ApplicationFactory_impl, "Adding DomainManager's FileSystem IOR " << logging_uri);
+            RH_TRACE(_createHelperLog, "Adding DomainManager's FileSystem IOR " << logging_uri);
         }
 
         execParams["LOGGING_CONFIG_URI"] = logging_uri;
-        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOGGING_CONFIG_URI: " << logging_uri);
+        RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOGGING_CONFIG_URI: " << logging_uri);
     }
 
     // if debug level is resolved, then add as execparam
     if ( debug_level != -1 ) {
         execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(debug_level);
-        LOG_DEBUG(ApplicationFactory_impl, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << debug_level );
+        RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << debug_level );
     }
 }
 
@@ -2175,7 +2175,7 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // Get entry point
     std::string entryPoint = deployment->getEntryPoint();
     if (entryPoint.empty()) {
-        LOG_WARN(ApplicationFactory_impl, "executing using code file as entry point; this is non-SCA compliant behavior; entrypoint must be set");
+        RH_WARN(_createHelperLog, "executing using code file as entry point; this is non-SCA compliant behavior; entrypoint must be set");
         entryPoint = deployment->getLocalFile();
     }
 
@@ -2190,22 +2190,22 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     // Attempt to execute the component
     CF::ExecutableDevice_var execdev;
     if (deployment->getContainer()) {
-        LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " via container on device " << device->label);
+        RH_TRACE(_createHelperLog, "Executing " << entryPoint << " via container on device " << device->label);
         redhawk::ComponentDeployment* container = deployment->getContainer();
         CF::Resource_var resource = container->getResourcePtr();
         execdev = CF::ExecutableDevice::_narrow(resource);
     } else {
-        LOG_TRACE(ApplicationFactory_impl, "Executing " << entryPoint << " on device " << device->label);
+        RH_TRACE(_createHelperLog, "Executing " << entryPoint << " on device " << device->label);
         execdev = CF::ExecutableDevice::_duplicate(device->executableDevice);
     }
     for (redhawk::PropertyMap::iterator prop = execParameters.begin(); prop != execParameters.end(); ++prop) {
-        LOG_TRACE(ApplicationFactory_impl, " exec param " << prop->getId() << " " << prop->getValue().toString());
+        RH_TRACE(_createHelperLog, " exec param " << prop->getId() << " " << prop->getValue().toString());
     }
 
     // Get options list
     redhawk::PropertyMap options = deployment->getOptions(); 
     for (redhawk::PropertyMap::iterator opt = options.begin(); opt != options.end(); ++opt) {
-        LOG_TRACE(ApplicationFactory_impl, " RESOURCE OPTION: " << opt->getId()
+        RH_TRACE(_createHelperLog, " RESOURCE OPTION: " << opt->getId()
                   << " " << opt->getValue().toString());
     }
 
@@ -2260,7 +2260,7 @@ void createHelper::applyApplicationAffinityOptions(const DeploymentList& deploym
       // log deployments with application affinity 
       for ( uint32_t i=0; i < app_affinity.length(); i++ ) {
           CF::DataType dt = app_affinity[i];
-          LOG_INFO(ApplicationFactory_impl, " Applying Application Affinity: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
+          RH_INFO(_createHelperLog, " Applying Application Affinity: directive id:"  <<  dt.id << "/" <<  ossie::any_to_string( dt.value )) ;
       }
     
       //
@@ -2292,7 +2292,7 @@ void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& 
 {
     // Wait for any containers to be registered before continuing
     int timeout = _appFact._domainManager->getComponentBindingTimeout();
-    LOG_TRACE(ApplicationFactory_impl, "Waiting " << timeout << "s for containers to register");
+    RH_TRACE(_createHelperLog, "Waiting " << timeout << "s for containers to register");
     std::set<std::string> expected_components;
     BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
         expected_components.insert(container->getIdentifier());
@@ -2309,9 +2309,9 @@ void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& 
     // For reference, determine much time has really elapsed.
     time_t elapsed = time(NULL)-start;
     if (!complete) {
-        LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for container to register (" << elapsed << "s elapsed)");
+        RH_ERROR(_createHelperLog, "Timed out waiting for container to register (" << elapsed << "s elapsed)");
     } else {
-        LOG_DEBUG(ApplicationFactory_impl, "Container registration completed in " << elapsed << "s");
+        RH_DEBUG(_createHelperLog, "Container registration completed in " << elapsed << "s");
     }
 
     // Fetch the objects, finding any components that did not register
@@ -2336,7 +2336,7 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
 {
     // Wait for all components to be registered before continuing
     int componentBindingTimeout = _appFact._domainManager->getComponentBindingTimeout();
-    LOG_TRACE(ApplicationFactory_impl, "Waiting " << componentBindingTimeout << "s for all components to register");
+    RH_TRACE(_createHelperLog, "Waiting " << componentBindingTimeout << "s for all components to register");
 
     // Track only SCA-compliant components; non-compliant components will never
     // register with the application, nor do they need to be initialized
@@ -2372,9 +2372,9 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
     // For reference, determine much time has really elapsed.
     time_t elapsed = time(NULL)-start;
     if (!complete) {
-        LOG_ERROR(ApplicationFactory_impl, "Timed out waiting for components to register (" << elapsed << "s elapsed)");
+        RH_ERROR(_createHelperLog, "Timed out waiting for components to register (" << elapsed << "s elapsed)");
     } else {
-        LOG_DEBUG(ApplicationFactory_impl, "Component registration completed in " << elapsed << "s");
+        RH_DEBUG(_createHelperLog, "Component registration completed in " << elapsed << "s");
     }
 
     // Fetch the objects, finding any components that did not register
@@ -2402,7 +2402,7 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
             try {
                 objref->_non_existent();
             } catch (...) {
-                LOG_DEBUG(ApplicationFactory_impl, "Component object did not respond to initial ping");
+                RH_DEBUG(_createHelperLog, "Component object did not respond to initial ping");
             }
 
             // Convert to a CF::Resource object
@@ -2426,7 +2426,7 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
 void createHelper::initializeComponents(const DeploymentList& deployments)
 {
     // Install the different components in the system
-    LOG_TRACE(ApplicationFactory_impl, "initializing " << deployments.size() << " waveform components");
+    RH_TRACE(_createHelperLog, "initializing " << deployments.size() << " waveform components");
 
     for (unsigned int rc_idx = 0; rc_idx < deployments.size (); rc_idx++) {
         redhawk::ComponentDeployment* deployment = deployments[rc_idx];
@@ -2434,10 +2434,10 @@ void createHelper::initializeComponents(const DeploymentList& deployments)
 
         // If the component is non-SCA compliant then we don't expect anything beyond this
         if (!softpkg->isScaCompliant()) {
-            LOG_TRACE(ApplicationFactory_impl, "Component is non SCA-compliant, continuing to next component");
+            RH_TRACE(_createHelperLog, "Component is non SCA-compliant, continuing to next component");
             continue;
         } else if (!deployment->isResource()) {
-            LOG_TRACE(ApplicationFactory_impl, "Component is not a resource, continuing to next component");
+            RH_TRACE(_createHelperLog, "Component is not a resource, continuing to next component");
             continue;
         }
 
@@ -2477,11 +2477,11 @@ void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployme
     AppConnectionManager connectionManager(_appFact._domainManager, &appDeployment, &appDeployment, base_naming_context);
 
     // Create all resource connections
-    LOG_TRACE(ApplicationFactory_impl, "Establishing " << _connection.size() << " waveform connections")
+    RH_TRACE(_createHelperLog, "Establishing " << _connection.size() << " waveform connections")
     for (int c_idx = _connection.size () - 1; c_idx >= 0; c_idx--) {
         const Connection& connection = _connection[c_idx];
 
-        LOG_TRACE(ApplicationFactory_impl, "Processing connection " << connection.getID());
+        RH_TRACE(_createHelperLog, "Processing connection " << connection.getID());
 
         // Attempt to resolve the connection; if any connection fails, application creation fails.
         bool resolved;
@@ -2502,7 +2502,7 @@ void createHelper::connectComponents(redhawk::ApplicationDeployment& appDeployme
 
 std::vector<std::string> createHelper::getStartOrder(const DeploymentList& deployments)
 {
-    LOG_TRACE(ApplicationFactory_impl, "Assigning start order");
+    RH_TRACE(_createHelperLog, "Assigning start order");
 
     // Now that all of the components are known, bin the start orders based on
     // the values in the SAD. Using a multimap, keyed on the start order value,
@@ -2514,7 +2514,7 @@ std::vector<std::string> createHelper::getStartOrder(const DeploymentList& deplo
         redhawk::ComponentDeployment* deployment = deployments[index];
         const ossie::ComponentInstantiation* instantiation = deployment->getInstantiation();
         if (deployment->isAssemblyController()) {
-            LOG_TRACE(ApplicationFactory_impl, "Component " << instantiation->getID()
+            RH_TRACE(_createHelperLog, "Component " << instantiation->getID()
                       << " is the assembly controller");
         } else if (instantiation->hasStartOrder()) {
             // Only track start order if it was provided, and the component is
@@ -2527,7 +2527,7 @@ std::vector<std::string> createHelper::getStartOrder(const DeploymentList& deplo
     std::vector<std::string> start_order;
     int index = 1;
     for (StartOrderMap::iterator ii = start_map.begin(); ii != start_map.end(); ++ii, ++index) {
-        LOG_TRACE(ApplicationFactory_impl, index << ": "
+        RH_TRACE(_createHelperLog, index << ": "
                   << ii->second->getInstantiation()->getID());
         start_order.push_back(ii->second->getIdentifier());
     }
@@ -2542,13 +2542,14 @@ createHelper::createHelper (
         CosNaming::NamingContext_ptr   domainContext ):
 
     _appFact(appFact),
+    _createHelperLog(appFact.returnLogger()),
     _allocationMgr(_appFact._domainManager->_allocationMgr),
     _allocations(*_allocationMgr),
     _waveformContextName(waveformContextName),
     _baseNamingContext(baseNamingContext),
     _waveformContext(CosNaming::NamingContext::_duplicate(waveformContext)),
     _domainContext(domainContext),
-    _profileCache(_appFact._fileMgr),
+    _profileCache(_appFact._fileMgr, appFact.returnLogger()),
     _isComplete(false),
     _application(0),
     _stopTimeout(DEFAULT_STOP_TIMEOUT),
@@ -2576,24 +2577,24 @@ void createHelper::_cleanupFailedCreate()
         _application->_cleanupActivations();
     }
 
-    LOG_TRACE(ApplicationFactory_impl, "Removing all bindings from naming context");
+    RH_TRACE(_createHelperLog, "Removing all bindings from naming context");
     try {
       if ( _appFact._domainManager && !_appFact._domainManager->bindToDomain() ) {
         ossie::corba::unbindAllFromContext(_waveformContext);
       }
-    } CATCH_LOG_WARN(ApplicationFactory_impl, "Could not unbind contents of naming context");
+    } CATCH_RH_WARN(_createHelperLog, "Could not unbind contents of naming context");
 
     CosNaming::Name DNContextname;
     DNContextname.length(1);
     DNContextname[0].id = _waveformContextName.c_str();
-    LOG_TRACE(ApplicationFactory_impl, "Unbinding the naming context")
+    RH_TRACE(_createHelperLog, "Unbinding the naming context")
     try {
         _appFact._domainContext->unbind(DNContextname);
     } catch ( ... ) {
     }
 
-    LOG_TRACE(ApplicationFactory_impl, "Destroying naming context");
+    RH_TRACE(_createHelperLog, "Destroying naming context");
     try {
         _waveformContext->destroy();
-    } CATCH_LOG_WARN(ApplicationFactory_impl, "Could not destroy naming context");
+    } CATCH_RH_WARN(_createHelperLog, "Could not destroy naming context");
 }

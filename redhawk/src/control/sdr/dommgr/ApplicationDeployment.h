@@ -97,6 +97,10 @@ namespace redhawk {
                                                                   const std::string& usesId);
         CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId);
 
+        void setLogger(rh_logger::LoggerPtr log) {
+            _appDeploymentLog = log;
+        };
+
     protected:
         void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
         void overrideExternalProperties(ComponentDeployment* deployment);
@@ -111,6 +115,7 @@ namespace redhawk {
         ComponentList components;
         ContainerList containers;
         ComponentDeployment *ac;
+        rh_logger::LoggerPtr _appDeploymentLog;
     };
 }
 

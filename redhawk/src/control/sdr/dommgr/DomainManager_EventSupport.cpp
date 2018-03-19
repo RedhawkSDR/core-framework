@@ -197,7 +197,7 @@ void DomainManager_impl::idmTerminationMessages(const redhawk::events::Component
     if (application) {
         application->componentTerminated(termMsg.component_id, device_label);
     } else {
-        LOG_WARN(DomainManager_impl, "Abnormal Component Termination, Reporting Device: " << device_label
+        RH_WARN(this->_baseLog, "Abnormal Component Termination, Reporting Device: " << device_label
                  << " Application/Component " << termMsg.application_id << "/" << termMsg.component_id);
     }
 }
@@ -209,17 +209,17 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
     if ( _eventChannelMgr ){
 
       if ( !dburi.empty() ) {
-        LOG_INFO(DomainManager_impl, "Restoring event channel manager state");
+        RH_INFO(this->_baseLog, "Restoring event channel manager state");
         restorePubProxies(dburi);
         restoreSubProxies(dburi);
         restoreEventChannelRegistrations(dburi);
-        LOG_DEBUG(DomainManager_impl, "Completed Restoring Event Channel Manager state");
-	LOG_INFO(DomainManager_impl, "Restoring event channels file:" << dburi);
+        RH_DEBUG(this->_baseLog, "Completed Restoring Event Channel Manager state");
+	RH_INFO(this->_baseLog, "Restoring event channels file:" << dburi);
 	restoreEventChannels(dburi);
       }
       
 
-      LOG_TRACE(DomainManager_impl, "Establishing Domain Event Channels");
+      RH_TRACE(this->_baseLog, "Establishing Domain Event Channels");
 
       //
       // Create ODM Channel Publisher
@@ -229,14 +229,14 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
         cname = redhawk::events::ODM_Channel_Spec;
         _odm_publisher =  publisher( cname );
         if ( _odm_publisher ) {
-          LOG_INFO(DomainManager_impl, "Domain Channel: " << cname << " created.");
+          RH_INFO(this->_baseLog, "Domain Channel: " << cname << " created.");
         }
         else {
           throw -1;
         }
       }
       catch(...) {
-	LOG_WARN(DomainManager_impl, "ODM Channel create FAILED, Disabling outgoing events");
+	RH_WARN(this->_baseLog, "ODM Channel create FAILED, Disabling outgoing events");
       }
 
       //
@@ -246,7 +246,7 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
         cname = redhawk::events::IDM_Channel_Spec;
         DOM_Subscriber_ptr  idmSubscriber = subscriber( cname  );
         if ( idmSubscriber ) {
-          LOG_INFO(DomainManager_impl, "Domain Channel: " << cname << " created.");
+          RH_INFO(this->_baseLog, "Domain Channel: " << cname << " created.");
           _idm_reader.setTerminationListener( this, &DomainManager_impl::idmTerminationMessages );
           _idm_reader.subscribe( subscriber( cname  ) );
         }
@@ -255,13 +255,13 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
         }
       }
       catch(...) {
-	LOG_WARN(DomainManager_impl, "IDM Channel create FAILED, Disabling incoming events");
+	RH_WARN(this->_baseLog, "IDM Channel create FAILED, Disabling incoming events");
       }
 
-      LOG_DEBUG(DomainManager_impl, "Completed Creating Domain Event Channels");
+      RH_DEBUG(this->_baseLog, "Completed Creating Domain Event Channels");
     }
     else {
-      LOG_WARN(DomainManager_impl, "No EventChannelManager, Disabling event channel management operations.");
+      RH_WARN(this->_baseLog, "No EventChannelManager, Disabling event channel management operations.");
     }
 }
 
@@ -372,7 +372,7 @@ void DomainManager_impl::disconnectDomainManagementChannels() {
     try {
         db.store("EVENT_CHANNELS", _eventChannels);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to event channels");
+        RH_ERROR(this->_baseLog, "Error persisting change to event channels");
     }
     TRACE_EXIT(DomainManager_impl);
     return eventChannel._retn();
@@ -414,7 +414,7 @@ void DomainManager_impl::destroyEventChannel (const std::string& name)
     try {
         db.store("EVENT_CHANNELS", _eventChannels);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to event channels");
+        RH_ERROR(this->_baseLog, "Error persisting change to event channels");
     }
 
     TRACE_EXIT(DomainManager_impl);
@@ -498,35 +498,35 @@ bool DomainManager_impl::eventChannelExists(const std::string &name) {
 
 
 unsigned int DomainManager_impl::incrementEventChannelConnections(const std::string &EventChannelName) {
-    LOG_TRACE(DomainManager_impl, "Incrementing Event Channel " << EventChannelName);
+    RH_TRACE(this->_baseLog, "Incrementing Event Channel " << EventChannelName);
     std::vector < ossie::EventChannelNode >::iterator _iter = _eventChannels.begin();
 
     while (_iter != _eventChannels.end()) {
         if ((*_iter).name == EventChannelName) {
             (*_iter).connectionCount++;
-            LOG_TRACE(DomainManager_impl, "Event Channel " << EventChannelName<<" count: "<<(*_iter).connectionCount);
+            RH_TRACE(this->_baseLog, "Event Channel " << EventChannelName<<" count: "<<(*_iter).connectionCount);
             return (*_iter).connectionCount;
         }
         _iter++;
     }
 
-    LOG_TRACE(DomainManager_impl, "Event Channel " << EventChannelName<<" does not exist");
+    RH_TRACE(this->_baseLog, "Event Channel " << EventChannelName<<" does not exist");
     return 0;
 }
 
 unsigned int DomainManager_impl::decrementEventChannelConnections(const std::string &EventChannelName) {
-    LOG_TRACE(DomainManager_impl, "Decrementing Event Channel " << EventChannelName);
+    RH_TRACE(this->_baseLog, "Decrementing Event Channel " << EventChannelName);
     std::vector < ossie::EventChannelNode >::iterator _iter = _eventChannels.begin();
 
     while (_iter != _eventChannels.end()) {
         if ((*_iter).name == EventChannelName) {
             (*_iter).connectionCount--;
-            LOG_TRACE(DomainManager_impl, "Event Channel " << EventChannelName<<" count: "<<(*_iter).connectionCount);
+            RH_TRACE(this->_baseLog, "Event Channel " << EventChannelName<<" count: "<<(*_iter).connectionCount);
             return (*_iter).connectionCount;
         }
         _iter++;
     }
-    LOG_TRACE(DomainManager_impl, "Event Channel " << EventChannelName<<" does not exist");
+    RH_TRACE(this->_baseLog, "Event Channel " << EventChannelName<<" does not exist");
     return 0;
 
 }

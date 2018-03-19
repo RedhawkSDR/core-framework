@@ -59,6 +59,28 @@ Logging_impl::Logging_impl(std::string logger_name) :
   getLogger( _logName, true );
 };
 
+Logging_impl::Logging_impl(rh_logger::LoggerPtr parent_logger) :
+  _logName(""),
+  _logLevel(CF::LogLevels::INFO),
+  _logCfgContents(),
+  _logCfgURL(""),
+  _origLogCfgURL(""),
+  _loggingCtx(),
+  _origLevelSet(false)
+{
+
+  _baseLog = parent_logger;
+  // get default set of macros to fill in
+  _loggingMacros = ossie::logging::GetDefaultMacros();
+
+  ossie::logging::ResolveHostInfo( _loggingMacros );
+
+  _logCfgContents = ossie::logging::GetDefaultConfig();
+
+  // setup logger to be root by default and assign logging level INFO`
+  getLogger( _logName, true );
+};
+
 
 
 void  Logging_impl::setLoggingMacros ( ossie::logging::MacroTable &tbl, bool applyCtx ) {
@@ -135,7 +157,23 @@ void Logging_impl::setLoggingContext( const std::string &logcfg_url, int logLeve
   STDOUT_DEBUG("Logging_impl setLoggingContext END" );
 }
 
+std::string Logging_impl::getExpandedLogConfig(const std::string &logcfg_url) {
 
+    std::string _logCfgContents;
+
+    if ( logcfg_url == "" ) {
+        STDOUT_DEBUG( "Logging_impl saveLoggingContext Default Configuration.");
+        _logCfgContents=ossie::logging::GetDefaultConfig();
+    } else {
+        // grab contents of URL and save
+        _logCfgContents = "";
+        std::string config_contents = ossie::logging::GetConfigFileContents(logcfg_url);
+        if ( config_contents.size() > 0  ){
+            _logCfgContents= ossie::logging::ExpandMacros(config_contents, _loggingMacros);
+        }
+    }
+    return _logCfgContents;
+}
 
 void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLevel, ossie::logging::ResourceCtxPtr ctx ) {
   STDOUT_DEBUG("Logging_impl saveLoggingContext START:");
@@ -148,22 +186,8 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
   try {
       // save off logging config url
       _logCfgURL = logcfg_url;
-
-    // test we have a logging URI
-    if ( logcfg_url == "" ) {
-      STDOUT_DEBUG( "Logging_impl saveLoggingContext Default Configuration.");
-      _logCfgContents=ossie::logging::GetDefaultConfig();
-    }
-    else{
-      // grab contents of URL and save
-      _logCfgContents = "";
-      std::string config_contents = ossie::logging::GetConfigFileContents(logcfg_url);
-      if ( config_contents.size() > 0  ){
-	_logCfgContents= ossie::logging::ExpandMacros(config_contents, _loggingMacros);
-      }
-    }
-  }
-  catch( std::exception &e ) {
+      _logCfgContents = getExpandedLogConfig(logcfg_url);
+  } catch( std::exception &e ) {
   }
 
   bool set_level=false;

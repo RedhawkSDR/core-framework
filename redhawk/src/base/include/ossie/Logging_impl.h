@@ -36,6 +36,7 @@ class Logging_impl
  public:
 
   Logging_impl (std::string logger_name);
+  Logging_impl (rh_logger::LoggerPtr parent_logger);
     
   virtual ~Logging_impl() {};
 
@@ -119,6 +120,13 @@ class Logging_impl
    * 
    */
   void    saveLoggingContext( const std::string &url, int loglevel, ossie::logging::ResourceCtxPtr ctx );
+
+  /*
+   *  getExpandedLogConfig
+   * Apply the macros to the log configuration
+   *
+   */
+  std::string getExpandedLogConfig(const std::string &logcfg_url);
 
   //
   // RESOLVE: refactor to use boost::function and boost::bind 

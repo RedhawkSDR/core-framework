@@ -114,7 +114,7 @@ void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSys
         }
     }
 
-    LOG_TRACE(FileManager_impl, "Mounting remote file system on " << mountPath);
+    RH_TRACE(_fileMgrLog, "Mounting remote file system on " << mountPath);
     mountedFileSystems.push_back(MountPoint(mountPath, fileSystem));
 
     TRACE_EXIT(FileManager_impl)
@@ -134,7 +134,7 @@ void FileManager_impl::unmount (const char* mountPoint)
     // Find the mount and remove it.
     for (MountList::iterator mount = mountedFileSystems.begin(); mount != mountedFileSystems.end(); ++mount) {
         if (mount->path == mountPath) {
-            LOG_TRACE(FileManager_impl, "Unmounting remote file system on " << mountPath);
+            RH_TRACE(_fileMgrLog, "Unmounting remote file system on " << mountPath);
             mountedFileSystems.erase(mount);
 
             TRACE_EXIT(FileManager_impl);
@@ -156,7 +156,7 @@ void FileManager_impl::remove (const char* fileName)
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Removing file " << fileName);
+    RH_TRACE(_fileMgrLog, "Removing file " << fileName);
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -165,11 +165,11 @@ void FileManager_impl::remove (const char* fileName)
     // Check if file is on one of the mounted file systems
     MountList::iterator mount = getMountForPath(fileName);
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Removing local file");
+        RH_TRACE(_fileMgrLog, "Removing local file");
         FileSystem_impl::remove(fileName);
     } else {
         std::string filePath = mount->getRelativePath(fileName);
-        LOG_TRACE(FileManager_impl, "Removing " << filePath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Removing " << filePath << " on remote file system mounted at " << mount->path);
         mount->fs->remove(filePath.c_str());
     }
 
@@ -191,7 +191,7 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         throw CF::InvalidFileName(CF::CF_EINVAL, "Destination file name is identical to source file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Copy " << sourceFileName << " to " << destinationFileName);
+    RH_TRACE(_fileMgrLog, "Copy " << sourceFileName << " to " << destinationFileName);
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -204,11 +204,11 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         // Source and destination are on the same file system...
         if (sourceMount == mountedFileSystems.end()) {
             // ...which is also the local file system.
-            LOG_TRACE(FileManager_impl, "Copying locally");
+            RH_TRACE(_fileMgrLog, "Copying locally");
             FileSystem_impl::copy(sourceFileName, destinationFileName);
         } else {
             // ...which is a remote file system.
-            LOG_TRACE(FileManager_impl, "Copying locally on remote file system");
+            RH_TRACE(_fileMgrLog, "Copying locally on remote file system");
             const std::string srcPath = sourceMount->getRelativePath(sourceFileName);
             const std::string dstPath = destMount->getRelativePath(destinationFileName);
             sourceMount->fs->copy(srcPath.c_str(), dstPath.c_str());
@@ -216,7 +216,7 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         return;
     }
 
-    LOG_TRACE(FileManager_impl, "Copying between filesystems");
+    RH_TRACE(_fileMgrLog, "Copying between filesystems");
 
     // Open the source file (may be local).
     CF::File_var srcFile;
@@ -300,7 +300,7 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
       }
     }
     catch(...) {
-      LOG_ERROR(FileManager_impl, eout.str());
+      RH_ERROR(_fileMgrLog, eout.str());
       fe = true;
     }
 
@@ -322,7 +322,7 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         throw(CF::FileException());
       }
     } catch(...) {
-      LOG_ERROR(FileManager_impl, eout.str());
+      RH_ERROR(_fileMgrLog, eout.str());
       fe = true;
     }
 
@@ -344,7 +344,7 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
         throw(CF::FileException());
       }
     } catch(...) {
-      LOG_ERROR(FileManager_impl, eout.str());
+      RH_ERROR(_fileMgrLog, eout.str());
       fe = true;
     }
 
@@ -370,7 +370,7 @@ void FileManager_impl::move (const char* sourceFileName, const char* destination
         throw CF::InvalidFileName(CF::CF_EINVAL, "Destination file name is identical to source file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Move " << sourceFileName << " to " << destinationFileName);
+    RH_TRACE(_fileMgrLog, "Move " << sourceFileName << " to " << destinationFileName);
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -383,11 +383,11 @@ void FileManager_impl::move (const char* sourceFileName, const char* destination
         // Source and destination are on the same file system...
         if (sourceMount == mountedFileSystems.end()) {
             // ...which is also the local file system.
-            LOG_TRACE(FileManager_impl, "Moving locally");
+            RH_TRACE(_fileMgrLog, "Moving locally");
             FileSystem_impl::move(sourceFileName, destinationFileName);
         } else {
             // ...which is a remote file system.
-            LOG_TRACE(FileManager_impl, "Moving locally on remote file system");
+            RH_TRACE(_fileMgrLog, "Moving locally on remote file system");
             const std::string srcPath = sourceMount->getRelativePath(sourceFileName);
             const std::string dstPath = destMount->getRelativePath(destinationFileName);
             sourceMount->fs->move(srcPath.c_str(), dstPath.c_str());
@@ -395,7 +395,7 @@ void FileManager_impl::move (const char* sourceFileName, const char* destination
         return;
     }
 
-    LOG_TRACE(FileManager_impl, "Moving between filesystems");
+    RH_TRACE(_fileMgrLog, "Moving between filesystems");
 
     // Perform a copy followed by a remove, which is the only way we can move
     // across file systems. This operation is not atomic, and making it atomic
@@ -418,7 +418,7 @@ CORBA::Boolean FileManager_impl::exists (const char* fileName)
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Checking for existence of " << fileName);
+    RH_TRACE(_fileMgrLog, "Checking for existence of " << fileName);
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -428,11 +428,11 @@ CORBA::Boolean FileManager_impl::exists (const char* fileName)
     MountList::iterator mount = getMountForPath(fileName);
     CORBA::Boolean status;
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Checking local file system");
+        RH_TRACE(_fileMgrLog, "Checking local file system");
         status = FileSystem_impl::exists(fileName);
     } else {
         std::string filePath = mount->getRelativePath(fileName);
-        LOG_TRACE(FileManager_impl, "Checking for " << filePath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Checking for " << filePath << " on remote file system mounted at " << mount->path);
         status = mount->fs->exists(filePath.c_str());
     }
 
@@ -446,7 +446,7 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
 {
     TRACE_ENTER(FileManager_impl);
     
-    LOG_TRACE(FileManager_impl, "List files with pattern " << pattern);
+    RH_TRACE(_fileMgrLog, "List files with pattern " << pattern);
 
     CF::FileSystem::FileInformationSequence_var result;
 
@@ -456,7 +456,7 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
 
     MountList::iterator mount = getMountForPath(pattern);
     if (mount == mountedFileSystems.end()) { 
-        LOG_TRACE(FileManager_impl, "Listing local file system");
+        RH_TRACE(_fileMgrLog, "Listing local file system");
         result = FileSystem_impl::list(pattern);
 
         // Check for any mount points that match the pattern.
@@ -479,7 +479,7 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
         const std::string searchPath = mount->getRelativePath(pattern);
         if (searchPath.empty()) {
             // Exact match for mount point
-            LOG_TRACE(FileManager_impl, "List mount point " << mount->path);
+            RH_TRACE(_fileMgrLog, "List mount point " << mount->path);
             result = new CF::FileSystem::FileInformationSequence();
             result->length(1);
             result[0].name = CORBA::string_dup(mount->path.substr(1).c_str());
@@ -488,7 +488,7 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
             result[0].fileProperties.length(0);
         } else {
             // List contents of mount point
-            LOG_TRACE(FileManager_impl, "Listing " << searchPath << " on remote file system mounted at " << mount->path);
+            RH_TRACE(_fileMgrLog, "Listing " << searchPath << " on remote file system mounted at " << mount->path);
             result = mount->fs->list(searchPath.c_str());
         }
     }
@@ -507,7 +507,7 @@ CF::File_ptr FileManager_impl::create (const char* fileName)
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Creating file " << fileName)
+    RH_TRACE(_fileMgrLog, "Creating file " << fileName)
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -516,11 +516,11 @@ CF::File_ptr FileManager_impl::create (const char* fileName)
     MountList::iterator mount = getMountForPath(fileName);
     CF::File_var file;
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Creating local file");
+        RH_TRACE(_fileMgrLog, "Creating local file");
         file = FileSystem_impl::create(fileName);
     } else {
         const std::string filePath = mount->getRelativePath(fileName);
-        LOG_TRACE(FileManager_impl, "Creating " << filePath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Creating " << filePath << " on remote file system mounted at " << mount->path);
         file = mount->fs->create(filePath.c_str());
     }
 
@@ -538,7 +538,7 @@ CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_O
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
     }
 
-    LOG_TRACE(FileManager_impl, "Opening file " << fileName << std::string((read_Only)?" readonly":" readwrite"));
+    RH_TRACE(_fileMgrLog, "Opening file " << fileName << std::string((read_Only)?" readonly":" readwrite"));
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -547,11 +547,11 @@ CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_O
     MountList::iterator mount = getMountForPath(fileName);
     CF::File_var file;
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Opening local file");
+        RH_TRACE(_fileMgrLog, "Opening local file");
         file = FileSystem_impl::open(fileName, read_Only);
     } else {
         const std::string filePath = mount->getRelativePath(fileName);
-        LOG_TRACE(FileManager_impl, "Opening " << filePath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Opening " << filePath << " on remote file system mounted at " << mount->path);
         file = mount->fs->open(filePath.c_str(), read_Only);
     }
 
@@ -569,7 +569,7 @@ void FileManager_impl::mkdir (const char* directoryName)
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
     }
 
-    LOG_TRACE(FileManager_impl, "Making directory " << directoryName)
+    RH_TRACE(_fileMgrLog, "Making directory " << directoryName)
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -577,11 +577,11 @@ void FileManager_impl::mkdir (const char* directoryName)
 
     MountList::iterator mount = getMountForPath(directoryName);
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Making local directory");
+        RH_TRACE(_fileMgrLog, "Making local directory");
         FileSystem_impl::mkdir(directoryName);
     } else {
         const std::string dirPath = mount->getRelativePath(directoryName);
-        LOG_TRACE(FileManager_impl, "Making directory " << dirPath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Making directory " << dirPath << " on remote file system mounted at " << mount->path);
         mount->fs->mkdir(dirPath.c_str());
     }
 
@@ -598,7 +598,7 @@ void FileManager_impl::rmdir (const char* directoryName)
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
     }
 
-    LOG_TRACE(FileManager_impl, "Removing directory " << directoryName)
+    RH_TRACE(_fileMgrLog, "Removing directory " << directoryName)
 
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.
@@ -606,11 +606,11 @@ void FileManager_impl::rmdir (const char* directoryName)
 
     MountList::iterator mount = getMountForPath(directoryName);
     if (mount == mountedFileSystems.end()) {
-        LOG_TRACE(FileManager_impl, "Removing local directory");
+        RH_TRACE(_fileMgrLog, "Removing local directory");
         FileSystem_impl::rmdir(directoryName);
     } else {
         const std::string dirPath = mount->getRelativePath(directoryName);
-        LOG_TRACE(FileManager_impl, "Removing directory " << dirPath << " on remote file system mounted at " << mount->path);
+        RH_TRACE(_fileMgrLog, "Removing directory " << dirPath << " on remote file system mounted at " << mount->path);
         mount->fs->rmdir(dirPath.c_str());
     }
 
@@ -629,7 +629,7 @@ void FileManager_impl::query (CF::Properties& fileSysProperties)
     // but prevent changes to the mount table itself.
     boost::shared_lock<boost::shared_mutex> lock(mountsLock);
     if (fileSysProperties.length () == 0) {
-        LOG_TRACE(FileManager_impl, "Query all properties (SIZE, AVAILABLE_SPACE)");
+        RH_TRACE(_fileMgrLog, "Query all properties (SIZE, AVAILABLE_SPACE)");
         fileSysProperties.length(2);
         fileSysProperties[0].id = CORBA::string_dup("SIZE");
         CORBA::ULongLong size = getSize();

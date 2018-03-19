@@ -74,6 +74,8 @@ private:
     // Used for storing the current state of the OE & create process
     const ApplicationFactory_impl& _appFact;
 
+    const rh_logger::LoggerPtr _createHelperLog;
+
     // Local pointer to the allocation manager
     AllocationManager_impl* _allocationMgr;
  

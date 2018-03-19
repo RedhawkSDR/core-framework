@@ -77,7 +77,7 @@ namespace redhawk {
          * Creates a new empty cache. When this cache is destroyed, all loaded
          * profiles are deleted.
          */
-        ProfileCache(CF::FileSystem_ptr fileSystem);
+        ProfileCache(CF::FileSystem_ptr fileSystem, rh_logger::LoggerPtr log);
 
         /**
          * @brief  Loads an SPD file and its PRF and SCD, if available

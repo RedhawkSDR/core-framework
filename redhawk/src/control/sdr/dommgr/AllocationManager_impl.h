@@ -111,6 +111,10 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
 
         void restoreAllocations(ossie::AllocationTable& ref_allocations, std::map<std::string, CF::AllocationManager_var> &ref_remoteAllocations);
 
+        void setLogger(rh_logger::LoggerPtr logptr) {
+            _allocMgrLog = logptr;
+        };
+
     private:
         CF::AllocationManager::AllocationResponseSequence* allocateDevices(const CF::AllocationManager::AllocationRequestSequence &requests, ossie::DeviceList& devices, const std::string& domainName);
 
@@ -150,7 +154,8 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         ossie::AllocationTable _allocations;
         ossie::RemoteAllocationTable _remoteAllocations;
         void unfilledRequests(CF::AllocationManager::AllocationRequestSequence &requests, const CF::AllocationManager::AllocationResponseSequence &result);
-    
+        rh_logger::LoggerPtr _allocMgrLog;
+
     protected:
         boost::recursive_mutex allocationAccess;
         

@@ -249,6 +249,11 @@ namespace ossie
 
         bool exceptionsEnabled();
 
+        void setLogger(rh_logger::LoggerPtr logptr)
+        {
+            _connectionLog = logptr;
+        };
+
     protected:
         ConnectionManager(DomainLookup* domainLookup,
                           ComponentLookup* componentLookup,
@@ -259,6 +264,7 @@ namespace ossie
         ossie::ComponentLookup* _componentLookup;
         std::string _namingContext;
         bool _enableExceptions;
+        rh_logger::LoggerPtr _connectionLog;
     };
 
     class AppConnectionManager : public ConnectionManager

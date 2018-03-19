@@ -42,10 +42,10 @@ namespace {
     }
 }
 
-ProfileCache::ProfileCache(CF::FileSystem_ptr fileSystem) :
-    fileSystem(CF::FileSystem::_duplicate(fileSystem))
+ProfileCache::ProfileCache(CF::FileSystem_ptr fileSystem, rh_logger::LoggerPtr log) :
+    fileSystem(CF::FileSystem::_duplicate(fileSystem)),
+    _profilecache_log(log)
 {
-    _profilecache_log = rh_logger::Logger::getResourceLogger("ProfileCache");
 }
 
 const SoftPkg* ProfileCache::loadProfile(const std::string& spdFilename)
@@ -92,12 +92,12 @@ const SoftPkg* ProfileCache::loadSoftPkg(const std::string& filename)
     // Check the cache first
     BOOST_FOREACH(SoftPkg& softpkg, profiles) {
         if (softpkg.getSPDFile() == filename) {
-            LOG_TRACE(ProfileCache, "Found existing SPD " << filename);
+            RH_TRACE(_profilecache_log, "Found existing SPD " << filename);
             return &softpkg;
         }
     }
 
-    LOG_TRACE(ProfileCache, "Loading SPD file " << filename);
+    RH_TRACE(_profilecache_log, "Loading SPD file " << filename);
     SoftPkg* softpkg = 0;
     try {
         File_stream spd_stream(fileSystem, filename.c_str());

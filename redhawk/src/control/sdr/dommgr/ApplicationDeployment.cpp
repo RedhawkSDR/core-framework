@@ -102,13 +102,13 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     std::string component_id = instantiation->getID() + ":" + instanceName;
 
     if (softpkg->isScaCompliant() && !instantiation->isNamingService()) {
-        LOG_WARN(ApplicationDeployment, "Component instantiation "
+        RH_WARN(_appDeploymentLog, "Component instantiation "
                  << instantiation->getID() << " does not provide a 'findcomponent' name but "
                  << softpkg->getName() << " is SCA-compliant");
     }
 
     if  ( (instantiation->getID() == sad.getAssemblyControllerRefId() ) && ac ) {
-        LOG_TRACE(ApplicationDeployment, " Requesting AssemblyController "  << instantiation->getID() );
+        RH_TRACE(_appDeploymentLog, " Requesting AssemblyController "  << instantiation->getID() );
         return ac;
     }
 
@@ -133,7 +133,7 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
 {
     ContainerDeployment* container = getContainer(device->identifier);
     if (container) {
-        LOG_DEBUG(ApplicationDeployment, "Using existing container " << container->getIdentifier());
+        RH_DEBUG(_appDeploymentLog, "Using existing container " << container->getIdentifier());
         return container;
     }
 
@@ -146,7 +146,7 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
     instantiation->namingservicename = instantiation->instantiationId;
 
     // Use the same pattern as components to generate the unique runtime ID
-    LOG_DEBUG(ApplicationDeployment, "Creating component host " << instantiation->getID());
+    RH_DEBUG(_appDeploymentLog, "Creating component host " << instantiation->getID());
     std::string container_id = instantiation->getID() + ":" + instanceName;
 
     container = new ContainerDeployment(softpkg, instantiation, container_id);
@@ -211,12 +211,12 @@ void ApplicationDeployment::overrideAssemblyControllerProperties(ComponentDeploy
         const std::string propid = override.getId();
         if (propid == "LOGGING_CONFIG_URI") {
             if (deployment->getLoggingConfiguration().empty()) {
-                LOG_TRACE(ApplicationDeployment, "Adding LOGGING_CONFIG_URI as a command line parameter with value "
+                RH_TRACE(_appDeploymentLog, "Adding LOGGING_CONFIG_URI as a command line parameter with value "
                           << override.getValue().toString());
                 deployment->overrideProperty(propid, override.getValue());
             }
         } else {
-            LOG_TRACE(ApplicationDeployment, "Overriding property " << propid
+            RH_TRACE(_appDeploymentLog, "Overriding property " << propid
                       << " with " << override.getValue().toString());
             deployment->overrideProperty(propid, override.getValue());
         }
@@ -234,7 +234,7 @@ void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* depl
             }
             redhawk::PropertyMap::iterator override = initConfiguration.find(property_id);
             if (override != initConfiguration.end()) {
-                LOG_TRACE(ApplicationDeployment, "Overriding external property " << property_id
+                RH_TRACE(_appDeploymentLog, "Overriding external property " << property_id
                           << " (" << property.propid << ") = " << override->getValue().toString());
                 deployment->overrideProperty(property.propid, override->getValue());
             }
@@ -272,7 +272,7 @@ CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const s
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId)
 {
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Lookup device that loaded component " << componentId);
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Lookup device that loaded component " << componentId);
 
     ComponentDeployment* deployment = getComponentDeployment(componentId);
     if (!deployment) {
@@ -284,14 +284,14 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiati
         throw ossie::LookupError("component '" + componentId + "' is not assigned to a device");
     }
 
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id " << device->identifier);
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Assigned device id " << device->identifier);
     return CF::Device::_duplicate(device->device);
 }
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId(const std::string& componentId,
                                                                                  const std::string& usesId)
 {
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Lookup device used by component " << componentId);
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Lookup device used by component " << componentId);
 
     ComponentDeployment* deployment = getComponentDeployment(componentId);
     if (!deployment) {
@@ -304,14 +304,14 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId
     }
 
     CF::Device_var device = uses->getAssignedDevice();
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id "
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Assigned device id "
               << ossie::corba::returnString(device->identifier()));
     return device._retn();
 }
 
 CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::string& usesRefId)
 {
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Lookup device used by application, Uses Id: " << usesRefId);
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Lookup device used by application, Uses Id: " << usesRefId);
 
     UsesDeviceAssignment* uses = getUsesDeviceAssignment(usesRefId);
     if (!uses) {
@@ -319,7 +319,7 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByApplication(const std::s
     }
 
     CF::Device_var device = uses->getAssignedDevice();
-    LOG_TRACE(ApplicationDeployment, "[DeviceLookup] Assigned device id "
+    RH_TRACE(_appDeploymentLog, "[DeviceLookup] Assigned device id "
               << ossie::corba::returnString(device->identifier()));
     return device._retn();
 }
