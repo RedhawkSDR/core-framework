@@ -203,7 +203,6 @@ namespace redhawk {
          * @return  New bitbuffer with requested bits.
          * @throw std::out_of_range      If @p start > size().
          * @throw std::invalid_argument  If @p end < @p start.
-         * @throw std::length_error      If @p dest is not large enough.
          * @see bitbuffer::takeskip
          *
          * Alternately copies @a take bits and skips @a skip bits from the
@@ -252,7 +251,7 @@ namespace redhawk {
          * @param start  Starting bit index.
          * @param pattern  Bit pattern to search for.
          * @param maxDistance  Maximum allowable Hamming distance.
-         * @return  Bit index of first occurence of @p pattern.
+         * @return  Bit index of first occurrence of @p pattern.
          *
          * Starting from @a start, searches forward for a position at which the
          * Hamming distance between this bit buffer and @a pattern is less than
