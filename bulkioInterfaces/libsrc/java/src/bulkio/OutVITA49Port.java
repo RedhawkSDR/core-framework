@@ -43,7 +43,6 @@ import BULKIO.dataVITA49Operations;
 import BULKIO.VITA49StreamDefinition;
 
 import bulkio.linkStatistics;
-import bulkio.Int8Size;
 import bulkio.connection_descriptor_struct;
 import bulkio.SriMapStruct;
 import bulkio.vita49.VITA49StreamContainer;

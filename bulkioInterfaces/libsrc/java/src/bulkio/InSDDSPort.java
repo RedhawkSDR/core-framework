@@ -44,7 +44,6 @@ import BULKIO.dataSDDSPackage.StreamInputError;
 import bulkio.sriState;
 import bulkio.linkStatistics;
 import bulkio.DataTransfer;
-import bulkio.Int16Size;
 
 import org.ossie.component.PortBase;
 

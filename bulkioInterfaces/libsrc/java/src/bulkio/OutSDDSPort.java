@@ -43,7 +43,6 @@ import BULKIO.dataSDDSOperations;
 import BULKIO.SDDSStreamDefinition;
 
 import bulkio.linkStatistics;
-import bulkio.Int8Size;
 import bulkio.connection_descriptor_struct;
 import bulkio.SriMapStruct;
 import bulkio.sdds.SDDSStreamContainer;
