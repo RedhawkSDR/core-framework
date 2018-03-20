@@ -1,4 +1,4 @@
 s/@name@/Float/g
 s/@type@/float/g
 s/@idl@/dataFloat/g
-s/@size@/4/g
+s/@size@/32/g

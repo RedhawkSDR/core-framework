@@ -27,7 +27,7 @@ import java.util.Arrays;
 
 class @name@DataHelper implements DataHelper<@type@[]> {
     public int bitSize() {
-        return @size@ * 8;
+        return @size@;
     }
 
     public int arraySize(@type@[] data) {
