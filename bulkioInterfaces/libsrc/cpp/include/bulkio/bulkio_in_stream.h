@@ -303,8 +303,8 @@ namespace bulkio {
      * relationship between the read size and consume size.
      * @par
      * When the consume length is zero, the read operation becomes a peek. It
-     * returns the data folloing the normal rules but no data is consumed, even
-     * in the case of SRI change, input queue flush, or end-of-stream.
+     * returns data following the normal rules but no data is consumed, even in
+     * the case of SRI change, input queue flush, or end-of-stream.
      *
      * @par  Non-Blocking Reads
      * For each @a read method, there is a corresponsing @a tryread method that
@@ -360,7 +360,7 @@ namespace bulkio {
 
         /**
          * @brief  Reads a specified number of samples.
-         * @param count  Number of samples to read
+         * @param count  Number of samples to read.
          * @returns  Data block containing up to @p count samples if
          *           successful.
          * @returns  Null data block if the read failed.

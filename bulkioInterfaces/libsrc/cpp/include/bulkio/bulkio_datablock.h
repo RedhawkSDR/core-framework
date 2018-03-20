@@ -130,7 +130,7 @@ namespace bulkio {
          *
          * Create a null block. This block has no data nor metadata associated
          * with it. No methods may be called on a null %DataBlock except for
-         * boolean checks, which will always indicate the the block is not
+         * boolean checks, which will always indicate that the block is not
          * valid, and operator==, which returns true if and only if the other
          * %DataBlock is also null.
          *
@@ -468,7 +468,7 @@ namespace bulkio {
          *
          * Create a null block. This block has no data nor metadata associated
          * with it. No methods may be called on a null %SampleDataBlock except
-         * for boolean checks, which will always indicate the the block is not
+         * for boolean checks, which will always indicate that the block is not
          * valid, and operator==, which returns true if and only if the other
          * %DataBlock is also null.
          *
@@ -569,7 +569,7 @@ namespace bulkio {
          * @pre  Block is valid.
          * @see  cxbuffer() const
          *
-         * Inteprets the internal buffer as real samples. The underlying data
+         * Interprets the internal buffer as real samples. The underlying data
          * may be shared with multiple consumers.
          *
          * To interpret the data as complex samples, use cxbuffer() const.
@@ -582,7 +582,7 @@ namespace bulkio {
          * @pre  Block is valid.
          * @see  buffer() const
          *
-         * Inteprets the internal buffer as complex samples. The underlying
+         * Interprets the internal buffer as complex samples. The underlying
          * data may be shared with multiple consumers.
          *
          * To interpret the data as real samples, use buffer() const.
