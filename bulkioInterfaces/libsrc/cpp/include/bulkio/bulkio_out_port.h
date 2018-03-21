@@ -199,9 +199,19 @@ namespace bulkio {
     //
     virtual BULKIO::PortUsageType state();
 
+    /**
+     * @brief  Gets the current set of active streams.
+     * @returns  List of streams.
+     */
     typedef std::list<StreamType> StreamList;
     StreamList getStreams();
 
+    /**
+     * @brief  Get the active stream with the given stream ID.
+     * @param streamID  Stream identifier.
+     * @returns  Output stream for @p streamID if it exists.
+     * @returns  Null output stream if no such stream ID exists.
+     */
     StreamType getStream(const std::string& streamID);
 
     /**
