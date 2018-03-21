@@ -727,18 +727,7 @@ namespace bulkio {
     };
 
 
-    class OutBitStream : public BufferedOutputStream<BULKIO::dataBit> {
-    public:
-        OutBitStream();
-
-    private:
-        typedef BufferedOutputStream<BULKIO::dataBit> Base;
-
-        friend class OutPort<BULKIO::dataBit>;
-        typedef OutPort<BULKIO::dataBit> OutPortType;
-        OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port);
-    };
-
+    typedef BufferedOutputStream<BULKIO::dataBit>      OutBitStream;
     typedef NumericOutputStream<BULKIO::dataChar>      OutCharStream;
     typedef NumericOutputStream<BULKIO::dataOctet>     OutOctetStream;
     typedef NumericOutputStream<BULKIO::dataShort>     OutShortStream;

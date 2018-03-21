@@ -564,21 +564,6 @@ inline void NumericOutputStream<PortType>::_writeMultiple(const redhawk::shared_
 }
 
 //
-// Bit
-//
-using bulkio::OutBitStream;
-
-OutBitStream::OutBitStream() :
-    Base()
-{
-}
-
-OutBitStream::OutBitStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
-    Base(sri, port)
-{
-}
-
-//
 // XML
 //
 using bulkio::OutXMLStream;
