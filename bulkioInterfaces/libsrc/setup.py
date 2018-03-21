@@ -23,18 +23,11 @@
 from distutils.core import setup
 import os
 
-packages = ['bulkio' ]
-
-# Allow the version to be replaced by the ant build script; but, if nothing
-# replaces it (i.e. a developer does a command-line build), use 1.X.X
-version='__VERSION__'
-if version.find('__') == 0:
-    version = '2.1.3'
-
 setup(
-        name='bulkio',
-        version=version,
-        description='Python Classes for REDHAWK BULKIO Interfaces',
-        packages=packages,
-        package_dir = { '' : 'python' }
+    name='bulkio',
+    version='2.1.3',
+    description='Python Classes for REDHAWK BULKIO Interfaces',
+    packages=['bulkio',
+              'bulkio.sandbox'],
+    package_dir = { '' : 'python' }
     )
