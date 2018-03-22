@@ -376,6 +376,12 @@ namespace bulkio {
      * packets worth of data into a single push.  By default, buffering is
      * disabled.
      *
+     * @warning  Do not declare instances of this template class directly in
+     *           user code; the template parameter and class name are not
+     *           considered API. Use the type-specific @c typedef instead, such
+     *           as bulkio::OutFloatStream, or the nested @c typedef StreamType
+     *           from an %OutPort.
+     *
      * @par  Data Buffering
      *
      * BufferedOutputStreams can combine multiple small chunks of data into a
@@ -456,12 +462,22 @@ namespace bulkio {
 
         /**
          * @brief  Writes data to the stream.
-         * @param data  The data write.
-         * @param time  The timestamp of the first sample.
+         * @param data  The data to write.
+         * @param time  Time stamp of first element.
+         *
+         * If buffering is disabled, @a data is sent as a single packet with
+         * the given time stamp.
+         *
+         * When buffering is enabled, @a data is copied into the internal
+         * buffer. If the internal buffer exceeds the configured buffer size,
+         * one or more packets will be sent.
+         *
+         * If there are any pending SRI changes, the new SRI is pushed first.
          */
         void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time);
 
     protected:
+        /// @cond IMPL
         typedef OutputStream<PortType> Base;
 
         friend class OutPort<PortType>;
@@ -471,9 +487,23 @@ namespace bulkio {
         class Impl;
         Impl& impl();
         const Impl& impl() const;
+        /// @endcond
     };
 
 
+    /**
+     * @brief BulkIO output stream class for numeric data types.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     *
+     * %NumericOutputStream provides overloaded write methods for both real and
+     * complex sample data.
+     *
+     * @warning  Do not declare instances of this template class directly in
+     *           user code; the template parameter and class name are not
+     *           considered API. Use the type-specific @c typedef instead, such
+     *           as bulkio::OutFloatStream, or the nested @c typedef StreamType
+     *           from an %OutPort.
+     */
     template <class PortType>
     class NumericOutputStream : public BufferedOutputStream<PortType> {
     public:
@@ -487,6 +517,19 @@ namespace bulkio {
         /// @brief  The shared_buffer type for complex data.
         typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
        
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %NumericOutputStream. This stream is not associated
+         * with a stream from any output port. No methods may be called on the
+         * the %NumericOutputStream except for boolean tests and comparison. A
+         * null stream will always test as not valid, and will compare equal to
+         * another stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
         NumericOutputStream();
 
         /*
@@ -687,13 +730,32 @@ namespace bulkio {
     };
 
 
+    /**
+     * @brief BulkIO XML output stream class.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     */
     class OutXMLStream : public OutputStream<BULKIO::dataXML> {
     public:
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %OutXMLStream. This stream is not associated with a
+         * stream from any output port. No methods may be called on the the
+         * %OutXMLStream except for boolean tests and comparison. A null stream
+         * will always test as not valid, and will compare equal to another
+         * stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
         OutXMLStream();
 
         /**
-         * @brief  Write XML data to the stream.
-         * @param xmlString  The XML string to write.
+         * @brief  Writes XML data to the stream.
+         * @param xmlString  An XML string.
+         *
+         * The XML string @a data is sent as a single packet.
          */
         void write(const std::string& xmlString);
 
@@ -708,22 +770,44 @@ namespace bulkio {
     };
 
 
+    /**
+     * @brief BulkIO file output stream class.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     */
     class OutFileStream : public OutputStream<BULKIO::dataFile> {
     public:
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %OutFileStream. This stream is not associated with a
+         * stream from any output port. No methods may be called on the the
+         * %OutFileStream except for boolean tests and comparison. A null
+         * stream will always test as not valid, and will compare equal to
+         * another stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
         OutFileStream();
 
         /**
-         * @brief  Write a file URI to the stream.
-         * @param data  The file URI to write.
+         * @brief  Writes a file URI to the stream.
+         * @param URL  The file URI to write.
+         * @param time  Time stamp of file data.
+         *
+         * The URI is sent as a single packet with the given time stamp.
          */
         void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
 
     private:
+        /// @cond IMPL
         typedef OutputStream<BULKIO::dataFile> Base;
 
         friend class OutPort<BULKIO::dataFile>;
         typedef OutPort<BULKIO::dataFile> OutPortType;
         OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+        /// @endcond
     };
 
 

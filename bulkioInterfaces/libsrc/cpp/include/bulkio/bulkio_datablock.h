@@ -86,8 +86,8 @@ namespace bulkio {
      * @headerfile  bulkio_datablock.h <bulkio/bulkio_datablock.h>
      *
      * %DataBlock is a smart pointer-based class that encapsulates the result
-     * of a read operation on an input stream. It includes both sample data,
-     * which may be real or complex, and metadata, which includes signal-
+     * of a read operation on an input stream. It contains both data, which
+     * varies with the input stream type, and metadata, including signal-
      * related information (SRI).
      *
      * @warning  Do not declare instances of this template class directly in user
