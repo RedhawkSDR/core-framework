@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import CF.DataType;
-import org.ossie.component.PortBase;
 
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
@@ -41,7 +40,7 @@ import BULKIO.StreamSRI;
 /**
  * 
  */
-public class InPortImpl<A> {
+class InPortImpl<A> {
 
     /**
      * 

@@ -27,7 +27,7 @@ import BULKIO.dataBitOperations;
 /**
  * BulkIO output port implementation for dataBit.
  */
-public class OutBitPort extends OutStreamPort<dataBitOperations,BULKIO.BitSequence> {
+public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequence> {
 
     public OutBitPort(String portName) {
         this(portName, null, null);

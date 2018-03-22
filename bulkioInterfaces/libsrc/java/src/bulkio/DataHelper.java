@@ -19,7 +19,7 @@
  */
 package bulkio;
 
-public interface DataHelper<E> {
+interface DataHelper<E> {
     int bitSize();
     E emptyArray();
     int arraySize(E data);

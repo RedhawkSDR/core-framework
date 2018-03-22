@@ -23,7 +23,11 @@ import org.apache.log4j.Logger;
 
 import BULKIO.PrecisionUTCTime;
 
-public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> extends OutDataPort<E,A> {
+/**
+ * Adds chunking of pushes to fit within the maximum CORBA transfer size for
+ * BulkIO data types that support it.
+ */
+abstract class ChunkingOutPort<E extends BULKIO.updateSRIOperations,A> extends OutDataPort<E,A> {
     /**
      * CORBA transfer limit in bytes
      */
@@ -35,7 +39,7 @@ public abstract class OutStreamPort<E extends BULKIO.updateSRIOperations,A> exte
      */
     protected int maxSamplesPerPush;
 
-    protected OutStreamPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
+    protected ChunkingOutPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
         super(portName, logger, connectionListener, helper);
         this.maxSamplesPerPush = (8 * MAX_PAYLOAD_SIZE) / helper.bitSize();
     }

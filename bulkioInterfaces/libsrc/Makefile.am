@@ -127,6 +127,7 @@ JAVA_SRCDIR := $(JAVA_DIR)/src
 JAVA_SRCS := Const.java \
 DataHelper.java \
 DataTransfer.java \
+ChunkingOutPort.java \
 InBitPort.java \
 InFilePort.java \
 InSDDSPort.java \
@@ -140,7 +141,6 @@ OutDataPort.java \
 OutFilePort.java \
 OutPortBase.java \
 OutSDDSPort.java \
-OutStreamPort.java \
 OutVITA49Port.java \
 OutXMLPort.java \
 connection_descriptor_struct.java \

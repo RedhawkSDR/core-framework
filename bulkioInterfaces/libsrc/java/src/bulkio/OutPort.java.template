@@ -31,7 +31,7 @@ import BULKIO.@idl@Operations;
 /**
  * BulkIO output port implementation for @idl@.
  */
-public class Out@name@Port extends OutStreamPort<@idl@Operations,@type@[]> {
+public class Out@name@Port extends ChunkingOutPort<@idl@Operations,@type@[]> {
 
     public Out@name@Port(String portName) {
         this(portName, null, null);

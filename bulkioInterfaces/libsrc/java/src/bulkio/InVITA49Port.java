@@ -19,18 +19,14 @@
  */
 package bulkio;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
-import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
+
 import org.apache.log4j.Logger;
-import CF.DataType;
-import java.util.ArrayDeque;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+
+import org.ossie.component.PortBase;
+
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 import BULKIO.PortStatistics;
@@ -41,16 +37,10 @@ import BULKIO.dataVITA49Package.DetachError;
 import BULKIO.dataVITA49Package.InputUsageState;
 import BULKIO.dataVITA49Package.StreamInputError;
 
-import bulkio.sriState;
-import bulkio.linkStatistics;
-import bulkio.DataTransfer;
-
-import org.ossie.component.PortBase;
-
 /**
  * @generated
  */
-public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.component.PortBase {
+public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements PortBase {
 
     public interface Callback  {
 
