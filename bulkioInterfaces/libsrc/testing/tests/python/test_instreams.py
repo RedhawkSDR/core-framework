@@ -74,7 +74,7 @@ class InStreamTest(object):
         self.failIf(not stream)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         self.failIf(stream.eos())
 
         # Push an end-of-stream packet with no data and get the stream again
@@ -103,7 +103,7 @@ class InStreamTest(object):
         self.failIf(not stream)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         self.failIf(stream.eos())
 
         # Push an end-of-stream packet with data and get the stream again
@@ -112,7 +112,7 @@ class InStreamTest(object):
         self.failIf(not stream)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
 
         # Try to get the current stream again since the end-of-stream has not been
         # checked yet, it should return the existing stream (as with above)
@@ -144,7 +144,7 @@ class InStreamTest(object):
         self.failIf(not stream)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         self.failIf(stream.eos())
         self.assertEqual(sri.xdelta, block.xdelta)
 
@@ -154,7 +154,7 @@ class InStreamTest(object):
         self._pushTestPacket(1024, bulkio.timestamp.now(), False, sri.streamID)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         self.failIf(stream.eos())
         self.failUnless(block.sriChanged)
         flags = bulkio.sri.XDELTA
@@ -169,7 +169,7 @@ class InStreamTest(object):
         self._pushTestPacket(1024, bulkio.timestamp.now(), False, sri.streamID)
         block = stream.read()
         self.failIf(not block)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         self.failIf(stream.eos())
         self.failUnless(block.sriChanged)
         flags = bulkio.sri.XSTART | bulkio.sri.XDELTA | bulkio.sri.KEYWORDS
@@ -259,9 +259,9 @@ class BufferedInStreamTest(InStreamTest):
         stream = self.port.getStream(stream_id)
         self.failIf(not stream)
         block = stream.tryread(10000, 0)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         block = stream.read(10000)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         block = stream.read(10000)
         self.failUnless(not block)
         self.failUnless(stream.eos())
@@ -278,9 +278,9 @@ class BufferedInStreamTest(InStreamTest):
         stream = self.port.getStream(stream_id)
         self.failIf(not stream)
         block = stream.read(10000, 0)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         block = stream.read(10000)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         block = stream.read(10000)
         self.failUnless(not block)
         self.failUnless(stream.eos())
@@ -297,7 +297,7 @@ class BufferedInStreamTest(InStreamTest):
         stream = self.port.getStream(stream_id)
         self.failIf(not stream)
         block = stream.read(10000, 2000)
-        self.assertEqual(1024, block.size)
+        self.assertEqual(1024, len(block.buffer))
         block = stream.read(10000)
         self.failUnless(not block)
 
@@ -315,13 +315,13 @@ class BufferedInStreamTest(InStreamTest):
         # second packet
         block = stream.read(150)
         self.failIf(not block)
-        self.assertEqual(150, block.size)
+        self.assertEqual(150, len(block.buffer))
 
         # Read a block that spans the remainder of the prior packet, an entire
         # middle packet, and part of the next
         block = stream.read(200)
         self.failIf(not block)
-        self.assertEqual(200, block.size)
+        self.assertEqual(200, len(block.buffer))
 
     def testReadSubPacket(self):
         sri = bulkio.sri.create('sub_packet')
@@ -335,17 +335,17 @@ class BufferedInStreamTest(InStreamTest):
         # Read half
         block = stream.read(200)
         self.failIf(not block)
-        self.assertEqual(200, block.size)
+        self.assertEqual(200, len(block.buffer))
 
         # Read a smaller packet
         block = stream.read(100)
         self.failIf(not block)
-        self.assertEqual(100, block.size)
+        self.assertEqual(100, len(block.buffer))
 
         # Read the remainder of the packet
         block = stream.tryread()
         self.failIf(not block)
-        self.assertEqual(100, block.size)
+        self.assertEqual(100, len(block.buffer))
 
     def testReadTimestamps(self):
         # Create a new stream and push several packets with known timestamps
@@ -367,7 +367,7 @@ class BufferedInStreamTest(InStreamTest):
         self.failIf(not stream)
         block = stream.read(70)
         self.failIf(not block)
-        self.assertEqual(70, block.size)
+        self.assertEqual(70, len(block.buffer))
 
         # There should be 3 timestamps, all non-synthetic
         timestamps = block.getTimestamps()
@@ -387,7 +387,7 @@ class BufferedInStreamTest(InStreamTest):
         # synthetic
         block = stream.read(58)
         self.failIf(not block)
-        self.assertEqual(58, block.size)
+        self.assertEqual(58, len(block.buffer))
         timestamps = block.getTimestamps()
         self.assertEqual(2, len(timestamps))
         self.assertEqual(True, timestamps[0].synthetic, "First timestamp should by synthesized")

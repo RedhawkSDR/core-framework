@@ -123,7 +123,7 @@ class StringStreamContainer(StreamContainer):
         return 1
 
     def _getBlockData(self, block):
-        return [block.data]
+        return [block.buffer]
 
 class BitStreamContainer(StreamContainer):
     def __init__(self, sri):
@@ -133,10 +133,10 @@ class BitStreamContainer(StreamContainer):
         return bitbuffer()
 
     def _getBlockSize(self, block):
-        return block.size
+        return len(block.buffer)
 
     def _getBlockData(self, block):
-        return block.data
+        return block.buffer
 
 class StreamSink(SandboxHelper):
     def __init__(self, format=None):

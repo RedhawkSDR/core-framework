@@ -75,25 +75,33 @@ class DataBlock(object):
     Container for sample data and stream metadata read from an input stream.
 
     DataBlock encapsulates the result of a read operation on an input stream.
-    It includes both sample data, which may be real or complex, and metadata,
-    which includes signal-related information (SRI).
+    It contains both data, which varies with the input stream type, and
+    metadata, including signal-related information (SRI).
 
     While it is possible to create DataBlocks in user code, they are usually
     obtained by reading from an input stream.
 
-    Attributes:
-        sri:  Stream metadata at the time the block was read.
+    See Also:
+        InputStream.read()
+        InputStream.tryread()
     """
-    __slots__ = ('sri', '_data', '_sriChangeFlags', '_inputQueueFlushed', '_timestamps')
+    __slots__ = ('_sri', '_data', '_sriChangeFlags', '_inputQueueFlushed', '_timestamps')
     def __init__(self, sri, data, sriChangeFlags, inputQueueFlushed):
-        self.sri = sri
+        self._sri = sri
         self._data = data
         self._timestamps = []
         self._sriChangeFlags = sriChangeFlags
         self._inputQueueFlushed = inputQueueFlushed
 
     @property
-    def data(self):
+    def sri(self):
+        """
+        BULKIO.StreamSRI: Stream metadata at the time the block was read.
+        """
+        return self._sri
+
+    @property
+    def buffer(self):
         """
         The data read from the stream.
 
@@ -147,13 +155,6 @@ class DataBlock(object):
         The HVERSION and STREAMID flags are not set in normal operation.
         """
         return self._sriChangeFlags
-
-    @property
-    def size(self):
-        """
-        int: The length of the data sequence.
-        """
-        return len(self.data)
 
     @property
     def inputQueueFlushed(self):
