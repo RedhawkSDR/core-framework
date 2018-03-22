@@ -116,18 +116,6 @@ DataBlock<T> DataBlock<T>::copy() const
     return result;
 }
 
-namespace bulkio {
-    template <>
-    DataBlock<redhawk::shared_buffer<float> > DataBlock<redhawk::shared_buffer<float> >::copy() const
-    {
-        DataBlock result;
-        if (_impl) {
-            result._impl = boost::make_shared<Impl>(*_impl);
-        }
-        return result;
-    }
-}
-
 template <class T>
 const BULKIO::StreamSRI& DataBlock<T>::sri() const
 {
