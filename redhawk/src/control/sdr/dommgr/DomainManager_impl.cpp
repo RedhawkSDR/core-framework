@@ -75,7 +75,7 @@ rh_logger::LoggerPtr DomainManager_impl::__logger;
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
 					const char *db_uri,
-					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain, bool _persistence) :
+					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain, bool _persistence, int initialLogLevel) :
   Logging_impl("DomainManager"),
   _eventChannelMgr(NULL),
   _domainName(domainName),
@@ -83,16 +83,18 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _connectionManager(this, this, domainName),
   _useLogConfigUriResolver(useLogCfgResolver),
   _strict_spd_validation(false),
+  _initialLogLevel(initialLogLevel),
   _bindToDomain(bindToDomain)
 {
-    __logger = rh_logger::Logger::getResourceLogger("DomainManager_impl");
 
     std::string std_logconfig_uri;
     if (_logconfig_uri) {
         std_logconfig_uri = _logconfig_uri;
     }
     std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
-    this->_baseLog->configureLogger(expanded_config);
+    this->_baseLog->configureLogger(expanded_config, true);
+
+    redhawk::setupParserLoggers(this->_baseLog);
 
     RH_TRACE(this->_baseLog, "Looking for DomainManager POA");
     _connectionManager.setLogger(this->_baseLog->getChildLogger("ConnectionManager", ""));
@@ -102,7 +104,9 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     logging_config_prop = (StringProperty*)addProperty(logging_config_uri, "LOGGING_CONFIG_URI", "LOGGING_CONFIG_URI",
                                                        "readonly", "", "external", "configure");
 
-    logging_config_prop->setValue(expanded_config);
+    if (_logconfig_uri) {
+        logging_config_prop->setValue(_logconfig_uri);
+    }
 
     addProperty(componentBindingTimeout, 60, "COMPONENT_BINDING_TIMEOUT", "component_binding_timeout",
                 "readwrite", "seconds", "external", "configure");
@@ -147,6 +151,8 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
 
     ossie::proputilsLog = _baseLog->getChildLogger("proputils","");
     fileLog = _baseLog->getChildLogger("File","");
+    redhawk::deploymentLog = _baseLog->getChildLogger("Deployment","");
+    ossie::connectionSupportLog = _baseLog->getChildLogger("ConnectionSupport","");
 
     // Likewise, create the domain-level connection manager
     _connectionMgr = new ConnectionManager_impl(this);
@@ -192,6 +198,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
       _eventChannelMgr = new EventChannelManager(this, true, true, true);
       std::string id = _domainName + "/EventChannelManager";
       oid = ossie::corba::activatePersistentObject(poa, _eventChannelMgr, id );
+      _allocationMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
       _eventChannelMgr->_remove_ref();
       RH_DEBUG(this->_baseLog, "Started EventChannelManager for the domain.");
       // setup IDM and ODM Channels for this domain
@@ -209,6 +216,15 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     appFact_poa = poa->find_POA("ApplicationFactories", 1);
 
     RH_TRACE(this->_baseLog, "Done instantiating Domain Manager")
+}
+
+CF::LogLevel DomainManager_impl::log_level() {
+    int _level = this->_baseLog->getLevel()->toInt();
+    if (_level == rh_logger::Level::OFF_INT)
+        _level = CF::LogLevels::OFF;
+    else if (_level == rh_logger::Level::ALL_INT)
+        _level = CF::LogLevels::ALL;
+    return _level;
 }
 
 void DomainManager_impl::parseDMDProfile()
@@ -633,7 +649,7 @@ void DomainManager_impl::shutdownAllDeviceManagers()
 
 void DomainManager_impl::shutdown (int signal)
 {
-    RH_NL_DEBUG("DomainManager", "Shutdown: signal=" << signal);
+    RH_DEBUG(this->_baseLog, "Shutdown: signal=" << signal);
 
     if (!ossie::corba::isPersistenceEnabled() || (ossie::corba::isPersistenceEnabled()and (signal == SIGINT)) ) {
         releaseAllApplications();

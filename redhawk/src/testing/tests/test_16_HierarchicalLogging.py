@@ -665,6 +665,27 @@ class CppDeviceHierarchicalDomainLogging(scatest.CorbaTestCase):
         except:
             pass
 
+    def test_domMgr_log_level(self):
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        current_level = self._rhDom._get_log_level()
+        self.assertNotEqual(current_level, 5000)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.AllocationManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.ConnectionManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.File'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.FileManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.proputils'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.EventChannelManager'),current_level)
+        self._rhDom._set_log_level(5000)
+        current_level = self._rhDom._get_log_level()
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.AllocationManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.ConnectionManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.File'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.FileManager'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.proputils'),current_level)
+        self.assertEquals(self._rhDom.getLogLevel('DomainManager.EventChannelManager'),current_level)
+
     def test_devMgr_cpp_access(self):
         self.cname = "log_test_cpp"
         self.devMgrAccess("/nodes/log_test_cpp_node/DeviceManager.dcd.xml")

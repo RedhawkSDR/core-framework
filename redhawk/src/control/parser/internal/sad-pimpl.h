@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_SAD_PIMPL_H
 
 #include "sad-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace sad
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class softwareassembly_pimpl: public softwareassembly_pskel
   {
     public:

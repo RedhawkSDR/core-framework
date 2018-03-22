@@ -120,6 +120,10 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::ServiceUnavailable );    
 
   /*
+        void setLogger(rh_logger::LoggerPtr logptr) {
+            _allocMgrLog = logptr;
+        };
+
      Force the removal of the event channel from the Domain
   */
   void forceRelease( const char *channel_name  ) 
@@ -246,11 +250,16 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   void setPubProxies(PubProxyMap &_inval) { _pubProxies = _inval;};
   void setChannelRegistrations(ChannelRegistrationTable &_inval) { _channels = _inval; };
 
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _eventChannelMgrLog = logptr;
+    };
+
   private:
 
   // type definitions
   typedef  std::pair< std::string, std::string >  RegRecord;
   typedef ChannelRegistration*                              ChannelRegistrationPtr;
+  rh_logger::LoggerPtr _eventChannelMgrLog;
 
   // event channel manager state
   SubProxyMap _subProxies;

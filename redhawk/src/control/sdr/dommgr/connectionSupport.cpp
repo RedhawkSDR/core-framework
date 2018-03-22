@@ -486,6 +486,8 @@ EXPORT_CLASS_SERIALIZATION(PortEndpoint);
 PREPARE_CF_LOGGING(Endpoint);
 PREPARE_CF_LOGGING(PortEndpoint);
 
+rh_logger::LoggerPtr ossie::connectionSupportLog;
+
 Endpoint* Endpoint::ParsePortSupplier(const Port* port)
 {
     if (port->isFindBy()) {
@@ -493,21 +495,21 @@ Endpoint* Endpoint::ParsePortSupplier(const Port* port)
     } else if (port->isComponentInstantiationRef()) {
         assert(port->getComponentInstantiationRefID() != 0);
         std::string identifier = port->getComponentInstantiationRefID();
-        LOG_TRACE(Endpoint, "ComponentEndpoint refid=" << identifier);
+        RH_TRACE(connectionSupportLog, "ComponentEndpoint refid=" << identifier);
         return new ComponentEndpoint(identifier);
     } else if (port->isDeviceThatLoadedThisComponentRef()) {
         return new DeviceLoadedEndpoint(port->getDeviceThatLoadedThisComponentRef());
     } else if (port->isDeviceUsedByThisComponentRef()) {
         std::string refid = port->getDeviceUsedByThisComponentRefID();
         std::string usesrefid = port->getDeviceUsedByThisComponentRefUsesRefID();
-        LOG_TRACE(Endpoint, "DeviceUsedEndpoint refid=" << refid << " usesrefid=" << usesrefid);
+        RH_TRACE(connectionSupportLog, "DeviceUsedEndpoint refid=" << refid << " usesrefid=" << usesrefid);
         return new DeviceUsedEndpoint(refid, usesrefid);
     } else if (port->isDeviceUsedByApplication()) {
         std::string usesrefid = port->getDeviceUsedByApplicationUsesRefID();
-        LOG_TRACE(Endpoint, "ApplicationDeviceUsedEndpoint usesrefid=" << usesrefid);
+        RH_TRACE(connectionSupportLog, "ApplicationDeviceUsedEndpoint usesrefid=" << usesrefid);
         return new ApplicationUsesDeviceEndpoint(usesrefid);
     } else {
-        LOG_ERROR(Endpoint, "Unknown port location type");
+        RH_ERROR(connectionSupportLog, "Unknown port location type");
     }
 
     return 0;
@@ -524,7 +526,7 @@ Endpoint* Endpoint::ParseProvidesEndpoint(const Connection& connection)
     } else if (connection.isComponentSupportedInterface()) {
         return Endpoint::ParsePortSupplier(connection.getComponentSupportedInterface());
     } else {
-        LOG_ERROR(Endpoint, "Cannot find port information for provides port");
+        RH_ERROR(connectionSupportLog, "Cannot find port information for provides port");
     }
 
     return 0;
@@ -536,7 +538,7 @@ Endpoint* Endpoint::ParsePort(const Port* port)
     if (supplier) {
         assert(port->getID() != 0);
         std::string name = port->getID();
-        LOG_TRACE(Endpoint, "PortEndpoint name=" << name);
+        RH_TRACE(connectionSupportLog, "PortEndpoint name=" << name);
         return new PortEndpoint(supplier, name);
     }
     return 0;
@@ -547,7 +549,7 @@ Endpoint* Endpoint::ParseFindBy(const FindBy* findby)
     if (findby->isFindByNamingService()) {
         assert(findby->getFindByNamingServiceName() != 0);
         std::string name = findby->getFindByNamingServiceName();
-        LOG_TRACE(Endpoint, "FindByNamingServiceEndpoint name=" << name);
+        RH_TRACE(connectionSupportLog, "FindByNamingServiceEndpoint name=" << name);
         return new FindByNamingServiceEndpoint(name);
     } else if (findby->isFindByDomainFinder()) {
         assert(findby->getFindByDomainFinderType() != 0);
@@ -555,16 +557,16 @@ Endpoint* Endpoint::ParseFindBy(const FindBy* findby)
         std::string type = findby->getFindByDomainFinderType();
         std::string name = findby->getFindByDomainFinderName();
         if (type == "servicename") {
-            LOG_TRACE(Endpoint, "ServiceEndpoint name=" << name);
+            RH_TRACE(connectionSupportLog, "ServiceEndpoint name=" << name);
             return new ServiceEndpoint(name);
         } else if (type == "eventchannel") {
-            LOG_TRACE(Endpoint, "EventChannelEndpoint name=" << name);
+            RH_TRACE(connectionSupportLog, "EventChannelEndpoint name=" << name);
             return new EventChannelEndpoint(name);
         }
-        LOG_TRACE(Endpoint, "FindByDomainFinderEndpoint type=" << type << " name=" << name);
+        RH_TRACE(connectionSupportLog, "FindByDomainFinderEndpoint type=" << type << " name=" << name);
         return new FindByDomainFinderEndpoint(type, name);
     } else {
-        LOG_ERROR(Endpoint, "Unknown findby type");
+        RH_ERROR(connectionSupportLog, "Unknown findby type");
     }
     return 0;
 }
@@ -594,7 +596,7 @@ bool Endpoint::isTerminated() const
 CORBA::Object_ptr Endpoint::resolve(ConnectionManager& manager)
 {
     if (!isResolved()) {
-        LOG_TRACE(Endpoint, "Resolving endpoint");
+        RH_TRACE(connectionSupportLog, "Resolving endpoint");
         object_ = resolve_(manager);
     }
     return CORBA::Object::_duplicate(object_);
@@ -636,14 +638,14 @@ ConnectionNode* ConnectionNode::ParseConnection(const Connection& connection)
     // Parse the uses port.
     std::auto_ptr<Endpoint> usesEndpoint(Endpoint::ParsePort(connection.getUsesPort()));
     if (!usesEndpoint.get()) {
-        LOG_ERROR(ConnectionNode, "Unable to parse uses endpoint");
+        RH_ERROR(connectionSupportLog, "Unable to parse uses endpoint");
         return 0;
     }
 
     // Parse the provides port.
     std::auto_ptr<Endpoint> providesEndpoint(Endpoint::ParseProvidesEndpoint(connection));
     if (!providesEndpoint.get()) {
-        LOG_ERROR(ConnectionNode, "Unable to parse provides endpoint");
+        RH_ERROR(connectionSupportLog, "Unable to parse provides endpoint");
         return 0;
     }
 
@@ -693,7 +695,7 @@ bool ConnectionNode::connect(ConnectionManager& manager)
         if (manager.exceptionsEnabled()) {
             throw;
         } else {
-            LOG_TRACE(ConnectionNode, "Unable to resolve the uses object");
+            RH_TRACE(connectionSupportLog, "Unable to resolve the uses object");
         }
     }
     try {
@@ -702,14 +704,14 @@ bool ConnectionNode::connect(ConnectionManager& manager)
         if (manager.exceptionsEnabled()) {
             throw;
         } else {
-            LOG_TRACE(ConnectionNode, "Unable to resolve the provides object");
+            RH_TRACE(connectionSupportLog, "Unable to resolve the provides object");
         }
     }
 
     if (CORBA::is_nil(usesObject) || CORBA::is_nil(providesPort)) {
-        LOG_TRACE(ConnectionNode, "Unable to establish a connection because one or more objects cannot be resolved (i.e.: cannot create an event channel or device is not available)");
+        RH_TRACE(connectionSupportLog, "Unable to establish a connection because one or more objects cannot be resolved (i.e.: cannot create an event channel or device is not available)");
         if (allowDeferral()) {
-            LOG_DEBUG(ConnectionNode, "Connection is deferred to a later date");
+            RH_DEBUG(connectionSupportLog, "Connection is deferred to a later date");
             return false;
         } else {
             if (!uses->isResolved() && !uses->allowDeferral()) {
@@ -722,7 +724,7 @@ bool ConnectionNode::connect(ConnectionManager& manager)
 
     CF::Port_var usesPort = ossie::corba::_narrowSafe<CF::Port>(usesObject);
     if (CORBA::is_nil(usesPort)) {
-        LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+        RH_ERROR(connectionSupportLog, "Uses port is not a CF::Port");
         throw InvalidConnection("Uses port is not a CF::Port");
     }
 
@@ -733,12 +735,12 @@ bool ConnectionNode::connect(ConnectionManager& manager)
     } catch (const CF::Port::InvalidPort& ip) {
         std::ostringstream err;
         err << "Invalid port: " << ip.msg;
-        LOG_ERROR(ConnectionNode, err.str());
+        RH_ERROR(connectionSupportLog, err.str());
         throw InvalidConnection(err.str());
     } catch (const CF::Port::OccupiedPort& op) {
-        LOG_ERROR(ConnectionNode, "Port is occupied");
+        RH_ERROR(connectionSupportLog, "Port is occupied");
         throw InvalidConnection("Port is occupied");
-    } CATCH_LOG_ERROR(ConnectionNode, "Port connection failed for connection " << identifier);
+    } CATCH_RH_ERROR(connectionSupportLog, "Port connection failed for connection " << identifier);
 
     throw InvalidConnection("Unknown error");
 }
@@ -760,9 +762,9 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
     provides->release();
     if (CORBA::is_nil(usesPort)) {
         if (uses->isTerminated()) {
-            LOG_DEBUG(ConnectionNode, "Uses port provider terminated");
+            RH_DEBUG(connectionSupportLog, "Uses port provider terminated");
         } else {
-            LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+            RH_ERROR(connectionSupportLog, "Uses port is not a CF::Port");
         }
         return;
     }
@@ -773,13 +775,13 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
         usesPort->disconnectPort(identifier.c_str());
     } catch (const CORBA::SystemException& exc) {
         if (uses->isTerminated()) {
-            LOG_DEBUG(ConnectionNode, "Disconnecting port for connection " << identifier
+            RH_DEBUG(connectionSupportLog, "Disconnecting port for connection " << identifier
                       << " failed, but uses port provider terminated");
         } else {
-            LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier
+            RH_WARN(connectionSupportLog, "Unable to disconnect port for connection " << identifier
                      << ": " << ossie::corba::describeException(exc));
         }
-    } CATCH_LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier);
+    } CATCH_RH_WARN(connectionSupportLog, "Unable to disconnect port for connection " << identifier);
 
     FindByDomainFinderEndpoint* endpoint = dynamic_cast<FindByDomainFinderEndpoint*>(provides.get());
     if (endpoint && endpoint->type() == "eventchannel") {
@@ -857,20 +859,20 @@ std::string ossie::eventChannelName(const FindBy* findby)
 
 CORBA::Object_ptr ossie::getPort(CORBA::Object_ptr obj, const std::string& portId)
 {
-    LOG_TRACE(connectionSupport, "Finding port");
+    RH_TRACE(connectionSupportLog, "Finding port");
     CF::PortSupplier_var portSupplier;
-    LOG_TRACE(connectionSupport, "Narrowing resource");
+    RH_TRACE(connectionSupportLog, "Narrowing resource");
     try {
         portSupplier = CF::PortSupplier::_narrow (obj);
     } catch( ... ) {
-        LOG_ERROR(connectionSupport, "Failed to narrow CF::Resource before obtaining Port with Unknown Exception");
+        RH_ERROR(connectionSupportLog, "Failed to narrow CF::Resource before obtaining Port with Unknown Exception");
         return CORBA::Object::_nil();
     }
-    LOG_TRACE(connectionSupport, "Getting port with id - " << portId);
+    RH_TRACE(connectionSupportLog, "Getting port with id - " << portId);
     try {
         return portSupplier->getPort(portId.c_str());
     } catch( ... ) {
-        LOG_ERROR(connectionSupport, "getPort failed with Unknown Exception");
+        RH_ERROR(connectionSupportLog, "getPort failed with Unknown Exception");
         return CORBA::Object::_nil();
     }
 }

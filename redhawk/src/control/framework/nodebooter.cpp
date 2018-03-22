@@ -579,9 +579,11 @@ void startDomainManager(
     execParams["DMD_FILE"] = dmdFile;
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
-    std::stringstream debugLevel_str;
-    debugLevel_str << debugLevel;
-    execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    if (debugLevel != -1) {
+        std::stringstream debugLevel_str;
+        debugLevel_str << debugLevel;
+        execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    }
     if (noPersist) {
         execParams["PERSISTENCE"] = "false";
     }
@@ -707,9 +709,11 @@ void startDeviceManager(
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
     execParams["SDRCACHE"] = devMgrCache;
-    std::stringstream debugLevel_str;
-    debugLevel_str << debugLevel;
-    execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    if (debugLevel != -1) {
+        std::stringstream debugLevel_str;
+        debugLevel_str << debugLevel;
+        execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    }
     if (!logfile_uri.empty()) {
         execParams["LOGGING_CONFIG_URI"] = logfile_uri;
     }
@@ -808,7 +812,7 @@ int main(int argc, char* argv[])
     string orb_init_ref;
     string domainName;
     string endPoint;
-    int debugLevel = 3;
+    int debugLevel = -1;
     bool   bind_apps=false;
 
     bool startDeviceManagerRequested = false;

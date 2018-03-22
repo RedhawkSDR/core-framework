@@ -591,10 +591,10 @@ namespace rh_logger {
     return  log_records;
   }
 
-  void Logger::configureLogger(const std::string &configuration) {
+  void Logger::configureLogger(const std::string &configuration, bool root_reset) {
   }
 
-  void StdOutLogger::configureLogger(const std::string &configuration) {
+  void StdOutLogger::configureLogger(const std::string &configuration, bool root_reset) {
   }
 
   bool Logger::isLoggerInHierarchy(const std::string& search_name) {
@@ -845,13 +845,20 @@ namespace rh_logger {
     return ret;
   }
 
-  void L4Logger::configureLogger(const std::string &configuration) {
+  void L4Logger::configureLogger(const std::string &configuration, bool root_reset) {
     log4cxx::helpers::Properties  props;
     log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( configuration ) );
     props.load(is);
     this->_rootHierarchy->resetConfiguration();
     log4cxx::spi::LoggerRepositoryPtr log_repo = this->_rootHierarchy;
     prop_conf.doConfigure(props, log_repo);
+    if (root_reset) {
+        log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
+        log4cxx::LoggerPtr new_root = this->_rootHierarchy->getRootLogger();
+        if (global_root->getEffectiveLevel()->toInt() != new_root->getEffectiveLevel()->toInt()) {
+            new_root->setLevel( global_root->getEffectiveLevel() );
+        }
+    }
   }
 
   LoggerPtr L4Logger::getLogger( const std::string &name ) {
@@ -864,8 +871,13 @@ namespace rh_logger {
     LoggerPtr ret;
     if ( name != "" ) {
       if (newroot) {
-        //L4HierarchyPtr tmpHierarchy(new log4cxx::Hierarchy());
         L4HierarchyPtr tmpHierarchy(new L4Hierarchy(name));
+
+        // make sure that the new root logger inherit the log level from the global root logger
+        log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
+        log4cxx::LoggerPtr new_root = tmpHierarchy->getRootLogger();
+        new_root->setLevel( global_root->getLevel() );
+
         ret = LoggerPtr( new L4Logger( name, tmpHierarchy ) );
       } else {
         ret = LoggerPtr( new L4Logger( name ) );

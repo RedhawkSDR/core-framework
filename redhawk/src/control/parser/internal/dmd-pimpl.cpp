@@ -28,6 +28,8 @@
 
 CREATE_LOGGER(dmd_parser)
 
+rh_logger::LoggerPtr dmd::parserLog;
+
 namespace dmd
 {
   // domainmanagerconfiguration_pimpl
@@ -36,7 +38,6 @@ namespace dmd
   void domainmanagerconfiguration_pimpl::
   pre ()
   {
-    LOG_TRACE(dmd_parser, "domainmanagerconfiguration pre");
     _data.reset(new ossie::DomainManagerConfiguration::DMD()); 
   }
 
@@ -73,7 +74,7 @@ namespace dmd
   std::auto_ptr<ossie::DomainManagerConfiguration::DMD> domainmanagerconfiguration_pimpl::
   post_domainmanagerconfiguration ()
   {
-      LOG_TRACE(dmd_parser, "domainmanagerconfiguration post");
+      RH_TRACE(dmd::parserLog, "domainmanagerconfiguration post");
       return _data;
   }
 

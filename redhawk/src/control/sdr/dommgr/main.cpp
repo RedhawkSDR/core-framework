@@ -114,7 +114,8 @@ int old_main(int argc, char* argv[])
     string logfile_uri("");
     string db_uri("");
     string domainName("");
-    int debugLevel = 3;
+    int debugLevel = -1;
+    int initialDebugLevel = -1;
     std::string dpath("");
     std::string name_binding("DomainManager");
     bool  useLogCfgResolver = false;
@@ -168,6 +169,7 @@ int old_main(int argc, char* argv[])
                 std::cout<<"Logging level "<<debugLevel<<" invalid. Lowering to 5"<<std::endl;
                 debugLevel = 5;
             }
+            initialDebugLevel = debugLevel;
         } else if (param == "PERSISTENCE") {
             string value = argv[ii];
             std::transform(value.begin(), value.begin(), value.end(), ::tolower);
@@ -359,7 +361,8 @@ int old_main(int argc, char* argv[])
                                                        (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
                                                        useLogCfgResolver,
                                                        bindToDomain,
-                                                       enablePersistence
+                                                       enablePersistence,
+                                                       initialDebugLevel
                                                        );
 
         // set logging level for the DomainManager's logger

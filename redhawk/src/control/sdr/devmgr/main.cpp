@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
     std::string sdrCache;
     std::string logfile_uri;
     std::string domainName;
-    int debugLevel = 3;
+    int debugLevel = -1;
     std::string dpath("");
     std::string cpuBlackList("");
     std::string node_name("DEVICE_MANAGER");

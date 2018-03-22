@@ -217,7 +217,8 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
       }
   }
 
-  this->_baseLog->configureLogger(_logCfgContents);
+  // set_level means that a debug level was passed to the component/device. If that's the case, tie the log level to the global root logger
+  this->_baseLog->configureLogger(_logCfgContents, set_level);
 
   if (not _origLevelSet) {
       _origLevelSet = true;

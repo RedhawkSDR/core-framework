@@ -2097,13 +2097,6 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
         } else {
             RH_TRACE(_createHelperLog, "DomainManager LOGGING_CONFIG_URI is not set");
         }
-
-        rh_logger::LoggerPtr dom_logger = _appFact._domainManager->getLogger();
-        if ( dom_logger && debug_level == -1 ) {
-            rh_logger::LevelPtr dlevel = dom_logger->getLevel();
-            if ( !dlevel ) dlevel = rh_logger::Logger::getRootLogger()->getLevel();
-            debug_level = ossie::logging::ConvertRHLevelToDebug( dlevel );
-        }
     }
 
     // if logging uri is resolved, then add as execparam
@@ -2119,9 +2112,9 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     }
 
     // if debug level is resolved, then add as execparam
-    if ( debug_level != -1 ) {
-        execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(debug_level);
-        RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << debug_level );
+    if ( _appFact._domainManager->getInitialLogLevel() != -1 ) {
+        execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(_appFact._domainManager->getInitialLogLevel());
+        RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << _appFact._domainManager->getInitialLogLevel() );
     }
 }
 

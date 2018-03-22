@@ -36,6 +36,7 @@
 #include <ossie/PortSet_impl.h>
 #include <ossie/FileManager_impl.h>
 #include <ossie/File_impl.h>
+#include <ossie/ParserLogs.h>
 #include <ossie/Properties.h>
 #include <ossie/SoftPkg.h>
 #include <ossie/Events.h>

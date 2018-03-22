@@ -859,7 +859,9 @@ void DeviceManager_impl::postConstructor (
         std_logconfig_uri = logging_config_uri;
     }
     std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
-    this->_baseLog->configureLogger(expanded_config);
+    this->_baseLog->configureLogger(expanded_config, true);
+
+    redhawk::setupParserLoggers(this->_baseLog);
 
     // 
     // setup DeviceManager context from dcd, software profile, find matching implementation

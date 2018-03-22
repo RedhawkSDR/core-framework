@@ -108,7 +108,7 @@ namespace rh_logger {
         _rootHierarchy = hierarchy;
     };
 
-    void configureLogger(const std::string &configuration);
+    void configureLogger(const std::string &configuration, bool root_reset=false);
 
   private:
 

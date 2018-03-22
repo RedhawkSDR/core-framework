@@ -730,18 +730,19 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
         RH_DEBUG(this->_baseLog, "RSC: " << usageName << " LOGGING PARAM:VALUE " << new_argv[new_argv.size()-2] << ":" <<new_argv[new_argv.size()-1] );
     }
 
-    if ( debug_level == -1 ) {
+    /*if ( debug_level == -1 ) {
       // Pass along the current debug level setting.
       debug_level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
+    }*/
+
+    if (debug_level != -1) {
+        // Convert the numeric level directly into its ASCII equivalent.
+        std::string dlevel="";
+        dlevel.push_back(char(0x30 + debug_level));
+        new_argv.push_back( "DEBUG_LEVEL");
+        new_argv.push_back(dlevel);
+        RH_DEBUG(this->_baseLog, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << dlevel );
     }
-
-    // Convert the numeric level directly into its ASCII equivalent.
-    std::string dlevel="";
-    dlevel.push_back(char(0x30 + debug_level));
-    new_argv.push_back( "DEBUG_LEVEL");
-    new_argv.push_back(dlevel);
-    RH_DEBUG(this->_baseLog, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << dlevel );
-
 }
 
 
