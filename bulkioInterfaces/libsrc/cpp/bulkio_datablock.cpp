@@ -141,15 +141,15 @@ double DataBlock<T>::xdelta() const
 }
 
 template <class T>
-const T& DataBlock<T>::data() const
+const T& DataBlock<T>::buffer() const
 {
     return _impl->data;
 }
 
 template <class T>
-size_t DataBlock<T>::size() const
+void DataBlock<T>::buffer(const T& data)
 {
-    return _impl->data.size();
+    _impl->data = data;
 }
 
 template <class T>
@@ -243,6 +243,10 @@ DataBlock<T>::operator unspecified_bool_type() const
     return _impl?&DataBlock::_impl:0;
 }
 
+
+//
+// SampleDataBlock
+//
 using bulkio::SampleDataBlock;
 
 template <class T>
@@ -341,57 +345,30 @@ void SampleDataBlock<T>::swap(std::vector<ScalarType>& other)
 template <class T>
 const typename SampleDataBlock<T>::ScalarBuffer& SampleDataBlock<T>::buffer() const
 {
-    return _impl->data;
+    // This method is overridden to extend the documentation to cover real vs.
+    // complex data, but does not modify the behavior
+    return Base::buffer();
 }
 
 template <class T>
 typename SampleDataBlock<T>::ComplexBuffer SampleDataBlock<T>::cxbuffer() const
 {
-    return ComplexBuffer::recast(_impl->data);
-}
-
-template <class T>
-void SampleDataBlock<T>::buffer(const ScalarBuffer& data)
-{
-    _impl->data = data;
-}
-
-using bulkio::BitDataBlock;
-
-BitDataBlock::BitDataBlock() :
-    Base()
-{
-}
-
-BitDataBlock::BitDataBlock(const StreamDescriptor& sri, const redhawk::shared_bitbuffer& buffer) :
-    Base(sri, buffer)
-{
-}
-
-bool BitDataBlock::complex() const
-{
-    return false;
-}
-
-const redhawk::shared_bitbuffer& BitDataBlock::buffer() const
-{
-    return _impl->data;
-}
-
-void BitDataBlock::buffer(const redhawk::shared_bitbuffer& data)
-{
-    _impl->data = data;
+    return ComplexBuffer::recast(buffer());
 }
 
 // Instantiate templates for supported types
 #define INSTANTIATE_TEMPLATE(x)                 \
     template class DataBlock< x >;
 
-#define INSTANTIATE_NUMERIC_TEMPLATE(x)                                 \
-    INSTANTIATE_TEMPLATE(redhawk::shared_buffer<x>); template class SampleDataBlock<x>;
+#define INSTANTIATE_NUMERIC_TEMPLATE(x)                 \
+    INSTANTIATE_TEMPLATE(redhawk::shared_buffer<x>);    \
+    template class SampleDataBlock<x>;
 
+// String (XML, file) and bit blocks use the basic DataBlock class
 INSTANTIATE_TEMPLATE(std::string);
 INSTANTIATE_TEMPLATE(redhawk::shared_bitbuffer);
+
+// Numeric types support the full SampleDataBlock interface
 INSTANTIATE_NUMERIC_TEMPLATE(int8_t);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Octet);
 INSTANTIATE_NUMERIC_TEMPLATE(CORBA::Short);

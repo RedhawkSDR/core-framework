@@ -183,8 +183,21 @@ namespace bulkio {
          */
         double xdelta() const;
 
-        const T& data() const;
-        size_t size() const;
+        /**
+         * @brief  Read-only access to block data.
+         * @returns  Read-only reference to the data buffer.
+         * @pre  Block is valid.
+         */
+        const T& buffer() const;
+
+        /**
+         * @brief  Replaces the data contents of this block.
+         * @param other  New data.
+         * @pre  Block is valid.
+         *
+         * @note  This method is typically used by InputStream.
+         */
+        void buffer(const T& other);
 
         /**
          * @brief  Checks whether the SRI has changed since the last read from
@@ -519,6 +532,7 @@ namespace bulkio {
         /**
          * @brief  Gets the size of the data in terms of real samples.
          * @returns  Number of real samples.
+         * @pre  Block is valid.
          * @see  cxsize()
          */
         size_t size() const;
@@ -590,37 +604,13 @@ namespace bulkio {
          */
         ComplexBuffer cxbuffer() const;
 
-        /**
-         * @brief  Replaces the contents of this block with a new buffer.
-         * @param  %shared_buffer containing real data.
-         * @pre  Block is valid.
-         *
-         * @note  This method is typically used by InputStream.
-         */
-        void buffer(const ScalarBuffer& other);
+        using DataBlock<ScalarBuffer>::buffer;
 
     private:
         /// @cond IMPL
         typedef DataBlock<ScalarBuffer> Base;
         using Base::_impl;
         /// @endcond
-    };
-
-    class BitDataBlock : public DataBlock<redhawk::shared_bitbuffer>
-    {
-    public:
-        typedef redhawk::shared_bitbuffer BufferType;
-
-        BitDataBlock();
-        explicit BitDataBlock(const StreamDescriptor& sri, const BufferType& buffer=BufferType());
-
-        bool complex() const;
-
-        const BufferType& buffer() const;
-        void buffer(const BufferType& other);
-
-    private:
-        typedef DataBlock<BufferType> Base;
     };
 
     typedef SampleDataBlock<int8_t>           CharDataBlock;
@@ -633,6 +623,7 @@ namespace bulkio {
     typedef SampleDataBlock<CORBA::ULongLong> ULongLongDataBlock;
     typedef SampleDataBlock<CORBA::Float>     FloatDataBlock;
     typedef SampleDataBlock<CORBA::Double>    DoubleDataBlock;
+    typedef DataBlock<redhawk::shared_bitbuffer> BitDataBlock;
     typedef DataBlock<std::string>            StringDataBlock;
 
 }  // end of bulkio namespace

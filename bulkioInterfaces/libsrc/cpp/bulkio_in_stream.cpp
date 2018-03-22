@@ -600,17 +600,19 @@ private:
         return data;
     }
 
-    void _addTimestamp(DataBlockType& data, size_t input_offset, size_t output_offset, BULKIO::PrecisionUTCTime time)
+    void _addTimestamp(DataBlockType& data, size_t inputOffset, size_t outputOffset, BULKIO::PrecisionUTCTime time)
     {
         // Determine the timestamp of this chunk of data; if this is the
         // first chunk, the packet offset (number of samples already read)
         // must be accounted for, so adjust the timestamp based on the SRI.
         // Otherwise, the adjustment is a noop.
-        double time_offset = input_offset * data.xdelta();
-        if (data.complex()) {
+        double time_offset = inputOffset * data.xdelta();
+        // Check the SRI directly for the complex mode because bit data blocks
+        // intentionally do not have a complex() method.
+        if (data.sri().mode != 0) {
             // Complex data; each sample is two values
             time_offset /= 2.0;
-            output_offset /= 2;
+            outputOffset /= 2;
         }
 
         // If there is a time offset, apply the adjustment and mark the timestamp
@@ -621,7 +623,7 @@ private:
             synthetic = true;
         }
 
-        data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
+        data.addTimestamp(bulkio::SampleTimestamp(time, outputOffset, synthetic));
     }
 
     const StreamDescriptor* _nextSRI(bool blocking)

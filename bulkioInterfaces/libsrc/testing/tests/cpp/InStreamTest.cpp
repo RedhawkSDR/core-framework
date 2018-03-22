@@ -78,7 +78,7 @@ void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     CPPUNIT_ASSERT(!stream.eos());
 
     // Push an end-of-stream packet with no data and get the stream again
@@ -110,7 +110,7 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     CPPUNIT_ASSERT(!stream.eos());
 
     // Push an end-of-stream packet with data and get the stream again
@@ -119,7 +119,7 @@ void InStreamTest<Port>::testGetCurrentStreamDataEos()
     CPPUNIT_ASSERT(stream);
     block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
 
     // Try to get the current stream again; since the end-of-stream has not been
     // checked yet, it should return the existing stream (as with above)
@@ -154,7 +154,7 @@ void InStreamTest<Port>::testSriChanges()
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     CPPUNIT_ASSERT(!stream.eos());
     CPPUNIT_ASSERT_EQUAL(sri.xdelta, block.sri().xdelta);
 
@@ -164,7 +164,7 @@ void InStreamTest<Port>::testSriChanges()
     this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     CPPUNIT_ASSERT(!stream.eos());
     CPPUNIT_ASSERT(block.sriChanged());
     int flags = bulkio::sri::XDELTA;
@@ -179,7 +179,7 @@ void InStreamTest<Port>::testSriChanges()
     this->_pushTestPacket(1024, bulkio::time::utils::now(), false, sri.streamID);
     block = stream.read();
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     CPPUNIT_ASSERT(!stream.eos());
     CPPUNIT_ASSERT(block.sriChanged());
     flags = bulkio::sri::XSTART | bulkio::sri::XDELTA | bulkio::sri::KEYWORDS;
@@ -281,9 +281,9 @@ void BufferedInStreamTest<Port>::testTryreadPeek()
     StreamType stream = port->getStream(stream_id);
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.tryread(10000,0);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     block = stream.read(10000);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     block = stream.read(10000);
     CPPUNIT_ASSERT(!block);
 }
@@ -302,9 +302,9 @@ void BufferedInStreamTest<Port>::testReadPeek()
     StreamType stream = port->getStream(stream_id);
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read(10000,0);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     block = stream.read(10000);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     block = stream.read(10000);
     CPPUNIT_ASSERT(!block);
 }
@@ -323,7 +323,7 @@ void BufferedInStreamTest<Port>::testReadPartial()
     StreamType stream = port->getStream(stream_id);
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read(10000,2000);
-    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1024, block.buffer().size());
     block = stream.read(10000);
     CPPUNIT_ASSERT(!block);
 }
@@ -351,7 +351,7 @@ void BufferedInStreamTest<Port>::testReadTimestamps()
     CPPUNIT_ASSERT_EQUAL(!stream, false);
     DataBlockType block = stream.read(70);
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 70, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 70, block.buffer().size());
 
     // There should be 3 timestamps, all non-synthetic
     std::list<bulkio::SampleTimestamp> timestamps = block.getTimestamps();
@@ -374,7 +374,7 @@ void BufferedInStreamTest<Port>::testReadTimestamps()
     // synthetic
     block = stream.read(58);
     CPPUNIT_ASSERT(block);
-    CPPUNIT_ASSERT_EQUAL((size_t) 58, block.size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 58, block.buffer().size());
     timestamps = block.getTimestamps();
     CPPUNIT_ASSERT_EQUAL((size_t) 2, timestamps.size());
     it = timestamps.begin();
