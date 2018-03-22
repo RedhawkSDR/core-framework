@@ -17,32 +17,39 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from DeprecatedInPort.java.template.
+ *          Do not modify directly.
+ */
 package bulkio;
+
 import org.apache.log4j.Logger;
 
-/**
- * 
- */
-public class OutUShortPort extends OutUInt16Port  {
+@Deprecated
+public class In@name@Port extends In@alias@Port {
 
-    /**
-     * @generated
-     */
-    public OutUShortPort(String portName)
-    {
-        super(portName );
+    public In@name@Port(String portName) {
+        super(portName);
     }
 
-    public OutUShortPort(String portName, Logger logger)
-    {
-        super(portName, logger );
+    public In@name@Port(String portName, bulkio.sri.Comparator compareSRI) {
+        super(portName, compareSRI);
     }
 
-
-    public OutUShortPort(String portName, Logger logger, ConnectionEventListener eventCB )
-    {
-        super(portName, logger, eventCB );
+    public In@name@Port(String portName, 
+                        bulkio.sri.Comparator compareSRI, 
+                        bulkio.SriListener sriCallback) {
+        super(portName, compareSRI, sriCallback);
     }
 
+    public In@name@Port(String portName, Logger logger) {
+        super(portName, logger);
+    }
+
+    public In@name@Port(String portName, 
+                        Logger logger,
+                        bulkio.sri.Comparator compareSRI, 
+                        bulkio.SriListener sriCallback) {
+        super(portName, logger, compareSRI, sriCallback);
+    }
 }
-

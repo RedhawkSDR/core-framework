@@ -128,36 +128,20 @@ JAVA_SRCS := Const.java \
 DataHelper.java \
 DataTransfer.java \
 InBitPort.java \
-InCharPort.java \
 InFilePort.java \
-InLongLongPort.java \
-InLongPort.java \
-InOctetPort.java \
 InSDDSPort.java \
 InVITA49Port.java \
-InShortPort.java \
-InULongLongPort.java \
-InULongPort.java \
-InUShortPort.java \
 InXMLPort.java \
 InDataPort.java \
 InPortImpl.java \
 linkStatistics.java \
 OutBitPort.java \
-OutCharPort.java \
 OutDataPort.java \
 OutFilePort.java \
-OutLongLongPort.java \
-OutLongPort.java \
-OutOctetPort.java \
 OutPortBase.java \
 OutSDDSPort.java \
 OutStreamPort.java \
 OutVITA49Port.java \
-OutShortPort.java \
-OutULongLongPort.java \
-OutULongPort.java \
-OutUShortPort.java \
 OutXMLPort.java \
 connection_descriptor_struct.java \
 SriMapStruct.java \
@@ -194,6 +178,42 @@ $(JAVA_SRCDIR)/bulkio/Out%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulki
 
 JAVA_BUILT_SOURCE =  $(JAVA_SRCDIR)/bulkio/InDoublePort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InCharPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InOctetPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/DoubleDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/FloatDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ShortDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongLongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/CharDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UShortDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongLongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OctetDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutDoublePort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutLongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutCharPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutOctetPort.java
+
+# Deprecated port alias classes (e.g., InInt16Port aliases InShortPort)
+$(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template > $@
+
+$(JAVA_SRCDIR)/bulkio/Out%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedOutPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DeprecatedOutPort.java.template > $@
+
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt16Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt32Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt64Port.java
@@ -202,18 +222,6 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt16Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt32Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt64Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt8Port.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/DoubleDataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/FloatDataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/Int16DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/Int32DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/Int64DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/Int8DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UInt16DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UInt32DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UInt64DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UInt8DataHelper.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutDoublePort.java
-JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutFloatPort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt16Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt32Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt64Port.java
@@ -222,7 +230,6 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt16Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt32Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt64Port.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt8Port.java
-
 
 java_JARFILES = bulkio.jar
 

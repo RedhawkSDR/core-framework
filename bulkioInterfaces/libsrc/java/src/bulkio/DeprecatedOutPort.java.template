@@ -17,32 +17,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+/*
+ * WARNING: This file is generated from DeprecatedOutPort.java.template.
+ *          Do not modify directly.
+ */
 package bulkio;
+
 import org.apache.log4j.Logger;
 
-/**
- * 
- */
-public class OutCharPort extends OutInt8Port  {
+@Deprecated
+public class Out@name@Port extends Out@alias@Port {
 
-    /**
-     * @generated
-     */
-    public OutCharPort(String portName)
-    {
-	super(portName );
+    public Out@name@Port(String portName) {
+        super(portName);
     }
 
-    public OutCharPort(String portName, Logger logger)
-    {
-	super(portName, logger );
+    public Out@name@Port(String portName, Logger logger) {
+        super(portName, logger);
     }
 
-
-    public OutCharPort(String portName, Logger logger, ConnectionEventListener eventCB )
-    {
-	super(portName, logger, eventCB );
+    public Out@name@Port(String portName, Logger logger, ConnectionEventListener eventCB) {
+        super(portName, logger, eventCB);
     }
-
 }
-
