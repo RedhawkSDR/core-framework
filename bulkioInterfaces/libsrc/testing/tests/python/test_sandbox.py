@@ -160,6 +160,61 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(expected, self.stub.packets[-1].data)
 
+    def _formatBitSequence(self, bits):
+        return bitbuffer(bytearray(bits.data), bits=bits.bits)
+
+    @format('bit')
+    def testWriteBit(self):
+        # No timestamp
+        data = bitbuffer('101011010100101011010101101111')
+        self.source.write(data)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(data, self._formatBitSequence(self.stub.packets[-1].data))
+
+        # Provided time should pass through unmodified
+        ts = bulkio.timestamp.now()
+        data = bitbuffer('10001001001001001')
+        self.source.write(data, ts)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(2, len(self.stub.packets))
+        self.assertEqual(data, self._formatBitSequence(self.stub.packets[-1].data))
+        self.assertEqual(ts, self.stub.packets[-1].T)
+
+    @format('file')
+    def testWriteFile(self):
+        # Write data without a timestamp
+        uri1 = 'file:///tmp/file1.dat'
+        self.source.write(uri1)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(uri1, self.stub.packets[0].data)
+
+        # Provided time should pass through unmodified
+        ts = bulkio.timestamp.now()
+        uri2 = 'file:///tmp/file2.dat'
+        self.source.write(uri2, ts)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(2, len(self.stub.packets))
+        self.assertEqual(uri2, self.stub.packets[1].data)
+        self.assertEqual(ts, self.stub.packets[-1].T)
+
+    @format('xml')
+    def testWriteXML(self):
+        # No timestamp needed
+        data1 = '<document/>'
+        self.source.write(data1)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(data1, self.stub.packets[0].data)
+
+        # Provided timestamp should be ignored
+        data2 = '<document></document>'
+        self.source.write(data2, bulkio.timestamp.now())
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(2, len(self.stub.packets))
+        self.assertEqual(data2, self.stub.packets[1].data)
+
     @format('octet')
     def testClose(self):
         # Normal write, EOS should be false
@@ -226,39 +281,6 @@ class StreamSourceTest(unittest.TestCase):
         self.source.write(range(16))
         self.assertEqual(2, len(self.stub.H))
         self.failUnless(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
-
-    @format('file')
-    def testWriteFile(self):
-        # Write data without a timestamp
-        uri1 = 'file:///tmp/file1.dat'
-        self.source.write(uri1)
-        self.assertEqual(1, len(self.stub.H))
-        self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(uri1, self.stub.packets[0].data)
-
-        # Provided time should pass through unmodified
-        ts2 = bulkio.timestamp.now()
-        uri2 = 'file:///tmp/file2.dat'
-        self.source.write(uri2, ts2)
-        self.assertEqual(1, len(self.stub.H))
-        self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(uri2, self.stub.packets[1].data)
-
-    @format('xml')
-    def testWriteXML(self):
-        # No timestamp needed
-        data1 = '<document/>'
-        self.source.write(data1)
-        self.assertEqual(1, len(self.stub.H))
-        self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(data1, self.stub.packets[0].data)
-
-        # Provided timestamp should be ignored
-        data2 = '<document></document>'
-        self.source.write(data2, bulkio.timestamp.now())
-        self.assertEqual(1, len(self.stub.H))
-        self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(data2, self.stub.packets[1].data)
 
 class StreamSinkTest(unittest.TestCase):
     def setUp(self):
