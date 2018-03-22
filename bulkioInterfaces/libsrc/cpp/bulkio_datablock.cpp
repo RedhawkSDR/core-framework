@@ -59,15 +59,39 @@ struct DataBlock<T>::Impl : public StreamDescriptor
         StreamDescriptor(sri),
         data(data),
         sriChangeFlags(bulkio::sri::NONE),
-        inputQueueFlushed(false)
+        inputQueueFlushed(false),
+        dataOwned(false)
     {
+    }
+
+    void copy()
+    {
+        // Default implementation assumes a shared-ownership class for data
+        // (shared_buffer, shared_bitbuffer); make a copy and tag the data as
+        // owned
+        data = data.copy();
+        dataOwned = true;
     }
 
     T data;
     std::list<SampleTimestamp> timestamps;
     int sriChangeFlags;
     bool inputQueueFlushed;
+
+    // Flag to track whether a shared_buffer might share references with other
+    // consumers (e.g., other input ports in the same process space). Note that
+    // this does *not* track whether there is another reference to the same
+    // data block.
+    bool dataOwned;
 };
+
+namespace bulkio {
+    template <>
+    void DataBlock<std::string>::Impl::copy()
+    {
+        // Strings do not have shared ownership, making this a no-op
+    }
+}
 
 template <class T>
 DataBlock<T>::DataBlock() :
@@ -87,8 +111,21 @@ DataBlock<T> DataBlock<T>::copy() const
     DataBlock result;
     if (_impl) {
         result._impl = boost::make_shared<Impl>(*_impl);
+        result._impl->copy();
     }
     return result;
+}
+
+namespace bulkio {
+    template <>
+    DataBlock<redhawk::shared_buffer<float> > DataBlock<redhawk::shared_buffer<float> >::copy() const
+    {
+        DataBlock result;
+        if (_impl) {
+            result._impl = boost::make_shared<Impl>(*_impl);
+        }
+        return result;
+    }
 }
 
 template <class T>
@@ -230,6 +267,11 @@ SampleDataBlock<T>::SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size) :
 template <class T>
 T* SampleDataBlock<T>::data()
 {
+    // To preserve data integrity of shared buffers received from a port, make
+    // a one-time copy of the buffer and assume ownership of it
+    if (!_impl->dataOwned) {
+        _impl->copy();
+    }
     return const_cast<T*>(_impl->data.data());
 }
 
@@ -248,8 +290,15 @@ size_t SampleDataBlock<T>::size() const
 template <class T>
 void SampleDataBlock<T>::resize(size_t count)
 {
-    // TODO: Copy data
-    _impl->data = redhawk::buffer<T>(count);
+    // We have to create a writeable temporary buffer, and although there is a
+    // resize() operation, it would potentially require two allocations and two
+    // memory copies: once to make a copy of the current buffer, and again on
+    // the resize. Instead, we allocate in one step and copy in another.
+    redhawk::buffer<T> temp(count);
+    temp.replace(0, std::min(_impl->data.size(), count), _impl->data);
+    _impl->data = temp;
+    // Creating a new buffer also alleviates concern about buffer sharing
+    _impl->dataOwned = true;
 }
 
 template <class T>
@@ -261,6 +310,8 @@ bool SampleDataBlock<T>::complex() const
 template <class T>
 std::complex<T>* SampleDataBlock<T>::cxdata()
 {
+    // Defer to the data() method to ensure that the data gets copied if it's a
+    // potentially shared reference
     return reinterpret_cast<ComplexType*>(data());
 }
 
@@ -288,7 +339,7 @@ void SampleDataBlock<T>::swap(std::vector<ScalarType>& other)
 }
 
 template <class T>
-typename SampleDataBlock<T>::ScalarBuffer SampleDataBlock<T>::buffer() const
+const typename SampleDataBlock<T>::ScalarBuffer& SampleDataBlock<T>::buffer() const
 {
     return _impl->data;
 }

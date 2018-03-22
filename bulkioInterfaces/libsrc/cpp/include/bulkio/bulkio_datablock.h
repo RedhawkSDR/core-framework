@@ -34,7 +34,6 @@
 
 namespace bulkio {
 
-    class SRI;
     class StreamDescriptor;
 
     /**
@@ -567,7 +566,7 @@ namespace bulkio {
 
         /**
          * @brief  Read-only access to real sample data.
-         * @returns  %shared_buffer of real samples.
+         * @returns  Read-only reference to %shared_buffer of real samples.
          * @pre  Block is valid.
          * @see  cxbuffer() const
          *
@@ -576,7 +575,7 @@ namespace bulkio {
          *
          * To interpret the data as complex samples, use cxbuffer() const.
          */
-        ScalarBuffer buffer() const;
+        const ScalarBuffer& buffer() const;
 
         /**
          * @brief  Read-only access to complex sample data.
