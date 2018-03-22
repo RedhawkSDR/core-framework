@@ -28,7 +28,7 @@ from redhawk.bitbuffer import bitbuffer
 
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
-import bulkio.sandbox
+from bulkio.sandbox import StreamSource, StreamSink
 
 import helpers
 
@@ -55,7 +55,7 @@ class format(object):
 class StreamSourceTest(unittest.TestCase):
     def setUp(self):
         self.sandbox = LocalSandbox()
-        self.source = bulkio.sandbox.StreamSource(sandbox=self.sandbox)
+        self.source = StreamSource(sandbox=self.sandbox)
 
         # Connect source directly to a port stub, bypassing the normal sandbox
         # connection logic
@@ -160,6 +160,62 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(expected, self.stub.packets[-1].data)
 
+    @format('ushort')
+    def testWriteFramed(self):
+        # Write a list of 4 ramps
+        self.source.subsize = 16
+        data = [range(x,x+16) for x in xrange(0,64,16)]
+        self.source.write(data)
+
+        # Check that the stub received a packet that matches (i.e., data is an
+        # 64-element ramp)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(16, self.stub.H[-1].subsize)
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(range(64), self.stub.packets[-1].data)
+
+    @format('double')
+    def testWriteFramedComplex(self):
+        # Create a set of complex values where each alternating real/imaginary
+        # value forms a ramp, and reframe it a a list of 4-item lists
+        data = [complex(x,x+1) for x in xrange(0, 32, 2)]
+        data = [data[x:x+4] for x in xrange(0, len(data), 4)]
+        self.source.complex = True
+        self.source.subsize = 4
+        self.source.write(data)
+
+        # Check that the stub received a packet that matches (i.e., data is an
+        # 32-element ramp)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(1, self.stub.H[-1].mode)
+        self.assertEqual(4, self.stub.H[-1].subsize)
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(range(32), self.stub.packets[-1].data)
+
+        # Write a 4 frames of 4-element real lists; each element will be
+        # interpreted as a complex value with 0 for the imaginary portion
+        data = range(16)
+        data = [data[x:x+4] for x in xrange(0, len(data), 4)]
+        self.source.write(data)
+        # To generate the expected output, walk through twice the range,
+        # turning odd numbers into zeros and dividing even numbers in half
+        # [ 0, 1, 2, 3, 4, 5...] => [ 0, 0, 1, 0, 2, 0...]
+        expected = [ii/2 if ii % 2 == 0 else 0 for ii in xrange(0, 32)]
+        self.assertEqual(2, len(self.stub.packets))
+        self.assertEqual(expected, self.stub.packets[-1].data)
+
+    @format('ulong')
+    def testWriteFramedPreformatted(self):
+        # Test that writing a 1-dimensional list for framed data still works as
+        # expected
+        self.source.subsize = 8
+        data = range(48)
+        self.source.write(data)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(8, self.stub.H[-1].subsize)
+        self.assertEqual(1, len(self.stub.packets))
+        self.assertEqual(data, self.stub.packets[-1].data)
+
     def _formatBitSequence(self, bits):
         return bitbuffer(bytearray(bits.data), bits=bits.bits)
 
@@ -180,6 +236,25 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(data, self._formatBitSequence(self.stub.packets[-1].data))
         self.assertEqual(ts, self.stub.packets[-1].T)
+
+    @format('bit')
+    def testWriteBitFramed(self):
+        # Create frames of all 0s and all 1s for a good indicator of framing
+        # problems
+        zeros = bitbuffer(bits=17)
+        zeros[:] = 0
+        ones = bitbuffer(bits=17)
+        ones[:] = 1
+
+        # Write five frames, alterning all 0s and all 1s
+        self.source.subsize = 17
+        data = [ones,zeros,ones,zeros,ones]
+        self.source.write(data)
+        self.assertEqual(1, len(self.stub.H))
+        self.assertEqual(17, self.stub.H[-1].subsize)
+        self.assertEqual(1, len(self.stub.packets))
+        expected = sum(data, bitbuffer())
+        self.assertEqual(expected, self._formatBitSequence(self.stub.packets[-1].data))
 
     @format('file')
     def testWriteFile(self):
@@ -234,7 +309,7 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(self.source._instanceName, self.source.streamID)
 
         # Override in constructor
-        source2 = bulkio.sandbox.StreamSource(streamID='test_stream_id', sandbox=self.sandbox)
+        source2 = StreamSource(streamID='test_stream_id', sandbox=self.sandbox)
         self.assertEqual('test_stream_id', source2.streamID)
 
         # streamID is immutable
@@ -282,10 +357,39 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(2, len(self.stub.H))
         self.failUnless(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
 
+    def testPortAccess(self):
+        # New source should have no port yet
+        source2 = StreamSource(sandbox=self.sandbox)
+        self.failUnless(source2.port is None)
+
+        # A connection has already been made for the test fixture's source, so
+        # the port must be defined
+        self.failIf(self.source.port is None)
+
+        # Use direct access to create another stream
+        stream = self.source.port.createStream('test_stream')
+        stream.close()
+
+    def testStreamAccess(self):
+        # New source should have no stream yet
+        source2 = StreamSource(sandbox=self.sandbox)
+        self.failUnless(source2.stream is None)
+
+        # A connection has already been made for the test fixture's source, so
+        # a new stream should be created on access
+        stream = self.source.stream
+        self.failIf(stream is None)
+        self.assertEqual(self.source.streamID, stream.streamID)
+
+    def testFormat(self):
+        source = StreamSource(format='float', sandbox=self.sandbox)
+        port = source.getPort('floatOut')
+        self.assertRaises(RuntimeError, source.getPort, 'shortOut')
+
 class StreamSinkTest(unittest.TestCase):
     def setUp(self):
         self.sandbox = LocalSandbox()
-        self.sink = bulkio.sandbox.StreamSink(sandbox=self.sandbox)
+        self.sink = StreamSink(sandbox=self.sandbox)
 
         format = self._getTestFormat()
         if not format:
@@ -853,6 +957,25 @@ class StreamSinkTest(unittest.TestCase):
     def _sortSRIs(self, sris):
         # Sorts a list of SRIs by stream ID
         sris.sort(cmp=lambda x,y: cmp(x.streamID, y.streamID))
+
+    def testPortAccess(self):
+        # New sink should have no port yet
+        sink2 = StreamSink(sandbox=self.sandbox)
+        self.failUnless(sink2.port is None)
+
+        # A connection has already been made for the test fixture's sink, so
+        # the port must be defined
+        port = self.sink.port
+        self.failIf(port is None)
+
+        # Try calling a port method as a quick sanity check
+        self.assertEqual([], port.getStreams())
+        
+    def testFormat(self):
+        sink = StreamSink(format='float', sandbox=self.sandbox)
+        port = sink.getPort('floatIn')
+        self.assertRaises(RuntimeError, sink.getPort, 'shortIn')
+
 
 if __name__ == '__main__':
     import runtests

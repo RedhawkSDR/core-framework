@@ -21,10 +21,12 @@
 from ossie.utils.docstring import inherit_doc
 from ossie.utils.sandbox.helper import SandboxHelper
 
+from redhawk.bitbuffer import bitbuffer
+
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 from bulkio.output_ports import *
-from bulkio.output_streams import OutputStream
+from bulkio.output_streams import OutputStream, OutXMLStream
 
 _PORT_MAP = {
     'char' : (OutCharPort, BULKIO.dataChar),
@@ -67,7 +69,6 @@ class StreamSource(SandboxHelper):
         SandboxHelper.__init__(self)
         self._streamID = streamID
         self._stream = None
-        self._isXML = False
 
         if format:
             formats = [format]
@@ -82,27 +83,27 @@ class StreamSource(SandboxHelper):
             self._streamID = self._instanceName
         self._sri = bulkio.sri.create(self._streamID)
 
-    def _portCreated(self, port, portDict):
-        repo_id = portDict['Port Interface']
-        if repo_id == BULKIO.dataXML._NP_RepositoryId:
-            self._isXML = True
-
     def write(self, data, timestamp=None):
         if not self._port:
             # Not connected to anything
             # TODO: Is this an error condition or should we ignore it
             return
 
-        if not self._stream:
-            self.log.debug("Creating stream '%s'", self.streamID)
-            self._stream = self._port.createStream(self._sri)
+        # Get the stream via the attribute, which will create it if it does not
+        # already exist
+        stream = self.stream
+
+        # Turn framed input data into a 1-dimensional sequence, but only if the
+        # stream is configured for it
+        if stream.subsize > 0:
+            data = self._unframeData(data)
 
         args = [data]
-        if not self._isXML:
+        if not isinstance(stream, OutXMLStream):
             if timestamp is None:
                 timestamp = bulkio.timestamp.now()
             args.append(timestamp)
-        self._stream.write(*args)
+        stream.write(*args)
 
     def close(self):
         """
@@ -122,6 +123,29 @@ class StreamSource(SandboxHelper):
     @property
     def port(self):
         return self._port
+
+    @property
+    def stream(self):
+        if self._port and not self._stream:
+            # Port has to exist before creating the stream
+            self.log.debug("Creating stream '%s'", self.streamID)
+            self._stream = self._port.createStream(self._sri)
+        return self._stream
+
+    def _unframeData(self, data):
+        if not data:
+            # Assume empty sequence, nothing to do
+            return data
+        elif isinstance(data[0], bitbuffer):
+            # Sequence of bitbuffers, compact down to a single bitbuffer
+            return sum(data, bitbuffer())
+        elif isinstance(data[0], (list, tuple)):
+            # Sequence of sequences, probably numeric data, compact into a
+            # single list
+            return sum(data, [])
+        else:
+            # Something else (probably numbers), just pass through
+            return data
 
     def _setStreamMetadata(self, attr, value):
         # This method is required by the proxied setters from the output stream
