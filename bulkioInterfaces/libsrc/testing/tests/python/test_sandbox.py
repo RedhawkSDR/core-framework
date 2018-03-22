@@ -323,6 +323,229 @@ class StreamSinkTest(unittest.TestCase):
         expected = [complex(x,x+1) for x in xrange(0,32,2)]
         self.assertEqual(expected, data.data)
 
+    @format('ushort')
+    def testReadFramed(self):
+        # Push four frames directly to the port
+        sri = bulkio.sri.create('test_read_framed')
+        sri.subsize = 16
+        self.port.pushSRI(sri)
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(range(64), ts1, False, sri.streamID)
+
+        # Data should be returned as a 4-item list of lists
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.assertEqual(4, len(data.data))
+        expected = [range(x, x+16) for x in xrange(0, 64, 16)]
+        self.assertEqual(expected, data.data)
+
+        # Push another four frames across two packets
+        ts2 = bulkio.timestamp.now()
+        self.port.pushPacket(range(32,64), ts2, False, sri.streamID)
+        ts3 = bulkio.timestamp.now()
+        self.port.pushPacket(range(64,96), ts3, False, sri.streamID)
+
+        # Data should be returned as a 4-item list of lists
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.assertEqual(4, len(data.data))
+        expected = [range(x, x+16) for x in xrange(32, 96, 16)]
+        self.assertEqual(expected, data.data)
+
+        # Time stamp offsets should be frame-based
+        self.assertEqual(2, len(data.timestamps))
+        self.assertEqual(0, data.timestamps[0].offset)
+        self.assertEqual(ts2, data.timestamps[0].time)
+        self.assertEqual(2, data.timestamps[1].offset)
+        self.assertEqual(ts3, data.timestamps[1].time)
+
+    @format('double')
+    def testReadFramedComplex(self):
+        # Push a single frame directly to the port
+        sri = bulkio.sri.create('test_read_framed_cx')
+        sri.mode = 1
+        sri.subsize = 10
+        self.port.pushSRI(sri)
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(range(20), ts1, False, sri.streamID)
+
+        # Data should be returned as a 1-item list of lists of complex values
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.assertEqual(1, len(data.data))
+        expected = [[complex(x,x+1) for x in xrange(0, 20,2)]]
+        self.assertEqual(expected, data.data)
+
+        # Push three frames across two packets
+        ts2 = bulkio.timestamp.now()
+        self.port.pushPacket(range(40), ts2, False, sri.streamID)
+        ts3 = bulkio.timestamp.now()
+        self.port.pushPacket(range(40,60), ts3, False, sri.streamID)
+
+        # Data should come back as a 3-item list
+        data = self.sink.read(timeout=1.0)
+        self.failIf(data is None)
+        self.assertEqual(3, len(data.data))
+        expected = [[complex(x,x+1) for x in xrange(y, y+20,2)] for y in xrange(0, 60, 20)]
+        self.assertEqual(expected, data.data)
+
+        # Time stamp offsets should be frame-based
+        self.assertEqual(2, len(data.timestamps))
+        self.assertEqual(0, data.timestamps[0].offset)
+        self.assertEqual(ts2, data.timestamps[0].time)
+        self.assertEqual(2, data.timestamps[1].offset)
+        self.assertEqual(ts3, data.timestamps[1].time)
+
+    @format('bit')
+    def testReadBit(self):
+        # Push a bit sequence directly to the port
+        sri = bulkio.sri.create('test_read_bit')
+        self.port.pushSRI(sri)
+        data1 = bitbuffer('10101101010101')
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(data1), ts1, False, sri.streamID)
+
+        # Read should return the equivalent bitbuffer
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual(data1, sink_data.data)
+        self.assertEqual(1, len(sink_data.timestamps))
+        self.assertEqual(0, sink_data.timestamps[0].offset)
+        self.assertEqual(ts1, sink_data.timestamps[0].time)
+
+        # Push a couple more strings of bits with new timestamps
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(data1), ts1, False, sri.streamID)
+        data2 = bitbuffer('1010010101011')
+        ts2 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(data2), ts2, False, sri.streamID)
+        data3 = bitbuffer('1000101011100')
+        ts3 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(data3), ts3, False, sri.streamID)
+
+        # Read should merge all of the bits into a single bitbuffer
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual(data1+data2+data3, sink_data.data)
+        self.assertEqual(3, len(sink_data.timestamps))
+
+        # Check each timestamp's offset
+        expected_timestamps = [(0, ts1), (len(data1), ts2), (len(data1)+len(data2), ts3)]
+        for (exp_offset, exp_ts), actual_ts in zip(expected_timestamps, sink_data.timestamps):
+            self.assertEqual(exp_offset, actual_ts.offset)
+            self.assertEqual(exp_ts, actual_ts.time)
+
+    def _formatBitPacket(self, bitdata):
+        return BULKIO.BitSequence(bitdata.bytes(), len(bitdata))
+
+    @format('bit')
+    def testReadBitFramed(self):
+        sri = bulkio.sri.create('test_read_bit_framed')
+        sri.subsize = 25
+        self.port.pushSRI(sri)
+
+        # Create frames of all 0s and all 1s for a good indicator of framing
+        # problems
+        zeros = bitbuffer(bits=sri.subsize)
+        zeros[:] = 0
+        ones = bitbuffer(bits=sri.subsize)
+        ones[:] = 1
+
+        # Push 4 frames in one packet
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(zeros+ones+zeros+ones), ts1, False, sri.streamID)
+
+        # Data should be returned as a 4-item list of bitbuffers
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual(4, len(sink_data.data))
+        self.assertEqual([zeros,ones,zeros,ones], sink_data.data)
+
+        # Push 6 frames across two packets
+        ts2 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(zeros+ones+zeros), ts2, False, sri.streamID)
+        ts3 = bulkio.timestamp.now()
+        self.port.pushPacket(self._formatBitPacket(ones+zeros+ones), ts3, False, sri.streamID)
+
+        # Data should be returned as a 6-item list of bitbuffers
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual(6, len(sink_data.data))
+        self.assertEqual([zeros,ones,zeros,ones,zeros,ones], sink_data.data)
+
+        # Time stamp offsets should be frame-based
+        self.assertEqual(2, len(sink_data.timestamps))
+        self.assertEqual(0, sink_data.timestamps[0].offset)
+        self.assertEqual(ts2, sink_data.timestamps[0].time)
+        self.assertEqual(3, sink_data.timestamps[1].offset)
+        self.assertEqual(ts3, sink_data.timestamps[1].time)
+
+    @format('file')
+    def testReadFile(self):
+        # Push a file URI directly to the port
+        sri = bulkio.sri.create('test_read_file')
+        self.port.pushSRI(sri)
+        uri1 = 'file:///tmp/file1.dat'
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(uri1, ts1, False, sri.streamID)
+
+        # Read should return a list of URIs with 1 timestamp per URI
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual([uri1], sink_data.data)
+        self.assertEqual(1, len(sink_data.timestamps))
+        self.assertEqual(0, sink_data.timestamps[0].offset)
+        self.assertEqual(ts1, sink_data.timestamps[0].time)
+
+        # Push a couple more URIs with new timestamps
+        ts1 = bulkio.timestamp.now()
+        self.port.pushPacket(uri1, ts1, False, sri.streamID)
+        uri2 = 'file:///tmp/file2.dat'
+        ts2 = bulkio.timestamp.now()
+        self.port.pushPacket(uri2, ts2, False, sri.streamID)
+        uri3 = 'file:///tmp/file3.dat'
+        ts3 = bulkio.timestamp.now()
+        self.port.pushPacket(uri3, ts3, False, sri.streamID)
+
+        # Again, read should return a list of URIs with 1 timestamp per URI
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual([uri1, uri2, uri3], sink_data.data)
+        self.assertEqual(3, len(sink_data.timestamps))
+
+        # Check each timestamp; offset should increase by 1 each time
+        for (exp_offset, exp_ts), actual_ts in zip(enumerate([ts1, ts2, ts3]), sink_data.timestamps):
+            self.assertEqual(exp_offset, actual_ts.offset)
+            self.assertEqual(exp_ts, actual_ts.time)
+
+    @format('xml')
+    def testReadXML(self):
+        # Push an XML string directly to the port
+        sri = bulkio.sri.create('test_read_xml')
+        self.port.pushSRI(sri)
+        data1 = '<document/>'
+        self.port.pushPacket(data1, False, sri.streamID)
+
+        # Read should return a list of complete XML strings, and there should
+        # be no timestamps; in this case, there's only one XML string
+        sink_data = self.sink.read(timeout=1.0)
+        self.failIf(sink_data is None)
+        self.assertEqual([data1], sink_data.data)
+        self.assertEqual(0, len(sink_data.timestamps))
+
+        # Push a couple more XML strings
+        self.port.pushPacket(data1, False, sri.streamID)
+        data2 = '<document><body/></document>'
+        self.port.pushPacket(data2, False, sri.streamID)
+        data3 = '<document><body></body></document>'
+        self.port.pushPacket(data3, True, sri.streamID)
+
+        # This time, it should return 3 XML strings, but still no timestamps
+        sink_data = self.sink.read(timeout=1.0, eos=True)
+        self.failIf(sink_data is None)
+        self.assertEqual([data1, data2, data3], sink_data.data)
+        self.assertEqual(0, len(sink_data.timestamps))
+
     @format('long')
     def testReadStreamID(self):
         # Push directly to the port
@@ -465,12 +688,12 @@ class StreamSinkTest(unittest.TestCase):
         self.assertEqual(sri.streamID, sink_data.sri.streamID)
         self.assertEqual(range(10), sink_data.data)
 
-    @format('bit')
+    @format('float')
     def testWaitStreamAndEOS(self):
         # Push directly to the port
         sri = bulkio.sri.create('test_stream_eos_1')
         self.port.pushSRI(sri)
-        self.port.pushPacket(BULKIO.BitSequence('\x00', 7), bulkio.timestamp.now(), True, sri.streamID)
+        self.port.pushPacket(range(7), bulkio.timestamp.now(), True, sri.streamID)
 
         # Read with eos=True and a different stream ID should fail
         sink_data = self.sink.read(timeout=0.1, streamID='other', eos=True)
@@ -479,12 +702,9 @@ class StreamSinkTest(unittest.TestCase):
         # Push new data and an end-of-stream packet to a second stream
         sri2 = bulkio.sri.create('test_stream_eos_2')
         self.port.pushSRI(sri2)
-        data = bitbuffer('10'*16)
-        packet = BULKIO.BitSequence(data[:21].bytes(), 21)
-        self.port.pushPacket(packet, bulkio.timestamp.now(), False, sri2.streamID)
-        packet = BULKIO.BitSequence(data[21:].bytes(), len(data)-21)
-        self.port.pushPacket(packet, bulkio.timestamp.now(), False, sri2.streamID)
-        self.port.pushPacket(BULKIO.BitSequence('', 0), bulkio.timestamp.notSet(), True, sri2.streamID)
+        self.port.pushPacket(range(21), bulkio.timestamp.now(), False, sri2.streamID)
+        self.port.pushPacket(range(21, 32), bulkio.timestamp.now(), False, sri2.streamID)
+        self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri2.streamID)
 
         # Read until end-of-stream should succeed, returning all the data
         # pushed, with EOS set
@@ -492,72 +712,7 @@ class StreamSinkTest(unittest.TestCase):
         self.failIf(sink_data is None)
         self.failUnless(sink_data.eos)
         self.assertEqual(sri2.streamID, sink_data.sri.streamID)
-        self.assertEqual(data, sink_data.data)
-
-    @format('file')
-    def testReadFile(self):
-        # Push a file URI directly to the port
-        sri = bulkio.sri.create('test_read_file')
-        self.port.pushSRI(sri)
-        uri1 = 'file:///tmp/file1.dat'
-        ts1 = bulkio.timestamp.now()
-        self.port.pushPacket(uri1, ts1, False, sri.streamID)
-
-        # Read should return a list of URIs with 1 timestamp per URI
-        sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
-        self.assertEqual([uri1], sink_data.data)
-        self.assertEqual(1, len(sink_data.timestamps))
-        self.assertEqual(0, sink_data.timestamps[0].offset)
-        self.assertEqual(ts1, sink_data.timestamps[0].time)
-
-        # Push a couple more URIs with new timestamps
-        ts1 = bulkio.timestamp.now()
-        self.port.pushPacket(uri1, ts1, False, sri.streamID)
-        uri2 = 'file:///tmp/file2.dat'
-        ts2 = bulkio.timestamp.now()
-        self.port.pushPacket(uri2, ts2, False, sri.streamID)
-        uri3 = 'file:///tmp/file3.dat'
-        ts3 = bulkio.timestamp.now()
-        self.port.pushPacket(uri3, ts3, False, sri.streamID)
-
-        # Again, read should return a list of URIs with 1 timestamp per URI
-        sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
-        self.assertEqual([uri1, uri2, uri3], sink_data.data)
-        self.assertEqual(3, len(sink_data.timestamps))
-        # Check each timestamp; offset should increase by 1 each time
-        for (exp_offset, exp_ts), actual_ts in zip(enumerate([ts1, ts2, ts3]), sink_data.timestamps):
-            self.assertEqual(exp_offset, actual_ts.offset)
-            self.assertEqual(exp_ts, actual_ts.time)
-
-    @format('xml')
-    def testReadXML(self):
-        # Push an XML string directly to the port
-        sri = bulkio.sri.create('test_read_xml')
-        self.port.pushSRI(sri)
-        data1 = '<document/>'
-        self.port.pushPacket(data1, False, sri.streamID)
-
-        # Read should return a list of complete XML strings, and there should
-        # be no timestamps; in this case, there's only one XML string
-        sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
-        self.assertEqual([data1], sink_data.data)
-        self.assertEqual(0, len(sink_data.timestamps))
-
-        # Push a couple more XML strings
-        self.port.pushPacket(data1, False, sri.streamID)
-        data2 = '<document><body/></document>'
-        self.port.pushPacket(data2, False, sri.streamID)
-        data3 = '<document><body></body></document>'
-        self.port.pushPacket(data3, True, sri.streamID)
-
-        # This time, it should return 3 XML strings, but still no timestamps
-        sink_data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(sink_data is None)
-        self.assertEqual([data1, data2, data3], sink_data.data)
-        self.assertEqual(0, len(sink_data.timestamps))
+        self.assertEqual(range(32), sink_data.data)
 
     @format('double')
     def testStreamIDs(self):

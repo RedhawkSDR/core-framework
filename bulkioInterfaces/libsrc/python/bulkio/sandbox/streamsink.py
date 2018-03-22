@@ -85,9 +85,28 @@ class StreamContainer(object):
     def get(self):
         # Combine blocks' data and metadata into a single data object
         data = StreamData([], self._createEmpty(), [], self.eos)
+        framed = False
         for block in self.blocks:
             offset = len(data.data)
-            data.data += self._getBlockData(block)
+            block_data = self._getBlockData(block)
+
+            # Check for framed data mode
+            if block.sri.subsize > 0:
+                # If the data wasn't framed before, turn it into a list
+                if not framed:
+                    if data.data:
+                        # There was some data, put it in a list
+                        data.data = [data.data]
+                    else:
+                        # Replace empty data with a list (this is mostly for
+                        # the benefit of bitbuffer)
+                        data.data = []
+                    framed = True
+
+                # Reframe the block's data to match the framing
+                block_data = self._reframeData(block_data, block.sri.subsize)
+            data.data += block_data
+
             if block.sriChanged or not data.sris:
                 data.sris.append(SRI(offset, block.sri))
             for ts in block.getTimestamps():
@@ -102,6 +121,9 @@ class StreamContainer(object):
 
     def _createEmpty(self):
         return []
+
+    def _reframeData(self, data, frameSize):
+        return [data[pos:pos+frameSize] for pos in xrange(0, len(data), frameSize)]
 
     def _getBlockSize(self, block):
         if block.complex:
