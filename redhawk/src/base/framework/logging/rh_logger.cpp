@@ -22,6 +22,7 @@
 #include <sstream>
 
 // logging macros used by redhawk resources
+#include "ossie/logging/loghelpers.h"
 #include <ossie/debug.h>
 
 #ifdef HAVE_LOG4CXX
@@ -591,10 +592,10 @@ namespace rh_logger {
     return  log_records;
   }
 
-  void Logger::configureLogger(const std::string &configuration, bool root_reset) {
+  void Logger::configureLogger(const std::string &configuration, bool root_reset, int level) {
   }
 
-  void StdOutLogger::configureLogger(const std::string &configuration, bool root_reset) {
+  void StdOutLogger::configureLogger(const std::string &configuration, bool root_reset, int level) {
   }
 
   bool Logger::isLoggerInHierarchy(const std::string& search_name) {
@@ -845,7 +846,7 @@ namespace rh_logger {
     return ret;
   }
 
-  void L4Logger::configureLogger(const std::string &configuration, bool root_reset) {
+  void L4Logger::configureLogger(const std::string &configuration, bool root_reset, int level) {
     log4cxx::helpers::Properties  props;
     log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( configuration ) );
     props.load(is);
@@ -853,10 +854,14 @@ namespace rh_logger {
     log4cxx::spi::LoggerRepositoryPtr log_repo = this->_rootHierarchy;
     prop_conf.doConfigure(props, log_repo);
     if (root_reset) {
-        log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
         log4cxx::LoggerPtr new_root = this->_rootHierarchy->getRootLogger();
-        if (global_root->getEffectiveLevel()->toInt() != new_root->getEffectiveLevel()->toInt()) {
-            new_root->setLevel( global_root->getEffectiveLevel() );
+        if (level == -1) {
+            log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
+            if (global_root->getEffectiveLevel()->toInt() != new_root->getEffectiveLevel()->toInt()) {
+                new_root->setLevel( global_root->getEffectiveLevel() );
+            }
+        } else {
+            new_root->setLevel(ConvertRHLevelToLog4(ossie::logging::ConvertDebugToRHLevel(level)));
         }
     }
   }

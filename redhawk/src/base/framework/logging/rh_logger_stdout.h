@@ -57,7 +57,7 @@ namespace rh_logger {
 
     void* getUnderlyingLogger();
 
-    virtual void configureLogger(const std::string &configuration, bool root_reset=false);
+    virtual void configureLogger(const std::string &configuration, bool root_reset=false, int level=-1);
 
   protected:
 

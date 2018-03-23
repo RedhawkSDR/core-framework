@@ -319,7 +319,7 @@ namespace rh_logger {
     virtual void appendLogRecord( const LogRecord &rec);
     virtual void appendLogRecord( const LevelPtr &level, const std::string &msg);
 
-    virtual void configureLogger(const std::string &configuration, bool root_reset=false);
+    virtual void configureLogger(const std::string &configuration, bool root_reset=false, int level=-1);
 
     //
     //  Set the logging event history limit
