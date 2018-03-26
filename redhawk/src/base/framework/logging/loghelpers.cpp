@@ -73,11 +73,6 @@ namespace ossie {
 
   namespace logging {
 
-    // resolve logging config uri from command line
-    std::string  ResolveLocalUri( const std::string &logfile_uri,
-                                  const std::string &rootPath,
-                                  std::string &validated_uri );
-
     static const std::string DomPrefix("dom");
     static const std::string DevMgrPrefix("devmgr");
     static const std::string DevicePrefix("dev");

@@ -418,7 +418,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
 
         self.assertNotEqual(self.logcfg_uri,None)
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expectedDomLoggingConfigUri)
-        self.assertEqual(self.debug_level,"3")
+        self.assertEqual(self.debug_level,None)
 
     def test_Sad_CompProps_LogCfg(self):
 

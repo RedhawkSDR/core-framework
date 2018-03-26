@@ -40,6 +40,7 @@
 #include <ossie/FileManager_impl.h>
 #include <ossie/File_impl.h>
 #include <ossie/ParserLogs.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "PersistenceStore.h"
 #include "connectionSupport.h"

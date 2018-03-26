@@ -89,7 +89,9 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
 
     std::string std_logconfig_uri;
     if (_logconfig_uri) {
-        std_logconfig_uri = _logconfig_uri;
+        std::string _lu(_logconfig_uri);
+        std::string _rp(_rootpath);
+        std_logconfig_uri = ossie::logging::ResolveLocalUri(_lu, _rp, _lu);
     }
     std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
     this->_baseLog->configureLogger(expanded_config, true);

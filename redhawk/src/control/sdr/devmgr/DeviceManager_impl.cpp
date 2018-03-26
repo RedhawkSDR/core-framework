@@ -856,7 +856,7 @@ void DeviceManager_impl::postConstructor (
 
     std::string std_logconfig_uri;
     if (!logging_config_uri.empty()) {
-        std_logconfig_uri = logging_config_uri;
+        std_logconfig_uri = ossie::logging::ResolveLocalUri(logging_config_uri, _fsroot, logging_config_uri);
     }
     std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
     this->_baseLog->configureLogger(expanded_config, true);

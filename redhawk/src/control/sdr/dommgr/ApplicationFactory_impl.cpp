@@ -2048,6 +2048,7 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
 
     std::string logging_uri("");
     int  debug_level=-1;
+    bool resolved_loggingconfig = false;
     if ( execParams.contains("LOGGING_CONFIG_URI") ) {
         logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
         RH_TRACE(_createHelperLog, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
@@ -2070,6 +2071,7 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     }
     if ( log_config.contains("LOG_LEVEL") ) {
         debug_level = resolveDebugLevel(log_config["LOG_LEVEL"].toString());
+        resolved_loggingconfig = true;
         RH_TRACE(_createHelperLog, "resolveLoggingConfig: loggingconfig debug_level: " << debug_level);
     }
 
@@ -2112,7 +2114,10 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     }
 
     // if debug level is resolved, then add as execparam
-    if ( _appFact._domainManager->getInitialLogLevel() != -1 ) {
+    if (resolved_loggingconfig) { // check to see if loggingconfig is set on the SAD file
+        execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(debug_level);
+        RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << _appFact._domainManager->getInitialLogLevel() );
+    } else if ( _appFact._domainManager->getInitialLogLevel() != -1 ) { // check to see if a command-line debug level was used in nodeBooter
         execParams["DEBUG_LEVEL"] = static_cast<CORBA::Long>(_appFact._domainManager->getInitialLogLevel());
         RH_DEBUG(_createHelperLog, "resolveLoggingConfiguration: COMP: " << deployment->getIdentifier() << " LOG_LEVEL: " << _appFact._domainManager->getInitialLogLevel() );
     }
