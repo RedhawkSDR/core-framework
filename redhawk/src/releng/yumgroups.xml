@@ -66,18 +66,4 @@ with this program.  If not, see http://www.gnu.org/licenses/.
             <packagereq type="default">omniEvents-bootscripts</packagereq>
         </packagelist>
     </group>
-    <group>
-        <id>redhawk-enterprise-integration</id>
-        <name>REDHAWK Enterprise Integration</name>
-        <default>true</default>
-        <description>REDHAWK Enterprise Integration</description>
-        <uservisible>true</uservisible>
-        <packagelist>
-            <packagereq type="default">redhawk-enterprise-integration-demo-dist</packagereq>
-            <packagereq type="mandatory">redhawk-enterprise-integration-dist-jetty</packagereq>
-            <packagereq type="mandatory">redhawk-enterprise-integration-dist-karaf</packagereq>
-            <packagereq type="mandatory">redhawk-enterprise-integration-dist-shell</packagereq>
-            <packagereq type="default">redhawk-enterprise-integration-docs</packagereq>
-        </packagelist>
-    </group>
 </comps>
