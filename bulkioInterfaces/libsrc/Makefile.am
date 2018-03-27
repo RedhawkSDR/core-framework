@@ -107,9 +107,9 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
+rootflag = $(if $(DESTDIR),--root=$(DESTDIR))
 install-python:
-	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
-	  python setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
+	$(PYTHON) setup.py install $(rootflag) --home=$(prefix) --old-and-unmanageable
 
 clean-python:
 	python setup.py clean --all

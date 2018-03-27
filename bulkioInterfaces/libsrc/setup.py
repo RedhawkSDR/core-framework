@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -18,16 +18,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-#!/usr/bin/env python
 
-from distutils.core import setup
-import os
+from setuptools import setup
 
-setup(
-    name='bulkio',
-    version='2.1.3',
-    description='Python Classes for REDHAWK BULKIO Interfaces',
-    packages=['bulkio',
-              'bulkio.sandbox'],
-    package_dir = { '' : 'python' }
-    )
+setup(name='bulkio',
+      version='2.1.3',
+      description='Python Classes for REDHAWK BULKIO Interfaces',
+      packages=['bulkio',
+                'bulkio.sandbox'],
+      package_dir={ '' : 'python' },
+      entry_points={'redhawk.sandbox.helpers':['StreamSink=bulkio.sandbox:StreamSink',
+                                               'StreamSource=bulkio.sandbox:StreamSource']}
+      )
