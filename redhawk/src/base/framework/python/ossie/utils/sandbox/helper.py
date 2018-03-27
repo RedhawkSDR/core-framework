@@ -73,22 +73,23 @@ class SandboxHelper(PortSupplier):
         self._instanceName = instanceName
         self._sandbox._registerComponent(self)
 
-    def _initializeHelper(self):
-        pass
-
-    def _addUsesPort(self, name, repoID, portClass):
-        self._usesPortDict[name] = {
+    def _addUsesPort(self, name, repoID, portClass, custom={}):
+        port_dict = {
             'Port Name': name,
             'Port Interface': repoID,
             'Port Class': portClass
         }
+        port_dict.update(custom)
+        self._usesPortDict[name] = port_dict
 
-    def _addProvidesPort(self, name, repoID, portClass):
-        self._providesPortDict[name] = {
+    def _addProvidesPort(self, name, repoID, portClass, custom={}):
+        port_dict = {
             'Port Name': name,
             'Port Interface': repoID,
             'Port Class': portClass
         }
+        port_dict.update(custom)
+        self._providesPortDict[name] = port_dict
 
     def _createPort(self, portDict, name=None):
         clazz = portDict['Port Class']
@@ -97,11 +98,6 @@ class SandboxHelper(PortSupplier):
         port = clazz(name)
         self._portCreated(port, portDict)
         return port
-
-    def _portCreated(self, port, portDict):
-        # Extension point for subclasses to perform any post port-creation
-        # tasks (e.g., setting a mode based on the port type)
-        pass
 
     @property
     def started(self):
@@ -113,17 +109,17 @@ class SandboxHelper(PortSupplier):
         self._startHelper()
         self._started = True
 
-    def _startHelper(self):
-        if self._port and hasattr(self._port, 'startPort'):
-            self._port.startPort()
-
     def stop(self):
         if not self._started:
             return
         self._stopHelper()
         self._started = False
 
-    def _stopHelper(self):
+    def _startPorts(self):
+        if self._port and hasattr(self._port, 'startPort'):
+            self._port.startPort()
+
+    def _stopPorts(self):
         if self._port and hasattr(self._port, 'stopPort'):
             self._port.stopPort()
 
@@ -153,6 +149,29 @@ class SandboxHelper(PortSupplier):
             self._port = self._createPort(port_dict)
 
         return self._port._this()
+
+    # Extension points for subclasses
+    def _initializeHelper(self):
+        # Equivalent to component constructor() method; override to perform any
+        # initialization that requires that the helper has registered with the
+        # sandbox (e.g., any setup that requires knowing the instance name)
+        pass
+
+    def _portCreated(self, port, portDict):
+        # Extension point for subclasses to perform any post port-creation
+        # tasks (e.g., setting a mode based on the port type)
+        pass
+
+    def _startHelper(self):
+        # Subclasses should override this method rather than start() to provide
+        # additional start behavior
+        self._startPorts()
+
+    def _stopHelper(self):
+        # Subclasses should override this method rather than stop() to provide
+        # additional stop behavior
+        self._stopPorts()
+
 
 class ThreadedSandboxHelper(SandboxHelper, ThreadedComponent):
     def __init__(self):

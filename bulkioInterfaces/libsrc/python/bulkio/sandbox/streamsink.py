@@ -204,17 +204,19 @@ class StreamSink(SandboxHelper):
             formats = _PORT_MAP.keys()
         for format in formats:
             clazz, helper = _PORT_MAP[format]
-            self._addProvidesPort(format+'In', helper._NP_RepositoryId, clazz)
+            if format == 'bit':
+                cache = BitStreamContainer
+            elif format in ('xml', 'file'):
+                cache = StringStreamContainer
+            else:
+                cache = StreamContainer
+            self._addProvidesPort(format+'In', helper._NP_RepositoryId, clazz, {'cache':cache})
 
         self._cachedStreams = {}
         self._cacheClass = StreamContainer
 
     def _portCreated(self, port, portDict):
-        repo_id = portDict['Port Interface']
-        if repo_id == BULKIO.dataBit._NP_RepositoryId:
-            self._cacheClass = BitStreamContainer
-        elif repo_id in (BULKIO.dataXML._NP_RepositoryId, BULKIO.dataFile._NP_RepositoryId):
-            self._cacheClass = StringStreamContainer
+        self._cacheClass = portDict['cache']
 
     def streamIDs(self):
         """
