@@ -64,6 +64,9 @@ class StreamData(object):
         return sri
 
 class StreamContainer(object):
+    """
+    Internal class to cache data read from a stream.
+    """
     def __init__(self, sri):
         self.sri = sri
         self.blocks = []
@@ -138,6 +141,9 @@ class StreamContainer(object):
             return block.data
 
 class StringStreamContainer(StreamContainer):
+    """
+    Internal class for storing data from string-type streams (XML, File).
+    """
     def __init__(self, sri):
         StreamContainer.__init__(self, sri)
 
@@ -148,6 +154,9 @@ class StringStreamContainer(StreamContainer):
         return [block.buffer]
 
 class BitStreamContainer(StreamContainer):
+    """
+    Internal class for storing data from packed bit streams.
+    """
     def __init__(self, sri):
         StreamContainer.__init__(self, sri)
 
@@ -161,7 +170,32 @@ class BitStreamContainer(StreamContainer):
         return block.buffer
 
 class StreamSink(SandboxHelper):
+    """
+    Sandbox helper for reading BulkIO stream data.
+
+    StreamSink provides a simplified interface for reading data from BulkIO
+    streams.  It can support any BulkIO data type (with the exception of SDDS
+    and VITA49), but only one type is supported per instance.
+
+    Unlike DataSink, reading from StreamSink returns data from only one stream
+    at a time. This avoids problems caused by accidental data interleaving.
+
+    If more control over stream reading is desired, the `port` attribute
+    provides access to the underlying BulkIO port. The port is an instance of
+    the same class used in Python components, and supports the full stream API.
+
+    See Also:
+        StreamSource
+    """
     def __init__(self, format=None):
+        """
+        Creates a new StreamSink.
+
+        Args:
+            format:    BulkIO port type to support (e.g., "float"). If not
+                       given, all BulkIO port types except SDDS and VITA49 are
+                       supported.
+        """
         SandboxHelper.__init__(self)
 
         if format:
@@ -175,9 +209,6 @@ class StreamSink(SandboxHelper):
         self._cachedStreams = {}
         self._cacheClass = StreamContainer
 
-    def streamIDs(self):
-        return [sri.streamID for sri in self.activeSRIs()]
-
     def _portCreated(self, port, portDict):
         repo_id = portDict['Port Interface']
         if repo_id == BULKIO.dataBit._NP_RepositoryId:
@@ -185,7 +216,22 @@ class StreamSink(SandboxHelper):
         elif repo_id in (BULKIO.dataXML._NP_RepositoryId, BULKIO.dataFile._NP_RepositoryId):
             self._cacheClass = StringStreamContainer
 
+    def streamIDs(self):
+        """
+        Gets the stream IDs for the active streams.
+
+        Returns:
+            list(str): The currently active stream IDs.
+        """
+        return [sri.streamID for sri in self.activeSRIs()]
+
     def activeSRIs(self):
+        """
+        Gets the SRIs for the active streams.
+
+        Returns:
+            list(BULKIO.StreamSRI): The currently active SRIs.
+        """
         sri_list = [c.sri for c in self._cachedStreams.itervalues()]
         if self._port:
             for stream in self._port.getStreams():
@@ -195,9 +241,54 @@ class StreamSink(SandboxHelper):
 
     @property
     def port(self):
+        """
+        The BulkIO input port in use by this helper.
+
+        The port is created when a connection is made from this helper to
+        another object in the sandbox. If no connection exists, the port is
+        None.
+        """
         return self._port
 
     def read(self, timeout=-1.0, streamID=None, eos=False):
+        """
+        Reads stream data.
+
+        Reading attempts to return as much data from a single stream as
+        possible. If the read succeeds, returns a StreamData object with the
+        following fields:
+          * streamID   - Identifier of the stream from which data was read.
+          * sri        - SRI in effect at the start of the read.
+          * sris       - List of (offset, StreamSRI) tuples that describe the
+                         data. The offset gives the element in `data` at which
+                         the SRI applies (e.g., data[0]).
+          * data       - The data read from the stream, formatted as necessary.
+          * timestamps - List of (offset, PrecisionUTCTime) tuples that give
+                         time information for data. The offset gives the
+                         element in `data` at which the time stamp applies
+                         (e.g., data[0]).
+          * eos        - True if the stream has ended, False if still active.
+
+        If the SRI indicates that the data is framed (that is, `sri.subsize` is
+        non-zero), StreamSink will turn the data into a list of frames. For
+        example, with float data and a frame size of 4, the `data` field will
+        be a list of 4-element lists, where each item is a float.
+
+        Args:
+            timeout:   Maximum time, in seconds, to wait for data to become
+                       available. A negative time waits indefinitely (this is
+                       the default).
+            streamID:  Identifier of stream to read from (default is first
+                       available).
+            eos:       If True, wait up to `timeout` for a stream to receive an
+                       EOS (default is False). This may be combined with the
+                       `streamID` argument to wait for a specific stream.
+
+        Returns:
+            StreamData object on success.
+            None if timeout elapsed or helper was stopped and no data was
+            available.
+        """
         if eos:
             condition = lambda x: x.eos
         else:

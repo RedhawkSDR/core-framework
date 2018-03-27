@@ -20,3 +20,5 @@
 
 from streamsource import StreamSource
 from streamsink import StreamSink
+
+__all__ = ('StreamSource', 'StreamSink')

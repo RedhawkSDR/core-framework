@@ -45,6 +45,10 @@ _PORT_MAP = {
 }
 
 def proxy(attr):
+    """
+    Wrapper class to handle passthrough for getting and setting OutputStream
+    attributes in StreamSource.
+    """
     class property_proxy(object):
         __doc__ = attr.__doc__
         def __init__(self, attr):
@@ -54,8 +58,8 @@ def proxy(attr):
             if obj is None:
                 return self
             if obj._stream is not None:
-                return self.__attr.__get__(obj._stream)
-            return self.__attr.__get__(obj)
+                return self.__attr.__get__(obj._stream, cls)
+            return self.__attr.__get__(obj, cls)
 
         def __set__(self, obj, value):
             if obj._stream is not None:
@@ -65,7 +69,33 @@ def proxy(attr):
     return property_proxy(attr)
 
 class StreamSource(SandboxHelper):
+    """
+    Sandbox helper for writing BulkIO stream data.
+
+    StreamSource provides a simplified interface to write a single BulkIO
+    stream to one or more components. It can support any BulkIO data type (with
+    the exception of SDDS and VITA49), but only one type is supported per
+    instance.
+
+    If more than one stream is desired, create one StreamSource per stream ID,
+    or use the `port` attribute to get direct access to the underlying BulkIO
+    port. The port is an instance of the same class used in Python components,
+    and supports the full stream API.
+
+    See Also:
+        StreamSink
+    """
     def __init__(self, streamID=None, format=None):
+        """
+        Creates a new StreamSource.
+
+        Args:
+            streamID:  The unique identifier for this stream. If not given, the
+                       helper's instance name is used (e.g., "StreamSource_1").
+            format:    BulkIO port type to support (e.g., "float"). If not
+                       given, all BulkIO port types except SDDS and VITA49 are
+                       supported.
+        """
         SandboxHelper.__init__(self)
         self._streamID = streamID
         self._stream = None
@@ -84,6 +114,15 @@ class StreamSource(SandboxHelper):
         self._sri = bulkio.sri.create(self._streamID)
 
     def write(self, data, timestamp=None):
+        """
+        Writes data to the stream.
+
+        Args:
+            data:       Data to write.
+            timestamp:  Optional time stamp for first sample of `data`. If not
+                        given, the current time is used. Ignored when the data
+                        type is XML.
+        """
         if not self._port:
             # Not connected to anything
             # TODO: Is this an error condition or should we ignore it
@@ -122,10 +161,26 @@ class StreamSource(SandboxHelper):
 
     @property
     def port(self):
+        """
+        The BulkIO output port in use by this helper.
+
+        The port is created when a connection is made from this helper to
+        another object in the sandbox. If no connection exists, the port is
+        None.
+        """
         return self._port
 
     @property
     def stream(self):
+        """
+        The BulkIO stream managed by this helper.
+
+        If no connection from this helper has been made yet, the stream is
+        None.
+
+        See Also:
+            StreamSource.port
+        """
         if self._port and not self._stream:
             # Port has to exist before creating the stream
             self.log.debug("Creating stream '%s'", self.streamID)
