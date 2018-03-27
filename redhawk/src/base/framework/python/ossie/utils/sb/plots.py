@@ -137,11 +137,6 @@ class PlotBase(ThreadedSandboxHelper):
                 return manager.window
         return None
 
-    def _portCreated(self, port, portDict):
-        if self.started:
-            # Plot is started; start port.
-            port.startPort()
-
     def _redraw(self):
         """
         Redraw the plot and ask the widget to display the update.

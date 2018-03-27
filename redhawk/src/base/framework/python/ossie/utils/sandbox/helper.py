@@ -96,7 +96,14 @@ class SandboxHelper(PortSupplier):
         if not name:
             name = portDict['Port Name']
         port = clazz(name)
+
+        # Automatically start the port if the helper has already been started
+        if self.started:
+            self._startPort(port)
+
+        # Allow subclasses to perform additional post-creation logic
         self._portCreated(port, portDict)
+
         return port
 
     @property
@@ -115,13 +122,21 @@ class SandboxHelper(PortSupplier):
         self._stopHelper()
         self._started = False
 
+    def _startPort(self, port):
+        if hasattr(port, 'startPort'):
+            port.startPort()
+
+    def _stopPort(self, port):
+        if hasattr(port, 'stopPort'):
+            port.stopPort()
+
     def _startPorts(self):
-        if self._port and hasattr(self._port, 'startPort'):
-            self._port.startPort()
+        if self._port:
+            self._startPort(self._port)
 
     def _stopPorts(self):
-        if self._port and hasattr(self._port, 'stopPort'):
-            self._port.stopPort()
+        if self._port:
+            self._stopPort(self._port)
 
     def releaseObject(self):
         # Break any connections involving this helper
