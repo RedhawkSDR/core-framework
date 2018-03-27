@@ -243,7 +243,7 @@ public:
     redhawk::DomainManagerContainer* getDomainManager() {
         return this->_domMgr;
     }
-    rh_logger::LoggerPtr _log;
+    rh_logger::LoggerPtr _baseLog;
 
 protected:
     std::string _devMgr_ior;

@@ -31,8 +31,8 @@ void Service_impl::initResources (char* devMgr_ior, char* name)
     _name = name;
     _devMgr_ior = devMgr_ior;
     initialConfiguration = true;
-    _log = rh_logger::Logger::getResourceLogger(_name);
-    _serviceLog = _log->getChildLogger("Service", "system");
+    _baseLog = rh_logger::Logger::getNewHierarchy(_name);
+    _serviceLog = _baseLog->getChildLogger("Service", "system");
 }
 
 Service_impl::Service_impl (char* devMgr_ior, char* _name) :
