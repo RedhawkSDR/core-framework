@@ -75,6 +75,9 @@ class PlotBase(ThreadedSandboxHelper):
         _deferred_imports()
         ThreadedSandboxHelper.__init__(self)
 
+        # Use 1/10th of a second for sleeping when there are no updates
+        self.setThreadDelay(0.1)
+
         # Create provides port dictionary.
         self._addProvidesPort('charIn', 'IDL:BULKIO/dataChar:1.0', bulkio.InCharPort)
         self._addProvidesPort('octetIn', 'IDL:BULKIO/dataOctet:1.0', bulkio.InOctetPort)
@@ -289,7 +292,7 @@ class LineBase(PlotBase):
             if traceName in self._lines:
                 raise KeyError, "Trace '%s' already exists" % traceName
 
-            port = self._createPort(port['Port Class'], traceName)
+            port = self._createPort(port, traceName)
             
             options = self._lineOptions()
             line, = self._plot.plot([], [], label=name, scalex=False, scaley=False, **options)
@@ -324,11 +327,12 @@ class LineBase(PlotBase):
         # Get a copy of the current set of lines to update, then release the
         # lock to do the reads. This allows the read to be interrupted (e.g.,
         # if a source is disconnected) without deadlock.
-        redraw = False
         with self._linesLock:
             traces = self._lines.values()
-        for trace in traces:
-            redraw = self._updateTrace(trace) or redraw
+ 
+        redraw = [self._updateTrace(trace) for trace in traces]
+        if not any(redraw):
+            return False
 
         if self._ymin is None or self._ymax is None:
             self._plot.relim()
@@ -342,9 +346,8 @@ class LineBase(PlotBase):
                 ymax = self._plot.dataLim.y1
             # Update plot scale.
             self._plot.set_ylim(ymin, ymax)
-            redraw = True
 
-        return redraw
+        return True
 
     def _startHelper(self):
         log.debug("Starting line plot '%s'", self._instanceName)
@@ -433,7 +436,10 @@ class LinePlot(LineBase):
         return BULKIO.UNITS_TIME
 
     def _formatData(self, block, stream):
-        data = block.data
+        if block.complex:
+            data = block.buffer[::2]
+        else:
+            data = block.buffer
         times = numpy.arange(len(data)) * block.xdelta
         return times, data
 
@@ -522,9 +528,9 @@ class LinePSD(LineBase, PSDBase):
 
     def _formatData(self, block, stream):
         if block.complex:
-            data = block.cxdata
+            data = block.cxbuffer
         else:
-            data = block.data
+            data = block.buffer
 
         # Calculate PSD of input data.
         data, freqs = self._psd(data, stream)
@@ -590,7 +596,7 @@ class RasterBase(PlotBase):
         return port
 
     def _formatData(self, block, stream):
-        return block.data
+        return block.buffer
 
     def _setBitMode(self):
         pass
@@ -799,11 +805,11 @@ class RasterPlot(RasterBase):
     def _formatData(self, block, stream):
         # Image data cannot be complex; just use the real component.
         if self._bitMode:
-            return block.data.unpack()
+            return block.buffer.unpack()
         elif block.complex:
-            return block.data[::2]
+            return block.buffer[::2]
         else:
-            return block.data
+            return block.buffer
 
     def _getFrameSize(self, stream):
         if self._frameSizeOverride is not None:
@@ -928,11 +934,11 @@ class RasterPSD(RasterBase, PSDBase):
 
     def _formatData(self, block, stream):
         if self._bitMode:
-            data = block.data.unpack()
+            data = block.buffer.unpack()
         elif block.complex:
-            data = block.cxdata
+            data = block.cxbuffer
         else:
-            data = block.data
+            data = block.buffer
 
         # Calculate PSD of input data.
         data, freqs = self._psd(data, stream)
@@ -986,9 +992,9 @@ class XYPlot(LineBase):
     def _formatData(self, data, sri):
         # Split real and imaginary components into X and Y coodinates.
         if sri.complex:
-            return data.data[::2], data.data[1::2]
+            return data.buffer[::2], data.buffer[1::2]
         else:
-            return data.data, [0.0]*data.size
+            return data.buffer, [0.0]*len(data.buffer)
 
     def _getXRange(self, sri):
         return self._xmin, self._xmax
