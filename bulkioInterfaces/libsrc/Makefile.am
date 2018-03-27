@@ -109,7 +109,7 @@ ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
 rootflag = $(if $(DESTDIR),--root=$(DESTDIR))
 install-python:
-	$(PYTHON) setup.py install $(rootflag) --home=$(prefix) --old-and-unmanageable
+	$(PYTHON) setup.py install -f $(rootflag) --home=$(prefix) --old-and-unmanageable
 
 clean-python:
 	python setup.py clean --all
