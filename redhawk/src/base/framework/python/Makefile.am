@@ -58,10 +58,5 @@ BUILT_SOURCES = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-PYTHON_INSTALL_FILES=".pythonInstallFiles"
-
 install-exec-hook:
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
-
-uninstall:
-	rm `cat $(PYTHON_INSTALL_FILES)`
+	$(PYTHON) setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --old-and-unmanageable

@@ -130,9 +130,6 @@ except:
 import helpers
 from helpers import *
 
-from plots import *
-from audio import *
-
 # Add plug-in extensions
 from ossie.utils.sandbox.plugin import plugins
 for name, plugin in plugins():
