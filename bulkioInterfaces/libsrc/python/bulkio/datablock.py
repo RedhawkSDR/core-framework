@@ -229,7 +229,7 @@ class DataBlock(object):
             float: Difference, in seconds, between expected and actual value.
         """
         self._validateTimestamps()
-        return _get_drift(self._timestamps[0], self._timestamps[-1], self.xdelta())
+        return _get_drift(self._timestamps[0], self._timestamps[-1], self.xdelta)
 
     def getMaxTimeDrift(self):
         """
@@ -253,7 +253,7 @@ class DataBlock(object):
         self._validateTimestamps()
         max_drift = 0.0
         for index in xrange(1, len(self._timestamps)):
-            drift = _get_drift(self._timestamps[index-1], self._timestamps[index], self.xdelta())
+            drift = _get_drift(self._timestamps[index-1], self._timestamps[index], self.xdelta)
             if abs(drift) > abs(max):
                 max_drift = drift
         return max_drift
