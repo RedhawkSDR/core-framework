@@ -52,6 +52,8 @@ class format(object):
         obj.format = self.format
         return obj
 
+bithelper = helpers.BitTestHelper()
+
 class StreamSourceTest(unittest.TestCase):
     def setUp(self):
         self.sandbox = LocalSandbox()
@@ -216,9 +218,6 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(1, len(self.stub.packets))
         self.assertEqual(data, self.stub.packets[-1].data)
 
-    def _formatBitSequence(self, bits):
-        return bitbuffer(bytearray(bits.data), bits=bits.bits)
-
     @format('bit')
     def testWriteBit(self):
         # No timestamp
@@ -226,7 +225,7 @@ class StreamSourceTest(unittest.TestCase):
         self.source.write(data)
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(data, self._formatBitSequence(self.stub.packets[-1].data))
+        self.assertEqual(data, bithelper.unpack(self.stub.packets[-1].data))
 
         # Provided time should pass through unmodified
         ts = bulkio.timestamp.now()
@@ -234,8 +233,14 @@ class StreamSourceTest(unittest.TestCase):
         self.source.write(data, ts)
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(2, len(self.stub.packets))
-        self.assertEqual(data, self._formatBitSequence(self.stub.packets[-1].data))
+        self.assertEqual(data, bithelper.unpack(self.stub.packets[-1].data))
         self.assertEqual(ts, self.stub.packets[-1].T)
+
+        # Write a string literal and make sure it gets translated
+        literal = '101011010100101011010101101111'
+        self.source.write(literal)
+        self.assertEqual(3, len(self.stub.packets))
+        self.assertEqual(literal, bithelper.unpack(self.stub.packets[-1].data))
 
     @format('bit')
     def testWriteBitFramed(self):
@@ -254,7 +259,7 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(17, self.stub.H[-1].subsize)
         self.assertEqual(1, len(self.stub.packets))
         expected = sum(data, bitbuffer())
-        self.assertEqual(expected, self._formatBitSequence(self.stub.packets[-1].data))
+        self.assertEqual(expected, bithelper.unpack(self.stub.packets[-1].data))
 
     @format('file')
     def testWriteFile(self):

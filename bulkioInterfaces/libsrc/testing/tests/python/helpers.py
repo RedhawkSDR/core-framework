@@ -222,6 +222,9 @@ class BitTestHelper(PortTestHelper):
     def packetLength(self, data):
         return data.bits
 
+    def unpack(self, data):
+        return bitbuffer(bytearray(data.data), data.bits)
+
 class FileTestHelper(PortTestHelper):
     PortType = BULKIO.dataFile
     InPortType = bulkio.InFilePort

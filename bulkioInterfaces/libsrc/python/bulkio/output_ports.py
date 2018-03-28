@@ -403,6 +403,9 @@ class OutPort(BULKIO__POA.UsesPortStatisticsProvider):
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket EXIT ')
 
+    def _reformat(self, data):
+        return data
+
     def _packetSize(self, data):
         return len(data)
 
@@ -458,8 +461,6 @@ class OutNumericPort(OutPort):
     def _createStream(self, sri):
         return NumericOutputStream(sri, self, self._dataType, self._elemType)
 
-    def _reformat(self, data):
-        return data
 
 class OutCharPort(OutNumericPort):
     TRANSFER_TYPE = 'c'
@@ -467,6 +468,8 @@ class OutCharPort(OutNumericPort):
         OutNumericPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
     def _reformat(self, data):
+        if isinstance(data, basestring):
+            return data
         return struct.pack('%db' % len(data), *data)
 
 class OutOctetPort(OutNumericPort):
@@ -475,6 +478,8 @@ class OutOctetPort(OutNumericPort):
         OutNumericPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE, logger, dataType=str, bits=8)
 
     def _reformat(self, data):
+        if isinstance(data, basestring):
+            return data
         return struct.pack('%dB' % len(data), *data)
 
 class OutShortPort(OutNumericPort):
@@ -526,6 +531,9 @@ class OutBitPort(OutNumericPort):
     def _sendPacket(self, port, data, T, EOS, streamID):
         data = BULKIO.BitSequence(data.bytes(), len(data))
         port.pushPacket(data, T, EOS, streamID)
+
+    def _reformat(self, data):
+        return bitbuffer(data)
 
     def _createStream(self, sri):
         return BufferedOutputStream(sri, self, bitbuffer)

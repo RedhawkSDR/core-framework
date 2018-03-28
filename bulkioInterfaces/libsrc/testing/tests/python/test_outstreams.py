@@ -465,9 +465,9 @@ class NumericOutStreamTest(BufferedOutStreamTest):
         self.assertEqual(data, result[::2])
         self.assertEqual([0] * 100, result[1::2])
 
-        # Write pre-formatted data; no conversion should occur
+        # Write pre-interleaved data; no conversion should occur
         data = self.helper.pack(range(100))
-        stream.write(data, bulkio.timestamp.now(), formatted=True)
+        stream.write(data, bulkio.timestamp.now(), interleaved=True)
         self.assertEqual(3, len(self.stub.packets))
         self.assertEqual(100, len(self.stub.packets[-1].data))
         self.assertEqual(data, self.stub.packets[-1].data)
@@ -480,10 +480,22 @@ class OutXMLStreamTest(OutStreamTest, unittest.TestCase):
         data = self.helper.createStreamData(length)
         stream.write(data)
 
+class OutBitStreamTest(BufferedOutStreamTest, unittest.TestCase):
+    helper = BitTestHelper()
+
+    def testWriteLiteral(self):
+        stream = self.port.createStream("test_write_literal")
+
+        literal = '101101011101011010101'
+        stream.write(literal, bulkio.timestamp.now())
+
+        self.assertEqual(1, len(self.stub.packets))
+        result = self.helper.unpack(self.stub.packets[-1].data)
+        self.assertEqual(literal, result)
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
-register_test('OutBitStreamTest', BufferedOutStreamTest, helper=BitTestHelper())
 register_test('OutFileStreamTest', OutStreamTest, helper=FileTestHelper())
 register_test('OutCharStreamTest', NumericOutStreamTest, helper=CharTestHelper())
 register_test('OutOctetStreamTest', NumericOutStreamTest, helper=OctetTestHelper())

@@ -245,6 +245,11 @@ class BufferedOutputStream(OutputStream):
         """
         Writes data to the stream.
 
+        Data is reformatted as necessary to match the port's requirements. For
+        example, char or octet ports will pack numeric values into a binary
+        string. In the case of bit data, string literals will be parsed into a
+        bitbuffer.
+
         If buffering is disabled, `data` is sent as a single packet with the
         given time stamp.
 
@@ -260,6 +265,9 @@ class BufferedOutputStream(OutputStream):
             bufferSize()
             setBufferSize()
         """
+        # Allow the port to reformat the data in its natural format
+        data = self._port._reformat(data)
+
         # If buffering is disabled, or the buffer is empty and the input data
         # is large enough for a full buffer, send it immediately
         if self.__bufferSize == 0 or (not self.__buffer and (len(data) >= self.__bufferSize)):
@@ -401,7 +409,7 @@ class NumericOutputStream(BufferedOutputStream):
         BufferedOutputStream.__init__(self, sri, port, dtype)
         self._elemType = elemType
 
-    def write(self, data, time, formatted=False):
+    def write(self, data, time, interleaved=False):
         """
         Writes sample data to the stream.
 
@@ -409,28 +417,26 @@ class NumericOutputStream(BufferedOutputStream):
         list of complex values. The real and imaginary elements are interleaved
         into a list of real numbers.
 
+        When `data` is already an interleaved list of real values, setting the
+        optional `interleaved` keyword argument will skip the complex-to-real
+        interleaving.
+
         For char or octet streams, real values are packed into a binary string
         after applying complex-to-real conversion (if required).
-
-        When `data` is already in the format required by the port, setting the
-        optional `formatted` keyword argument will disable both complex-to-real
-        conversion and binary packing.
 
         Buffering behavior is inherited from BufferedOutputStream.write().
 
         Args:
-            data:      Sample data to write.
-            time:      Time stamp of first sample.
-            formatted: Indicates whether data is preformatted.
+            data:        Sample data to write.
+            time:        Time stamp of first sample.
+            interleaved: Indicates whether complex data is already interleaved.
 
         See Also:
             BufferedOutputStream.write()
             NumericOutputStream.complex
         """
-        if not formatted:
-            if self.complex:
-                data = _complex_to_interleaved(data, self._elemType)
-            data = self._port._reformat(data)
+        if not interleaved and self.complex:
+            data = _complex_to_interleaved(data, self._elemType)
         BufferedOutputStream.write(self, data, time)
 
 
