@@ -61,6 +61,7 @@ BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
 BuildRequires:  java-1.8.0-openjdk-devel
+BuildRequires:  python-setuptools
 BuildRequires:  python-devel >= 2.4
 BuildRequires:  log4cxx-devel >= 0.10
 BuildRequires:  omniORB-devel >= 4.1.0
