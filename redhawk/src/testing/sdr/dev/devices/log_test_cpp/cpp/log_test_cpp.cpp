@@ -44,6 +44,8 @@ void log_test_cpp_i::constructor()
 	baseline_2_logger = this->_baseLog->getChildLogger("more_stuff");
 	namespaced_logger = this->_baseLog->getChildLogger("lower", "namespace");
 	basetree_logger = this->_baseLog->getChildLogger("lower", "");
+    rh_logger::LoggerPtr child_ns_logger = basetree_logger->getChildLogger("first", "second");
+    rh_logger::LoggerPtr child_no_ns_logger = basetree_logger->getChildLogger("third");
 }
 
 /**************************************************************************

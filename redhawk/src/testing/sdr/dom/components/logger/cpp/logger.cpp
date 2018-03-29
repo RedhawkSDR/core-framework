@@ -28,6 +28,8 @@ void logger_i::constructor()
 	baseline_2_logger = this->_baseLog->getChildLogger("more_stuff");
 	namespaced_logger = this->_baseLog->getChildLogger("lower", "namespace");
 	basetree_logger = this->_baseLog->getChildLogger("lower", "");
+    rh_logger::LoggerPtr child_ns_logger = basetree_logger->getChildLogger("first", "second");
+    rh_logger::LoggerPtr child_no_ns_logger = basetree_logger->getChildLogger("third");
     basel4_logger = this->_baseLog->getChildLogger("access", "l4");
 #ifdef HAVE_LOG4CXX
     my_l4 = log4cxx::LoggerPtr(static_cast<log4cxx::Logger*>(basel4_logger->getUnderlyingLogger()));

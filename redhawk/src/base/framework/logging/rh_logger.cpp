@@ -439,8 +439,14 @@ namespace rh_logger {
 
   LoggerPtr Logger::getChildLogger( const std::string &logname, const std::string &ns ) {
     std::string _full_name;
-    if (not ns.empty() and ((ns!=Logger::USER_LOGS) or ((ns==Logger::USER_LOGS) and (name.find("."+Logger::USER_LOGS+".") == std::string::npos))))
-        _full_name = name+"."+ns+"."+logname;
+    std::string _ns = ns;
+    if (_ns == "user") {
+        if (name.find('.') != std::string::npos) {
+            _ns.clear();
+        }
+    }
+    if (not _ns.empty() and ((_ns!=Logger::USER_LOGS) or ((_ns==Logger::USER_LOGS) and (name.find("."+Logger::USER_LOGS+".") == std::string::npos))))
+        _full_name = name+"."+_ns+"."+logname;
     else
         _full_name = name+"."+logname;
 #ifdef HAVE_LOG4CXX
