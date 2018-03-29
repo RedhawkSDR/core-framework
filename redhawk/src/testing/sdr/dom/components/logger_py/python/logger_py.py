@@ -22,10 +22,12 @@ class logger_py_i(logger_py_base):
 
         """
         # TODO add customization here.
-        self.baseline_1_logger = self._baseLog.getChildLogger("some_stuff");
-        self.baseline_2_logger = self._baseLog.getChildLogger("more_stuff");
-        self.namespaced_logger = self._baseLog.getChildLogger("lower", "namespace");
-        self.basetree_logger = self._baseLog.getChildLogger("lower", "");
+        self.baseline_1_logger = self._baseLog.getChildLogger("some_stuff")
+        self.baseline_2_logger = self._baseLog.getChildLogger("more_stuff")
+        self.namespaced_logger = self._baseLog.getChildLogger("lower", "namespace")
+        self.basetree_logger = self._baseLog.getChildLogger("lower", "")
+        child_ns_logger = self.basetree_logger.getChildLogger("first", "second")
+        child_no_ns_logger = self.basetree_logger.getChildLogger("third")
         
     def process(self):
         """

@@ -26,6 +26,8 @@ class log_test_py_i(log_test_py_base):
         self.baseline_2_logger = self._baseLog.getChildLogger("more_stuff");
         self.namespaced_logger = self._baseLog.getChildLogger("lower", "namespace");
         self.basetree_logger = self._baseLog.getChildLogger("lower", "");
+        child_ns_logger = self.basetree_logger.getChildLogger("first", "second")
+        child_no_ns_logger = self.basetree_logger.getChildLogger("third")
         
     def updateUsageState(self):
         """

@@ -64,6 +64,7 @@ class RedhawkLogger(LoggerBase):
   def __init__(self, name, level=0):
       LoggerBase.__init__(self, name, level)
       self._loggers = [name]
+      self._rh_parent = None
 
   _ECM = None
   def trace(self, msg, *args, **kw):
@@ -71,6 +72,14 @@ class RedhawkLogger(LoggerBase):
 
   def getCurrentLoggers(self):
     return self._loggers
+
+  def _setParent(self, parent):
+    self._rh_parent = parent
+
+  def _addChildLogger(self, logname):
+    self._loggers.append(logname)
+    if self._rh_parent:
+        self._rh_parent._addChildLogger(logname)
 
   def isLoggerInHierarchy(self, search_name):
     for _name in self._loggers:
@@ -89,12 +98,23 @@ class RedhawkLogger(LoggerBase):
 
   def getChildLogger(self, logname, ns=USER_LOGS):
       _full_name = ''
-      if ns and ((ns != USER_LOGS) or ((ns == USER_LOGS) and (not ('.'+USER_LOGS+'.' in self.name)))):
-          _full_name = self.name + '.' + ns + '.' + logname
+      _ns = ns
+      if _ns == 'user':
+          if '.' in self.name:
+              _ns = ''
+      if _ns and ((_ns != USER_LOGS) or ((_ns == USER_LOGS) and (not ('.'+USER_LOGS+'.' in self.name)))):
+          _full_name = self.name + '.' + _ns + '.' + logname
       else:
           _full_name = self.name + '.' + logname
       if not _full_name in self._loggers:
           self._loggers.append(_full_name)
+      if self._rh_parent:
+          self._rh_parent._addChildLogger(_full_name)
+      retval = logging.getLogger(_full_name)
+      try:
+          retval._setParent(self)
+      except:
+          pass
       return logging.getLogger(_full_name)
 
   @staticmethod
