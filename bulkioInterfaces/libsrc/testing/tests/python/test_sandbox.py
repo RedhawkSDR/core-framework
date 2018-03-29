@@ -162,6 +162,13 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(expected, self.stub.packets[-1].data)
 
+        # Write pre-interleaved data
+        data = range(36)
+        self.source.write(data, interleaved=True)
+        self.assertEqual(3, len(self.stub.packets))
+        self.assertEqual(data, self.stub.packets[-1].data)
+        
+
     @format('ushort')
     def testWriteFramed(self):
         # Write a list of 4 ramps

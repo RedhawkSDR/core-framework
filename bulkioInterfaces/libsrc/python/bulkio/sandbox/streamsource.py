@@ -113,19 +113,19 @@ class StreamSource(SandboxHelper):
             self._streamID = self._instanceName
         self._sri = bulkio.sri.create(self._streamID)
 
-    def write(self, data, timestamp=None):
+    def write(self, data, time=None, interleaved=False):
         """
         Writes data to the stream.
 
         Args:
-            data:       Data to write.
-            timestamp:  Optional time stamp for first sample of `data`. If not
-                        given, the current time is used. Ignored when the data
-                        type is XML.
+            data:        Data to write.
+            time:        Optional time stamp for first sample of `data`. If not
+                         given, the current time is used. Ignored when the data
+                         type is XML.
+            interleaved: Indicates whether complex data is already interleaved.
         """
         if not self._port:
             # Not connected to anything
-            # TODO: Is this an error condition or should we ignore it
             return
 
         # Get the stream via the attribute, which will create it if it does not
@@ -138,11 +138,14 @@ class StreamSource(SandboxHelper):
             data = self._unframeData(data)
 
         args = [data]
+        kwargs = {}
         if not isinstance(stream, OutXMLStream):
-            if timestamp is None:
-                timestamp = bulkio.timestamp.now()
-            args.append(timestamp)
-        stream.write(*args)
+            if time is None:
+                time = bulkio.timestamp.now()
+            kwargs['time'] = time
+        if interleaved:
+            kwargs['interleaved'] = True
+        stream.write(*args, **kwargs)
 
     def close(self):
         """
