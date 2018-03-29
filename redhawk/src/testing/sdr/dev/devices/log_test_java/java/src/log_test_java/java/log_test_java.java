@@ -157,6 +157,8 @@ public class log_test_java extends log_test_java_base {
     	baseline_2_logger = this._baseLog.getChildLogger("more_stuff");
     	namespaced_logger = this._baseLog.getChildLogger("lower", "namespace");
     	basetree_logger = this._baseLog.getChildLogger("lower", "");
+        RHLogger child_ns_logger = basetree_logger.getChildLogger("first", "second");
+        RHLogger child_no_ns_logger = basetree_logger.getChildLogger("third");
     }
 
     /**************************************************************************

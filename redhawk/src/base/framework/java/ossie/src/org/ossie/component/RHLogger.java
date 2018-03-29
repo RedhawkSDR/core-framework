@@ -76,9 +76,13 @@ public class RHLogger {
 
     public RHLogger getChildLogger( String name ) {
         String ns = "user";
+        String _ns = ns;
+        if (logname.contains(".")) {
+            _ns = "";
+        }
         String _full_name;
-        if (!name.contains("."+USER_LOGS+"."))
-            _full_name = logname+"."+ns+"."+name;
+        if (!_ns.isEmpty() && !name.contains("."+USER_LOGS+"."))
+            _full_name = logname+"."+_ns+"."+name;
         else
             _full_name = logname+"."+name;
         return getResourceLogger(_full_name);
@@ -86,8 +90,14 @@ public class RHLogger {
 
     public RHLogger getChildLogger( String name, String ns ) {
         String _full_name;
-        if (!ns.isEmpty() && ((!ns.equals(USER_LOGS)) || ((ns.equals(USER_LOGS)) && (!name.contains("."+USER_LOGS+".")))))
-            _full_name = logname+"."+ns+"."+name;
+        String _ns = ns;
+        if (_ns.equals("user")) {
+            if (logname.contains(".")) {
+                _ns = "";
+            }
+        }
+        if (!_ns.isEmpty() && ((!_ns.equals(USER_LOGS)) || ((_ns.equals(USER_LOGS)) && (!name.contains("."+USER_LOGS+".")))))
+            _full_name = logname+"."+_ns+"."+name;
         else
             _full_name = logname+"."+name;
         return getResourceLogger(_full_name);
