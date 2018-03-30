@@ -28,6 +28,7 @@
 #include <COS/CosEventChannelAdmin.hh>
 
 #include "UsesPort.h"
+#include "internal/message_traits.h"
 
 /************************************************************************************
   Message producer
@@ -39,32 +40,61 @@ public:
     MessageSupplierPort (const std::string& name);
     virtual ~MessageSupplierPort (void);
 
-    void push(const CORBA::Any& data);
+    /**
+     * @brief  Sends pre-serialized messages.
+     * @param data          Messages serialized to a CORBA::Any.
+     * @param connectionID  Target connection (default: all).
+     * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
+     *                                      does not match any connection
+     */
+    void push(const CORBA::Any& data, const std::string& connectionId=std::string());
 
-    // Send a single message
+    /**
+     * @brief Sends a single message.
+     * @param message       Message to send.
+     * @param connectionID  Target connection (default: all).
+     * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
+     *                                      does not match any connection
+     */
     template <typename Message>
-    void sendMessage(const Message& message) {
+    void sendMessage(const Message& message, const std::string& connectionId=std::string())
+    {
         const Message* begin(&message);
         const Message* end(&begin[1]);
-        sendMessages(begin, end);
+        sendMessages(begin, end, connectionId);
     }
 
-    // Send a sequence of messages
+    /**
+     * @brief Sends a sequence of messages.
+     * @param messages      Container of messages to send.
+     * @param connectionID  Target connection (default: all).
+     * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
+     *                                      does not match any connection
+     */
     template <class Sequence>
-    void sendMessages(const Sequence& messages) {
-        sendMessages(messages.begin(), messages.end());
+    void sendMessages(const Sequence& messages, const std::string& connectionId=std::string())
+    {
+        sendMessages(messages.begin(), messages.end(), connectionId);
     }
-    
-    // Send a set of messages from an iterable set
+
+    /**
+     * @brief Sends a sequence of messages.
+     * @param first         Iterator to first message.
+     * @param last          Iterator to one past last message.
+     * @param connectionID  Target connection (default: all).
+     * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
+     *                                      does not match any connection
+     */
     template <typename Iterator>
-    void sendMessages(Iterator first, Iterator last)
+    void sendMessages(Iterator first, Iterator last, const std::string& connectionId=std::string())
     {
         boost::mutex::scoped_lock lock(updatingPortsLock);
-        _beginMessageQueue(std::distance(first, last));
+        _checkConnectionId(connectionId);
+        _beginMessageQueue(std::distance(first, last), connectionId);
         for (; first != last; ++first) {
-            _queueMessage(*first);
+            _queueMessage(*first, connectionId);
         }
-        _sendMessageQueue();
+        _sendMessageQueue(connectionId);
     }
 
     std::string getRepid() const;
@@ -74,26 +104,25 @@ protected:
     virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
     template <class Message>
-    inline void _queueMessage(const Message& message)
+    inline void _queueMessage(const Message& message, const std::string& connectionId)
     {
-        // Workaround for older components whose structs have a non-const,
-        // non-static member function getId(): const_cast the value
-        const std::string messageId = const_cast<Message&>(message).getId();
-        const char* format = ::internal::message_traits<Message>::format();
-        _queueMessage(messageId, format, &message, &MessageSupplierPort::_serializeMessage<Message>);
-    }
-
-    template <class Message>
-    static void _serializeMessage(CORBA::Any& any, const void* data)
-    {
-        any <<= *(reinterpret_cast<const Message*>(data));
+        // Use the traits class to abstract differences between message classes
+        // based on the REDHAWK version with which they were generated
+        typedef ::redhawk::internal::message_traits<Message> traits;
+        const std::string messageId = traits::getId(message);
+        const char* format = traits::format();
+        _queueMessage(messageId, format, &message, &traits::serialize, connectionId);
     }
 
     typedef void (*SerializerFunc)(CORBA::Any&,const void*);
 
-    void _beginMessageQueue(size_t count);
-    void _queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer);
-    void _sendMessageQueue();
+    void _beginMessageQueue(size_t count, const std::string& connectionId);
+    void _queueMessage(const std::string& msgId, const char* format, const void* msgData,
+                       SerializerFunc serializer, const std::string& connectionId);
+    void _sendMessageQueue(const std::string& connectionId);
+
+    bool _isConnectionSelected(const std::string& connectionId, const std::string& targetId);
+    void _checkConnectionId(const std::string& connectionId);
 
     class MessageTransport;
     class CorbaTransport;
