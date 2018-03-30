@@ -458,8 +458,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         expectedDomLoggingConfigUri = "file://" + os.path.join(scatest.getSdrPath(), "dom/mgr/logging.properties")
         self.assertEqual(devLoggingConfigURI, expectedDomLoggingConfigUri)
 
-        
-        app=self._rhDom.createApplication('/waveforms/loggingconfig/TestCpp/TestCpp_props_debug.sad.xml',initConfiguration={"LOGGING_CONFIG_URI":"sca:///mgr/logging.properties"})
+        app=self._rhDom.createApplication('/waveforms/loggingconfig/TestCpp/TestCpp_props_debug.sad.xml')
         comp = app.comps[0]
         self.assertNotEqual(comp, None)
 
@@ -467,6 +466,22 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.getProcessLogArgs('components/C2')
 
         expect_logcfg="sca://logcfg/log.props.c2"
+        self.assertNotEqual(self.logcfg_uri,None)
+        self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
+        execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
+        # Need to compare actual objects since the IOR strings could potentially differ for the same object
+        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertEqual(self.debug_level,"5")
+        app.releaseObject()
+
+        app_1=self._rhDom.createApplication('/waveforms/loggingconfig/TestCpp/TestCpp_props_debug.sad.xml',initConfiguration={"LOGGING_CONFIG_URI":"sca:///mgr/logging.properties"})
+        comp = app.comps[0]
+        self.assertNotEqual(comp, None)
+
+        # get command line arguments for proc
+        self.getProcessLogArgs('components/C2')
+
+        expect_logcfg="sca:///mgr/logging.properties"
         self.assertNotEqual(self.logcfg_uri,None)
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])

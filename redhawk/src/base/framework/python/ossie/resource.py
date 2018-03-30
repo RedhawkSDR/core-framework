@@ -622,10 +622,10 @@ class Resource(object):
     #########################################
     # CF::LogConfiguration
     def _get_log_level(self):
-        if self._log:
-            lvl = ossie.logger.ConvertLog4ToCFLevel( self._log.getEffectiveLevel())
+        if self._baseLog:
+            lvl = ossie.logger.ConvertLog4ToCFLevel( self._baseLog.getEffectiveLevel())
             if lvl != self._logLevel:
-                self.logLevel = self._log.getEffectiveLevel()
+                self.logLevel = self._baseLog.getEffectiveLevel()
                 self._logLevel = lvl
 
         return self._logLevel
@@ -646,6 +646,7 @@ class Resource(object):
             ossie.logger.SetLogLevel( self._logid, newLogLevel )
             self._logLevel = newLogLevel
             self.logLevel = ossie.logger.ConvertToLog4Level( newLogLevel )
+            self._baseLog.setLevel(self.logLevel)
 
     def setLogLevel(self, logid, newLogLevel ):
 

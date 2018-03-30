@@ -2049,21 +2049,8 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
     std::string logging_uri("");
     int  debug_level=-1;
     bool resolved_loggingconfig = false;
-    if ( execParams.contains("LOGGING_CONFIG_URI") ) {
-        logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
-        RH_TRACE(_createHelperLog, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
-    }
-    if ( execParams.contains("DEBUG_LEVEL") ) {
-        debug_level = resolveDebugLevel( execParams["DEBUG_LEVEL"].toString() );
-        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
-    }
 
-    if ( execParams.contains("LOG_LEVEL") ) {
-        debug_level = resolveDebugLevel( execParams["LOG_LEVEL"].toString() );
-        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided log_level: " << debug_level);
-    }
-
-   // check if logging configuration is part of component placement
+   // check if logging configuration is part of component placement (loggingconfig in the sad file)
     redhawk::PropertyMap log_config=deployment->getLoggingConfiguration();
     if ( log_config.contains("LOGGING_CONFIG_URI") ) {
         logging_uri = log_config["LOGGING_CONFIG_URI"].toString();
@@ -2086,6 +2073,28 @@ void createHelper::resolveLoggingConfiguration(redhawk::ComponentDeployment* dep
             RH_TRACE(_createHelperLog, "Using LogConfigResolver plugin: path " << logcfg_path << " logcfg: " << uri );
             if ( !uri.empty() ) logging_uri = uri;
         }
+    }
+
+    // check for runtime overloads
+    if ( execParams.contains("LOGGING_CONFIG_URI") ) {
+        logging_uri = execParams["LOGGING_CONFIG_URI"].toString();
+        RH_TRACE(_createHelperLog, "resolveLoggingContext:  exec parameter provided, logging cfg uri: " << logging_uri);
+        if (debug_level != -1) {
+            debug_level = -1;
+            resolved_loggingconfig = false;
+            RH_TRACE(_createHelperLog, "exec parameter provided, logging cfg uri, remove the debug_level set from loggingconfig");
+        }
+    }
+    if ( execParams.contains("DEBUG_LEVEL") ) {
+        debug_level = resolveDebugLevel( execParams["DEBUG_LEVEL"].toString() );
+        resolved_loggingconfig = true;
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided debug_level: " << debug_level);
+    }
+
+    if ( execParams.contains("LOG_LEVEL") ) {
+        debug_level = resolveDebugLevel( execParams["LOG_LEVEL"].toString() );
+        resolved_loggingconfig = true;
+        RH_TRACE(_createHelperLog, "resolveLoggingConfig: exec parameter provided log_level: " << debug_level);
     }
 
     // nothing is provided, use DomainManger's context
@@ -2155,13 +2164,8 @@ void createHelper::attemptComponentExecution (CF::ApplicationRegistrar_ptr regis
     }
     execParameters["PROFILE_NAME"] = deployment->getSoftPkg()->getSPDFile();
 
-    // Pass logging configuration, unless the component is being run in a
-    // container
-    // TODO: Determine how to handle configuration of logging in containers
-    if (!deployment->getContainer()) {
-        execParameters["DOM_PATH"] = _baseNamingContext;
-        resolveLoggingConfiguration(deployment, execParameters);
-    }
+    execParameters["DOM_PATH"] = _baseNamingContext;
+    resolveLoggingConfiguration(deployment, execParameters);
 
     // Add the Naming Context IOR last to make it easier to parse the command line
     execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);

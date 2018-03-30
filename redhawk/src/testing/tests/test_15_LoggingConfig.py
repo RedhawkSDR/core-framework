@@ -693,9 +693,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     log4j.appender.stdout.Target=System.out\n \
     log4j.appender.stdout.layout=org.apache.log4j.PatternLayout\n \
     log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n \
-    log4j.category.TestLoggingAPI_i=INFO,stdout\n \
-    log4j.category.TestLoggingAPI.java.TestLoggingAPI_base=INFO,stdout\n \
-    log4j.category.TestLoggingAPI=INFO,stdout\n\n'
+    log4j.category.TestLoggingAPI_1=INFO,stdout\n\n'
 
         self.comp.setLogConfig(x)
         lvl=self.comp.log_level()
@@ -710,9 +708,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     log4j.appender.stdout.Target=System.out\n \
     log4j.appender.stdout.layout=org.apache.log4j.PatternLayout\n \
     log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n \
-    log4j.category.TestLoggingAPI_i=TRACE,stdout\n \
-    log4j.category.TestLoggingAPI.java.TestLoggingAPI_base=TRACE,stdout\n \
-    log4j.category.TestLoggingAPI=TRACE,stdout\n\n'
+    log4j.category.TestLoggingAPI_1=TRACE,stdout\n\n'
         self.comp.setLogConfig(y)
         lvl=self.comp.log_level()
         self.assertEquals( proj, lvl )

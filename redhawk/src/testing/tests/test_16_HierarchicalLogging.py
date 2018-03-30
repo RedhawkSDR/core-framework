@@ -40,6 +40,10 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
             os.remove('sdr/dom/waveforms/logger_overload_w/tmp.sad.xml')
         except:
             pass
+        try:
+            os.remove('sdr/dom/waveforms/logger_config/tmp.sad.xml')
+        except:
+            pass
         # need to let event service clean up event channels
         # cycle period is 10 milliseconds
         time.sleep(0.1)
@@ -58,8 +62,8 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         loggers_2 = app_2.getNamedLoggers()
         self.assertEquals(app_1.getLogLevel('logger_1'), 30000)
         self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
-        self.assertEquals(app_2.getLogLevel('logger_1'), 20000)
-        self.assertEquals(app_2.getLogLevel('logger_2'), 20000)
+        self.assertEquals(app_2.getLogLevel('logger_1'), 40000)
+        self.assertEquals(app_2.getLogLevel('logger_2'), 40000)
 
     def test_logconfiguri_overload(self):
         self.cname = "logger"
@@ -79,7 +83,51 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         app_2 = self._rhDom.createApplication("/waveforms/logger_w/logger_w.sad.xml")
         loggers_2 = app_2.getNamedLoggers()
         self.assertEquals(app_1.getLogLevel('logger_2'), 30000)
-        self.assertEquals(app_2.getLogLevel('logger_1'), 20000)
+        self.assertEquals(app_2.getLogLevel('logger_1'), 40000)
+
+    def test_loggingconfig(self):
+        self.cname = "logger"
+        fp=open('./runtest.props','r')
+        runtest_props = fp.read()
+        fp.close()
+        fp=open('./high_thresh.cfg','r')
+        high_thresh_cfg = fp.read()
+        fp.close()
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        fp = open('sdr/dom/waveforms/logger_config/logger_config.sad.xml','r')
+        sad_contents = fp.read()
+        fp.close()
+        sad_contents = sad_contents.replace('@@@CWD@@@', os.getcwd())
+        fp = open('sdr/dom/waveforms/logger_config/tmp.sad.xml','w')
+        fp.write(sad_contents)
+        fp.close()
+        app_1 = self._rhDom.createApplication("/waveforms/logger_config/tmp.sad.xml")
+        self.assertEquals(app_1.getLogLevel('logger_1'), 0)
+        self.assertEquals(app_1.getLogLevel('logger_2'), 50000)
+        logger_1 = -1
+        logger_2 = -1
+        for comp_idx in range(len(app_1.comps)):
+            if app_1.comps[comp_idx].instanceName == 'logger_1':
+                logger_1 = comp_idx
+                break
+        if logger_1 == 0:
+            logger_2 = 1
+        if logger_1 == 1:
+            logger_2 = 0
+        self.assertNotEqual(logger_1, -1)
+        self.assertNotEqual(logger_2, -1)
+        self.assertEquals(app_1.comps[logger_1].getLogConfig(), high_thresh_cfg)
+        self.assertEquals(app_1.comps[logger_2].getLogConfig(), runtest_props)
+
+        loggers_1 = app_1.getNamedLoggers()
+        app_2 = self._rhDom.createApplication("/waveforms/logger_config/tmp.sad.xml", initConfiguration={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})
+        loggers_2 = app_2.getNamedLoggers()
+        self.assertEquals(app_2.getLogLevel('logger_1'), 30000)
+        self.assertEquals(app_2.getLogLevel('logger_2'), 30000)
+        self.assertEquals(app_2.comps[logger_1].getLogConfig(), high_thresh_cfg)
+        self.assertEquals(app_2.comps[logger_2].getLogConfig(), high_thresh_cfg)
 
     def test_application_cpp_access(self):
         self.cname = "logger"

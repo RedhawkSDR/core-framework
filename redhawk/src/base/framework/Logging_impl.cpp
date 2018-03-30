@@ -376,11 +376,9 @@ CF::StringSequence* Logging_impl::getNamedLoggers() {
 }
 
 CF::LogLevel Logging_impl::log_level() {
-    if ( _logger ) {
-        CF::LogLevel level = ossie::logging::ConvertRHLevelToCFLevel( _logger->getLevel() );
-        if ( level != _logLevel ) {
-            _logLevel = level;
-        }
+    CF::LogLevel level = ossie::logging::ConvertRHLevelToCFLevel( this->_baseLog->getLevel() );
+    if ( level != _logLevel ) {
+        _logLevel = level;
     }
     return _logLevel;
 }

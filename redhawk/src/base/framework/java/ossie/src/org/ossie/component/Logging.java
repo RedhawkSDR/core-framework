@@ -415,12 +415,9 @@ abstract public class Logging {
      * @return int value of a CF::LogLevels enumeration
      */
     public int log_level() {
-        if ( _logger != null ) {
-            Level logger_level = _logger.getLevel();
-            Level cur_loglevel= logging.ConvertToLog4Level(logLevel);
-            if ( logger_level != null && logger_level != cur_loglevel ) {
-                logLevel = logging.ConvertLog4ToCFLevel(logger_level);
-            }
+        if ( _baseLog != null ) {
+            Level logger_level = _baseLog.getLevel();
+            logLevel = logging.ConvertLog4ToCFLevel(logger_level);
         }
         return logLevel;
 
@@ -435,21 +432,21 @@ abstract public class Logging {
      * @param int value of a CF::LogLevels enumeration
      */
     public void log_level( int newLogLevel ) {
-	if ( this.logListener != null  ) {
-	    logLevel = newLogLevel;
-	    this.logListener.logLevelChanged( logName, newLogLevel );
-	}
-	else {
-	    logLevel = newLogLevel;
-	    Level tlevel= logging.ConvertToLog4Level(newLogLevel);
-	    if ( _logger != null ) {
-		_logger.setLevel(tlevel);
-	    }
-	    else {
-		Logger.getRootLogger().setLevel(tlevel);
-	    }
-	}
-	
+        Level tlevel= logging.ConvertToLog4Level(newLogLevel);
+        if ( this.logListener != null  ) {
+            logLevel = newLogLevel;
+            this.logListener.logLevelChanged( logName, newLogLevel );
+        } else {
+            logLevel = newLogLevel;
+            if ( _logger != null ) {
+                _logger.setLevel(tlevel);
+            } else {
+                Logger.getRootLogger().setLevel(tlevel);
+            }
+        }
+        if ( _baseLog != null ) {
+            _baseLog.setLevel(tlevel);
+        }
     }
 
 

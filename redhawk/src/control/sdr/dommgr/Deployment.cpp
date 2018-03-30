@@ -272,10 +272,19 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                         overrideProperty("LOGGING_CONFIG_URI", logging_any);
                         sadLoggingConfig = ref->getValue();
                     }
+                } else if (override.getID() == "LOG_LEVEL") {
+                    // It's legal to override the logging configuration, even
+                    // if it isn't defined in the PRF
+                    const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&override);
+                    if ( ref ) {
+                        CORBA::Any log_level_any;
+                        log_level_any <<= ref->getValue();
+                        overrideProperty("LOG_LEVEL", log_level_any);
+                    }
                 } else {
                     RH_WARN(deploymentLog, "Ignoring attempt to override property "
                               << override.getID() << " that does not exist in component");
-                }                
+                }
             } else if (!property->canOverride()) {
                 RH_WARN(deploymentLog, "Ignoring attempt to override read-only property "
                           << property->getID());
@@ -480,6 +489,7 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
 {
    redhawk::PropertyMap properties;
    bool has_LOGGING_CONFIG_URI = false;
+   bool has_LOG_LEVEL = false;
    if (softpkg->getProperties()) {
        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
            if (property->isExecParam()) {
@@ -495,6 +505,9 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
            if (property_id == "LOGGING_CONFIG_URI") {
                has_LOGGING_CONFIG_URI = true;
            }
+           if (property_id == "LOG_LEVEL") {
+               has_LOG_LEVEL = true;
+           }
            CF::DataType dt = getPropertyValue(property);
            if (!ossie::any::isNull(dt.value)) {
                properties.push_back(dt);
@@ -506,6 +519,14 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
            CF::DataType dt;
            dt.id = CORBA::string_dup("LOGGING_CONFIG_URI");
            dt.value <<= overrides["LOGGING_CONFIG_URI"].toString().c_str();
+           properties.push_back(dt);
+       }
+   }
+   if ((not has_LOG_LEVEL) and appComponent->isVisible()) {
+       if (overrides.find("LOG_LEVEL") != overrides.end()) {
+           CF::DataType dt;
+           dt.id = CORBA::string_dup("LOG_LEVEL");
+           dt.value <<= overrides["LOG_LEVEL"].toString().c_str();
            properties.push_back(dt);
        }
    }
