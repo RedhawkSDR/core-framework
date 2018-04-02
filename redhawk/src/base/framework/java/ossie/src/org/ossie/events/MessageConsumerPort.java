@@ -20,6 +20,7 @@
 
 package org.ossie.events;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,6 +48,8 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
     public Object updatingPortsLock = new Object();
 
     protected HashMap<String, EventCallback> callbacks = new HashMap<String, EventCallback>();
+    private List<MessageListener<org.omg.CORBA.Any>> genericCallbacks = new ArrayList<>();
+
     protected boolean active = false;
     protected String name;
 
@@ -168,10 +171,17 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
      *
      * @since 2.0
      */
-    public <E extends StructDef> void registerMessage(String messageId, Class<E> clazz, MessageListener<E> listener)
+    public <E extends StructDef> void registerMessage(String messageId, Class<E> clazz, MessageListener<? super E> listener)
     {
         synchronized (this.callbacks) {
             this.callbacks.put(messageId, new MessageAdapter<E>(clazz, listener));
+        }
+    }
+
+    public void registerMessage(MessageListener<org.omg.CORBA.Any> listener)
+    {
+        synchronized (this.callbacks) {
+            this.genericCallbacks.add(listener);
         }
     }
 
@@ -361,7 +371,7 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
             message_callback = this.callbacks.get(messageId);
 
             // If no callback is registered, present a meaningful warning
-            if (message_callback == null) {
+            if ((message_callback == null) && this.genericCallbacks.isEmpty()) {
                 String warning = "No callbacks registered for messages with id '"+messageId+"'.";
                 if (this.callbacks.isEmpty()) {
                     warning += " No callbacks are registered";
@@ -378,7 +388,13 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
             }
         }
 
-        message_callback.message(messageId, messageData);       
+        if (message_callback != null) {
+            message_callback.message(messageId, messageData);
+        }
+
+        for (MessageListener<org.omg.CORBA.Any> listener : this.genericCallbacks) {
+            listener.messageReceived(messageId, messageData);
+        }
     }
 
     /**

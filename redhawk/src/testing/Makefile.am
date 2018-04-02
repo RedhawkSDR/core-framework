@@ -124,6 +124,9 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
 endif
 
 SUBDIRS += cpp
+if HAVE_JAVASUPPORT
+SUBDIRS += java
+endif
 
 all-local:
 	python setup.py $(OSSIE_V_pysetup) build

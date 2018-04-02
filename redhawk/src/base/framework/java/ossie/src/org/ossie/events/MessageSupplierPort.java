@@ -139,14 +139,30 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         this.removeConnection(connectionId, true);
     }
     
-    public void push(final Any data) 
+    public void push(final Any data)
+    {
+        this.push(data, "");
+    }
+
+    public void push(final Any data, String connectionId)
     {
         synchronized(this.updatingPortsLock) {
             if (!this.active) {
                 return;
             }
 
-            for (PushConsumer consumer : this.consumers.values()) {
+            if (!connectionId.isEmpty()) {
+                if (!_hasConnection(connectionId)) {
+                    throw new IllegalArgumentException("invalid connection: '"+connectionId+"'");
+                }
+            }
+
+            for (Map.Entry<String,PushConsumer> entry : consumers.entrySet()) {
+                if (!_isConnectionSelected(entry.getKey(), connectionId)) {
+                    continue;
+                }
+
+                PushConsumer consumer = entry.getValue();
                 try {
                     consumer.push(data);
                 } catch (final org.omg.CosEventComm.Disconnected ex) {
@@ -170,10 +186,21 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
 
     public void sendMessage(final StructDef message)
     {
-        this.sendMessages(Arrays.asList(message));
+        this.sendMessage(message, "");
     }
 
-    public void sendMessages(final Collection<? extends StructDef> messages) {
+    public void sendMessage(StructDef message, String connectionId)
+    {
+        this.sendMessages(Arrays.asList(message), connectionId);
+    }
+
+    public void sendMessages(final Collection<? extends StructDef> messages)
+    {
+        this.sendMessages(messages, "");
+    }
+
+    public void sendMessages(Collection<? extends StructDef> messages, String connectionId)
+    {
         final CF.DataType[] properties = new CF.DataType[messages.size()];
         int index = 0;
         for (StructDef message : messages) {
@@ -181,7 +208,7 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         }
         final Any any = ORB.init().create_any();
         CF.PropertiesHelper.insert(any, properties);
-        this.push(any);
+        this.push(any, connectionId);
     }
 
     protected EventChannelOperations narrow(org.omg.CORBA.Object connection) 
@@ -268,6 +295,19 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         } catch (final WrongPolicy exc) {
             throw new AssertionError("Wrong policy");
         }
+    }
+
+    private boolean _hasConnection(String connectionId)
+    {
+        return consumers.containsKey(connectionId);
+    }
+
+    private boolean _isConnectionSelected(String connectionId, String targetId)
+    {
+        if (targetId.isEmpty()) {
+            return true;
+        }
+        return connectionId.equals(targetId);
     }
 
     @Deprecated

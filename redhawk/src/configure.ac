@@ -273,6 +273,10 @@ fi
 
 # C++ unit testing support. May want to conditionally enable/disable this.
 AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
 
 # Undefine the PACKAGE_ variables to avoid warnings when omniORB is installed outside of
 # /usr.  OSSIE doesn't use these variables anyways...and even if it did
@@ -320,6 +324,7 @@ AM_COND_IF( [BUILD_TESTS], [
 AC_CONFIG_FILES( [testing/Makefile \
                 testing/_unitTestHelpers/buildconfig.py \
                 testing/cpp/Makefile \
+                testing/java/Makefile \
                 testing/sdr/dev/devices/ExecutableDevice/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_java/java/Makefile \
