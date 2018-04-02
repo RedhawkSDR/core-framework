@@ -339,7 +339,7 @@ void MessagingTest::testSendMessageConnectionId()
     // Target invalid connection
     msg.value = 4;
     msg.body = "bad_connection";
-    CPPUNIT_ASSERT_THROW(_supplier->sendMessage(msg, "bad_connection"), redhawk::InvalidConnectionId);
+    CPPUNIT_ASSERT_THROW(_supplier->sendMessage(msg, "bad_connection"), std::invalid_argument);
     CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_1.received().size());
     CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_2.received().size());
 }
@@ -458,7 +458,7 @@ void MessagingTest::testSendMessagesConnectionId()
     messages_3.resize(1);
     messages_3[0].value = 1000;
     messages_3[0].body = "bad_connection";
-    CPPUNIT_ASSERT_THROW(_supplier->sendMessages(messages_3, "bad_connection"), redhawk::InvalidConnectionId);
+    CPPUNIT_ASSERT_THROW(_supplier->sendMessages(messages_3, "bad_connection"), std::invalid_argument);
     CPPUNIT_ASSERT_EQUAL(messages_1.size() + messages_1.size(), receiver_1.received().size());
     CPPUNIT_ASSERT_EQUAL(messages_2.size() + messages_1.size(), receiver_2.received().size());
 }
@@ -570,7 +570,7 @@ void MessagingTest::testPushConnectionId()
     redhawk::PropertyMap messages_4;
     messages_4["bad"] = "bad_connection";
     any <<= messages_4;
-    CPPUNIT_ASSERT_THROW(_supplier->push(any, "bad_connection"), redhawk::InvalidConnectionId);
+    CPPUNIT_ASSERT_THROW(_supplier->push(any, "bad_connection"), std::invalid_argument);
     CPPUNIT_ASSERT_EQUAL((size_t) 4, receiver_1.received().size());
     CPPUNIT_ASSERT_EQUAL((size_t) 3, receiver_2.received().size());
 }

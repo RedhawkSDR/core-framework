@@ -328,6 +328,6 @@ bool MessageSupplierPort::_isConnectionSelected(const std::string& connectionId,
 void MessageSupplierPort::_checkConnectionId(const std::string& connectionId)
 {
     if (!connectionId.empty() && !_hasConnection(connectionId)) {
-        throw redhawk::InvalidConnectionId(connectionId);
+        throw std::invalid_argument("invalid connection '" + connectionId + "'");
     }
 }

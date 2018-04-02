@@ -36,20 +36,6 @@
 
 namespace redhawk {
 
-    class InvalidConnectionId : public std::runtime_error
-    {
-    public:
-        InvalidConnectionId() :
-            std::runtime_error("invalid connection")
-        {
-        }
-
-        InvalidConnectionId(const std::string& connectionId) :
-            std::runtime_error("invalid connection '" + connectionId + "'")
-        {
-        }
-    };
-
     class UsesPort : public Port_Uses_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
                    , public virtual POA_ExtendedCF::QueryablePort

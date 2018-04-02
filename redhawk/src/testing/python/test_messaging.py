@@ -211,7 +211,7 @@ class MessagingTest(unittest.TestCase):
 
         # Target invalid connection
         msg.value = 4
-        self.assertRaises(RuntimeError, self._supplier.sendMessage, msg, "bad_connection")
+        self.assertRaises(ValueError, self._supplier.sendMessage, msg, "bad_connection")
 
     def testSendMessages(self):
         receiver = MessageReceiver()
@@ -270,7 +270,7 @@ class MessagingTest(unittest.TestCase):
 
         # Target invalid connection
         messages_3 = [BasicMessage(value=5)]
-        self.assertRaises(RuntimeError, self._supplier.sendMessages, messages_3, "bad_connection")
+        self.assertRaises(ValueError, self._supplier.sendMessages, messages_3, "bad_connection")
         self.failIf(receiver_1.waitMessages(5, 0.1))
         self.failIf(receiver_2.waitMessages(6, 0.1))
 
@@ -338,7 +338,7 @@ class MessagingTest(unittest.TestCase):
 
         # Target invalid connection
         messages_4 = props_to_any([CF.DataType('bad', to_any('bad_connection'))])
-        self.assertRaises(RuntimeError, self._supplier.push, messages_4, 'bad_connection')
+        self.assertRaises(ValueError, self._supplier.push, messages_4, 'bad_connection')
         self.failIf(receiver_2.waitMessages(4, 0.1))
         self.failIf(receiver_1.waitMessages(5, 0.1))
         self.assertEqual(3, len(receiver_2.messages))

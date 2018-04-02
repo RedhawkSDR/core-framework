@@ -586,4 +586,4 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
 
     def _checkConnectionId(self, connectionId):
         if connectionId and not connectionId in self._connections:
-            raise RuntimeError("invalid connection '"+connectionId+"'")
+            raise ValueError("invalid connection '"+connectionId+"'")
