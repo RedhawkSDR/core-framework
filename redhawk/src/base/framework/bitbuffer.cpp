@@ -246,8 +246,19 @@ void bitbuffer::swap(bitbuffer& other)
 {
     // Use base class swap, with the caveat that we have to do a cast so that
     // it can complile (the base class explicitly disallows swapping with a
-    // mutable buffer to prevent accidentally end-runs around const protection)
+    // mutable buffer to prevent accidental end-runs around const protection)
     shared_bitbuffer::swap(static_cast<shared_bitbuffer&>(other));
+}
+
+void bitbuffer::_M_parse(const std::string& str)
+{
+    int count = bitops::parseString(data(), offset(), str.c_str(), str.size());
+    if (count < (int) str.size()) {
+        std::string message = "invalid character '";
+        message += str[count];
+        message += '\'';
+        throw std::invalid_argument(message);
+    }
 }
 
 void bitbuffer::_M_resize(bitbuffer& dest)

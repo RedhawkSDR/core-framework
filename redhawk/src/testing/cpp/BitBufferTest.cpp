@@ -85,6 +85,31 @@ void BitBufferTest::testFromArray()
     CPPUNIT_ASSERT_MESSAGE("Offset array is not equal", status == 0);
 }
 
+void BitBufferTest::testFromString()
+{
+    const std::string literal = "0101110101101011010101";
+    redhawk::bitbuffer buffer = redhawk::bitbuffer::from_string(literal);
+    CPPUNIT_ASSERT_EQUAL(literal.size(), buffer.size());
+    const data_type* data = buffer.data();
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x5D, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x6B, data[1]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x54, (data_type) (data[2] & 0xFC));
+
+    // Exceptions
+    CPPUNIT_ASSERT_THROW(redhawk::bitbuffer::from_string("0101101q"), std::invalid_argument);
+}
+
+void BitBufferTest::testFromUnpacked()
+{
+    const redhawk::bitops::byte unpacked[] = { 0, 1, 0, 1, 0, 0, 0, 1 , 0, 2, 0xFF, 0x80 };
+    const size_t bits = sizeof(unpacked);
+    redhawk::bitbuffer buffer = redhawk::bitbuffer::from_unpacked(unpacked, bits);
+    CPPUNIT_ASSERT_EQUAL(bits, buffer.size());
+    const data_type* data = buffer.data();
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x51, data[0]);
+    CPPUNIT_ASSERT_EQUAL((data_type) 0x70, (data_type) (data[1] & 0xF0));
+}
+
 void BitBufferTest::testEquals()
 {
     // Fill a bit buffer with a known pattern

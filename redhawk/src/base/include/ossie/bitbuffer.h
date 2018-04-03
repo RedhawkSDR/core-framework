@@ -309,12 +309,11 @@ namespace redhawk {
     protected:
         /// @cond IMPL
 
-        // Allocating constructor for use by bitbuffer. The implementation must
-        // be in the header, because the complete set of allocators is not
-        // known in the framework.
-        template <class Alloc>
-        shared_bitbuffer(size_t bits, const Alloc& allocator) :
-            _M_memory(_M_bits_to_bytes(bits), allocator),
+        // Internal constructor for use by bitbuffer. The implementation is in
+        // the header so that it can be inlined, which in premise avoids the
+        // need to add/remove extra references on the refcount_memory.
+        shared_bitbuffer(refcount_memory memory, size_t bits) :
+            _M_memory(memory),
             _M_base((data_type*) _M_memory.address()),
             _M_offset(0),
             _M_size(bits)
@@ -417,7 +416,7 @@ namespace redhawk {
          * the default allocator. The memory is not initialized.
          */
         explicit bitbuffer(size_t bits) :
-            shared_bitbuffer(bits, default_allocator())
+            shared_bitbuffer(_M_allocate(bits, default_allocator()), bits)
         {
         }
 
@@ -431,7 +430,7 @@ namespace redhawk {
          */
         template <class Alloc>
         bitbuffer(size_t bits, const Alloc& allocator) :
-            shared_bitbuffer(bits, allocator)
+            shared_bitbuffer(_M_allocate(bits, allocator), bits)
         {
         }
 
@@ -449,6 +448,39 @@ namespace redhawk {
         {
             bitbuffer result(bits);
             result.setint(0, value, bits);
+            return result;
+        }
+
+        /**
+         * @brief Convenience function to create a new %bitbuffer from a string
+         *        of '0' and '1' characters.
+         * @param str  String to be parsed.
+         * @return  A new %bitbuffer.
+         * @throw std::invalid_argument  If @p str contains any characters
+         *                               other than '0' or '1'.
+         */
+        static inline bitbuffer from_string(const std::string& str)
+        {
+            bitbuffer result(str.size());
+            result._M_parse(str);
+            return result;
+        }
+
+        /**
+         * @brief  Convenience function to create a %bitbuffer from an unpacked
+         *         byte array.
+         * @param unpacked  Pointer to first element.
+         * @param count     Number of values to pack.
+         * @return  A new %bitbuffer.
+         *
+         * Allocates and initializes a new %bitbuffer by packing the values in
+         * @a unpacked. Each element of @a unpacked is converted to a bit
+         * value, where zero becomes 0 bit and any non-zero value is a 1 bit.
+         */
+        static inline bitbuffer from_unpacked(const bitops::byte* unpacked, size_t count)
+        {
+            bitbuffer result(count);
+            bitops::pack(result.data(), result.offset(), unpacked, count);
             return result;
         }
 
@@ -670,6 +702,19 @@ namespace redhawk {
 
     private:
         /// @cond IMPL
+        // Helper to handle the allocation of reference counted memory to pass
+        // to the shared_bitbuffer constructor. Inlining it allows the compiler
+        // to elide extra reference counts, as this is being used to initialize
+        // the _M_memory member of shared_bitbuffer.
+        template <class Alloc>
+        static inline refcount_memory _M_allocate(size_t bits, const Alloc& allocator)
+        {
+            return refcount_memory(_M_bits_to_bytes(bits), allocator);
+        }
+
+        // Helper to parse a string into a newly-created bitbuffer.
+        void _M_parse(const std::string& str);
+
         void _M_resize(bitbuffer& dest);
         /// @endcond
     };
