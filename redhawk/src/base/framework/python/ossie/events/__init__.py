@@ -544,6 +544,17 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
 
     # CosEventComm.PushSupplier delegation
     def push(self, data, connectionId=None):
+        """
+        Sends pre-serialized messages.
+
+        Args:
+            data:         Messages serialized to a CORBA.Any
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
         with self.portInterfaceAccess:
             self._checkConnectionId(connectionId)
 
@@ -559,6 +570,17 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
                     print "WARNING: Unable to send data to", identifier
 
     def sendMessage(self, data_struct, connectionId=None):
+        """
+        Sends a single message.
+
+        Args:
+            data_struct:  Message structure or CORBA.Any to send.
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
         if not isinstance(data_struct, CORBA.Any):
             outgoing = [CF.DataType(id=data_struct.getId(),value=struct_to_any(data_struct))]
             outmsg = props_to_any(outgoing)
@@ -567,6 +589,17 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         self.push(outmsg, connectionId)
 
     def sendMessages(self, data_structs, connectionId=None):
+        """
+        Sends a list of messages.
+
+        Args:
+            data_structs: Sequence of messages to send.
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
         outgoing = []
         for msg in data_structs:
             outgoing.append(CF.DataType(id=msg.getId(),value=struct_to_any(msg)))

@@ -50,7 +50,7 @@ public:
     void push(const CORBA::Any& data, const std::string& connectionId=std::string());
 
     /**
-     * @brief Sends a single message.
+     * @brief  Sends a single message.
      * @param message       Message to send.
      * @param connectionID  Target connection (default: all).
      * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
@@ -65,7 +65,7 @@ public:
     }
 
     /**
-     * @brief Sends a sequence of messages.
+     * @brief  Sends a sequence of messages.
      * @param messages      Container of messages to send.
      * @param connectionID  Target connection (default: all).
      * @throw redhawk::InvalidConnectionId  If @p connectionId is not empty and
@@ -78,7 +78,7 @@ public:
     }
 
     /**
-     * @brief Sends a sequence of messages.
+     * @brief  Sends a sequence of messages.
      * @param first         Iterator to first message.
      * @param last          Iterator to one past last message.
      * @param connectionID  Target connection (default: all).

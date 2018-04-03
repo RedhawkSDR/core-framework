@@ -138,12 +138,26 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
     {
         this.removeConnection(connectionId, true);
     }
-    
+
+    /**
+     * Sends pre-serialized messages to all connections.
+     *
+     * @param data  messages serialized to a CORBA Any
+     */
     public void push(final Any data)
     {
         this.push(data, "");
     }
 
+    /**
+     * Sends pre-serialized messages to a specific connection.
+     *
+     * @param data          messages serialized to a CORBA Any
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     * @since 2.2
+     */
     public void push(final Any data, String connectionId)
     {
         synchronized(this.updatingPortsLock) {
@@ -183,22 +197,48 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
             }
         }
     }
-
+    
+    /**
+     * Sends a single message to all connections.
+     *
+     * @param message  message structure to send
+     */
     public void sendMessage(final StructDef message)
     {
         this.sendMessage(message, "");
     }
 
+    /**
+     * Sends a single message to a specific connection.
+     *
+     * @param message       message structure to send
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     */
     public void sendMessage(StructDef message, String connectionId)
     {
         this.sendMessages(Arrays.asList(message), connectionId);
     }
 
+    /**
+     * Sends a collection of messages to all connections.
+     *
+     * @param messages  collection of message structures to send
+     */
     public void sendMessages(final Collection<? extends StructDef> messages)
     {
         this.sendMessages(messages, "");
     }
 
+    /**
+     * Sends a collection of messages to a specific connection.
+     *
+     * @param messages      collection of message structures to send
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     */
     public void sendMessages(Collection<? extends StructDef> messages, String connectionId)
     {
         final CF.DataType[] properties = new CF.DataType[messages.size()];
