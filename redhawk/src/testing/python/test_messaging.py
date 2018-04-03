@@ -71,7 +71,7 @@ class PortManager(object):
         self.releasePorts()
 
 
-# REDHAWK 2.1 generated message struct
+# REDHAWK 2.1 generated message structs
 class BasicMessage(object):
     value = simple_property(
                             id_="basic_message::value",
@@ -102,6 +102,43 @@ class BasicMessage(object):
 
     def getMembers(self):
         return [("value",self.value)]
+
+class TestMessage(object):
+    item_float = simple_property(
+                                 id_="test_message::item_float",
+                                 name="item_float",
+                                 type_="float")
+
+    item_string = simple_property(
+                                  id_="test_message::item_string",
+                                  name="item_string",
+                                  type_="string")
+
+    def __init__(self, **kw):
+        """Construct an initialized instance of this struct definition"""
+        for classattr in type(self).__dict__.itervalues():
+            if isinstance(classattr, (simple_property, simpleseq_property)):
+                classattr.initialize(self)
+        for k,v in kw.items():
+            setattr(self,k,v)
+
+    def __str__(self):
+        """Return a string representation of this structure"""
+        d = {}
+        d["item_float"] = self.item_float
+        d["item_string"] = self.item_string
+        return str(d)
+
+    @classmethod
+    def getId(cls):
+        return "test_message"
+
+    @classmethod
+    def isStruct(cls):
+        return True
+
+    def getMembers(self):
+        return [("item_float",self.item_float),("item_string",self.item_string)]
 
 
 class MessageReceiver(object):
@@ -216,12 +253,23 @@ class MessagingTest(unittest.TestCase):
     def testSendMessages(self):
         receiver = MessageReceiver()
         self._consumer.registerMessage("basic_message", BasicMessage, receiver.messageReceived)
+        self._consumer.registerMessage("test_message", TestMessage, receiver.messageReceived)
 
-        messages = [BasicMessage(value=x) for x in xrange(3)]
+        # Send two different message types in one batch
+        messages = [BasicMessage(value=1),
+                    TestMessage(item_float=2.0, item_string="two"),
+                    BasicMessage(value=3)]
 
         self.assertEqual(0, len(receiver.messages))
         self._supplier.sendMessages(messages)
         self.failUnless(receiver.waitMessages(len(messages), 1.0))
+        self.assertEqual('basic_message', receiver.messages[0].getId())
+        self.assertEqual(1, receiver.messages[0].value)
+        self.assertEqual('test_message', receiver.messages[1].getId())
+        self.assertEqual(2.0, receiver.messages[1].item_float)
+        self.assertEqual("two", receiver.messages[1].item_string)
+        self.assertEqual('basic_message', receiver.messages[2].getId())
+        self.assertEqual(3, receiver.messages[2].value)
 
     def testSendMessagesConnectionId(self):
         # Create and connect a second consumer port
