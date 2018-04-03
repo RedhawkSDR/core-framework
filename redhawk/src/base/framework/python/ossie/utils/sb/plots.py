@@ -431,7 +431,8 @@ class LinePlot(LineBase):
         return BULKIO.UNITS_TIME
 
     def _formatData(self, block, stream):
-        if block.complex:
+        # Bit blocks don't have a .complex attribute; default to False
+        if getattr(block, 'complex', False):
             data = block.buffer[::2]
         else:
             data = block.buffer
@@ -522,7 +523,8 @@ class LinePSD(LineBase, PSDBase):
         return BULKIO.UNITS_FREQUENCY
 
     def _formatData(self, block, stream):
-        if block.complex:
+        # Bit blocks don't have a .complex attribute; default to False
+        if getattr(block, 'complex', False):
             data = block.cxbuffer
         else:
             data = block.buffer
