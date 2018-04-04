@@ -20,8 +20,8 @@
 
 #ifndef OSSIE_THREADEDCOMPONENT_H
 #define OSSIE_THREADEDCOMPONENT_H
-#include "ossie/ProcessThread.h"
-#include "ossie/Autocomplete.h"
+
+#include "ProcessThread.h"
 
 enum {
     NOOP   = 0,

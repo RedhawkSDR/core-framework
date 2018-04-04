@@ -49,7 +49,13 @@ class ComponentTerminationTest(scatest.CorbaTestCase):
         sad_file = os.path.join('/waveforms', waveform_name, waveform_name + '.sad.xml')
         app = self._domainManager.createApplication(sad_file, waveform_name, [], [])
 
-        app.start()
+        try:
+            app.start()
+        except CF.Resource.StartError:
+            # Python in particular will throw a CORBA exception if the start()
+            # call has not finished when the exception handler terminates the
+            # component. It doesn't matter for this test, so ignore it.
+            pass
 
         self._event.wait(1)
         self.failUnless(self._event.isSet(), 'No unexpected termination message received')
