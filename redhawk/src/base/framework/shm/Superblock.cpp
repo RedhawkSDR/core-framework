@@ -24,6 +24,7 @@
 #include "offset_ptr.h"
 
 #include <ossie/shm/MappedFile.h>
+#include <ossie/BufferManager.h>
 
 #include <stdexcept>
 #include <cstring>
@@ -114,6 +115,14 @@ void* Superblock::attach(size_t offset)
     return block->data();
 }
 
+void* Superblock::allocateLocal(size_t bytes)
+{
+    size_t block_count = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
+    void* addr = redhawk::BufferManager::Allocate(block_count * Block::BLOCK_SIZE);
+    Block* block = new (addr) Block(0, block_count);
+    return block->data();
+}
+
 void Superblock::deallocate(void* ptr)
 {
     // The C standard says it's safe to call free() with a null pointer, so for
@@ -124,7 +133,9 @@ void Superblock::deallocate(void* ptr)
 
     Block* block = Block::from_pointer(ptr);
     assert(block->valid());
-    if (block->decref() == 0) {
+    if (block->local()) {
+        redhawk::BufferManager::Deallocate(block);
+    } else if (block->decref() == 0) {
         Superblock* superblock = block->getSuperblock();
         superblock->_deallocate(block);
     }

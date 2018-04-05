@@ -89,8 +89,16 @@ size_t MappedFile::size() const
 
 void MappedFile::resize(size_t bytes)
 {
-    if (ftruncate(_fd, bytes)) {
-        throw std::runtime_error("ftruncate: " + error_string());
+    size_t current_size = size();
+    if (bytes <= current_size) {
+        return;
+    }
+    if (posix_fallocate(_fd, current_size, bytes - current_size)) {
+        if (errno == ENOSPC) {
+            throw std::bad_alloc();
+        } else {
+            throw std::runtime_error("fallocate: " + error_string());
+        }
     }
 }
 

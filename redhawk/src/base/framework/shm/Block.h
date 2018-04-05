@@ -123,6 +123,11 @@ namespace redhawk {
                 return (this + 1);
             }
 
+            bool local() const
+            {
+                return (_offset == 0);
+            }
+
             Superblock* getSuperblock()
             {
                 return offset_ptr<Superblock>(this, -(ptrdiff_t)byteOffset());

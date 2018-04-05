@@ -68,6 +68,7 @@ namespace redhawk {
             boost::mutex _mutex;
 
             SuperblockFile _file;
+            bool _canGrow;
 
             std::vector<PrivateHeap*> _allocs;
 

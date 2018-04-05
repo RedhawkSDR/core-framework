@@ -134,7 +134,14 @@ void SuperblockFile::create()
     _file.create();
 
     // Use a page to create the header
-    _file.resize(MappedFile::PAGE_SIZE);
+    try {
+        _file.resize(MappedFile::PAGE_SIZE);
+    } catch (const std::exception&) {
+        // Something is terribly wrong, probably out of memory; remove the file
+        // and relay the exception
+        _file.unlink();
+        throw;
+    }
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
     _header = new (base) Header;
 }
@@ -147,14 +154,20 @@ void SuperblockFile::open()
 
     _file.open();
 
+    // Check for a heap that was created on a full tmpfs--the file exists but
+    // has no allocated memory
+    if (_file.size() < MappedFile::PAGE_SIZE) {
+        throw std::runtime_error("invalid superblock file (no header)");
+    }
+
     // Map the file and overlay the header structure over it, checking the
     // magic number to make sure it's really a superblock file
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
     Header* header = reinterpret_cast<Header*>(base);
     if (header->magic != Header::SUPERBLOCK_MAGIC) {
-        throw std::runtime_error("invalid superblock (magic number does not match)");
+        throw std::runtime_error("invalid superblock file (magic number does not match)");
     } else if (header->version != Header::SUPERBLOCK_VERSION) {
-        throw std::runtime_error("incompatible superblock (version mismatch)");
+        throw std::runtime_error("incompatible superblock file (version mismatch)");
     }
  
     // Store a reference the header and attach, so that we clean up on close

@@ -65,8 +65,12 @@ public:
         }
 
         Superblock* superblock = _heap->_createSuperblock(bytes);
-        _superblocks.insert(_superblocks.begin(), superblock);
-        return superblock->allocate(state, bytes);
+        if (superblock) {
+            _superblocks.insert(_superblocks.begin(), superblock);
+            return superblock->allocate(state, bytes);
+        } else {
+            return Superblock::allocateLocal(bytes);
+        }
     }
 
 private:
@@ -79,9 +83,14 @@ private:
 };
 
 Heap::Heap(const std::string& name) :
-    _file(name)
+    _file(name),
+    _canGrow(true)
 {
-    _file.create();
+    try {
+        _file.create();
+    } catch (const std::bad_alloc&) {
+        _canGrow = false;
+    }
     int nprocs = sysconf(_SC_NPROCESSORS_CONF);
     for (int id = 0; id < nprocs; ++id) {
         _allocs.push_back(new PrivateHeap(id, this));
@@ -110,11 +119,17 @@ void Heap::deallocate(void* ptr)
 MemoryRef Heap::getRef(const void* ptr)
 {
     Block* block = Block::from_pointer(const_cast<void*>(ptr));
-    const Superblock* superblock = block->getSuperblock();
     MemoryRef ref;
-    ref.heap = superblock->heap();
-    ref.superblock = superblock->offset();
-    ref.offset = block->offset();
+    if (block->local()) {
+        ref.heap = "";
+        ref.superblock = 0;
+        ref.offset = 0;
+    } else {
+        const Superblock* superblock = block->getSuperblock();
+        ref.heap = superblock->heap();
+        ref.superblock = superblock->offset();
+        ref.offset = block->offset();
+    }
     return ref;
 }
 
@@ -143,6 +158,10 @@ ThreadState* Heap::_getThreadState()
 Superblock* Heap::_createSuperblock(size_t minSize)
 {
     boost::mutex::scoped_lock lock(_mutex);
+    if (!_canGrow) {
+        return 0;
+    }
+
     size_t superblock_size = DEFAULT_SUPERBLOCK_SIZE;
     const char* superblock_size_env = getenv("SUPERBLOCK_SIZE");
     if (superblock_size_env) {
@@ -167,5 +186,11 @@ Superblock* Heap::_createSuperblock(size_t minSize)
     if (minSize > superblock_size) {
         superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
     }
-    return _file.createSuperblock(superblock_size);
+
+    try {
+        return _file.createSuperblock(superblock_size);
+    } catch (const std::bad_alloc&) {
+        _canGrow = false;
+        return 0;
+    }
 }
