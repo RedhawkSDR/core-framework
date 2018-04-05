@@ -44,6 +44,8 @@ namespace redhawk {
 
             size_t size() const;
 
+            size_t used() const;
+
             void* allocate(ThreadState* thread, size_t bytes);
 
             void* attach(size_t offset);
@@ -79,6 +81,8 @@ namespace redhawk {
             const uint32_t _size;
             const uint32_t _dataStart;
             mutable redhawk::shared_mutex _lock;
+
+            volatile size_t _used;
 
             // Free list pointers
             uint32_t _first;

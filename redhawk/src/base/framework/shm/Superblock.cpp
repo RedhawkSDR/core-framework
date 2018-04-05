@@ -67,6 +67,7 @@ Superblock::Superblock(const std::string& heap, size_t offset, size_t size) :
     _offset(offset),
     _size(size),
     _dataStart(MappedFile::PAGE_SIZE),
+    _used(0),
     _first(0),
     _last(0)
 {
@@ -96,6 +97,11 @@ size_t Superblock::offset() const
 size_t Superblock::size() const
 {
     return _size;
+}
+
+size_t Superblock::used() const
+{
+    return _used;
 }
 
 void* Superblock::attach(size_t offset)
@@ -218,6 +224,8 @@ void Superblock::_deallocate(Block* block)
     assert(block->byteSize() >= sizeof(FreeBlock));
     LOG_DEALLOC(block->byteSize());
 
+    _used -= block->byteSize();
+
 #if ALLOC_DEBUG > 1
     std::cout << "Returning block@" << block << std::endl;
     std::cout << "  offset: " << block->offset() << std::endl;
@@ -249,6 +257,7 @@ void Superblock::_deallocate(Block* block)
 void Superblock::_queueFree(Block* block)
 {
     assert(block->isFree());
+
     FreeBlock* free_block = reinterpret_cast<FreeBlock*>(block);
     if (!_first) {
         // No free blocks exist
@@ -373,6 +382,7 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
 #if ALLOC_DEBUG > 1
     _dump(std::cout);
 #endif
+    _used += block->byteSize();
 
     return block->data();
 }

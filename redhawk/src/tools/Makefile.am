@@ -19,3 +19,10 @@
 #
 
 bin_SCRIPTS = redhawk-softpkg
+bin_PROGRAMS = redhawk-shminfo
+
+OSSIE_LIBS = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
+
+redhawk_shminfo_SOURCES = src/shminfo.cpp
+redhawk_shminfo_CXXFLAGS = -Wall $(OSSIE_CFLAGS)
+redhawk_shminfo_LDFLAGS = $(OSSIE_LIBS)

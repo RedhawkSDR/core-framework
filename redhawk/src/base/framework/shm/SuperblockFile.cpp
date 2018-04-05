@@ -28,7 +28,27 @@
 using namespace redhawk::shm;
 
 struct SuperblockFile::Header {
-    atomic_counter<int> refcount;
+    // Magic number to identify superblock files. This should never change.
+    typedef uint32_t magic_type;
+    static const magic_type SUPERBLOCK_MAGIC = 0xACEB70CC;
+
+    // ABI version of superblock file. If the layout of the header or the
+    // Superblock class changes, changes, this version must be incremented.
+    typedef uint32_t version_type;
+    static const version_type SUPERBLOCK_VERSION = 1;
+
+    Header() :
+        magic(SUPERBLOCK_MAGIC),
+        version(SUPERBLOCK_VERSION),
+        refcount(1),
+        creator(getpid())
+    {
+    }
+
+    const magic_type magic;
+    const version_type version;
+    atomic_counter<int32_t> refcount;
+    const pid_t creator;
 };
 
 SuperblockFile::SuperblockFile(const std::string& name) :
@@ -47,6 +67,64 @@ const std::string& SuperblockFile::name() const
     return _file.name();
 }
 
+pid_t SuperblockFile::creator() const
+{
+    if (!_header) {
+        return 0;
+    }
+    return _header->creator;
+}
+
+int SuperblockFile::refcount() const
+{
+    if (!_header) {
+        return -1;
+    }
+    return _header->refcount;
+}
+
+SuperblockFile::Statistics SuperblockFile::getStatistics()
+{
+    Statistics stats;
+    stats.size = 0;
+    stats.used = 0;
+    stats.superblocks = 0;
+    stats.unused = 0;
+
+    // First superblock starts at next page after the header
+    size_t offset = MappedFile::PAGE_SIZE;
+    const size_t end = _file.size();
+    while (offset < end) {
+        // Map just the header of the superblock; no calls here need to acquire
+        // its lock, so this prevents accidental modifications
+        void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READONLY, offset);
+        const Superblock* superblock = reinterpret_cast<const Superblock*>(base);
+
+        // Extra safety check; since we're walking through the superblocks, the
+        // offsets should always be correct, but just in case...
+        bool valid = (superblock->offset() == offset);
+        if (valid) {
+            stats.size += superblock->size();
+            size_t used = superblock->used();
+            stats.used += used;
+            if (!used) {
+                stats.unused++;
+            }
+            stats.superblocks++;
+            // Account for the superblock overhead
+            offset += MappedFile::PAGE_SIZE + superblock->size();
+        }
+        // Don't forget to unmap--it doesn't happen automatically!
+        _file.unmap(base, MappedFile::PAGE_SIZE);
+
+        if (!valid) {
+            break;
+        }
+    }
+
+    return stats;
+}
+
 void SuperblockFile::create()
 {
     if (_header) {
@@ -59,7 +137,6 @@ void SuperblockFile::create()
     _file.resize(MappedFile::PAGE_SIZE);
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
     _header = new (base) Header;
-    _header->refcount = 1;
 }
 
 void SuperblockFile::open()
@@ -70,8 +147,18 @@ void SuperblockFile::open()
 
     _file.open();
 
+    // Map the file and overlay the header structure over it, checking the
+    // magic number to make sure it's really a superblock file
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
-    _header = reinterpret_cast<Header*>(base);
+    Header* header = reinterpret_cast<Header*>(base);
+    if (header->magic != Header::SUPERBLOCK_MAGIC) {
+        throw std::runtime_error("invalid superblock (magic number does not match)");
+    } else if (header->version != Header::SUPERBLOCK_VERSION) {
+        throw std::runtime_error("incompatible superblock (version mismatch)");
+    }
+ 
+    // Store a reference the header and attach, so that we clean up on close
+    _header = header;
     _header->refcount.increment();
 }
 

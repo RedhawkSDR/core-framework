@@ -33,8 +33,21 @@ namespace redhawk {
 
         class SuperblockFile {
         public:
+            struct Statistics
+            {
+                size_t size;
+                size_t used;
+                size_t superblocks;
+                size_t unused;
+            };
+
             SuperblockFile(const std::string& name);
             ~SuperblockFile();
+
+            pid_t creator() const;
+            int refcount() const;
+
+            Statistics getStatistics();
 
             void create();
             void open();
