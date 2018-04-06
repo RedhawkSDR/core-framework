@@ -104,14 +104,22 @@ namespace bulkio {
                                  bool EOS,
                                  const std::string& streamID)
         {
-            MessageBuffer msg;
-            msg.write("pushPacket");
+            MessageBuffer header;
+            header.write("pushPacket");
 
-            msg.write(data.size());
+            header.write(data.size());
+            header.write(T);
+            header.write(EOS);
+            header.write(streamID);
 
             // Temporary buffer to ensure that if a copy is made, it gets
             // released after the transfer
             BufferType copy;
+
+            // Data may be sent in-band if shared memory is not available; this
+            // is slower but provides a more graceful failure mode
+            const void* body = 0;
+            size_t body_size = 0;
 
             // If the packet is non-empty, write the additional shared memory
             // information for the remote side to pick up
@@ -132,17 +140,23 @@ namespace bulkio {
                 }
 
                 redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
-                msg.write(ref.heap);
-                msg.write(ref.superblock);
-                msg.write(ref.offset);
-                msg.write(offset);
+                if (!ref) {
+                    // The allocator was unable to use shared memory; set flag
+                    // to indicate in-band data
+                    header.write(true);
+                    body = data.data();
+                    body_size = data.size() * sizeof(data[0]);
+                } else {
+                    // Set flag to indicate shared memory transfer
+                    header.write(false);
+                    header.write(ref.heap);
+                    header.write(ref.superblock);
+                    header.write(ref.offset);
+                    header.write(offset);
+                }
             }
 
-            msg.write(T);
-            msg.write(EOS);
-            msg.write(streamID);
-
-            _sendMessage(msg);
+            _sendMessage(header.buffer(), header.size(), body, body_size);
 
             _recordExtendedStatistics(!copy.empty());
         }
@@ -163,10 +177,14 @@ namespace bulkio {
             }
         }
 
-        void _sendMessage(const MessageBuffer& message)
+        void _sendMessage(const void* header, size_t hsize, const void* body, size_t bsize)
         {
             try {
-                _fifo.write(message.buffer(), message.size());
+                _fifo.write(&hsize, sizeof(hsize));
+                _fifo.write(header, hsize);
+                if (bsize > 0) {
+                    _fifo.write(body, bsize);
+                }
             } catch (const std::exception& exc) {
                 throw redhawk::FatalTransportError(exc.what());
             }

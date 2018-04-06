@@ -88,14 +88,15 @@ namespace bulkio {
     template <class PortType>
     bool ShmInputTransport<PortType>::_receiveMessage()
     {
-        // FIFOs allow up to 16K in a single write, though BulkIO messages are
-        // not that large at present.
-        MessageBuffer msg(16384);
-        size_t msg_length = _fifo.read(msg.buffer(), msg.size());
-        if (msg_length == 0) {
+        size_t msg_length;
+        if (_fifo.read(&msg_length, sizeof(msg_length)) != sizeof(msg_length)) {
             return false;
         }
-        msg.resize(msg_length);
+
+        MessageBuffer msg(msg_length);
+        if (_fifo.read(msg.buffer(), msg.size()) != msg_length){
+            return false;
+        }
 
         std::string message_name;
         try {
@@ -121,45 +122,6 @@ namespace bulkio {
         size_t count;
         msg.read(count);
 
-        BufferType buffer;
-        if (count > 0) {
-            redhawk::shm::MemoryRef ref;
-            msg.read(ref.heap);
-            msg.read(ref.superblock);
-            msg.read(ref.offset);
-
-            size_t offset;
-            msg.read(offset);
-
-            void* base = _heapClient.fetch(ref);
-
-            // Find the first element, which may be offset from the base
-            // pointer. If so, start with a larger buffer and then trim the
-            // elements off of the front.
-            size_t start = offset / sizeof(NativeType);
-            if ((start * sizeof(NativeType)) != offset) {
-                // The starting element is not aligned from the base, which
-                // will require some additional care to adjust. Start with a
-                // char buffer, trim that to the correct starting point, and
-                // then recast to the desired type.
-                char* ptr = reinterpret_cast<char*>(base);
-                size_t bytes = offset + count * sizeof(NativeType);
-                redhawk::shared_buffer<char> temp(ptr, bytes, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
-                temp.trim(offset);
-
-                buffer = BufferType::recast(temp);
-            } else {
-                // Normal alignment, include the start offset (if any) in the
-                // initial buffer size, then trim to the desired start.
-                NativeType* ptr = reinterpret_cast<NativeType*>(base);
-                count += start;
-                buffer = BufferType(ptr, count, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
-                if (start > 0) {
-                    buffer.trim(start);
-                }
-            }
-        }
-
         BULKIO::PrecisionUTCTime T;
         msg.read(T);
 
@@ -168,6 +130,21 @@ namespace bulkio {
 
         std::string streamID;
         msg.read(streamID);
+
+        BufferType buffer;
+        if (count > 0) {
+            bool inband_data;
+            msg.read(inband_data);
+
+            if (inband_data) {
+                redhawk::buffer<NativeType> temp(count);
+                _fifo.read(temp.data(), temp.size() * sizeof(NativeType));
+                buffer = temp;
+            } else {
+                _receiveSharedBuffer(msg, buffer, count);
+            }
+        }
+
         if (msg.offset() < msg.size()) {
             std::cerr << "Message bytes left over" << std::endl;
         }
@@ -179,6 +156,45 @@ namespace bulkio {
         _fifo.write(&status, sizeof(size_t));
     }
 
+    template <class PortType>
+    void ShmInputTransport<PortType>::_receiveSharedBuffer(MessageBuffer& msg, BufferType& buffer, size_t size)
+    {
+        redhawk::shm::MemoryRef ref;
+        msg.read(ref.heap);
+        msg.read(ref.superblock);
+        msg.read(ref.offset);
+
+        size_t offset;
+        msg.read(offset);
+
+        void* base = _heapClient.fetch(ref);
+
+        // Find the first element, which may be offset from the base pointer.
+        // If so, start with a larger buffer and then trim the elements off of
+        // the front.
+        size_t start = offset / sizeof(NativeType);
+        if ((start * sizeof(NativeType)) != offset) {
+            // The starting element is not aligned from the base, which will
+            // require some additional care to adjust. Start with a char
+            // buffer, trim that to the correct starting point, and then recast
+            // to the desired type.
+            char* ptr = reinterpret_cast<char*>(base);
+            size_t bytes = offset + size * sizeof(NativeType);
+            redhawk::shared_buffer<char> temp(ptr, bytes, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
+            temp.trim(offset);
+
+            buffer = BufferType::recast(temp);
+        } else {
+            // Normal alignment, include the start offset (if any) in the
+            // initial buffer size, then trim to the desired start.
+            NativeType* ptr = reinterpret_cast<NativeType*>(base);
+            size += start;
+            buffer = BufferType(ptr, size, &redhawk::shm::HeapClient::deallocate, redhawk::detail::process_shared_tag());
+            if (start > 0) {
+                buffer.trim(start);
+            }
+        }
+    }
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
     template class ShmInputTransport<x>;

@@ -40,6 +40,8 @@ namespace bulkio {
 
         void _receivePushPacket(MessageBuffer& msg);
 
+        void _receiveSharedBuffer(MessageBuffer& msg, BufferType& buffer, size_t size);
+
         volatile bool _running;
         boost::mutex _mutex;
         boost::thread _thread;
