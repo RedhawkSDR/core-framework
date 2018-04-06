@@ -23,7 +23,7 @@
 
 namespace ossie {
 
-PREPARE_LOGGING(ProcessThread);
+PREPARE_CF_LOGGING(ProcessThread);
 
 ProcessThread::ProcessThread(ThreadedComponent *target, float delay, const std::string& name) :
     _thread(0),
