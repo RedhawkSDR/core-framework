@@ -93,12 +93,13 @@ void MappedFile::resize(size_t bytes)
     if (bytes <= current_size) {
         return;
     }
-    if (posix_fallocate(_fd, current_size, bytes - current_size)) {
-        if (errno == ENOSPC) {
-            throw std::bad_alloc();
-        } else {
-            throw std::runtime_error("fallocate: " + error_string());
-        }
+    int status = posix_fallocate(_fd, current_size, bytes - current_size);
+    if (status == 0) {
+        return;
+    } else if (status == ENOSPC) {
+        throw std::bad_alloc();
+    } else {
+        throw std::runtime_error("fallocate failed");
     }
 }
 

@@ -21,6 +21,8 @@
 #include <ossie/shm/SuperblockFile.h>
 
 #include <stdexcept>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "Superblock.h"
 #include "atomic_counter.h"
