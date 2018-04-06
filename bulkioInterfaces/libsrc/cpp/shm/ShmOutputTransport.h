@@ -17,25 +17,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef __bulkio_shmtransport_h
-#define __bulkio_shmtransport_h
+#ifndef __bulkio_shmoutputtransport_h
+#define __bulkio_shmoutputtransport_h
 
 #include <ossie/PropertyMap.h>
-#include <ossie/ProvidesPort.h>
 #include <ossie/UsesPort.h>
 
-#include <BulkioTransport.h>
+#include <bulkio/BulkioTransport.h>
 
 namespace bulkio {
 
     template <typename PortType>
-    class ShmTransport;
+    class ShmOutputTransport;
 
     template <typename PortType>
     class ShmOutputManager : public OutputManager<PortType>
     {
     public:
-        typedef ShmTransport<PortType> TransportType;
+        typedef ShmOutputTransport<PortType> TransportType;
         typedef typename PortType::_ptr_type PtrType;
 
         ShmOutputManager(OutPort<PortType>* port);
@@ -58,4 +57,4 @@ namespace bulkio {
 
 }
 
-#endif // __bulkio_shmtransport_h
+#endif // __bulkio_shmoutputtransport_h

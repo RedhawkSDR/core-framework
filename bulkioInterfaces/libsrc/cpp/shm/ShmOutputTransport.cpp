@@ -18,8 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "ShmTransport.h"
-#include "ShmProvidesTransport.h"
+#include "ShmOutputTransport.h"
 #include "FifoIPC.h"
 #include "MessageBuffer.h"
 
@@ -33,20 +32,20 @@
 namespace bulkio {
 
     template <typename PortType>
-    class ShmTransport : public OutputTransport<PortType>
+    class ShmOutputTransport : public OutputTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
         typedef typename OutputTransport<PortType>::BufferType BufferType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        ShmTransport(OutPort<PortType>* parent, PtrType port) :
+        ShmOutputTransport(OutPort<PortType>* parent, PtrType port) :
             OutputTransport<PortType>(parent, port),
             _fifo()
         {
         }
 
-        ~ShmTransport()
+        ~ShmOutputTransport()
         {
         }
 
@@ -244,7 +243,7 @@ namespace bulkio {
             return 0;
         }
 
-        return new ShmTransport<PortType>(this->_port, object);
+        return new ShmOutputTransport<PortType>(this->_port, object);
     }
 
     template <typename PortType>
@@ -278,54 +277,9 @@ namespace bulkio {
         shm_transport->finishConnect(fifo_name);
     }
 
-    template <typename PortType>
-    class ShmTransportFactory : public BulkioTransportFactory<PortType>
-    {
-    public:
-        ShmTransportFactory()
-        {
-        }
-
-        virtual std::string transportType()
-        {
-            return "shmipc";
-        }
-
-        virtual int defaultPriority()
-        {
-            return 1;
-        }
-
-        virtual InputManager<PortType>* createInputManager(InPort<PortType>* port)
-        {
-            return new ShmInputManager<PortType>(port);
-        }
-
-        virtual OutputManager<PortType>* createOutputManager(OutPort<PortType>* port)
-        {
-            return new ShmOutputManager<PortType>(port);
-        }
-    };
-
 #define INSTANTIATE_TEMPLATE(x)                 \
-    template class ShmTransport<x>;             \
-    template class ShmOutputManager<x>;         \
-    template class ShmTransportFactory<x>;
+    template class ShmOutputTransport<x>;       \
+    template class ShmOutputManager<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_TEMPLATE);
-
-    static int initializeModule()
-    {
-#define REGISTER_FACTORY(x) \
-        {                                                               \
-            static ShmTransportFactory<x> factory;                      \
-            redhawk::TransportRegistry::RegisterTransport(&factory);    \
-        }
-
-        FOREACH_NUMERIC_PORT_TYPE(REGISTER_FACTORY);
-
-        return 0;
-    }
-
-    static int initialized = initializeModule();
 }

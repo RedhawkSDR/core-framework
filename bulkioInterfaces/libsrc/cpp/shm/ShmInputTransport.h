@@ -18,56 +18,36 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef __bulkio_ShmInputTransport_h
-#define __bulkio_ShmInputTransport_h
+#ifndef __bulkio_shminputtransport_h
+#define __bulkio_shminputtransport_h
 
-#include <boost/thread.hpp>
-
-#include <ossie/shm/HeapClient.h>
+#include <ossie/PropertyMap.h>
 #include <ossie/ProvidesPort.h>
 
-#include <BulkioTransport.h>
-#include <bulkio_in_port.h>
-
-#include "FifoIPC.h"
+#include <bulkio/BulkioTransport.h>
 
 namespace bulkio {
 
-    class MessageBuffer;
+    template <typename PortType>
+    class ShmInputTransport;
 
     template <typename PortType>
-    class ShmInputTransport : public InputTransport<PortType> {
+    class ShmInputManager : public InputManager<PortType>
+    {
     public:
-        typedef InPort<PortType> InPortType;
-        typedef typename NativeTraits<PortType>::NativeType NativeType;
-        typedef typename BufferTraits<PortType>::BufferType BufferType;
+        typedef ShmInputTransport<PortType> InputTransportType;
 
-        ShmInputTransport(InPortType* port, const std::string& transportId, const std::string& writePath);
-        ~ShmInputTransport();
+        ShmInputManager(InPort<PortType>* port);
 
-        virtual std::string transportType() const;
+        virtual std::string transportType();
 
-        virtual void startTransport();
-        virtual void stopTransport();
+        virtual CF::Properties transportProperties();
 
-        const std::string& getFifoName() const;
+        virtual InputTransport<PortType>* createInputTransport(const std::string& transportId,
+                                                               const redhawk::PropertyMap& properties);
 
-    protected:
-        void _run();
-
-        bool _isRunning();
-        bool _receiveMessage();
-
-        void _receivePushPacket(MessageBuffer& msg);
-
-        void _receiveSharedBuffer(MessageBuffer& msg, BufferType& buffer, size_t size);
-
-        volatile bool _running;
-        boost::mutex _mutex;
-        boost::thread _thread;
-        FifoEndpoint _fifo;
-        redhawk::shm::HeapClient _heapClient;
+        virtual redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
     };
 }
 
-#endif // __bulkio_ShmInputTransport_h
+#endif // __bulkio_shminputtransport_h
