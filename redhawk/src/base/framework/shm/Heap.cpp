@@ -38,6 +38,11 @@ using namespace redhawk::shm;
 #define PAGE_ROUND_DOWN(x,p) ((x/p)*p)
 #define PAGE_ROUND_UP(x,p) (((x+p-1)/p)*p)
 
+bool MemoryRef::operator! () const
+{
+    return heap.empty();
+}
+
 class Heap::PrivateHeap {
 public:
     PrivateHeap(int id, Heap* heap) :

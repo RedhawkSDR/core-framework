@@ -35,6 +35,8 @@ namespace redhawk {
             std::string heap;
             size_t superblock;
             size_t offset;
+
+            bool operator!() const;
         };
 
         class Heap {
