@@ -50,6 +50,7 @@ import java.util.List;
 /*{%   endif %}*/
 /*{% endfor %}*/
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 
 import org.apache.log4j.Logger;
 

@@ -26,6 +26,7 @@
 package ${component.package};
 
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 /*{% block mainadditionalimports %}*/
 /*# Allow for child class imports #*/
 /*{% endblock %}*/
