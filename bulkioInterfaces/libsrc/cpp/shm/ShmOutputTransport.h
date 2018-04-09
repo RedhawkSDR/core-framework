@@ -23,7 +23,7 @@
 #include <ossie/PropertyMap.h>
 #include <ossie/UsesPort.h>
 
-#include <bulkio/BulkioTransport.h>
+#include <BulkioTransport.h>
 
 namespace bulkio {
 

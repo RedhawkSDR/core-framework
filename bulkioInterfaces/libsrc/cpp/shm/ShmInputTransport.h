@@ -24,7 +24,7 @@
 #include <ossie/PropertyMap.h>
 #include <ossie/ProvidesPort.h>
 
-#include <bulkio/BulkioTransport.h>
+#include <BulkioTransport.h>
 
 namespace bulkio {
 
