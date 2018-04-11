@@ -19,8 +19,11 @@
  */
 
 #include <ossie/ThreadedComponent.h>
+#include <ossie/CorbaUtils.h>
 
 namespace ossie {
+
+PREPARE_CF_LOGGING(ProcessThread);
 
 ProcessThread::ProcessThread(ThreadedComponent *target, float delay, const std::string& name) :
     _thread(0),
@@ -51,7 +54,20 @@ void ProcessThread::run()
     }
 
     while (_running) {
-        int state = _target->serviceFunction();
+        int state;
+        try {
+            state = _target->serviceFunction();
+        } catch (const std::exception& exc) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function: " << exc.what());
+            exit(-1);
+        } catch (const CORBA::Exception& exc) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function: "
+                      << ossie::corba::describeException(exc));
+            exit(-1);
+        } catch (...) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function");
+            exit(-1);
+        }
         if (state == FINISH) {
             return;
         } else if (state == NOOP) {

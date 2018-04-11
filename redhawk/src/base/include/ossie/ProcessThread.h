@@ -24,12 +24,16 @@
 #include <time.h>
 #include <boost/thread.hpp>
 
+#include "debug.h"
+
 class ThreadedComponent;
 
 namespace ossie {
 
 class ProcessThread
 {
+    ENABLE_LOGGING;
+
 public:
     ProcessThread(ThreadedComponent* target, float delay, const std::string& name=std::string());
     ~ProcessThread();
