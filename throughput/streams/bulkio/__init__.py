@@ -20,14 +20,17 @@
 import os
 try:
     from ossie.utils import sb
+    from ossie.utils.sandbox.debugger import Debugger
 except ImportError:
+    # Fallback for testing raw and CORBA without BulkIO
     sb = None
+    Debugger = object
 
 __all__ = ('factory')
 
 PATH = os.path.dirname(__file__)
 
-class NumaLauncher(object):
+class NumaLauncher(Debugger):
     def __init__(self, policy):
         self.policy = policy
 
@@ -44,14 +47,16 @@ class NumaLauncher(object):
         command = self.policy([command] + arguments)
         return command[0], command[1:]
 
+    def name(self):
+        return 'numactl'
+
 
 class BulkioStream(object):
     def __init__(self, format, numa_policy, shared):
-        # TODO: Use NUMA launcher when supported in sandbox for .so components
         launcher = NumaLauncher(numa_policy)
         self.shared = shared
-        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), shared=self.shared)
-        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), shared=self.shared)
+        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), debugger=launcher, shared=self.shared)
+        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), debugger=launcher, shared=self.shared)
         self.writer.connect(self.reader)
         self.container = sb.domainless._getSandbox()._getComponentHost()
 
@@ -86,8 +91,7 @@ class BulkioStream(object):
         return float(self.reader.average_time)
 
     def terminate(self):
-        self.writer.releaseObject()
-        self.reader.releaseObject()
+        sb.release()
 
 class BulkioCorbaFactory(object):
     def __init__(self, transport):
