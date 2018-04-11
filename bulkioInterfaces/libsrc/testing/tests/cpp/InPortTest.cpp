@@ -278,7 +278,7 @@ void InPortTest<Port>::testSriChangedInvalidStream()
 
     // Push data without an SRI to check that the sriChanged flag is still set
     // and the SRI callback gets called
-    this->_pushTestPacket(0, BULKIO::PrecisionUTCTime(), false, stream_id);
+    this->_pushTestPacket(100, BULKIO::PrecisionUTCTime(), false, stream_id);
     boost::scoped_ptr<typename Port::dataTransfer> packet;
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
@@ -288,7 +288,7 @@ void InPortTest<Port>::testSriChangedInvalidStream()
 
     // Push again to the same stream ID; sriChanged should now be false and the
     // SRI callback should not get called
-    this->_pushTestPacket(0, BULKIO::PrecisionUTCTime(), false, stream_id);
+    this->_pushTestPacket(100, BULKIO::PrecisionUTCTime(), false, stream_id);
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT(!(packet->sriChanged));
@@ -310,6 +310,22 @@ void InPortTest<Port>::testStatistics()
     size_t bits_per_element = round(stats->bitsPerSecond / stats->elementsPerSecond);
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect bits per element", BITS_PER_ELEMENT, bits_per_element);
 }
+
+template <class Port>
+void InPortTest<Port>::testDiscardEmptyPacket()
+{
+    // Push an empty, non-EOS packet
+    const char* stream_id = "empty_packet";
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    this->_pushTestPacket(0, bulkio::time::utils::now(), false, stream_id);
+
+    // No packet should be returned
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(!packet);
+}    
+    
 
 #define CREATE_TEST(x,BITS)                                             \
     class In##x##PortTest : public InPortTest<bulkio::In##x##Port>      \

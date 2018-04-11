@@ -66,6 +66,19 @@ void InStreamTest<bulkio::InXMLPort>::testTimestamp()
 }
 
 template <class Port>
+void InStreamTest<Port>::testGetCurrentStreamEmptyPacket()
+{
+    // Create a new stream and push an empty, non-EOS packet to it
+    BULKIO::StreamSRI sri = bulkio::sri::create("empty_packet");
+    port->pushSRI(sri);
+    this->_pushTestPacket(0, bulkio::time::utils::now(), false, sri.streamID);
+
+    // getCurrentStream() should not return any stream
+    StreamType stream = port->getCurrentStream(bulkio::Const::NON_BLOCKING);
+    CPPUNIT_ASSERT(!stream);
+}
+
+template <class Port>
 void InStreamTest<Port>::testGetCurrentStreamEmptyEos()
 {
     // Create a new stream and push some data to it

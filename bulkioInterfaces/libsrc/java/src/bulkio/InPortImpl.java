@@ -311,6 +311,14 @@ class InPortImpl<A> {
         if ( logger != null ) {
             logger.trace("bulkio.InPort pushPacket ENTER (port=" + name +")" );
         }
+
+        // Discard empty packets if EOS is not set, as there is no useful data
+        // or metadata to be had--since T applies to the 1st sample (which does
+        // not exist), all we have is a stream ID
+        if (helper.isEmpty(data) && !eos) {
+            return;
+        }
+
         synchronized (this.dataBufferLock) {
             if (this.maxQueueDepth == 0) {
                 if ( logger != null ) {

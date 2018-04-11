@@ -63,6 +63,16 @@ class InStreamTest(object):
         # getStartTime() should always return the first timestamp
         self.assertEqual(ts, block.getStartTime())
 
+    def testGetCurrentStreamEmptyPacket(self):
+        # Create a new stream and push some data to it
+        sri = bulkio.sri.create("empty_packet")
+        self.port.pushSRI(sri)
+        self._pushTestPacket(0, bulkio.timestamp.now(), False, sri.streamID)
+
+        # getCurrentStream() should not return any stream
+        stream = self.port.getCurrentStream(bulkio.const.NON_BLOCKING)
+        self.failUnless(not stream)
+
     def testGetCurrentStreamEmptyEos(self):
         # Create a new stream and push some data to it
         sri = bulkio.sri.create("empty_eos")

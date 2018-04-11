@@ -333,4 +333,17 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         int bits_per_element = Math.round(stats.bitsPerSecond / stats.elementsPerSecond);
         Assert.assertEquals(helper.bitsPerElement(), bits_per_element);
     }
+
+    @Test
+    public void testDiscardEmptyPacket()
+    {
+        // Push an empty, non-EOS packet
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("empty_packet");
+        corbaPort.pushSRI(sri);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), false, sri.streamID);
+
+        // No packet should be returned
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNull(packet);
+    }
 }

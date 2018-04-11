@@ -30,6 +30,11 @@ class BitDataHelper implements DataHelper<BULKIO.BitSequence> {
         return data.bits;
     }
 
+    public boolean isEmpty(BULKIO.BitSequence data)
+    {
+        return (data.bits == 0);
+    }
+
     public BULKIO.BitSequence emptyArray() {
         BULKIO.BitSequence array = new BULKIO.BitSequence();
         array.data = new byte[0];

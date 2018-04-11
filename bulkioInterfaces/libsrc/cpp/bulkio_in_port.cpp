@@ -269,6 +269,13 @@ namespace bulkio {
       return;
     }
 
+    // Discard empty packets if EOS is not set, as there is no useful data or
+    // metadata to be had--since T applies to the 1st sample (which does not
+    // exist), all we have is a stream ID
+    if (data.empty() && !EOS) {
+        return;
+    }
+
     StreamDescriptor sri;
     bool sriChanged = false;
 

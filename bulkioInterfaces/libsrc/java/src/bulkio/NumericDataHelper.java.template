@@ -34,6 +34,10 @@ class @name@DataHelper implements DataHelper<@type@[]> {
         return data.length;
     }
 
+    public boolean isEmpty(@type@[] data) {
+        return (data.length == 0);
+    }
+
     public @type@[] emptyArray() {
         return new @type@[0];
     }

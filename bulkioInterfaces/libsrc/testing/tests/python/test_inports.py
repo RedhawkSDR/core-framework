@@ -208,7 +208,7 @@ class InPortTest(object):
         # set and the SRI callback gets called
         listener = SriListener()
         self.port.setNewSriListener(listener)
-        self._pushTestPacket(0, bulkio.timestamp.notSet(), False, stream_id)
+        self._pushTestPacket(100, bulkio.timestamp.now(), False, stream_id)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(not packet)
         self.failUnless(packet.sriChanged)
@@ -217,7 +217,7 @@ class InPortTest(object):
         # Push again to the same stream ID; sriChanged should now be false and the
         # SRI callback should not get called
         listener.reset()
-        self._pushTestPacket(0, bulkio.timestamp.notSet(), False, stream_id)
+        self._pushTestPacket(100, bulkio.timestamp.now(), False, stream_id)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(not packet)
         self.failIf(packet.sriChanged)
@@ -303,6 +303,16 @@ class InPortTest(object):
         self.port.getPacket()
         self.port.getPacket()
         self.failIf(deadlock)
+
+    def testDiscardEmptyPacket(self):
+        # Push an empty, non-EOS packet
+        sri = bulkio.sri.create("empty_packet")
+        self.port.pushSRI(sri)
+        self._pushTestPacket(0, bulkio.timestamp.now(), False, sri.streamID)
+
+        # No packet should be returned
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failUnless(not packet.dataBuffer)
 
     def _pushTestPacket(self, length, time, eos, streamID):
         data = self.helper.createData(length)

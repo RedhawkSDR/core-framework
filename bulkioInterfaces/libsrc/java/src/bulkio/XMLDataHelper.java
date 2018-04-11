@@ -28,6 +28,11 @@ class XMLDataHelper implements DataHelper<String> {
         return data.length();
     }
 
+    public boolean isEmpty(String data)
+    {
+        return data.isEmpty();
+    }
+
     public String emptyArray() {
         return "";
     }
