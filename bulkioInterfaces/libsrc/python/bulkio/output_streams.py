@@ -130,22 +130,27 @@ class OutputStream(StreamBase):
         # Copy the sequence, but not the values
         self._sri.keywords = keywords[:]
 
-    def setKeyword(self, name, value):
+    def setKeyword(self, name, value, format=None):
         """
         Sets the current value of a keyword in the SRI.
 
         If the keyword name already exists, its value is updated to value. If
         the keyword name does not exist, the new keyword is appended.
 
+        If the optional 'format' argument is given, it must be the name of the
+        desired CORBA type. Otherwise, the CORBA type is determined based on
+        the Python type of 'value'.
+
         Setting a keyword updates the SRI, which will be pushed on the next
         write.
 
         Args:
-            name:  The name of the keyword.
-            value: The new value.
+            name:   The name of the keyword.
+            value:  The new value.
+            format: Optional type name.
         """
         self._modifyingStreamMetadata()
-        bulkio.sri.setKeyword(self._sri, name, value)
+        bulkio.sri.setKeyword(self._sri, name, value, format)
 
     def eraseKeyword(self, name):
         """

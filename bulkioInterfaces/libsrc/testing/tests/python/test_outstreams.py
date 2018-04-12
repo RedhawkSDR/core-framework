@@ -22,6 +22,8 @@
 import unittest
 import math
 
+from omniORB import CORBA
+
 from ossie import properties
 
 import bulkio
@@ -195,6 +197,12 @@ class OutStreamTest(object):
         self.assertEqual('value', stream.getKeyword('string'))
         self.assertEqual(101.1e6, stream.getKeyword('double'))
         self.assertEqual(False, stream.getKeyword('boolean'))
+
+        # Set with a specific type
+        stream.setKeyword('float', -1.25, 'float')
+        self.assertEqual(-1.25, stream.getKeyword('float'))
+        any_value = stream.keywords[-1].value
+        self.assertEqual(CORBA.TC_float, any_value.typecode())
 
         # Erase and check for presence of keywords
         stream.eraseKeyword('string')

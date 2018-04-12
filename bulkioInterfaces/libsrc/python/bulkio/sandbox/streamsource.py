@@ -240,10 +240,10 @@ class StreamSource(SandboxHelper):
         return bulkio.sri.getKeyword(self._sri, name)
 
     @inherit_doc(bulkio.sri.setKeyword)
-    def setKeyword(self, name, value):
+    def setKeyword(self, name, value, format=None):
         if self._stream:
-            self._stream.setKeyword(name, value)
-        bulkio.sri.setKeyword(self._sri, name, value)
+            self._stream.setKeyword(name, value, format)
+        bulkio.sri.setKeyword(self._sri, name, value, format)
 
     @inherit_doc(bulkio.sri.eraseKeyword)
     def eraseKeyword(self, name):

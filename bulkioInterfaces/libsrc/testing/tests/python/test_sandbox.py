@@ -23,6 +23,8 @@ import threading
 import time
 import unittest
 
+from omniORB import CORBA
+
 from ossie.utils.sandbox import LocalSandbox
 from redhawk.bitbuffer import bitbuffer
 
@@ -355,6 +357,12 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(1, sri.blocking)
         self.assertEqual(100.0e6, bulkio.sri.getKeyword(sri, 'COL_RF'))
         self.assertEqual(101.1e6, bulkio.sri.getKeyword(sri, 'CHAN_RF'))
+
+        # Set an explicitly typed keyword
+        self.source.setKeyword('typed', 0.25, 'float')
+        self.assertEqual(0.25, bulkio.sri.getKeyword(sri, 'typed'))
+        any_value = self.source.sri.keywords[-1].value
+        self.assertEqual(CORBA.TC_float, any_value.typecode())
 
         # Write to force an SRI push and compare the SRIs
         self.source.write(range(16))

@@ -21,6 +21,7 @@
 import omniORB.any
 
 from ossie.cf import CF
+import ossie.properties
 
 from bulkio.bulkioInterfaces import BULKIO
 
@@ -147,18 +148,27 @@ def getKeyword(sri, name):
             return omniORB.any.from_any(dt.value)
     raise KeyError(name)
 
-def setKeyword(sri, name, value):
+def setKeyword(sri, name, value, format=None):
     """
     Sets the current value of a keyword in the SRI.
     
     If the keyword "name" already exists, its value is updated to "value".  If
     the keyword "name" does not exist, the new keyword is appended.
+
+    If the optional 'format' argument is given, it must be the name of the
+    desired CORBA type. Otherwise, the CORBA type is determined based on the
+    Python type of 'value'.
     """
+    if format is None:
+        value = omniORB.any.to_any(value)
+    else:
+        value = ossie.properties.to_tc_value(value, format)
+
     for dt in sri.keywords:
         if dt.id == name:
-            dt.value = omniORB.any.to_any(value)
+            dt.value = value
             return
-    sri.keywords.append(CF.DataType(name, omniORB.any.to_any(value)))
+    sri.keywords.append(CF.DataType(name, value))
 
 def eraseKeyword(sri, name):
     """
