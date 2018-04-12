@@ -87,8 +87,6 @@ namespace frontend {
      * False is returned if min > max for either available for requested values
      */
     inline bool validateRequest(double available_min, double available_max, double requested_min, double requested_max){
-        /*if(floatingPointCompare(requested_min,available_min) < 0) return false;
-        if(floatingPointCompare(requested_max,available_max) > 0) return false;*/
         if(floatingPointCompare(requested_max,available_min) < 0) return false;
         if(floatingPointCompare(requested_min,available_max) > 0) return false;
         if(floatingPointCompare(available_min,available_max) > 0) return false;
