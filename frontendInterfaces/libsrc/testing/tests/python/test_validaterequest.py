@@ -51,19 +51,19 @@ class ValidateRequestTest(unittest.TestCase):
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertTrue(tuner_device.validateRequestVsSRI(request, upstream_sri, False))
-        cf = 100.9e6
+        cf = 100.49e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertTrue(tuner_device.validateRequestVsSRI(request, upstream_sri, False))
-        cf = 99.1e6
+        cf = 99.51e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertTrue(tuner_device.validateRequestVsSRI(request, upstream_sri, False))
-        cf = 101.1e6
+        cf = 100.51e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsSRI, request, upstream_sri, False)
-        cf = 98.9e6
+        cf = 99.49e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsSRI, request, upstream_sri, False)
@@ -85,19 +85,19 @@ class ValidateRequestTest(unittest.TestCase):
         max_dev_bw = 3e6
         max_dev_sr = 6e6
         self.assertTrue(tuner_device.validateRequestVsDeviceStream(request, upstream_sri, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 100.9e6
+        cf = 100.49e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertTrue(tuner_device.validateRequestVsDeviceStream(request, upstream_sri, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 99.1e6
+        cf = 99.51e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertTrue(tuner_device.validateRequestVsDeviceStream(request, upstream_sri, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 101.1e6
+        cf = 100.51e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsDeviceStream, request, upstream_sri, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr)
-        cf = 98.9e6
+        cf = 99.49e6
         _keywords=[CF.DataType(id="CHAN_RF", value=_any.to_any(cf)), CF.DataType(id="FRONTEND::BANDWIDTH", value=_any.to_any(bw))]
         upstream_sri.keywords = _keywords
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsDeviceStream, request, upstream_sri, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr)
@@ -113,16 +113,16 @@ class ValidateRequestTest(unittest.TestCase):
         rfinfo.rf_center_freq = cf
         rfinfo.rf_bandwidth = bw
         self.assertTrue(tuner_device.validateRequestVsRFInfo(request, rfinfo, False))
-        cf = 100.9e6
+        cf = 100.49e6
         rfinfo.rf_center_freq = cf
         self.assertTrue(tuner_device.validateRequestVsRFInfo(request, rfinfo, False))
-        cf = 99.1e6
+        cf = 99.51e6
         rfinfo.rf_center_freq = cf
         self.assertTrue(tuner_device.validateRequestVsRFInfo(request, rfinfo, False))
-        cf = 101.1e6
+        cf = 100.51e6
         rfinfo.rf_center_freq = cf
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsRFInfo, request, rfinfo, False)
-        cf = 98.9e6
+        cf = 99.49e6
         rfinfo.rf_center_freq = cf
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsRFInfo, request, rfinfo, False)
 
@@ -141,16 +141,16 @@ class ValidateRequestTest(unittest.TestCase):
         max_dev_bw = 3e6
         max_dev_sr = 6e6
         self.assertTrue(tuner_device.validateRequestVsDevice(request, rfinfo, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 100.9e6
+        cf = 100.49e6
         rfinfo.rf_center_freq = cf
         self.assertTrue(tuner_device.validateRequestVsDevice(request, rfinfo, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 99.1e6
+        cf = 99.51e6
         rfinfo.rf_center_freq = cf
         self.assertTrue(tuner_device.validateRequestVsDevice(request, rfinfo, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr))
-        cf = 101.1e6
+        cf = 100.51e6
         rfinfo.rf_center_freq = cf
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsDevice, request, rfinfo, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr)
-        cf = 98.9e6
+        cf = 99.49e6
         rfinfo.rf_center_freq = cf
         self.assertRaises(FRONTEND.BadParameterException, tuner_device.validateRequestVsDevice, request, rfinfo, False, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr)
 

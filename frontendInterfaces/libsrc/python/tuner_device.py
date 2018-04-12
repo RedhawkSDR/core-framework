@@ -98,8 +98,9 @@ def validateRequestSingle(available_min, available_max, requested_val):
      False is returned if min > max for either available for requested values
 '''
 def validateRequest(available_min, available_max, requested_min, requested_max):
-    if floatingPointCompare(requested_max,available_min) < 0: return False
-    if floatingPointCompare(requested_min,available_max) > 0: return False
+    center_request = (requested_max+requested_min)/2.0
+    if floatingPointCompare(center_request,available_min) < 0: return False
+    if floatingPointCompare(center_request,available_max) > 0: return False
     if floatingPointCompare(available_min,available_max) > 0: return False
     if floatingPointCompare(requested_min,requested_max) > 0: return False
     return True
