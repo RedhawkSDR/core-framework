@@ -70,6 +70,8 @@ library_include_HEADERS = \
 
 libfrontend_@FRONTEND_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
+SUBDIRS = . testing/tests/cpp
+
 ###############################################################################
 # Python
 
