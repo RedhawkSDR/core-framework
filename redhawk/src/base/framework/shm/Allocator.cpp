@@ -116,7 +116,9 @@ namespace redhawk {
             Block* block = Block::from_pointer(ptr);
             assert(block->valid());
             if (!block->getSuperblock()) {
-                redhawk::BufferManager::Deallocate(ptr);
+                // Invalidate the block and pass it on to BufferManager
+                block->~Block();
+                redhawk::BufferManager::Deallocate(block);
             } else {
                 heap->deallocate(ptr);
             }
