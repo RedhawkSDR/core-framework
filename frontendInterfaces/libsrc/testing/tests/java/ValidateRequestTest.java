@@ -64,7 +64,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 100.9e6;
+        cf = 100.49e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsSRI(request, upstream_sri, false);
@@ -73,7 +73,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 99.1e6;
+        cf = 99.51e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsSRI(request, upstream_sri, false);
@@ -82,7 +82,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 101.1e6;
+        cf = 100.51e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsSRI(request, upstream_sri, false);
@@ -91,7 +91,7 @@ public class ValidateRequestTest
         }
         Assert.assertFalse(retval);
 
-        cf = 98.9e6;
+        cf = 99.49e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsSRI(request, upstream_sri, false);
@@ -108,6 +108,7 @@ public class ValidateRequestTest
         request.center_frequency.setValue(100e6);
         request.bandwidth.setValue(1e6);
         request.sample_rate.setValue(2e6);
+        request.tuner_type.setValue("RX");
         upstream_sri.xdelta = 1/2e6;
         upstream_sri.mode = 0;
         upstream_sri.keywords = new CF.DataType[2];
@@ -126,8 +127,8 @@ public class ValidateRequestTest
         bw = 1e6;
         chanbw.value.insert_double(bw);
         upstream_sri.keywords[bw_idx] = chanbw;
-        double min_dev_cf = 99.5e6;
-        double max_dev_cf = 100.5e6;
+        double min_dev_cf = 99e6;
+        double max_dev_cf = 101e6;
         double max_dev_bw = 3e6;
         double max_dev_sr = 6e6;
         boolean retval = false;
@@ -138,7 +139,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 100.9e6;
+        cf = 100.49e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, upstream_sri, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -147,7 +148,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 99.1e6;
+        cf = 99.51e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, upstream_sri, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -156,7 +157,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 101.1e6;
+        cf = 100.51e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, upstream_sri, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -165,7 +166,7 @@ public class ValidateRequestTest
         }
         Assert.assertFalse(retval);
 
-        cf = 98.9e6;
+        cf = 99.49e6;
         upstream_sri.keywords[cf_idx].value.insert_double(cf);
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, upstream_sri, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -195,7 +196,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 100.9e6;
+        cf = 100.49e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsRFInfo(request, rfinfo, false);
@@ -204,7 +205,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 99.1e6;
+        cf = 99.51e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsRFInfo(request, rfinfo, false);
@@ -213,7 +214,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 101.1e6;
+        cf = 100.51e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsRFInfo(request, rfinfo, false);
@@ -222,7 +223,7 @@ public class ValidateRequestTest
         }
         Assert.assertFalse(retval);
 
-        cf = 98.9e6;
+        cf = 99.49e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsRFInfo(request, rfinfo, false);
@@ -239,13 +240,14 @@ public class ValidateRequestTest
         request.center_frequency.setValue(100e6);
         request.bandwidth.setValue(1e6);
         request.sample_rate.setValue(2e6);
+        request.tuner_type.setValue("RX");
         double cf, bw;
         cf = 100e6;
         bw = 1e6;
         rfinfo.rf_center_freq = cf;
         rfinfo.rf_bandwidth = bw;
-        double min_dev_cf = 99.5e6;
-        double max_dev_cf = 100.5e6;
+        double min_dev_cf = 99e6;
+        double max_dev_cf = 101e6;
         double max_dev_bw = 3e6;
         double max_dev_sr = 6e6;
         boolean retval = false;
@@ -256,7 +258,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 100.9e6;
+        cf = 100.49e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, rfinfo, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -265,7 +267,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 99.1e6;
+        cf = 99.51e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, rfinfo, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -274,7 +276,7 @@ public class ValidateRequestTest
         }
         Assert.assertTrue(retval);
 
-        cf = 101.1e6;
+        cf = 100.51e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, rfinfo, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
@@ -283,7 +285,7 @@ public class ValidateRequestTest
         }
         Assert.assertFalse(retval);
 
-        cf = 98.9e6;
+        cf = 99.49e6;
         rfinfo.rf_center_freq = cf;
         try {
             retval = FrontendTunerDevice.validateRequestVsDevice(request, rfinfo, false, min_dev_cf, max_dev_cf, max_dev_bw, max_dev_sr);
