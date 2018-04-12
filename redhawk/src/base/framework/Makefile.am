@@ -64,10 +64,10 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			Transport.cpp \
 			BufferManager.cpp \
 			inplace_list.h \
+			shm/Allocator.cpp \
 			shm/Heap.cpp \
 			shm/HeapClient.cpp \
 			shm/MappedFile.cpp \
-			shm/ProcessHeap.cpp \
 			shm/Superblock.cpp \
 			shm/SuperblockFile.cpp
 

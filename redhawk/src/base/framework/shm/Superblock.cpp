@@ -115,14 +115,6 @@ void* Superblock::attach(size_t offset)
     return block->data();
 }
 
-void* Superblock::allocateLocal(size_t bytes)
-{
-    size_t block_count = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
-    void* addr = redhawk::BufferManager::Allocate(block_count * Block::BLOCK_SIZE);
-    Block* block = new (addr) Block(0, block_count);
-    return block->data();
-}
-
 void Superblock::deallocate(void* ptr)
 {
     // The C standard says it's safe to call free() with a null pointer, so for
@@ -133,9 +125,7 @@ void Superblock::deallocate(void* ptr)
 
     Block* block = Block::from_pointer(ptr);
     assert(block->valid());
-    if (block->local()) {
-        redhawk::BufferManager::Deallocate(block);
-    } else if (block->decref() == 0) {
+    if (block->decref() == 0) {
         Superblock* superblock = block->getSuperblock();
         superblock->_deallocate(block);
     }
@@ -337,7 +327,7 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
     // preserve alignment on all architectures; otherwise, atomic operations
     // may cause a fatal bus error.
     bytes = std::max(bytes + sizeof(Block), sizeof(FreeBlock));
-    size_t blocks = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
+    size_t blocks = Block::bytes_to_blocks(bytes);
 
     LOG_ALLOC(bytes);
 

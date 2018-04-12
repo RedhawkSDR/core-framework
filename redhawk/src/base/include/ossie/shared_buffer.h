@@ -90,6 +90,12 @@ namespace redhawk {
         struct is_process_shared< ::redhawk::shm::Allocator<T> > {
             static const bool value = true;
         };
+
+        // Traits class specialization for REDHAWK's dynamic memory allocator
+        template <typename T>
+        struct is_process_shared< ::redhawk::shm::DynamicAllocator<T> > {
+            static const bool value = true;
+        };
     }
 
     // Forward declaration of read/write buffer class.
@@ -684,7 +690,7 @@ namespace redhawk {
 #elif defined(_RH_SHARED_BUFFER_USE_STD_ALLOC)
         typedef std::allocator<T> default_allocator;
 #else
-        typedef ::redhawk::shm::Allocator<T> default_allocator;
+        typedef ::redhawk::shm::DynamicAllocator<T> default_allocator;
 #endif
 
         /**

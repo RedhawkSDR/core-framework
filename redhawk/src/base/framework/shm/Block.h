@@ -31,6 +31,8 @@ namespace redhawk {
 
     namespace shm {
 
+        class Superblock;
+
         struct Block {
             // NB: Least significant bit of magic number is reserved for the
             //     "previous block in use" flag
@@ -123,13 +125,11 @@ namespace redhawk {
                 return (this + 1);
             }
 
-            bool local() const
-            {
-                return (_offset == 0);
-            }
-
             Superblock* getSuperblock()
             {
+                if (_offset == 0) {
+                    return 0;
+                }
                 return offset_ptr<Superblock>(this, -(ptrdiff_t)byteOffset());
             }
 
@@ -178,6 +178,11 @@ namespace redhawk {
             static Block* from_pointer(void* ptr)
             {
                 return reinterpret_cast<Block*>(ptr) - 1;
+            }
+
+            static size_t bytes_to_blocks(size_t bytes)
+            {
+                return (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
             }
 
             bool valid() const

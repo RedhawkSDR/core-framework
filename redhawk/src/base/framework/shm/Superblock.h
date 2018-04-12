@@ -50,7 +50,6 @@ namespace redhawk {
 
             void* attach(size_t offset);
 
-            static void* allocateLocal(size_t bytes);
             static void deallocate(void* ptr);
 
             void dump(std::ostream& stream) const;

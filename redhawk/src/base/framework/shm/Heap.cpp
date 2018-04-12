@@ -73,9 +73,9 @@ public:
         if (superblock) {
             _superblocks.insert(_superblocks.begin(), superblock);
             return superblock->allocate(state, bytes);
-        } else {
-            return Superblock::allocateLocal(bytes);
         }
+
+        return 0;
     }
 
 private:
@@ -91,11 +91,7 @@ Heap::Heap(const std::string& name) :
     _file(name),
     _canGrow(true)
 {
-    try {
-        _file.create();
-    } catch (const std::bad_alloc&) {
-        _canGrow = false;
-    }
+    _file.create();
     int nprocs = sysconf(_SC_NPROCESSORS_CONF);
     for (int id = 0; id < nprocs; ++id) {
         _allocs.push_back(new PrivateHeap(id, this));
@@ -125,16 +121,15 @@ MemoryRef Heap::getRef(const void* ptr)
 {
     Block* block = Block::from_pointer(const_cast<void*>(ptr));
     MemoryRef ref;
-    if (block->local()) {
-        ref.heap = "";
-        ref.superblock = 0;
-        ref.offset = 0;
-    } else {
-        const Superblock* superblock = block->getSuperblock();
+    const Superblock* superblock = block->getSuperblock();
+    if (superblock) {
         ref.heap = superblock->heap();
         ref.superblock = superblock->offset();
-        ref.offset = block->offset();
+    } else {
+        ref.heap = "";
+        ref.superblock = 0;
     }
+    ref.offset = block->offset();
     return ref;
 }
 

@@ -24,6 +24,8 @@
 
 #include <numeric>
 
+#include <ossie/shm/Heap.h>
+
 #include <bulkio_in_port.h>
 #include <bulkio_out_port.h>
 
@@ -37,6 +39,7 @@ namespace bulkio {
     public:
         typedef typename PortType::_ptr_type PtrType;
         typedef typename OutputTransport<PortType>::BufferType BufferType;
+        typedef typename BufferType::value_type ElementType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ShmOutputTransport(OutPort<PortType>* parent, PtrType port) :
@@ -115,43 +118,53 @@ namespace bulkio {
             // released after the transfer
             BufferType copy;
 
-            // Data may be sent in-band if shared memory is not available; this
-            // is slower but provides a more graceful failure mode
+            // Data may be sent over the FIFO if shared memory is unavailable;
+            // this is slower but provides a more graceful failure mode
             const void* body = 0;
             size_t body_size = 0;
 
             // If the packet is non-empty, write the additional shared memory
             // information for the remote side to pick up
             if (!data.empty()) {
-                const void* base;
-                size_t offset;
+                // Track whether the buffer was able to be transferred via a
+                // shared memory object, or if it has to be copied
+                bool shm_transfer = false;
 
                 // Check that the buffer is already in shared memory (this is
                 // hoped to be the common case); if not, copy it into another
                 // buffer that is allocated in shared memory
                 if (data.is_process_shared()) {
-                    base = data.base();
-                    offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+                    // Include the offset from the start of allocated memory to
+                    // the first element of the buffer
+                    const void* base = data.base();
+                    size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+                    shm_transfer = _transferBuffer(header, base, offset);
                 } else {
-                    copy = data.copy(redhawk::shm::Allocator<typename BufferType::value_type>());
-                    base = copy.base();
-                    offset = 0;
+                    // Try to explicitly allocate from shared memory via the
+                    // global function (which will return a null pointer on
+                    // failure, as opposed to throwing an exception)
+                    size_t count = data.size();
+                    size_t bytes = count * sizeof(ElementType);
+                    ElementType* ptr = static_cast<ElementType*>(redhawk::shm::allocate(bytes));
+                    if (ptr) {
+                        // Make a copy of the data into the new shared memory,
+                        // ensuring it gets cleaned up appropriately
+                        std::memcpy(ptr, data.data(), bytes);
+                        copy = BufferType(ptr, count, redhawk::shm::deallocate);
+                        shm_transfer = _transferBuffer(header, ptr, 0);
+                    } else {
+                        // Shared memory must be exhausted, fall back to using
+                        // in-band transfer
+                        shm_transfer = false;
+                    }
                 }
 
-                redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
-                if (!ref) {
-                    // The allocator was unable to use shared memory; set flag
-                    // to indicate in-band data
+                // If we weren't able to transfer the buffer using shared
+                // memory, set up to copy it via the FIFO
+                if (!shm_transfer) {
                     header.write(true);
                     body = data.data();
                     body_size = data.size() * sizeof(data[0]);
-                } else {
-                    // Set flag to indicate shared memory transfer
-                    header.write(false);
-                    header.write(ref.heap);
-                    header.write(ref.superblock);
-                    header.write(ref.offset);
-                    header.write(offset);
                 }
             }
 
@@ -174,6 +187,23 @@ namespace bulkio {
             if (_copyStats.size() > 10) {
                 _copyStats.pop_front();
             }
+        }
+
+        bool _transferBuffer(MessageBuffer& header, const void* base, size_t offset)
+        {
+            redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
+            if (!ref) {
+                // The allocator was unable to use shared memory
+                return false;
+            }
+
+            header.write(false);
+            header.write(ref.heap);
+            header.write(ref.superblock);
+            header.write(ref.offset);
+            header.write(offset);
+
+            return true;
         }
 
         void _sendMessage(const void* header, size_t hsize, const void* body, size_t bsize)

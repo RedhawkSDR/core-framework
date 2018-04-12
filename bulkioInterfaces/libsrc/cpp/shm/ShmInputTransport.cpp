@@ -25,6 +25,7 @@
 #include <boost/thread.hpp>
 
 #include <ossie/shm/HeapClient.h>
+#include <ossie/shm/Heap.h>
 
 #include <BulkioTransport.h>
 #include <bulkio_in_port.h>
