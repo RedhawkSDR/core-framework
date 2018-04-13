@@ -33,6 +33,37 @@
 
 namespace bulkio {
 
+    struct ShmStatPoint {
+        ShmStatPoint() :
+            shmTransfer(0),
+            copied(0)
+        {
+        }
+
+        ShmStatPoint(bool shmTransfer, bool copied) :
+            shmTransfer(shmTransfer),
+            copied(copied)
+        {
+        }
+
+        ShmStatPoint operator+ (const ShmStatPoint& other) const
+        {
+            ShmStatPoint result(*this);
+            result += other;
+            return result;
+        }
+
+        ShmStatPoint& operator+= (const ShmStatPoint& other)
+        {
+            shmTransfer += other.shmTransfer;
+            copied += other.copied;
+            return *this;
+        }
+
+        int shmTransfer;
+        int copied;
+    };
+
     template <typename PortType>
     class ShmOutputTransport : public OutputTransport<PortType>
     {
@@ -80,15 +111,6 @@ namespace bulkio {
         {
             OutputTransport<PortType>::disconnect();
             _fifo.disconnect();
-        }
-
-        double getCopyRate()
-        {
-            if (_copyStats.empty()) {
-                return 0.0;
-            }
-            size_t copies = std::accumulate(_copyStats.begin(), _copyStats.end(), 0);
-            return  copies * 100.0 / _copyStats.size();
         }
 
     protected:
@@ -170,22 +192,32 @@ namespace bulkio {
 
             _sendMessage(header.buffer(), header.size(), body, body_size);
 
-            _recordExtendedStatistics(!copy.empty());
+            ShmStatPoint stat(body_size == 0, !copy.empty());
+            _recordExtendedStatistics(stat);
         }
 
         virtual redhawk::PropertyMap _getExtendedStatistics()
         {
+            ShmStatPoint stats = std::accumulate(_extendedStats.begin(), _extendedStats.end(), ShmStatPoint());
+            double copy_rate = 0.0;
+            double shm_rate = 0.0;
+            if (!_extendedStats.empty()) {
+                copy_rate = stats.copied * 100.0 / _extendedStats.size();
+                shm_rate = stats.shmTransfer * 100.0 / _extendedStats.size();
+            }
+
             redhawk::PropertyMap statistics;
-            statistics["shm::copy_rate"] = getCopyRate();
+            statistics["shm::copy_rate"] = copy_rate;
+            statistics["shm::shm_rate"] = shm_rate;
             return statistics;
         }
 
     private:
-        void _recordExtendedStatistics(bool copied)
+        void _recordExtendedStatistics(const ShmStatPoint& stat)
         {
-            _copyStats.push_back(copied);
-            if (_copyStats.size() > 10) {
-                _copyStats.pop_front();
+            _extendedStats.push_back(stat);
+            if (_extendedStats.size() > 10) {
+                _extendedStats.pop_front();
             }
         }
 
@@ -228,7 +260,7 @@ namespace bulkio {
 
         FifoEndpoint _fifo;
 
-        std::deque<bool> _copyStats;
+        std::deque<ShmStatPoint> _extendedStats;
     };
 
     template <typename PortType>
