@@ -55,6 +55,7 @@ struct SuperblockFile::Header {
 
 SuperblockFile::SuperblockFile(const std::string& name) :
     _file(name),
+    _attached(false),
     _header(0)
 {
 }
@@ -146,9 +147,10 @@ void SuperblockFile::create()
     }
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
     _header = new (base) Header;
+    _attached = true;
 }
 
-void SuperblockFile::open()
+void SuperblockFile::open(bool attach)
 {
     if (_header) {
         throw std::logic_error("file is already open");
@@ -174,7 +176,10 @@ void SuperblockFile::open()
  
     // Store a reference the header and attach, so that we clean up on close
     _header = header;
-    _header->refcount.increment();
+    if (attach) {
+        _header->refcount.increment();
+        _attached = true;
+    }
 }
 
 void SuperblockFile::close()
@@ -183,14 +188,7 @@ void SuperblockFile::close()
         return;
     }
 
-    if (_header->refcount.decrement() == 0) {
-        try {
-            _file.unlink();
-        } catch (const std::exception&) {
-            // Ignore exception--someone may have already forcibly removed the
-            // file, but that's not a problem here.
-        }
-    }
+    _detach();
 
     _file.close();
 
@@ -219,6 +217,22 @@ Superblock* SuperblockFile::createSuperblock(size_t bytes)
     Superblock* superblock = new (base) Superblock(_file.name(), current_offset, bytes);
     _superblocks[superblock->offset()] = superblock;
     return superblock;
+}
+
+void SuperblockFile::_detach()
+{
+    if (!_attached) {
+        return;
+    }
+
+    if (_header->refcount.decrement() == 0) {
+        try {
+            _file.unlink();
+        } catch (const std::exception&) {
+            // Ignore exception--someone may have already forcibly removed the
+            // file, but that's not a problem here.
+        }
+    }
 }
 
 Superblock* SuperblockFile::_mapSuperblock(size_t offset)

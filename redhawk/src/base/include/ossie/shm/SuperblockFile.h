@@ -50,7 +50,7 @@ namespace redhawk {
             Statistics getStatistics();
 
             void create();
-            void open();
+            void open(bool attach=true);
             void close();
 
             Superblock* getSuperblock(size_t offset);
@@ -63,9 +63,12 @@ namespace redhawk {
             SuperblockFile(const SuperblockFile&);
             SuperblockFile& operator=(const SuperblockFile&);
 
+            void _detach();
+
             Superblock* _mapSuperblock(size_t offset);
 
             MappedFile _file;
+            bool _attached;
 
             struct Header;
             Header* _header;

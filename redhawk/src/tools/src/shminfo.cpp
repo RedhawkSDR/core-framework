@@ -99,7 +99,7 @@ namespace {
 
         SuperblockFile file(name);
         try {
-            file.open();
+            file.open(false);
         } catch (const std::exception& exc) {
             std::cerr << "error: " << exc.what() << std::endl;
             return;
@@ -111,7 +111,7 @@ namespace {
             std::cout << " (defunct)";
         }
         std::cout << std::endl;
-        std::cout << "  refcount:  " << (file.refcount() - 1) << std::endl;
+        std::cout << "  refcount:  " << file.refcount() << std::endl;
 
         SuperblockFile::Statistics stats = file.getStatistics();
         std::cout << "  total size:  " << size_to_string(stats.size) << std::endl;
