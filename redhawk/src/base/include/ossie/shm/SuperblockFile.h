@@ -58,6 +58,8 @@ namespace redhawk {
 
             const std::string& name() const;
 
+            MappedFile& file();
+
         private:
             // Not copyable
             SuperblockFile(const SuperblockFile&);

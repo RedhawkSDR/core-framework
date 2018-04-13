@@ -70,6 +70,11 @@ const std::string& SuperblockFile::name() const
     return _file.name();
 }
 
+MappedFile& SuperblockFile::file()
+{
+    return _file;
+}
+
 pid_t SuperblockFile::creator() const
 {
     if (!_header) {

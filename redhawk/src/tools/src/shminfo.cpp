@@ -18,7 +18,6 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -26,29 +25,58 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <dirent.h>
 #include <getopt.h>
 #include <signal.h>
-#include <unistd.h>
 
-#include <ossie/shm/SuperblockFile.h>
+#include "ShmVisitor.h"
 
-#define SHMINFO_DIR "/dev/shm"
+using redhawk::shm::SuperblockFile;
 
 namespace {
+    static void usage()
+    {
+    }
+}
 
-    enum SizeFormat {
+class SizeFormatter
+{
+public:
+    enum Format {
         BYTES,
         KILOBYTES,
         HUMAN_READABLE
-    } size_format;
+    };
 
-    static bool startswith(const std::string& str, const std::string& prefix)
+    explicit SizeFormatter(Format format=BYTES) :
+        _format(format)
     {
-        return str.compare(0, prefix.size(), prefix) == 0;
     }
 
-    void human_readable(std::ostream& oss, size_t size)
+    void setFormat(Format format)
+    {
+        _format = format;
+    }
+
+    std::string operator() (size_t size)
+    {
+        std::ostringstream oss;
+        switch (_format) {
+        case KILOBYTES:
+            oss << (size/1024) << "K";
+            break;
+        case HUMAN_READABLE:
+            _toHumanReadable(oss, size);
+            break;
+        case BYTES:
+        default:
+            oss << size;
+            break;
+        }
+        return oss.str();
+    }
+
+private:
+    void _toHumanReadable(std::ostream& oss, size_t size)
     {
         const char* suffix[] = { "", "K", "M", "G", "T", 0 };
         double val = size;
@@ -64,130 +92,119 @@ namespace {
         }
     }
 
-    std::string size_to_string(size_t size)
+    Format _format;
+};
+
+class Info : public ShmVisitor
+{
+public:
+    Info() :
+        _all(false),
+        _format()
     {
-        std::ostringstream oss;
-        switch (size_format) {
-        case BYTES:
-            oss << size;
-            break;
-        case KILOBYTES:
-            oss << (size/1024) << "K";
-            break;
-        case HUMAN_READABLE:
-            human_readable(oss, size);
-            break;
-        }
-        return oss.str();
     }
 
-    static void dump_filesystem(const std::string& path)
+    void setDisplayAll(bool all)
     {
+        _all = all;
+    }
+
+    void setSizeFormat(SizeFormatter::Format format)
+    {
+        _format.setFormat(format);
+    }
+
+    virtual void visitFileSystem(const std::string& path)
+    {
+        std::cout << path << std::endl;
         struct statvfs status;
         if (statvfs(path.c_str(), &status)) {
             std::cout << "  (cannot stat)" << std::endl;
             return;
         }
 
-        std::cout << "  size: " << size_to_string(status.f_blocks * status.f_frsize) << std::endl;
-        std::cout << "  free: " << size_to_string(status.f_bfree * status.f_frsize) << std::endl;
+        std::cout << "  size: " << _format(status.f_blocks * status.f_frsize) << std::endl;
+        std::cout << "  free: " << _format(status.f_bfree * status.f_frsize) << std::endl;
     }
 
-    static void dump_heap(const std::string& name)
+    virtual void visitHeap(SuperblockFile& heap)
     {
-        using redhawk::shm::SuperblockFile;
-
-        SuperblockFile file(name);
-        try {
-            file.open(false);
-        } catch (const std::exception& exc) {
-            std::cerr << "error: " << exc.what() << std::endl;
-            return;
-        }
-
-        pid_t owner = file.creator();
-        std::cout << "  owner:     " << owner;
-        if (kill(owner, 0) != 0) {
+        pid_t creator = heap.creator();
+        std::cout << "  creator:     " << creator;
+        if (kill(creator, 0) != 0) {
             std::cout << " (defunct)";
         }
         std::cout << std::endl;
-        std::cout << "  refcount:  " << file.refcount() << std::endl;
+        std::cout << "  refcount:    " << heap.refcount() << std::endl;
 
-        SuperblockFile::Statistics stats = file.getStatistics();
-        std::cout << "  total size:  " << size_to_string(stats.size) << std::endl;
-        std::cout << "  total used:  " << size_to_string(stats.used) << std::endl;
+        SuperblockFile::Statistics stats = heap.getStatistics();
+        std::cout << "  total size:  " << _format(stats.size) << std::endl;
+        std::cout << "  total used:  " << _format(stats.used) << std::endl;
         std::cout << "  superblocks: " << stats.superblocks << std::endl;
         std::cout << "  unused:      " << stats.unused << std::endl;
     }
 
-    static void usage()
+    virtual void visitFile(const std::string& name)
     {
-    }
-}
-
-int main(int argc, char* argv[])
-{
-    bool all = false;
-    size_format = BYTES;
-    int opt;
-    while ((opt = getopt(argc, argv, "akh")) != -1) {
-        switch (opt) {
-        case 'a':
-            all = true;
-            break;
-        case 'k':
-            size_format = KILOBYTES;
-            break;
-        case 'h':
-            size_format = HUMAN_READABLE;
-            break;
-        default:
-            usage();
-            exit(-1);
+        if (isHeap(name)) {
+            displayFile(name, "REDHAWK heap");
+        } else if (_all) {
+            displayFile(name, "other");
         }
-    };
-
-    std::string shminfo_dir = SHMINFO_DIR;
-
-    std::cout << shminfo_dir << ':' << std::endl;
-    dump_filesystem(shminfo_dir);
-
-    DIR* dir = opendir(shminfo_dir.c_str());
-    if (!dir) {
-        std::cerr << "could not open shm filesystem " << shminfo_dir << std::endl;
-        return -1;
     }
 
-    while (struct dirent* entry = readdir(dir)) {
-        const std::string filename = entry->d_name;
-        if ((filename == ".") || (filename == "..")) {
-            continue;
-        }
-        bool is_heap = startswith(filename, "heap-");
-        if (!is_heap && !all) {
-            continue;
-        }
+    virtual void heapException(const std::string& name, const std::exception& exc)
+    {
+        std::cerr << "error: " << exc.what() << std::endl;
+    }
 
-        std::string path = shminfo_dir + "/" + filename;
-        std::cout << std::endl << path << ":" << std::endl;;
+protected:
+    void displayFile(const std::string& name, const std::string& type)
+    {
+        std::string path = getShmPath() + "/" + name;
+        std::cout << std::endl << path << std::endl;;
 
         struct stat status;
         if (stat(path.c_str(), &status)) {
             std::cout << "  (cannot access)" << std::endl;
-            continue;
+            return;
         }
-        std::cout << "  file size: " << size_to_string(status.st_size) << std::endl;
-        std::cout << "  allocated: " << size_to_string(status.st_blocks * 512) << std::endl;
-        std::cout << "  type:      ";
-
-        if (is_heap) {
-            std::cout << "REDHAWK heap" << std::endl;
-            dump_heap(filename);
-        } else {
-            std::cout << "other" << std::endl;
-        }
+        std::cout << "  file size:   " << _format(status.st_size) << std::endl;
+        std::cout << "  allocated:   " << _format(status.st_blocks * 512) << std::endl;
+        std::cout << "  type:        " << type << std::endl;
     }
-    closedir(dir);
 
+    bool _all;
+    SizeFormatter _format;
+};
+
+int main(int argc, char* argv[])
+{
+    Info info;
+
+    int opt;
+    while ((opt = getopt(argc, argv, "akh")) != -1) {
+        switch (opt) {
+        case 'a':
+            info.setDisplayAll(true);
+            break;
+        case 'k':
+            info.setSizeFormat(SizeFormatter::KILOBYTES);
+            break;
+        case 'h':
+            info.setSizeFormat(SizeFormatter::HUMAN_READABLE);
+            break;
+        default:
+            usage();
+            return -1;
+        }
+    };
+
+    try {
+        info.visit();
+    } catch (const std::exception& exc) {
+        std::cerr << exc.what() << std::endl;
+        return -1;
+    } 
     return 0;
 }
