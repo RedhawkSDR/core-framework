@@ -35,8 +35,8 @@ namespace redhawk {
         void* allocate(size_t bytes);
         void deallocate(void* ptr);
 
-        void* allocateDynamic(size_t bytes);
-        void deallocateDynamic(void* ptr);
+        void* allocateHybrid(size_t bytes);
+        void deallocateHybrid(void* ptr);
 
         template <class T>
         struct Allocator : public std::allocator<T>
@@ -85,7 +85,7 @@ namespace redhawk {
         };
 
         template <class T>
-        struct DynamicAllocator : public std::allocator<T>
+        struct HybridAllocator : public std::allocator<T>
         {
         public:
             typedef std::allocator<T> base;
@@ -95,21 +95,21 @@ namespace redhawk {
 
             template <typename U>
             struct rebind {
-                typedef DynamicAllocator<U> other;
+                typedef HybridAllocator<U> other;
             };
 
-            DynamicAllocator() throw() :
+            HybridAllocator() throw() :
                 base()
             {
             }
 
-            DynamicAllocator(const DynamicAllocator& other) throw() :
+            HybridAllocator(const HybridAllocator& other) throw() :
                 base(other)
             {
             }
 
             template <typename U>
-            DynamicAllocator(const DynamicAllocator<U>& other) throw() :
+            HybridAllocator(const HybridAllocator<U>& other) throw() :
                 base(other)
             {
             }
@@ -117,7 +117,7 @@ namespace redhawk {
             pointer allocate(size_type count)
             {
                 size_type bytes = count * sizeof(value_type);
-                void* ptr = redhawk::shm::allocateDynamic(bytes);
+                void* ptr = redhawk::shm::allocateHybrid(bytes);
                 if (!ptr) {
                     throw std::bad_alloc();
                 }
@@ -126,7 +126,7 @@ namespace redhawk {
 
             void deallocate(pointer ptr, size_type /*unused*/)
             {
-                redhawk::shm::deallocateDynamic(ptr);
+                redhawk::shm::deallocateHybrid(ptr);
             }
         };
     }

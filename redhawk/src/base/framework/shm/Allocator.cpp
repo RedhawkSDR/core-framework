@@ -84,7 +84,7 @@ namespace redhawk {
             heap->deallocate(ptr);
         }
 
-        void* allocateDynamic(size_t bytes)
+        void* allocateHybrid(size_t bytes)
         {
             redhawk::shm::Heap* heap = redhawk::shm::getProcessHeap();
             if (!heap) {
@@ -105,7 +105,7 @@ namespace redhawk {
             return 0;
         }
 
-        void deallocateDynamic(void* ptr)
+        void deallocateHybrid(void* ptr)
         {
             redhawk::shm::Heap* heap = redhawk::shm::getProcessHeap();
             if (!heap) {
