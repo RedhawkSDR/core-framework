@@ -87,7 +87,7 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         // time between cycles to refresh threshold metrics
         CORBA::ULong threshold_cycle_time;
         // ulimits for the GPP process
-        ulimit_struct gpp_limits;
+        gpp_limits_struct gpp_limits;
         // ulimits for the system as a whole
         sys_limits_struct sys_limits;
         /// Property: memFree

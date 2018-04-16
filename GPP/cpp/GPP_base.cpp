@@ -125,10 +125,11 @@ void GPP_base::loadProperties()
                 "property,allocation,configure");
 
     addProperty(device_model,
+                "REDHAWK GPP",
                 "DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb",
                 "device_model",
                 "readonly",
-                "REDHAWK GPP",
+                "",
                 "eq",
                 "property,allocation,configure");
 
@@ -391,7 +392,7 @@ void GPP_base::loadProperties()
                 "property");
     
     addProperty(gpp_limits,
-                ulimit_struct(),
+                gpp_limits_struct(),
                 "gpp_limits",
                 "",
                 "readonly",
