@@ -1918,7 +1918,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         deployment_root=_args[idx+1]
         self.assertEquals(deployment_root, self._rhDom.devices[0].cacheDirectory)
 
-    def test_PyCompConfigCacheCWD(self):
+    def test_CompConfigCacheCWD(self):
         self.assertNotEqual(self._domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
         self.assertNotEqual(devMgr, None)
@@ -1929,51 +1929,6 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         for root, dirs, files in os.walk(self.base_dir):
             if 'check_cwd.py' in files:
                 if 'cache/components/check_cwd/python' in root:
-                    found_dir = True
-                    break
-        self.assertTrue(found_dir)
-
-    def test_CppCompConfigCacheCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
-        self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_cpp_w/check_cwd_cpp_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd_cpp' in files:
-                if 'cache/components/check_cwd_cpp/cpp' in root:
-                    found_dir = True
-                    break
-        self.assertTrue(found_dir)
-
-    def test_CppSoCompConfigCacheCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
-        self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_cpp_so_w/check_cwd_cpp_so_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd_cpp_so.so' in files:
-                if 'cache/components/check_cwd_cpp_so/cpp' in root:
-                    found_dir = True
-                    break
-        self.assertTrue(found_dir)
-
-    def test_JavaCompConfigCacheCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
-        self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_java_w/check_cwd_java_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd[:-1], self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd_java.class' in files:
-                if 'cache/components/check_cwd_java/java/bin/check_cwd_java/java' in root:
                     found_dir = True
                     break
         self.assertTrue(found_dir)
