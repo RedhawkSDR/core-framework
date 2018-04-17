@@ -28,6 +28,8 @@
 #include <getopt.h>
 #include <signal.h>
 
+#include <ossie/shm/System.h>
+
 #include "ShmVisitor.h"
 
 using redhawk::shm::SuperblockFile;
@@ -109,22 +111,9 @@ public:
         _all = all;
     }
 
-    void setSizeFormat(SizeFormatter::Format format)
+    void setSizeFormatter(SizeFormatter& format)
     {
-        _format.setFormat(format);
-    }
-
-    virtual void visitFileSystem(const std::string& path)
-    {
-        std::cout << path << std::endl;
-        struct statvfs status;
-        if (statvfs(path.c_str(), &status)) {
-            std::cout << "  (cannot stat)" << std::endl;
-            return;
-        }
-
-        std::cout << "  size: " << _format(status.f_blocks * status.f_frsize) << std::endl;
-        std::cout << "  free: " << _format(status.f_bfree * status.f_frsize) << std::endl;
+        _format = format;
     }
 
     virtual void visitHeap(SuperblockFile& heap)
@@ -181,6 +170,7 @@ protected:
 int main(int argc, char* argv[])
 {
     Info info;
+    SizeFormatter format;
 
     int opt;
     while ((opt = getopt(argc, argv, "akh")) != -1) {
@@ -189,10 +179,10 @@ int main(int argc, char* argv[])
             info.setDisplayAll(true);
             break;
         case 'k':
-            info.setSizeFormat(SizeFormatter::KILOBYTES);
+            format.setFormat(SizeFormatter::KILOBYTES);
             break;
         case 'h':
-            info.setSizeFormat(SizeFormatter::HUMAN_READABLE);
+            format.setFormat(SizeFormatter::HUMAN_READABLE);
             break;
         default:
             usage();
@@ -200,6 +190,11 @@ int main(int argc, char* argv[])
         }
     };
 
+    std::cout << redhawk::shm::getSystemPath() << std::endl;
+    std::cout << "  size: " << format(redhawk::shm::getSystemTotalMemory()) << std::endl;
+    std::cout << "  free: " << format(redhawk::shm::getSystemFreeMemory()) << std::endl;
+
+    info.setSizeFormatter(format);
     try {
         info.visit();
     } catch (const std::exception& exc) {

@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#define SHMINFO_DIR "/dev/shm"
+#include <ossie/shm/System.h>
 
 bool ShmVisitor::isHeap(const std::string& name)
 {
@@ -33,7 +33,7 @@ bool ShmVisitor::isHeap(const std::string& name)
 
 std::string ShmVisitor::getShmPath()
 {
-    return SHMINFO_DIR;
+    return redhawk::shm::getSystemPath();
 }
 
 void ShmVisitor::visit()

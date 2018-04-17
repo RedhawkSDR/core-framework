@@ -69,7 +69,8 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			shm/HeapClient.cpp \
 			shm/MappedFile.cpp \
 			shm/Superblock.cpp \
-			shm/SuperblockFile.cpp
+			shm/SuperblockFile.cpp \
+			shm/System.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 # Include the omniORB internal directory, otherwise CorbaUtils will not build
