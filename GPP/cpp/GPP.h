@@ -249,9 +249,6 @@ class GPP_i : public GPP_base
           typedef boost::shared_ptr<ThresholdMonitor>           ThresholdMonitorPtr;
           typedef std::vector< uint32_t >                       CpuList;
           typedef std::vector< boost::shared_ptr<Updateable> >  UpdateableSequence;
-          typedef std::vector<boost::shared_ptr<State> >        StateSequence;
-          typedef std::vector<boost::shared_ptr<Statistics> >   StatisticsSequence;
-          typedef std::vector<boost::shared_ptr<Reporting> >    ReportingSequence;
           typedef std::vector< ThresholdMonitorPtr >            MonitorSequence;
           typedef std::vector< NicMonitorPtr >                  NicMonitorSequence;
           typedef boost::shared_ptr<SystemMonitor>              SystemMonitorPtr;

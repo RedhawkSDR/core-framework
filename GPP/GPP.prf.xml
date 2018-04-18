@@ -602,4 +602,14 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
+  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="ulonglong">
+    <units>B</units>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="shmFree" mode="readonly" name="shmFree" type="ulonglong">
+    <units>B</units>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
 </properties>

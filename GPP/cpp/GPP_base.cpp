@@ -377,6 +377,22 @@ void GPP_base::loadProperties()
                 "external",
                 "configure");
 
+    addProperty(shmCapacity,
+                "shmCapacity",
+                "shmCapacity",
+                "readonly",
+                "B",
+                "external",
+                "property");
+
+    addProperty(shmFree,
+                "shmFree",
+                "shmFree",
+                "readonly",
+                "B",
+                "external",
+                "property");
+
     addProperty(mcastnicVLANs,
                 "DCE:65544aad-4c73-451f-93de-d4d76984025a",
                 "mcastnicVLANs",

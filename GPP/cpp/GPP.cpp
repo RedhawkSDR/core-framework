@@ -71,9 +71,9 @@
 #include <unistd.h>
 #endif
 
-#include "ossie/Events.h"
-#include "ossie/affinity.h"
-
+#include <ossie/Events.h>
+#include <ossie/affinity.h>
+#include <ossie/shm/System.h>
 
 #include "GPP.h"
 #include "utils/affinity.h"
@@ -518,6 +518,8 @@ void GPP_i::constructor()
             this->cacheDirectory = path;
         }
     }
+
+    shmCapacity = redhawk::shm::getSystemTotalMemory();
 }
 
 
@@ -981,6 +983,8 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   memFree =  init_mem_free / mem_free_units;
   memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent)) / mem_cap_units ;
   memCapacityThreshold = memCapacity;
+
+  shmFree = redhawk::shm::getSystemFreeMemory();
 
   //
   // set initial modified thresholds
@@ -2677,6 +2681,8 @@ void GPP_i::update()
            " memCapacity: " << memCapacity  << std::endl << 
            " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
            " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
+
+  shmFree = redhawk::shm::getSystemFreeMemory();
 
   //
   // transfer limits to properties
