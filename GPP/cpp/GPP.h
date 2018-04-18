@@ -110,8 +110,6 @@ class GPP_i : public GPP_base
         void sendChildNotification(const std::string &comp_id, const std::string &app_id);
         bool allocateCapacity_nic_allocation(const nic_allocation_struct &value);
         void deallocateCapacity_nic_allocation(const nic_allocation_struct &value);
-        void deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
-        CORBA::Boolean allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
         void releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
 
 

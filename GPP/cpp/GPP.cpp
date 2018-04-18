@@ -2330,16 +2330,6 @@ void GPP_i::deallocateCapacity_nic_allocation(const nic_allocation_struct &alloc
     }
 }
 
-void GPP_i::deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
-{
-    GPP_base::deallocateCapacity(capacities);
-}
-CORBA::Boolean GPP_i::allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
-{
-    bool retval = GPP_base::allocateCapacity(capacities);
-    return retval;
-}
-
 
 bool GPP_i::allocate_diskCapacity(const double &value) {
 
