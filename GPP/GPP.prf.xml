@@ -449,6 +449,16 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <kind kindtype="allocation"/>
     <action type="external"/>
   </simple>
+  <simple id="shmFree" mode="readonly" name="shmFree" type="ulonglong">
+    <units>B</units>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="ulonglong">
+    <units>B</units>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
   <simple id="DCE:28b23bc8-e4c0-421b-9c52-415a24715209" mode="readonly" name="loadTotal" type="double">
     <description>Equal to &quot;processor_cores&quot; x &quot;loadCapacityPerCore&quot;.</description>
     <kind kindtype="configure"/>
@@ -602,14 +612,4 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="ulonglong">
-    <units>B</units>
-    <kind kindtype="property"/>
-    <action type="external"/>
-  </simple>
-  <simple id="shmFree" mode="readonly" name="shmFree" type="ulonglong">
-    <units>B</units>
-    <kind kindtype="property"/>
-    <action type="external"/>
-  </simple>
 </properties>

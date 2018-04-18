@@ -91,6 +91,10 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         CORBA::LongLong memFree;
         /// Property: memCapacity
         CORBA::LongLong memCapacity;
+        /// Property: shmFree
+        CORBA::ULongLong shmFree;
+        /// Property: shmCapacity
+        CORBA::ULongLong shmCapacity;
         /// Property: loadTotal
         double loadTotal;
         /// Property: loadCapacityPerCore
@@ -107,10 +111,6 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         short processor_cores;
         /// Property: processor_monitor_list
         std::string processor_monitor_list;
-        /// Property: shmCapacity
-        CORBA::ULongLong shmCapacity;
-        /// Property: shmFree
-        CORBA::ULongLong shmFree;
         /// Property: mcastnicVLANs
         std::vector<CORBA::Long> mcastnicVLANs;
         /// Property: nic_interfaces

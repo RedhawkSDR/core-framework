@@ -393,6 +393,12 @@ class GPP_i : public GPP_base
           //
           bool _check_nic_thresholds();
 
+          template <typename T1, typename T2>
+          void _addMonitoredValue(const std::string& resourceId, const std::string& messageClass,
+                                  T1& value, const T2& threshold);
+
+          CORBA::ULongLong _shmThreshold;
+
           std::string user_id;
           ossie::ProcessThread                                _signalThread;
           ossie::ProcessThread                                _redirectedIO;

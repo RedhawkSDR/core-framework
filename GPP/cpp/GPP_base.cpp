@@ -310,6 +310,22 @@ void GPP_base::loadProperties()
                 "external",
                 "allocation");
 
+    addProperty(shmFree,
+                "shmFree",
+                "shmFree",
+                "readonly",
+                "B",
+                "external",
+                "property");
+
+    addProperty(shmCapacity,
+                "shmCapacity",
+                "shmCapacity",
+                "readonly",
+                "B",
+                "external",
+                "property");
+
     addProperty(loadTotal,
                 "DCE:28b23bc8-e4c0-421b-9c52-415a24715209",
                 "loadTotal",
@@ -376,22 +392,6 @@ void GPP_base::loadProperties()
                 "",
                 "external",
                 "configure");
-
-    addProperty(shmCapacity,
-                "shmCapacity",
-                "shmCapacity",
-                "readonly",
-                "B",
-                "external",
-                "property");
-
-    addProperty(shmFree,
-                "shmFree",
-                "shmFree",
-                "readonly",
-                "B",
-                "external",
-                "property");
 
     addProperty(mcastnicVLANs,
                 "DCE:65544aad-4c73-451f-93de-d4d76984025a",

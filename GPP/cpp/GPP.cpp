@@ -864,6 +864,9 @@ GPP_i::initializeResourceMonitors()
   addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(_identifier,
                       MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
                       ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
+
+  _shmThreshold = 4294967296LL;
+  _addMonitoredValue("shm", "SHM_FREE", shmFree, _shmThreshold);
 }
 
 void
@@ -1556,7 +1559,7 @@ bool GPP_i::_check_nic_thresholds()
     return retval;
 }
 
-bool GPP_i::_check_thread_limits( const thresholds_struct &thresholds)
+bool GPP_i::_check_thread_limits( const thresholds_struct &)
 {
     float _tthreshold = 1 - __thresholds.threads * .01;
 
@@ -3059,4 +3062,12 @@ int  GPP_i::_get_deploy_on_partition() {
 
   if ( psoc > -1 ) { RH_NL_INFO("GPP", " Deploy resource on selected SOCKET PARTITON, socket:" << psoc ); }
   return psoc;
+}
+
+template <typename T1, typename T2>
+void GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
+{
+    addThresholdMonitor(ThresholdMonitorPtr(new GenericThresholdMonitor<T1>(_identifier, resourceId, messageClass,
+                                                                            MakeCref<T2,T1>(threshold),
+                                                                            MakeCref(value))));
 }
