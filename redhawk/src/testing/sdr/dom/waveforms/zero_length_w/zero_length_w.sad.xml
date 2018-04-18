@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:fb0191f7-8e51-463a-9914-6c5f58abe5f3" name="zero_length_w">
+  <componentfiles>
+    <componentfile id="zero_length_71999d8c-42c0-47d4-89c2-d7a1ee6e0c57" type="SPD">
+      <localfile name="/components/zero_length/zero_length.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="zero_length_71999d8c-42c0-47d4-89c2-d7a1ee6e0c57"/>
+      <componentinstantiation id="zero_length_1" startorder="0">
+        <usagename>zero_length_1</usagename>
+        <findcomponent>
+          <namingservice name="zero_length_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="zero_length_1"/>
+  </assemblycontroller>
+</softwareassembly>

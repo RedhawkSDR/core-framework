@@ -602,6 +602,13 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         self.assertEqual(device.allocateCapacity(props),True)
 
+    def test_ZeroLengthDev(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/zero_length_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
     def test_ComponentPropertyOverride_cpp(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)

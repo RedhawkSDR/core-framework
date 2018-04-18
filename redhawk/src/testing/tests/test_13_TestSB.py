@@ -421,6 +421,15 @@ class SBTestTest(scatest.CorbaTestCase):
         except Exception, e:
             self.assertEquals(e.args[0], 'Could not perform query, "foo_struct_seq" is a writeonly property')
 
+    def test_zeroLengthSeqStruct(self):
+        """
+        Tests for the correct initialization of 'property' kind properties
+        based on whether command line is set, and overrides via launch().
+        """
+        # First, test with defaults
+        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml')
+        self.assertNotEqual(comp, None)
+
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()
         depLibraryPath = cwd + "/sdr/dom/components/softpkgNestedDep/spdNestedDepLibrary"
