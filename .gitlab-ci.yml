@@ -13,10 +13,9 @@ stages:
 .rpmbuild: &rpmbuild
   image: docker:latest
   tags:
-    - dind
+    - cf
+    - docker
   script:
-    # Ensure newest version of FROM image
-    - docker pull ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild
     # Use RPM release from specfile if this is a tag
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
@@ -26,6 +25,7 @@ stages:
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
+    #- docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
@@ -52,10 +52,9 @@ stages:
     paths:
       - output/
     expire_in: 2 days
-  #Skip on tag of following format
   except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .deploy-common: &deploy-common
   image: centos:7
@@ -65,10 +64,9 @@ stages:
   - if [ -n "$jenkins_url" ]; then
       curl --insecure -X POST $jenkins_url/job/$jenkins_job/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
     fi
-  #Skip on tag of following format
   except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -260,41 +258,6 @@ frontend:el7:
     project: frontendInterfaces
     local_repo: output
   <<: *rpmbuild
-
-
-mvn:deploy:
-  stage: package-redhawk-codegen
-  image: ${docker_registry}redhawk/buildenv:2.0-el7
-  variables:
-    OSSIEHOME: /usr/local/redhawk/core
-    SDRROOT: /var/redhawk/sdr
-    PYTHONPATH: /usr/local/redhawk/core/lib64/python:/usr/local/redhawk/core/lib/python
-    LD_LIBRARY_PATH: /usr/local/redhawk/core/lib64:/usr/local/redhawk/core/lib
-    PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/redhawk/core/bin
-  script:
-    - if [ -n "$CI_COMMIT_TAG" ]; then
-        for file in `find -name pom.xml`; do
-          sed -i "s|$redhawk_version-SNAPSHOT|$redhawk_version|" $file;
-        done
-      fi
-    - export nproc=$((`nproc`/ 4))
-    - cd redhawk/src
-    - sed -i 's|testing||' Makefile.am
-    - ./reconf && ./configure && make -j$nproc && make install
-    - cd ../../bulkioInterfaces
-    - ./reconf && ./configure && make -j$nproc && make install
-    - cd ../burstioInterfaces
-    - ./reconf && ./configure && make -j$nproc && make install
-    - cd ../frontendInterfaces
-    - ./reconf && ./configure && make -j$nproc && make install
-    - cd ..
-    - find -name '*.jar'
-    - mvn deploy
-  #Skip on tag of following format
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
-    - master
-    - /^feature.*$/
 
 #Trigger a Jenkins job to aggregate artifacts there
 deploy:
