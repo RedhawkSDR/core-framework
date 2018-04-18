@@ -24,8 +24,7 @@
 class FreeMemoryThresholdMonitor : public GenericThresholdMonitor<int64_t>
 {
 public:
-
-    FreeMemoryThresholdMonitor( const std::string& source_id, QueryFunction threshold, QueryFunction measured ) ;
+    FreeMemoryThresholdMonitor(QueryFunction threshold, QueryFunction measured);
 
     static std::string GetResourceId(){ return "physical_ram"; }
     static std::string GetMessageClass(){ return "MEMORY_FREE"; }

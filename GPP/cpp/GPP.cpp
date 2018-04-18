@@ -817,10 +817,9 @@ GPP_i::initializeNetworkMonitor()
     for( size_t i=0; i<nic_devices.size(); ++i )
     {
         LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
-        NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(_identifier,
-                                                                                   nic_devices[i],
-                                                                                   MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
-                                                                                   boost::bind(&NicFacade::get_throughput_by_device, nic_facade, nic_devices[i]) ) );
+        NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(nic_devices[i],
+                                                                               MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
+                                                                               boost::bind(&NicFacade::get_throughput_by_device, nic_facade, nic_devices[i]) ) );
 
         // monitors that affect busy state...
         for ( size_t ii=0; ii < filtered_devices.size(); ii++ ) {
@@ -857,11 +856,11 @@ GPP_i::initializeResourceMonitors()
   data_model.push_back( process_limits );
 
   //  observer to monitor when cpu idle pass threshold value
-  addThresholdMonitor( ThresholdMonitorPtr( new CpuThresholdMonitor(_identifier, &modified_thresholds.cpu_idle,
-                                                                    *(system_monitor->getCpuStats()), false )));
+  addThresholdMonitor( ThresholdMonitorPtr( new CpuThresholdMonitor(&modified_thresholds.cpu_idle,
+                                                                    *(system_monitor->getCpuStats()))));
 
   // add available memory monitor, mem_free defaults to MB
-  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(_identifier,
+  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(
                       MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
                       ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
 
@@ -872,8 +871,16 @@ GPP_i::initializeResourceMonitors()
 void
 GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
 {
-    t->attach_listener( boost::bind(&GPP_i::send_threshold_event, this, _1) );
+    t->add_listener(this, &GPP_i::_sendThresholdEvent);
     threshold_monitors.push_back( t );
+}
+
+template <typename T1, typename T2>
+void GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
+{
+    addThresholdMonitor(ThresholdMonitorPtr(new GenericThresholdMonitor<T1>(resourceId, messageClass,
+                                                                            MakeCref<T2,T1>(threshold),
+                                                                            MakeCref(value))));
 }
 
 void
@@ -1015,12 +1022,6 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   gpp_limits.max_threads = pid_rpt.threads_limit;
   gpp_limits.current_open_files = pid_rpt.files;
   gpp_limits.max_open_files = pid_rpt.files_limit;
-
-  // enable monitors to push out state change events..
-  MonitorSequence::iterator iter=threshold_monitors.begin();
-  for( ; iter != threshold_monitors.end(); iter++ ) {
-    if  ( *iter ) (*iter)->enable_dispatch();
-  }
 
   //
   // setup mcast interface allocations, used by older systems -- need to deprecate
@@ -1894,12 +1895,7 @@ int GPP_i::serviceFunction()
   }
 
   // update monitors to see if thresholds are exceeded
-  std::for_each( threshold_monitors.begin(), threshold_monitors.end(), boost::bind( &Updateable::update, _1 ) );
-
-  for( size_t i=0; i<threshold_monitors.size(); ++i ) {
-    LOG_TRACE(GPP_i, __FUNCTION__ << ": resource_id=" << threshold_monitors[i]->get_resource_id() << 
-              " threshold=" << threshold_monitors[i]->get_threshold() << " measured=" << threshold_monitors[i]->get_measured());
-  }
+  updateThresholdMonitors();
 
   // update device usages state for the GPP
   updateUsageState();
@@ -2471,6 +2467,40 @@ void GPP_i::updateThresholdMonitors()
     LOG_TRACE(GPP_i, __FUNCTION__ << ": resource_id=" << monitor->get_resource_id() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
   }
 }
+
+
+void GPP_i::_sendThresholdEvent(ThresholdMonitor* monitor)
+{
+    bool is_threshold_exceeded = monitor->is_threshold_exceeded();
+
+    threshold_event_struct message;
+    message.source_id = _identifier;
+    message.resource_id = monitor->get_resource_id();
+    message.threshold_class = monitor->get_message_class();
+    if (is_threshold_exceeded) {
+        message.type = enums::threshold_event::type::Threshold_Exceeded;
+    } else {
+        message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
+    }
+    message.threshold_value = monitor->get_threshold();
+    message.measured_value = monitor->get_measured();
+
+    std::stringstream sstr;
+    sstr << message.threshold_class << " threshold ";
+    if (!is_threshold_exceeded) {
+        sstr << "not ";
+    }
+    sstr << "exceeded "
+         << "(resource_id=" << message.resource_id
+         << " threshold_value=" << message.threshold_value
+         << " measured_value=" << message.measured_value << ")";
+    message.message = sstr.str();
+
+    message.timestamp = time(NULL);
+
+    send_threshold_event(message);
+}
+
 
 void GPP_i::update()
 {
@@ -3062,12 +3092,4 @@ int  GPP_i::_get_deploy_on_partition() {
 
   if ( psoc > -1 ) { RH_NL_INFO("GPP", " Deploy resource on selected SOCKET PARTITON, socket:" << psoc ); }
   return psoc;
-}
-
-template <typename T1, typename T2>
-void GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
-{
-    addThresholdMonitor(ThresholdMonitorPtr(new GenericThresholdMonitor<T1>(_identifier, resourceId, messageClass,
-                                                                            MakeCref<T2,T1>(threshold),
-                                                                            MakeCref(value))));
 }

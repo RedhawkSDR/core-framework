@@ -20,7 +20,7 @@
 #include "NicThroughputThresholdMonitor.h"
 #include "../utils/ReferenceWrapper.h"
 
-NicThroughputThresholdMonitor::NicThroughputThresholdMonitor( const std::string& source_id, const std::string& resource_id, NicThroughputThresholdMonitor::QueryFunction threshold, NicThroughputThresholdMonitor::QueryFunction measured ):
-GenericThresholdMonitor<float, std::greater_equal<float> >(source_id, resource_id, GetMessageClass(), threshold, measured )
+NicThroughputThresholdMonitor::NicThroughputThresholdMonitor(const std::string& resource_id, QueryFunction threshold, QueryFunction measured):
+    GenericThresholdMonitor<float, std::greater_equal<float> >(resource_id, GetMessageClass(), threshold, measured)
 {
 }

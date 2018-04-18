@@ -59,7 +59,6 @@ redhawk_SOURCES_auto += utils/CmdlineExecutor.cpp
 redhawk_SOURCES_auto += utils/CmdlineExecutor.h
 redhawk_SOURCES_auto += utils/EnvironmentPathParser.cpp
 redhawk_SOURCES_auto += utils/EnvironmentPathParser.h
-redhawk_SOURCES_auto += utils/EventDispatcher.h
 redhawk_SOURCES_auto += utils/FileReader.cpp
 redhawk_SOURCES_auto += utils/FileReader.h
 redhawk_SOURCES_auto += utils/IOError.h

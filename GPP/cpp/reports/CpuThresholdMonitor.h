@@ -26,11 +26,10 @@
 class CpuThresholdMonitor : public GenericThresholdMonitor<float>
 {
 public:
-  CpuThresholdMonitor( const std::string& source_id, const float* threshold, const CpuStatistics & cpu_usage_accumulator,
-                       const bool enableDispatch=false );
+    CpuThresholdMonitor(const float* threshold, const CpuStatistics & cpu_usage_accumulator);
 
-	static std::string GetResourceId(){ return "cpu"; }
-	static std::string GetMessageClass(){ return "CPU_IDLE"; }
+    static std::string GetResourceId(){ return "cpu"; }
+    static std::string GetMessageClass(){ return "CPU_IDLE"; }
 };
 
 #endif

@@ -399,6 +399,8 @@ class GPP_i : public GPP_base
 
           CORBA::ULongLong _shmThreshold;
 
+          void _sendThresholdEvent(ThresholdMonitor* monitor);
+
           std::string user_id;
           ossie::ProcessThread                                _signalThread;
           ossie::ProcessThread                                _redirectedIO;

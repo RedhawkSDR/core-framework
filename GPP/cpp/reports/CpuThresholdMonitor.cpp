@@ -34,11 +34,9 @@ private:
 	const CpuStatistics& cpu_usage_accumulator_;
 };
 
-CpuThresholdMonitor::CpuThresholdMonitor( const std::string& source_id, 
-                                          const float* threshold, 
-                                          const CpuStatistics & cpu_usage_accumulator,
-                                          const bool enableDispatch ):
-  GenericThresholdMonitor<float>(source_id, GetResourceId(), GetMessageClass(), MakeCref(*threshold), CpuUsageAccumulatorQueryFunction(cpu_usage_accumulator), enableDispatch )
+CpuThresholdMonitor::CpuThresholdMonitor(const float* threshold, 
+                                         const CpuStatistics & cpu_usage_accumulator):
+  GenericThresholdMonitor<float>(GetResourceId(), GetMessageClass(), MakeCref(*threshold), CpuUsageAccumulatorQueryFunction(cpu_usage_accumulator))
 {
 
 }
