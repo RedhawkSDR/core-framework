@@ -83,6 +83,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 Required
 
 </description>
+      <value></value>
     </simple>
     <simple id="nic_allocation::data_rate" name="data_rate" type="float">
       <description>Data rate being allocated.  See data_size for unit of measurement.
@@ -111,11 +112,13 @@ Optional</description>
       <description>Requires the IP address to be addressable from the interface.
 
 Optional</description>
+      <value></value>
     </simple>
     <simple id="nic_allocation::interface" name="interface" type="string">
       <description>Requires this specific interface.
 
 Optional</description>
+      <value></value>
     </simple>
     <configurationkind kindtype="allocation"/>
   </struct>
@@ -150,35 +153,85 @@ Optional</description>
   </structsequence>
   <structsequence id="nic_metrics" mode="readonly">
     <struct id="nic_metrics_struct">
-      <simple id="nic_metrics::interface" name="interface" type="string"/>
-      <simple id="nic_metrics::mac_address" name="mac_address" type="string"/>
+      <simple id="nic_metrics::interface" name="interface" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::mac_address" name="mac_address" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::rate" name="rate" type="double">
         <value>0.0</value>
         <units>Mbps</units>
       </simple>
-      <simple id="nic_metrics::ipv4_address" name="ipv4_address" type="string"/>
-      <simple id="nic_metrics::ipv4_netmask" name="ipv4_netmask" type="string"/>
-      <simple id="nic_metrics::ipv4_broadcast" name="ipv4_broadcast" type="string"/>
-      <simple id="nic_metrics::ipv6_address" name="ipv6_address" type="string"/>
-      <simple id="nic_metrics::ipv6_netmask" name="ipv6_netmask" type="string"/>
-      <simple id="nic_metrics::ipv6_scope" name="ipv6_scope" type="string"/>
-      <simple id="nic_metrics::flags" name="flags" type="string"/>
-      <simple id="nic_metrics::module" name="module" type="string"/>
-      <simple id="nic_metrics::mtu" name="mtu" type="string"/>
-      <simple id="nic_metrics::state" name="state" type="string"/>
-      <simple id="nic_metrics::rx_bytes" name="rx_bytes" type="string"/>
-      <simple id="nic_metrics::rx_compressed" name="rx_compressed" type="string"/>
-      <simple id="nic_metrics::rx_crc_errors" name="rx_crc_errors" type="string"/>
-      <simple id="nic_metrics::rx_dropped" name="rx_dropped" type="string"/>
-      <simple id="nic_metrics::rx_errors" name="rx_errors" type="string"/>
-      <simple id="nic_metrics::rx_packets" name="rx_packets" type="string"/>
-      <simple id="nic_metrics::tx_bytes" name="tx_bytes" type="string"/>
-      <simple id="nic_metrics::tx_compressed" name="tx_compressed" type="string"/>
-      <simple id="nic_metrics::tx_dropped" name="tx_dropped" type="string"/>
-      <simple id="nic_metrics::tx_errors" name="tx_errors" type="string"/>
-      <simple id="nic_metrics::tx_packets" name="tx_packets" type="string"/>
-      <simple id="nic_metrics::tx_queue_len" name="tx_queue_len" type="string"/>
-      <simple id="nic_metrics::vlans" name="vlans" type="string"/>
+      <simple id="nic_metrics::ipv4_address" name="ipv4_address" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv4_netmask" name="ipv4_netmask" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv4_broadcast" name="ipv4_broadcast" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_address" name="ipv6_address" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_netmask" name="ipv6_netmask" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_scope" name="ipv6_scope" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::flags" name="flags" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::module" name="module" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::mtu" name="mtu" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::state" name="state" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_bytes" name="rx_bytes" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_compressed" name="rx_compressed" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_crc_errors" name="rx_crc_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_dropped" name="rx_dropped" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_errors" name="rx_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_packets" name="rx_packets" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_bytes" name="tx_bytes" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_compressed" name="tx_compressed" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_dropped" name="tx_dropped" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_errors" name="tx_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_packets" name="tx_packets" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_queue_len" name="tx_queue_len" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::vlans" name="vlans" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::multicast_support" name="multicast_support" type="boolean">
         <value>False</value>
       </simple>
@@ -186,7 +239,9 @@ Optional</description>
         <value>0</value>
         <units>Mbps</units>
       </simple>
-      <simple id="nic_metrics::time_string_utc" name="time_string_utc" type="string"/>
+      <simple id="nic_metrics::time_string_utc" name="time_string_utc" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::time" name="time" type="double">
         <value>0</value>
       </simple>

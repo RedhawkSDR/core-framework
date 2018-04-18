@@ -33,9 +33,12 @@
 struct nic_allocation_struct {
     nic_allocation_struct ()
     {
+        identifier = "";
         data_rate = 0.0;
         data_size = 1;
         multicast_support = "False";
+        ip_addressable = "";
+        interface = "";
     }
 
     static std::string getId() {
@@ -808,9 +811,35 @@ inline bool operator!= (const nic_allocation_status_struct_struct& s1, const nic
 struct nic_metrics_struct_struct {
     nic_metrics_struct_struct ()
     {
+        interface = "";
+        mac_address = "";
         rate = 0.0;
+        ipv4_address = "";
+        ipv4_netmask = "";
+        ipv4_broadcast = "";
+        ipv6_address = "";
+        ipv6_netmask = "";
+        ipv6_scope = "";
+        flags = "";
+        module = "";
+        mtu = "";
+        state = "";
+        rx_bytes = "";
+        rx_compressed = "";
+        rx_crc_errors = "";
+        rx_dropped = "";
+        rx_errors = "";
+        rx_packets = "";
+        tx_bytes = "";
+        tx_compressed = "";
+        tx_dropped = "";
+        tx_errors = "";
+        tx_packets = "";
+        tx_queue_len = "";
+        vlans = "";
         multicast_support = false;
         rate_allocated = 0;
+        time_string_utc = "";
         time = 0;
         current_throughput = 0;
     }

@@ -7,5 +7,5 @@ ed52e5c18685dbea09f982b35fb4b244  configure.ac
 27c738bb146931b195b29a3f05a7dccb  Makefile.am
 32a7fdea0a2b8c7378333703d831ed8d  GPP.h
 9ed0b24c3ac3d024b71659ce764c1fdc  Makefile.am.ide
-4ed3388657927c0787c37c828c4d4de9  struct_props.h
+393ed4c6d4d2d0f582cfa0dbd7fa7c5f  struct_props.h
 82a9e0259f502aa6171972509a8cca50  build.sh
