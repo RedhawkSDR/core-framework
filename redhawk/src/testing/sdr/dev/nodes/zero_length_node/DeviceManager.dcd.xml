@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:9c8319f6-f465-436f-9083-b2daf212b9e6" name="zero_length_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="zero_length_dev_91f602a7-5087-4cf1-9917-5fa7fcc5365b" type="SPD">
+      <localfile name="/devices/zero_length_dev/zero_length_dev.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="zero_length_dev_91f602a7-5087-4cf1-9917-5fa7fcc5365b"/>
+      <componentinstantiation id="zero_length_node:zero_length_dev_1">
+        <usagename>zero_length_dev_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

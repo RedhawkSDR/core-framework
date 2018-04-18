@@ -327,6 +327,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
                 testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/zero_length_dev/cpp/Makefile \
                 testing/sdr/dev/devices/base_programmable/cpp/Makefile \
                 testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
@@ -389,6 +390,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/foo/bar/comp/cpp/Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
                 testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
+                testing/sdr/dom/components/zero_length/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
                 testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
 AC_OUTPUT

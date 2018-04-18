@@ -212,6 +212,9 @@ namespace ossie
         void addConfigureProperty(CF::DataType dt);
         void addConstructProperty(CF::DataType dt);
 
+        void fillSeqForStructProperty(CF::Properties &props);
+        void fillAllSeqForStructProperty();
+
         void overrideProperty(const ossie::ComponentProperty* propref);
         void overrideProperty(const ossie::ComponentProperty& propref);
         void overrideProperty(const char* id, const CORBA::Any& value);

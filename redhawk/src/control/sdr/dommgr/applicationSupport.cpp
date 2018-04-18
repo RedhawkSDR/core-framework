@@ -610,7 +610,8 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
         }
 
     }
-    
+
+    newComponent->fillAllSeqForStructProperty();
     LOG_TRACE(ComponentInfo, "Done building component info from file " << spdFileName);
     return newComponent;
 }
@@ -894,12 +895,102 @@ bool ComponentInfo::isAssignedToDevice() const
     return static_cast<bool>(assignedDevice);
 }
 
+void ComponentInfo::fillAllSeqForStructProperty() {
+    this->fillSeqForStructProperty(configureProperties);
+    this->fillSeqForStructProperty(ctorProperties);
+    this->fillSeqForStructProperty(options);
+    this->fillSeqForStructProperty(factoryParameters);
+    this->fillSeqForStructProperty(execParameters);
+}
+
+void ComponentInfo::fillSeqForStructProperty(CF::Properties &props) {
+    redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
+    // iterate over all the properties
+    for (redhawk::PropertyMap::iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); ++tmpP) {
+        std::string tmp_id(ossie::corba::returnString(tmpP->id));
+        // see if the property is a struct
+        for (std::vector<const Property*>::const_iterator prf_iter = prf.getProperties().begin(); prf_iter != prf.getProperties().end(); ++prf_iter) {
+            std::string prf_id((*prf_iter)->getID());
+            if (prf_id == tmp_id) {
+                const ossie::StructProperty* tmp_struct = dynamic_cast<const ossie::StructProperty*>(*prf_iter);
+                if (tmp_struct) {
+                    // check to see if the property has a combination of nil sequences and non-nil simples
+                    CF::Properties* struct_val;
+                    if (tmpP->value >>= struct_val) {
+                        redhawk::PropertyMap& structProps = redhawk::PropertyMap::cast(*struct_val);
+                        bool nilSeq = false;
+                        bool nonNilVal = false;
+                        for (redhawk::PropertyMap::iterator structIter = structProps.begin(); structIter != structProps.end(); ++structIter) {
+                            if (structProps[ossie::corba::returnString(structIter->id)].isNil()) {
+                                // is the nil value for a sequence?
+                                for (std::vector<Property*>::const_iterator internal_iter = tmp_struct->getValue().begin(); internal_iter != tmp_struct->getValue().end(); ++internal_iter) {
+                                    std::string _inner_id((*internal_iter)->getID());
+                                    if (_inner_id == ossie::corba::returnString(structIter->id)) {
+                                        if (dynamic_cast<const ossie::SimpleSequenceProperty*>(*internal_iter)) {
+                                            nilSeq = true;
+                                        }
+                                    }
+                                }
+                            } else {
+                                // is the non-nil value for a simple?
+                                for (std::vector<Property*>::const_iterator internal_iter = tmp_struct->getValue().begin(); internal_iter != tmp_struct->getValue().end(); ++internal_iter) {
+                                    std::string _inner_id((*internal_iter)->getID());
+                                    if (_inner_id == ossie::corba::returnString(structIter->id)) {
+                                        if (dynamic_cast<const ossie::SimpleProperty*>(*internal_iter)) {
+                                            nonNilVal = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (nilSeq and nonNilVal) {
+                            // there's a nil sequence value and a non-nil simple. The nil sequence needs to be a zero-length sequence
+                            for (redhawk::PropertyMap::iterator structIter = structProps.begin(); structIter != structProps.end(); ++structIter) {
+                                if (structProps[ossie::corba::returnString(structIter->id)].isNil()) {
+                                    // is the nil value for a sequence?
+                                    for (std::vector<Property*>::const_iterator internal_iter = tmp_struct->getValue().begin(); internal_iter != tmp_struct->getValue().end(); ++internal_iter) {
+                                        std::string _inner_id((*internal_iter)->getID());
+                                        if (_inner_id == ossie::corba::returnString(structIter->id)) {
+                                            const ossie::SimpleSequenceProperty* _type = dynamic_cast<const ossie::SimpleSequenceProperty*>(*internal_iter);
+                                            std::vector<std::string> empty_string_vector;
+                                            structProps[ossie::corba::returnString(structIter->id)] = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()));
+                                        }
+                                    }
+                                }
+                            }
+                            tmpP->value <<= *struct_val;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 bool ComponentInfo::checkStruct(CF::Properties &props)
 {
     redhawk::PropertyMap& tmpProps = redhawk::PropertyMap::cast(props);
     int state = 0; // 1 set, -1 nil
     for (redhawk::PropertyMap::iterator tmpP = tmpProps.begin(); tmpP != tmpProps.end(); tmpP++) {
         if (tmpProps[ossie::corba::returnString(tmpP->id)].isNil()) {
+            // ignore if the nil value is for a sequence (nil sequences are equivalent to zero-length sequences)
+            bool foundSeq = false;
+            for (std::vector<const Property*>::const_iterator prf_iter = prf.getProperties().begin(); prf_iter != prf.getProperties().end(); ++prf_iter) {
+                const ossie::StructProperty* tmp_struct = dynamic_cast<const ossie::StructProperty*>(*prf_iter);
+                if (tmp_struct) {
+                    for (std::vector<Property*>::const_iterator internal_iter = tmp_struct->getValue().begin(); internal_iter != tmp_struct->getValue().end(); ++internal_iter) {
+                        std::string _id((*internal_iter)->getID());
+                        if (_id == ossie::corba::returnString(tmpP->id)) {
+                            if (dynamic_cast<const ossie::SimpleSequenceProperty*>(*internal_iter)) {
+                                foundSeq = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (foundSeq)
+                continue;
             if (state == 0) {
                 state = -1;
             } else {

@@ -71,6 +71,14 @@ class SADPropertiesTest(scatest.CorbaTestCase):
             components[usageName] = self._root.resolve(URI.stringToName(compName.elementId))._narrow(CF.Resource)
         return components
 
+    def test_ZeroLengthSeq(self):
+        self.assertNotEqual(self._domMgr, None)
+        self.assertNotEqual(self._devMgr, None)
+
+        sadpath = "/waveforms/zero_length_w/zero_length_w.sad.xml"
+
+        self._app = self._domMgr.createApplication('/waveforms/zero_length_w/zero_length_w.sad.xml', 'zero_length_w', [], [])
+
     def test_ExternalProps(self):
         self._createApp("")
 

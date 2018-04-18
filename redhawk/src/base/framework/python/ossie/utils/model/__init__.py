@@ -1100,6 +1100,9 @@ class QueryableBase(object):
             if not commandline and _prop_helpers.isMatch(structProp, modes, kinds, action):
                 members = []
                 structDefValue = {}
+                hasNonNilSimple = False
+                hasNilSeq = False
+                noneSeqElements = []
                 for prop in structProp.get_simple():
                     propType = self._getPropType(prop)
                     val = prop.get_value()
@@ -1112,6 +1115,8 @@ class QueryableBase(object):
                     id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
+                    if defValue != None:
+                        hasNonNilSimple = True
                 for prop in structProp.get_simplesequence():
                     propType = self._getPropType(prop)
                     vals = prop.get_values()
@@ -1124,7 +1129,13 @@ class QueryableBase(object):
                     id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
-                
+                    if defValue == None:
+                        hasNilSeq = True
+                        noneSeqElements.append(prop.get_id())
+                if hasNilSeq and hasNonNilSimple:
+                    for prop_key in noneSeqElements:
+                        structDefValue[prop_key] = []
+
                 hasDefault = False
                 for defValue in structDefValue.values():
                     if defValue is not None:

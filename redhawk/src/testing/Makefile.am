@@ -38,6 +38,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/PersonaDevice/cpp \
           sdr/dev/devices/ProgrammableDevice/cpp \
           sdr/dev/devices/cpp_dev/cpp \
+          sdr/dev/devices/zero_length_dev/cpp \
           sdr/dev/devices/base_programmable/cpp \
           sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
@@ -73,6 +74,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
           sdr/dom/components/huge_msg_cpp/cpp \
+          sdr/dom/components/zero_length/cpp \
           sdr/dom/components/msg_through_cpp/cpp
 
 if HAVE_JAVASUPPORT
