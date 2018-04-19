@@ -247,7 +247,6 @@ frontend:el7:
     local_repo: output
   <<: *rpmbuild
 
-<<<<<<< HEAD
 deploy:
   image: centos:7
   stage: deploy
@@ -258,17 +257,9 @@ deploy:
     - if [ -n "$jenkins_url" ]; then
         curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
       fi
-  #Don't build on final tags
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
-=======
-#Trigger a Jenkins job to aggregate artifacts there
-deploy:
-  variables:
-    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
-  <<: *deploy-common
->>>>>>> origin/develop-2.0
 
 #Trigger separate tests pipeline
 test-trigger:
@@ -300,6 +291,5 @@ test-trigger:release:
                               $test_url
   only:
     - tags
-  #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
