@@ -13,10 +13,9 @@ stages:
 .rpmbuild: &rpmbuild
   image: docker:latest
   tags:
-    - dind
+    - cf
+    - docker
   script:
-    # Ensure newest version of FROM image
-    - docker pull ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild
     # Use RPM release from specfile if this is a tag
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
@@ -26,6 +25,7 @@ stages:
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
+    #- docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
@@ -52,10 +52,9 @@ stages:
     paths:
       - output/
     expire_in: 2 days
-  #Skip on tag of following format
   except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -248,6 +247,7 @@ frontend:el7:
     local_repo: output
   <<: *rpmbuild
 
+<<<<<<< HEAD
 deploy:
   image: centos:7
   stage: deploy
@@ -262,6 +262,13 @@ deploy:
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
+=======
+#Trigger a Jenkins job to aggregate artifacts there
+deploy:
+  variables:
+    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
+  <<: *deploy-common
+>>>>>>> origin/develop-2.0
 
 #Trigger separate tests pipeline
 test-trigger:
