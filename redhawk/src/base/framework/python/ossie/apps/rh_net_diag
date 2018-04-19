@@ -544,7 +544,7 @@ if __name__ == '__main__':
             if not retval[0]:
                 index = -1
                 for idx, s in enumerate(retval[1].split()):
-                    if ".DomainManager." in s:
+                    if "DomainManager" in s and not "IDL:CF/DomainManager" in s:
                         index = idx
                         break
                 # Domain Manager exists in the Naming Service, so attempt to connect to it
