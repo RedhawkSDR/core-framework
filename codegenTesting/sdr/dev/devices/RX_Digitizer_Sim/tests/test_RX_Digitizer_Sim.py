@@ -294,7 +294,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         #Create Allocation and Sink for Tuner 1
         sink = sb.DataSink()               
-        alloc = self._generateAlloc(cf=9049.1e6,sr=0,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
+        alloc = self._generateAlloc(cf=9050.1e6,sr=0,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
         sink.start()
@@ -324,7 +324,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         #Create Allocation and Sink for Tuner 1
         sink = sb.DataSink()               
-        alloc = self._generateAlloc(cf=9049.1e6,sr=2.5e6,bw=0,rf_flow_id="testRFInfoPacket_FlowID")
+        alloc = self._generateAlloc(cf=9050.1e6,sr=2.5e6,bw=0,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
         sink.start()
