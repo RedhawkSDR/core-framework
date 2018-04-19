@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file 
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under 
+the terms of the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more 
+details.
+
+You should have received a copy of the GNU Lesser General Public License along 
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:f47d6585-a71f-40b6-9d7c-d03f7e4ef431" name="svc_one_error_w">
+  <componentfiles>
+    <componentfile id="svc_fn_error_cpp_10d779ed-cafd-4be5-8cd7-0eff42c7d96a" type="SPD">
+      <localfile name="/components/svc_fn_error_cpp/svc_fn_error_cpp.spd.xml"/>
+    </componentfile>
+    <componentfile id="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1" type="SPD">
+      <localfile name="/components/TestCppProps/TestCppProps.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1"/>
+      <componentinstantiation id="DCE:87f4687e-6b67-458c-a32d-bef8f99a1064">
+        <usagename>TestCppProps_1</usagename>
+        <findcomponent>
+          <namingservice name="TestCppProps_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="svc_fn_error_cpp_10d779ed-cafd-4be5-8cd7-0eff42c7d96a"/>
+      <componentinstantiation id="svc_fn_error_cpp_1" startorder="0">
+        <usagename>svc_fn_error_cpp_1</usagename>
+        <findcomponent>
+          <namingservice name="svc_fn_error_cpp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="TestCppProps_3295fabc-c89c-43b7-be66-cc2aa5b9bdf1"/>
+      <componentinstantiation id="DCE:87f4687e-6b67-458c-a32d-bef8f99a1062">
+        <usagename>TestCppProps_2</usagename>
+        <findcomponent>
+          <namingservice name="TestCppProps_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="svc_fn_error_cpp_1"/>
+  </assemblycontroller>
+</softwareassembly>

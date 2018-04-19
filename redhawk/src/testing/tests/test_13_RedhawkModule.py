@@ -172,6 +172,24 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
                 continue
             self.assertEquals(entry in remap_api, True)
 
+    def test_createBadCompApplication(self):
+        # Automatically clean up
+        redhawk.setTrackApps(True)
+        # Create Application from $SDRROOT path
+        app = self._rhDom.createApplication("/waveforms/svc_fn_error_cpp_w/svc_fn_error_cpp_w.sad.xml")
+        app_2 = self._rhDom.createApplication("/waveforms/svc_one_error_w/svc_one_error_w.sad.xml")
+        self.assertNotEqual(app, None, "Application not created")
+        self.assertEquals(len(self._rhDom._get_applications()), 2)
+        self.assertEquals(len(self._rhDom.apps), 2)
+
+        app.start()
+        app_2.start()
+
+        time.sleep(0.5)
+
+        self.assertEquals(app.comps, [])
+        self.assertEquals(len(app_2.comps), 2)
+
     def test_createApplication1(self):
         # Automatically clean up
         redhawk.setTrackApps(True)
