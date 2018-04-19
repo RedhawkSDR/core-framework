@@ -75,6 +75,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
           sdr/dom/components/huge_msg_cpp/cpp \
           sdr/dom/components/zero_length/cpp \
+          sdr/dom/components/svc_error_cpp/cpp \
           sdr/dom/components/msg_through_cpp/cpp
 
 if HAVE_JAVASUPPORT

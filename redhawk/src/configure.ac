@@ -391,6 +391,7 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
                 testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
                 testing/sdr/dom/components/zero_length/cpp/Makefile \
+                testing/sdr/dom/components/svc_error_cpp/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
                 testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
 AC_OUTPUT

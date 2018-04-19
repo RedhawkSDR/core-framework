@@ -407,11 +407,7 @@ class App(_CF__POA.Application, Resource):
                     if compDev.componentId == refid:
                         devs.append(compDev.assignedDeviceId)
             except:
-                refid = None
-                implId = None
-                instanceName = None
-                pid = 0
-                devs = []
+                continue
             spd, scd, prf = _readProfile(profile, self._domain.fileManager)
             new_comp = Component(profile, spd, scd, prf, compRef, instanceName, refid, implId, pid, devs)
 
