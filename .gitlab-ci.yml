@@ -11,7 +11,7 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: docker:latest
+  image: ${docker_registry}docker:latest
   tags:
     - cf
     - docker
@@ -25,8 +25,10 @@ stages:
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
-    #- docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
+    - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
+                   --pull
+                   --no-cache
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
@@ -263,7 +265,7 @@ deploy:
 
 #Trigger separate tests pipeline
 test-trigger:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   script:
@@ -278,7 +280,7 @@ test-trigger:
     - master
 
 test-trigger:release:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   variables:
