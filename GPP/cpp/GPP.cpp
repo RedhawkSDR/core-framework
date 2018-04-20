@@ -856,16 +856,18 @@ GPP_i::initializeResourceMonitors()
   data_model.push_back( process_limits );
 
   //  observer to monitor when cpu idle pass threshold value
-  _cpuThresholdMonitor = boost::make_shared<CpuThresholdMonitor>(&modified_thresholds.cpu_idle,
-                                                                 *(system_monitor->getCpuStats()));
-  addThresholdMonitor(_cpuThresholdMonitor);
+  _cpuThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "CPU_IDLE", this, &GPP_i::_cpuThresholdCheck);
+  _cpuThresholdMonitor->add_listener(this, &GPP_i::_cpuThresholdStateChanged);
+  threshold_monitors.push_back(_cpuThresholdMonitor);
 
   // add available memory monitor, mem_free defaults to MB
   addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(
                       MakeCref(modified_thresholds.mem_free),
                       ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
 
-  _shmThresholdMonitor = _addMonitoredValue("shm", "SHM_FREE", shmFree, _shmThreshold);
+  _shmThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("shm", "SHM_FREE", this, &GPP_i::_shmThresholdCheck);
+  _shmThresholdMonitor->add_listener(this, &GPP_i::_shmThresholdStateChanged);
+  threshold_monitors.push_back(_shmThresholdMonitor);
 }
 
 void
@@ -875,15 +877,58 @@ GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
     threshold_monitors.push_back( t );
 }
 
-template <typename T1, typename T2>
-GPP_i::ThresholdMonitorPtr GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
+bool GPP_i::_cpuThresholdCheck()
 {
-    typedef GenericThresholdMonitor<T1> MonitorType;
-    ThresholdMonitorPtr monitor = boost::make_shared<MonitorType>(resourceId, messageClass,
-                                                                  MakeCref<T2,T1>(threshold),
-                                                                  MakeCref(value));
-    addThresholdMonitor(monitor);
-    return monitor;
+    return system_monitor->getCpuStats()->get_idle_percent() < modified_thresholds.cpu_idle;
+}
+
+void GPP_i::_cpuThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage("cpu", "CPU_IDLE", monitor->is_threshold_exceeded(),
+                          system_monitor->getCpuStats()->get_idle_percent(),
+                          modified_thresholds.cpu_idle);
+}
+
+bool GPP_i::_shmThresholdCheck()
+{
+    return shmFree < (CORBA::ULongLong) _shmThreshold;
+}
+
+template <typename T1, typename T2>
+void GPP_i::_sendThresholdMessage(const std::string& resourceId, const std::string& thresholdClass, bool exceeded,
+                                  const T1& measured, const T2& threshold)
+{
+    threshold_event_struct message;
+    message.source_id = _identifier;
+    message.resource_id = resourceId;
+    message.threshold_class = thresholdClass;
+    if (exceeded) {
+        message.type = enums::threshold_event::type::Threshold_Exceeded;
+    } else {
+        message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
+    }
+    message.threshold_value = boost::lexical_cast<std::string>(_shmThreshold);
+    message.measured_value = boost::lexical_cast<std::string>(shmFree);
+
+    std::stringstream sstr;
+    sstr << message.threshold_class << " threshold ";
+    if (!exceeded) {
+        sstr << "not ";
+    }
+    sstr << "exceeded "
+         << "(resource_id=" << message.resource_id
+         << " threshold_value=" << message.threshold_value
+         << " measured_value=" << message.measured_value << ")";
+    message.message = sstr.str();
+
+    message.timestamp = time(NULL);
+
+    send_threshold_event(message);
+}
+
+void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage("shm", "SHM_FREE", monitor->is_threshold_exceeded(), shmFree, _shmThreshold);
 }
 
 void

@@ -96,6 +96,50 @@ protected:
     ossie::notification<void (ThresholdMonitor*)> notification_;
 };
 
+class FunctionThresholdMonitor : public ThresholdMonitor
+{
+public:
+    template <class Func>
+    FunctionThresholdMonitor(const std::string& message_class, const std::string& resource_id, Func func) :
+        ThresholdMonitor(message_class, resource_id),
+        callback_(func),
+        exceeded_(false)
+    {
+    }
+
+    template <class Target, class Func>
+    FunctionThresholdMonitor(const std::string& message_class, const std::string& resource_id, Target target, Func func) :
+        ThresholdMonitor(message_class, resource_id),
+        callback_(target, func),
+        exceeded_(false)
+    {
+    }
+
+    std::string get_threshold() const
+    {
+        return "";
+    }
+
+    std::string get_measured() const
+    {
+        return "";
+    }
+
+private:
+    virtual void update_threshold()
+    {
+        exceeded_ = callback_();
+    }
+
+    virtual bool check_threshold() const
+    {
+        return exceeded_;
+    }
+
+    redhawk::callback<bool ()> callback_;
+    bool exceeded_;
+};
+
 template<class DATA_TYPE, class COMPARISON_FUNCTION = std::less<DATA_TYPE> >
 class GenericThresholdMonitor : public ThresholdMonitor
 {

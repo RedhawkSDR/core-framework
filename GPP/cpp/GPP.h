@@ -31,7 +31,6 @@
 #include "statistics/Statistics.h"
 #include "statistics/CpuUsageStats.h"
 #include "reports/SystemMonitorReporting.h"
-#include "reports/CpuThresholdMonitor.h"
 #include "reports/NicThroughputThresholdMonitor.h"
 #include "NicFacade.h"
 #include "ossie/Events.h"
@@ -401,6 +400,15 @@ class GPP_i : public GPP_base
 
           CORBA::LongLong _shmThreshold;
           ThresholdMonitorPtr _shmThresholdMonitor;
+
+          template <typename T1, typename T2>
+          void _sendThresholdMessage(const std::string& resourceId, const std::string& thresholdClass, bool exceeded,
+                                     const T1& measured, const T2& threshold);
+          bool _shmThresholdCheck();
+          void _shmThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _cpuThresholdCheck();
+          void _cpuThresholdStateChanged(ThresholdMonitor* monitor);
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 
