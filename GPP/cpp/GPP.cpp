@@ -856,16 +856,16 @@ GPP_i::initializeResourceMonitors()
   data_model.push_back( process_limits );
 
   //  observer to monitor when cpu idle pass threshold value
-  addThresholdMonitor( ThresholdMonitorPtr( new CpuThresholdMonitor(&modified_thresholds.cpu_idle,
-                                                                    *(system_monitor->getCpuStats()))));
+  _cpuThresholdMonitor = boost::make_shared<CpuThresholdMonitor>(&modified_thresholds.cpu_idle,
+                                                                 *(system_monitor->getCpuStats()));
+  addThresholdMonitor(_cpuThresholdMonitor);
 
   // add available memory monitor, mem_free defaults to MB
   addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(
-                      MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
+                      MakeCref(modified_thresholds.mem_free),
                       ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
 
-  _shmThreshold = 4294967296LL;
-  _addMonitoredValue("shm", "SHM_FREE", shmFree, _shmThreshold);
+  _shmThresholdMonitor = _addMonitoredValue("shm", "SHM_FREE", shmFree, _shmThreshold);
 }
 
 void
@@ -876,11 +876,14 @@ GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
 }
 
 template <typename T1, typename T2>
-void GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
+GPP_i::ThresholdMonitorPtr GPP_i::_addMonitoredValue(const std::string& resourceId, const std::string& messageClass, T1& value, const T2& threshold)
 {
-    addThresholdMonitor(ThresholdMonitorPtr(new GenericThresholdMonitor<T1>(resourceId, messageClass,
-                                                                            MakeCref<T2,T1>(threshold),
-                                                                            MakeCref(value))));
+    typedef GenericThresholdMonitor<T1> MonitorType;
+    ThresholdMonitorPtr monitor = boost::make_shared<MonitorType>(resourceId, messageClass,
+                                                                  MakeCref<T2,T1>(threshold),
+                                                                  MakeCref(value));
+    addThresholdMonitor(monitor);
+    return monitor;
 }
 
 void
@@ -1003,6 +1006,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   modified_thresholds.mem_free = __thresholds.mem_free*thresh_mem_free_units;
   modified_thresholds.load_avg = loadTotal * ( (double)__thresholds.load_avg / 100.0);
   modified_thresholds.cpu_idle = __thresholds.cpu_idle;
+  _shmThreshold = thresholds.shm_free * (1024*1024);
 
   loadAverage.onemin = rpt.load.one_min;
   loadAverage.fivemin = rpt.load.five_min;
@@ -1048,8 +1052,8 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 }
 
 
-void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv) {
-
+void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv)
+{
     if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
         WriteLock wlock(pidLock);
@@ -1071,17 +1075,41 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
         modified_thresholds.load_avg = loadTotal * ( (double)nv->load_avg / 100.0);
     }
 
-    if ( !(nv->cpu_idle < 0.0) && !(fabs(ov->cpu_idle - nv->cpu_idle ) < std::numeric_limits<double>::epsilon())) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle );
-        WriteLock wlock(pidLock);
-        modified_thresholds.cpu_idle = nv->cpu_idle;
-    }
-
-
-    if ( !(nv->nic_usage < 0) && !(fabs(ov->nic_usage - nv->nic_usage ) < std::numeric_limits<double>::epsilon())) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage );
+    {
         WriteLock wlock(monitorLock);
-        modified_thresholds.nic_usage = nv->nic_usage;
+        if (nv->ignore || (nv->cpu_idle < 0.0)) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE DISABLED");
+            _cpuThresholdMonitor->disable();
+        } else {
+            if (fabs(ov->cpu_idle - nv->cpu_idle) >= std::numeric_limits<double>::epsilon()) {
+                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle);
+            }
+            modified_thresholds.cpu_idle = nv->cpu_idle;
+            _cpuThresholdMonitor->enable();
+        }
+
+        if (nv->ignore || (nv->nic_usage < 0)) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
+            std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::disable, _1));
+        } else {
+            if (ov->nic_usage != nv->nic_usage) {
+                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage);
+            }
+            modified_thresholds.nic_usage = nv->nic_usage;
+            std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::enable, _1));
+        }
+
+        if (nv->ignore || (nv->shm_free < 0)) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE DISABLED");
+            _shmThresholdMonitor->disable();
+        } else {
+            if (ov->shm_free != nv->shm_free) {
+                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
+                          << ov->shm_free << "/" << nv->shm_free);
+            }
+            _shmThreshold = nv->shm_free * (1024 * 1024);
+            _shmThresholdMonitor->enable();
+        }
     }
 
     setShadowThresholds( *nv );

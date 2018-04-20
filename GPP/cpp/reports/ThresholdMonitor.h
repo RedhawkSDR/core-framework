@@ -36,21 +36,45 @@ public:
     ThresholdMonitor(const std::string& message_class, const std::string& resource_id):
         resource_id_(resource_id),
         message_class_(message_class),
+        enabled_(true),
         prev_threshold_exceeded_(false)
     {}
 
     virtual void update()
     {
-        update_threshold();
+        if (enabled_) {
+            update_threshold();
+        }
         if (prev_threshold_exceeded_ != is_threshold_exceeded()) {
             notification_(this);
         }
         prev_threshold_exceeded_ = is_threshold_exceeded();
     }
 
+    void enable()
+    {
+        enabled_ = true;
+    }
+
+    void disable()
+    {
+        enabled_ = false;
+    }
+
+    bool is_enabled() const
+    {
+        return enabled_;
+    }
+
     virtual std::string get_threshold() const = 0;
     virtual std::string get_measured() const = 0;
-    virtual bool is_threshold_exceeded() const = 0;
+
+    virtual bool is_threshold_exceeded() const
+    {
+        if (!enabled_) return false;
+        return check_threshold();
+    }
+
     std::string get_resource_id() const{ return resource_id_; }
     std::string get_message_class() const{ return message_class_; }
 
@@ -62,9 +86,11 @@ public:
 
 protected:
     virtual void update_threshold() = 0;
+    virtual bool check_threshold() const = 0;
 
     const std::string resource_id_;
     const std::string message_class_;
+    bool enabled_;
     bool prev_threshold_exceeded_;
 
     ossie::notification<void (ThresholdMonitor*)> notification_;
@@ -90,11 +116,6 @@ public:
     std::string get_threshold() const{ return boost::lexical_cast<std::string>(threshold_value_); }
     std::string get_measured() const{ return boost::lexical_cast<std::string>(measured_value_); }
 
-    bool is_threshold_exceeded() const
-    {
-        return COMPARISON_FUNCTION()( get_measured_value(), get_threshold_value() );
-    }
-
     DataType get_threshold_value() const { return threshold_value_; }
     DataType get_measured_value() const { return measured_value_; }
 
@@ -105,13 +126,16 @@ private:
         measured_value_ = measured_();
     }
 
+    virtual bool check_threshold() const
+    {
+        return COMPARISON_FUNCTION()( get_measured_value(), get_threshold_value() );
+    }
+
     QueryFunction threshold_;
     QueryFunction measured_;
 
     DataType threshold_value_;
     DataType measured_value_;
 };
-
-
 
 #endif

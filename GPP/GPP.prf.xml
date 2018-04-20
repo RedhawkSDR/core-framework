@@ -434,6 +434,10 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
       <value>3</value>
       <units>%</units>
     </simple>
+    <simple id="shm_free" name="shm_free" type="longlong">
+      <value>10</value>
+      <units>MB</units>
+    </simple>
     <configurationkind kindtype="property"/>
   </struct>
   <simple id="DCE:6565bffd-cb09-4927-9385-2ecac68035c7" mode="readonly" name="memFree" type="longlong">

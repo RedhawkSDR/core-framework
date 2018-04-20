@@ -25,21 +25,9 @@
 class NicThroughputThresholdMonitor : public GenericThresholdMonitor<float, std::greater_equal<float> >
 {
 public:
-	NicThroughputThresholdMonitor(const std::string& resource_id, QueryFunction threshold, QueryFunction measured );
+    NicThroughputThresholdMonitor(const std::string& resource_id, QueryFunction threshold, QueryFunction measured );
 
-	static std::string GetMessageClass(){ return "NIC_THROUGHPUT"; }
-
-        bool is_threshold_exceeded() const
-        {
-            if (get_threshold_value() < 0 ) return false;
-            return this->GenericThresholdMonitor< float,std::greater_equal<float> >::is_threshold_exceeded();
-        }
-
-        void update()
-        {
-            if (get_threshold_value() < 0 ) return;
-            this->GenericThresholdMonitor< float,std::greater_equal<float> >::update();
-        }
+    static std::string GetMessageClass(){ return "NIC_THROUGHPUT"; }
 };
 
 #endif

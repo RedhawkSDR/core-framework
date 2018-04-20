@@ -394,10 +394,13 @@ class GPP_i : public GPP_base
           bool _check_nic_thresholds();
 
           template <typename T1, typename T2>
-          void _addMonitoredValue(const std::string& resourceId, const std::string& messageClass,
-                                  T1& value, const T2& threshold);
+          ThresholdMonitorPtr _addMonitoredValue(const std::string& resourceId, const std::string& messageClass,
+                                                 T1& value, const T2& threshold);
 
-          CORBA::ULongLong _shmThreshold;
+          ThresholdMonitorPtr _cpuThresholdMonitor;
+
+          CORBA::LongLong _shmThreshold;
+          ThresholdMonitorPtr _shmThresholdMonitor;
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 

@@ -283,6 +283,7 @@ struct thresholds_struct {
         nic_usage = 900;
         files_available = 3;
         threads = 3;
+        shm_free = 10LL;
     }
 
     static std::string getId() {
@@ -290,7 +291,7 @@ struct thresholds_struct {
     }
 
     static const char* getFormat() {
-        return "bffliff";
+        return "bffliffl";
     }
 
     bool ignore;
@@ -300,6 +301,7 @@ struct thresholds_struct {
     CORBA::Long nic_usage;
     float files_available;
     float threads;
+    CORBA::LongLong shm_free;
 };
 
 inline bool operator>>= (const CORBA::Any& a, thresholds_struct& s) {
@@ -327,6 +329,9 @@ inline bool operator>>= (const CORBA::Any& a, thresholds_struct& s) {
     if (props.contains("threads")) {
         if (!(props["threads"] >>= s.threads)) return false;
     }
+    if (props.contains("shm_free")) {
+        if (!(props["shm_free"] >>= s.shm_free)) return false;
+    }
     return true;
 }
 
@@ -346,6 +351,8 @@ inline void operator<<= (CORBA::Any& a, const thresholds_struct& s) {
     props["files_available"] = s.files_available;
  
     props["threads"] = s.threads;
+ 
+    props["shm_free"] = s.shm_free;
     a <<= props;
 }
 
@@ -363,6 +370,8 @@ inline bool operator== (const thresholds_struct& s1, const thresholds_struct& s2
     if (s1.files_available!=s2.files_available)
         return false;
     if (s1.threads!=s2.threads)
+        return false;
+    if (s1.shm_free!=s2.shm_free)
         return false;
     return true;
 }
