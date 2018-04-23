@@ -867,6 +867,14 @@ GPP_i::initializeResourceMonitors()
   _freeMemThresholdMonitor->add_listener(this, &GPP_i::_freeMemThresholdStateChanged);
   threshold_monitors.push_back(_freeMemThresholdMonitor);
 
+  _threadThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("threads", "ULIMIT", this, &GPP_i::_threadThresholdCheck);
+  _threadThresholdMonitor->add_listener(this, &GPP_i::_threadThresholdStateChanged);
+  threshold_monitors.push_back(_threadThresholdMonitor);
+
+  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("files", "ULIMIT", this, &GPP_i::_fileThresholdCheck);
+  _fileThresholdMonitor->add_listener(this, &GPP_i::_fileThresholdStateChanged);
+  threshold_monitors.push_back(_fileThresholdMonitor);
+
   _shmThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("shm", "SHM_FREE", this, &GPP_i::_shmThresholdCheck);
   _shmThresholdMonitor->add_listener(this, &GPP_i::_shmThresholdStateChanged);
   threshold_monitors.push_back(_shmThresholdMonitor);
@@ -888,9 +896,7 @@ bool GPP_i::_cpuIdleThresholdCheck()
 
 void GPP_i::_cpuIdleThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage("cpu", "CPU_IDLE", monitor->is_threshold_exceeded(),
-                          system_monitor->get_idle_percent(),
-                          modified_thresholds.cpu_idle);
+    _sendThresholdMessage(monitor, system_monitor->get_idle_percent(), modified_thresholds.cpu_idle);
 }
 
 bool GPP_i::_loadAvgThresholdCheck()
@@ -900,9 +906,7 @@ bool GPP_i::_loadAvgThresholdCheck()
 
 void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage("cpu", "LOAD_AVG", monitor->is_threshold_exceeded(),
-                          system_monitor->get_loadavg(),
-                          modified_thresholds.load_avg);
+    _sendThresholdMessage(monitor, system_monitor->get_loadavg(), modified_thresholds.load_avg);
 }
 
 bool GPP_i::_freeMemThresholdCheck()
@@ -913,9 +917,38 @@ bool GPP_i::_freeMemThresholdCheck()
 
 void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage("physical_ram", "MEMORY_FREE", monitor->is_threshold_exceeded(),
-                          system_monitor->get_mem_free(),
-                          modified_thresholds.mem_free);
+    _sendThresholdMessage(monitor, system_monitor->get_mem_free(), modified_thresholds.mem_free);
+}
+
+bool GPP_i::_threadThresholdCheck()
+{
+    if (gpp_limits.current_threads > (gpp_limits.max_threads * modified_thresholds.threads)) {
+        return true;
+    } else if (sys_limits.current_threads > (sys_limits.max_threads * modified_thresholds.threads)) {
+        return true;
+    }
+    return false;
+}
+
+void GPP_i::_threadThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, gpp_limits.current_threads, gpp_limits.max_threads * modified_thresholds.threads);
+}
+
+bool GPP_i::_fileThresholdCheck()
+{
+    if (gpp_limits.current_open_files > (gpp_limits.max_open_files * modified_thresholds.files_available)) {
+        return true;
+    } else if (sys_limits.current_open_files > (sys_limits.max_open_files * modified_thresholds.files_available)) {
+        return true;
+    }
+    return false;
+}
+
+void GPP_i::_fileThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, gpp_limits.current_open_files,
+                          gpp_limits.max_open_files * modified_thresholds.files_available);
 }
 
 bool GPP_i::_shmThresholdCheck()
@@ -925,23 +958,28 @@ bool GPP_i::_shmThresholdCheck()
 
 void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage("shm", "SHM_FREE", monitor->is_threshold_exceeded(), shmFree, _shmThreshold);
+    _sendThresholdMessage(monitor, shmFree, _shmThreshold);
 }
 
 template <typename T1, typename T2>
-void GPP_i::_sendThresholdMessage(const std::string& resourceId, const std::string& thresholdClass, bool exceeded,
-                                  const T1& measured, const T2& threshold)
+void GPP_i::_sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured, const T2& threshold)
 {
+    const bool exceeded = monitor->is_threshold_exceeded();
+
     threshold_event_struct message;
     message.source_id = _identifier;
-    message.resource_id = resourceId;
-    message.threshold_class = thresholdClass;
+    message.resource_id = monitor->get_resource_id();
+    message.threshold_class = monitor->get_message_class();
     if (exceeded) {
         message.type = enums::threshold_event::type::Threshold_Exceeded;
     } else {
         message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
     }
-    message.threshold_value = boost::lexical_cast<std::string>(threshold);
+    if (monitor->is_enabled()) {
+        message.threshold_value = boost::lexical_cast<std::string>(threshold);
+    } else {
+        message.threshold_value = "<disabled>";
+    }
     message.measured_value = boost::lexical_cast<std::string>(measured);
 
     std::stringstream sstr;
@@ -1080,6 +1118,8 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   modified_thresholds.mem_free = __thresholds.mem_free*thresh_mem_free_units;
   modified_thresholds.load_avg = loadTotal * ( (double)__thresholds.load_avg / 100.0);
   modified_thresholds.cpu_idle = __thresholds.cpu_idle;
+  modified_thresholds.threads = 1.0 - __thresholds.threads * .01;
+  modified_thresholds.files_available = 1.0 - __thresholds.files_available * .01;
   _shmThreshold = thresholds.shm_free * (1024*1024);
 
   loadAverage.onemin = rpt.load.one_min;
@@ -1191,6 +1231,28 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
         }
         _shmThreshold = nv->shm_free * (1024 * 1024);
         _shmThresholdMonitor->enable();
+    }
+
+    if (nv->ignore || (nv->threads < 0.0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.THREADS DISABLED");
+        _threadThresholdMonitor->disable();
+    } else {
+        if (fabs(ov->threads - nv->threads) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.THREADS CHANGED  old/new " << ov->threads << "/" << nv->threads);
+        }
+        modified_thresholds.threads = 1.0 - (nv->threads * .01);
+        _threadThresholdMonitor->enable();
+    }
+
+    if (nv->ignore || (nv->files_available < 0.0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE DISABLED");
+        _fileThresholdMonitor->disable();
+    } else {
+        if (fabs(ov->files_available - nv->files_available) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE CHANGED  old/new " << ov->files_available << "/" << nv->files_available);
+        }
+        modified_thresholds.files_available = 1.0 - (nv->files_available * .01);
+        _fileThresholdMonitor->enable();
     }
 
     setShadowThresholds( *nv );
@@ -1669,63 +1731,6 @@ bool GPP_i::_check_nic_thresholds()
     return retval;
 }
 
-bool GPP_i::_check_thread_limits( const thresholds_struct &)
-{
-    float _tthreshold = 1 - __thresholds.threads * .01;
-
-    if (gpp_limits.max_threads != -1) {
-      //
-      // check current process limits
-      //
-      LOG_TRACE(GPP_i, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_threads << "/" << gpp_limits.max_threads );
-      if (gpp_limits.current_threads>(gpp_limits.max_threads*_tthreshold)) {
-        LOG_WARN(GPP_i, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_threads   << "/" << (gpp_limits.max_threads*_tthreshold) );
-        return true;
-      }
-    }
-
-    if ( sys_limits.max_threads != -1 ) {
-      //
-      // check current system limits
-      //
-      LOG_TRACE(GPP_i, "_sys_check_limits threads (cur/max): "  << sys_limits.current_threads << "/" << sys_limits.max_threads );
-      if (sys_limits.current_threads>( sys_limits.max_threads *_tthreshold)) {
-        LOG_WARN(GPP_i, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_threads   << "/" << (sys_limits.max_threads*_tthreshold) );
-        return true;
-      }
-    }
-    return false;
-}
-
-bool GPP_i::_check_file_limits( const thresholds_struct &thresholds)
-{
-    float _fthreshold = 1 - __thresholds.files_available * .01;
-
-    if (gpp_limits.max_open_files != -1) {
-      //
-      // check current process limits
-      //
-      LOG_TRACE(GPP_i, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_open_files << "/" << gpp_limits.max_open_files );
-      if (gpp_limits.current_open_files>(gpp_limits.max_open_files*_fthreshold)) {
-        LOG_WARN(GPP_i, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_open_files   << "/" << (gpp_limits.max_open_files*_fthreshold) );
-        return true;
-      }
-    }
-
-    if ( sys_limits.max_open_files != -1 ) {
-      //
-      // check current system limits
-      //
-      LOG_TRACE(GPP_i, "_sys_check_limits threads (cur/max): "  << sys_limits.current_open_files << "/" << sys_limits.max_open_files );
-      if (sys_limits.current_open_files>( sys_limits.max_open_files *_fthreshold)) {
-        LOG_WARN(GPP_i, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_open_files   << "/" << (sys_limits.max_open_files*_fthreshold) );
-        return true;
-      }
-    }
-    return false;
-}
-
-
 //
 //
 //  Executable/Device method overrides...
@@ -1811,13 +1816,13 @@ void GPP_i::updateUsageState()
   else if ( !(thresholds.nic_usage < 0) && _check_nic_thresholds() ) {
       setUsageState(CF::Device::BUSY);
   }
-  else if (!(thresholds.threads < 0) && _check_thread_limits(thresholds)) {
+  else if (_threadThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads;
       _setReason( "ULIMIT (MAX_THREADS)", oss.str() );
       setUsageState(CF::Device::BUSY);
   }
-  else if (!(thresholds.files_available < 0) && _check_file_limits(thresholds)) {
+  else if (_fileThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
       _setReason( "ULIMIT (MAX_FILES)", oss.str() );

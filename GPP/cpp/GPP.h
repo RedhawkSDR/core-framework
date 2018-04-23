@@ -378,16 +378,6 @@ class GPP_i : public GPP_base
           void _init();
         
           //
-          // check thread limits for the process and system
-          //
-          bool _check_thread_limits( const thresholds_struct &threshold);
-
-          //
-          // check file limits for the process and system
-          //
-          bool _check_file_limits( const thresholds_struct &threshold);
-
-          //
           // check threshold limits for nic interfaces to determine busy state
           //
           bool _check_nic_thresholds();
@@ -399,12 +389,14 @@ class GPP_i : public GPP_base
           ThresholdMonitorPtr _cpuIdleThresholdMonitor;
           ThresholdMonitorPtr _freeMemThresholdMonitor;
           ThresholdMonitorPtr _loadAvgThresholdMonitor;
+          ThresholdMonitorPtr _threadThresholdMonitor;
+          ThresholdMonitorPtr _fileThresholdMonitor;
 
           CORBA::LongLong _shmThreshold;
           ThresholdMonitorPtr _shmThresholdMonitor;
 
           template <typename T1, typename T2>
-          void _sendThresholdMessage(const std::string& resourceId, const std::string& thresholdClass, bool exceeded,
+          void _sendThresholdMessage(ThresholdMonitor* monitor,
                                      const T1& measured, const T2& threshold);
           bool _shmThresholdCheck();
           void _shmThresholdStateChanged(ThresholdMonitor* monitor);
@@ -417,6 +409,18 @@ class GPP_i : public GPP_base
 
           bool _freeMemThresholdCheck();
           void _freeMemThresholdStateChanged(ThresholdMonitor* monitor);
+
+          //
+          // check thread limits for the process and system
+          //
+          bool _threadThresholdCheck();
+          void _threadThresholdStateChanged(ThresholdMonitor* monitor);
+
+          //
+          // check file limits for the process and system
+          //
+          bool _fileThresholdCheck();
+          void _fileThresholdStateChanged(ThresholdMonitor* monitor);
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 
