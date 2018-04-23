@@ -396,7 +396,9 @@ class GPP_i : public GPP_base
           ThresholdMonitorPtr _addMonitoredValue(const std::string& resourceId, const std::string& messageClass,
                                                  T1& value, const T2& threshold);
 
-          ThresholdMonitorPtr _cpuThresholdMonitor;
+          ThresholdMonitorPtr _cpuIdleThresholdMonitor;
+          ThresholdMonitorPtr _freeMemThresholdMonitor;
+          ThresholdMonitorPtr _loadAvgThresholdMonitor;
 
           CORBA::LongLong _shmThreshold;
           ThresholdMonitorPtr _shmThresholdMonitor;
@@ -407,8 +409,14 @@ class GPP_i : public GPP_base
           bool _shmThresholdCheck();
           void _shmThresholdStateChanged(ThresholdMonitor* monitor);
 
-          bool _cpuThresholdCheck();
-          void _cpuThresholdStateChanged(ThresholdMonitor* monitor);
+          bool _cpuIdleThresholdCheck();
+          void _cpuIdleThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _loadAvgThresholdCheck();
+          void _loadAvgThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _freeMemThresholdCheck();
+          void _freeMemThresholdStateChanged(ThresholdMonitor* monitor);
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 

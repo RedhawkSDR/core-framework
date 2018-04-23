@@ -84,7 +84,6 @@
 #include "states/ProcMeminfo.h"
 #include "statistics/CpuUsageStats.h"
 #include "reports/NicThroughputThresholdMonitor.h"
-#include "reports/FreeMemoryThresholdMonitor.h"
 
 #define PROCESSOR_NAME "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b"
 #define OS_NAME        "DCE:4a23ad60-0b25-4121-a630-68803a498f75"
@@ -856,14 +855,17 @@ GPP_i::initializeResourceMonitors()
   data_model.push_back( process_limits );
 
   //  observer to monitor when cpu idle pass threshold value
-  _cpuThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "CPU_IDLE", this, &GPP_i::_cpuThresholdCheck);
-  _cpuThresholdMonitor->add_listener(this, &GPP_i::_cpuThresholdStateChanged);
-  threshold_monitors.push_back(_cpuThresholdMonitor);
+  _cpuIdleThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "CPU_IDLE", this, &GPP_i::_cpuIdleThresholdCheck);
+  _cpuIdleThresholdMonitor->add_listener(this, &GPP_i::_cpuIdleThresholdStateChanged);
+  threshold_monitors.push_back(_cpuIdleThresholdMonitor);
 
-  // add available memory monitor, mem_free defaults to MB
-  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(
-                      MakeCref(modified_thresholds.mem_free),
-                      ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
+  _loadAvgThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "LOAD_AVG", this, &GPP_i::_loadAvgThresholdCheck);
+  _loadAvgThresholdMonitor->add_listener(this, &GPP_i::_loadAvgThresholdStateChanged);
+  threshold_monitors.push_back(_loadAvgThresholdMonitor);
+
+  _freeMemThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("physical_ram", "MEMORY_FREE", this, &GPP_i::_freeMemThresholdCheck);
+  _freeMemThresholdMonitor->add_listener(this, &GPP_i::_freeMemThresholdStateChanged);
+  threshold_monitors.push_back(_freeMemThresholdMonitor);
 
   _shmThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("shm", "SHM_FREE", this, &GPP_i::_shmThresholdCheck);
   _shmThresholdMonitor->add_listener(this, &GPP_i::_shmThresholdStateChanged);
@@ -877,21 +879,53 @@ GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
     threshold_monitors.push_back( t );
 }
 
-bool GPP_i::_cpuThresholdCheck()
+bool GPP_i::_cpuIdleThresholdCheck()
 {
-    return system_monitor->getCpuStats()->get_idle_percent() < modified_thresholds.cpu_idle;
+    double sys_idle = system_monitor->get_idle_percent();
+    double sys_idle_avg = system_monitor->get_idle_average();
+    return (sys_idle < modified_thresholds.cpu_idle) && (sys_idle_avg < modified_thresholds.cpu_idle);
 }
 
-void GPP_i::_cpuThresholdStateChanged(ThresholdMonitor* monitor)
+void GPP_i::_cpuIdleThresholdStateChanged(ThresholdMonitor* monitor)
 {
     _sendThresholdMessage("cpu", "CPU_IDLE", monitor->is_threshold_exceeded(),
-                          system_monitor->getCpuStats()->get_idle_percent(),
+                          system_monitor->get_idle_percent(),
                           modified_thresholds.cpu_idle);
+}
+
+bool GPP_i::_loadAvgThresholdCheck()
+{
+    return (system_monitor->get_loadavg() > modified_thresholds.load_avg);
+}
+
+void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage("cpu", "LOAD_AVG", monitor->is_threshold_exceeded(),
+                          system_monitor->get_loadavg(),
+                          modified_thresholds.load_avg);
+}
+
+bool GPP_i::_freeMemThresholdCheck()
+{
+    int64_t mem_free = system_monitor->get_mem_free();
+    return (mem_free < modified_thresholds.mem_free);
+}
+
+void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage("physical_ram", "MEMORY_FREE", monitor->is_threshold_exceeded(),
+                          system_monitor->get_mem_free(),
+                          modified_thresholds.mem_free);
 }
 
 bool GPP_i::_shmThresholdCheck()
 {
     return shmFree < (CORBA::ULongLong) _shmThreshold;
+}
+
+void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage("shm", "SHM_FREE", monitor->is_threshold_exceeded(), shmFree, _shmThreshold);
 }
 
 template <typename T1, typename T2>
@@ -907,8 +941,8 @@ void GPP_i::_sendThresholdMessage(const std::string& resourceId, const std::stri
     } else {
         message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
     }
-    message.threshold_value = boost::lexical_cast<std::string>(_shmThreshold);
-    message.measured_value = boost::lexical_cast<std::string>(shmFree);
+    message.threshold_value = boost::lexical_cast<std::string>(threshold);
+    message.measured_value = boost::lexical_cast<std::string>(measured);
 
     std::stringstream sstr;
     sstr << message.threshold_class << " threshold ";
@@ -924,11 +958,6 @@ void GPP_i::_sendThresholdMessage(const std::string& resourceId, const std::stri
     message.timestamp = time(NULL);
 
     send_threshold_event(message);
-}
-
-void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
-{
-    _sendThresholdMessage("shm", "SHM_FREE", monitor->is_threshold_exceeded(), shmFree, _shmThreshold);
 }
 
 void
@@ -1099,62 +1128,69 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 
 void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv)
 {
-    if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
-        WriteLock wlock(pidLock);
-	int64_t init_mem_free = (int64_t) memInitVirtFree;
+    WriteLock wlock(monitorLock);
+    if (nv->ignore || (nv->mem_free < 0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE DISABLED");
+        _freeMemThresholdMonitor->disable();
+    } else {
+        if (ov->mem_free != nv->mem_free) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free);
+        }
+        int64_t init_mem_free = (int64_t) memInitVirtFree;
         // type cast required for correct calc on 32bit os
         memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv->mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
         if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
-        memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units ;
+        memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units;
         memCapacityThreshold = memCapacity;
         modified_thresholds.mem_free = nv->mem_free*thresh_mem_free_units;
+        _freeMemThresholdMonitor->enable();
     }
 
-
-    if ( !(nv->load_avg < 0.0) && !(fabs(ov->load_avg - nv->load_avg ) < std::numeric_limits<double>::epsilon()) ) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg );
-        WriteLock wlock(pidLock);
+    if (nv->ignore || (nv->load_avg < 0.0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG DISABLED");
+        _loadAvgThresholdMonitor->disable();
+    } else {
+        if (fabs(ov->load_avg - nv->load_avg) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg);
+        }
         loadCapacity = loadTotal * ((double)nv->load_avg / 100.0);
         loadFree = loadCapacity;
         modified_thresholds.load_avg = loadTotal * ( (double)nv->load_avg / 100.0);
+        _loadAvgThresholdMonitor->enable();
     }
 
-    {
-        WriteLock wlock(monitorLock);
-        if (nv->ignore || (nv->cpu_idle < 0.0)) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE DISABLED");
-            _cpuThresholdMonitor->disable();
-        } else {
-            if (fabs(ov->cpu_idle - nv->cpu_idle) >= std::numeric_limits<double>::epsilon()) {
-                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle);
-            }
-            modified_thresholds.cpu_idle = nv->cpu_idle;
-            _cpuThresholdMonitor->enable();
+    if (nv->ignore || (nv->cpu_idle < 0.0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE DISABLED");
+        _cpuIdleThresholdMonitor->disable();
+    } else {
+        if (fabs(ov->cpu_idle - nv->cpu_idle) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle);
         }
+        modified_thresholds.cpu_idle = nv->cpu_idle;
+        _cpuIdleThresholdMonitor->enable();
+    }
 
-        if (nv->ignore || (nv->nic_usage < 0)) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
-            std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::disable, _1));
-        } else {
-            if (ov->nic_usage != nv->nic_usage) {
-                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage);
-            }
-            modified_thresholds.nic_usage = nv->nic_usage;
-            std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::enable, _1));
+    if (nv->ignore || (nv->nic_usage < 0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
+        std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::disable, _1));
+    } else {
+        if (ov->nic_usage != nv->nic_usage) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage);
         }
+        modified_thresholds.nic_usage = nv->nic_usage;
+        std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::enable, _1));
+    }
 
-        if (nv->ignore || (nv->shm_free < 0)) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE DISABLED");
-            _shmThresholdMonitor->disable();
-        } else {
-            if (ov->shm_free != nv->shm_free) {
-                LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
-                          << ov->shm_free << "/" << nv->shm_free);
-            }
-            _shmThreshold = nv->shm_free * (1024 * 1024);
-            _shmThresholdMonitor->enable();
+    if (nv->ignore || (nv->shm_free < 0)) {
+        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE DISABLED");
+        _shmThresholdMonitor->disable();
+    } else {
+        if (ov->shm_free != nv->shm_free) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
+                      << ov->shm_free << "/" << nv->shm_free);
         }
+        _shmThreshold = nv->shm_free * (1024 * 1024);
+        _shmThresholdMonitor->enable();
     }
 
     setShadowThresholds( *nv );
@@ -1745,26 +1781,22 @@ void GPP_i::updateUsageState()
                 );
   }
   
-  if (!(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0)) {
-      if (sys_idle < modified_thresholds.cpu_idle) {
-          if ( sys_idle_avg < modified_thresholds.cpu_idle) {
-              std::ostringstream oss;
-              oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
-              _setReason( "CPU IDLE", oss.str() );
-              setUsageState(CF::Device::BUSY);
-              return;
-          }
-      }
+  if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
+      _setReason( "CPU IDLE", oss.str() );
+      setUsageState(CF::Device::BUSY);
+      return;
   }
 
-  if ( !(thresholds.mem_free < 0) && (mem_free < modified_thresholds.mem_free)) {
-        std::ostringstream oss;
-        oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
-        _setReason( "FREE MEMORY", oss.str() );
-        setUsageState(CF::Device::BUSY);
+  if (_freeMemThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
+      _setReason( "FREE MEMORY", oss.str() );
+      setUsageState(CF::Device::BUSY);
   }
 
-  else if ( !(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0) && ( sys_load > modified_thresholds.load_avg )) {
+  else if (_loadAvgThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
       _setReason( "LOAD AVG", oss.str() );
