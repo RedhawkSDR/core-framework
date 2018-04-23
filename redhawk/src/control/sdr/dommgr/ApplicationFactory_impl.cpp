@@ -1247,14 +1247,27 @@ void createHelper::setUpExternalProperties(Application_impl* application)
             LOG_ERROR(ApplicationFactory_impl, "Invalid comprefid (" << prop->comprefid << ") given for an external property");
             throw(CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, "Invalid comprefid given for external property"));
         }
+        
+        const ossie::Properties* _comp_props = lookupComponentPropertiesByInstantiationId(prop->comprefid);
+        std::string _access = "readwrite";
+        for (std::vector<const Property*>::const_iterator _it=_comp_props->getProperties().begin(); _it!=_comp_props->getProperties().end(); _it++) {
+            std::string _id((*_it)->getID());
+            if (_id != prop->propid)
+                continue;
+            if ((*_it)->getMode()) {
+                _access = (*_it)->getMode();
+            }
+        }
 
         if (prop->externalpropid == "") {
             application->addExternalProperty(prop->propid,
                                              prop->propid,
+                                             _access,
                                              comp);
         } else {
             application->addExternalProperty(prop->propid,
                                              prop->externalpropid,
+                                             _access,
                                              comp);
         }
     }
@@ -3578,6 +3591,18 @@ CF::Resource_ptr createHelper::lookupComponentByInstantiationId(const std::strin
     }
 
     return CF::Resource::_nil();
+}
+
+/* Given a component instantiation id, returns the component's parsed prf contents in a Properties object
+ */
+const ossie::Properties* createHelper::lookupComponentPropertiesByInstantiationId(const std::string& identifier)
+{
+    ossie::ComponentInfo* component = findComponentByInstantiationId(identifier);
+    if (component) {
+        return &(component->prf);
+    }
+
+    return NULL;
 }
 
 /* Given a component instantiation id, returns the associated CORBA Device pointer

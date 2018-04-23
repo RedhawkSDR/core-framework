@@ -330,6 +330,8 @@ private:
     // ComponentLookup interface
     CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier);
 
+    const ossie::Properties* lookupComponentPropertiesByInstantiationId(const std::string& identifier);
+
     // DeviceLookup interface
     CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId);
     CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(

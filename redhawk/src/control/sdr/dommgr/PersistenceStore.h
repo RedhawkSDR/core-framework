@@ -93,6 +93,13 @@ namespace ossie {
     typedef std::map<std::string, AllocationType> AllocationTable;
     typedef std::map<std::string, RemoteAllocationType> RemoteAllocationTable;
 
+    struct externalPropertyType {
+    public:
+        std::string property_id;
+        std::string component_id;
+        std::string access;
+    };
+
     struct ApplicationNode {
         std::string name;
         std::string profile;
@@ -106,8 +113,8 @@ namespace ossie {
         std::vector<std::string> allocationIDs;
         std::vector<CF::Resource_var> componentRefs;
         std::map<std::string, CORBA::Object_var> ports;
-        // Ext Props map :  extid -> (propid, compid)
-        std::map<std::string, std::pair<std::string, std::string> > properties;
+        // Ext Props map :  extid -> (propid, access, compid)
+        std::map<std::string, externalPropertyType > properties;
         bool aware_application;
     };
     

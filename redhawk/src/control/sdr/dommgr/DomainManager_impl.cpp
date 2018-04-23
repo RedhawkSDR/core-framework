@@ -468,17 +468,18 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
                 }
 
                 // Add external properties
-                for (std::map<std::string, std::pair<std::string, std::string> >::const_iterator it = i->properties.begin();
+                for (std::map<std::string, externalPropertyType>::const_iterator it = i->properties.begin();
                         it != i->properties.end();
                         ++it) {
                     std::string extId = it->first;
-                    std::string propId = it->second.first;
-                    std::string compId = it->second.second;
+                    std::string propId = it->second.property_id;
+                    std::string access = it->second.access;
+                    std::string compId = it->second.component_id;
                     std::vector<CF::Resource_var> comps = i->componentRefs;
                     comps.push_back(i->assemblyController);
                     for (unsigned int ii = 0; ii < comps.size(); ++ii) {
                         if (compId == ossie::corba::returnString(comps[ii]->identifier())) {
-                            _application->addExternalProperty(propId, extId, comps[ii]);
+                            _application->addExternalProperty(propId, extId, access, comps[ii]);
                             break;
                         }
                     }
@@ -1839,13 +1840,15 @@ DomainManager_impl::addApplication(Application_impl* new_app)
         appNode.aware_application = new_app->_isAware;
         appNode.ports = new_app->_ports;
         // Adds external properties
-        for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = new_app->_properties.begin();
+        for (std::map<std::string, Application_impl::externalPropertyRecord>::const_iterator it = new_app->_properties.begin();
                 it != new_app->_properties.end();
                 ++it) {
             std::string extId = it->first;
-            std::string propId = it->second.first;
-            std::string compId = ossie::corba::returnString(it->second.second->identifier());
-            appNode.properties[extId] = std::pair<std::string, std::string>(propId, compId);
+            externalPropertyType extProp;
+            extProp.property_id = it->second.id;
+            extProp.component_id = ossie::corba::returnString(it->second.component->identifier());
+            extProp.access = it->second.access;
+            appNode.properties.insert(std::pair<std::string, externalPropertyType>(extId, extProp));
         }
 
         _runningApplications.push_back(appNode);

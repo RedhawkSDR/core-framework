@@ -134,7 +134,7 @@ public:
     CF::ApplicationRegistrar_ptr appReg (void);
 
     void addExternalPort (const std::string&, CORBA::Object_ptr);
-    void addExternalProperty (const std::string&, const std::string&, CF::Resource_ptr);
+    void addExternalProperty (const std::string&, const std::string&, const std::string &access, CF::Resource_ptr);
 
     // Returns true if any connections in this application depend on the given object, false otherwise
     bool checkConnectionDependency (ossie::Endpoint::DependencyType type, const std::string& identifier) const;
@@ -157,7 +157,23 @@ public:
 
     CF::Application_ptr getComponentApplication();
     CF::DomainManager_ptr getComponentDomainManager();
-    
+
+    struct externalPropertyRecord {
+    public:
+
+        std::string id;
+        std::string access;
+        CF::Resource_var component;
+
+        externalPropertyRecord() {};
+
+        externalPropertyRecord(const std::string &_id, const std::string &_access, CF::Resource_ptr _component) {
+            id = _id;
+            access = _access;
+            component = CF::Resource::_duplicate(_component);
+        };
+    };
+
 private:
     Application_impl (); // No default constructor
     Application_impl(Application_impl&);  // No copying
@@ -170,6 +186,7 @@ private:
       PropertyChangeRecord( const PropertyChangeRecord &src ) { reg_id = src.reg_id; comp = src.comp; };
       ~PropertyChangeRecord() {};
     };
+
     typedef  std::vector< PropertyChangeRecord >                 PropertyChangeRecords;
     typedef  std::map< std::string, PropertyChangeRecords >      PropertyChangeRegistry;
 
@@ -202,7 +219,8 @@ private:
     boost::condition_variable _registrationCondition;
 
     std::map<std::string, CORBA::Object_var> _ports;
-    std::map<std::string, std::pair<std::string, CF::Resource_var> > _properties;
+    std::map<std::string, externalPropertyRecord> _properties;
+    //std::map<std::string, std::pair<std::string, CF::Resource_var> > _properties;
 
     bool _releaseAlreadyCalled;
     boost::mutex releaseObjectLock;
