@@ -449,19 +449,19 @@ void GPP_i::_init() {
   //
 
   // Add property change listeners for affinity information...
-  addPropertyChangeListener( "affinity", this, &GPP_i::_affinity_changed );
+  addPropertyListener(affinity, this, &GPP_i::_affinity_changed);
 
   // add property change listener
-  addPropertyChangeListener("reserved_capacity_per_component", this, &GPP_i::reservedChanged);
+  addPropertyListener(reserved_capacity_per_component, this, &GPP_i::reservedChanged);
 
   // add property change listener
-  addPropertyChangeListener("DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176", this, &GPP_i::_component_output_changed);
+  addPropertyListener(componentOutputLog, this, &GPP_i::_component_output_changed);
 
   // add property change listener
-  addPropertyChangeListener("DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1", this, &GPP_i::mcastnicThreshold_changed);
+  addPropertyListener(mcastnicThreshold, this, &GPP_i::mcastnicThreshold_changed);
 
   // add property change listener thresholds
-  addPropertyChangeListener("thresholds", this, &GPP_i::thresholds_changed);
+  addPropertyListener(thresholds, this, &GPP_i::thresholds_changed);
 
   utilization_entry_struct cpu;
   cpu.description = "CPU cores";
@@ -1003,9 +1003,6 @@ GPP_i::setShadowThresholds( const thresholds_struct &nv ) {
     if ( nv.cpu_idle >= 0.0 ) __thresholds.cpu_idle = nv.cpu_idle;
     if ( nv.load_avg >= 0.0 ) __thresholds.load_avg = nv.load_avg;
     if ( nv.mem_free >= 0 ) __thresholds.mem_free = nv.mem_free;
-    if ( nv.nic_usage >= 0 ) __thresholds.nic_usage = nv.nic_usage;
-    if ( nv.files_available >= 0.0 ) __thresholds.files_available = nv.files_available;
-    if ( nv.threads >= 0.0 ) __thresholds.threads = nv.threads;
 }
 
 //
@@ -1118,9 +1115,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   modified_thresholds.mem_free = __thresholds.mem_free*thresh_mem_free_units;
   modified_thresholds.load_avg = loadTotal * ( (double)__thresholds.load_avg / 100.0);
   modified_thresholds.cpu_idle = __thresholds.cpu_idle;
-  modified_thresholds.threads = 1.0 - __thresholds.threads * .01;
-  modified_thresholds.files_available = 1.0 - __thresholds.files_available * .01;
-  _shmThreshold = thresholds.shm_free * (1024*1024);
+  thresholds_changed(thresholds, thresholds);
 
   loadAverage.onemin = rpt.load.one_min;
   loadAverage.fivemin = rpt.load.five_min;
@@ -1166,96 +1161,96 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 }
 
 
-void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv)
+void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_struct& nv)
 {
     WriteLock wlock(monitorLock);
-    if (nv->ignore || (nv->mem_free < 0)) {
+    if (nv.ignore || (nv.mem_free < 0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE DISABLED");
         _freeMemThresholdMonitor->disable();
     } else {
-        if (ov->mem_free != nv->mem_free) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free);
+        if (ov.mem_free != nv.mem_free) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov.mem_free << "/" << nv.mem_free);
         }
         int64_t init_mem_free = (int64_t) memInitVirtFree;
         // type cast required for correct calc on 32bit os
-        memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv->mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
+        memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv.mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
         if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
         memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units;
         memCapacityThreshold = memCapacity;
-        modified_thresholds.mem_free = nv->mem_free*thresh_mem_free_units;
+        modified_thresholds.mem_free = nv.mem_free*thresh_mem_free_units;
         _freeMemThresholdMonitor->enable();
     }
 
-    if (nv->ignore || (nv->load_avg < 0.0)) {
+    if (nv.ignore || (nv.load_avg < 0.0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG DISABLED");
         _loadAvgThresholdMonitor->disable();
     } else {
-        if (fabs(ov->load_avg - nv->load_avg) >= std::numeric_limits<double>::epsilon()) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg);
+        if (fabs(ov.load_avg - nv.load_avg) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov.load_avg << "/" << nv.load_avg);
         }
-        loadCapacity = loadTotal * ((double)nv->load_avg / 100.0);
+        loadCapacity = loadTotal * ((double)nv.load_avg / 100.0);
         loadFree = loadCapacity;
-        modified_thresholds.load_avg = loadTotal * ( (double)nv->load_avg / 100.0);
+        modified_thresholds.load_avg = loadTotal * ( (double)nv.load_avg / 100.0);
         _loadAvgThresholdMonitor->enable();
     }
 
-    if (nv->ignore || (nv->cpu_idle < 0.0)) {
+    if (nv.ignore || (nv.cpu_idle < 0.0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE DISABLED");
         _cpuIdleThresholdMonitor->disable();
     } else {
-        if (fabs(ov->cpu_idle - nv->cpu_idle) >= std::numeric_limits<double>::epsilon()) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle);
+        if (fabs(ov.cpu_idle - nv.cpu_idle) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov.cpu_idle << "/" << nv.cpu_idle);
         }
-        modified_thresholds.cpu_idle = nv->cpu_idle;
+        modified_thresholds.cpu_idle = nv.cpu_idle;
         _cpuIdleThresholdMonitor->enable();
     }
 
-    if (nv->ignore || (nv->nic_usage < 0)) {
+    if (nv.ignore || (nv.nic_usage < 0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
         std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::disable, _1));
     } else {
-        if (ov->nic_usage != nv->nic_usage) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage);
+        if (ov.nic_usage != nv.nic_usage) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov.nic_usage << "/" << nv.nic_usage);
         }
-        modified_thresholds.nic_usage = nv->nic_usage;
+        modified_thresholds.nic_usage = nv.nic_usage;
         std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::enable, _1));
     }
 
-    if (nv->ignore || (nv->shm_free < 0)) {
+    if (nv.ignore || (nv.shm_free < 0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE DISABLED");
         _shmThresholdMonitor->disable();
     } else {
-        if (ov->shm_free != nv->shm_free) {
+        if (ov.shm_free != nv.shm_free) {
             LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
-                      << ov->shm_free << "/" << nv->shm_free);
+                      << ov.shm_free << "/" << nv.shm_free);
         }
-        _shmThreshold = nv->shm_free * (1024 * 1024);
+        _shmThreshold = nv.shm_free * (1024 * 1024);
         _shmThresholdMonitor->enable();
     }
 
-    if (nv->ignore || (nv->threads < 0.0)) {
+    if (nv.ignore || (nv.threads < 0.0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.THREADS DISABLED");
         _threadThresholdMonitor->disable();
     } else {
-        if (fabs(ov->threads - nv->threads) >= std::numeric_limits<double>::epsilon()) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.THREADS CHANGED  old/new " << ov->threads << "/" << nv->threads);
+        if (fabs(ov.threads - nv.threads) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.THREADS CHANGED  old/new " << ov.threads << "/" << nv.threads);
         }
-        modified_thresholds.threads = 1.0 - (nv->threads * .01);
+        modified_thresholds.threads = 1.0 - (nv.threads * .01);
         _threadThresholdMonitor->enable();
     }
 
-    if (nv->ignore || (nv->files_available < 0.0)) {
+    if (nv.ignore || (nv.files_available < 0.0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE DISABLED");
         _fileThresholdMonitor->disable();
     } else {
-        if (fabs(ov->files_available - nv->files_available) >= std::numeric_limits<double>::epsilon()) {
-            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE CHANGED  old/new " << ov->files_available << "/" << nv->files_available);
+        if (fabs(ov.files_available - nv.files_available) >= std::numeric_limits<double>::epsilon()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE CHANGED  old/new " << ov.files_available << "/" << nv.files_available);
         }
-        modified_thresholds.files_available = 1.0 - (nv->files_available * .01);
+        modified_thresholds.files_available = 1.0 - (nv.files_available * .01);
         _fileThresholdMonitor->enable();
     }
 
-    setShadowThresholds( *nv );
+    setShadowThresholds(nv);
 
 }
 
@@ -2043,44 +2038,33 @@ void GPP_i::_set_vlan_property()
 //
 
 
-void GPP_i::_component_output_changed(const std::string *oldValue, const std::string *newValue)
+void GPP_i::_component_output_changed(const std::string& oldValue, const std::string& newValue)
 {
-  if(  newValue ) {
-    if ( *newValue == "" ) { 
-      _componentOutputLog="";
-      _handle_io_redirects = false; 
-      return;
+    if (newValue.empty()) { 
+        _componentOutputLog="";
+        _handle_io_redirects = false; 
+        return;
     }
     
     _componentOutputLog =__ExpandEnvVars(componentOutputLog);
     _handle_io_redirects = true;
-  }
-  else {
-    _componentOutputLog="";
-    _handle_io_redirects = false;
-  }
-
 }
 
 
-void GPP_i::reservedChanged(const float *oldValue, const float *newValue)
+void GPP_i::reservedChanged(float oldValue, float newValue)
 {
-  if(  newValue ) {
-    reserved_capacity_per_component = *newValue;
     idle_capacity_modifier = 100.0 * reserved_capacity_per_component/((float)processor_cores);
 
     ExecPartitionList::iterator iter = execPartitions.begin();
     for( ; iter != execPartitions.end(); iter++ ) {
-      iter->idle_cap_mod = 100.0 * reserved_capacity_per_component / ((float)iter->cpus.size());
+        iter->idle_cap_mod = 100.0 * reserved_capacity_per_component / ((float)iter->cpus.size());
     }
-  }
 }
 
 
-void  GPP_i::mcastnicThreshold_changed(const CORBA::Long *oldvalue, const CORBA::Long *newvalue) {
-
-  if(  newvalue ) {
-    int threshold = *newvalue;
+void  GPP_i::mcastnicThreshold_changed(int oldvalue, int newvalue)
+{
+    int threshold = newvalue;
     if ( threshold >= 0 && threshold <= 100 ) {
       double origIngressThreshold = mcastnicIngressThresholdValue;
       double origEgressThreshold = mcastnicIngressThresholdValue;
@@ -2107,10 +2091,7 @@ void  GPP_i::mcastnicThreshold_changed(const CORBA::Long *oldvalue, const CORBA:
         mcastnicEgressCapacity = mcastnicEgressThresholdValue;
         mcastnicEgressFree = mcastnicEgressCapacity;
       }
-
     }
-  }
-
 }
 
 

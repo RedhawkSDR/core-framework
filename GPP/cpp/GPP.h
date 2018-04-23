@@ -260,9 +260,9 @@ class GPP_i : public GPP_base
                       const float       req_reservation );
           void removeProcess(int pid );
           void addThresholdMonitor( ThresholdMonitorPtr threshold_monitor );
-          void reservedChanged(const float *oldValue, const float *newValue);
-          void mcastnicThreshold_changed(const CORBA::Long *oldValue, const CORBA::Long *newValue);
-          void thresholds_changed(const thresholds_struct *oldValue, const thresholds_struct *newValue);
+          void reservedChanged(float oldValue, float newValue);
+          void mcastnicThreshold_changed(int oldValue, int newValue);
+          void thresholds_changed(const thresholds_struct& oldValue, const thresholds_struct& newValue);
           void update();
 
           ProcessList                                         pids;
@@ -355,7 +355,7 @@ class GPP_i : public GPP_base
           //
           // Callback when componentOutputLog is changed
           //
-          void _component_output_changed(const std::string *ov, const std::string *nv );
+          void _component_output_changed(const std::string& ov, const std::string& nv);
 
           //
           // Set vlan list attribute
