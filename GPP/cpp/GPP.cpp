@@ -2720,7 +2720,13 @@ void GPP_i::updateProcessStats()
     float estimate_total = (user_elapsed) * inverse_load_per_core;
     utilization[0].system_load = std::max(utilization[0].component_load, estimate_total); // for very light loads, sometimes there is a measurement mismatch because of timing
     utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
-    utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
+
+    // The maximum CPU utilization is in terms of cores; if a threshold is set,
+    // normalize it to the range [0,1] and scale the maximum by that ratio
+    utilization[0].maximum = processor_cores;
+    if (!thresholds.ignore && (thresholds.cpu_idle >= 0.0)) {
+        utilization[0].maximum *= (1.0 - thresholds.cpu_idle * 0.01);
+    }
 
     LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
               " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
