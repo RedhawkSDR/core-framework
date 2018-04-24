@@ -264,6 +264,7 @@ class GPP_i : public GPP_base
           void mcastnicThreshold_changed(int oldValue, int newValue);
           void thresholds_changed(const thresholds_struct& oldValue, const thresholds_struct& newValue);
           void update();
+          void updateProcessStats();
 
           ProcessList                                         pids;
           size_t                                              n_reservations;

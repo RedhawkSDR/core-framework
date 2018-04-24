@@ -2592,8 +2592,7 @@ void GPP_i::_sendThresholdEvent(ThresholdMonitor* monitor)
     send_threshold_event(message);
 }
 
-
-void GPP_i::update()
+void GPP_i::updateProcessStats()
 {
   // establish what the actual load is per floor_reservation
   // if the actual load -per is less than the reservation, compute the different and add the difference to the cpu_idle
@@ -2774,44 +2773,49 @@ void GPP_i::update()
            "  system_load: " << utilization[0].system_load << std::endl << 
            "  subscribed: " << utilization[0].subscribed << std::endl << 
            "  maximum: " << utilization[0].maximum << std::endl );
+}
 
-  const SystemMonitor::Report &rpt = system_monitor->getReport();
-  LOG_TRACE(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
-           "  one: " << rpt.load.one_min << std::endl << 
-           "  five: " << rpt.load.five_min << std::endl << 
-           "  fifteen: " << rpt.load.fifteen_min << std::endl );
+void GPP_i::update()
+{
+    updateProcessStats();
 
-  loadAverage.onemin = rpt.load.one_min;
-  loadAverage.fivemin = rpt.load.five_min;
-  loadAverage.fifteenmin = rpt.load.fifteen_min;
+    const SystemMonitor::Report &rpt = system_monitor->getReport();
+    LOG_TRACE(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
+              "  one: " << rpt.load.one_min << std::endl << 
+              "  five: " << rpt.load.five_min << std::endl << 
+              "  fifteen: " << rpt.load.fifteen_min << std::endl );
 
-  memFree = rpt.virtual_memory_free / mem_free_units;
-  LOG_TRACE(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
-           " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
-           " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
-           " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
-           " sys_monitor.mem_free: " << rpt.physical_memory_free  << std::endl << 
-           " memFree: " << memFree  << std::endl << 
-           " memCapacity: " << memCapacity  << std::endl << 
-           " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
-           " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
+    loadAverage.onemin = rpt.load.one_min;
+    loadAverage.fivemin = rpt.load.five_min;
+    loadAverage.fifteenmin = rpt.load.fifteen_min;
 
-  shmFree = redhawk::shm::getSystemFreeMemory();
+    memFree = rpt.virtual_memory_free / mem_free_units;
+    LOG_TRACE(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
+              " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
+              " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
+              " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
+              " sys_monitor.mem_free: " << rpt.physical_memory_free  << std::endl << 
+              " memFree: " << memFree  << std::endl << 
+              " memCapacity: " << memCapacity  << std::endl << 
+              " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
+              " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
 
-  //
-  // transfer limits to properties
-  //
-  const Limits::Contents &sys_rpt =rpt.sys_limits;
-  sys_limits.current_threads = sys_rpt.threads;
-  sys_limits.max_threads = sys_rpt.threads_limit;
-  sys_limits.current_open_files = sys_rpt.files;
-  sys_limits.max_open_files = sys_rpt.files_limit;
-  process_limits->update_state();
-  const Limits::Contents &pid_rpt = process_limits->get();
-  gpp_limits.current_threads = pid_rpt.threads;
-  gpp_limits.max_threads = pid_rpt.threads_limit;
-  gpp_limits.current_open_files = pid_rpt.files;
-  gpp_limits.max_open_files = pid_rpt.files_limit;
+    shmFree = redhawk::shm::getSystemFreeMemory();
+
+    //
+    // transfer limits to properties
+    //
+    const Limits::Contents &sys_rpt =rpt.sys_limits;
+    sys_limits.current_threads = sys_rpt.threads;
+    sys_limits.max_threads = sys_rpt.threads_limit;
+    sys_limits.current_open_files = sys_rpt.files;
+    sys_limits.max_open_files = sys_rpt.files_limit;
+    process_limits->update_state();
+    const Limits::Contents &pid_rpt = process_limits->get();
+    gpp_limits.current_threads = pid_rpt.threads;
+    gpp_limits.max_threads = pid_rpt.threads_limit;
+    gpp_limits.current_open_files = pid_rpt.files;
+    gpp_limits.max_open_files = pid_rpt.files_limit;
 }
 
 
