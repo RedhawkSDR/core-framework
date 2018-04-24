@@ -220,7 +220,6 @@ private:
 
     std::map<std::string, CORBA::Object_var> _ports;
     std::map<std::string, externalPropertyRecord> _properties;
-    //std::map<std::string, std::pair<std::string, CF::Resource_var> > _properties;
 
     bool _releaseAlreadyCalled;
     boost::mutex releaseObjectLock;

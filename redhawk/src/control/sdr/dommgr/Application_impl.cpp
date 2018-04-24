@@ -1312,13 +1312,8 @@ void Application_impl::addExternalProperty (const std::string& propId, const std
         throw std::runtime_error("External Property name " + externalId + " is already in use");
     }
 
-    //_properties[externalId] = externalPropertyRecord(propId, access, CF::Resource::_duplicate(comp));
     externalPropertyRecord external(propId, access, CF::Resource::_duplicate(comp));
-    /*external.id = propId;
-    external.access = access
-    external.component = CF::Resource::_duplicate(comp);*/
     _properties.insert(std::pair<std::string, externalPropertyRecord>(externalId, external));
-    //_properties[externalId] = std::pair<std::string, CF::Resource_var>(propId, CF::Resource::_duplicate(comp));
 }
 
 bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type, const std::string& identifier) const
