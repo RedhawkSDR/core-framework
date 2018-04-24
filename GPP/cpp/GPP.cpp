@@ -519,6 +519,9 @@ void GPP_i::constructor()
     }
 
     shmCapacity = redhawk::shm::getSystemTotalMemory();
+
+    // Initialize system and user CPU ticks
+    ProcStat::GetTicks(_systemTicks, _userTicks);
 }
 
 
@@ -2594,185 +2597,155 @@ void GPP_i::_sendThresholdEvent(ThresholdMonitor* monitor)
 
 void GPP_i::updateProcessStats()
 {
-  // establish what the actual load is per floor_reservation
-  // if the actual load -per is less than the reservation, compute the different and add the difference to the cpu_idle
-  // read the clock from the system (start)
-
-  int64_t user=0, system=0;
-  ProcStat::GetTicks( system, user);
-  int64_t f_start_total = system;
-  int64_t f_use_start_total = user;
-  float reservation_set = 0;
-  size_t nres=0;
-  int64_t usage=0;
-
-  {
-    WriteLock rlock(pidLock);
-    
-    this->update_grp_child_pids();
-    
-    ProcessList::iterator i=this->pids.begin();
-    for ( ; i!=pids.end(); i++) {
-      
-      if ( !i->terminated ) {
-
-        // update pstat usage for each process
-        usage = i->get_pstat_usage();
-
-        if ( !i->app_started ) {
-          if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
-            if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
-              continue;
-            }
-          }
-          nres++;
-          if ( i->reservation == -1) {
-            reservation_set += idle_capacity_modifier;
-          } else {
-            reservation_set += 100.0 * i->reservation/((float)processor_cores);
-          }
-        }
-      }
+    // establish what the actual load is per floor_reservation
+    // if the actual load -per is less than the reservation, compute the
+    // different and add the difference to the cpu_idle
+    {
+        WriteLock rlock(pidLock);
+        this->update_grp_child_pids();
     }
-  }
-  LOG_TRACE(GPP_i, __FUNCTION__ << " Completed first pass, record pstats for nproc: " << nres << " res_set " << reservation_set );
 
-  // set number reservations that are not started
-  n_reservations = nres;
-  
-  // wait a little bit
-  usleep(500000);
+    // Update system and user clocks and determine how much time has elapsed
+    // since the last measurement
+    int64_t last_system_ticks = _systemTicks;
+    int64_t last_user_ticks = _userTicks;
+    ProcStat::GetTicks(_systemTicks, _userTicks);
+    int64_t system_elapsed = _systemTicks - last_system_ticks;
+    int64_t user_elapsed = _userTicks - last_user_ticks;
 
+    float inverse_load_per_core = ((float)processor_cores)/(system_elapsed);
+    float aggregate_usage = 0;
+    float non_specialized_aggregate_usage = 0;
 
-  user=0, system=0;
-  ProcStat::GetTicks( system, user);
-  int64_t f_end_total = system;
-  int64_t f_use_end_total = user;
-  float f_total = (float)(f_end_total-f_start_total);
-  if ( f_total <= 0.0 ) {
-    LOG_TRACE(GPP_i, __FUNCTION__ << std::endl<< " System Ticks end/start " << f_end_total << "/" << f_start_total << std::endl );
-    f_total=1.0;
-  }
-  float inverse_load_per_core = ((float)processor_cores)/(f_total);
-  float aggregate_usage = 0;
-  float non_specialized_aggregate_usage = 0;
-  double percent_core;
+    ReadLock rlock(pidLock);
+    for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+        app_it->second.usage = 0;
+    }
+    double reservation_set = 0;
+    size_t nres=0;
+    int usage_out=0;
 
-  ReadLock rlock(pidLock);
-  ProcessList::iterator i=this->pids.begin(); 
-  int usage_out=0;
-  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
-      app_it->second.usage = 0;
-  }
-  for ( ; i!=pids.end(); i++, usage_out++) {
-    
-    usage = 0;
-    percent_core =0;
-    if ( !i->terminated ) {
+    for (ProcessList::iterator i=this->pids.begin(); i!=pids.end(); i++, usage_out++) {
+        if (i->terminated) {
+            continue;
+        }
         
-      // get delta from last pstat
-      usage = i->get_pstat_usage();
+        // get delta from last pstat
+        int64_t usage = i->get_pstat_usage();
 
-      percent_core = (double)usage * inverse_load_per_core;
-      i->core_usage = percent_core;
-      double res =  i->reservation;
+        double percent_core = (double)usage * inverse_load_per_core;
+        i->core_usage = percent_core;
+        double res =  i->reservation;
 
 #if 0
-      // debug assist
-      if ( !(usage_out % 500) || usage < 0 || percent_core < 0.0 ) {  
-        uint64_t u, p2, p1;
-        u = i->get_pstat_usage(p2,p1);
-        LOG_INFO(GPP_i, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
-                 "  usage " << usage << std::endl << 
-                 "  u " << usage << std::endl << 
-                 "  p2 " << p2 << std::endl << 
-                 "  p1 " << p1 << std::endl << 
-                 "  percent_core: " << percent_core << std::endl << 
-                 "  reservation: " << i->reservation << std::endl );
-      }
+        // debug assist
+        if ( !(usage_out % 500) || usage < 0 || percent_core < 0.0 ) {  
+            uint64_t u, p2, p1;
+            u = i->get_pstat_usage(p2,p1);
+            LOG_INFO(GPP_i, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
+                     "  usage " << usage << std::endl << 
+                     "  u " << usage << std::endl << 
+                     "  p2 " << p2 << std::endl << 
+                     "  p1 " << p1 << std::endl << 
+                     "  percent_core: " << percent_core << std::endl << 
+                     "  reservation: " << i->reservation << std::endl );
+        }
 #endif
 
-      if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
-          if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
-              applicationReservations[i->appName].usage += percent_core;
-          }
-      }
+        if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+            if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+                applicationReservations[i->appName].usage += percent_core;
+            }
+        }
 
-      if ( i->app_started ) {
-
-        // if component is not using enough the add difference between minimum and current load
-        if ( percent_core < res ) {
-          reservation_set += 100.00 * ( res - percent_core)/((double)processor_cores);
-        }
-        // for components with non specific 
-        if ( res == -1.0 ) {
-          non_specialized_aggregate_usage +=  percent_core / inverse_load_per_core;
-        }
-        else {
-          aggregate_usage += percent_core / inverse_load_per_core;
-        }
-      }
-    }
-  }
-
-  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
-    if (app_it->second.reservation.find("cpucores") != app_it->second.reservation.end()) {
-      bool found_app = false;
-      for ( ProcessList::iterator _pid_it=this->pids.begin();_pid_it!=pids.end(); _pid_it++) {
-        if (applicationReservations.find(_pid_it->appName) != applicationReservations.end()) {
-            found_app = true;
-            break;
-        }
-      }
-      if (not found_app) {
-        if (app_it->second.reservation["cpucores"] == -1) {
-            reservation_set += idle_capacity_modifier;
+        if (i->app_started) {
+            // if component is not using enough the add difference between minimum and current load
+            if ( percent_core < res ) {
+                reservation_set += 100.00 * ( res - percent_core)/((double)processor_cores);
+            }
+            // for components with non specific 
+            if ( res == -1.0 ) {
+                non_specialized_aggregate_usage +=  percent_core / inverse_load_per_core;
+            }
+            else {
+                aggregate_usage += percent_core / inverse_load_per_core;
+            }
         } else {
-          reservation_set += 100.0 * app_it->second.reservation["cpucores"]/((float)processor_cores);
+            if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+                if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+                    continue;
+                }
+            }
+            nres++;
+            if ( i->reservation == -1) {
+                reservation_set += idle_capacity_modifier;
+            } else {
+                reservation_set += 100.0 * i->reservation/((float)processor_cores);
+            }
         }
-      } else {
-        if (app_it->second.usage < app_it->second.reservation["cpucores"]) {
-          reservation_set += 100.00 * ( app_it->second.reservation["cpucores"] - app_it->second.usage)/((double)processor_cores);
-        }
-      }
     }
-  }
 
-  LOG_TRACE(GPP_i, __FUNCTION__ << " Completed SECOND pass, record pstats for processes" );
+    // set number reservations that are not started
+    n_reservations = nres;
+  
+    for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+        if (app_it->second.reservation.find("cpucores") != app_it->second.reservation.end()) {
+            bool found_app = false;
+            for ( ProcessList::iterator _pid_it=this->pids.begin();_pid_it!=pids.end(); _pid_it++) {
+                if (applicationReservations.find(_pid_it->appName) != applicationReservations.end()) {
+                    found_app = true;
+                    break;
+                }
+            }
+            if (not found_app) {
+                if (app_it->second.reservation["cpucores"] == -1) {
+                    reservation_set += idle_capacity_modifier;
+                } else {
+                    reservation_set += 100.0 * app_it->second.reservation["cpucores"]/((float)processor_cores);
+                }
+            } else {
+                if (app_it->second.usage < app_it->second.reservation["cpucores"]) {
+                    reservation_set += 100.00 * ( app_it->second.reservation["cpucores"] - app_it->second.usage)/((double)processor_cores);
+                }
+            }
+        }
+    }
 
-  aggregate_usage *= inverse_load_per_core;
-  non_specialized_aggregate_usage *= inverse_load_per_core;
-  modified_thresholds.cpu_idle = __thresholds.cpu_idle + reservation_set;
-  utilization[0].component_load = aggregate_usage + non_specialized_aggregate_usage;
-  float estimate_total = (f_use_end_total-f_use_start_total) * inverse_load_per_core;
-  utilization[0].system_load = (utilization[0].component_load > estimate_total) ? utilization[0].component_load : estimate_total; // for very light loads, sometimes there is a measurement mismatch because of timing
-  utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
-  utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
+    LOG_TRACE(GPP_i, __FUNCTION__ << " Completed pass, record pstats for processes" );
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
-           " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
-           " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
-           "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
-           " threshold(req): " << __thresholds.cpu_idle << std::endl <<
-           " idle modifier: " << idle_capacity_modifier << std::endl <<
-           " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
-           " number of reservations: " << n_reservations << std::endl <<
-           " processes: " << pids.size() << std::endl <<
-           " loadCapacity: " << loadCapacity  << std::endl <<
-           " loadTotal: " << loadTotal  << std::endl <<
-           " loadFree(Modified): " << loadFree <<std::endl );
+    aggregate_usage *= inverse_load_per_core;
+    non_specialized_aggregate_usage *= inverse_load_per_core;
+    modified_thresholds.cpu_idle = __thresholds.cpu_idle + reservation_set;
+    utilization[0].component_load = aggregate_usage + non_specialized_aggregate_usage;
+    float estimate_total = (user_elapsed) * inverse_load_per_core;
+    utilization[0].system_load = std::max(utilization[0].component_load, estimate_total); // for very light loads, sometimes there is a measurement mismatch because of timing
+    utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
+    utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
 
-  LOG_TRACE(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
-           "  total sys usage: " << f_end_total << std::endl << 
-           "  total user usage: " << f_use_end_total << std::endl << 
-           "  reservation_set: " << reservation_set << std::endl << 
-           "  inverse_load_per_core: " << inverse_load_per_core << std::endl << 
-           "  aggregate_usage: " << aggregate_usage << std::endl << 
-           "  (non_spec) aggregate_usage: " << non_specialized_aggregate_usage << std::endl << 
-           "  component_load: " << utilization[0].component_load << std::endl << 
-           "  system_load: " << utilization[0].system_load << std::endl << 
-           "  subscribed: " << utilization[0].subscribed << std::endl << 
-           "  maximum: " << utilization[0].maximum << std::endl );
+    LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+              " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
+              " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
+              "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
+              " threshold(req): " << __thresholds.cpu_idle << std::endl <<
+              " idle modifier: " << idle_capacity_modifier << std::endl <<
+              " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
+              " number of reservations: " << n_reservations << std::endl <<
+              " processes: " << pids.size() << std::endl <<
+              " loadCapacity: " << loadCapacity  << std::endl <<
+              " loadTotal: " << loadTotal  << std::endl <<
+              " loadFree(Modified): " << loadFree <<std::endl );
+
+    LOG_TRACE(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
+              "  total sys usage: " << system_elapsed << std::endl << 
+              "  total user usage: " << user_elapsed << std::endl << 
+              "  reservation_set: " << reservation_set << std::endl << 
+              "  inverse_load_per_core: " << inverse_load_per_core << std::endl << 
+              "  aggregate_usage: " << aggregate_usage << std::endl << 
+              "  (non_spec) aggregate_usage: " << non_specialized_aggregate_usage << std::endl << 
+              "  component_load: " << utilization[0].component_load << std::endl << 
+              "  system_load: " << utilization[0].system_load << std::endl << 
+              "  subscribed: " << utilization[0].subscribed << std::endl << 
+              "  maximum: " << utilization[0].maximum << std::endl );
 }
 
 void GPP_i::update()

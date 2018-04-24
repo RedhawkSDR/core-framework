@@ -425,6 +425,10 @@ class GPP_i : public GPP_base
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 
+          // Processor time counters
+          int64_t _systemTicks;
+          int64_t _userTicks;
+
           std::string user_id;
           ossie::ProcessThread                                _signalThread;
           ossie::ProcessThread                                _redirectedIO;
