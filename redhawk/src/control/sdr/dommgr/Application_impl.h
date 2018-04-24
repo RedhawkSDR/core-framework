@@ -149,7 +149,7 @@ public:
     const std::string& getProfile() const;
 
     void addExternalPort (const std::string&, CORBA::Object_ptr);
-    void addExternalProperty (const std::string&, const std::string&, CF::Resource_ptr);
+    void addExternalProperty (const std::string&, const std::string&, const std::string &access, CF::Resource_ptr);
 
     // Returns true if any connections in this application depend on the given object, false otherwise
     bool checkConnectionDependency (ossie::Endpoint::DependencyType type, const std::string& identifier) const;
@@ -186,6 +186,7 @@ private:
       PropertyChangeRecord( const PropertyChangeRecord &src ) { reg_id = src.reg_id; comp = src.comp; };
       ~PropertyChangeRecord() {};
     };
+
     typedef  std::vector< PropertyChangeRecord >                 PropertyChangeRecords;
     typedef  std::map< std::string, PropertyChangeRecords >      PropertyChangeRegistry;
 
@@ -226,7 +227,7 @@ private:
     boost::condition_variable _registrationCondition;
 
     std::map<std::string, CORBA::Object_var> _ports;
-    std::map<std::string, std::pair<std::string, CF::Resource_var> > _properties;
+    std::map<std::string, ossie::externalPropertyType> _properties;
 
     bool _releaseAlreadyCalled;
     boost::mutex releaseObjectLock;

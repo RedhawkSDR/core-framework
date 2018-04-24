@@ -316,3 +316,10 @@ class TestAllTypes(scatest.CorbaTestCase):
             self.checkValue(res, 'struct_vars', '66')
             self.checkValue(res, 'struct_seq', '67')
 
+    def test_appQueryWriteonly(self):
+        dom=redhawk.attach(self._domMgr._get_name())
+        sadpath = "/waveforms/comp_writeonly_external/comp_writeonly_external.sad.xml"
+        _app = dom.createApplication(sadpath, 'appname')
+        self.assertNotEqual(_app, None)
+        retval = _app.query([])
+

@@ -2717,12 +2717,13 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
     }
 
     // Add external properties
-    for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator it = node.properties.begin();
+    for (std::map<std::string, externalPropertyType>::const_iterator it = node.properties.begin();
          it != node.properties.end();
          ++it) {
         std::string extId = it->first;
-        std::string propId = it->second.first;
-        application->addExternalProperty(propId, extId, it->second.second);
+        std::string propId = it->second.property_id;
+        std::string access = it->second.access;
+        application->addExternalProperty(propId, extId, access, it->second.component);
     }
 
     return application;

@@ -134,6 +134,13 @@ namespace ossie {
     };
     typedef std::list<ComponentNode> ComponentList;
 
+    struct externalPropertyType {
+    public:
+        std::string property_id;
+        CF::Resource_var component;
+        std::string access;
+    };
+
     struct ApplicationNode {
         std::string name;
         std::string profile;
@@ -147,7 +154,7 @@ namespace ossie {
         std::vector<std::string> allocationIDs;
         std::vector<std::string> startOrder;
         std::map<std::string, CORBA::Object_var> ports;
-        std::map<std::string, std::pair<std::string, CF::Resource_var> > properties;
+        std::map<std::string, externalPropertyType > properties;
         bool aware_application;
         float stop_timeout;
     };
