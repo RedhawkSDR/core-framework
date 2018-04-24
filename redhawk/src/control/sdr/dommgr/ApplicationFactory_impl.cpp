@@ -959,87 +959,38 @@ CF::Application_ptr createHelper::create (
 {
     TRACE_ENTER(ApplicationFactory_impl);
     
-    CF::Properties modifiedInitConfiguration;
+    redhawk::PropertyMap modifiedInitConfiguration;
 
     checkOptions();
 
     ///////////////////////////////////////////////////////////////////
     // Check to see if this is an aware application and 
     //  check to see if a different GPP reservation setting is defined
-    const std::string aware_app_property_id(ExtendedCF::WKP::AWARE_APPLICATION);
     const std::string aware_app_deprecated_property_id("AWARE_APPLICATION");
-    const std::string stop_timeout_property_id(ExtendedCF::WKP::STOP_TIMEOUT);
-    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
-        std::string stringId(initConfiguration[initCount].id);
-        if ((stringId == aware_app_property_id) or (stringId == aware_app_deprecated_property_id)) {
-            initConfiguration[initCount].value >>= this->_aware;
-            modifiedInitConfiguration.length(initConfiguration.length()-1);
-            for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
-                unsigned int idx_mod = 0;
-                if (rem_idx == initCount)
-                    idx_mod = 1;
-                modifiedInitConfiguration[rem_idx] = initConfiguration[rem_idx+idx_mod];
-            }
-        }
-    }
-    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
-        std::string stringId(initConfiguration[initCount].id);
-        if (stringId == stop_timeout_property_id) {
-            short short_to;
-            CORBA::Long long_to;
-            unsigned short ushort_to;
-            CORBA::ULong ulong_to;
-            double double_to;
-            float float_to;
-            if (initConfiguration[initCount].value >>= short_to) {
-                this->_stopTimeout = short_to;
-            } else if (initConfiguration[initCount].value >>= long_to) {
-                this->_stopTimeout = long_to;
-            } else if (initConfiguration[initCount].value >>= ushort_to) {
-                this->_stopTimeout = ushort_to;
-            } else if (initConfiguration[initCount].value >>= ulong_to) {
-                this->_stopTimeout = ulong_to;
-            } else if (initConfiguration[initCount].value >>= double_to) {
-                this->_stopTimeout = (float)double_to;
-            } else if (initConfiguration[initCount].value >>= float_to) {
-                this->_stopTimeout = float_to;
-            } else {
-                throw std::logic_error("Option STOP_TIMEOUT must be a number");
-            }
-            modifiedInitConfiguration.length(initConfiguration.length()-1);
-            for (unsigned int rem_idx=0; rem_idx<initConfiguration.length()-1; rem_idx++) {
-                unsigned int idx_mod = 0;
-                if (rem_idx == initCount)
-                    idx_mod = 1;
-                modifiedInitConfiguration[rem_idx] = initConfiguration[rem_idx+idx_mod];
-            }
-        }
-    }
+    const std::string specialized_reservation_id("SPECIALIZED_CPU_RESERVATION");
 
-    if (modifiedInitConfiguration.length() == 0) {
-        modifiedInitConfiguration = initConfiguration;
-    }
-
-    const std::string specialized_reservation("SPECIALIZED_CPU_RESERVATION");
     std::map<std::string,float> specialized_reservations;
-    for (unsigned int initCount = 0; initCount < modifiedInitConfiguration.length(); initCount++) {
-        if (std::string(modifiedInitConfiguration[initCount].id) == specialized_reservation) {
-            CF::Properties *reservations;
-            if (modifiedInitConfiguration[initCount].value >>= reservations) {
-                for (unsigned int rem_idx=0; rem_idx<reservations->length(); rem_idx++) {
-                    double value = 0;
-                    std::string component_id((*reservations)[rem_idx].id);
-                    if ((*reservations)[rem_idx].value >>= value) {
-                        specialized_reservations[component_id] = value;
+    for (unsigned int initCount = 0; initCount < initConfiguration.length(); initCount++) {
+        const std::string stringId(initConfiguration[initCount].id);
+        const redhawk::Value& value = redhawk::Value::cast(initConfiguration[initCount].value);
+        if ((stringId == ExtendedCF::WKP::AWARE_APPLICATION) or (stringId == aware_app_deprecated_property_id)) {
+            _aware = value.toBoolean();
+        } else if (stringId == ExtendedCF::WKP::STOP_TIMEOUT) {
+            _stopTimeout = value.toFloat();
+        } else if (stringId == specialized_reservation_id) {
+            if (value.getType() == redhawk::Value::TYPE_PROPERTIES) {
+                const redhawk::PropertyMap& reservations = value.asProperties();
+                for (unsigned int idx=0; idx<reservations.size(); idx++) {
+                    const std::string component_id = reservations[idx].getId();
+                    try {
+                        specialized_reservations[component_id] = reservations[idx].getValue().toDouble();
+                    } catch (const std::exception&) {
+                        // Ignore bad type
                     }
                 }
-            } else {
-                // the value of the any is of the wrong type
             }
-            for (unsigned int rem_idx=initCount; rem_idx<modifiedInitConfiguration.length()-1; rem_idx++) {
-                modifiedInitConfiguration[rem_idx] = modifiedInitConfiguration[rem_idx+1];
-            }
-            modifiedInitConfiguration.length(modifiedInitConfiguration.length()-1);
+        } else {
+            modifiedInitConfiguration.push_back(initConfiguration[initCount]);
         }
     }
 
