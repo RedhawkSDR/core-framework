@@ -504,7 +504,7 @@ void MessagingTest::testPush()
 
     // Pack the messages ourselves
     redhawk::PropertyMap messages_out;
-    messages_out["first"] = 100;
+    messages_out["first"] = (CORBA::Long) 100;
     messages_out["second"] = "some text";
     messages_out["third"] = 0.25;
 
@@ -515,7 +515,7 @@ void MessagingTest::testPush()
     // Check that the messages were received (see above re: threading)
     const redhawk::PropertyMap& messages = receiver.received();
     CPPUNIT_ASSERT_EQUAL((size_t) 3, messages.size());
-    CPPUNIT_ASSERT_EQUAL(100, messages[0].getValue().toLong());
+    CPPUNIT_ASSERT_EQUAL((CORBA::Long) 100, messages[0].getValue().toLong());
     CPPUNIT_ASSERT_EQUAL(std::string("some text"), messages[1].getValue().toString());
     CPPUNIT_ASSERT_EQUAL(0.25, messages[2].getValue().toDouble());
 }
@@ -537,7 +537,7 @@ void MessagingTest::testPushConnectionId()
 
     // Pack the messages ourselves and target the first connection
     redhawk::PropertyMap messages_1;
-    messages_1["first"] = 100;
+    messages_1["first"] = (CORBA::Long) 100;
     messages_1["second"] = "some text";
     messages_1["third"] = 0.25;
     CORBA::Any any;
@@ -559,7 +559,7 @@ void MessagingTest::testPushConnectionId()
 
     // Target both connections with yet another set of messages
     redhawk::PropertyMap messages_3;
-    messages_3["all"] = 3;
+    messages_3["all"] = (CORBA::Long) 3;
     any <<= messages_3;
     _supplier->push(any);
 
