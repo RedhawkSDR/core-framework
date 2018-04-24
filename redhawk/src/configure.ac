@@ -313,8 +313,7 @@ AC_CONFIG_FILES(Makefile \
                 base/plugin/logcfg/Makefile \
                 idl/Makefile \
                 xml/Makefile \
-                tools/Makefile \
-                tools/LogEventAppender/Makefile )
+                tools/Makefile )
 
 AM_COND_IF( [BUILD_TESTS], [
 AC_CONFIG_FILES( [testing/Makefile \

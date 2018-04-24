@@ -29,6 +29,7 @@ import CosEventChannelAdmin
 from ossie.utils import sb
 import os
 import contextlib
+from ossie.utils import redhawk
 
 @contextlib.contextmanager
 def stdout_redirect(where):
@@ -664,7 +665,34 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.setLogConfig(cfg)
         self.assertEquals( self.comp.new_log_cfg, exp_cfg)
 
+class DomainTestLogEventAppender(scatest.CorbaTestCase):
+    def setUp(self):
+        self.stderr_filename = 'stderr.out'
+        self.output_file = open(self.stderr_filename,'w')
+        nb, self._domMgr = self.launchDomainManager(stderr=self.output_file)
+        nb, self._devMgr = self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
+        self.dom=redhawk.attach(self._domMgr._get_name() )
+        fp = open('loggers/syncappender/log4j.appender', 'r')
+        self.logconfig = fp.read()
+        fp.close()
 
+    def tearDown(self):
+        scatest.CorbaTestCase.tearDown(self)
+        try:
+            self.output_file.close()
+        except:
+            pass
+        try:
+            os.remove(self.stderr_filename)
+        except:
+            pass
+
+    def test_logeventappenderDomainManager(self):
+        self.dom.setLogConfig(self.logconfig)
+        fp = open(self.stderr_filename, 'r')
+        contents = fp.read()
+        fp.close()
+        self.assertEquals(len(contents), 0)
 
 class LoggingConfigCategory(scatest.CorbaTestCase):
     def setUp(self):
