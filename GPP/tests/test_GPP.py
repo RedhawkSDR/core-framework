@@ -28,21 +28,18 @@ import commands
 import sys
 import threading
 import Queue
-from omniORB import any
-from ossie.cf import ExtendedEvent
-from ossie.parsers import DCDParser
-from omniORB import CORBA
-import omniORB
+import shutil
+import subprocess, multiprocessing
+
+from omniORB import any, CORBA
+
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.utils.sandbox.registrar import ApplicationRegistrarStub
-import subprocess, multiprocessing
 from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
-from shutil import copyfile
-import shutil
-import os
-import shutil
+
+from _unitTestHelpers.scatest import CorbaTestCase
 
 # numa layout: node 0 cpus, node 1 cpus, node 0 cpus sans cpuid=0
 
@@ -71,50 +68,6 @@ def get_match( key="all" ):
     if key and  key in numa_match:
         return numa_match[key]
     return numa_match["all"]
-
-def spawnNodeBooter(dmdFile=None, 
-                    dcdFile=None, 
-                    debug=0, 
-                    domainname=None, 
-                    loggingURI=None, 
-                    endpoint=None, 
-                    dbURI=None, 
-                    execparams="", 
-                    nodeBooterPath=os.getenv('OSSIEHOME')+"/bin/nodeBooter",
-                    sdrroot = None):
-    args = []
-    if dmdFile != None:
-        args.extend(["-D", dmdFile])
-    if dcdFile != None:
-        args.extend(["-d", dcdFile])
-    if domainname == None:
-        # Always use the --domainname argument because
-        # we don't want to have to read the DCD files or regnerate them
-        args.extend(["--domainname", 'sample_domain'])
-    else:
-        args.extend(["--domainname", domainname])
-
-    if endpoint == None:
-        args.append("--nopersist")
-    else:
-        args.extend(["-ORBendPoint", endpoint])
-
-    if dbURI:
-        args.extend(["--dburl", dbURI])
-    
-    if sdrroot == None:
-        sdrroot = os.getenv('SDRROOT')
-
-    args.extend(["-debug", str(debug)])
-    args.extend(execparams.split(" "))
-    args.insert(0, nodeBooterPath)
-
-    print '\n-------------------------------------------------------------------'
-    print 'Launching nodeBooter', " ".join(args)
-    print '-------------------------------------------------------------------'
-    nb = ossie.utils.Popen(args, cwd=sdrroot, shell=False, preexec_fn=os.setpgrp)
-
-    return nb
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
@@ -1320,170 +1273,30 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(2)
         self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
 
-class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
+class DomainSupport(CorbaTestCase):
     """Test for all component implementations in test"""
-    child_pids = []
-    dom = None
-    _domainBooter = None
-    _domainManager = None
-    _deviceBooter = None
-    _deviceLock = threading.Lock()
-    _deviceBooters = []
-    _deviceManagers = []
-    sdrroot = ''
     
-    def _getDeviceManager(self, domMgr, id):
-        for devMgr in domMgr._get_deviceManagers():
-            try:
-                if id == devMgr._get_identifier():
-                    return devMgr
-            except CORBA.Exception:
-                # The DeviceManager being checked is unreachable.
-                pass
-        return None
-    
-    def waitTermination(self, child, timeout=5.0, pause=0.1):
-        while child.poll() is None and timeout > 0.0:
-            timeout -= pause
-            time.sleep(pause)
-        return child.poll() != None
-
-    def terminateChild(self, child, signals=(signal.SIGINT, signal.SIGTERM)):
-        if child.poll() != None:
-           return
-        try:
-            for sig in signals:
-                os.kill(child.pid, sig)
-                if self.waitTermination(child):
-                    break
-            child.wait()
-        except OSError, e:
-            pass
-        finally:
-            pass
-
-    def launchDomainManager(self, dmdFile="", domain_name = '', sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
-        # Only allow one DomainManager, although this isn't a hard requirement.
-        # If it has exited, allow a relaunch.
-        if self._domainBooter and self._domainBooter.poll() == None:
-            return (self._domainBooter, self._domainManager)
-        self.sdrroot = sdrroot
-
-        # Launch the nodebooter.
-        self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, domainname = domain_name, sdrroot=sdrroot, *args, **kwargs)
-        number_attempts = 0
-        while self._domainBooter.poll() == None:
-            try:
-                self.dom = redhawk.attach(domain_name)
-            except:
-                number_attempts += 1
-                if number_attempts >= 20:
-                    raise
-                time.sleep(0.1)
-                continue
-            self._domainManager = self.dom.ref
-            if self._domainManager:
-                try:
-                    self._domainManager._get_identifier()
-                    break
-                except:
-                    pass
-        return (self._domainBooter, self._domainManager)
-
-    def _addDeviceBooter(self, devBooter):
-        self._deviceLock.acquire()
-        try:
-            self._deviceBooters.append(devBooter)
-        finally:
-            self._deviceLock.release()
-
-    def _addDeviceManager(self, devMgr):
-        self._deviceLock.acquire()
-        try:
-            self._deviceManagers.append(devMgr)
-        finally:
-            self._deviceLock.release()
-
-    def launchDeviceManager(self, dcdFile, domainManager=None, wait=True, sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
-        if not os.path.isfile(sdrroot+'/dev'+dcdFile):
-            print "ERROR: Invalid DCD path provided to launchDeviceManager ", dcdFile
-            return (None, None)
-        self.sdrroot = sdrroot
-
-        # Launch the nodebooter.
-        if domainManager == None:
-            name = None
-        else:
-            name = domainManager._get_name()
-        devBooter = spawnNodeBooter(dcdFile=sdrroot+'/dev'+dcdFile, domainname=name, sdrroot=sdrroot, *args, **kwargs)
-        self._addDeviceBooter(devBooter)
-
-        if wait:
-            devMgr = self.waitDeviceManager(devBooter, dcdFile, domainManager)
-        else:
-            devMgr = None
-
-        return (devBooter, devMgr)
-
-    def waitDeviceManager(self, devBooter, dcdFile, domainManager=None):
-        try:
-            dcdPath = self.sdrroot+'/dev'+dcdFile
-        except IOError:
-            print "ERROR: Invalid DCD path provided to waitDeviceManager", dcdFile
-            return None
-
-        # Parse the DCD file to get the identifier and number of devices, which can be
-        # determined from the number of componentplacement elements.
-        dcd = DCDParser.parse(dcdPath)
-        if dcd.get_partitioning():
-            numDevices = len(dcd.get_partitioning().get_componentplacement())
-        else:
-            numDevices = 0
-
-        # Allow the caller to override the DomainManager (assuming they have a good reason).
-        if not domainManager:
-            domainManager = self._domainManager
-
-        # As long as the nodebooter process is still alive, keep checking for the
-        # DeviceManager.
-        devMgr = None
-        while devBooter.poll() == None:
-            devMgrs = self.dom.devMgrs
-            for dM in devMgrs:
-                if dcd.get_id() == dM._get_identifier():
-                    devMgr = dM.ref
-            #devMgr = self._getDeviceManager(domainManager, dcd.get_id())
-            if devMgr:
-                break
-            time.sleep(0.1)
-
-        if devMgr:
-            self._waitRegisteredDevices(devMgr, numDevices)
-            self._addDeviceManager(devMgr)
-        return devMgr
-
-    def _waitRegisteredDevices(self, devMgr, numDevices, timeout=5.0, pause=0.1):
-        while timeout > 0.0:
-            if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
-                return True
-            else:
-                timeout -= pause
-                time.sleep(pause)
-        return False
-
     def _makeLink(self, src, dest):
         if os.path.exists(dest):
             os.unlink(dest)
         os.symlink(src, dest)
 
+    def launchDomainManager(self, *args, **kwargs):
+        domBooter, domMgr = super(DomainSupport,self).launchDomainManager(*args, loggingURI='', nodeBooterPath='nodeBooter', **kwargs)
+        if domMgr is None:
+            self.dom = None
+        else:
+            self.dom = redhawk.attach(domMgr._get_name())
+        return domBooter, domMgr
+
+    def launchDeviceManager(self, *args, **kwargs):
+        return super(DomainSupport,self).launchDeviceManager(*args, loggingURI='', nodeBooterPath='nodeBooter', **kwargs)
+
     def setUp(self):
         super(DomainSupport,self).setUp()
         self.child_pids=[]
-        self._domainBooter = None
-        self._domainManager = None
-        self._deviceBooter = None
-        self.orig_sdrroot=os.getenv('SDRROOT')
-        os.putenv('SDRROOT', os.getcwd()+'/sdr')
+        self.orig_sdrroot=os.environ['SDRROOT']
+        os.environ['SDRROOT'] = os.getcwd()+'/sdr'
         print "\n-----------------------"
         print "Running: ", self.id().split('.')[-1]
         print "-----------------------\n"
@@ -1504,16 +1317,7 @@ class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
                 os.system('kill -9 '+str(child_p))
             except OSError:
                 pass
-        if self.dom != None:
-            time.sleep(1)
-            self.dom.terminate()
-            self.dom = None
-            self.terminateChild(self._domainBooter)
-        if self._domainBooter:
-            self.terminateChild(self._domainBooter)
-        if self._deviceBooter:
-            self.terminateChild(self._deviceBooter)
-        os.putenv('SDRROOT', self.orig_sdrroot)
+        os.environ['SDRROOT'] = self.orig_sdrroot
 
 class ComponentTests_SystemReservations(DomainSupport):
     def setUp(self):
@@ -1522,24 +1326,6 @@ class ComponentTests_SystemReservations(DomainSupport):
     def tearDown(self):
         super(ComponentTests_SystemReservations, self).tearDown()
 
-    def runGPP(self, execparam_overrides={}, initialize=True):
-        #######################################################################
-        # Launch the component with the default execparams
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        execparams.update(execparam_overrides)
-        #execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        #execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        #self.launch(execparams, debugger='valgrind')
-        self.launch(execparams, initialize=initialize )
-        
-        #######################################################################
-        # Verify the basic state of the component
-        self.assertNotEqual(self.comp_obj, None)
-        self.assertEqual(self.comp_obj._non_existent(), False)
-        self.assertEqual(self.comp_obj._is_a("IDL:CF/ExecutableDevice:1.0"), True)
-        #self.assertEqual(self.spd.get_id(), self.comp_obj._get_identifier())
-        
     def close(self, value_1, value_2, margin = 0.01):
         if (value_2 * (1-margin)) < value_1 and (value_2 * (1+margin)) > value_1:
             return True
@@ -1552,9 +1338,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testMonitorComponents(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         app_1=self.dom.createApplication('/waveforms/load_comp_w/load_comp_w.sad.xml','load_comp_w',[])
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 6
@@ -1579,9 +1365,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testDeadlock(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
@@ -1597,9 +1383,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testSystemReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1710,9 +1496,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1748,9 +1534,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadGenericReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1778,9 +1564,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1809,9 +1595,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadTwoSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1840,9 +1626,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadOneSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1871,10 +1657,8 @@ class ComponentTests_SystemReservations(DomainSupport):
 class LoadableDeviceVariableDirectoriesTest(DomainSupport):
     def setUp(self):
         super(LoadableDeviceVariableDirectoriesTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
+        self.launchDomainManager()
         self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
 
         fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'r')
         self.original = fp.read()
@@ -1903,10 +1687,10 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         shutil.rmtree(self.base_dir)
 
     def test_CheckDEPLOYMENTROOT(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         pid = str(app._get_componentProcessIds()[0].processId)
@@ -1916,13 +1700,13 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         _args = cmdline.split('\x00')
         idx = _args.index('RH::DEPLOYMENT_ROOT')
         deployment_root=_args[idx+1]
-        self.assertEquals(deployment_root, self._rhDom.devices[0].cacheDirectory)
+        self.assertEquals(deployment_root, self.dom.devices[0].cacheDirectory)
 
     def test_CompConfigCacheCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         found_dir = False
@@ -1936,10 +1720,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
 class LoadableDeviceVariableCacheDirTest(DomainSupport):
     def setUp(self):
         super(LoadableDeviceVariableCacheDirTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
-        self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
+        self.launchDomainManager()
         
         fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'r')
         self.original = fp.read()
@@ -1965,10 +1746,10 @@ class LoadableDeviceVariableCacheDirTest(DomainSupport):
         shutil.rmtree(self.base_dir)
             
     def test_CompConfigCache(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         found_dir = False
@@ -1981,10 +1762,7 @@ class LoadableDeviceVariableCacheDirTest(DomainSupport):
 class LoadableDeviceVariableCWDTest(DomainSupport):
     def setUp(self):
         super(LoadableDeviceVariableCWDTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
-        self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
+        self.launchDomainManager()
         
         fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'r')
         self.original = fp.read()
@@ -2009,10 +1787,10 @@ class LoadableDeviceVariableCWDTest(DomainSupport):
         shutil.rmtree(self.base_dir)
             
     def test_CompConfigCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         found_dir = False
