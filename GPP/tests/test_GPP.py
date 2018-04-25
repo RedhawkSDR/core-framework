@@ -35,39 +35,23 @@ from omniORB import any, CORBA
 
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.utils.sandbox.registrar import ApplicationRegistrarStub
+from ossie.utils.sandbox import naming
 from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
+from redhawk import numa
 
-from _unitTestHelpers.scatest import CorbaTestCase
+from _unitTestHelpers import scatest, runtestHelpers
 
-# numa layout: node 0 cpus, node 1 cpus, node 0 cpus sans cpuid=0
+def hasNumaSupport():
+    return runtestHelpers.haveDefine('../cpp/Makefile', 'HAVE_LIBNUMA')
 
-maxcpus=32
-maxnodes=2
-all_cpus='0-'+str(maxcpus-1)
-all_cpus_sans0='1-'+str(maxcpus-1)
-numa_match={ "all" : "0-31",
-             "sock0": "0-7,16-23",
-             "sock1": "8-15,24-31", 
-             "sock0sans0": "1-7,16-23", 
-             "sock1sans0": "1-7,16-23", 
-             "5" : "5",
-             "8-10" : "8-10" }
-numa_layout=[ "0-7,16-23", "8-15,24-31" ]
+skipUnless = scatest._skipUnless
+def requireNuma(obj):
+    return skipUnless(hasNumaSupport(), 'Affinity control is disabled')(obj)
 
-affinity_test_src={ "all" : "0-31",
-                 "sock0": "0",
-                 "sock1": "1", 
-                 "sock0sans0": "0", 
-                 "5" : "5",
-                 "8-10" : "8,9,10",
-                 "eface" : "em1" }
+topology = numa.NumaTopology()
 
-def get_match( key="all" ):
-    if key and  key in numa_match:
-        return numa_match[key]
-    return numa_match["all"]
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
@@ -112,27 +96,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         else:
             return default
 
-    def check_affinity(self, pname, affinity_match="0-31", use_pidof=True, pid_in=None):
-        try:
-            if pid_in:
-                pid=pid_in
-                o2=os.popen('cat /proc/'+str(pid)+'/status | grep Cpus_allowed_list')
-            else:
-                if use_pidof == True:
-                    o1=os.popen('pidof -x '+pname )
-                else:
-                    o1=os.popen('pgrep -f '+pname )
-                pid=o1.read()
-                o2=os.popen('cat /proc/'+pid.split('\n')[0]+'/status | grep Cpus_allowed_list')
-            cpus_allowed=o2.read().split()
-        except:
-            cpus_allowed=[]
-
-        #print pname, cpus_allowed
-        self.assertEqual(cpus_allowed[1],affinity_match)
-        return
-
-        
     def runGPP(self, execparam_overrides={}, initialize=True, configure={}):
         #######################################################################
         # Launch the component with the default execparams
@@ -1034,198 +997,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
-
-    def DeployWithAffinityOptions(self, options_list, numa_layout_test, bl_cpus ):
-        self.runGPP()
-
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, bl_cpus)), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
-
-        self.comp_obj.configure(props)
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
-
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid = self.comp_obj.execute("/component_stub.py", [
-                CF.DataType(id="AFFINITY", value=any.to_any( options_list ) ) ],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid, 0)
-
-        self.check_affinity( 'component_stub.py', get_match(numa_layout_test), False)
-        
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            self.fail("Process failed to execute")
-        time.sleep(1)    
-        self.comp_obj.terminate(pid)
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Process failed to terminate")
-
-
-    def testNicAffinity(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='nic',value=any.to_any(affinity_test_src['eface'])) ], "sock0", '' )
-
-    def testNicAffinityWithBlackList(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='nic',value=any.to_any(affinity_test_src['eface'])) ], "sock0sans0", '0' )
-
-    def testCpuAffinity(self):
-        if maxcpus > 6:
-            self.DeployWithAffinityOptions( [ CF.DataType(id='affinity::exec_directive_class',value=any.to_any('cpu')),
-                                              CF.DataType(id='affinity::exec_directive_value',value=any.to_any(affinity_test_src['5'])) ], "5", '' )
-
-    def testSocketAffinity(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='affinity::exec_directive_class',value=any.to_any('socket')),
-                               CF.DataType(id='affinity::exec_directive_value',value=any.to_any(affinity_test_src['sock1'])) ], 
-                                        "sock1sans0", '0' )
-
-    def testDeployOnSocket(self):
-        self.runGPP()
-
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, True)),   ## enable deploy_on 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
-
-        self.comp_obj.configure(props)
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
-
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid0 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid0, 0)
-
-        comp_id = "DCE:00000000-0000-0000-0000-000000000001:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid1 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-
-        self.assertNotEqual(pid1, 0)
-
-        self.check_affinity( 'component_stub.py', get_match("sock0"), False, pid0)
-        self.check_affinity( 'component_stub.py', get_match("sock0"), False, pid1)
-        
-        for pid in [ pid0, pid1 ]:
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Process failed to execute")
-            time.sleep(1)    
-            self.comp_obj.terminate(pid)
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                pass
-            else:
-                self.fail("Process failed to terminate")
-
-    def testForceOverride(self):
-        self.runGPP()
-
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '1')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, True)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, True)), 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
-
-        self.comp_obj.configure(props)
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
-
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid0 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid0, 0)
-
-        comp_id = "DCE:00000000-0000-0000-0000-000000000001:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid1 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-
-        self.assertNotEqual(pid1, 0)
-
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid0)
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid1)
-        
-        for pid in [ pid0, pid1 ]:
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Process failed to execute")
-            time.sleep(1)    
-            self.comp_obj.terminate(pid)
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                pass
-            else:
-                self.fail("Process failed to terminate")
-
     def testReservation(self):
         self.runGPP()
         self.comp.thresholds.cpu_idle = 50
@@ -1273,7 +1044,228 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(2)
         self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
 
-class DomainSupport(CorbaTestCase):
+@requireNuma
+class AffinityTests(ossie.utils.testing.RHTestCase):
+    # Path to the SPD file, relative to this file. This must be set in order to
+    # launch the device.
+    SPD_FILE = '../GPP.spd.xml'
+
+    # setUp is run before every function preceded by "test" is executed
+    # tearDown is run after every function preceded by "test" is executed
+    
+    # self.comp is a device using the sandbox API
+    # to create a data source, the package sb contains data sources like DataSource or FileSource
+    # to create a data sink, there are sinks like DataSink and FileSink
+    # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
+    #  src = sb.FileSource('myfile.dat')
+    #  snk = sb.DataSink()
+    #  src.connect(self.comp)
+    #  self.comp.connect(snk)
+    #  sb.start()
+    #
+    # components/sources/sinks need to be started. Individual components or elements can be started
+    #  src.start()
+    #  self.comp.start()
+    #
+    # every component/elements in the sandbox can be started
+    #  sb.start()
+
+    def setUp(self):
+        print "\n-----------------------"
+        print "Running: ", self.id().split('.')[-1]
+        print "-----------------------\n"
+
+        # Launch the device, using the selected implementation
+        self.comp = sb.launch(self.spd_file, impl=self.impl, properties={'affinity':{'disabled':False}})
+
+        self._pids = []
+    
+    def tearDown(self):
+        # Terminate all launched executables, ignoring errors
+        remaining_pids = []
+        for pid in self._pids:
+            try:
+                self.comp.ref.terminate(pid)
+            except:
+                remaining_pids.append(pid)
+
+        # In case the GPP really failed badly, manually kill the processes
+        for pid in remaining_pids:
+            os.killpg(pid, 9)
+
+        # Clean up all sandbox artifacts created during test
+        sb.release()
+
+    def _getAllowedCpuList(self, pid):
+        filename = '/proc/%d/status' % pid
+        with open(filename, 'r') as fp:
+            for line in fp:
+                if not 'Cpus_allowed_list' in line:
+                    continue
+                cpu_list = line.split()[1]
+                return numa.parseValues(cpu_list, ",")
+        return []
+
+    def _execute(self, executable, options, parameters):
+        if isinstance(options, dict):
+            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
+        if isinstance(parameters, dict):
+            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
+        pid = self.comp.ref.execute(executable, options, parameters)
+        if pid != 0:
+            self._pids.append(pid)
+        return pid
+
+    def _deployWithAffinityOptions(self, name, affinity={}):
+        appReg = naming.ApplicationRegistrarStub()
+        appreg_ior = sb.orb.object_to_string(appReg._this())
+        options = {}
+        if affinity:
+            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
+            
+        pid = self._execute("/component_stub.py", options,
+                            {"COMPONENT_IDENTIFIER": name, 
+                             "NAME_BINDING": name,
+                             "PROFILE_NAME": "/component_stub/component_stub.spd.xml",
+                             "NAMING_CONTEXT_IOR": appreg_ior})
+        self.assertNotEqual(pid, 0)
+
+        # There is a delay between when execute() returns and the when the GPP
+        # applies the affinity settings that may cause false failures; waiting
+        # until the component registers ensures that the affinity is set
+        end = time.time() + 2.0
+        while time.time() < end:
+            comp = appReg.getObject(name)
+            if comp is not None:
+                break
+            time.sleep(0.1)
+
+        self.failIf(comp is None, "component '" + name + "' never registered")
+
+        return pid
+
+    def _getNicAffinity(self, nic):
+        cpu_list = []
+        with open('/proc/interrupts', 'r') as fp:
+            for line in fp:
+                # Remove final newline and make sure the line ends with the NIC
+                # name (in the unlikely event a machine goes up to "em11")
+                line = line.rstrip()
+                if not line.endswith(nic):
+                    continue
+                # Discard the first entry (the IRQ number) and the last two
+                # (type and name) to get the CPU IRQ service totals
+                cpu_irqs = line.split()[1:-2]
+                for cpu, count in enumerate(cpu_irqs):
+                    if int(count) > 0:
+                        cpu_list.append(cpu)
+                break
+        return cpu_list
+
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes required')
+    def testNicAffinity(self):
+        # Pick the first NIC and figure out which CPU(s) service its IRQ, then
+        # build the list of all CPUs on that node
+        self.assertNotEqual(0, len(self.comp.available_nic_interfaces), 'no available NIC interfaces')
+        nic = self.comp.available_nic_interfaces[0]
+        nodes = set(topology.getNodeForCpu(cpu) for cpu in self._getNicAffinity(nic))
+        # Join the CPU lists together
+        nic_cpus = sum((node.cpus for node in nodes), [])
+
+        # Launch the component stub with affinity based on the selected NIC;
+        # with no CPU blacklist, GPP will assign the component to all of the
+        # CPUs on the same socket(s)
+        pid = self._deployWithAffinityOptions('nic_affinity_1', {'nic':nic})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(nic_cpus, allowed_cpus)
+
+    def testNicAffinityWithBlackList(self):
+        # Pick the first NIC
+        self.assertNotEqual(0, len(self.comp.available_nic_interfaces), 'no available NIC interfaces')
+        nic = self.comp.available_nic_interfaces[0]
+        nic_cpus = self._getNicAffinity(nic)
+        if len(nic_cpus) > 1:
+            # There's more than one CPU assigned to service NIC interrupts,
+            # just blacklist the first one
+            blacklist_cpu = nic_cpus.pop(0)
+        else:
+            # Only one CPU for NIC interrupts, figure out its node and
+            # blacklist one of the other CPUs
+            cpu = nic_cpus[0]
+            node = topology.getNodeForCpu(cpu)
+            # Find the CPU in the list and select the next one (wrapping around
+            # as necessary) to ensure that we don't blacklist the wrong CPU
+            index = node.cpus.index(cpu)
+            index = (index + 1) % len(node.cpus)
+            blacklist_cpu = node.cpus[index]
+
+        # With a CPU blacklist, only the CPUs that are expliclitly allowed to
+        # handle the NIC are in the allowed list, as opposed to all CPUs in the
+        # same socket(s)
+        self.comp.affinity.blacklist_cpus = str(blacklist_cpu)
+        pid = self._deployWithAffinityOptions('nic_affinity_bl_1', {'nic':nic})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(nic_cpus, allowed_cpus)
+
+    def testCpuAffinity(self):
+        # Pick the last CPU in the last node; the component should only be
+        # allowed to run on that CPU
+        cpu = topology.nodes[-1].cpus[-1]
+        pid = self._deployWithAffinityOptions('cpu_affinity_1', {'affinity::exec_directive_class': 'cpu',
+                                                                 'affinity::exec_directive_value': cpu})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual([cpu], allowed_cpus)
+
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes are required')
+    def testSocketAffinity(self):
+        # Pick the last node and deploy to it; the process should be allowed to
+        # run on all CPUs from that node
+        node = topology.nodes[-1]
+        pid = self._deployWithAffinityOptions('socket_affinity_1', {'affinity::exec_directive_class': 'socket',
+                                                                    'affinity::exec_directive_value': node.node})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(node.cpus, allowed_cpus)
+
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes are required')
+    def testSocketAffinityWithBlackList(self):
+        # Pick the last node for deployment, but blacklist the first half of
+        # its CPUs
+        node = topology.nodes[-1]
+        cpu_count = len(node.cpus)
+        blacklist_cpus = node.cpus[:cpu_count/2]
+        cpu_list = node.cpus[cpu_count/2:]
+
+        self.comp.affinity.blacklist_cpus = ','.join(str(cpu) for cpu in blacklist_cpus)
+        pid = self._deployWithAffinityOptions('socket_affinity_bl_1', {'affinity::exec_directive_class': 'socket',
+                                                                       'affinity::exec_directive_value': node.node})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(cpu_list, allowed_cpus)
+
+    def testForceOverride(self):
+        # Configure the GPP to always deploy to CPU 0
+        self.comp.affinity.exec_directive_value = '0'
+        self.comp.affinity.exec_directive_class = 'cpu'
+        self.comp.affinity.force_override = True
+
+        # Set a runtime affinity directive for CPU1; this should be ignored
+        pid = self._deployWithAffinityOptions('force_override_1', {'affinity::exec_directive_class': 'cpu',
+                                                                   'affinity::exec_directive_value': '1'})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual([0], allowed_cpus)
+
+    def testDeployOnSocket(self):
+        self.comp.affinity.deploy_per_socket = True
+
+        pid0 = self._deployWithAffinityOptions('deploy_on_socket_1')
+        allowed_cpus = self._getAllowedCpuList(pid0)
+        self.assertEqual(topology.nodes[0].cpus, allowed_cpus)
+
+        pid1 = self._deployWithAffinityOptions('deploy_on_socket_2')
+        allowed_cpus = self._getAllowedCpuList(pid1)
+        self.assertEqual(topology.nodes[0].cpus, allowed_cpus)
+
+
+class DomainSupport(scatest.CorbaTestCase):
     """Test for all component implementations in test"""
     
     def _makeLink(self, src, dest):
@@ -1801,165 +1793,10 @@ class LoadableDeviceVariableCWDTest(DomainSupport):
         self.assertEquals(found_dir, True)
 
 
-    # TODO Add additional tests here
-    #
-    # See:
-    #   ossie.utils.testing.bulkio_helpers,
-    #   ossie.utils.testing.bluefile_helpers
-    # for modules that will assist with testing components with BULKIO ports
-
-def get_nonnuma_affinity_ctx( affinity_ctx ):
-    # test should run but affinity will be ignored
-    import multiprocessing
-    maxcpus=multiprocessing.cpu_count()
-    maxnodes=1
-    all_cpus='0-'+str(maxcpus-1)
-    all_cpus_sans0='0-'+str(maxcpus-1)
-    if maxcpus == 2:
-        all_cpus_sans0='0-1'
-    elif maxcpus == 1 :
-        all_cpus='0'
-        all_cpus_sans0=''
-
-    numa_layout=[ all_cpus ]
-    affinity_match={ "all" :  all_cpus,
-             "sock0":  all_cpus,
-             "sock1": all_cpus,
-             "sock0sans0":  all_cpus_sans0,
-             "sock1sans0":  all_cpus_sans0,
-             "5" : all_cpus,
-             "8-10" : all_cpus }
-
-    affinity_ctx['maxcpus']=maxcpus
-    affinity_ctx['maxnodes']=maxnodes
-    affinity_ctx['all_cpus']=all_cpus
-    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
-    affinity_ctx['numa_layout']=numa_layout
-    affinity_ctx['affinity_match']=affinity_match
-
-def get_numa_affinity_ctx( affinity_ctx ):
-    # test numaclt --show .. look for cpu bind of 0,1 and cpu id atleast 31
-    maxnode=0
-    maxcpu=0
-    lines = [line.rstrip() for line in os.popen('numactl --show')]
-    for l in lines:
-        if l.startswith('nodebind'):
-            maxnode=int(l.split()[-1])
-        if l.startswith('physcpubind'):
-            maxcpu=int(l.split()[-1])
-
-    maxcpus=maxcpu+1
-    maxnodes=maxnode+1
-    numa_layout=[]
-    try:
-      for i in range(maxnodes):
-          xx = [line.rstrip() for line in open('/sys/devices/system/node/node'+str(i)+'/cpulist')]
-          numa_layout.append(xx[0])
-    except:
-        pass
-
-    all_cpus='0-'+str(maxcpus-1)
-    all_cpus_sans0='1-'+str(maxcpus-1)
-    if maxcpus == 2:
-        all_cpus_sans0='1'
-    elif maxcpus == 1 :
-        all_cpus="0"
-        all_cpus_sans0=''
-
-    affinity_match = { "all":all_cpus,
-                       "sock0":  all_cpus,
-                       "sock1": all_cpus,
-                       "sock0sans0":  all_cpus_sans0,
-                       "sock1sans0":  all_cpus_sans0,
-                       "5" : all_cpus,
-                       "8-10" : all_cpus }
-
-    if len(numa_layout) > 0:
-        affinity_match["sock0"]=numa_layout[0]
-        aa=numa_layout[0]
-        if maxcpus > 2:
-            affinity_match["sock0sans0"] = str(int(aa[0])+1)+aa[1:]
-
-    if len(numa_layout) > 1:
-        affinity_match["sock1"]=numa_layout[1]
-        affinity_match["sock1sans0"]=numa_layout[1]
-
-    if maxcpus > 5:
-        affinity_match["5"]="5"
-
-    if maxcpus > 11:
-        affinity_match["8-10"]="8-10"
-
-    if maxcpus == 2:
-        affinity_match["5"] = all_cpus_sans0
-        affinity_match["8-10"]= all_cpus_sans0
-
-    affinity_ctx['maxcpus']=maxcpus
-    affinity_ctx['maxnodes']=maxnodes
-    affinity_ctx['all_cpus']=all_cpus
-    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
-    affinity_ctx['numa_layout']=numa_layout
-    affinity_ctx['affinity_match']=affinity_match
-
-    
 if __name__ == "__main__":
-    # figure out numa layout, test numaclt --show ..
-    all_cpus="0"
-    maxnode=1
-    maxcpu=1
-    eface="em1"
-    #
-    # Figure out ethernet interface to use
-    #
-    lines = [line.rstrip() for line in os.popen('cat /proc/net/dev')]
-    import re
-    for l in lines[2:]:
-        t1=l.split(':')[0].lstrip()
-        if re.match('e.*', t1 ) :
-            eface=t1
-            break
-
-    affinity_test_src['eface']=eface
-
-    nonnuma_affinity_ctx={}
-    get_nonnuma_affinity_ctx(nonnuma_affinity_ctx)
-    numa_affinity_ctx={}
-    get_numa_affinity_ctx(numa_affinity_ctx)
-
-    # figure out if GPP has numa library dependency
-    lines = [ line.rstrip() for line in os.popen('ldd ../cpp/GPP') ]
-    numa=False
-    for l in lines:
-        if "libnuma" in l:
-            numa=True
-
-    if numa:
-        print "NumaSupport ", numa_affinity_ctx
-        maxcpus = numa_affinity_ctx['maxcpus']
-        maxnodes = numa_affinity_ctx['maxnodes']
-        all_cpus = numa_affinity_ctx['all_cpus']
-        all_cpus_sans0 = numa_affinity_ctx['all_cpus_sans0']
-        numa_layout=numa_affinity_ctx['numa_layout']
-        numa_match=numa_affinity_ctx['affinity_match']
-    else:
-        print "NonNumaSupport ", nonnuma_affinity_ctx
-        maxcpus = nonnuma_affinity_ctx['maxcpus']
-        maxnodes = nonnuma_affinity_ctx['maxnodes']
-        all_cpus = nonnuma_affinity_ctx['all_cpus']
-        all_cpus_sans0 = nonnuma_affinity_ctx['all_cpus_sans0']
-        numa_layout=nonnuma_affinity_ctx['numa_layout']
-        numa_match=nonnuma_affinity_ctx['affinity_match']
-
-    if maxnodes < 2 :
-        affinity_test_src["sock1"] = "0"
-
-    if maxcpus == 2:
-        affinity_test_src["8-10"] = all_cpus_sans0
-        affinity_test_src["5"] = all_cpus_sans0
-    else:
-        if maxcpus < 9 or maxcpus < 11 :
-            affinity_test_src["8-10"] = all_cpus
-            affinity_test_src["5"] = all_cpus
-
-    print "numa findings maxnodes:", maxnodes, " maxcpus:", maxcpus, " numa_match:", numa_match, " numa_layout", numa_layout, " map:", affinity_test_src
+    if False:
+        # Debugging support: enable this conditional to dump NUMA topology
+        print "NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus))
+        for node in topology.nodes:
+            print 'Node', node.node, 'CPUs:', node.cpus
     ossie.utils.testing.main("../GPP.spd.xml") # By default tests all implementations
