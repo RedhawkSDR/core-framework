@@ -74,6 +74,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         self.comp = None
         self._pids = []
         self._testDirs = []
+        self._busyProcs = []
 
     def launchGPP(self, properties={}):
         # Launch the device, using the selected implementation
@@ -81,6 +82,11 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         return self.comp
 
     def tearDown(self):
+        # Clean up any leftover busy subprocesses
+        for proc in self._busyProcs:
+            if proc.poll() is None:
+                proc.kill()
+
         # Terminate all launched executables, ignoring errors
         remaining_pids = []
         for pid in self._pids:
@@ -104,6 +110,18 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
     def addTestDirectory(self, path):
         self._testDirs.append(path)
+
+    def addBusyTasks(self, count):
+        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in xrange(count)]
+
+    def clearBusyTasks(self):
+        for proc in self._busyProcs:
+            proc.kill()
+        self._busyProcs = []
+
+    def waitUsageState(self, state, timeout):
+        wait_predicate(lambda: self.comp._get_usageState() == state, timeout)
+        self.assertEqual(self.comp._get_usageState(), state)
 
     def _execute(self, executable, options, parameters):
         if isinstance(options, dict):
@@ -201,16 +219,14 @@ class GPPTests(GPPSandboxTest):
         # Launch the third component and give up to 2 seconds for the GPP to go
         # busy; CPU utilization should now be 75% subscribed
         self._launchComponent("/component_stub.py", 'reservation_3', "/component_stub/component_stub.spd.xml")
-        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.BUSY, 2.0)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        self.waitUsageState(CF.Device.BUSY, 2.0)
         expected = 0.75 * self.comp.processor_cores
         self.assertEquals(expected, self.comp.utilization[0].subscribed)
 
         # Reduce the reserved capacity such that it consumes less than the idle
         # threshold (10% x 3 = 30% active = 70% idle)
         self.comp.reserved_capacity_per_component = 0.1 * self.comp.processor_cores
-        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.ACTIVE, 2.0)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.waitUsageState(CF.Device.ACTIVE, 2.0)
         # 30% is an inexact fraction, so allow a little tolerance
         expected = 0.3 * self.comp.processor_cores
         self.assertAlmostEquals(expected, self.comp.utilization[0].subscribed, 1)
@@ -224,8 +240,7 @@ class GPPTests(GPPSandboxTest):
         self._launchComponent("/component_stub.py", 'floor_reservation_1', "/component_stub/component_stub.spd.xml",
                               parameters={"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0})
 
-        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.BUSY, 2.0)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        self.waitUsageState(CF.Device.BUSY, 2.0)
 
     def _unpackThresholdEvents(self, message):
         for dt in any.from_any(message, keep_structs=True):
@@ -419,6 +434,56 @@ class GPPTests(GPPSandboxTest):
         with open(expected, 'r') as fp:
             echo_pid = int(fp.read().strip())
         self.assertEqual(pid, echo_pid)
+
+    def testBusyCpuIdle(self):
+        self.launchGPP()
+
+        # Disable load average threshold
+        self.comp.thresholds.load_avg = -1
+
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+
+        # Task all of the CPUs to be busy (more or less) and wait for the idle
+        # threshold to be exceeded
+        self.addBusyTasks(self.comp.processor_cores)
+        self.waitUsageState(CF.Device.BUSY, 5.0)
+        self.failUnless("CPU IDLE" in self.comp.busy_reason.upper())
+
+        # Clear all busy tasks and wait for the device to go back to idle
+        self.clearBusyTasks()
+        self.waitUsageState(CF.Device.IDLE, 5.0)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason, "")
+
+    def testBusyLoadAvg(self):
+        self.launchGPP()
+
+        # Disable CPU idle threshold and lower the load average threshold so
+        # that it's easier to exceed
+        self.comp.thresholds.cpu_idle = -1
+        self.comp.thresholds.load_avg = 25
+
+        # The load average may exceed the threshold to begin with, depending on
+        # what the system was doing before this test
+        print 'Waiting for load average to fall below threshold, may take a while'
+        self.waitUsageState(CF.Device.IDLE, 30.0)
+
+        # Occupy all of the CPUs with busy tasks and wait for the load average
+        # to exceed the threshold; this may take a while, since it's based on a
+        # 1 minute window
+        self.addBusyTasks(self.comp.processor_cores)
+        print 'Waiting for load average to exceed threshold, may take a while'
+        self.waitUsageState(CF.Device.BUSY, 30.0)
+        self.failUnless("LOAD AVG" in self.comp.busy_reason.upper())
+
+        # Clear all of the busy tasks; again, due to the 1 minute window, it
+        # may take a little while for the load average to drop back below the
+        # threshold
+        self.clearBusyTasks()
+        print 'Waiting for load average to fall below threshold, may take a while'
+        self.waitUsageState(CF.Device.IDLE, 30.0)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason, "")
 
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
@@ -614,156 +679,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             pass
         else:
             self.fail("Process failed to terminate")
-            
-    def testBusy(self):
-        self.runGPP()
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        cores = multiprocessing.cpu_count()
-        sleep_time = 3+cores/10.0
-        if sleep_time < 7:
-            sleep_time = 7
-        procs = []
-        for core in range(cores*2):
-            procs.append(subprocess.Popen('bin/busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br=self.comp.busy_reason.queryValue()
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        self.assertEqual(br_cpu, True)
-        for proc in procs:
-            proc.kill()
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(self.comp.busy_reason, "")
-        
-        fs_stub = ComponentTests.FileSystemStub('./dat')
-        fs_stub_var = fs_stub._this()
-        
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid = self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid, 0)
-        time.sleep(1)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
-        cores = multiprocessing.cpu_count()
-        procs = []
-        for core in range(cores*2):
-            procs.append(subprocess.Popen('bin/busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        for proc in procs:
-            proc.kill()
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
-        self.assertEqual(self.comp.busy_reason.queryValue(), "")
-        
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            self.fail("Process failed to execute")
-        time.sleep(1)    
-        self.comp_obj.terminate(pid)
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Process failed to terminate")
-
-
-
-    def test_busy_allow(self):
-        self.runGPP(execparam_overrides={'DEBUG_LEVEL': 3 })
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        cores = multiprocessing.cpu_count()
-        sleep_time = 3+cores/10.0
-        if sleep_time < 7:
-            sleep_time = 7
-        procs = []
-        for core in range(cores*2+5):
-            procs.append(subprocess.Popen('bin/busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br=self.comp.busy_reason.queryValue()
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        self.assertEqual(br_cpu, True)
-
-        # turn off check for idle
-        self.comp.thresholds.cpu_idle = 0.0
-        # wait for busy to be reported... should just be load avg .. takes approx 1 minute
-        for i in range(42):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="LOAD AVG" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        self.assertEqual(br_cpu, True)
-
-        # turn off check for load_avg
-        self.comp.thresholds.load_avg = 100.0
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            if br == "":
-                break
-            time.sleep(1.5)
-        # wait for busy to be reported... should just be load avg now
-        br=self.comp.busy_reason.queryValue()
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(br, "")
-
-        # turn on check for cpu_idle check
-        self.comp.thresholds.cpu_idle = 10.0
-        # wait for busy to be reported... should just be load avg now
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="CPU IDLE" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-        br_cpu="CPU IDLE" in br.upper()
-        self.assertEqual(br_cpu, True)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-
-        # turn on check for load_avg check
-        self.comp.thresholds.load_avg = 80.0
-        # wait for busy to be reported... should just be load avg now
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-
-        self.assertEqual(br_cpu, True)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        for proc in procs:
-            proc.kill()
-        for i in range(40):
-            br=self.comp.busy_reason.queryValue()
-            if br == "":
-                break
-            time.sleep(1.5)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(self.comp.busy_reason.queryValue(), "")
-        time.sleep(1)    
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-        except OSError:
-            pass
 
 
     def visual_testBusy(self):
@@ -1439,7 +1354,6 @@ class DomainSupport(scatest.CorbaTestCase):
 
     def setUp(self):
         super(DomainSupport,self).setUp()
-        self.child_pids=[]
         self.orig_sdrroot=os.environ['SDRROOT']
         os.environ['SDRROOT'] = os.getcwd()+'/sdr'
         print "\n-----------------------"
@@ -1451,26 +1365,9 @@ class DomainSupport(scatest.CorbaTestCase):
 
     def tearDown(self):
         super(DomainSupport, self).tearDown()
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-        except OSError:
-            pass
-        for child_p in self.child_pids:
-            try:
-                print "teardown (2)", child_p
-                os.system('kill -9 '+str(child_p))
-            except OSError:
-                pass
         os.environ['SDRROOT'] = self.orig_sdrroot
 
 class ComponentTests_SystemReservations(DomainSupport):
-    def setUp(self):
-        super(ComponentTests_SystemReservations,self).setUp()
-
-    def tearDown(self):
-        super(ComponentTests_SystemReservations, self).tearDown()
-
     def close(self, value_1, value_2, margin = 0.01):
         if (value_2 * (1-margin)) < value_1 and (value_2 * (1+margin)) > value_1:
             return True
