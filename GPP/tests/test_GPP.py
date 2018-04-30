@@ -58,6 +58,15 @@ def wait_predicate(pred, timeout):
             return
         time.sleep(0.1)
 
+def nolaunch(obj):
+    """
+    Decorator to disable automatic launch of the GPP from the setUp() method.
+    This is for use by tests that must override properties that can only be set
+    via the command line or initializeProperties().
+    """
+    obj.nolaunch = True
+    return obj
+
 # Base unit testing class for new-style GPP tests, based off of the default
 # generated unit test. Adds simplified management and cleanup of programs
 # launched by the GPP.
@@ -71,10 +80,22 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         print "Running: ", self.id().split('.')[-1]
         print "-----------------------\n"
 
-        self.comp = None
+        if self._shouldLaunch():
+            self.launchGPP()
+        else:
+            self.comp = None
+
         self._pids = []
         self._testDirs = []
         self._busyProcs = []
+
+    def _shouldLaunch(self):
+        method = getattr(self, self._testMethodName, None)
+        if not method:
+            return True
+        # Check for the 'nolaunch' attribute (its value is irrelevant); unless
+        # it's present, launch the GPP
+        return not hasattr(method, 'nolaunch')
 
     def launchGPP(self, properties={}):
         # Launch the device, using the selected implementation
@@ -156,18 +177,21 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
         return (pid, comp)
 
+    def _launchComponentStub(self, name, options={}, parameters={}):
+        executable = '/dat/component_stub/python/component_stub.py'
+        profile = '/component_stub/component_stub.spd.xml'
+        return self._launchComponent(executable, name, profile, options, parameters)
+
 
 class GPPTests(GPPSandboxTest):
     def testPropertyEvents(self):
-        gpp = self.launchGPP()
-
         event_queue = Queue.Queue()
         event_channel = sb.createEventChannel('properties')
         event_channel.eventReceived.addListener(event_queue.put)
 
-        gpp.connect(event_channel)
+        self.comp.connect(event_channel)
 
-        gpp.loadThreshold = 81
+        self.comp.loadThreshold = 81
         
         # Make sure the background status events are emitted
         try:
@@ -176,27 +200,24 @@ class GPPTests(GPPSandboxTest):
             self.fail('Property change event not received')
         event = any.from_any(event, keep_structs=True)
         event_dict = ossie.properties.props_to_dict(event.properties)
-        self.assertEqual(gpp._id, event.sourceId)
-        self.assertEqual(gpp.loadThreshold.id, event.properties[0].id)
+        self.assertEqual(self.comp._id, event.sourceId)
+        self.assertEqual(self.comp.loadThreshold.id, event.properties[0].id)
         self.assertEqual(81, any.from_any(event.properties[0].value))
 
     def testLimits(self):
-        gpp = self.launchGPP()
-
         # Check that the system limits are sane
-        self.assertTrue(gpp.sys_limits.current_threads > 0)
-        self.assertTrue(gpp.sys_limits.max_threads > gpp.sys_limits.current_threads)
-        self.assertTrue(gpp.sys_limits.current_open_files > 0)
-        self.assertTrue(gpp.sys_limits.max_open_files > gpp.sys_limits.current_open_files)
+        self.assertTrue(self.comp.sys_limits.current_threads > 0)
+        self.assertTrue(self.comp.sys_limits.max_threads > self.comp.sys_limits.current_threads)
+        self.assertTrue(self.comp.sys_limits.current_open_files > 0)
+        self.assertTrue(self.comp.sys_limits.max_open_files > self.comp.sys_limits.current_open_files)
 
         # Check that the GPP's process limits are also sane
-        self.assertTrue(gpp.gpp_limits.current_threads > 0)
-        self.assertTrue(gpp.gpp_limits.max_threads > gpp.gpp_limits.current_threads)
-        self.assertTrue(gpp.gpp_limits.current_open_files > 0)
-        self.assertTrue(gpp.gpp_limits.max_open_files > gpp.gpp_limits.current_open_files)
+        self.assertTrue(self.comp.gpp_limits.current_threads > 0)
+        self.assertTrue(self.comp.gpp_limits.max_threads > self.comp.gpp_limits.current_threads)
+        self.assertTrue(self.comp.gpp_limits.current_open_files > 0)
+        self.assertTrue(self.comp.gpp_limits.max_open_files > self.comp.gpp_limits.current_open_files)
 
     def testReservation(self):
-        self.launchGPP()
         # Set the idle threshold to 30% (i.e., can use up to 70%) and the
         # reserved capacity per component to 25%; this gives plenty of headroom
         # with two components (50% utilization leaves a 20% margin), but a
@@ -205,8 +226,8 @@ class GPPTests(GPPSandboxTest):
         self.comp.reserved_capacity_per_component = 0.25 * self.comp.processor_cores
         self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
 
-        self._launchComponent("/component_stub.py", 'reservation_1', "/component_stub/component_stub.spd.xml")
-        self._launchComponent("/component_stub.py", 'reservation_2', "/component_stub/component_stub.spd.xml")
+        self._launchComponentStub('reservation_1')
+        self._launchComponentStub('reservation_2')
 
         # Give the GPP a couple of measurement cycles to make sure it doesn't
         # go busy; the CPU utilization (always the first entry) should report
@@ -218,7 +239,7 @@ class GPPTests(GPPSandboxTest):
 
         # Launch the third component and give up to 2 seconds for the GPP to go
         # busy; CPU utilization should now be 75% subscribed
-        self._launchComponent("/component_stub.py", 'reservation_3', "/component_stub/component_stub.spd.xml")
+        self._launchComponentStub('reservation_3')
         self.waitUsageState(CF.Device.BUSY, 2.0)
         expected = 0.75 * self.comp.processor_cores
         self.assertEquals(expected, self.comp.utilization[0].subscribed)
@@ -232,13 +253,11 @@ class GPPTests(GPPSandboxTest):
         self.assertAlmostEquals(expected, self.comp.utilization[0].subscribed, 1)
 
     def testFloorReservation(self):
-        self.launchGPP()
-
         # Reserve an absurdly large amount of cores, which should drive the GPP
         # to a busy state immediately
         self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
-        self._launchComponent("/component_stub.py", 'floor_reservation_1', "/component_stub/component_stub.spd.xml",
-                              parameters={"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0})
+        params = {"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0}
+        self._launchComponentStub('floor_reservation_1', parameters=params)
 
         self.waitUsageState(CF.Device.BUSY, 2.0)
 
@@ -309,8 +328,6 @@ class GPPTests(GPPSandboxTest):
         self.assertEqual(set(), expected)
 
     def testThresholdEvents(self):
-        self.launchGPP()
-
         # Cut down the threshold cycle time to trigger events faster (we're not
         # worried about the extra processing time here)
         self.comp.threshold_cycle_time = 0.1
@@ -356,11 +373,11 @@ class GPPTests(GPPSandboxTest):
     def testDefaultDirectories(self):
         # Test that when cache and working directory are not given, the
         # properties still have meaningful values
-        self.launchGPP()
         cwd = os.getcwd()
         self.assertEquals(cwd, self.comp.cacheDirectory)
         self.assertEquals(cwd, self.comp.workingDirectory)
 
+    @nolaunch
     def testCacheDirectory(self):
         # Create an alternate directory for the cache
         cache_dir = os.path.join(os.getcwd(), 'testCacheDirectory')
@@ -378,6 +395,7 @@ class GPPTests(GPPSandboxTest):
         self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
         self.failUnless(os.path.isfile(expected))
 
+    @nolaunch
     def testWorkingDirectory(self):
         # Create an alternate directory for the working directory
         working_dir = os.path.join(os.getcwd(), 'testWorkingDirectory')
@@ -400,6 +418,7 @@ class GPPTests(GPPSandboxTest):
             echo_pid = int(fp.read().strip())
         self.assertEqual(pid, echo_pid)
 
+    @nolaunch
     def testCacheAndWorkingDirectory(self):
         # Test the interaction of the cache and working directories; create an
         # alternate directory for both
@@ -436,8 +455,6 @@ class GPPTests(GPPSandboxTest):
         self.assertEqual(pid, echo_pid)
 
     def testBusyCpuIdle(self):
-        self.launchGPP()
-
         # Disable load average threshold
         self.comp.thresholds.load_avg = -1
 
@@ -456,8 +473,6 @@ class GPPTests(GPPSandboxTest):
         self.assertEqual(self.comp.busy_reason, "")
 
     def testBusyLoadAvg(self):
-        self.launchGPP()
-
         # Disable CPU idle threshold and lower the load average threshold so
         # that it's easier to exceed
         self.comp.thresholds.cpu_idle = -1
@@ -1191,8 +1206,8 @@ class AffinityTests(GPPSandboxTest):
     def setUp(self):
         super(AffinityTests,self).setUp()
 
-        # Launch the GPP with affinity handling enabled
-        self.launchGPP({'affinity':{'disabled':False}})
+        # Always enable affinity handling for these tests
+        self.comp.affinity.disabled = False
 
     def _getAllowedCpuList(self, pid):
         filename = '/proc/%d/status' % pid
@@ -1208,8 +1223,7 @@ class AffinityTests(GPPSandboxTest):
         options = {}
         if affinity:
             options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
-        pid, comp = self._launchComponent("/component_stub.py", name, "/component_stub/component_stub.spd.xml",
-                                          options=options)
+        pid, comp = self._launchComponentStub(name, options=options)
         return pid
 
     def _getNicAffinity(self, nic):
