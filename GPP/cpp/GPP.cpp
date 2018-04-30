@@ -871,11 +871,11 @@ GPP_i::initializeResourceMonitors()
   _freeMemThresholdMonitor->add_listener(this, &GPP_i::_freeMemThresholdStateChanged);
   threshold_monitors.push_back(_freeMemThresholdMonitor);
 
-  _threadThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("threads", "ULIMIT", this, &GPP_i::_threadThresholdCheck);
+  _threadThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "THREADS", this, &GPP_i::_threadThresholdCheck);
   _threadThresholdMonitor->add_listener(this, &GPP_i::_threadThresholdStateChanged);
   threshold_monitors.push_back(_threadThresholdMonitor);
 
-  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("files", "ULIMIT", this, &GPP_i::_fileThresholdCheck);
+  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "FILES", this, &GPP_i::_fileThresholdCheck);
   _fileThresholdMonitor->add_listener(this, &GPP_i::_fileThresholdStateChanged);
   threshold_monitors.push_back(_fileThresholdMonitor);
 

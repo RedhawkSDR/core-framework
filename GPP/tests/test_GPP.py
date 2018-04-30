@@ -39,6 +39,7 @@ from ossie.utils.sandbox import naming
 from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
+import ossie.properties
 from redhawk import numa
 
 from _unitTestHelpers import scatest, runtestHelpers
@@ -51,6 +52,283 @@ def requireNuma(obj):
     return skipUnless(hasNumaSupport(), 'Affinity control is disabled')(obj)
 
 topology = numa.NumaTopology()
+
+def wait_predicate(pred, timeout):
+    end = time.time() + timeout
+    while time.time() < end:
+        if pred():
+            return
+        time.sleep(0.1)
+
+# Base unit testing class for new-style GPP tests, based off of the default
+# generated unit test. Adds simplified management and cleanup of programs
+# launched by the GPP.
+class GPPSandboxTest(ossie.utils.testing.RHTestCase):
+    # Path to the SPD file, relative to this file. This must be set in order to
+    # launch the device.
+    SPD_FILE = '../GPP.spd.xml'
+
+    def setUp(self):
+        print "\n-----------------------"
+        print "Running: ", self.id().split('.')[-1]
+        print "-----------------------\n"
+
+        self.comp = None
+        self._pids = []
+
+    def launchGPP(self, properties={}):
+        # Launch the device, using the selected implementation
+        self.comp = sb.launch(self.spd_file, impl=self.impl, properties=properties)
+        return self.comp
+
+    def tearDown(self):
+        # Terminate all launched executables, ignoring errors
+        remaining_pids = []
+        for pid in self._pids:
+            try:
+                self.comp.ref.terminate(pid)
+            except:
+                remaining_pids.append(pid)
+
+        # In case the GPP really failed badly, manually kill the processes
+        for pid in remaining_pids:
+            os.killpg(pid, 9)
+
+        # Clean up all sandbox artifacts created during test
+        sb.release()
+
+    def _execute(self, executable, options, parameters):
+        if isinstance(options, dict):
+            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
+        if isinstance(parameters, dict):
+            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
+        pid = self.comp.ref.execute(executable, options, parameters)
+        if pid != 0:
+            self._pids.append(pid)
+        return pid
+
+    def _launchComponent(self, executable, name, profile, options={}, parameters={}):
+        # Using the stub from the naming module allows fetching the component
+        # object, which the other version does not support; these should be
+        # consolidated at some point
+        appReg = naming.ApplicationRegistrarStub()
+        appreg_ior = sb.orb.object_to_string(appReg._this())
+
+        params = {}
+        params.update(parameters)
+        params['COMPONENT_IDENTIFIER'] = name
+        params['NAME_BINDING'] =  name
+        params['PROFILE_NAME'] = profile
+        params['NAMING_CONTEXT_IOR'] = appreg_ior
+
+        pid = self._execute(executable, options, params)
+        self.assertNotEqual(pid, 0)
+
+        wait_predicate(lambda: appReg.getObject(name) is not None, 2.0)
+        comp = appReg.getObject(name)
+        self.failIf(comp is None, "component '" + name + "' never registered")
+
+        return (pid, comp)
+
+
+class GPPTests(GPPSandboxTest):
+    def testPropertyEvents(self):
+        gpp = self.launchGPP()
+
+        event_queue = Queue.Queue()
+        event_channel = sb.createEventChannel('properties')
+        event_channel.eventReceived.addListener(event_queue.put)
+
+        gpp.connect(event_channel)
+
+        gpp.loadThreshold = 81
+        
+        # Make sure the background status events are emitted
+        try:
+            event = event_queue.get(timeout=1.0)
+        except Queue.Empty:
+            self.fail('Property change event not received')
+        event = any.from_any(event, keep_structs=True)
+        event_dict = ossie.properties.props_to_dict(event.properties)
+        self.assertEqual(gpp._id, event.sourceId)
+        self.assertEqual(gpp.loadThreshold.id, event.properties[0].id)
+        self.assertEqual(81, any.from_any(event.properties[0].value))
+
+    def testLimits(self):
+        gpp = self.launchGPP()
+
+        # Check that the system limits are sane
+        self.assertTrue(gpp.sys_limits.current_threads > 0)
+        self.assertTrue(gpp.sys_limits.max_threads > gpp.sys_limits.current_threads)
+        self.assertTrue(gpp.sys_limits.current_open_files > 0)
+        self.assertTrue(gpp.sys_limits.max_open_files > gpp.sys_limits.current_open_files)
+
+        # Check that the GPP's process limits are also sane
+        self.assertTrue(gpp.gpp_limits.current_threads > 0)
+        self.assertTrue(gpp.gpp_limits.max_threads > gpp.gpp_limits.current_threads)
+        self.assertTrue(gpp.gpp_limits.current_open_files > 0)
+        self.assertTrue(gpp.gpp_limits.max_open_files > gpp.gpp_limits.current_open_files)
+
+    def testReservation(self):
+        self.launchGPP()
+        # Set the idle threshold to 30% (i.e., can use up to 70%) and the
+        # reserved capacity per component to 25%; this gives plenty of headroom
+        # with two components (50% utilization leaves a 20% margin), but a
+        # third component unambiguously crosses into the busy threshold
+        self.comp.thresholds.cpu_idle = 30
+        self.comp.reserved_capacity_per_component = 0.25 * self.comp.processor_cores
+        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+
+        self._launchComponent("/component_stub.py", 'reservation_1', "/component_stub/component_stub.spd.xml")
+        self._launchComponent("/component_stub.py", 'reservation_2', "/component_stub/component_stub.spd.xml")
+
+        # Give the GPP a couple of measurement cycles to make sure it doesn't
+        # go busy; the CPU utilization (always the first entry) should report
+        # 50% subscribed
+        time.sleep(2)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        expected = 0.5 * self.comp.processor_cores
+        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+
+        # Launch the third component and give up to 2 seconds for the GPP to go
+        # busy; CPU utilization should now be 75% subscribed
+        self._launchComponent("/component_stub.py", 'reservation_3', "/component_stub/component_stub.spd.xml")
+        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.BUSY, 2.0)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        expected = 0.75 * self.comp.processor_cores
+        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+
+        # Reduce the reserved capacity such that it consumes less than the idle
+        # threshold (10% x 3 = 30% active = 70% idle)
+        self.comp.reserved_capacity_per_component = 0.1 * self.comp.processor_cores
+        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.ACTIVE, 2.0)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        # 30% is an inexact fraction, so allow a little tolerance
+        expected = 0.3 * self.comp.processor_cores
+        self.assertAlmostEquals(expected, self.comp.utilization[0].subscribed, 1)
+
+    def testFloorReservation(self):
+        self.launchGPP()
+
+        # Reserve an absurdly large amount of cores, which should drive the GPP
+        # to a busy state immediately
+        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+        self._launchComponent("/component_stub.py", 'floor_reservation_1', "/component_stub/component_stub.spd.xml",
+                              parameters={"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0})
+
+        wait_predicate(lambda: self.comp._get_usageState() == CF.Device.BUSY, 2.0)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+
+    def _unpackThresholdEvents(self, message):
+        for dt in any.from_any(message, keep_structs=True):
+            if dt.id != 'threshold_event':
+                continue
+            props = any.from_any(dt.value, keep_structs=True)
+            yield ossie.properties.props_to_dict(props)
+
+    def _checkThresholdEvent(self, thresholdClass, resourceId, exceeded):
+        try:
+            event = self.queue.get(timeout=2.0)
+        except Queue.Empty:
+            self.fail('Threshold event not received')
+        self.assertEqual(thresholdClass, event['threshold_event::threshold_class'])
+        self.assertEqual(resourceId, event['threshold_event::resource_id'])
+        self._assertThresholdState(event, exceeded)
+
+    def _assertThresholdState(self, event, exceeded):
+        if exceeded:
+            event_type = 'THRESHOLD_EXCEEDED'
+        else:
+            event_type = 'THRESHOLD_NOT_EXCEEDED'
+        self.assertEqual(event_type, event['threshold_event::type'])
+
+    def _testThresholdEventType(self, name, thresholdClass, resourceId, value):
+        # Save the original value and set the test value to trigger an
+        # "exceeded" event
+        orig_value = self.comp.thresholds[name]
+        self.comp.thresholds[name] = value
+        self._checkThresholdEvent(thresholdClass, resourceId, True)
+
+        # Turning off the threshold should trigger a "not exceeded" event
+        self.comp.thresholds.ignore = True
+        self._checkThresholdEvent(thresholdClass, resourceId, False)
+
+        # Turning it on again should trigger another "exceeded" event
+        self.comp.thresholds.ignore = False
+        self._checkThresholdEvent(thresholdClass, resourceId, True)
+
+        # Restore the original value, trigger "not exceeded" event
+        self.comp.thresholds[name] = orig_value
+        self._checkThresholdEvent(thresholdClass, resourceId, False)
+
+    def _checkNicEvents(self, nics, exceeded):
+        expected = set(nics)
+        end = time.time() + 2.0
+        while expected and (time.time() < end):
+            try:
+                event = self.queue.get_nowait()
+            except Queue.Empty:
+                time.sleep(0.1)
+                continue
+
+            # Ignore anything besides NIC messages
+            if event['threshold_event::resource_id'] != 'NIC_THROUGHPUT':
+                continue
+
+            # Filter out extraneous messages (usually one of the virtual NICs)
+            nic_name = event['threshold_event::threshold_class']
+            if nic_name not in nics:
+                continue
+
+            self._assertThresholdState(event, exceeded)
+            expected.remove(nic_name)
+
+        self.assertEqual(set(), expected)
+
+    def testThresholdEvents(self):
+        self.launchGPP()
+
+        # Cut down the threshold cycle time to trigger events faster (we're not
+        # worried about the extra processing time here)
+        self.comp.threshold_cycle_time = 0.1
+
+        # Create a virtual event channel to queue the GPP's messages
+        event_channel = sb.createEventChannel('thresholds')
+        self.queue = Queue.Queue()
+        def queue_message(message):
+            # Unpack and queue up threshold event messages
+            for event in self._unpackThresholdEvents(message):
+                self.queue.put(event)
+
+        event_channel.eventReceived.addListener(queue_message)
+        self.comp.connect(event_channel, usesPortName="MessageEvent_out")
+
+        # Test all thresholds except NIC, which is a little more complex
+        self._testThresholdEventType('cpu_idle', 'cpu', 'CPU_IDLE', 100)
+        self._testThresholdEventType('mem_free', 'physical_ram', 'MEMORY_FREE', self.comp.memFree + 100)
+        self._testThresholdEventType('load_avg', 'cpu', 'LOAD_AVG', 0)
+        self._testThresholdEventType('shm_free', 'shm', 'SHM_FREE', self.comp.shmCapacity)
+        self._testThresholdEventType('files_available', 'ulimit', 'FILES', 100.0)
+        self._testThresholdEventType('threads', 'ulimit', 'THREADS', 100.0)
+
+        # If there is more than one NIC (real or virtual), each one will emit
+        # an event; we only really care about the "available" NICs
+        nics = list(self.comp.available_nic_interfaces)
+        nic_usage = int(self.comp.thresholds.nic_usage)
+        self.comp.thresholds.nic_usage = 0
+        self._checkNicEvents(nics, True)
+
+        # Turning off the threshold should trigger "not exceeded" event(s)
+        self.comp.thresholds.ignore = True
+        self._checkNicEvents(nics, False)
+
+        # Turning it on again should trigger "exceeded" event(s)
+        self.comp.thresholds.ignore = False
+        self._checkNicEvents(nics, True)
+
+        # Restore the original value, trigger "not exceeded" event(s)
+        self.comp.thresholds.nic_usage = nic_usage
+        self._checkNicEvents(nics, False)
 
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
@@ -561,84 +839,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         except:
             pass
 
-        
-    def testPropertyEvents(self):
-        class Consumer_i(CosEventChannelAdmin__POA.ProxyPushConsumer):
-            def __init__(self, parent, instance_id):
-                self.supplier = None
-                self.parent = parent
-                self.instance_id = instance_id
-                self.existence_lock = threading.Lock()
-                
-            def push(self, data):
-                self.parent.actionQueue.put(data)
-            
-            def connect_push_supplier(self, supplier):
-                self.supplier = supplier
-                
-            def disconnect_push_consumer(self):
-                self.existence_lock.acquire()
-                try:
-                    self.supplier.disconnect_push_supplier()
-                except:
-                    pass
-                self.existence_lock.release()
-            
-        class SupplierAdmin_i(CosEventChannelAdmin__POA.SupplierAdmin):
-            def __init__(self, parent):
-                self.parent = parent
-                self.instance_counter = 0
-        
-            def obtain_push_consumer(self):
-                self.instance_counter += 1
-                self.parent.consumer_lock.acquire()
-                self.parent.consumers[self.instance_counter] = Consumer_i(self.parent,self.instance_counter)
-                objref = self.parent.consumers[self.instance_counter]._this()
-                self.parent.consumer_lock.release()
-                return objref
-        
-        class EventChannelStub(CosEventChannelAdmin__POA.EventChannel):
-            def __init__(self):
-                self.consumer_lock = threading.RLock()
-                self.consumers = {}
-                self.actionQueue = Queue.Queue()
-                self.supplier_admin = SupplierAdmin_i(self)
-
-            def for_suppliers(self):
-                return self.supplier_admin._this()
-
-        #######################################################################
-        # Launch the device
-        self.runGPP({"propertyEventRate": 5})
-        
-        orb = CORBA.ORB_init()
-        obj_poa = orb.resolve_initial_references("RootPOA")
-        poaManager = obj_poa._get_the_POAManager()
-        poaManager.activate()
-
-        eventChannel = EventChannelStub()
-        eventChannelId = obj_poa.activate_object(eventChannel)
-        eventPort = self.comp_obj.getPort("propEvent")
-        eventPort = eventPort._narrow(CF.Port)
-        eventPort.connectPort(eventChannel._this(), "eventChannel")
-
-        #configureProps = self.getPropertySet(kinds=("configure",), modes=("readwrite", "writeonly"), includeNil=False)
-        configureProps = [CF.DataType(id='DCE:22a60339-b66e-4309-91ae-e9bfed6f0490',value=any.to_any(81))]
-        self.comp_obj.configure(configureProps)
-        
-        # Make sure the background status events are emitted
-        time.sleep(0.5)
-        
-        self.assert_(eventChannel.actionQueue.qsize() > 0)
-        
-        event = eventChannel.actionQueue.get()
-        event = any.from_any(event, keep_structs=True)
-        event_dict = ossie.properties.props_to_dict(event.properties)
-        self.assert_(self.comp_obj._get_identifier() == event.sourceId)
-        self.assert_('DCE:22a60339-b66e-4309-91ae-e9bfed6f0490' == event.properties[0].id)
-        self.assert_(81 == any.from_any(event.properties[0].value))
-
-
+       
     def test_workingCacheDirView(self):
         # set mcast exec param values for the test
         eparms = { "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700": 'eth0',
@@ -751,19 +952,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # now try to allocate capacity, should fail
         allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
         self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
-
-    def test_sys_limits(self):
-
-        self.runGPP()
-        p=CF.DataType(id='sys_limits',value=any.to_any(None))
-        retval = self.comp.query([p])[0].value._v
-        ids = []
-        for item in retval:
-            ids.append(item.id)
-        self.assertTrue('sys_limits::current_threads')
-        self.assertTrue('sys_limits::max_threads')
-        self.assertTrue('sys_limits::current_open_files')
-        self.assertTrue('sys_limits::max_open_files')
 
     def get_single_nic_interface(self):
         import commands
@@ -997,104 +1185,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
-    def testReservation(self):
-        self.runGPP()
-        self.comp.thresholds.cpu_idle = 50
-        self.comp.reserved_capacity_per_component = 0.5
-        number_reservations = (self.comp.processor_cores / self.comp.reserved_capacity_per_component) * ((100-self.comp.thresholds.cpu_idle)/100.0)
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
-        for i in range(int(number_reservations-1)):
-            self.child_pids.append(self.comp.ref.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+str(i))), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_"+str(i))), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-            time.sleep(0.1)
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
-
-    def testFloorReservation(self):
-        self.runGPP()
-        self.comp.thresholds.cpu_idle = 10
-        self.comp.reserved_capacity_per_component = 0.5
-        number_reservations = (self.comp.processor_cores / self.comp.reserved_capacity_per_component) * ((100-self.comp.thresholds.cpu_idle)/100.0)
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+'_1')), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_1")), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2.1)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+'_1')), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_1")), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2.1)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        pid = self.child_pids.pop()
-        self.comp_obj.terminate(pid)
-        time.sleep(2.1)
-        reservation = CF.DataType(id="RH::GPP::MODIFIED_CPU_RESERVATION_VALUE", value=any.to_any(1000.0))
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior)), reservation]))
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
-
 @requireNuma
-class AffinityTests(ossie.utils.testing.RHTestCase):
-    # Path to the SPD file, relative to this file. This must be set in order to
-    # launch the device.
-    SPD_FILE = '../GPP.spd.xml'
-
-    # setUp is run before every function preceded by "test" is executed
-    # tearDown is run after every function preceded by "test" is executed
-    
-    # self.comp is a device using the sandbox API
-    # to create a data source, the package sb contains data sources like DataSource or FileSource
-    # to create a data sink, there are sinks like DataSink and FileSink
-    # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
-    #  src = sb.FileSource('myfile.dat')
-    #  snk = sb.DataSink()
-    #  src.connect(self.comp)
-    #  self.comp.connect(snk)
-    #  sb.start()
-    #
-    # components/sources/sinks need to be started. Individual components or elements can be started
-    #  src.start()
-    #  self.comp.start()
-    #
-    # every component/elements in the sandbox can be started
-    #  sb.start()
-
+class AffinityTests(GPPSandboxTest):
     def setUp(self):
-        print "\n-----------------------"
-        print "Running: ", self.id().split('.')[-1]
-        print "-----------------------\n"
+        super(AffinityTests,self).setUp()
 
-        # Launch the device, using the selected implementation
-        self.comp = sb.launch(self.spd_file, impl=self.impl, properties={'affinity':{'disabled':False}})
-
-        self._pids = []
-    
-    def tearDown(self):
-        # Terminate all launched executables, ignoring errors
-        remaining_pids = []
-        for pid in self._pids:
-            try:
-                self.comp.ref.terminate(pid)
-            except:
-                remaining_pids.append(pid)
-
-        # In case the GPP really failed badly, manually kill the processes
-        for pid in remaining_pids:
-            os.killpg(pid, 9)
-
-        # Clean up all sandbox artifacts created during test
-        sb.release()
+        # Launch the GPP with affinity handling enabled
+        self.launchGPP({'affinity':{'disabled':False}})
 
     def _getAllowedCpuList(self, pid):
         filename = '/proc/%d/status' % pid
@@ -1106,42 +1203,12 @@ class AffinityTests(ossie.utils.testing.RHTestCase):
                 return numa.parseValues(cpu_list, ",")
         return []
 
-    def _execute(self, executable, options, parameters):
-        if isinstance(options, dict):
-            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
-        if isinstance(parameters, dict):
-            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
-        pid = self.comp.ref.execute(executable, options, parameters)
-        if pid != 0:
-            self._pids.append(pid)
-        return pid
-
     def _deployWithAffinityOptions(self, name, affinity={}):
-        appReg = naming.ApplicationRegistrarStub()
-        appreg_ior = sb.orb.object_to_string(appReg._this())
         options = {}
         if affinity:
             options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
-            
-        pid = self._execute("/component_stub.py", options,
-                            {"COMPONENT_IDENTIFIER": name, 
-                             "NAME_BINDING": name,
-                             "PROFILE_NAME": "/component_stub/component_stub.spd.xml",
-                             "NAMING_CONTEXT_IOR": appreg_ior})
-        self.assertNotEqual(pid, 0)
-
-        # There is a delay between when execute() returns and the when the GPP
-        # applies the affinity settings that may cause false failures; waiting
-        # until the component registers ensures that the affinity is set
-        end = time.time() + 2.0
-        while time.time() < end:
-            comp = appReg.getObject(name)
-            if comp is not None:
-                break
-            time.sleep(0.1)
-
-        self.failIf(comp is None, "component '" + name + "' never registered")
-
+        pid, comp = self._launchComponent("/component_stub.py", name, "/component_stub/component_stub.spd.xml",
+                                          options=options)
         return pid
 
     def _getNicAffinity(self, nic):
