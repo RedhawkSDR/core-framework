@@ -85,11 +85,6 @@
 #include "statistics/CpuUsageStats.h"
 #include "reports/NicThroughputThresholdMonitor.h"
 
-#define PROCESSOR_NAME "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b"
-#define OS_NAME        "DCE:4a23ad60-0b25-4121-a630-68803a498f75"
-#define OS_VERSION     "DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192"
-
-
 
 class SigChildThread : public ThreadedComponent {
   friend class GPP_i;
@@ -119,6 +114,8 @@ private:
 };
 
 
+static const uint64_t MB_TO_BYTES = 1024*1024;
+
 uint64_t conv_units( const std::string &units ) {
   uint64_t unit_m=1024*1024;
   if ( units == "Kb" ) unit_m = 1e3;
@@ -126,7 +123,7 @@ uint64_t conv_units( const std::string &units ) {
   if ( units == "Gb" ) unit_m = 1e9;
   if ( units == "Tb" ) unit_m = 1e12;
   if ( units == "KB" ) unit_m = 1024;
-  if ( units == "MB" || units == "MiB" ) unit_m = 1024*1024;
+  if ( units == "MB" || units == "MiB" ) unit_m = MB_TO_BYTES;
   if ( units == "GB" ) unit_m = 1024*1024*1024;
   if ( units == "TB" ) unit_m = (uint64_t)1024*1024*1024*1024;
   return unit_m;
@@ -524,7 +521,7 @@ void GPP_i::constructor()
     LOG_DEBUG(GPP_i, "Working directory: " << workingDirectory);
     LOG_DEBUG(GPP_i, "Cache directory: " << cacheDirectory);
 
-    shmCapacity = redhawk::shm::getSystemTotalMemory();
+    shmCapacity = redhawk::shm::getSystemTotalMemory() / MB_TO_BYTES;
 
     // Initialize system and user CPU ticks
     ProcStat::GetTicks(_systemTicks, _userTicks);
@@ -966,12 +963,12 @@ void GPP_i::_fileThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_shmThresholdCheck()
 {
-    return shmFree < (CORBA::ULongLong) _shmThreshold;
+    return shmFree < modified_thresholds.shm_free;
 }
 
 void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage(monitor, shmFree, _shmThreshold);
+    _sendThresholdMessage(monitor, shmFree, modified_thresholds.shm_free);
 }
 
 template <typename T1, typename T2>
@@ -1118,7 +1115,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent)) / mem_cap_units ;
   memCapacityThreshold = memCapacity;
 
-  shmFree = redhawk::shm::getSystemFreeMemory();
+  shmFree = redhawk::shm::getSystemFreeMemory() / MB_TO_BYTES;
 
   //
   // set initial modified thresholds
@@ -1236,7 +1233,7 @@ void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_str
             LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
                       << ov.shm_free << "/" << nv.shm_free);
         }
-        _shmThreshold = nv.shm_free * (1024 * 1024);
+        modified_thresholds.shm_free = nv.shm_free;
         _shmThresholdMonitor->enable();
     }
 
@@ -1725,7 +1722,7 @@ bool GPP_i::_check_nic_thresholds()
     if ( nic_monitors.size() != 0 && nic_monitors.size() == nic_exceeded ) {
         std::ostringstream oss;
         oss << "Threshold (cumulative) : " << threshold << " Actual (cumulative) : " << actual;
-        _setReason( "NIC USAGE ", oss.str() );
+        _setBusyReason( "NIC USAGE ", oss.str() );
         retval = true;
     }
 
@@ -1742,15 +1739,14 @@ void GPP_i::updateUsageState()
 {
     // allow for global ignore of thresholds
     if ( thresholds.ignore == true  ) {
+        _resetBusyReason();
         LOG_TRACE(GPP_i, "Ignoring threshold checks ");
         if (getPids().size() == 0) {
             LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
-            _resetReason();
             setUsageState(CF::Device::IDLE);
         }
         else {
             LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
-            _resetReason();
             setUsageState(CF::Device::ACTIVE);
         }
         return;
@@ -1790,93 +1786,83 @@ void GPP_i::updateUsageState()
   if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
-      _setReason( "CPU IDLE", oss.str() );
-      setUsageState(CF::Device::BUSY);
-      return;
+      _setBusyReason("CPU IDLE", oss.str());
   }
-
-  if (_freeMemThresholdMonitor->is_threshold_exceeded()) {
+  else if (_freeMemThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
-      _setReason( "FREE MEMORY", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("FREE MEMORY", oss.str());
   }
-
   else if (_loadAvgThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
-      _setReason( "LOAD AVG", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("LOAD AVG", oss.str());
   }
-  else if ( reserved_capacity_per_component != 0 && (subscribed > max_allowable_load) ) {
+  else if ((reserved_capacity_per_component != 0) && (subscribed > max_allowable_load)) {
       std::ostringstream oss;
       oss << "Threshold: " << max_allowable_load << " Actual(subscribed) " << subscribed;
-      _setReason( "RESERVATION CAPACITY", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("RESERVATION CAPACITY", oss.str());
   }
-  else if ( !(thresholds.nic_usage < 0) && _check_nic_thresholds() ) {
+  else if (_shmThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " << modified_thresholds.shm_free << " Actual: " << shmFree;
+      _setBusyReason("SHARED MEMORY", oss.str());
+  }
+  else if ((thresholds.nic_usage >= 0) && _check_nic_thresholds()) {
       setUsageState(CF::Device::BUSY);
   }
   else if (_threadThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads;
-      _setReason( "ULIMIT (MAX_THREADS)", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("ULIMIT (MAX_THREADS)", oss.str());
   }
   else if (_fileThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
-      _setReason( "ULIMIT (MAX_FILES)", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("ULIMIT (MAX_FILES)", oss.str());
   }
   else if (getPids().size() == 0) {
     LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
-    _resetReason();
+    _resetBusyReason();
     setUsageState(CF::Device::IDLE);
   }
   else {
     LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
-    _resetReason();
+    _resetBusyReason();
     setUsageState(CF::Device::ACTIVE);
   }
 }
 
 
-void GPP_i::_resetReason() {
-    _setReason("","");
+void GPP_i::_resetBusyReason() {
+    _busy.mark = _busy.timestamp = boost::posix_time::not_a_date_time;
+    _busy.resource.clear();
+    busy_reason.clear();
 }
 
-void GPP_i::_setReason( const std::string &reason, const std::string &event, const bool enable_timestamp ) {
-
-    if ( reason != "" ) {
-        if ( reason != _busy_reason ) {
-            LOG_INFO(GPP_i, "GPP BUSY, REASON: " << reason << " " << event );
-            _busy_timestamp = boost::posix_time::microsec_clock::local_time();
-            _busy_mark = boost::posix_time::microsec_clock::local_time();
-            _busy_reason = reason;
-            std::ostringstream oss;
-            oss << "(time: " << _busy_timestamp << ") REASON: " << _busy_reason << " EXCEEDED " << event;
-            busy_reason = oss.str();
-        }
-        else if ( reason == _busy_reason ) {
-            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration dur = now - _busy_timestamp;
-            boost::posix_time::time_duration last_msg = now - _busy_mark;
-            std::ostringstream oss;
-            oss << "(first/duration: " << _busy_timestamp << "/" << dur << ") REASON: " << _busy_reason << " EXCEEDED " << event;
-            busy_reason = oss.str();
-            if ( last_msg.total_seconds() >  2 ) {
-                _busy_mark = now;
-                LOG_INFO(GPP_i, "GPP BUSY, " << oss.str() );
-            }
+void GPP_i::_setBusyReason(const std::string& resource, const std::string& message)
+{
+    if (resource != _busy.resource) {
+        LOG_INFO(GPP_i, "GPP BUSY, REASON: " << resource << " " << message);
+        _busy.timestamp = boost::posix_time::microsec_clock::local_time();
+        _busy.mark = boost::posix_time::microsec_clock::local_time();
+        _busy.resource = resource;
+        std::ostringstream oss;
+        oss << "(time: " << _busy.timestamp << ") REASON: " << _busy.resource << " EXCEEDED " << message;
+        busy_reason = oss.str();
+    } else {
+        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration dur = now - _busy.timestamp;
+        boost::posix_time::time_duration last_msg = now - _busy.mark;
+        std::ostringstream oss;
+        oss << "(first/duration: " << _busy.timestamp << "/" << dur << ") REASON: " << _busy.resource << " EXCEEDED " << message;
+        busy_reason = oss.str();
+        if ( last_msg.total_seconds() >  2 ) {
+            _busy.mark = now;
+            LOG_INFO(GPP_i, "GPP BUSY, " << oss.str() );
         }
     }
-    else {
-        _busy_timestamp = boost::posix_time::microsec_clock::local_time();
-        _busy_mark = _busy_timestamp;
-        busy_reason = reason;
-        _busy_reason = reason;
-    }
+    setUsageState(CF::Device::BUSY);
 }
 
 /**
@@ -2786,7 +2772,7 @@ void GPP_i::update()
               " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
               " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
 
-    shmFree = redhawk::shm::getSystemFreeMemory();
+    shmFree = redhawk::shm::getSystemFreeMemory() / MB_TO_BYTES;
 
     //
     // transfer limits to properties

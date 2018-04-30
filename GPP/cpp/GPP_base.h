@@ -92,9 +92,9 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         /// Property: memCapacity
         CORBA::LongLong memCapacity;
         /// Property: shmFree
-        CORBA::ULongLong shmFree;
+        CORBA::LongLong shmFree;
         /// Property: shmCapacity
-        CORBA::ULongLong shmCapacity;
+        CORBA::LongLong shmCapacity;
         /// Property: loadTotal
         double loadTotal;
         /// Property: loadCapacityPerCore

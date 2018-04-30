@@ -303,17 +303,20 @@ class GPP_i : public GPP_base
           redhawk::events::SubscriberPtr                      odm_consumer;       // interface that receives ODM_Channel events
           redhawk::events::ManagerPtr                         mymgr;              // interface to manage event channel access
 
-          std::string                                         _busy_reason;
-          boost::posix_time::ptime                            _busy_timestamp;          // time when busy reason was initially set
-          boost::posix_time::ptime                            _busy_mark;               // track message output
+          // State tracking for busy reason
+          struct {
+              std::string              resource;
+              boost::posix_time::ptime timestamp;          // time when busy reason was initially set
+              boost::posix_time::ptime mark;               // track message output
+          } _busy;
 
         private:
 
           //
           // set the busy reason property for the GPP..  
           //
-          void  _resetReason();
-          void  _setReason( const std::string &reason, const std::string &event, const bool enable_timestamp = true );
+          void  _resetBusyReason();
+          void  _setBusyReason(const std::string& resource, const std::string& message);
 
           bool  _component_cleanup( const int pid, const int exit_status );
 
@@ -390,8 +393,6 @@ class GPP_i : public GPP_base
           ThresholdMonitorPtr _loadAvgThresholdMonitor;
           ThresholdMonitorPtr _threadThresholdMonitor;
           ThresholdMonitorPtr _fileThresholdMonitor;
-
-          CORBA::LongLong _shmThreshold;
           ThresholdMonitorPtr _shmThresholdMonitor;
 
           template <typename T1, typename T2>

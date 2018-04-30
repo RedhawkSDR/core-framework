@@ -87,6 +87,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
         self._pids = []
         self._testDirs = []
+        self._testFiles = []
         self._busyProcs = []
 
     def _shouldLaunch(self):
@@ -126,11 +127,23 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         # Clean up all sandbox artifacts created during test
         sb.release()
 
+        for filename in self._testFiles:
+            try:
+                os.unlink(filename)
+            except OSError:
+                pass
+
         for path in self._testDirs:
             shutil.rmtree(path)
 
     def addTestDirectory(self, path):
         self._testDirs.append(path)
+
+    def addTestFile(self, path):
+        self._testFiles.append(path)
+
+    def removeTestFile(self, path):
+        self._testFiles.remove(path)
 
     def addBusyTasks(self, count):
         self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in xrange(count)]
@@ -454,6 +467,19 @@ class GPPTests(GPPSandboxTest):
             echo_pid = int(fp.read().strip())
         self.assertEqual(pid, echo_pid)
 
+    def testSharedMemoryProperties(self):
+        status = os.statvfs('/dev/shm')
+
+        # The total shouldn't change in normal operation, so using the same
+        # expected integer math should give the same value
+        total = (status.f_blocks * status.f_frsize) / 1024 / 1024
+        self.assertEqual(total, self.comp.shmCapacity)
+
+        # Free could vary slightly if something else is happening on the
+        # system, so give it a little bit of slack (1 MB)
+        free = (status.f_bfree * status.f_frsize) / 1024 / 1024
+        self.failIf(abs(free - self.comp.shmFree) > 1)
+
     def testBusyCpuIdle(self):
         # Disable load average threshold
         self.comp.thresholds.load_avg = -1
@@ -497,8 +523,38 @@ class GPPTests(GPPSandboxTest):
         self.clearBusyTasks()
         print 'Waiting for load average to fall below threshold, may take a while'
         self.waitUsageState(CF.Device.IDLE, 30.0)
-        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
         self.assertEqual(self.comp.busy_reason, "")
+
+    def testBusySharedMemory(self):
+        # Cut down the update time for testing
+        self.comp.threshold_cycle_time = 0.1
+
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+
+        # Set the shared memory threshold a little below the current free, so
+        # that a relative small uptick in usage will cross the threshold
+        current_shm = int(self.comp.shmFree)
+        self.comp.thresholds.shm_free = current_shm - 2
+
+        # Create a temporary file that consumes a few MB, enough to cross the
+        # threshold and a little further just to be sure
+        shm_file = '/dev/shm/test-%d' % os.getpid()
+        fill_size = 4*1024*1024
+        self.addTestFile(shm_file)
+        with open(shm_file, 'w') as fp: 
+            # Resize the file and write one byte every page to ensure that
+            # shared memory is consumed
+            fp.truncate(fill_size)
+            for pos in xrange(0, fill_size, 4096):
+                fp.seek(pos)
+                fp.write('\x00')
+
+        self.waitUsageState(CF.Device.BUSY, 1.0)
+
+        # Remove the file, which should push the free shared memory back over
+        # the threshold
+        os.unlink(shm_file)
+        self.waitUsageState(CF.Device.IDLE, 1.0)
 
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):

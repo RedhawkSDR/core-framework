@@ -314,7 +314,7 @@ void GPP_base::loadProperties()
                 "shmFree",
                 "shmFree",
                 "readonly",
-                "B",
+                "MB",
                 "external",
                 "property");
 
@@ -322,7 +322,7 @@ void GPP_base::loadProperties()
                 "shmCapacity",
                 "shmCapacity",
                 "readonly",
-                "B",
+                "MB",
                 "external",
                 "property");
 

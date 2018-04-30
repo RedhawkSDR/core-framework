@@ -453,13 +453,13 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <kind kindtype="allocation"/>
     <action type="external"/>
   </simple>
-  <simple id="shmFree" mode="readonly" name="shmFree" type="ulonglong">
-    <units>B</units>
+  <simple id="shmFree" mode="readonly" name="shmFree" type="longlong">
+    <units>MB</units>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="ulonglong">
-    <units>B</units>
+  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="longlong">
+    <units>MB</units>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
