@@ -1702,26 +1702,22 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         self.launchDomainManager()
         self._testFiles = []
 
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
+        dcd_file = 'sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml'
+        with open(dcd_file + '.in', 'r') as fp:
+            original = fp.read()
 
         cwd = os.getcwd()
         self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
         self.cache_dir = self.base_dir+'/cache'
         self.cwd_dir = self.base_dir+'/cwd'
-        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
+        modified = original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
         modified = modified.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
 
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
+        with open(dcd_file, 'w') as fp:
+            fp.write(modified)
+        self._testFiles.append(dcd_file)
 
     def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-
         super(LoadableDeviceVariableDirectoriesTest, self).tearDown()
         for file in self._testFiles:
             os.unlink(file)

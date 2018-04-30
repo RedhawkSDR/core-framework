@@ -1,6 +1,3 @@
 sdr/dev/devices/GPP/
 sdr/dev/mgr
 sdr/dom/mgr
-sdr/dom/components/check_cwd_cpp/cpp/check_cwd_cpp
-sdr/dom/components/check_cwd_java/java/bin/
-sdr/dom/components/check_cwd_java/java/check_cwd_java.jar
