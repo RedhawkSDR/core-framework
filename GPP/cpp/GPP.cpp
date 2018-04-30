@@ -499,21 +499,30 @@ void GPP_i::_init() {
 
 void GPP_i::constructor()
 {
-    if (this->workingDirectory.empty() or this->cacheDirectory.empty()) {
-        char* tmp;
-        std::string path;
-        tmp = getcwd(NULL, 200);
-        if (tmp != NULL) {
-            path = std::string(tmp);
-            free(tmp);
-        }
-        if (this->workingDirectory.empty()) {
-            this->workingDirectory = path;
-        }
-        if (this->cacheDirectory.empty()) {
-            this->cacheDirectory = path;
+    // Get the initial working directory
+    char buf[PATH_MAX+1];
+    getcwd(buf, sizeof(buf));
+    std::string path = buf;
+
+    // If a working directory was given, change to that
+    if (!workingDirectory.empty()) {
+        if (chdir(workingDirectory.c_str())) {
+            LOG_ERROR(GPP_i, "Cannot change working directory to " << workingDirectory);
+            workingDirectory = "";
         }
     }
+    // Otherwise, default to the initial working directory
+    if (workingDirectory.empty()) {
+        workingDirectory = path;
+    }
+
+    // If no cache directory given, use initial working directory
+    if (cacheDirectory.empty()) {
+        cacheDirectory = path;
+    }
+
+    LOG_DEBUG(GPP_i, "Working directory: " << workingDirectory);
+    LOG_DEBUG(GPP_i, "Cache directory: " << cacheDirectory);
 
     shmCapacity = redhawk::shm::getSystemTotalMemory();
 
@@ -1270,7 +1279,6 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
            CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
            CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
-
     boost::recursive_mutex::scoped_lock lock;
     try
     {
@@ -1284,11 +1292,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
 
-    std::vector<std::string> prepend_args;
-    std::string naming_context_ior;
-    CF::Properties variable_parameters;
-    variable_parameters = parameters;
-    redhawk::PropertyMap& tmp_params = redhawk::PropertyMap::cast(variable_parameters);
+    redhawk::PropertyMap tmp_params(parameters);
     float reservation_value = -1;
     if (tmp_params.find("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE") != tmp_params.end()) {
         try {
@@ -1298,29 +1302,32 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         }
         tmp_params.erase("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE");
     }
-    naming_context_ior = tmp_params["NAMING_CONTEXT_IOR"].toString();
-    std::string app_id;
-    std::string component_id = tmp_params["COMPONENT_IDENTIFIER"].toString();
+
+    std::string component_id = tmp_params.get("COMPONENT_IDENTIFIER", std::string()).toString();
     if (applicationReservations.find(component_id) != applicationReservations.end()) {
         applicationReservations.erase(component_id);
     }
-    std::string name_binding = tmp_params["NAME_BINDING"].toString();
-    CF::Application_var _app = CF::Application::_nil();
-    CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
-    if (CORBA::is_nil(obj)) {
-        LOG_WARN(GPP_i, "Invalid application registrar IOR");
-    } else {
-        CF::ApplicationRegistrar_var _appRegistrar = CF::ApplicationRegistrar::_nil();
-        _appRegistrar = CF::ApplicationRegistrar::_narrow(obj);
-        if (CORBA::is_nil(_appRegistrar)) {
+
+    std::string naming_context_ior = tmp_params.get("NAMING_CONTEXT_IOR", std::string()).toString();
+    std::string app_id;
+    if (!naming_context_ior.empty()) {
+        CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
+        if (CORBA::is_nil(obj)) {
             LOG_WARN(GPP_i, "Invalid application registrar IOR");
         } else {
-            _app = _appRegistrar->app();
-            if (not CORBA::is_nil(_app)) {
-                app_id = ossie::corba::returnString(_app->identifier());
+            CF::ApplicationRegistrar_var app_registrar = CF::ApplicationRegistrar::_narrow(obj);
+            if (CORBA::is_nil(app_registrar)) {
+                LOG_WARN(GPP_i, "Invalid application registrar IOR");
+            } else {
+                CF::Application_var application = app_registrar->app();
+                if (!CORBA::is_nil(application)) {
+                    app_id = ossie::corba::returnString(application->identifier());
+                }
             }
         }
     }
+
+    std::vector<std::string> prepend_args;
     if (useScreen) {
         std::string ld_lib_path(getenv("LD_LIBRARY_PATH"));
         setenv("GPP_LD_LIBRARY_PATH",ld_lib_path.c_str(),1);
@@ -1356,6 +1363,8 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         prepend_args.push_back("-m");
         prepend_args.push_back("-c");
         prepend_args.push_back(binary_location+"gpp.screenrc");
+
+        std::string name_binding = tmp_params.get("NAME_BINDING", std::string()).toString();
         if ((not component_id.empty()) and (not name_binding.empty())) {
             if (component_id.find("DCE:") != std::string::npos) {
                 component_id = component_id.substr(4, std::string::npos);

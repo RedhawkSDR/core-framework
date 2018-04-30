@@ -23,10 +23,8 @@ import unittest
 import os
 import socket
 import time
-import signal
 import commands
 import sys
-import threading
 import Queue
 import shutil
 import subprocess, multiprocessing
@@ -75,6 +73,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
         self.comp = None
         self._pids = []
+        self._testDirs = []
 
     def launchGPP(self, properties={}):
         # Launch the device, using the selected implementation
@@ -92,10 +91,19 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
         # In case the GPP really failed badly, manually kill the processes
         for pid in remaining_pids:
-            os.killpg(pid, 9)
+            try:
+                os.killpg(pid, 9)
+            except OSError:
+                pass
 
         # Clean up all sandbox artifacts created during test
         sb.release()
+
+        for path in self._testDirs:
+            shutil.rmtree(path)
+
+    def addTestDirectory(self, path):
+        self._testDirs.append(path)
 
     def _execute(self, executable, options, parameters):
         if isinstance(options, dict):
@@ -330,6 +338,88 @@ class GPPTests(GPPSandboxTest):
         self.comp.thresholds.nic_usage = nic_usage
         self._checkNicEvents(nics, False)
 
+    def testDefaultDirectories(self):
+        # Test that when cache and working directory are not given, the
+        # properties still have meaningful values
+        self.launchGPP()
+        cwd = os.getcwd()
+        self.assertEquals(cwd, self.comp.cacheDirectory)
+        self.assertEquals(cwd, self.comp.workingDirectory)
+
+    def testCacheDirectory(self):
+        # Create an alternate directory for the cache
+        cache_dir = os.path.join(os.getcwd(), 'testCacheDirectory')
+        os.mkdir(cache_dir)
+        self.addTestDirectory(cache_dir)
+        self.launchGPP({'cacheDirectory':cache_dir})
+
+        # Make sure the property is correct
+        self.assertEqual(cache_dir, self.comp.cacheDirectory)
+
+        # Load a file and check that it was copied to the right place
+        expected = os.path.join(cache_dir, 'bin/echo_pid.py')
+        self.failIf(os.path.exists(expected))
+        fs_stub = ComponentTests.FileSystemStub()
+        self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
+        self.failUnless(os.path.isfile(expected))
+
+    def testWorkingDirectory(self):
+        # Create an alternate directory for the working directory
+        working_dir = os.path.join(os.getcwd(), 'testWorkingDirectory')
+        os.mkdir(working_dir)
+        self.addTestDirectory(working_dir)
+        self.launchGPP({'workingDirectory':working_dir})
+
+        # Make sure the property is correct
+        self.assertEqual(working_dir, self.comp.workingDirectory)
+
+        # Run a test executable that writes to its current directory
+        expected = os.path.join(working_dir, 'pid.out')
+        self.failIf(os.path.exists(expected))
+        pid = self._execute("/bin/echo_pid.py", {}, {})
+        wait_predicate(lambda: os.path.exists(expected), 1.0)
+        self.failUnless(os.path.exists(expected))
+
+        # Read the output file and make sure that the right PID was written
+        with open(expected, 'r') as fp:
+            echo_pid = int(fp.read().strip())
+        self.assertEqual(pid, echo_pid)
+
+    def testCacheAndWorkingDirectory(self):
+        # Test the interaction of the cache and working directories; create an
+        # alternate directory for both
+        base_dir = os.path.join(os.getcwd(), 'testCacheAndWorkingDirectory')
+        os.mkdir(base_dir)
+        self.addTestDirectory(base_dir)
+        cache_dir  = os.path.join(base_dir, 'cache')
+        os.mkdir(cache_dir)
+        working_dir = os.path.join(base_dir, 'cwd')
+        os.mkdir(working_dir)
+        self.launchGPP({'cacheDirectory':cache_dir, 'workingDirectory':working_dir})
+
+        # Make sure the properties are correct
+        self.assertEqual(cache_dir, self.comp.cacheDirectory)
+        self.assertEqual(working_dir, self.comp.workingDirectory)
+
+        # Load a file and check that it was copied to the right place
+        expected = os.path.join(cache_dir, 'bin/echo_pid.py')
+        self.failIf(os.path.exists(expected))
+        fs_stub = ComponentTests.FileSystemStub()
+        self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
+        self.failUnless(os.path.isfile(expected))
+
+        # Run a test executable that writes to its current directory
+        expected = os.path.join(working_dir, 'pid.out')
+        self.failIf(os.path.exists(expected))
+        pid = self._execute("/bin/echo_pid.py", {}, {})
+        wait_predicate(lambda: os.path.exists(expected), 1.0)
+        self.failUnless(os.path.exists(expected))
+
+        # Read the output file and make sure that the right PID was written
+        with open(expected, 'r') as fp:
+            echo_pid = int(fp.read().strip())
+        self.assertEqual(pid, echo_pid)
+
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
@@ -347,6 +437,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             os.remove(sproc)
         except:
             pass
+
         try:
             # kill all busy.py just in case
             os.system('pkill -9 -f busy.py')
@@ -449,11 +540,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
     # Create a test file system
     class FileStub(CF__POA.File):
-        def __init__(self):
-            self.fobj = open("dat/component_stub.py")
+        def __init__(self, path):
+            self.path = path
+            self.fobj = open(self.path)
         
         def sizeOf(self):
-            return os.path.getsize("dat/component_stub.py")
+            return os.path.getsize(self.path)
         
         def read(self, bytes):
             return self.fobj.read(bytes)
@@ -462,15 +554,20 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             return self.fobj.close()
             
     class FileSystemStub(CF__POA.FileSystem):
+        def __init__(self, path='.'):
+            self.path = os.path.abspath(path)
+            
         def list(self, path):
-            return [CF.FileSystem.FileInformationType(path[1:], CF.FileSystem.PLAIN, 100, [])]
+            path = os.path.basename(path)
+            return [CF.FileSystem.FileInformationType(path, CF.FileSystem.PLAIN, 100, [])]
         
         def exists(self, fileName):
-            tmp_fileName = './dat/'+fileName
+            tmp_fileName = self.path + fileName
             return os.access(tmp_fileName, os.F_OK)
             
         def open(self, path, readonly):
-            file = ComponentTests.FileStub()
+            tmp_fileName = self.path + path
+            file = ComponentTests.FileStub(tmp_fileName)
             return file._this()
 
     def testExecute(self):
@@ -479,7 +576,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         configureProps = self.getPropertySet(kinds=("configure",), modes=("readwrite", "writeonly"), includeNil=False)
         self.comp_obj.configure(configureProps)
         
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
         
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -528,7 +625,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             sleep_time = 7
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
         br=self.comp.busy_reason.queryValue()
@@ -540,7 +637,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
         self.assertEqual(self.comp.busy_reason, "")
         
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
         
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -559,7 +656,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         cores = multiprocessing.cpu_count()
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
         br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
@@ -596,7 +693,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             sleep_time = 7
         procs = []
         for core in range(cores*2+5):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         time.sleep(sleep_time)
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
         br=self.comp.busy_reason.queryValue()
@@ -679,7 +776,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             sleep_time = 7
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
             print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
@@ -694,7 +791,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
         self.assertEqual(self.comp.busy_reason, "")
 
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
 
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -713,7 +810,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         cores = multiprocessing.cpu_count()
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
             print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
@@ -753,7 +850,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         useScreen = qr[0].value.value()
         self.assertEqual(useScreen, True)
         
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
         
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -820,7 +917,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def test_scraping_proc(self):
 
         # start up subprocess with spaces in the name...
-        proc="./busy.py"
+        proc="bin/busy.py"
         sproc="./spacely sprockets"
         shutil.copy(proc,sproc)
         procs = subprocess.Popen(sproc)
@@ -840,17 +937,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             pass
 
        
-    def test_workingCacheDirView(self):
-        # set mcast exec param values for the test
-        eparms = { "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700": 'eth0',
-                   'DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec': 100,
-                   'DCE:442d5014-2284-4f46-86ae-ce17e0749da0': 100 }
-        self.runGPP(eparms)
-        cwd = os.getcwd()
-        self.assertEquals(cwd,self.comp.cacheDirectory)
-        self.assertEquals(cwd,self.comp.workingDirectory)
-
-
     def test_mcastNicThreshold(self):
 
         # set mcast exec param values for the test
@@ -1775,89 +1861,6 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
                     found_dir = True
                     break
         self.assertTrue(found_dir)
-
-class LoadableDeviceVariableCacheDirTest(DomainSupport):
-    def setUp(self):
-        super(LoadableDeviceVariableCacheDirTest,self).setUp()
-        self.launchDomainManager()
-        
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
-        
-        cwd = os.getcwd()
-        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
-        self.cache_dir = self.base_dir+'/cache'
-        self.cwd_dir = self.cache_dir
-        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
-        
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
-
-    def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-        
-        super(LoadableDeviceVariableCacheDirTest, self).tearDown()
-        
-        shutil.rmtree(self.base_dir)
-            
-    def test_CompConfigCache(self):
-        self.assertNotEqual(self.dom, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml")
-        self.assertNotEqual(devMgr, None)
-        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd.py' in files:
-                if 'cache/components/check_cwd/python' in root:
-                    found_dir = True
-        self.assertEquals(found_dir, True)
-
-class LoadableDeviceVariableCWDTest(DomainSupport):
-    def setUp(self):
-        super(LoadableDeviceVariableCWDTest,self).setUp()
-        self.launchDomainManager()
-        
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
-        
-        cwd = os.getcwd()
-        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
-        self.cwd_dir = self.base_dir+'/cwd'
-        modified = self.original.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
-        
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
-
-    def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-        
-        super(LoadableDeviceVariableCWDTest, self).tearDown()
-        
-        shutil.rmtree(self.base_dir)
-            
-    def test_CompConfigCWD(self):
-        self.assertNotEqual(self.dom, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml")
-        self.assertNotEqual(devMgr, None)
-        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd.py' in files:
-                if 'cwd/components/check_cwd/python' in root:
-                    found_dir = True
-        self.assertEquals(found_dir, True)
 
 
 if __name__ == "__main__":
