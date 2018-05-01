@@ -384,10 +384,6 @@ class GPP_i : public GPP_base
           //
           bool _check_nic_thresholds();
 
-          template <typename T1, typename T2>
-          ThresholdMonitorPtr _addMonitoredValue(const std::string& resourceId, const std::string& messageClass,
-                                                 T1& value, const T2& threshold);
-
           ThresholdMonitorPtr _cpuIdleThresholdMonitor;
           ThresholdMonitorPtr _freeMemThresholdMonitor;
           ThresholdMonitorPtr _loadAvgThresholdMonitor;
