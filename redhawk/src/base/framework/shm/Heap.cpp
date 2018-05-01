@@ -100,6 +100,11 @@ Heap::Heap(const std::string& name) :
 
 Heap::~Heap()
 {
+    // Remove the file when the owner exits; other processes connected to the
+    // same superblock file will still be able to access everything, but no new
+    // connections are possible
+    _file.file().unlink();
+
 #ifdef HEAP_DEBUG
     std::cout << _superblocks.size() << " superblocks" << std::endl;
     std::cout << _file.size() << " total bytes" << std::endl;

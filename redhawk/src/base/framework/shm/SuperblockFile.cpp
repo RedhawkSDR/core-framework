@@ -195,6 +195,9 @@ void SuperblockFile::close()
 
     _detach();
 
+    // Unmap the header to avoid keeping the file alive
+    _file.unmap(_header, MappedFile::PAGE_SIZE);
+
     _file.close();
 
     _header = 0;

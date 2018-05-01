@@ -420,6 +420,8 @@ class GPP_i : public GPP_base
 
           void _sendThresholdEvent(ThresholdMonitor* monitor);
 
+          void _cleanupProcessShm(pid_t pid);
+
           // Processor time counters
           int64_t _systemTicks;
           int64_t _userTicks;

@@ -41,17 +41,23 @@ namespace redhawk {
                 if (shm_env && strcmp(shm_env, "disable") == 0) {
                     std::cerr << "SHM disabled" << std::endl;
                 } else {
-                    std::ostringstream oss;
-                    oss << "heap-" << getpid();
+                    const std::string name = redhawk::shm::getProcessHeapName(getpid());
                     Heap* heap = 0;
                     try {
-                        heap = new Heap(oss.str());
+                        heap = new Heap(name);
                     } catch (const std::exception&) {
                         std::cerr << "Unable to create process heap, SHM disabled" << std::endl;
                     }
                     instance.reset(heap);
                 }
             }
+        }
+
+        std::string getProcessHeapName(pid_t pid)
+        {
+            std::ostringstream oss;
+            oss << "heap-" << pid;
+            return oss.str();
         }
 
         Heap* getProcessHeap()

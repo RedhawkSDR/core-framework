@@ -74,6 +74,8 @@
 #include <ossie/Events.h>
 #include <ossie/affinity.h>
 #include <ossie/shm/System.h>
+#include <ossie/shm/Allocator.h>
+#include <ossie/shm/SuperblockFile.h>
 
 #include "GPP.h"
 #include "utils/affinity.h"
@@ -1697,6 +1699,11 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
     }
 
     removeProcess(pid);
+
+    // Ensure that if the process created a shared memory heap, it gets removed
+    // to avoid wasting shared memory
+    _cleanupProcessShm(pid);
+
     return true;
 }
 
@@ -3159,4 +3166,22 @@ int  GPP_i::_get_deploy_on_partition() {
 
   if ( psoc > -1 ) { RH_NL_INFO("GPP", " Deploy resource on selected SOCKET PARTITON, socket:" << psoc ); }
   return psoc;
+}
+
+void GPP_i::_cleanupProcessShm(pid_t pid)
+{
+    const std::string heap_name = redhawk::shm::getProcessHeapName(pid);
+    redhawk::shm::SuperblockFile heap(heap_name);
+    try {
+        heap.open(false);
+    } catch (const std::exception&) {
+        // Ignore error, it probably doesn't exist
+        return;
+    }
+    LOG_DEBUG(GPP_i, "Removing shared memory heap '" << heap_name << "'");
+    try {
+        heap.file().unlink();
+    } catch (const std::exception&) {
+        // Someone else removed it in the meantime
+    }
 }

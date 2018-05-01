@@ -30,6 +30,8 @@ namespace redhawk {
 
         class Heap;
 
+        std::string getProcessHeapName(pid_t pid);
+
         Heap* getProcessHeap();
         bool isEnabled();
         void* allocate(size_t bytes);
