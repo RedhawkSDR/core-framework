@@ -85,7 +85,6 @@
 #include "states/ProcStat.h"
 #include "states/ProcMeminfo.h"
 #include "statistics/CpuUsageStats.h"
-#include "reports/NicThroughputThresholdMonitor.h"
 
 
 class SigChildThread : public ThreadedComponent {
@@ -823,24 +822,30 @@ GPP_i::initializeNetworkMonitor()
 
     data_model.push_back( nic_facade );
 
+    _allNicsThresholdMonitor = boost::make_shared<ThresholdMonitorSet>("net", "NIC_THROUGHPUT");
+    threshold_monitors.push_back(_allNicsThresholdMonitor);
+
     std::vector<std::string> nic_devices( nic_facade->get_devices() );
     std::vector<std::string> filtered_devices( nic_facade->get_filtered_devices() );
     for( size_t i=0; i<nic_devices.size(); ++i )
     {
-        LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
-        NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(nic_devices[i],
-                                                                               MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
-                                                                               boost::bind(&NicFacade::get_throughput_by_device, nic_facade, nic_devices[i]) ) );
-
-        // monitors that affect busy state...
-        for ( size_t ii=0; ii < filtered_devices.size(); ii++ ) {
-            if ( nic_devices[i] == filtered_devices[ii] ) {
-                nic_monitors.push_back(nic_m);
-                break;
-            }
+        // Only use the filtered set of devices, which we can get away with
+        // here because it cannot be updated after this method runs. In the
+        // future, if the available NICs can be dynamically changed, all of the
+        // possible NICs will need to be created here and selectively marked as
+        // active/inactive (distinct from threshold enable/disable).
+        const std::string& nic = nic_devices[i];
+        if (std::find(filtered_devices.begin(), filtered_devices.end(), nic) == filtered_devices.end()) {
+            LOG_DEBUG(GPP_i, __FUNCTION__ << ": Skipping interface (" << nic << ")");
+            continue;
         }
-        addThresholdMonitor(nic_m);
+
+        LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic << ")");
+        ThresholdMonitorPtr nic_m = boost::make_shared<FunctionThresholdMonitor>(nic, "NIC_THROUGHPUT", this, &GPP_i::_nicThresholdCheck);
+        nic_m->add_listener(this, &GPP_i::_nicThresholdStateChanged);
+        _allNicsThresholdMonitor->add_monitor(nic_m);
     }
+
 }
 
 void
@@ -892,14 +897,7 @@ GPP_i::initializeResourceMonitors()
   threshold_monitors.push_back(_shmThresholdMonitor);
 }
 
-void
-GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
-{
-    t->add_listener(this, &GPP_i::_sendThresholdEvent);
-    threshold_monitors.push_back( t );
-}
-
-bool GPP_i::_cpuIdleThresholdCheck()
+bool GPP_i::_cpuIdleThresholdCheck(ThresholdMonitor* monitor)
 {
     double sys_idle = system_monitor->get_idle_percent();
     double sys_idle_avg = system_monitor->get_idle_average();
@@ -911,7 +909,7 @@ void GPP_i::_cpuIdleThresholdStateChanged(ThresholdMonitor* monitor)
     _sendThresholdMessage(monitor, system_monitor->get_idle_percent(), modified_thresholds.cpu_idle);
 }
 
-bool GPP_i::_loadAvgThresholdCheck()
+bool GPP_i::_loadAvgThresholdCheck(ThresholdMonitor* monitor)
 {
     return (system_monitor->get_loadavg() > modified_thresholds.load_avg);
 }
@@ -921,7 +919,7 @@ void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
     _sendThresholdMessage(monitor, system_monitor->get_loadavg(), modified_thresholds.load_avg);
 }
 
-bool GPP_i::_freeMemThresholdCheck()
+bool GPP_i::_freeMemThresholdCheck(ThresholdMonitor* monitor)
 {
     int64_t mem_free = system_monitor->get_mem_free();
     return (mem_free < modified_thresholds.mem_free);
@@ -932,7 +930,7 @@ void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
     _sendThresholdMessage(monitor, system_monitor->get_mem_free(), modified_thresholds.mem_free);
 }
 
-bool GPP_i::_threadThresholdCheck()
+bool GPP_i::_threadThresholdCheck(ThresholdMonitor* monitor)
 {
     if (gpp_limits.current_threads > (gpp_limits.max_threads * modified_thresholds.threads)) {
         return true;
@@ -947,7 +945,7 @@ void GPP_i::_threadThresholdStateChanged(ThresholdMonitor* monitor)
     _sendThresholdMessage(monitor, gpp_limits.current_threads, gpp_limits.max_threads * modified_thresholds.threads);
 }
 
-bool GPP_i::_fileThresholdCheck()
+bool GPP_i::_fileThresholdCheck(ThresholdMonitor* monitor)
 {
     if (gpp_limits.current_open_files > (gpp_limits.max_open_files * modified_thresholds.files_available)) {
         return true;
@@ -963,14 +961,35 @@ void GPP_i::_fileThresholdStateChanged(ThresholdMonitor* monitor)
                           gpp_limits.max_open_files * modified_thresholds.files_available);
 }
 
-bool GPP_i::_shmThresholdCheck()
+bool GPP_i::_shmThresholdCheck(ThresholdMonitor* monitor)
 {
+    LOG_TRACE(GPP_i, "Update threshold monitor shm, threshold=" << modified_thresholds.shm_free
+              << " measured=" << shmFree);
     return shmFree < modified_thresholds.shm_free;
 }
 
 void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
 {
     _sendThresholdMessage(monitor, shmFree, modified_thresholds.shm_free);
+}
+
+bool GPP_i::_nicThresholdCheck(ThresholdMonitor* monitor)
+{
+    const std::string& nic = monitor->get_message_class();
+    float measured = nic_facade->get_throughput_by_device(nic);
+    bool exceeded = measured >= modified_thresholds.nic_usage;
+    LOG_TRACE(GPP_i, "Update NIC threshold monitor " << nic
+              << ": exceeded " << exceeded
+              << " threshold=" << modified_thresholds.nic_usage
+              << " measured=" << measured);
+    return exceeded;
+}
+
+void GPP_i::_nicThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    std::string nic = monitor->get_message_class();
+    float measured = nic_facade->get_throughput_by_device(nic);
+    _sendThresholdMessage(monitor, measured, modified_thresholds.nic_usage);
 }
 
 template <typename T1, typename T2>
@@ -1218,13 +1237,13 @@ void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_str
 
     if (nv.ignore || (nv.nic_usage < 0)) {
         LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
-        std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::disable, _1));
+        _allNicsThresholdMonitor->disable();
     } else {
         if (ov.nic_usage != nv.nic_usage) {
             LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov.nic_usage << "/" << nv.nic_usage);
         }
         modified_thresholds.nic_usage = nv.nic_usage;
-        std::for_each(nic_monitors.begin(), nic_monitors.end(), boost::bind(&ThresholdMonitor::enable, _1));
+        _allNicsThresholdMonitor->enable();
     }
 
     if (nv.ignore || (nv.shm_free < 0)) {
@@ -1708,34 +1727,6 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
 }
 
 
-bool GPP_i::_check_nic_thresholds()
-{
-    uint64_t threshold=0;
-    double   actual=0;
-    size_t   nic_exceeded=0;
-    bool     retval=false;
-    //
-    ReadLock rlock(monitorLock);
-    NicMonitorSequence::iterator iter=nic_monitors.begin();
-    for( ; iter != nic_monitors.end(); iter++ ) {
-        NicMonitorPtr monitor=*iter;
-        threshold += monitor->get_threshold_value();
-        actual += monitor->get_measured_value();
-
-        LOG_TRACE(GPP_i, __FUNCTION__ << ": NicThreshold: " << monitor->get_resource_id() << " exceeded " << monitor->is_threshold_exceeded() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
-        if ( monitor->is_threshold_exceeded() ) nic_exceeded++;
-    }
-
-    if ( nic_monitors.size() != 0 && nic_monitors.size() == nic_exceeded ) {
-        std::ostringstream oss;
-        oss << "Threshold (cumulative) : " << threshold << " Actual (cumulative) : " << actual;
-        _setBusyReason( "NIC USAGE ", oss.str() );
-        retval = true;
-    }
-
-    return retval;
-}
-
 //
 //
 //  Executable/Device method overrides...
@@ -1768,14 +1759,22 @@ void GPP_i::updateUsageState()
   double max_allowable_load =  utilization[0].maximum;
   double subscribed =  utilization[0].subscribed;
 
+  uint64_t all_nics_threshold = 0;
+  double all_nics_throughput = 0.0;
 
   {
       std::stringstream oss;
       ReadLock rlock(monitorLock);
-      NicMonitorSequence::iterator iter=nic_monitors.begin();
-      for( ; iter != nic_monitors.end(); iter++ ) {
-          NicMonitorPtr m = *iter;
-          oss <<  "   Nic: " << m->get_resource_id() << " exceeded " << m->is_threshold_exceeded() << " threshold=" << m->get_threshold() << " measured=" << m->get_measured() << std::endl;
+      std::vector<std::string> filtered_nics = nic_facade->get_filtered_devices();
+      for (size_t index = 0; index < filtered_nics.size(); ++index) {
+          const std::string& nic = filtered_nics[index];
+          double throughput = nic_facade->get_throughput_by_device(nic);
+          oss << "   Nic: " << nic
+              << " threshold=" << modified_thresholds.nic_usage
+              << " measured=" << throughput << std::endl;
+
+          all_nics_threshold += modified_thresholds.nic_usage;
+          all_nics_throughput += throughput;
       }
 
       LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
@@ -1815,8 +1814,10 @@ void GPP_i::updateUsageState()
       oss << "Threshold: " << modified_thresholds.shm_free << " Actual: " << shmFree;
       _setBusyReason("SHARED MEMORY", oss.str());
   }
-  else if ((thresholds.nic_usage >= 0) && _check_nic_thresholds()) {
-      setUsageState(CF::Device::BUSY);
+  else if (_allNicsThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold (cumulative) : " << all_nics_threshold << " Actual (cumulative) : " << all_nics_throughput;
+      _setBusyReason("NIC USAGE ", oss.str());
   }
   else if (_threadThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
@@ -2552,46 +2553,9 @@ void GPP_i::sendChildNotification(const std::string &comp_id, const std::string 
 void GPP_i::updateThresholdMonitors()
 {
   WriteLock wlock(monitorLock);
-  MonitorSequence::iterator iter=threshold_monitors.begin();
-  for( ; iter != threshold_monitors.end(); iter++ ) {
-    ThresholdMonitorPtr monitor=*iter;
-    monitor->update();
-    LOG_TRACE(GPP_i, __FUNCTION__ << ": resource_id=" << monitor->get_resource_id() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
-  }
+  std::for_each(threshold_monitors.begin(), threshold_monitors.end(), boost::bind(&Updateable::update, _1));
 }
 
-
-void GPP_i::_sendThresholdEvent(ThresholdMonitor* monitor)
-{
-    bool is_threshold_exceeded = monitor->is_threshold_exceeded();
-
-    threshold_event_struct message;
-    message.source_id = _identifier;
-    message.resource_id = monitor->get_resource_id();
-    message.threshold_class = monitor->get_message_class();
-    if (is_threshold_exceeded) {
-        message.type = enums::threshold_event::type::Threshold_Exceeded;
-    } else {
-        message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
-    }
-    message.threshold_value = monitor->get_threshold();
-    message.measured_value = monitor->get_measured();
-
-    std::stringstream sstr;
-    sstr << message.threshold_class << " threshold ";
-    if (!is_threshold_exceeded) {
-        sstr << "not ";
-    }
-    sstr << "exceeded "
-         << "(resource_id=" << message.resource_id
-         << " threshold_value=" << message.threshold_value
-         << " measured_value=" << message.measured_value << ")";
-    message.message = sstr.str();
-
-    message.timestamp = time(NULL);
-
-    send_threshold_event(message);
-}
 
 void GPP_i::updateProcessStats()
 {

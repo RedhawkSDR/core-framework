@@ -54,20 +54,19 @@ public:
     void enable()
     {
         enabled_ = true;
+        update();
     }
 
     void disable()
     {
         enabled_ = false;
+        update();
     }
 
     bool is_enabled() const
     {
         return enabled_;
     }
-
-    virtual std::string get_threshold() const = 0;
-    virtual std::string get_measured() const = 0;
 
     virtual bool is_threshold_exceeded() const
     {
@@ -115,20 +114,10 @@ public:
     {
     }
 
-    std::string get_threshold() const
-    {
-        return "";
-    }
-
-    std::string get_measured() const
-    {
-        return "";
-    }
-
 private:
     virtual void update_threshold()
     {
-        exceeded_ = callback_();
+        exceeded_ = callback_(this);
     }
 
     virtual bool check_threshold() const
@@ -136,50 +125,56 @@ private:
         return exceeded_;
     }
 
-    redhawk::callback<bool ()> callback_;
+    redhawk::callback<bool (ThresholdMonitor*)> callback_;
     bool exceeded_;
 };
 
-template<class DATA_TYPE, class COMPARISON_FUNCTION = std::less<DATA_TYPE> >
-class GenericThresholdMonitor : public ThresholdMonitor
+class ThresholdMonitorSet : public ThresholdMonitor
 {
 public:
-    typedef DATA_TYPE DataType;
-    typedef boost::function< DataType() > QueryFunction;
-
-public:
-    GenericThresholdMonitor(const std::string& message_class, const std::string& resource_id, QueryFunction threshold, QueryFunction measured):
-        ThresholdMonitor(message_class, resource_id),
-        threshold_(threshold),
-        measured_(measured),
-        threshold_value_( threshold() ),
-        measured_value_( measured() )
+    ThresholdMonitorSet(const std::string& message_class, const std::string& resource_id) :
+        ThresholdMonitor(message_class, resource_id)
     {
     }
 
-    std::string get_threshold() const{ return boost::lexical_cast<std::string>(threshold_value_); }
-    std::string get_measured() const{ return boost::lexical_cast<std::string>(measured_value_); }
+    void add_monitor(const boost::shared_ptr<ThresholdMonitor>& monitor)
+    {
+        monitors_.push_back(monitor);
+    }
 
-    DataType get_threshold_value() const { return threshold_value_; }
-    DataType get_measured_value() const { return measured_value_; }
+    virtual void enable()
+    {
+        std::for_each(monitors_.begin(), monitors_.end(), boost::bind(&ThresholdMonitor::enable, _1));
+        ThresholdMonitor::enable();
+    }
+
+    virtual void disable()
+    {
+        std::for_each(monitors_.begin(), monitors_.end(), boost::bind(&ThresholdMonitor::disable, _1));
+        ThresholdMonitor::disable();
+    }
 
 private:
-    void update_threshold()
+    virtual void update_threshold()
     {
-        threshold_value_ = threshold_();
-        measured_value_ = measured_();
     }
 
     virtual bool check_threshold() const
     {
-        return COMPARISON_FUNCTION()( get_measured_value(), get_threshold_value() );
+        if (monitors_.empty()) {
+            return false;
+        }
+
+        for (MonitorList::const_iterator monitor = monitors_.begin(); monitor != monitors_.end(); ++monitor) {
+            if (!((*monitor)->is_threshold_exceeded())) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    QueryFunction threshold_;
-    QueryFunction measured_;
-
-    DataType threshold_value_;
-    DataType measured_value_;
+    typedef std::vector< boost::shared_ptr<ThresholdMonitor> > MonitorList;
+    MonitorList monitors_;
 };
 
 #endif

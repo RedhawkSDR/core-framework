@@ -31,7 +31,6 @@
 #include "statistics/Statistics.h"
 #include "statistics/CpuUsageStats.h"
 #include "reports/SystemMonitorReporting.h"
-#include "reports/NicThroughputThresholdMonitor.h"
 #include "NicFacade.h"
 #include "ossie/Events.h"
 
@@ -241,12 +240,10 @@ class GPP_i : public GPP_base
 
           void updateUsageState();
 
-          typedef boost::shared_ptr<NicThroughputThresholdMonitor>   NicMonitorPtr;
           typedef boost::shared_ptr<ThresholdMonitor>           ThresholdMonitorPtr;
           typedef std::vector< uint32_t >                       CpuList;
           typedef std::vector< boost::shared_ptr<Updateable> >  UpdateableSequence;
           typedef std::vector< ThresholdMonitorPtr >            MonitorSequence;
-          typedef std::vector< NicMonitorPtr >                  NicMonitorSequence;
           typedef boost::shared_ptr<SystemMonitor>              SystemMonitorPtr;
           typedef std::map<int, component_description >         ProcessMap;
           typedef std::deque< component_description >           ProcessList;
@@ -258,7 +255,6 @@ class GPP_i : public GPP_base
                       const std::string &identifier,
                       const float       req_reservation );
           void removeProcess(int pid );
-          void addThresholdMonitor( ThresholdMonitorPtr threshold_monitor );
           void reservedChanged(float oldValue, float newValue);
           void mcastnicThreshold_changed(int oldValue, int newValue);
           void thresholds_changed(const thresholds_struct& oldValue, const thresholds_struct& newValue);
@@ -276,7 +272,6 @@ class GPP_i : public GPP_base
           Lock                                                nicLock;
           NicFacadePtr                                        nic_facade;
           MonitorSequence                                     threshold_monitors;
-          NicMonitorSequence                                  nic_monitors;
           SystemMonitorPtr                                    system_monitor;
           ProcessLimitsPtr                                    process_limits;
           ExecPartitionList                                   execPartitions;
@@ -379,11 +374,6 @@ class GPP_i : public GPP_base
           //
           void _init();
         
-          //
-          // check threshold limits for nic interfaces to determine busy state
-          //
-          bool _check_nic_thresholds();
-
           ThresholdMonitorPtr _cpuIdleThresholdMonitor;
           ThresholdMonitorPtr _freeMemThresholdMonitor;
           ThresholdMonitorPtr _loadAvgThresholdMonitor;
@@ -391,34 +381,39 @@ class GPP_i : public GPP_base
           ThresholdMonitorPtr _fileThresholdMonitor;
           ThresholdMonitorPtr _shmThresholdMonitor;
 
+          boost::shared_ptr<ThresholdMonitorSet> _allNicsThresholdMonitor;
+
           template <typename T1, typename T2>
-          void _sendThresholdMessage(ThresholdMonitor* monitor,
-                                     const T1& measured, const T2& threshold);
-          bool _shmThresholdCheck();
+          void _sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured, const T2& threshold);
+          bool _shmThresholdCheck(ThresholdMonitor* monitor);
           void _shmThresholdStateChanged(ThresholdMonitor* monitor);
 
-          bool _cpuIdleThresholdCheck();
+          bool _cpuIdleThresholdCheck(ThresholdMonitor* monitor);
           void _cpuIdleThresholdStateChanged(ThresholdMonitor* monitor);
 
-          bool _loadAvgThresholdCheck();
+          bool _loadAvgThresholdCheck(ThresholdMonitor* monitor);
           void _loadAvgThresholdStateChanged(ThresholdMonitor* monitor);
 
-          bool _freeMemThresholdCheck();
+          bool _freeMemThresholdCheck(ThresholdMonitor* monitor);
           void _freeMemThresholdStateChanged(ThresholdMonitor* monitor);
 
           //
           // check thread limits for the process and system
           //
-          bool _threadThresholdCheck();
+          bool _threadThresholdCheck(ThresholdMonitor* monitor);
           void _threadThresholdStateChanged(ThresholdMonitor* monitor);
 
           //
           // check file limits for the process and system
           //
-          bool _fileThresholdCheck();
+          bool _fileThresholdCheck(ThresholdMonitor* monitor);
           void _fileThresholdStateChanged(ThresholdMonitor* monitor);
 
-          void _sendThresholdEvent(ThresholdMonitor* monitor);
+          //
+          // check threshold limits for nic interfaces to determine busy state
+          //
+          bool _nicThresholdCheck(ThresholdMonitor* monitor);
+          void _nicThresholdStateChanged(ThresholdMonitor* monitor);
 
           void _cleanupProcessShm(pid_t pid);
 
