@@ -42,6 +42,10 @@ namespace redhawk {
             void detach();
 
         private:
+            // Non-copyable, non-assignable
+            HeapClient(const HeapClient&);
+            HeapClient& operator=(const HeapClient&);
+
             SuperblockFile* _getSuperblockFile(const std::string& name);
 
             typedef std::map<std::string,SuperblockFile*> FileMap;

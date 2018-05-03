@@ -54,7 +54,7 @@ namespace redhawk {
         private:
             struct PrivateHeap;
 
-            // Not copyable
+            // Non-copyable, non-assignable
             Heap(const Heap&);
             Heap& operator=(const Heap&);
 

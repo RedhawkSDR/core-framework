@@ -64,7 +64,7 @@ namespace redhawk {
             MappedFile& file();
 
         private:
-            // Not copyable
+            // Non-copyable, non-assignable
             SuperblockFile(const SuperblockFile&);
             SuperblockFile& operator=(const SuperblockFile&);
 

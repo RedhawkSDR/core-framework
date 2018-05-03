@@ -56,6 +56,10 @@ namespace redhawk {
             void unlink();
 
         private:
+            // Non-copyable, non-assignable
+            MappedFile(const MappedFile&);
+            MappedFile& operator=(const MappedFile&);
+
             const std::string _name;
             int _fd;
         };
