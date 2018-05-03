@@ -23,6 +23,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <cmath>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -51,6 +52,13 @@ namespace {
         std::cout << "  auto        use human readable sizes (e.g., 4K, 2.4G)" << std::endl;
         std::cout << "  b           bytes" << std::endl;
         std::cout << "  k           kilobytes" << std::endl;
+    }
+
+    static std::string percent(float percent)
+    {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << percent << "%";
+        return oss.str();
     }
 }
 
@@ -152,18 +160,19 @@ public:
 
     virtual void visitHeap(SuperblockFile& heap)
     {
-        displayFile(heap.name(), "REDHAWK heap");
+        std::cout << std::endl << heap.name() << std::endl;;
+        std::cout << "  type:        REDHAWK heap" << std::endl;
+        std::cout << "  file size:   " << _format(heap.file().size()) << std::endl;
+
+        SuperblockFile::Statistics stats = heap.getStatistics();
+        float used_pct = stats.used * 100.0 / stats.size;
+        std::cout << "  heap size:   " << _format(stats.size) << std::endl;
+        std::cout << "  heap used:   " << _format(stats.used) << " (" << percent(used_pct) << ")" << std::endl;
 
         pid_t creator = heap.creator();
         std::cout << "  creator:     " << creator << std::endl;
         std::cout << "  orphaned:    " << std::boolalpha << heap.isOrphaned() << std::endl;
         std::cout << "  refcount:    " << heap.refcount() << std::endl;
-
-        SuperblockFile::Statistics stats = heap.getStatistics();
-        std::cout << "  total size:  " << _format(stats.size) << std::endl;
-        std::cout << "  total used:  " << _format(stats.used) << std::endl;
-        std::cout << "  superblocks: " << stats.superblocks << std::endl;
-        std::cout << "  unused:      " << stats.unused << std::endl;
     }
 
     virtual void visitFile(const std::string& name)
@@ -177,8 +186,8 @@ public:
 
     virtual void heapException(const std::string& name, const std::exception& exc)
     {
-        displayFile(name, "REDHAWK heap");
-        std::cerr << "error: " << exc.what() << std::endl;
+        displayFile(name, "REDHAWK heap (unreadable)");
+        std::cerr << "  error:       " << exc.what() << std::endl;
     }
 
 protected:
@@ -248,9 +257,16 @@ int main(int argc, char* argv[])
         }
     };
 
+    if (optind < argc) {
+        std::cerr << "WARNING: arguments ignored" << std::endl;
+    }
+
     std::cout << redhawk::shm::getSystemPath() << std::endl;
-    std::cout << "  size: " << format(redhawk::shm::getSystemTotalMemory()) << std::endl;
-    std::cout << "  free: " << format(redhawk::shm::getSystemFreeMemory()) << std::endl;
+    size_t total_mem = redhawk::shm::getSystemTotalMemory();
+    size_t free_mem = redhawk::shm::getSystemFreeMemory();
+    float free_pct = free_mem * 100.0 / total_mem;
+    std::cout << "  size: " << format(total_mem) << std::endl;
+    std::cout << "  free: " << format(free_mem) << " (" << percent(free_pct) << ")" << std::endl;
 
     info.setSizeFormatter(format);
     try {
