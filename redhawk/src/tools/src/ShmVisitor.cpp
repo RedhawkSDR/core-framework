@@ -25,22 +25,11 @@
 
 #include <ossie/shm/System.h>
 
-bool ShmVisitor::isHeap(const std::string& name)
-{
-    return name.compare(0, 5, "heap-") == 0;
-}
-
-
-std::string ShmVisitor::getShmPath()
-{
-    return redhawk::shm::getSystemPath();
-}
+using redhawk::shm::SuperblockFile;
 
 void ShmVisitor::visit()
 {
-    std::string shmdir = getShmPath();
-    visitFileSystem(shmdir);
-
+    std::string shmdir = redhawk::shm::getSystemPath();
     DIR* dir = opendir(shmdir.c_str());
     if (!dir) {
         throw std::runtime_error("could not open shm filesystem " + shmdir);
@@ -52,10 +41,8 @@ void ShmVisitor::visit()
             continue;
         }
 
-        visitFile(filename);
-
-        if (isHeap(filename)) {
-            redhawk::shm::SuperblockFile file(filename);
+        if (SuperblockFile::IsSuperblockFile(filename)) {
+            SuperblockFile file(filename);
             try {
                 file.open(false);
             } catch (const std::exception& exc) {
@@ -63,6 +50,8 @@ void ShmVisitor::visit()
                 continue;
             }
             visitHeap(file);
+        } else {
+            visitFile(filename);
         }
     }
 

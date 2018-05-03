@@ -21,8 +21,13 @@
 #include <ossie/shm/SuperblockFile.h>
 
 #include <stdexcept>
+#include <fstream>
+
 #include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
+
+#include <ossie/shm/System.h>
 
 #include "Superblock.h"
 #include "atomic_counter.h"
@@ -65,6 +70,22 @@ SuperblockFile::~SuperblockFile()
     close();
 }
 
+bool SuperblockFile::IsSuperblockFile(const std::string& name)
+{
+    std::string path = redhawk::shm::getSystemPath();
+    path += "/" + name;
+    std::ifstream file(path.c_str());
+    if (!file) {
+        return false;
+    }
+    Header::magic_type magic = 0;
+    if (!file.read(reinterpret_cast<char *>(&magic), sizeof(magic))) {
+        return false;
+    }
+
+    return magic == Header::SUPERBLOCK_MAGIC;
+}
+
 const std::string& SuperblockFile::name() const
 {
     return _file.name();
@@ -89,6 +110,16 @@ int SuperblockFile::refcount() const
         return -1;
     }
     return _header->refcount;
+}
+
+bool SuperblockFile::isOrphaned() const
+{
+    if (!_header) {
+        throw std::logic_error("not attached");
+    }
+
+    // Check that the creator PID is still alive
+    return (kill(_header->creator, 0) != 0);
 }
 
 SuperblockFile::Statistics SuperblockFile::getStatistics()

@@ -32,14 +32,7 @@ public:
     {
     }
 
-    static bool isHeap(const std::string& name);
-    static std::string getShmPath();
-
     void visit();
-
-    virtual void visitFileSystem(const std::string& path)
-    {
-    }
 
     virtual void visitFile(const std::string& filename)
     {

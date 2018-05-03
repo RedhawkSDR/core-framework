@@ -27,7 +27,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <getopt.h>
-#include <signal.h>
 
 #include <ossie/shm/System.h>
 
@@ -153,12 +152,11 @@ public:
 
     virtual void visitHeap(SuperblockFile& heap)
     {
+        displayFile(heap.name(), "REDHAWK heap");
+
         pid_t creator = heap.creator();
-        std::cout << "  creator:     " << creator;
-        if (kill(creator, 0) != 0) {
-            std::cout << " (defunct)";
-        }
-        std::cout << std::endl;
+        std::cout << "  creator:     " << creator << std::endl;
+        std::cout << "  orphaned:    " << std::boolalpha << heap.isOrphaned() << std::endl;
         std::cout << "  refcount:    " << heap.refcount() << std::endl;
 
         SuperblockFile::Statistics stats = heap.getStatistics();
@@ -170,24 +168,27 @@ public:
 
     virtual void visitFile(const std::string& name)
     {
-        if (isHeap(name)) {
-            displayFile(name, "REDHAWK heap");
-        } else if (_all) {
-            displayFile(name, "other");
+        if (!_all) {
+            return;
         }
+
+        displayFile(name, "other");
     }
 
     virtual void heapException(const std::string& name, const std::exception& exc)
     {
+        displayFile(name, "REDHAWK heap");
         std::cerr << "error: " << exc.what() << std::endl;
     }
 
 protected:
     void displayFile(const std::string& name, const std::string& type)
     {
-        std::string path = getShmPath() + "/" + name;
-        std::cout << std::endl << path << std::endl;;
+        std::cout << std::endl << name << std::endl;;
+        std::cout << "  type:        " << type << std::endl;
 
+        const std::string shm_path = redhawk::shm::getSystemPath();
+        std::string path = shm_path + "/" + name;
         struct stat status;
         if (stat(path.c_str(), &status)) {
             std::cout << "  (cannot access)" << std::endl;
@@ -195,7 +196,6 @@ protected:
         }
         std::cout << "  file size:   " << _format(status.st_size) << std::endl;
         std::cout << "  allocated:   " << _format(status.st_blocks * 512) << std::endl;
-        std::cout << "  type:        " << type << std::endl;
     }
 
     bool _all;

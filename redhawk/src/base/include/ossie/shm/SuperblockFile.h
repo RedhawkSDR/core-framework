@@ -44,8 +44,11 @@ namespace redhawk {
             SuperblockFile(const std::string& name);
             ~SuperblockFile();
 
+            static bool IsSuperblockFile(const std::string& name);
+
             pid_t creator() const;
             int refcount() const;
+            bool isOrphaned() const;
 
             Statistics getStatistics();
 
