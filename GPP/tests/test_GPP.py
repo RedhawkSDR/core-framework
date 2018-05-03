@@ -326,19 +326,18 @@ class GPPTests(GPPSandboxTest):
                 time.sleep(0.1)
                 continue
 
-            # Ignore anything besides NIC messages
-            if event['threshold_event::threshold_class'] != 'NIC_THROUGHPUT':
-                continue
-
-            # Filter out extraneous messages (usually one of the virtual NICs)
+            # Should only be receiving one NIC message from each configured
+            # interface
             nic_name = event['threshold_event::resource_id']
-            if nic_name not in nics:
-                continue
-
+            self.failUnless(nic_name in nics, 'Received message from unexpected NIC %s' % nic_name)
+            self.failUnless(nic_name in expected, 'Received too many messages from NIC %s' % nic_name)
+            threshold_class = event['threshold_event::threshold_class']
+            self.assertEqual('NIC_THROUGHPUT', threshold_class, 'Received unexpected threshold class %s' % threshold_class)
+            
             self._assertThresholdState(event, exceeded)
             expected.remove(nic_name)
 
-        self.assertEqual(set(), expected)
+        self.assertEqual(set(), expected, 'Did not receive message from NIC(s): ' + ' '.join(expected))
 
     def testThresholdEvents(self):
         # Cut down the threshold cycle time to trigger events faster (we're not
