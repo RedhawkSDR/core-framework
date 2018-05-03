@@ -21,10 +21,11 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
+#include <algorithm>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/statvfs.h>
 #include <getopt.h>
 #include <signal.h>
 
@@ -35,8 +36,22 @@
 using redhawk::shm::SuperblockFile;
 
 namespace {
+    static std::string executable;
+
     static void usage()
     {
+        std::cout << "Usage: " << executable << " [OPTION]..." << std::endl;
+        std::cout << "Display status of shared memory file system and REDHAWK heaps." << std::endl;
+        std::cout << std::endl;
+        std::cout << "  -h, --help           display this help and exit" << std::endl;
+        std::cout << "  -a, --all            include non-REDHAWK heap shared memory files" << std::endl;
+        std::cout << "      --format=FORMAT  display sizes in FORMAT (default 'auto')" << std::endl;
+        std::cout << "      --version        output version information and exit" << std::endl;
+        std::cout << std::endl;
+        std::cout << "FORMAT may be one of the following:" << std::endl;
+        std::cout << "  auto        use human readable sizes (e.g., 4K, 2.4G)" << std::endl;
+        std::cout << "  b           bytes" << std::endl;
+        std::cout << "  k           kilobytes" << std::endl;
     }
 }
 
@@ -46,17 +61,37 @@ public:
     enum Format {
         BYTES,
         KILOBYTES,
-        HUMAN_READABLE
+        AUTO
     };
 
-    explicit SizeFormatter(Format format=BYTES) :
+    explicit SizeFormatter(Format format=AUTO) :
         _format(format)
     {
+    }
+
+    static Format Parse(const std::string& strval)
+    {
+        std::string format_str;
+        std::transform(strval.begin(), strval.end(), std::back_inserter(format_str), ::tolower);
+        if (format_str == "auto") {
+            return AUTO;
+        } else if (format_str == "k") {
+            return KILOBYTES;
+        } else if (format_str == "b") {
+            return BYTES;
+        } else {
+            throw std::invalid_argument("invalid format '" + strval + "'");
+        }
     }
 
     void setFormat(Format format)
     {
         _format = format;
+    }
+
+    void setFormat(const std::string& strval)
+    {
+        setFormat(SizeFormatter::Parse(strval));
     }
 
     std::string operator() (size_t size)
@@ -66,7 +101,7 @@ public:
         case KILOBYTES:
             oss << (size/1024) << "K";
             break;
-        case HUMAN_READABLE:
+        case AUTO:
             _toHumanReadable(oss, size);
             break;
         case BYTES:
@@ -169,23 +204,46 @@ protected:
 
 int main(int argc, char* argv[])
 {
+    // Save the executable name for output, removing any paths
+    executable = argv[0];
+    std::string::size_type pos = executable.rfind('/');
+    if (pos != std::string::npos) {
+        executable.erase(0, pos + 1);
+    }
+
+    struct option long_options[] = {
+        { "format", required_argument, 0, 'f' },
+        { "help", no_argument, 0, 'h' },
+        { "all", no_argument, 0, 'a' },
+        { "version", no_argument, 0, 'V' },
+        { 0, 0, 0, 0 }
+    };
+
     Info info;
     SizeFormatter format;
 
     int opt;
-    while ((opt = getopt(argc, argv, "akh")) != -1) {
+    while ((opt = getopt_long(argc, argv, "ah", long_options, NULL)) != -1) {
         switch (opt) {
         case 'a':
             info.setDisplayAll(true);
             break;
-        case 'k':
-            format.setFormat(SizeFormatter::KILOBYTES);
+        case 'f':
+            try {
+                format.setFormat(optarg);
+            } catch (const std::exception& exc) {
+                std::cerr << exc.what() << std::endl;
+                return -1;
+            }
             break;
         case 'h':
-            format.setFormat(SizeFormatter::HUMAN_READABLE);
-            break;
-        default:
             usage();
+            return 0;
+        case 'V':
+            std::cout << executable << " version " << VERSION << std::endl;
+            return 0;
+        default:
+            std::cerr << "Try `" << executable << " --help` for more information." << std::endl;
             return -1;
         }
     };

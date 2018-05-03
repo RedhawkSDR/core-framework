@@ -24,8 +24,26 @@
 
 #include <sys/types.h>
 #include <signal.h>
+#include <getopt.h>
 
 using redhawk::shm::SuperblockFile;
+
+namespace {
+    static std::string executable;
+
+    static void usage()
+    {
+        std::cout << "Usage: " << executable << " [OPTION]..." << std::endl;
+        std::cout << "Remove orphaned REDHAWK heaps." << std::endl;
+        std::cout << std::endl;
+        std::cout << "  -h, --help           display this help and exit" << std::endl;
+        std::cout << "      --version        output version information and exit" << std::endl;
+        std::cout << std::endl;
+        std::cout << "A REDHAWK heap is considered orphaned if its creating process is no longer" << std::endl;
+        std::cout << "alive. The shared memory file is unlinked; however, if any active processes" << std::endl;
+        std::cout << "have the memory mapped, the shared memory is not freed until they exit." << std::endl;
+    }
+}
 
 class Clean : public ShmVisitor
 {
@@ -46,6 +64,34 @@ public:
 
 int main(int argc, char* argv[])
 {
+    // Save the executable name for output, removing any paths
+    executable = argv[0];
+    std::string::size_type pos = executable.rfind('/');
+    if (pos != std::string::npos) {
+        executable.erase(0, pos + 1);
+    }
+
+    struct option long_options[] = {
+        { "help", no_argument, 0, 'h' },
+        { "version", no_argument, 0, 'V' },
+        { 0, 0, 0, 0 }
+    };
+
+    int opt;
+    while ((opt = getopt_long(argc, argv, "h", long_options, NULL)) != -1) {
+        switch (opt) {
+        case 'h':
+            usage();
+            return 0;
+        case 'V':
+            std::cout << executable << " version " << VERSION << std::endl;
+            return 0;
+        default:
+            std::cerr << "Try `" << executable << " --help` for more information." << std::endl;
+            return -1;
+        }
+    };
+
     Clean clean;
     try {
         clean.visit();
