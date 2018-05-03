@@ -1782,32 +1782,31 @@ void GPP_i::updateUsageState()
   uint64_t all_nics_threshold = 0;
   double all_nics_throughput = 0.0;
 
-  {
-      std::stringstream oss;
-      ReadLock rlock(monitorLock);
-      std::vector<std::string> filtered_nics = nic_facade->get_filtered_devices();
-      for (size_t index = 0; index < filtered_nics.size(); ++index) {
-          const std::string& nic = filtered_nics[index];
-          double throughput = nic_facade->get_throughput_by_device(nic);
-          oss << "   Nic: " << nic
-              << " threshold=" << modified_thresholds.nic_usage
-              << " measured=" << throughput << std::endl;
+  ReadLock rlock(monitorLock);
 
-          all_nics_threshold += modified_thresholds.nic_usage;
-          all_nics_throughput += throughput;
-      }
+  std::stringstream nic_message;
+  std::vector<std::string> filtered_nics = nic_facade->get_filtered_devices();
+  for (size_t index = 0; index < filtered_nics.size(); ++index) {
+      const std::string& nic = filtered_nics[index];
+      double throughput = nic_facade->get_throughput_by_device(nic);
+      nic_message << "   Nic: " << nic
+                  << " threshold=" << modified_thresholds.nic_usage
+                  << " measured=" << throughput << std::endl;
 
-      LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
-                " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
-                " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
-                " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
-                " RESRV: threshold " <<  max_allowable_load << " Actual: " << subscribed  << std::endl <<
-                " Ingress threshold: " << mcastnicIngressThresholdValue << " capacity: " <<  mcastnicIngressCapacity  << std::endl <<
-                " Egress threshold: " << mcastnicEgressThresholdValue << " capacity: " <<  mcastnicEgressCapacity  << std::endl  <<
-                " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
-                " NIC: " << std::endl << oss.str()
-                );
+      all_nics_threshold += modified_thresholds.nic_usage;
+      all_nics_throughput += throughput;
   }
+
+  LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
+            " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
+            " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
+            " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
+            " RESRV: threshold " <<  max_allowable_load << " Actual: " << subscribed  << std::endl <<
+            " Ingress threshold: " << mcastnicIngressThresholdValue << " capacity: " <<  mcastnicIngressCapacity  << std::endl <<
+            " Egress threshold: " << mcastnicEgressThresholdValue << " capacity: " <<  mcastnicEgressCapacity  << std::endl  <<
+            " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
+            " NIC: " << std::endl << nic_message.str()
+            );
   
   if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
