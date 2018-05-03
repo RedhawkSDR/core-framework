@@ -80,7 +80,6 @@
 #include "GPP.h"
 #include "utils/affinity.h"
 #include "utils/SymlinkReader.h"
-#include "utils/ReferenceWrapper.h"
 #include "parsers/PidProcStatParser.h"
 #include "states/ProcStat.h"
 #include "states/ProcMeminfo.h"
@@ -822,7 +821,7 @@ GPP_i::initializeNetworkMonitor()
 
     data_model.push_back( nic_facade );
 
-    _allNicsThresholdMonitor = boost::make_shared<ThresholdMonitorSet>("net", "NIC_THROUGHPUT");
+    _allNicsThresholdMonitor = boost::make_shared<ThresholdMonitorSet>("nics", "NIC_THROUGHPUT");
     threshold_monitors.push_back(_allNicsThresholdMonitor);
 
     std::vector<std::string> nic_devices( nic_facade->get_devices() );
@@ -897,10 +896,16 @@ GPP_i::initializeResourceMonitors()
   threshold_monitors.push_back(_shmThresholdMonitor);
 }
 
+//
+// Threshold policy and event handling
+//
+
 bool GPP_i::_cpuIdleThresholdCheck(ThresholdMonitor* monitor)
 {
     double sys_idle = system_monitor->get_idle_percent();
     double sys_idle_avg = system_monitor->get_idle_average();
+    LOG_TRACE(GPP_i, "Update CPU idle threshold monitor, threshold=" << modified_thresholds.cpu_idle
+              << " current=" << sys_idle << " average=" << sys_idle_avg);
     return (sys_idle < modified_thresholds.cpu_idle) && (sys_idle_avg < modified_thresholds.cpu_idle);
 }
 
@@ -911,7 +916,10 @@ void GPP_i::_cpuIdleThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_loadAvgThresholdCheck(ThresholdMonitor* monitor)
 {
-    return (system_monitor->get_loadavg() > modified_thresholds.load_avg);
+    double load_avg = system_monitor->get_loadavg();
+    LOG_TRACE(GPP_i, "Update load average threshold monitor, threshold=" << modified_thresholds.load_avg
+              << " measured=" << load_avg);
+    return (load_avg > modified_thresholds.load_avg);
 }
 
 void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
@@ -922,6 +930,8 @@ void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
 bool GPP_i::_freeMemThresholdCheck(ThresholdMonitor* monitor)
 {
     int64_t mem_free = system_monitor->get_mem_free();
+    LOG_TRACE(GPP_i, "Update free memory threshold monitor, threshold=" << modified_thresholds.mem_free
+              << " measured=" << mem_free);
     return (mem_free < modified_thresholds.mem_free);
 }
 
@@ -963,7 +973,7 @@ void GPP_i::_fileThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_shmThresholdCheck(ThresholdMonitor* monitor)
 {
-    LOG_TRACE(GPP_i, "Update threshold monitor shm, threshold=" << modified_thresholds.shm_free
+    LOG_TRACE(GPP_i, "Update shared memory threshold monitor, threshold=" << modified_thresholds.shm_free
               << " measured=" << shmFree);
     return shmFree < modified_thresholds.shm_free;
 }
@@ -975,19 +985,17 @@ void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_nicThresholdCheck(ThresholdMonitor* monitor)
 {
-    const std::string& nic = monitor->get_message_class();
+    const std::string& nic = monitor->get_resource_id();
     float measured = nic_facade->get_throughput_by_device(nic);
-    bool exceeded = measured >= modified_thresholds.nic_usage;
     LOG_TRACE(GPP_i, "Update NIC threshold monitor " << nic
-              << ": exceeded " << exceeded
               << " threshold=" << modified_thresholds.nic_usage
               << " measured=" << measured);
-    return exceeded;
+    return measured >= modified_thresholds.nic_usage;
 }
 
 void GPP_i::_nicThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    std::string nic = monitor->get_message_class();
+    std::string nic = monitor->get_resource_id();
     float measured = nic_facade->get_throughput_by_device(nic);
     _sendThresholdMessage(monitor, measured, modified_thresholds.nic_usage);
 }
@@ -995,12 +1003,12 @@ void GPP_i::_nicThresholdStateChanged(ThresholdMonitor* monitor)
 template <typename T1, typename T2>
 void GPP_i::_sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured, const T2& threshold)
 {
-    const bool exceeded = monitor->is_threshold_exceeded();
+    bool exceeded = monitor->is_threshold_exceeded();
 
     threshold_event_struct message;
     message.source_id = _identifier;
     message.resource_id = monitor->get_resource_id();
-    message.threshold_class = monitor->get_message_class();
+    message.threshold_class = monitor->get_threshold_class();
     if (exceeded) {
         message.type = enums::threshold_event::type::Threshold_Exceeded;
     } else {

@@ -15,6 +15,7 @@ redhawk_SOURCES_auto += NicInterfaceFilter.cpp
 redhawk_SOURCES_auto += NicInterfaceFilter.h
 redhawk_SOURCES_auto += main.cpp
 redhawk_SOURCES_auto += reports/Reporting.h
+redhawk_SOURCES_auto += reports/ThresholdMonitor.cpp
 redhawk_SOURCES_auto += reports/ThresholdMonitor.h
 redhawk_SOURCES_auto += reports/SystemMonitorReporting.cpp
 redhawk_SOURCES_auto += reports/SystemMonitorReporting.h

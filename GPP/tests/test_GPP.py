@@ -281,7 +281,7 @@ class GPPTests(GPPSandboxTest):
             props = any.from_any(dt.value, keep_structs=True)
             yield ossie.properties.props_to_dict(props)
 
-    def _checkThresholdEvent(self, thresholdClass, resourceId, exceeded):
+    def _checkThresholdEvent(self, resourceId, thresholdClass, exceeded):
         try:
             event = self.queue.get(timeout=2.0)
         except Queue.Empty:
@@ -297,24 +297,24 @@ class GPPTests(GPPSandboxTest):
             event_type = 'THRESHOLD_NOT_EXCEEDED'
         self.assertEqual(event_type, event['threshold_event::type'])
 
-    def _testThresholdEventType(self, name, thresholdClass, resourceId, value):
+    def _testThresholdEventType(self, name, resourceId, thresholdClass, value):
         # Save the original value and set the test value to trigger an
         # "exceeded" event
         orig_value = self.comp.thresholds[name]
         self.comp.thresholds[name] = value
-        self._checkThresholdEvent(thresholdClass, resourceId, True)
+        self._checkThresholdEvent(resourceId, thresholdClass, True)
 
         # Turning off the threshold should trigger a "not exceeded" event
         self.comp.thresholds.ignore = True
-        self._checkThresholdEvent(thresholdClass, resourceId, False)
+        self._checkThresholdEvent(resourceId, thresholdClass, False)
 
         # Turning it on again should trigger another "exceeded" event
         self.comp.thresholds.ignore = False
-        self._checkThresholdEvent(thresholdClass, resourceId, True)
+        self._checkThresholdEvent(resourceId, thresholdClass, True)
 
         # Restore the original value, trigger "not exceeded" event
         self.comp.thresholds[name] = orig_value
-        self._checkThresholdEvent(thresholdClass, resourceId, False)
+        self._checkThresholdEvent(resourceId, thresholdClass, False)
 
     def _checkNicEvents(self, nics, exceeded):
         expected = set(nics)
@@ -327,11 +327,11 @@ class GPPTests(GPPSandboxTest):
                 continue
 
             # Ignore anything besides NIC messages
-            if event['threshold_event::resource_id'] != 'NIC_THROUGHPUT':
+            if event['threshold_event::threshold_class'] != 'NIC_THROUGHPUT':
                 continue
 
             # Filter out extraneous messages (usually one of the virtual NICs)
-            nic_name = event['threshold_event::threshold_class']
+            nic_name = event['threshold_event::resource_id']
             if nic_name not in nics:
                 continue
 

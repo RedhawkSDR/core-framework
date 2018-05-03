@@ -19,63 +19,30 @@
  */
 #ifndef THRESHOLD_MONITOR_H_
 #define THRESHOLD_MONITOR_H_
+
 #include <string>
-#include <functional>
-#include <sstream>
-#include <boost/function.hpp>
-#include <boost/lexical_cast.hpp>
+
+#include <boost/shared_ptr.hpp>
 
 #include <ossie/callback.h>
 
 #include "utils/Updateable.h"
-#include "utils/ConversionWrapper.h"
 
 class ThresholdMonitor : public Updateable
 {
 public:
-    ThresholdMonitor(const std::string& message_class, const std::string& resource_id):
-        resource_id_(resource_id),
-        message_class_(message_class),
-        enabled_(true),
-        prev_threshold_exceeded_(false)
-    {}
+    ThresholdMonitor(const std::string& resource_id, const std::string& threshold_class);
 
-    virtual void update()
-    {
-        if (enabled_) {
-            update_threshold();
-        }
-        if (prev_threshold_exceeded_ != is_threshold_exceeded()) {
-            notification_(this);
-        }
-        prev_threshold_exceeded_ = is_threshold_exceeded();
-    }
+    const std::string& get_resource_id() const;
+    const std::string& get_threshold_class() const;
 
-    void enable()
-    {
-        enabled_ = true;
-        update();
-    }
+    bool is_enabled() const;
+    virtual void enable();
+    virtual void disable();
 
-    void disable()
-    {
-        enabled_ = false;
-        update();
-    }
+    void update();
 
-    bool is_enabled() const
-    {
-        return enabled_;
-    }
-
-    virtual bool is_threshold_exceeded() const
-    {
-        if (!enabled_) return false;
-        return check_threshold();
-    }
-
-    std::string get_resource_id() const{ return resource_id_; }
-    std::string get_message_class() const{ return message_class_; }
+    bool is_threshold_exceeded() const;
 
     template <class Target, class Func>
     void add_listener(Target target, Func func)
@@ -88,7 +55,7 @@ protected:
     virtual bool check_threshold() const = 0;
 
     const std::string resource_id_;
-    const std::string message_class_;
+    const std::string threshold_class_;
     bool enabled_;
     bool prev_threshold_exceeded_;
 
@@ -99,31 +66,25 @@ class FunctionThresholdMonitor : public ThresholdMonitor
 {
 public:
     template <class Func>
-    FunctionThresholdMonitor(const std::string& message_class, const std::string& resource_id, Func func) :
-        ThresholdMonitor(message_class, resource_id),
+    FunctionThresholdMonitor(const std::string& resource_id, const std::string& threshold_class, Func func) :
+        ThresholdMonitor(resource_id, threshold_class),
         callback_(func),
         exceeded_(false)
     {
     }
 
     template <class Target, class Func>
-    FunctionThresholdMonitor(const std::string& message_class, const std::string& resource_id, Target target, Func func) :
-        ThresholdMonitor(message_class, resource_id),
+    FunctionThresholdMonitor(const std::string& resource_id, const std::string& threshold_class,
+                             Target target, Func func) :
+        ThresholdMonitor(resource_id, threshold_class),
         callback_(target, func),
         exceeded_(false)
     {
     }
 
 private:
-    virtual void update_threshold()
-    {
-        exceeded_ = callback_(this);
-    }
-
-    virtual bool check_threshold() const
-    {
-        return exceeded_;
-    }
+    virtual void update_threshold();
+    virtual bool check_threshold() const;
 
     redhawk::callback<bool (ThresholdMonitor*)> callback_;
     bool exceeded_;
@@ -132,46 +93,16 @@ private:
 class ThresholdMonitorSet : public ThresholdMonitor
 {
 public:
-    ThresholdMonitorSet(const std::string& message_class, const std::string& resource_id) :
-        ThresholdMonitor(message_class, resource_id)
-    {
-    }
+    ThresholdMonitorSet(const std::string& resource_id, const std::string& threshold_class);
 
-    void add_monitor(const boost::shared_ptr<ThresholdMonitor>& monitor)
-    {
-        monitors_.push_back(monitor);
-    }
+    void add_monitor(const boost::shared_ptr<ThresholdMonitor>& monitor);
 
-    virtual void enable()
-    {
-        std::for_each(monitors_.begin(), monitors_.end(), boost::bind(&ThresholdMonitor::enable, _1));
-        ThresholdMonitor::enable();
-    }
-
-    virtual void disable()
-    {
-        std::for_each(monitors_.begin(), monitors_.end(), boost::bind(&ThresholdMonitor::disable, _1));
-        ThresholdMonitor::disable();
-    }
+    virtual void enable();
+    virtual void disable();
 
 private:
-    virtual void update_threshold()
-    {
-    }
-
-    virtual bool check_threshold() const
-    {
-        if (monitors_.empty()) {
-            return false;
-        }
-
-        for (MonitorList::const_iterator monitor = monitors_.begin(); monitor != monitors_.end(); ++monitor) {
-            if (!((*monitor)->is_threshold_exceeded())) {
-                return false;
-            }
-        }
-        return true;
-    }
+    virtual void update_threshold();
+    virtual bool check_threshold() const;
 
     typedef std::vector< boost::shared_ptr<ThresholdMonitor> > MonitorList;
     MonitorList monitors_;
