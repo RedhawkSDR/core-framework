@@ -887,7 +887,7 @@ GPP_i::initializeResourceMonitors()
   _threadThresholdMonitor->add_listener(this, &GPP_i::_threadThresholdStateChanged);
   threshold_monitors.push_back(_threadThresholdMonitor);
 
-  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "FILES", this, &GPP_i::_fileThresholdCheck);
+  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "OPEN_FILES", this, &GPP_i::_fileThresholdCheck);
   _fileThresholdMonitor->add_listener(this, &GPP_i::_fileThresholdStateChanged);
   threshold_monitors.push_back(_fileThresholdMonitor);
 
@@ -942,9 +942,15 @@ void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_threadThresholdCheck(ThresholdMonitor* monitor)
 {
-    if (gpp_limits.current_threads > (gpp_limits.max_threads * modified_thresholds.threads)) {
+    int gpp_max_threads = gpp_limits.max_threads * modified_thresholds.threads;
+    int sys_max_threads = sys_limits.max_threads * modified_thresholds.threads;
+    LOG_TRACE(GPP_i, "Update thread threshold monitor (GPP), threshold=" << gpp_max_threads
+              << " measured=" << gpp_limits.current_threads);
+    LOG_TRACE(GPP_i, "Update thread threshold monitor (system), threshold=" << sys_max_threads
+              << " measured=" << sys_limits.current_threads);
+    if (gpp_limits.current_threads > gpp_max_threads) {
         return true;
-    } else if (sys_limits.current_threads > (sys_limits.max_threads * modified_thresholds.threads)) {
+    } else if (sys_limits.current_threads > sys_max_threads) {
         return true;
     }
     return false;
@@ -957,9 +963,15 @@ void GPP_i::_threadThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_fileThresholdCheck(ThresholdMonitor* monitor)
 {
-    if (gpp_limits.current_open_files > (gpp_limits.max_open_files * modified_thresholds.files_available)) {
+    int gpp_max_open_files = gpp_limits.max_open_files * modified_thresholds.files_available;
+    int sys_max_open_files = sys_limits.max_open_files * modified_thresholds.files_available;
+    LOG_TRACE(GPP_i, "Update file threshold monitor (GPP), threshold=" << gpp_max_open_files
+              << " measured=" << gpp_limits.current_open_files);
+    LOG_TRACE(GPP_i, "Update file threshold monitor (system), threshold=" << sys_max_open_files
+              << " measured=" << sys_limits.current_open_files);
+    if (gpp_limits.current_open_files > gpp_max_open_files) {
         return true;
-    } else if (sys_limits.current_open_files > (sys_limits.max_open_files * modified_thresholds.files_available)) {
+    } else if (sys_limits.current_open_files > sys_max_open_files) {
         return true;
     }
     return false;

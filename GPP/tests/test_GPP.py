@@ -286,6 +286,7 @@ class GPPTests(GPPSandboxTest):
             event = self.queue.get(timeout=2.0)
         except Queue.Empty:
             self.fail('Threshold event not received')
+        self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
         self.assertEqual(thresholdClass, event['threshold_event::threshold_class'])
         self.assertEqual(resourceId, event['threshold_event::resource_id'])
         self._assertThresholdState(event, exceeded)
@@ -326,6 +327,10 @@ class GPPTests(GPPSandboxTest):
                 time.sleep(0.1)
                 continue
 
+            # Only 1 device connected to the event channel, the source ID had
+            # better be correct
+            self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
+
             # Should only be receiving one NIC message from each configured
             # interface
             nic_name = event['threshold_event::resource_id']
@@ -333,7 +338,6 @@ class GPPTests(GPPSandboxTest):
             self.failUnless(nic_name in expected, 'Received too many messages from NIC %s' % nic_name)
             threshold_class = event['threshold_event::threshold_class']
             self.assertEqual('NIC_THROUGHPUT', threshold_class, 'Received unexpected threshold class %s' % threshold_class)
-            
             self._assertThresholdState(event, exceeded)
             expected.remove(nic_name)
 
@@ -360,7 +364,7 @@ class GPPTests(GPPSandboxTest):
         self._testThresholdEventType('mem_free', 'physical_ram', 'MEMORY_FREE', self.comp.memFree + 100)
         self._testThresholdEventType('load_avg', 'cpu', 'LOAD_AVG', 0)
         self._testThresholdEventType('shm_free', 'shm', 'SHM_FREE', self.comp.shmCapacity)
-        self._testThresholdEventType('files_available', 'ulimit', 'FILES', 100.0)
+        self._testThresholdEventType('files_available', 'ulimit', 'OPEN_FILES', 100.0)
         self._testThresholdEventType('threads', 'ulimit', 'THREADS', 100.0)
 
         # If there is more than one NIC (real or virtual), each one will emit
