@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <getopt.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <ossie/shm/System.h>
 
@@ -45,6 +47,7 @@ namespace {
         std::cout << std::endl;
         std::cout << "  -h, --help           display this help and exit" << std::endl;
         std::cout << "  -a, --all            include non-REDHAWK heap shared memory files" << std::endl;
+        std::cout << "  -l                   do not look up user and group names" << std::endl;
         std::cout << "      --format=FORMAT  display sizes in FORMAT (default 'auto')" << std::endl;
         std::cout << "      --version        output version information and exit" << std::endl;
         std::cout << std::endl;
@@ -144,6 +147,7 @@ class Info : public ShmVisitor
 public:
     Info() :
         _all(false),
+        _showNames(true),
         _format()
     {
     }
@@ -151,6 +155,11 @@ public:
     void setDisplayAll(bool all)
     {
         _all = all;
+    }
+
+    void setDisplayUserNames(bool display)
+    {
+        _showNames = display;
     }
 
     void setSizeFormatter(SizeFormatter& format)
@@ -162,6 +171,7 @@ public:
     {
         std::cout << std::endl << heap.name() << std::endl;;
         std::cout << "  type:        REDHAWK heap" << std::endl;
+        // Note: file size and allocated size are always the same for heaps
         std::cout << "  file size:   " << _format(heap.file().size()) << std::endl;
 
         SuperblockFile::Statistics stats = heap.getStatistics();
@@ -173,6 +183,8 @@ public:
         std::cout << "  creator:     " << creator << std::endl;
         std::cout << "  orphaned:    " << std::boolalpha << heap.isOrphaned() << std::endl;
         std::cout << "  refcount:    " << heap.refcount() << std::endl;
+
+        displayFileStats(heap.name(), false);
     }
 
     virtual void visitFile(const std::string& name)
@@ -181,34 +193,106 @@ public:
             return;
         }
 
-        displayFile(name, "other");
+        std::cout << std::endl << name << std::endl;;
+        std::cout << "  type:        other" << std::endl;
+
+        displayFileStats(name, true);
     }
 
     virtual void heapException(const std::string& name, const std::exception& exc)
     {
-        displayFile(name, "REDHAWK heap (unreadable)");
+        std::cout << std::endl << name << std::endl;;
+        std::cout << "  type:        REDHAWK heap (unreadable)" << std::endl;
+
+        displayFileStats(name, true);
+
         std::cerr << "  error:       " << exc.what() << std::endl;
     }
 
 protected:
-    void displayFile(const std::string& name, const std::string& type)
+    void displayFileStats(const std::string& name, bool showSize)
     {
-        std::cout << std::endl << name << std::endl;;
-        std::cout << "  type:        " << type << std::endl;
-
         const std::string shm_path = redhawk::shm::getSystemPath();
         std::string path = shm_path + "/" + name;
         struct stat status;
         if (stat(path.c_str(), &status)) {
-            std::cout << "  (cannot access)" << std::endl;
             return;
         }
-        std::cout << "  file size:   " << _format(status.st_size) << std::endl;
-        std::cout << "  allocated:   " << _format(status.st_blocks * 512) << std::endl;
+        if (showSize) {
+            std::cout << "  file size:   " << _format(status.st_size) << std::endl;
+            std::cout << "  allocated:   " << _format(status.st_blocks * 512) << std::endl;
+        }
+        std::cout << "  user:        " << _getUserName(status.st_uid) << std::endl;
+        std::cout << "  group:       " << _getGroupName(status.st_gid) << std::endl;
+        int mode = status.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO);
+        std::cout << "  mode:        " << std::oct << mode << std::endl;
+    }
+
+    std::string _getUserName(uid_t uid)
+    {
+        UserTable::iterator existing = _userNames.find(uid);
+        if (existing != _userNames.end()) {
+            return existing->second;
+        }
+
+        std::string name;
+
+        // Unless it's disabled, look up the user entry
+        if (_showNames) {
+            struct passwd* user = getpwuid(uid);
+            if (user) {
+                name = user->pw_name;
+            }
+        }
+
+        // Use the ID
+        if (name.empty()) {
+            std::ostringstream oss;
+            oss << uid;
+            name = oss.str();
+        }
+
+        _userNames[uid] = name;
+        return name;
+    }
+
+    std::string _getGroupName(gid_t gid)
+    {
+        GroupTable::iterator existing = _groupNames.find(gid);
+        if (existing != _groupNames.end()) {
+            return existing->second;
+        }
+
+        std::string name;
+
+        // Unless it's disabled, look up the group entry
+        if (_showNames) {
+            struct group* grp = getgrgid(gid);
+            if (grp) {
+                name = grp->gr_name;
+            }
+        }
+
+        // Use the ID
+        if (name.empty()) {
+            std::ostringstream oss;
+            oss << gid;
+            name = oss.str();
+        }
+
+        _groupNames[gid] = name;
+        return name;
     }
 
     bool _all;
+    bool _showNames;
     SizeFormatter _format;
+
+    typedef std::map<uid_t,std::string> UserTable;
+    UserTable _userNames;
+
+    typedef std::map<gid_t,std::string> GroupTable;
+    GroupTable _groupNames;
 };
 
 int main(int argc, char* argv[])
@@ -232,7 +316,7 @@ int main(int argc, char* argv[])
     SizeFormatter format;
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "ah", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "ahl", long_options, NULL)) != -1) {
         switch (opt) {
         case 'a':
             info.setDisplayAll(true);
@@ -244,6 +328,9 @@ int main(int argc, char* argv[])
                 std::cerr << exc.what() << std::endl;
                 return -1;
             }
+            break;
+        case 'l':
+            info.setDisplayUserNames(false);
             break;
         case 'h':
             usage();
