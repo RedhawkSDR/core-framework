@@ -1439,7 +1439,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svc=d.services[0]
         self.assertNotEqual(svc, None)
         
-        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params" | grep  -v "grep"')]
+        lines = [ line.rstrip() for line in os.popen('ps -ww -ef | grep "services/py_svc_exec_params" | grep  -v "grep"')]
         
         k="exec_cmd"
         if  match_exec[k]:
@@ -1573,7 +1573,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svc=d.services[0]
         self.assertNotEqual(svc, None)
         
-        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params"')]
+        lines = [ line.rstrip() for line in os.popen('ps -ww -ef | grep "services/py_svc_exec_params"')]
         
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
         self.assertNotEqual(p, None)
