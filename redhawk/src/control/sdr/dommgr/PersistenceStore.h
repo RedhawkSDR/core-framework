@@ -257,6 +257,13 @@ namespace boost {
         }
 
         template<class Archive>
+        void serialize(Archive& ar, ossie::externalPropertyType& prop, const unsigned int version) {
+            ar & prop.property_id;
+            ar & prop.component_id;
+            ar & prop.access;
+        }
+
+        template<class Archive>
         void serialize(Archive& ar, ossie::ApplicationNode& node, const unsigned int version) {
             ar & (node.identifier);
             ar & (node.name);
