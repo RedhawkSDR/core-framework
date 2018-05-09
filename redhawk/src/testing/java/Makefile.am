@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-@rh_jarfile_rules@
+include $(top_srcdir)/aminclude/jarfile.am
 
 TESTS = test_ossie
 check_SCRIPTS = test_ossie
