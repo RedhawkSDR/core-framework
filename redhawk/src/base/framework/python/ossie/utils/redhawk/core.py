@@ -365,6 +365,7 @@ class App(_CF__POA.Application, Resource):
                     return getattr(self._acRef, name)
                 except AttributeError:
                     pass
+
             raise AttributeError('App object has no attribute ' + str(name))
     
     def __setattr__(self, name, value):
@@ -445,11 +446,8 @@ class App(_CF__POA.Application, Resource):
                     if compDev.componentId == refid:
                         devs.append(compDev.assignedDeviceId)
             except:
-                refid = None
-                implId = None
-                instanceName = None
-                pid = 0
-                devs = []
+                # unable to load the component information (the component is non-responsive)
+                continue
             spd, scd, prf = _readProfile(profile, self._domain.fileManager)
             new_comp = Component(profile, spd, scd, prf, compRef, instanceName, refid, implId, pid, devs)
 

@@ -45,6 +45,7 @@ Requires:       redhawk >= 2.1.3
 Requires:       bulkioInterfaces >= 2.1.3
 BuildRequires:  redhawk-devel >= 2.1.3
 BuildRequires:  bulkioInterfaces >= 2.1.3
+BuildRequires:  cppunit-devel
 
 %description
 Libraries and interface definitions for frontend.

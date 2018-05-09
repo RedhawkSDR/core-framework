@@ -73,7 +73,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * If the CHAN_RF and FRONTEND.BANDWIDTH keywords are not found in the sri,
      * FRONTEND.BadParameterException is thrown.
      */
-    public boolean validateRequestVsSRI(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri, boolean output_mode) throws FRONTEND.BadParameterException {
+    static public boolean validateRequestVsSRI(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri, boolean output_mode) throws FRONTEND.BadParameterException {
         // get center frequency and bandwidth from SRI keywords
         double upstream_cf = 0.0;
         double upstream_bw = 0.0;
@@ -81,13 +81,13 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         boolean found_bw = false;
         int key_size = upstream_sri.keywords.length;
         for (int i = 0; i < key_size; i++) {
-            if (!upstream_sri.keywords[i].id.equals("CHAN_RF")) {
+            if (upstream_sri.keywords[i].id.equals("CHAN_RF")) {
                 Double val = (Double) AnyUtils.convertAny(upstream_sri.keywords[i].value);
                 if (val != null){ 
                     found_cf = true;
                     upstream_cf = val.doubleValue();
                 }
-            } else if (!upstream_sri.keywords[i].id.equals("FRONTEND::BANDWIDTH")) {
+            } else if (upstream_sri.keywords[i].id.equals("FRONTEND::BANDWIDTH")) {
                 Double val = (Double) AnyUtils.convertAny(upstream_sri.keywords[i].value);
                 if (val != null){ 
                     found_bw = true;
@@ -105,7 +105,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         double min_requested_freq = request.center_frequency.getValue()-(request.bandwidth.getValue()/2);
         double max_requested_freq = request.center_frequency.getValue()+(request.bandwidth.getValue()/2);
 
-        if( !validateRequest(min_upstream_freq,max_upstream_freq,min_requested_freq,max_requested_freq) ){
+        if( !validateRequest(min_upstream_freq, max_upstream_freq, min_requested_freq, max_requested_freq) ){
             throw new FRONTEND.BadParameterException("INVALID REQUEST -- input data stream cannot support freq/bw request");
         }
 
@@ -133,7 +133,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * If the CHAN_RF and FRONTEND::BANDWIDTH keywords are not found in the sri,
      * FRONTEND.BadParameterException is thrown.
      */
-    public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri,
+    static public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final BULKIO.StreamSRI upstream_sri,
             boolean output_mode, double min_device_center_freq, double max_device_center_freq, double max_device_bandwidth, double max_device_sample_rate) throws FRONTEND.BadParameterException {
         // check if request can be satisfied using the available upstream data
         if( !validateRequestVsSRI(request,upstream_sri, output_mode) ){
@@ -187,7 +187,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * available for True to be returned, not just the center frequency.
      * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
      */
-    public boolean validateRequestVsRFInfo(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo, boolean mode) throws FRONTEND.BadParameterException {
+    static public boolean validateRequestVsRFInfo(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo, boolean mode) throws FRONTEND.BadParameterException {
 
         double min_analog_freq = rfinfo.rf_center_freq-(rfinfo.rf_bandwidth/2);
         double max_analog_freq = rfinfo.rf_center_freq+(rfinfo.rf_bandwidth/2);
@@ -217,7 +217,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * band of the request must be available for True to be returned, not just the center frequency.
      * True is returned upon success, otherwise FRONTEND.BadParameterException is thrown.
      */
-    public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo,
+    static public boolean validateRequestVsDevice(final frontend.FETypes.frontend_tuner_allocation_struct request, final FRONTEND.RFInfoPkt rfinfo,
             boolean mode, double min_device_center_freq, double max_device_center_freq, double max_device_bandwidth, double max_device_sample_rate) throws FRONTEND.BadParameterException {
 
         // check if request can be satisfied using the available upstream data
@@ -980,11 +980,11 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * "places" is used to specify precision. The default is 1, which
      * uses a single decimal place of precision.
      */
-    public double floatingPointCompare(double lhs, double rhs){
+    static public double floatingPointCompare(double lhs, double rhs){
         return floatingPointCompare(lhs, rhs, 1);
     }
 
-    public double floatingPointCompare(double lhs, double rhs, int places){
+    static public double floatingPointCompare(double lhs, double rhs, int places){
         return java.lang.Math.rint((lhs-rhs)*java.lang.Math.pow(10.0,(double)places));
     }
 
@@ -992,7 +992,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * true if the value requested_val falls within the range [available_min:available_max]
      * False is returned if min > max
      */
-    public boolean validateRequest(double available_min, double available_max, double requested_val){
+    static public boolean validateRequest(double available_min, double available_max, double requested_val){
         if(floatingPointCompare(requested_val,available_min) < 0) return false;
         if(floatingPointCompare(requested_val,available_max) > 0) return false;
         if(floatingPointCompare(available_min,available_max) > 0) return false;
@@ -1003,9 +1003,10 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      * [requested_min:requested_max] falls within the range [available_min:available_max]
      * False is returned if min > max for either available for requested values
      */
-    public boolean validateRequest(double available_min, double available_max, double requested_min, double requested_max){
-        if(floatingPointCompare(requested_min,available_min) < 0) return false;
-        if(floatingPointCompare(requested_max,available_max) > 0) return false;
+    static public boolean validateRequest(double available_min, double available_max, double requested_min, double requested_max){
+        double center_request = (requested_max+requested_min)/2.0;
+        if(floatingPointCompare(center_request,available_min) < 0) return false;
+        if(floatingPointCompare(center_request,available_max) > 0) return false;
         if(floatingPointCompare(available_min,available_max) > 0) return false;
         if(floatingPointCompare(requested_min,requested_max) > 0) return false;
         return true;

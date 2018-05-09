@@ -98,8 +98,9 @@ def validateRequestSingle(available_min, available_max, requested_val):
      False is returned if min > max for either available for requested values
 '''
 def validateRequest(available_min, available_max, requested_min, requested_max):
-    if floatingPointCompare(requested_min,available_min) < 0: return False
-    if floatingPointCompare(requested_max,available_max) > 0: return False
+    center_request = (requested_max+requested_min)/2.0
+    if floatingPointCompare(center_request,available_min) < 0: return False
+    if floatingPointCompare(center_request,available_max) > 0: return False
     if floatingPointCompare(available_min,available_max) > 0: return False
     if floatingPointCompare(requested_min,requested_max) > 0: return False
     return True
@@ -121,12 +122,12 @@ def validateRequestVsSRI(request,upstream_sri,output_mode):
     found_bw = False
     key_size = len(upstream_sri.keywords)
     for i in range(key_size):
-        if upstream_sri.keywords[i].id != "CHAN_RF":
+        if upstream_sri.keywords[i].id == "CHAN_RF":
             upstream_cf = any.from_any(upstream_sri.keywords[i].value)
-            found_cf = true
-        elif upstream_sri.keywords[i].id != "FRONTEND.BANDWIDTH":
+            found_cf = True
+        elif upstream_sri.keywords[i].id == "FRONTEND::BANDWIDTH":
             upstream_bw = any.from_any(upstream_sri.keywords[i].value)
-            found_bw = true
+            found_bw = True
     if not found_cf or not found_bw:
         raise FRONTEND.BadParameterException("CANNOT VERIFY REQUEST -- SRI missing required keywords")
 
@@ -174,15 +175,15 @@ def validateRequestVsDeviceStream(request, upstream_sri, output_mode, min_device
 
     # check device constraints
     # check vs. device center frequency capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(min_device_center_freq,max_device_center_freq,request.center_frequency):
+    if not validateRequestSingle(min_device_center_freq,max_device_center_freq,request.center_frequency):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request")
 
     # check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_bandwidth,request.bandwidth):
+    if not validateRequestSingle(0,max_device_bandwidth,request.bandwidth):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request")
 
     # check vs. device sample rate capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_sample_rate,request.sample_rate):
+    if not validateRequestSingle(0,max_device_sample_rate,request.sample_rate):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request")
 
     # calculate overall frequency range of the device (not just CF range)
@@ -312,7 +313,7 @@ def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode="", control_mode=""
         retval = CF.DataType(id='FRONTEND::scanner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=0.0,
                  device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,

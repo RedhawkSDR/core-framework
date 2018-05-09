@@ -11,12 +11,11 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: docker:latest
+  image: ${docker_registry}docker:latest
   tags:
-    - dind
+    - cf
+    - docker
   script:
-    # Ensure newest version of FROM image
-    - docker pull ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild
     # Use RPM release from specfile if this is a tag
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
@@ -26,7 +25,10 @@ stages:
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
+    - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
+                   --pull
+                   --no-cache
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
@@ -52,10 +54,9 @@ stages:
     paths:
       - output/
     expire_in: 2 days
-  #Skip on tag of following format
   except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -249,7 +250,7 @@ frontend:el7:
   <<: *rpmbuild
 
 deploy:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   before_script:
@@ -258,14 +259,13 @@ deploy:
     - if [ -n "$jenkins_url" ]; then
         curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
       fi
-  #Don't build on final tags
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
 
 #Trigger separate tests pipeline
 test-trigger:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   script:
@@ -280,7 +280,7 @@ test-trigger:
     - master
 
 test-trigger:release:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   variables:
@@ -293,6 +293,5 @@ test-trigger:release:
                               $test_url
   only:
     - tags
-  #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/

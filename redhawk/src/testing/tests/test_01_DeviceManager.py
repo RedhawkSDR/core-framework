@@ -602,6 +602,13 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         self.assertEqual(device.allocateCapacity(props),True)
 
+    def test_ZeroLengthDev(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/zero_length_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
     def test_ComponentPropertyOverride_cpp(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
@@ -1480,7 +1487,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svc=d.services[0]
         self.assertNotEqual(svc, None)
         
-        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params" | grep  -v "grep"')]
+        lines = [ line.rstrip() for line in os.popen('ps -ww -ef | grep "services/py_svc_exec_params" | grep  -v "grep"')]
         
         k="exec_cmd"
         if  match_exec[k]:
@@ -1614,7 +1621,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svc=d.services[0]
         self.assertNotEqual(svc, None)
         
-        lines = [ line.rstrip() for line in os.popen('ps -ef | grep "services/py_svc_exec_params"')]
+        lines = [ line.rstrip() for line in os.popen('ps -ww -ef | grep "services/py_svc_exec_params"')]
         
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_cmd cmd_ok")
         self.assertNotEqual(p, None)

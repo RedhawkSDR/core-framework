@@ -256,10 +256,14 @@ redhawk::UsesTransport* MessageSupplierPort::_createTransport(CORBA::Object_ptr 
     }
 }
 
-void MessageSupplierPort::push(const CORBA::Any& data)
+void MessageSupplierPort::push(const CORBA::Any& data, const std::string& connectionId)
 {
     boost::mutex::scoped_lock lock(updatingPortsLock);
+    _checkConnectionId(connectionId);
     for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        if (!_isConnectionSelected(connection.connectionId(), connectionId)) {
+            continue;
+        }
         try {
             connection.transport()->push(data);
         } catch (const redhawk::TransportError& exc) {
@@ -274,16 +278,23 @@ std::string MessageSupplierPort::getRepid() const
     return ExtendedEvent::MessageEvent::_PD_repoId;
 }
 
-void MessageSupplierPort::_beginMessageQueue(size_t count)
+void MessageSupplierPort::_beginMessageQueue(size_t count, const std::string& connectionId)
 {
     for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        if (!_isConnectionSelected(connection.connectionId(), connectionId)) {
+            continue;
+        }
         connection.transport()->beginQueue(count);
     }
 }
 
-void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData, SerializerFunc serializer)
+void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* format, const void* msgData,
+                                        SerializerFunc serializer, const std::string& connectionId)
 {
     for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        if (!_isConnectionSelected(connection.connectionId(), connectionId)) {
+            continue;
+        }
         try {
             connection.transport()->queueMessage(msgId, format, msgData, serializer);
         } catch ( ... ) {
@@ -291,14 +302,32 @@ void MessageSupplierPort::_queueMessage(const std::string& msgId, const char* fo
     }
 }
 
-void MessageSupplierPort::_sendMessageQueue()
+void MessageSupplierPort::_sendMessageQueue(const std::string& connectionId)
 {
     for (TransportIterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
+        if (!_isConnectionSelected(connection.connectionId(), connectionId)) {
+            continue;
+        }
         try {
             connection.transport()->sendMessages();
         } catch (const redhawk::TransportError& exc) {
             RH_NL_WARN("MessageSupplierPort", "Could not deliver the message. " << exc.what());
         } catch (...) {
         }
+    }
+}
+
+bool MessageSupplierPort::_isConnectionSelected(const std::string& connectionId, const std::string& targetId)
+{
+    if (targetId.empty()) {
+        return true;
+    }
+    return (connectionId == targetId);
+}
+
+void MessageSupplierPort::_checkConnectionId(const std::string& connectionId)
+{
+    if (!connectionId.empty() && !_hasConnection(connectionId)) {
+        throw std::invalid_argument("invalid connection '" + connectionId + "'");
     }
 }

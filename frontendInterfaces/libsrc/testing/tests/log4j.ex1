@@ -1,0 +1,25 @@
+
+
+# Set root logger default levels and appender
+log4j.rootLogger=INFO, CONSOLE
+ 
+ 
+# Appender layout
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+log4j.appender.STDERR=org.apache.log4j.ConsoleAppender
+log4j.appender.STDERR.layout=org.apache.log4j.PatternLayout
+log4j.appender.STDERR.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.STDERR.Threshold=WARN
+log4j.appender.STDERR.Target=System.err
+
+log4j.appender.NULL=org.apache.log4j.FileAppender
+log4j.appender.NULL.layout=org.apache.log4j.PatternLayout
+log4j.appender.NULL.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.NULL.File=/dev/null
+
+log4j.category.CPP_Ports_i=ERROR,CONSOLE
+log4j.logger.redhawk.bulkio.output=TRACE, CONSOLE 
+#log4j.additivity.redhawk.bulkio=true

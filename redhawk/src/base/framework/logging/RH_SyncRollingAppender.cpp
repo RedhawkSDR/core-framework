@@ -285,7 +285,7 @@ void RH_SyncRollingAppender::activateOptions(Pool& p) {
     }
 
     if ( !created ) {
-      _LL_WARN( "IGNORING LOG4 OPTIONS.. USING OPTIONS FROM MEMORY KEY: "  << fname << " max_size:" << sync_ctx->max_size <<  " max index:" << sync_ctx->max_index << "\n");
+      _LL_DEBUG( "IGNORING LOG4 OPTIONS.. USING OPTIONS FROM MEMORY KEY: "  << fname << " max_size:" << sync_ctx->max_size <<  " max index:" << sync_ctx->max_index << "\n");
       setMaximumFileSize(sync_ctx->max_size);
       setMaxBackupIndex(sync_ctx->max_index);
     }

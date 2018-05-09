@@ -25,15 +25,21 @@
 
 #include <ossie/MessageInterface.h>
 
+#include "PortManager.h"
+
 class MessagingTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(MessagingTest);
     CPPUNIT_TEST(testConnections);
     CPPUNIT_TEST(testSendMessage);
     CPPUNIT_TEST(testSendMessageDirect);
+    CPPUNIT_TEST(testSendMessageConnectionId);
     CPPUNIT_TEST(testSendMessages);
     CPPUNIT_TEST(testSendMessagesDirect);
+    CPPUNIT_TEST(testSendMessagesConnectionId);
     CPPUNIT_TEST(testGenericCallback);
+    CPPUNIT_TEST(testPush);
+    CPPUNIT_TEST(testPushConnectionId);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -44,13 +50,20 @@ public:
 
     void testSendMessage();
     void testSendMessageDirect();
+    void testSendMessageConnectionId();
 
     void testSendMessages();
     void testSendMessagesDirect();
+    void testSendMessagesConnectionId();
 
     void testGenericCallback();
 
+    void testPush();
+    void testPushConnectionId();
+
 private:
+    PortManager _portManager;
+
     MessageSupplierPort* _supplier;
     MessageConsumerPort* _consumer;
 };

@@ -357,8 +357,8 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
 
         if (_properties.count(extId)) {
             // Gets the component and its internal property id
-            const std::string propId = _properties[extId].first;
-            CF::Resource_ptr comp = _properties[extId].second;
+            const std::string propId = _properties[extId].property_id;
+            CF::Resource_ptr comp = _properties[extId].component;
 
             if (CORBA::is_nil(comp)) {
                 LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
@@ -441,12 +441,15 @@ throw (CF::UnknownProperties, CORBA::SystemException)
         configProperties.length(0);
 
         // Loop through each external property and add it to the batch with its respective component
-        for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator prop = _properties.begin();
+        for (std::map<std::string, externalPropertyType>::const_iterator prop = _properties.begin();
                 prop != _properties.end(); ++prop) {
             // Gets the property mapping info
             std::string extId = prop->first;
-            std::string propId = prop->second.first;
-            CF::Resource_ptr comp = prop->second.second;
+            std::string propId = prop->second.property_id;
+            CF::Resource_ptr comp = prop->second.component;
+
+            if (prop->second.access == "writeonly")
+                continue;
 
             if (CORBA::is_nil(comp)) {
                 LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
@@ -528,9 +531,18 @@ throw (CF::UnknownProperties, CORBA::SystemException)
             const std::string extId(configProperties[i].id);
 
             if (_properties.count(extId)) {
+                if (_properties[extId].access == "writeonly") {
+                    LOG_ERROR(Application_impl, "Cannot read writeonly external property: " << extId);
+                    int count = invalidProperties.length();
+                    invalidProperties.length(count + 1);
+                    invalidProperties[count].id = CORBA::string_dup(extId.c_str());
+                    invalidProperties[count].value = configProperties[i].value;
+                    continue;
+                }
+
                 // Gets the component and its property id
-                const std::string propId = _properties[extId].first;
-                CF::Resource_ptr comp = _properties[extId].second;
+                const std::string propId = _properties[extId].property_id;
+                CF::Resource_ptr comp = _properties[extId].component;
 
                 if (CORBA::is_nil(comp)) {
                     LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
@@ -590,8 +602,8 @@ throw (CF::UnknownProperties, CORBA::SystemException)
 
             // Checks if property ID is external or AC property
             if (_properties.count(extId)) {
-                propId = _properties[extId].first;
-                compId = ossie::corba::returnString(_properties[extId].second->identifier());
+                propId = _properties[extId].property_id;
+                compId = ossie::corba::returnString(_properties[extId].component->identifier());
             } else {
                 propId = extId;
                 compId = _assemblyController->getIdentifier();
@@ -639,12 +651,11 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
         const std::string extId(prop_ids[i]);
 
         if (_properties.count(extId)) {
-          CF::Resource_ptr comp = _properties[extId].second;          
-          std::string prop_id = _properties[extId].first;          
+          CF::Resource_ptr comp = _properties[extId].component;
+          std::string prop_id = _properties[extId].property_id;
           LOG_TRACE(Application_impl, "  ---> Register ExternalID: " << extId << " Comp/Id " << 
                 ossie::corba::returnString(comp->identifier()) << "/" << prop_id);
           comp_regs[ comp ].push_back( prop_id ); 
-          
         } else if (_assemblyController) {
             CF::Resource_var ac_resource = _assemblyController->getResourcePtr();
             comp_regs[ac_resource].push_back(extId);
@@ -1470,13 +1481,17 @@ void Application_impl::addExternalPort (const std::string& identifier, CORBA::Ob
     _ports[identifier] = CORBA::Object::_duplicate(port);
 }
 
-void Application_impl::addExternalProperty (const std::string& propId, const std::string& externalId, CF::Resource_ptr comp)
+void Application_impl::addExternalProperty (const std::string& propId, const std::string& externalId, const std::string& access, CF::Resource_ptr comp)
 {
     if (_properties.count(externalId)) {
         throw std::runtime_error("External Property name " + externalId + " is already in use");
     }
 
-    _properties[externalId] = std::pair<std::string, CF::Resource_var>(propId, CF::Resource::_duplicate(comp));
+    externalPropertyType external;
+    external.property_id = propId;
+    external.access = access;
+    external.component = CF::Resource::_duplicate(comp);
+    _properties.insert(std::pair<std::string, externalPropertyType>(externalId, external));
 }
 
 bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type, const std::string& identifier) const
@@ -1575,13 +1590,13 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
 
 std::string Application_impl::getExternalPropertyId(std::string compIdIn, std::string propIdIn)
 {
-    for (std::map<std::string, std::pair<std::string, CF::Resource_var> >::const_iterator prop = _properties.begin();
+    for (std::map<std::string, externalPropertyType>::const_iterator prop = _properties.begin();
             prop != _properties.end(); ++prop) {
         // Gets the property mapping info
         std::string extId = prop->first;
-        std::string propId = prop->second.first;
+        std::string propId = prop->second.property_id;
         // Gets the Resource identifier
-        std::string compId = ossie::corba::returnString(prop->second.second->identifier());
+        std::string compId = ossie::corba::returnString(prop->second.component->identifier());
 
         if (compId == compIdIn && propId == propIdIn) {
             return extId;

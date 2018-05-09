@@ -38,6 +38,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/PersonaDevice/cpp \
           sdr/dev/devices/ProgrammableDevice/cpp \
           sdr/dev/devices/cpp_dev/cpp \
+          sdr/dev/devices/zero_length_dev/cpp \
           sdr/dev/devices/base_programmable/cpp \
           sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
@@ -82,6 +83,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/timeprop_cpp/cpp \
           sdr/dom/components/time_cp_now/cpp \
+          sdr/dom/components/zero_length/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/busycomp/cpp \
           sdr/dom/components/svc_fn_error_cpp/cpp
@@ -122,6 +124,9 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
 endif
 
 SUBDIRS += cpp
+if HAVE_JAVASUPPORT
+SUBDIRS += java
+endif
 
 all-local:
 	python setup.py $(OSSIE_V_pysetup) build

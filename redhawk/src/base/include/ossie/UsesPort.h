@@ -172,6 +172,8 @@ namespace redhawk {
 
         virtual UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId) = 0;
 
+        bool _hasConnection(const std::string& connectionId);
+
         LOGGER logger;
 
         ConnectionList _connections;

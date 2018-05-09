@@ -822,12 +822,19 @@ void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDe
             throw std::logic_error("component not found for external property '" + prop->getExternalID() + "'");
         }
         const Property* property = deployment->getSoftPkg()->getProperties()->getProperty(prop->propid);
-        if (!property){
+        if (!property) {
             throw redhawk::DeploymentError("Attempting to promote property '" + prop->propid + "' that does not exist in component '" + prop->comprefid + "'");
         }
 
+        std::ostringstream _access;
+        if (property->getMode()) {
+            _access << property->getMode();
+        } else {
+            _access << "readwrite";
+        }
+
         CF::Resource_var comp = deployment->getResourcePtr();
-        application->addExternalProperty(prop->propid, prop->getExternalID(), comp);
+        application->addExternalProperty(prop->propid, prop->getExternalID(), _access.str(), comp);
     }
 }
 

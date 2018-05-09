@@ -35,6 +35,7 @@ test_libossiecf_SOURCES += MessagingTest.cpp MessagingTest.h
 test_libossiecf_SOURCES += ExecutorServiceTest.cpp ExecutorServiceTest.h
 test_libossiecf_SOURCES += BufferManagerTest.cpp BufferManagerTest.h
 test_libossiecf_SOURCES += CallbackTest.cpp CallbackTest.h
+test_libossiecf_SOURCES += PortManager.cpp PortManager.h
 test_libossiecf_SOURCES += BitopsTest.cpp BitopsTest.h
 test_libossiecf_SOURCES += BitBufferTest.cpp BitBufferTest.h
 test_libossiecf_CXXFLAGS = -Wall $(CPPUNIT_CFLAGS)

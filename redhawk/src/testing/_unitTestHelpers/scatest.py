@@ -223,7 +223,8 @@ def spawnNodeBooter(dmdFile=None,
                     endpoint=None, 
                     dbURI=None, 
                     execparams="", 
-                    nodeBooterPath="../../control/framework/nodeBooter"):
+                    nodeBooterPath="../../control/framework/nodeBooter",
+                    stderr=None):
     args = []
     if dmdFile != None:
         args.extend(["-D", dmdFile])
@@ -261,7 +262,7 @@ def spawnNodeBooter(dmdFile=None,
     print '\n-------------------------------------------------------------------'
     print 'Launching nodeBooter', " ".join(args)
     print '-------------------------------------------------------------------'
-    nb = ossie.utils.Popen(args, cwd=getSdrPath(), shell=False, preexec_fn=os.setpgrp)
+    nb = ossie.utils.Popen(args, cwd=getSdrPath(), shell=False, preexec_fn=os.setpgrp, stderr=stderr)
     if DEBUG_NODEBOOTER:
         absNodeBooterPath = os.path.abspath("../control/framework/nodeBooter")
         if GDB_CMD_FILE != None:

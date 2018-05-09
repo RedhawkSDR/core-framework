@@ -22,6 +22,7 @@
 
 #include <ossie/CorbaUtils.h>
 #include <ossie/PropertyInterface.h>
+#include <ossie/PropertyMap.h>
 #include "fe_types.h"
 
 inline bool operator>>= (const CORBA::Any& a, frontend::frontend_tuner_allocation_struct& s) {

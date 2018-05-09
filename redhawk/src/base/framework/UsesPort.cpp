@@ -222,6 +222,10 @@ namespace redhawk {
         return new Connection(connectionId, object, transport);
     }
 
+    bool UsesPort::_hasConnection(const std::string& connectionId)
+    {
+        return _findConnection(connectionId) != _connections.end();
+    }
 
     NegotiableUsesPort::NegotiableUsesPort(const std::string& name) :
         UsesPort(name)

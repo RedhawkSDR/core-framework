@@ -311,7 +311,9 @@ class ChannelManager:
 # is terminated on exit and avoid exception messages
 _consumers = []
 def _cleanup_consumers():
-    for consumer in _consumers:
+    # Iterate through a copy to avoid ordering problems at shutdown when
+    # consumers try to de-register themselves
+    for consumer in _consumers[:]:
         consumer.terminate()
 atexit.register(_cleanup_consumers)
 
@@ -541,58 +543,80 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         return connection
 
     # CosEventComm.PushSupplier delegation
-    def push(self, data):
-        self.portInterfaceAccess.acquire()
-        for connection in self._connections:
-            try:
-                self._connections[connection]['proxy_consumer'].push(data)
-            except:
-                print "WARNING: Unable to send data to",connection
-        self.portInterfaceAccess.release()
-    
-    def sendMessage(self, data_struct):
-        self.portInterfaceAccess.acquire()
+    def push(self, data, connectionId=None):
+        """
+        Sends pre-serialized messages.
+
+        Args:
+            data:         Messages serialized to a CORBA.Any
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
+        with self.portInterfaceAccess:
+            self._checkConnectionId(connectionId)
+
+            for identifier, connection in self._connections.iteritems():
+                if not self._isConnectionSelected(identifier, connectionId):
+                    continue
+
+                try:
+                    connection['proxy_consumer'].push(data)
+                except CORBA.MARSHAL:
+                    self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
+                except:
+                    print "WARNING: Unable to send data to", identifier
+
+    def sendMessage(self, data_struct, connectionId=None):
+        """
+        Sends a single message.
+
+        Args:
+            data_struct:  Message structure or CORBA.Any to send.
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
         if not isinstance(data_struct, CORBA.Any):
-            try:
-                outgoing = [CF.DataType(id=data_struct.getId(),value=struct_to_any(data_struct))]
-                outmsg = props_to_any(outgoing)
-            except:
-                self.portInterfaceAccess.release()
-                raise
+            outgoing = [CF.DataType(id=data_struct.getId(),value=struct_to_any(data_struct))]
+            outmsg = props_to_any(outgoing)
         else:
             outmsg = data_struct
+        self.push(outmsg, connectionId)
 
-        for connection in self._connections:
-            try:
-                self._connections[connection]['proxy_consumer'].push(outmsg)
-            except CORBA.MARSHAL:
-                self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
-            except:
-                print "WARNING: Unable to send data to",connection
-        self.portInterfaceAccess.release()
-    
-    def sendMessages(self, data_structs):
-        self.portInterfaceAccess.acquire()
-        try:
-            outgoing = []
-            for msg in data_structs:
-                outgoing.append(CF.DataType(id=msg.getId(),value=struct_to_any(msg)))
-            outmsg = props_to_any(outgoing)
-        except:
-            self.portInterfaceAccess.release()
-            raise
+    def sendMessages(self, data_structs, connectionId=None):
+        """
+        Sends a list of messages.
 
-        for connection in self._connections:
-            try:
-                self._connections[connection]['proxy_consumer'].push(outmsg)
-            except CORBA.MARSHAL:
-                self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
-            except:
-                print "WARNING: Unable to send data to",connection
-        self.portInterfaceAccess.release()
+        Args:
+            data_structs: Sequence of messages to send.
+            connectionId: Target connection (default: all).
+
+        Raises:
+            ValueError: If connectionId is given and does not match any
+                        connection.
+        """
+        outgoing = []
+        for msg in data_structs:
+            outgoing.append(CF.DataType(id=msg.getId(),value=struct_to_any(msg)))
+        outmsg = props_to_any(outgoing)
+        self.push(outmsg, connectionId)
 
     def disconnect_push_supplier(self):
         pass
 
     def _get_connections(self):
         return [ExtendedCF.UsesConnection(k, v['port']) for k, v in self._connections.iteritems()]
+
+    def _isConnectionSelected(self, connectionId, targetId):
+        if not targetId:
+            return True
+        return connectionId == targetId
+
+    def _checkConnectionId(self, connectionId):
+        if connectionId and not connectionId in self._connections:
+            raise ValueError("invalid connection '"+connectionId+"'")

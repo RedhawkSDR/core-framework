@@ -273,6 +273,10 @@ fi
 
 # C++ unit testing support. May want to conditionally enable/disable this.
 AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
 
 # Undefine the PACKAGE_ variables to avoid warnings when omniORB is installed outside of
 # /usr.  OSSIE doesn't use these variables anyways...and even if it did
@@ -313,13 +317,13 @@ AC_CONFIG_FILES(Makefile \
                 base/plugin/logcfg/Makefile \
                 idl/Makefile \
                 xml/Makefile \
-                tools/Makefile \
-                tools/LogEventAppender/Makefile )
+                tools/Makefile )
 
 AM_COND_IF( [BUILD_TESTS], [
 AC_CONFIG_FILES( [testing/Makefile \
                 testing/_unitTestHelpers/buildconfig.py \
                 testing/cpp/Makefile \
+                testing/java/Makefile \
                 testing/sdr/dev/devices/ExecutableDevice/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_java/java/Makefile \
@@ -333,6 +337,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dev/devices/PersonaDevice/cpp/Makefile \
                 testing/sdr/dev/devices/ProgrammableDevice/cpp/Makefile \
                 testing/sdr/dev/devices/cpp_dev/cpp/Makefile \
+                testing/sdr/dev/devices/zero_length_dev/cpp/Makefile \
                 testing/sdr/dev/devices/base_programmable/cpp/Makefile \
                 testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
@@ -405,6 +410,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/foo/bar/comp/cpp/Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
                 testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
+                testing/sdr/dom/components/zero_length/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
                 testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile \
                 testing/sdr/dom/components/svc_fn_error_cpp/cpp/Makefile \

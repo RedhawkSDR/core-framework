@@ -301,13 +301,13 @@ class frontend_scanner_allocation(object):
                                        type_="double")
             mode = simple_property(id_="FRONTEND::scanner_allocation::mode",
                                    name="mode",
-                                   type_="double")
+                                   type_="string")
             control_mode = simple_property(id_="FRONTEND::scanner_allocation::control_mode",
                                            name="control_mode",
                                            type_="string")
             control_limit = simple_property(id_="FRONTEND::scanner_allocation::control_limit",
                                             name="control_limit",
-                                            type_="string")
+                                            type_="double")
 
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""

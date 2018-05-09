@@ -87,11 +87,19 @@ if test "x$enable_java" != "xno"; then
 fi
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
+AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
+
 AC_CONFIG_FILES([Makefile \
                  frontendInterfaces.pc \
                  libsrc/Makefile \
+                 libsrc/testing/tests/cpp/Makefile \
                  libsrc/frontend.pc])
 if test "$HAVE_JAVASUPPORT = yes"; then
-  AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
+  AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF \
+                 libsrc/testing/tests/java/Makefile])
 fi
 AC_OUTPUT

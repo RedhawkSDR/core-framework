@@ -137,11 +137,31 @@ CF::DataType ossie::convertPropertyToDataType(const StructProperty* prop) {
 
     CF::Properties structval_;
     const PropertyList& propValue = prop->getValue();
+    bool nilSeq = false;
+    bool nonNilVal = false;
+    std::vector<unsigned int> idxs;
     for (ossie::PropertyList::const_iterator i = propValue.begin(); i != propValue.end(); ++i) {
+        if (i->isNone()) {
+            if (dynamic_cast<const ossie::SimpleSequenceProperty*>(&(*i)) != NULL) {
+                nilSeq = true;
+                idxs.push_back(structval_.length());
+            }
+        } else {
+            if (dynamic_cast<const ossie::SimpleProperty*>(&(*i)) != NULL)
+                nonNilVal = true;
+        }
         CF::DataType dt;
-	dt = convertPropertyToDataType(&(*i));
+        dt = convertPropertyToDataType(&(*i));
         structval_.length(structval_.length() + 1);
         structval_[structval_.length() - 1] = dt;
+    }
+    // there's a nil sequence value and a non-nil simple. The nil sequence needs to be a zero-length sequence
+    if (nilSeq and nonNilVal) {
+        std::vector<std::string> empty_string_vector;
+        for (std::vector<unsigned int>::iterator idx=idxs.begin();idx!=idxs.end();++idx) {
+            const ossie::SimpleSequenceProperty* _type = dynamic_cast<const ossie::SimpleSequenceProperty*>(&propValue[*idx]);
+            structval_[*idx].value = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()), NULL);
+        }
     }
     dataType.value <<= structval_;
     return dataType;
