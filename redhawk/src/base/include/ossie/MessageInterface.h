@@ -34,6 +34,7 @@
 #include "CorbaUtils.h"
 #include "Port_impl.h"
 #include "callback.h"
+#include "internal/message_traits.h"
 
 #include <COS/CosEventChannelAdmin.hh>
 
@@ -81,42 +82,6 @@ class SupplierAdmin_i : public virtual POA_CosEventChannelAdmin::SupplierAdmin {
      */
 #endif
 
-namespace internal {
-    template <class T>
-    struct has_format
-    {
-        typedef ::boost::type_traits::no_type no_type;
-        typedef ::boost::type_traits::yes_type yes_type;
-        template <typename U, U> struct type_check;
-
-        template <typename U>
-        static yes_type& check(type_check<const char* (*)(), &U::getFormat>*);
-
-        template <typename>
-        static no_type& check(...);
-
-        static bool const value = (sizeof(check<T>(0)) == sizeof(yes_type));
-    };
-
-    template <class T, class Enable=void>
-    struct message_traits
-    {
-        static const char* format()
-        {
-            return "";
-        }
-    };
-
-    template <class T>
-    struct message_traits<T, typename boost::enable_if<has_format<T> >::type>
-    {
-        static const char* format()
-        {
-            return T::getFormat();
-        }
-    };
-}
-
 class MessageConsumerPort : public Port_Provides_base_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
 , public virtual POA_ExtendedEvent::MessageEvent
@@ -137,7 +102,7 @@ public:
     template <class Class, class MessageStruct>
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
-        const char* format = ::internal::message_traits<MessageStruct>::format();
+        const char* format = ::redhawk::internal::message_traits<MessageStruct>::format();
         callbacks_[id] = new MessageCallbackImpl<MessageStruct>(format, boost::bind(func, target, _1, _2));
     }
 
@@ -164,10 +129,9 @@ public:
     
     void fireCallback (const std::string& id, const CORBA::Any& data);
 
-	std::string getRepid() const;
+    std::string getRepid() const;
 
-	std::string getDirection() const;
-    
+    std::string getDirection() const;
 
 protected:
     friend class MessageSupplierPort;

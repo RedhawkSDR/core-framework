@@ -14,5 +14,6 @@ test_libossiecf_SOURCES += MessagingTest.cpp MessagingTest.h
 test_libossiecf_SOURCES += ExecutorServiceTest.cpp ExecutorServiceTest.h
 test_libossiecf_SOURCES += BufferManagerTest.cpp BufferManagerTest.h
 test_libossiecf_SOURCES += CallbackTest.cpp CallbackTest.h
+test_libossiecf_SOURCES += PortManager.cpp PortManager.h
 test_libossiecf_CXXFLAGS = $(CPPUNIT_CFLAGS) -I $(top_srcdir)/base/include
 test_libossiecf_LDFLAGS = $(CPPUNIT_LIBS) $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la

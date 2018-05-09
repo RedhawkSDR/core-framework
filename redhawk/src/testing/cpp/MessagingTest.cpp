@@ -174,42 +174,25 @@ void MessagingTest::setUp()
     _supplier = new MessageSupplierPort("supplier");
     _consumer = new MessageConsumerPort("consumer");
 
-    PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
-    PortableServer::ObjectId_var oid = root_poa->activate_object(_supplier);
-    oid = root_poa->activate_object(_consumer);
+    _portManager.addPort(_supplier);
+    _portManager.addPort(_consumer);
 
     // Connect the supplier and consumer
     CORBA::Object_var objref = _consumer->_this();
     _supplier->connectPort(objref, "connection_1");
 
     // Simulate component start
-    _supplier->startPort();
-    _consumer->startPort();
+    _portManager.start();
 }
 
 void MessagingTest::tearDown()
 {
     // Simulate component stop/shutdown
-    _supplier->stopPort();
-    _consumer->stopPort();
+    _portManager.stop();
+    _portManager.releaseObject();
 
-    PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
-    try {
-        PortableServer::ObjectId_var oid = root_poa->servant_to_id(_supplier);
-        root_poa->deactivate_object(oid);
-        _supplier->_remove_ref();
-    } catch (const CORBA::Exception&) {
-        // TODO: Print message?
-    }
+    // Consumer and supplier have been deleted by the port manager
     _supplier = 0;
-
-    try {
-        PortableServer::ObjectId_var oid = root_poa->servant_to_id(_consumer);
-        root_poa->deactivate_object(oid);
-        _consumer->_remove_ref();
-    } catch (const CORBA::Exception&) {
-        // TODO: Print message?
-    }
     _consumer = 0;
 }
 
@@ -311,6 +294,56 @@ void MessagingTest::testSendMessageDirect()
     CPPUNIT_ASSERT_MESSAGE("direct message transfer not used", receiver.addresses().front() == &msg);
 }
 
+void MessagingTest::testSendMessageConnectionId()
+{
+    // Create and connect a second consumer port
+    MessageConsumerPort* consumer_2 = new MessageConsumerPort("consumer_2");
+    _portManager.addPort(consumer_2);
+    consumer_2->startPort();
+    CORBA::Object_var objref = consumer_2->_this();
+    _supplier->connectPort(objref, "connection_2");
+
+    // Set up 2 receivers to distinguish which connection received a message
+    typedef MessageReceiver<direct_message_struct> receiver_type;
+    receiver_type receiver_1;
+    _consumer->registerMessage("direct_message", &receiver_1, &receiver_type::messageReceived);
+
+    receiver_type receiver_2;
+    consumer_2->registerMessage("direct_message", &receiver_2, &receiver_type::messageReceived);
+
+    direct_message_struct msg;
+    msg.value = 1;
+    msg.body = "connection_1";
+
+    // Target the first connection (see above re: threading)
+    CPPUNIT_ASSERT(receiver_1.received().empty());
+    CPPUNIT_ASSERT(receiver_2.received().empty());
+    _supplier->sendMessage(msg, "connection_1");
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, receiver_2.received().size());
+
+    // Target the second connection this time
+    msg.value = 2;
+    msg.body = "connection_2";
+    _supplier->sendMessage(msg, "connection_2");
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, receiver_2.received().size());
+
+    // Target both connections
+    msg.value = 3;
+    msg.body = "all";
+    _supplier->sendMessage(msg);
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_2.received().size());
+
+    // Target invalid connection
+    msg.value = 4;
+    msg.body = "bad_connection";
+    CPPUNIT_ASSERT_THROW(_supplier->sendMessage(msg, "bad_connection"), std::invalid_argument);
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_2.received().size());
+}
+
 void MessagingTest::testSendMessages()
 {
     // Set up receiver
@@ -370,6 +403,66 @@ void MessagingTest::testSendMessagesDirect()
     }
 }
 
+void MessagingTest::testSendMessagesConnectionId()
+{
+    // Create and connect a second consumer port
+    MessageConsumerPort* consumer_2 = new MessageConsumerPort("consumer_2");
+    _portManager.addPort(consumer_2);
+    CORBA::Object_var objref = consumer_2->_this();
+    _supplier->connectPort(objref, "connection_2");
+
+    // Set up 2 receivers to distinguish which connection received a message
+    typedef MessageReceiver<direct_message_struct> receiver_type;
+    receiver_type receiver_1;
+    _consumer->registerMessage("direct_message", &receiver_1, &receiver_type::messageReceived);
+
+    receiver_type receiver_2;
+    consumer_2->registerMessage("direct_message", &receiver_2, &receiver_type::messageReceived);
+
+    // Build a list of messages based on filler text and target the first
+    // connection (see above re: threading)
+    const char* text_1[] = { "lorem", "ipsum", 0 };
+    std::vector<direct_message_struct> messages_1;
+    for (size_t index = 0; text_1[index] != 0; ++index) {
+        direct_message_struct msg;
+        msg.value = index;
+        msg.body = text_1[index];
+        messages_1.push_back(msg);
+    }
+    CPPUNIT_ASSERT(receiver_1.received().empty());
+    CPPUNIT_ASSERT(receiver_2.received().empty());
+    _supplier->sendMessages(messages_1, "connection_1");
+    CPPUNIT_ASSERT_EQUAL(messages_1.size(), receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, receiver_2.received().size());
+
+    // Target the second connection this time with a different set of messages
+    const char* text_2[] = { "dolor", "sit", "amet", 0 };
+    std::vector<direct_message_struct> messages_2;
+    for (size_t index = 0; text_2[index] != 0; ++index) {
+        direct_message_struct msg;
+        msg.value = index + messages_1.size();
+        msg.body = text_2[index];
+        messages_2.push_back(msg);
+    }
+    _supplier->sendMessages(messages_2, "connection_2");
+    CPPUNIT_ASSERT_EQUAL(messages_1.size(), receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL(messages_2.size(), receiver_2.received().size());
+
+    // Target both connections
+    _supplier->sendMessages(messages_1);
+    CPPUNIT_ASSERT_EQUAL(messages_1.size() + messages_1.size(), receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL(messages_2.size() + messages_1.size(), receiver_2.received().size());
+
+    // Target invalid connection
+    std::vector<direct_message_struct> messages_3;
+    messages_3.resize(1);
+    messages_3[0].value = 1000;
+    messages_3[0].body = "bad_connection";
+    CPPUNIT_ASSERT_THROW(_supplier->sendMessages(messages_3, "bad_connection"), std::invalid_argument);
+    CPPUNIT_ASSERT_EQUAL(messages_1.size() + messages_1.size(), receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL(messages_2.size() + messages_1.size(), receiver_2.received().size());
+}
+
 void MessagingTest::testGenericCallback()
 {
     // Set up receiver
@@ -401,4 +494,83 @@ void MessagingTest::testGenericCallback()
     CPPUNIT_ASSERT_EQUAL(direct_message_struct::getId(), messages[1].getId());
     CPPUNIT_ASSERT(messages[1].getValue() >>= direct_out);
     CPPUNIT_ASSERT(direct == direct_out);
+}
+
+void MessagingTest::testPush()
+{
+    // Set up a generic receiver
+    GenericReceiver receiver;
+    _consumer->registerMessage(&receiver, &GenericReceiver::messageReceived);
+
+    // Pack the messages ourselves
+    redhawk::PropertyMap messages_out;
+    messages_out["first"] = (CORBA::Long) 100;
+    messages_out["second"] = "some text";
+    messages_out["third"] = 0.25;
+
+    CORBA::Any any;
+    any <<= messages_out;
+    _supplier->push(any);
+
+    // Check that the messages were received (see above re: threading)
+    const redhawk::PropertyMap& messages = receiver.received();
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, messages.size());
+    CPPUNIT_ASSERT_EQUAL((CORBA::Long) 100, messages[0].getValue().toLong());
+    CPPUNIT_ASSERT_EQUAL(std::string("some text"), messages[1].getValue().toString());
+    CPPUNIT_ASSERT_EQUAL(0.25, messages[2].getValue().toDouble());
+}
+
+void MessagingTest::testPushConnectionId()
+{
+    // Create and connect a second consumer port
+    MessageConsumerPort* consumer_2 = new MessageConsumerPort("consumer_2");
+    _portManager.addPort(consumer_2);
+    CORBA::Object_var objref = consumer_2->_this();
+    _supplier->connectPort(objref, "connection_2");
+
+    // Set up 2 receivers to distinguish which connection received a message
+    GenericReceiver receiver_1;
+    _consumer->registerMessage(&receiver_1, &GenericReceiver::messageReceived);
+
+    GenericReceiver receiver_2;
+    consumer_2->registerMessage(&receiver_2, &GenericReceiver::messageReceived);
+
+    // Pack the messages ourselves and target the first connection
+    redhawk::PropertyMap messages_1;
+    messages_1["first"] = (CORBA::Long) 100;
+    messages_1["second"] = "some text";
+    messages_1["third"] = 0.25;
+    CORBA::Any any;
+    any <<= messages_1;
+    _supplier->push(any, "connection_1");
+
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 0, receiver_2.received().size());
+
+    // Target the second connection with a different set of messages
+    redhawk::PropertyMap messages_2;
+    messages_2["one"] = "abc";
+    messages_2["two"] = false;
+    any <<= messages_2;
+    _supplier->push(any, "connection_2");
+
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 2, receiver_2.received().size());
+
+    // Target both connections with yet another set of messages
+    redhawk::PropertyMap messages_3;
+    messages_3["all"] = (CORBA::Long) 3;
+    any <<= messages_3;
+    _supplier->push(any);
+
+    CPPUNIT_ASSERT_EQUAL((size_t) 4, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, receiver_2.received().size());
+
+    // Target invalid connection
+    redhawk::PropertyMap messages_4;
+    messages_4["bad"] = "bad_connection";
+    any <<= messages_4;
+    CPPUNIT_ASSERT_THROW(_supplier->push(any, "bad_connection"), std::invalid_argument);
+    CPPUNIT_ASSERT_EQUAL((size_t) 4, receiver_1.received().size());
+    CPPUNIT_ASSERT_EQUAL((size_t) 3, receiver_2.received().size());
 }

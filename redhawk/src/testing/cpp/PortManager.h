@@ -18,8 +18,31 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-package org.ossie.events;
+#ifndef PORTMANAGER_H
+#define PORTMANAGER_H
 
-public interface MessageListener<E> {
-    public void messageReceived(String messageId, E messageData);
-}
+#include <ossie/PortSupplier_impl.h>
+
+/**
+ * Container class to manage REDHAWK ports in unit tests.
+ *
+ * Takes ownership of the ports and handles start, stop and release to maintain
+ * consistent behavior with a "real" component.
+ */
+class PortManager : private PortSupplier_impl
+{
+public:
+    PortManager();
+    ~PortManager();
+
+    void addPort(PortBase* port);
+
+    void start();
+    void stop();
+    void releaseObject();
+
+private:
+    std::vector<PortBase*> _ports;
+};
+
+#endif // PORTMANAGER_H

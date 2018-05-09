@@ -18,8 +18,44 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-package org.ossie.events;
+#include "PortManager.h"
 
-public interface MessageListener<E> {
-    public void messageReceived(String messageId, E messageData);
+#include <algorithm>
+#include <functional>
+
+PortManager::PortManager() :
+    PortSupplier_impl()
+{
+}
+
+PortManager::~PortManager()
+{
+    releaseObject();
+}
+
+void PortManager::addPort(PortBase* port)
+{
+    PortSupplier_impl::addPort(port->getName(), port);
+
+    // Take ownership of the port; if the caller requires a longer lifetime for
+    // the port, they must increment the reference count themselves
+    _ports.push_back(port);
+}
+
+void PortManager::start()
+{
+    startPorts();
+}
+
+void PortManager::stop()
+{
+    stopPorts();
+}
+
+void PortManager::releaseObject()
+{
+    releasePorts();
+
+    std::for_each(_ports.begin(), _ports.end(), std::mem_fun(&PortBase::_remove_ref));
+    _ports.clear();
 }
