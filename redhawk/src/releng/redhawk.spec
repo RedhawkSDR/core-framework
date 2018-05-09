@@ -168,10 +168,18 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 # -r is system account, -f is force (ignore already exists)
 groupadd -r -f redhawk
 if ! id redhawk &> /dev/null; then
-  # -M is don't create home dir, -r is system account, -s is shell
-  # -c is comment, -n is don't create group, -g is group name/id
-  /usr/sbin/useradd -M -r -s /sbin/nologin \
+  # -r is system account, -s is shell, -M is don't create home dir, 
+  # -d is the home directory, -c is comment, -n is don't create group,
+  # -g is group name/id
+  /usr/sbin/useradd -r -s /sbin/nologin -M -d /var/redhawk \
     -c "REDHAWK System Account" -n -g redhawk redhawk > /dev/null
+elif [ `getent passwd redhawk | cut -d: -f6` == "/home/redhawk" ]; then
+  if [ `ps -u redhawk | wc -l` != '1' ]; then
+    echo "The redhawk user still has processes running, cannot update user account"
+    exit 1
+  fi
+  # Reassign the redhawk home directory to something that exists
+  /usr/sbin/usermod -d /var/redhawk redhawk
 fi
 
 
@@ -293,7 +301,7 @@ fi
 - Add qt-tools package
 - Remove el5 support
 
-* Wed Sep 15 2014 - 1.11.0-1
+* Mon Sep 15 2014 - 1.11.0-1
 - Update for dependency on java7
 
 * Wed May 21 2014 - 1.10.0-7
