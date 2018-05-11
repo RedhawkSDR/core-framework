@@ -272,7 +272,8 @@ test-trigger:
     - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_SLUG"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
   only:
     - branches
@@ -289,7 +290,8 @@ test-trigger:release:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_SLUG"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
   only:
     - tags
