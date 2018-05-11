@@ -384,26 +384,9 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
        return 0;
    }
 
-    public int SF( bulkio.InInt8Port inPort, bulkio.OutInt8Port outPort, String portType ) {
+    public int SF( bulkio.InCharPort inPort, bulkio.OutCharPort outPort, String portType ) {
 
-        bulkio.InInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-
-	if ( pkt != null ) {
-	    if (pkt.sriChanged ) {
-		outPort.pushSRI( pkt.SRI );
-	    }
-
-	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-
-	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-            return 1;
-       }
-       return 0;
-    }
-
-    public int SF( bulkio.InInt16Port inPort, bulkio.OutInt16Port outPort, String portType ) {
-
-        bulkio.InInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InCharPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -418,27 +401,9 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
        return 0;
     }
 
+    public int SF( bulkio.InShortPort inPort, bulkio.OutShortPort outPort, String portType ) {
 
-    public int SF( bulkio.InInt32Port inPort, bulkio.OutInt32Port outPort, String portType ) {
-
-        bulkio.InInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-
-	if ( pkt != null ) {
-	    if (pkt.sriChanged ) {
-		outPort.pushSRI( pkt.SRI );
-	    }
-
-	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-
-	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-            return 1;
-       }
-       return 0;
-    }
-
-    public int SF( bulkio.InInt64Port inPort, bulkio.OutInt64Port outPort, String portType ) {
-
-        bulkio.InInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InShortPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -454,27 +419,9 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
     }
 
 
+    public int SF( bulkio.InLongPort inPort, bulkio.OutLongPort outPort, String portType ) {
 
-    public int SF( bulkio.InUInt8Port inPort, bulkio.OutUInt8Port outPort, String portType ) {
-
-        bulkio.InUInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-
-	if ( pkt != null ) {
-	    if (pkt.sriChanged ) {
-		outPort.pushSRI( pkt.SRI );
-	    }
-
-	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-
-	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-            return 1;
-       }
-       return 0;
-    }
-
-    public int SF( bulkio.InUInt16Port inPort, bulkio.OutUInt16Port outPort, String portType ) {
-
-        bulkio.InUInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -489,10 +436,9 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
        return 0;
     }
 
+    public int SF( bulkio.InLongLongPort inPort, bulkio.OutLongLongPort outPort, String portType ) {
 
-    public int SF( bulkio.InUInt32Port inPort, bulkio.OutUInt32Port outPort, String portType ) {
-
-        bulkio.InUInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InLongLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -507,9 +453,63 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
        return 0;
     }
 
-    public int SF( bulkio.InUInt64Port inPort, bulkio.OutUInt64Port outPort, String portType ) {
 
-        bulkio.InUInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+    public int SF( bulkio.InOctetPort inPort, bulkio.OutOctetPort outPort, String portType ) {
+
+        bulkio.InOctetPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+	if ( pkt != null ) {
+	    if (pkt.sriChanged ) {
+		outPort.pushSRI( pkt.SRI );
+	    }
+
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            return 1;
+       }
+       return 0;
+    }
+
+    public int SF( bulkio.InUShortPort inPort, bulkio.OutUShortPort outPort, String portType ) {
+
+        bulkio.InUShortPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+	if ( pkt != null ) {
+	    if (pkt.sriChanged ) {
+		outPort.pushSRI( pkt.SRI );
+	    }
+
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            return 1;
+       }
+       return 0;
+    }
+
+
+    public int SF( bulkio.InULongPort inPort, bulkio.OutULongPort outPort, String portType ) {
+
+        bulkio.InULongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+	if ( pkt != null ) {
+	    if (pkt.sriChanged ) {
+		outPort.pushSRI( pkt.SRI );
+	    }
+
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            return 1;
+       }
+       return 0;
+    }
+
+    public int SF( bulkio.InULongLongPort inPort, bulkio.OutULongLongPort outPort, String portType ) {
+
+        bulkio.InULongLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
