@@ -209,17 +209,17 @@ bool ApplicationComponent::stop(float timeout)
         _resource->stop();
         return true;
     } catch (const CF::Resource::StopError& error) {
-        LOG_ERROR(ApplicationComponent, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
+        RH_ERROR(_appComponentLog, "Failed to stop " << _identifier << "; CF::Resource::StopError '" << error.msg << "'");
     } catch (const CORBA::SystemException& exc) {
         if (!isTerminated()) {
-            LOG_ERROR(ApplicationComponent, "Failed to stop component '" << _identifier << "'; "
+            RH_ERROR(_appComponentLog, "Failed to stop component '" << _identifier << "'; "
                       << ossie::corba::describeException(exc));
         } else {
-            LOG_DEBUG(ApplicationComponent, "Ignoring CORBA exception stopping terminated component '"
+            RH_DEBUG(_appComponentLog, "Ignoring CORBA exception stopping terminated component '"
                       << _identifier << "'");
         }
     } catch (...) {
-        LOG_ERROR(ApplicationComponent, "Failed to stop " << _identifier);
+        RH_ERROR(_appComponentLog, "Failed to stop " << _identifier);
     }
     return false;
 }
@@ -230,20 +230,20 @@ void ApplicationComponent::releaseObject()
         return;
     }
 
-    LOG_DEBUG(ApplicationComponent, "Releasing component '" << _identifier << "'");
+    RH_DEBUG(_appComponentLog, "Releasing component '" << _identifier << "'");
     try {
         unsigned long timeout = 3; // seconds;
         omniORB::setClientCallTimeout(_resource, timeout * 1000);
         _resource->releaseObject();
     } catch (const CORBA::SystemException& exc) {
         if (!isTerminated()) {
-            LOG_ERROR(ApplicationComponent, "Failed to release component '" << _identifier << "'; "
+            RH_ERROR(_appComponentLog, "Failed to release component '" << _identifier << "'; "
                       << ossie::corba::describeException(exc));
         } else {
-            LOG_DEBUG(ApplicationComponent, "Ignoring CORBA exception releasing terminated component '"
+            RH_DEBUG(_appComponentLog, "Ignoring CORBA exception releasing terminated component '"
                       << _identifier << "'");
         }
-    } CATCH_LOG_WARN(ApplicationComponent, "releaseObject failed for component '" << _identifier << "'");
+    } CATCH_RH_WARN(_appComponentLog, "releaseObject failed for component '" << _identifier << "'");
 }
 
 void ApplicationComponent::terminate()
@@ -255,23 +255,23 @@ void ApplicationComponent::terminate()
     }
 
     if (!_assignedDevice || !_assignedDevice->isExecutable()) {
-        LOG_WARN(ApplicationComponent, "Cannot find device to terminate component " << _identifier);
+        RH_WARN(_appComponentLog, "Cannot find device to terminate component " << _identifier);
         return;
     }
 
-    LOG_DEBUG(ApplicationComponent, "Terminating component '" << _identifier
+    RH_DEBUG(_appComponentLog, "Terminating component '" << _identifier
               << "' on device '" << _assignedDevice->label
               << "' (" << _assignedDevice->identifier << ")");
     try {
         _assignedDevice->executableDevice->terminate(_processId);
     } catch (const CF::ExecutableDevice::InvalidProcess& ip) {
-        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+        RH_ERROR(_appComponentLog, "Failed to terminate process for component '" << _identifier
                   << "': invalid process");
     } catch (const CF::Device::InvalidState& state) {
-        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+        RH_ERROR(_appComponentLog, "Failed to terminate process for component '" << _identifier
                   << "': device '" << _assignedDevice->label << "' is in an invalid state");
     } catch (const CORBA::SystemException& exc) {
-        LOG_ERROR(ApplicationComponent, "Failed to terminate process for component '" << _identifier
+        RH_ERROR(_appComponentLog, "Failed to terminate process for component '" << _identifier
                   << "': " << ossie::corba::describeException(exc));
     }
 }
@@ -282,18 +282,18 @@ void ApplicationComponent::unloadFiles()
         return;
     }
 
-    LOG_DEBUG(ApplicationComponent, "Unloading " << _loadedFiles.size() << " file(s) for component '"
+    RH_DEBUG(_appComponentLog, "Unloading " << _loadedFiles.size() << " file(s) for component '"
               << _identifier << "'");
 
     if (!_assignedDevice || !_assignedDevice->isLoadable()) {
-        LOG_WARN(ApplicationComponent, "Cannot find device to unload files for component " << _identifier);
+        RH_WARN(_appComponentLog, "Cannot find device to unload files for component " << _identifier);
         return;
     }
 
     BOOST_FOREACH(const std::string& file, _loadedFiles) {
-        LOG_TRACE(ApplicationComponent, "Unloading file " << file);
+        RH_TRACE(_appComponentLog, "Unloading file " << file);
         try {
             _assignedDevice->loadableDevice->unload(file.c_str());
-        } CATCH_LOG_WARN(ApplicationComponent, "Unable to unload file " << file);
+        } CATCH_RH_WARN(_appComponentLog, "Unable to unload file " << file);
     }
 }

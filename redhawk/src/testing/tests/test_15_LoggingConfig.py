@@ -69,6 +69,7 @@ class CppLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Try to clean up the event channel, if it was created
         context = None
@@ -199,6 +200,7 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -307,6 +309,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
     def tearDown(self):
         if self.comp:
            self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -384,10 +387,11 @@ class FileLoggingConfig(scatest.CorbaTestCase):
 class PythonLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         self.cname = "TestLoggingAPI"
-        self.comp = sb.launch(self.cname, impl="python" )
-        
+        self.comp = sb.launch(self.cname, impl="python", instanceName="TestLoggingAPI_1" )
+
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -483,7 +487,6 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
 
 
     def test_log_callback(self):
-        self.comp = sb.launch(self.cname, impl="python", instanceName="TestLoggingAPI_1" )
         cfg = "log4j.rootLogger=ERROR,STDOUT,pse\n" + \
             "# Direct log messages to STDOUT \n" + \
             "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
@@ -530,6 +533,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         
     def tearDown(self):
         self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -702,6 +706,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     def tearDown(self):
         if self.comp:
             self.comp.releaseObject()
+        sb.release()
 
         # Do all application shutdown before calling the base class tearDown,
         # or failures will probably occur.
@@ -716,9 +721,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     log4j.appender.stdout.Target=System.out\n \
     log4j.appender.stdout.layout=org.apache.log4j.PatternLayout\n \
     log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n \
-    log4j.category.TestLoggingAPI_i=INFO,stdout\n \
-    log4j.category.TestLoggingAPI.java.TestLoggingAPI_base=INFO,stdout\n \
-    log4j.category.TestLoggingAPI=INFO,stdout\n\n'
+    log4j.category.TestLoggingAPI_1=INFO,stdout\n\n'
 
         self.comp.setLogConfig(x)
         lvl=self.comp.log_level()
@@ -733,9 +736,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     log4j.appender.stdout.Target=System.out\n \
     log4j.appender.stdout.layout=org.apache.log4j.PatternLayout\n \
     log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n \
-    log4j.category.TestLoggingAPI_i=TRACE,stdout\n \
-    log4j.category.TestLoggingAPI.java.TestLoggingAPI_base=TRACE,stdout\n \
-    log4j.category.TestLoggingAPI=TRACE,stdout\n\n'
+    log4j.category.TestLoggingAPI_1=TRACE,stdout\n\n'
         self.comp.setLogConfig(y)
         lvl=self.comp.log_level()
         self.assertEquals( proj, lvl )

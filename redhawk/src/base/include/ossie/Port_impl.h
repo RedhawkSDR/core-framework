@@ -31,6 +31,7 @@
 
 #include "CF/cf.h"
 #include "ossie/Autocomplete.h"
+#include "ossie/logging/rh_logger.h"
 
 namespace _seqVector {
 
@@ -332,9 +333,12 @@ public:
         return "Direction";
     }
 
+    void setLogger(LOGGER newLogger);
+
 protected:
     std::string name;
     std::string description;
+    LOGGER _portLog;
 };
 
 class Port_Uses_base_impl : public PortBase

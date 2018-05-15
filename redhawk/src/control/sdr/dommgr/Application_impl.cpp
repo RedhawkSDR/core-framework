@@ -113,6 +113,7 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
                                     DomainManager_impl* domainManager, const std::string& waveformContextName,
                                     CosNaming::NamingContext_ptr waveformContext, bool aware,
                                     float stopTimeout, CosNaming::NamingContext_ptr DomainContext) :
+    Logging_impl(domainManager->getInstanceLogger("Application")),
     _assemblyController(0),
     _identifier(id),
     _sadProfile(profile),
@@ -135,11 +136,11 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
 
 void Application_impl::setAssemblyController(const std::string& assemblyControllerRef)
 {
-    LOG_DEBUG(Application_impl, "Assigning the assembly controller")
+    RH_DEBUG(_baseLog, "Assigning the assembly controller")
     _assemblyController = findComponent(assemblyControllerRef);
     // Assume _controller is NIL implies that the assembly controller component is Non SCA-Compliant
     if (!_assemblyController || !_assemblyController->isResource()) {
-        LOG_INFO(Application_impl, "Assembly controller is non SCA-compliant");
+        RH_INFO(_baseLog, "Assembly controller is non SCA-compliant");
         _assemblyController = 0;
     }
 }
@@ -153,14 +154,11 @@ void Application_impl::populateApplication(const CF::DeviceAssignmentSequence& a
                                            std::vector<ConnectionNode>& connections,
                                            std::vector<std::string> allocationIDs)
 {
-    TRACE_ENTER(Application_impl)
     _connections = connections;
     _componentDevices = assignedDevices;
 
-    LOG_DEBUG(Application_impl, "Creating allocation sequence");
+    RH_DEBUG(_baseLog, "Creating allocation sequence");
     this->_allocationIDs = allocationIDs;
-
-    TRACE_EXIT(Application_impl)
 }
 
 void Application_impl::setStartOrder(const std::vector<std::string>& startOrder)
@@ -171,15 +169,13 @@ void Application_impl::setStartOrder(const std::vector<std::string>& startOrder)
         if (component) {
             _startOrder.push_back(component);
         } else {
-            LOG_WARN(Application_impl, "Invalid component '" << componentId << "' in start order");
+            RH_WARN(_baseLog, "Invalid component '" << componentId << "' in start order");
         }
     }
 }
 
 Application_impl::~Application_impl ()
 {
-    TRACE_ENTER(Application_impl)
-    TRACE_EXIT(Application_impl)
 };
 
 PortableServer::ObjectId* Application_impl::Activate(Application_impl* application)
@@ -216,6 +212,61 @@ CORBA::Boolean Application_impl::started () throw (CORBA::SystemException)
     return this->_started;
 }
 
+void Application_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            resource_ref->setLogLevel(logger_id, newLevel);
+            return;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::LogLevel Application_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            CF::LogLevel level = resource_ref->getLogLevel(logger_id);
+            return level;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    throw (CF::UnknownIdentifier());
+}
+
+CF::StringSequence* Application_impl::getNamedLoggers()
+{
+    CF::StringSequence_var retval = new CF::StringSequence();
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        CF::StringSequence_var component_logger_list = resource_ref->getNamedLoggers();
+        for (unsigned int i=0; i<component_logger_list->length(); i++) {
+            ossie::corba::push_back(retval, CORBA::string_dup(component_logger_list[i]));
+        }
+    }
+    return retval._retn();
+}
+
+void Application_impl::resetLog()
+{
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        resource_ref->resetLog();
+    }
+}
+
 void Application_impl::start ()
 throw (CORBA::SystemException, CF::Resource::StartError)
 {
@@ -224,7 +275,7 @@ throw (CORBA::SystemException, CF::Resource::StartError)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping start call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping start call because releaseObject has been called");
             return;
         }
     }
@@ -235,17 +286,17 @@ throw (CORBA::SystemException, CF::Resource::StartError)
 
     try {
         if (_assemblyController) {
-            LOG_TRACE(Application_impl, "Calling start on assembly controller");
+            RH_TRACE(_baseLog, "Calling start on assembly controller");
             _assemblyController->start();
         }
 
         // Start the rest of the components
         BOOST_FOREACH(redhawk::ApplicationComponent* component, _startOrder) {
-            LOG_TRACE(Application_impl, "Calling start for " << component->getIdentifier());
+            RH_TRACE(_baseLog, "Calling start for " << component->getIdentifier());
             component->start();
         }
     } catch (const CF::Resource::StartError& se) {
-        LOG_ERROR(Application_impl, "Failed to start application '" << _appName << "': " << se.msg);
+        RH_ERROR(_baseLog, "Failed to start application '" << _appName << "': " << se.msg);
         throw;
     }
 
@@ -268,7 +319,7 @@ throw (CORBA::SystemException, CF::Resource::StopError)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping stop call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping stop call because releaseObject has been called");
             return;
         }
     }
@@ -285,14 +336,14 @@ throw (CORBA::SystemException, CF::Resource::StopError)
     int failures = 0;
     // Stop the components in the reverse order they were started
     BOOST_REVERSE_FOREACH(redhawk::ApplicationComponent* component, _startOrder) {
-        LOG_TRACE(Application_impl, "Calling stop for " << component->getIdentifier());
+        RH_TRACE(_baseLog, "Calling stop for " << component->getIdentifier());
         if (!component->stop(timeout)) {
             failures++;
         }
     }
 
     if (_assemblyController) {
-        LOG_TRACE(Application_impl, "Calling stop on assembly controller");
+        RH_TRACE(_baseLog, "Calling stop on assembly controller");
         if (!_assemblyController->stop(timeout)) {
             failures++;
         }
@@ -302,7 +353,7 @@ throw (CORBA::SystemException, CF::Resource::StopError)
         std::ostringstream oss;
         oss << failures << " component(s) failed to stop";
         const std::string message = oss.str();
-        LOG_ERROR(Application_impl, "Stopping " << _identifier << "; " << message);
+        RH_ERROR(_baseLog, "Stopping " << _identifier << "; " << message);
         throw CF::Resource::StopError(CF::CF_NOTSET, message.c_str());
     }
     if (this->_started) {
@@ -332,7 +383,7 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping initializeProperties call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping initializeProperties call because releaseObject has been called");
             return;
         }
     }
@@ -361,13 +412,13 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
             CF::Resource_ptr comp = _properties[extId].component;
 
             if (CORBA::is_nil(comp)) {
-                LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
+                RH_ERROR(_baseLog, "Unable to retrieve component for external property: " << extId);
                 invalidProperties.push_back(configProperties[i]);
             } else {
                 // Key used for map
                 const std::string compId = ossie::corba::returnString(comp->identifier());
 
-                LOG_TRACE(Application_impl, "Configure external property: " << extId << " on "
+                RH_TRACE(_baseLog, "Configure external property: " << extId << " on "
                         << compId << " (propid: " << propId << ")");
 
                 // Adds property to component ID mapping
@@ -387,13 +438,13 @@ throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfigurat
             }
         } else if (_assemblyController) {
             // Properties that are not external get batched with assembly controller
-            LOG_TRACE(Application_impl, "Calling configure on assembly controller for property: " << configProperties[i].id);
+            RH_TRACE(_baseLog, "Calling configure on assembly controller for property: " << configProperties[i].id);
             int count = batch[acId].second.length();
             batch[acId].second.length(count + 1);
             batch[acId].second[count].id = configProperties[i].id;
             batch[acId].second[count].value = configProperties[i].value;
         } else {
-            LOG_ERROR(Application_impl, "Unable to retrieve assembly controller for external property: " << extId);
+            RH_ERROR(_baseLog, "Unable to retrieve assembly controller for external property: " << extId);
             invalidProperties.push_back(configProperties[i]);
         }
     }
@@ -436,7 +487,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
 
     // For queries of zero length, return all external properties
     if (configProperties.length() == 0) {
-        LOG_TRACE(Application_impl, "Query all external and assembly controller properties");
+        RH_TRACE(_baseLog, "Query all external and assembly controller properties");
 
         configProperties.length(0);
 
@@ -452,13 +503,13 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                 continue;
 
             if (CORBA::is_nil(comp)) {
-                LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
+                RH_ERROR(_baseLog, "Unable to retrieve component for external property: " << extId);
                 invalidProperties.push_back(redhawk::PropertyType(extId));
             } else {
                 // Key used for map
                 const std::string compId = ossie::corba::returnString(comp->identifier());
 
-                LOG_TRACE(Application_impl, "Query external property: " << extId << " on "
+                RH_TRACE(_baseLog, "Query external property: " << extId << " on "
                         << compId << " (propid: " << propId << ")");
 
                 // Adds property to component ID mapping
@@ -504,7 +555,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
             ac_resource->query(tempProp);
         } catch (CF::UnknownProperties e) {
             for (unsigned int i = 0; i < e.invalidProperties.length(); ++i) {
-                LOG_ERROR(Application_impl, "Invalid assembly controller property name: " << e.invalidProperties[i].id);
+                RH_ERROR(_baseLog, "Invalid assembly controller property name: " << e.invalidProperties[i].id);
             }
             invalidProperties.extend(e.invalidProperties);
         }
@@ -545,13 +596,13 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                 CF::Resource_ptr comp = _properties[extId].component;
 
                 if (CORBA::is_nil(comp)) {
-                    LOG_ERROR(Application_impl, "Unable to retrieve component for external property: " << extId);
+                    RH_ERROR(_baseLog, "Unable to retrieve component for external property: " << extId);
                     invalidProperties.push_back(configProperties[i]);
                 } else {
                     // Key used for map
                     std::string compId = ossie::corba::returnString(comp->identifier());
 
-                    LOG_TRACE(Application_impl, "Query external property: " << extId << " on "
+                    RH_TRACE(_baseLog, "Query external property: " << extId << " on "
                             << compId << " (propid: " << propId << ")");
 
                     // Adds property to component ID mapping
@@ -571,14 +622,14 @@ throw (CF::UnknownProperties, CORBA::SystemException)
                 }
             } else if (_assemblyController) {
                 // Properties that are not external get batched with assembly controller
-                LOG_TRACE(Application_impl, "Calling query on assembly controller for property: "
+                RH_TRACE(_baseLog, "Calling query on assembly controller for property: "
                         << configProperties[i].id);
                 int count = batch[acId].second.length();
                 batch[acId].second.length(count + 1);
                 batch[acId].second[count].id = configProperties[i].id;
                 batch[acId].second[count].value = configProperties[i].value;
             } else {
-                LOG_ERROR(Application_impl, "Unable to retrieve assembly controller for external property: " << extId);
+                RH_ERROR(_baseLog, "Unable to retrieve assembly controller for external property: " << extId);
                 invalidProperties.push_back(configProperties[i]);
             }
         }
@@ -626,7 +677,7 @@ throw (CF::UnknownProperties, CORBA::SystemException)
         throw CF::UnknownProperties(invalidProperties);
     }
 
-    LOG_TRACE(Application_impl, "Query returning " << configProperties.length() <<
+    RH_TRACE(_baseLog, "Query returning " << configProperties.length() <<
             " external and assembly controller properties");
 }
 
@@ -637,12 +688,12 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
 
   SCOPED_LOCK( releaseObjectLock );
   if (_releaseAlreadyCalled) {
-    LOG_DEBUG(Application_impl, "skipping registerPropertyListener call because releaseObject has been called");
+    RH_DEBUG(_baseLog, "skipping registerPropertyListener call because releaseObject has been called");
     std::string regid;
     return CORBA::string_dup(regid.c_str());
   }
 
-  LOG_TRACE(Application_impl, "Number of Properties to Register: " << prop_ids.length() );
+  RH_TRACE(_baseLog, "Number of Properties to Register: " << prop_ids.length() );
   typedef   std::map< CF::Resource_ptr, std::vector< std::string > > CompRegs;
   CompRegs comp_regs;
 
@@ -653,7 +704,7 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
         if (_properties.count(extId)) {
           CF::Resource_ptr comp = _properties[extId].component;
           std::string prop_id = _properties[extId].property_id;
-          LOG_TRACE(Application_impl, "  ---> Register ExternalID: " << extId << " Comp/Id " << 
+          RH_TRACE(_baseLog, "  ---> Register ExternalID: " << extId << " Comp/Id " << 
                 ossie::corba::returnString(comp->identifier()) << "/" << prop_id);
           comp_regs[ comp ].push_back( prop_id ); 
         } else if (_assemblyController) {
@@ -673,7 +724,7 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
       for ( uint32_t i=0; i < reg_iter->second.size(); i++ ) reg_ids[i] = reg_iter->second[i].c_str();
       
       std::string reg_id = ossie::corba::returnString( reg_iter->first->registerPropertyListener( listener, reg_ids, interval ) );
-      LOG_TRACE(Application_impl, "Component-->PropertyChangeRegistryRegistry  comp/id " << 
+      RH_TRACE(_baseLog, "Component-->PropertyChangeRegistryRegistry  comp/id " << 
                 ossie::corba::returnString(reg_iter->first->identifier()) << "/" << reg_id );
       pc_recs.push_back( PropertyChangeRecord( reg_id, reg_iter->first ) );
 
@@ -682,7 +733,7 @@ char *Application_impl::registerPropertyListener( CORBA::Object_ptr listener, co
   }
   catch (...) {
     
-    LOG_WARN(Application_impl, "PropertyChangeListener registration failed against Application: " << _identifier );
+    RH_WARN(_baseLog, "PropertyChangeListener registration failed against Application: " << _identifier );
     PropertyChangeRecords::iterator iter = pc_recs.begin(); 
     try {
       iter->comp->unregisterPropertyListener( iter->reg_id.c_str() );
@@ -704,7 +755,7 @@ void Application_impl::unregisterPropertyListener( const char *reg_id )
 {
   SCOPED_LOCK( releaseObjectLock );
   if (_releaseAlreadyCalled) {
-    LOG_DEBUG(Application_impl, "skipping unregisterPropertyListener call because releaseObject has been called");
+    RH_DEBUG(_baseLog, "skipping unregisterPropertyListener call because releaseObject has been called");
     return;
   }
 
@@ -724,7 +775,7 @@ void Application_impl::unregisterPropertyListener( const char *reg_id )
         }
       }
       catch(...){
-        LOG_WARN(Application_impl, "Unregister PropertyChangeListener operation failed. app/reg_id: " << _identifier << "/" << reg_id );
+        RH_WARN(_baseLog, "Unregister PropertyChangeListener operation failed. app/reg_id: " << _identifier << "/" << reg_id );
       }
     }
     
@@ -742,7 +793,7 @@ throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping initialize call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping initialize call because releaseObject has been called");
             return;
         }
     }
@@ -752,13 +803,13 @@ throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
     }
 
     try {
-        LOG_TRACE(Application_impl, "Calling initialize on assembly controller");
+        RH_TRACE(_baseLog, "Calling initialize on assembly controller");
         CF::Resource_var resource = _assemblyController->getResourcePtr();
         resource->initialize();
     } catch( CF::LifeCycle::InitializeError& ie ) {
-        LOG_ERROR(Application_impl, "Initialize failed with CF::LifeCycle::InitializeError")
+        RH_ERROR(_baseLog, "Initialize failed with CF::LifeCycle::InitializeError")
         throw;
-    } CATCH_THROW_LOG_ERROR(Application_impl, "Initialize failed", CF::LifeCycle::InitializeError())
+    } CATCH_THROW_RH_ERROR(_baseLog, "Initialize failed", CF::LifeCycle::InitializeError())
 }
 
 
@@ -768,7 +819,7 @@ throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
 
     SCOPED_LOCK( releaseObjectLock );
     if (_releaseAlreadyCalled) {
-        LOG_DEBUG(Application_impl, "skipping getPort because release has already been called");
+        RH_DEBUG(_baseLog, "skipping getPort because release has already been called");
         return CORBA::Object::_nil();
     }
 
@@ -776,7 +827,7 @@ throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
     if (_ports.count(identifier)) {
         return CORBA::Object::_duplicate(_ports[identifier]);
     } else {
-        LOG_ERROR(Application_impl, "Get port failed with unknown port " << _id)
+        RH_ERROR(_baseLog, "Get port failed with unknown port " << _id)
         throw(CF::PortSupplier::UnknownPort());
     }
 }
@@ -788,7 +839,7 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
     SCOPED_LOCK( releaseObjectLock );
     CF::PortSet::PortInfoSequence_var retval = new CF::PortSet::PortInfoSequence();
     if (_releaseAlreadyCalled) {
-        LOG_DEBUG(Application_impl, "skipping getPortSet because release has alraeady been called");
+        RH_DEBUG(_baseLog, "skipping getPortSet because release has alraeady been called");
         return retval._retn();
     }
 
@@ -798,9 +849,9 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
             CF::Resource_var comp = _component_iter->getResourcePtr();
             comp_portsets.push_back(comp->getPortSet());
         } catch ( CORBA::COMM_FAILURE &ex ) {
-            LOG_ERROR(Application_impl, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
+            RH_ERROR(_baseLog, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
         } catch ( ... ) {
-            LOG_ERROR(Application_impl, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
+            RH_ERROR(_baseLog, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
         }
     }
     for (std::map<std::string, CORBA::Object_var>::iterator _port_val=_ports.begin(); _port_val!=_ports.end(); _port_val++) {
@@ -857,18 +908,18 @@ throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::Unknow
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping runTest call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping runTest call because releaseObject has been called");
             return;
         }
     }
 
     if (!_assemblyController) {
-        LOG_ERROR(Application_impl, "Run test called with non SCA compliant assembly controller");
+        RH_ERROR(_baseLog, "Run test called with non SCA compliant assembly controller");
         throw CF::TestableObject::UnknownTest();
     }
 
     try {
-        LOG_TRACE(Application_impl, "Calling runTest on assembly controller");
+        RH_TRACE(_baseLog, "Calling runTest on assembly controller");
         CF::Resource_var resource = _assemblyController->getResourcePtr();
         resource->runTest(_testId, _props);
     } catch( CF::UnknownProperties& up ) {
@@ -881,20 +932,18 @@ throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::Unknow
             else
                 eout << ", ";
         }
-        LOG_ERROR(Application_impl, eout.str())
+        RH_ERROR(_baseLog, eout.str())
         throw;
     } catch( CF::TestableObject::UnknownTest& ) {
-        LOG_ERROR(Application_impl, "Run test failed with CF::TestableObject::UnknownTest for Test ID " << _testId)
+        RH_ERROR(_baseLog, "Run test failed with CF::TestableObject::UnknownTest for Test ID " << _testId)
         throw;
-    } CATCH_RETHROW_LOG_ERROR(Application_impl, "Run test failed for Test ID " << _testId)
+    } CATCH_RETHROW_RH_ERROR(_baseLog, "Run test failed for Test ID " << _testId)
 }
 
 
 void Application_impl::releaseObject ()
 throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
-  TRACE_ENTER(Application_impl);
-      
   try {
     // Make sure releaseObject hasn't already been called, but only hold the
     // lock long enough to check to prevent a potential priority inversion with
@@ -903,20 +952,20 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping release because release has already been called");
+            RH_DEBUG(_baseLog, "skipping release because release has already been called");
             return;
         } else {
             _releaseAlreadyCalled = true;
         }
     }
     
-    LOG_DEBUG(Application_impl, "Releasing application");
+    RH_DEBUG(_baseLog, "Releasing application");
 
     // remove application from DomainManager's App Sequence
     try {
         _domainManager->removeApplication(_identifier);
     } catch (CF::DomainManager::ApplicationUninstallationError& ex) {
-        LOG_ERROR(Application_impl, ex.msg);
+        RH_ERROR(_baseLog, ex.msg);
     }
 
     // Stop all components on the application
@@ -924,14 +973,14 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
         this->local_stop(DEFAULT_STOP_TIMEOUT);
     } catch ( ... ) {
         // error happened while stopping. Ignore the error and continue tear-down
-        LOG_TRACE(Application_impl, "Error occurred while stopping the application during tear-down. Ignoring the error and continuing")
+        RH_TRACE(_baseLog, "Error occurred while stopping the application during tear-down. Ignoring the error and continuing")
     }
     
     try {
       // Break all connections in the application
       ConnectionManager::disconnectAll(_connections, _domainManager);
-      LOG_DEBUG(Application_impl, "app->releaseObject finished disconnecting ports");
-    } CATCH_LOG_ERROR(Application_impl, "Failure during disconnect operation");
+      RH_DEBUG(_baseLog, "app->releaseObject finished disconnecting ports");
+    } CATCH_RH_ERROR(_baseLog, "Failure during disconnect operation");
 
     // Release all resources
     // Before releasing the components, all executed processes should be terminated,
@@ -954,13 +1003,13 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
             // bound into the waveform context, and its name inside of the context follows the
             // last slash in the fully-qualified name.
             std::string shortName = componentName.substr(componentName.rfind('/')+1);
-            LOG_TRACE(Application_impl, "Unbinding component " << shortName);
+            RH_TRACE(_baseLog, "Unbinding component " << shortName);
             CosNaming::Name_var componentBindingName = ossie::corba::stringToName(shortName);
             try {
                 _waveformContext->unbind(componentBindingName);
-            } CATCH_LOG_ERROR(Application_impl, "Unable to unbind component")
+            } CATCH_RH_ERROR(_baseLog, "Unable to unbind component")
         }
-        LOG_DEBUG(Application_impl, "Next component")
+        RH_DEBUG(_baseLog, "Next component")
     }
 
     terminateComponents();
@@ -978,11 +1027,11 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
             }
             err << iad.invalidAllocationIds[ii];
         }
-        LOG_ERROR(Application_impl, err.str());
+        RH_ERROR(_baseLog, err.str());
     }
 
     // Unbind the application's naming context using the fully-qualified name.
-    LOG_TRACE(Application_impl, "Unbinding application naming context " << _waveformContextName);
+    RH_TRACE(_baseLog, "Unbinding application naming context " << _waveformContextName);
     CosNaming::Name DNContextname;
     DNContextname.length(1);
     DNContextname[0].id = CORBA::string_dup(_waveformContextName.c_str());
@@ -992,22 +1041,22 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
       }
     } catch (const CosNaming::NamingContext::NotFound&) {
         // Someone else has removed the naming context; this is a non-fatal condition.
-        LOG_WARN(Application_impl, "Naming context has already been removed");
-    } CATCH_LOG_ERROR(Application_impl, "Unbind context failed with CORBA::SystemException")
+        RH_WARN(_baseLog, "Naming context has already been removed");
+    } CATCH_RH_ERROR(_baseLog, "Unbind context failed with CORBA::SystemException")
 
     // Destroy the waveform context; it should be empty by this point, assuming all
     // of the components were properly unbound.
-    LOG_TRACE(Application_impl, "Destroying application naming context " << _waveformContextName);
+    RH_TRACE(_baseLog, "Destroying application naming context " << _waveformContextName);
     try {
         _waveformContext->destroy();
     } catch (const CosNaming::NamingContext::NotEmpty&) {
         const char* error = "Application naming context not empty";
-        LOG_ERROR(Application_impl, error);
+        RH_ERROR(_baseLog, error);
         CF::StringSequence message;
         message.length(1);
         message[0] = CORBA::string_dup(error);
         throw CF::LifeCycle::ReleaseError(message);
-    } CATCH_LOG_ERROR(Application_impl, "Destory waveform context: " << _waveformContextName );
+    } CATCH_RH_ERROR(_baseLog, "Destory waveform context: " << _waveformContextName );
     _waveformContext = CosNaming::NamingContext::_nil();
 
     // send application removed event notification
@@ -1026,14 +1075,12 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
   catch( boost::thread_resource_error &e)  {
     std::stringstream errstr;
     errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-    LOG_ERROR(Application_impl, errstr.str());
+    RH_ERROR(_baseLog, errstr.str());
     CF::StringSequence message;
     message.length(1);
     message[0] = CORBA::string_dup(errstr.str().c_str());
     throw CF::LifeCycle::ReleaseError(message);
   }
-
-  TRACE_EXIT(Application_impl);
 }
 
 void Application_impl::releaseComponents()
@@ -1133,7 +1180,7 @@ throw (CORBA::SystemException)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping componentProcessIds call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping componentProcessIds call because releaseObject has been called");
             return result._retn();
         }
     }
@@ -1149,7 +1196,7 @@ CF::Components* Application_impl::registeredComponents ()
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping registeredComponents call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping registeredComponents call because releaseObject has been called");
             return result._retn();
         }
     }
@@ -1176,7 +1223,7 @@ throw (CF::Application::InvalidMetric, CORBA::SystemException)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping metrics call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping metrics call because releaseObject has been called");
             return result_ugly._retn();
         }
     }
@@ -1346,7 +1393,7 @@ redhawk::PropertyMap Application_impl::measureComponent(redhawk::ApplicationComp
                 try {
                     (*_dev)->device->query(query);
                 } catch ( ... ) {
-                    LOG_WARN(Application_impl, "Unable to query 'component_monitor' on "<<component.getAssignedDevice()->identifier);
+                    RH_WARN(_baseLog, "Unable to query 'component_monitor' on "<<component.getAssignedDevice()->identifier);
                     continue;
                 }
                 measuredDevices[component.getAssignedDevice()->identifier] = query;
@@ -1361,14 +1408,14 @@ redhawk::PropertyMap Application_impl::measureComponent(redhawk::ApplicationComp
                 for (unsigned int i=0; i<values.size(); i++) {
                     const redhawk::PropertyMap& single(values[i].asProperties());
                     if (not single.contains("component_monitor::component_monitor::waveform_id")) {
-                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'waveform_id' on "<<component.getAssignedDevice()->identifier);
+                        RH_WARN(_baseLog, "Unable to query 'component_monitor' missing 'waveform_id' on "<<component.getAssignedDevice()->identifier);
                         continue;
                     }
                     if (single["component_monitor::component_monitor::waveform_id"].toString() != _identifier) {
                         continue;
                     }
                     if (not single.contains("component_monitor::component_monitor::component_id")) {
-                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'component_id' on "<<component.getAssignedDevice()->identifier);
+                        RH_WARN(_baseLog, "Unable to query 'component_monitor' missing 'component_id' on "<<component.getAssignedDevice()->identifier);
                         continue;
                     }
                     if (single["component_monitor::component_monitor::component_id"].toString() != target_id) {
@@ -1379,7 +1426,7 @@ redhawk::PropertyMap Application_impl::measureComponent(redhawk::ApplicationComp
                         (not single.contains("component_monitor::component_monitor::num_processes")) or
                         (not single.contains("component_monitor::component_monitor::num_threads")) or
                         (not single.contains("component_monitor::component_monitor::num_files"))) {
-                        LOG_WARN(Application_impl, "Unable to query 'component_monitor' missing 'cores', 'mem_rss', 'num_processes', 'num_threads', or 'num_files' on "<<component.getAssignedDevice()->identifier);
+                        RH_WARN(_baseLog, "Unable to query 'component_monitor' missing 'cores', 'mem_rss', 'num_processes', 'num_threads', or 'num_files' on "<<component.getAssignedDevice()->identifier);
                         continue;
                     }
                     retval["cores"] = single["component_monitor::component_monitor::cores"].toFloat();
@@ -1411,7 +1458,7 @@ throw (CORBA::SystemException)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping componentNamingContexts call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping componentNamingContexts call because releaseObject has been called");
             return result._retn();
         }
     }
@@ -1431,7 +1478,7 @@ throw (CORBA::SystemException)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping componentImplementations call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping componentImplementations call because releaseObject has been called");
             return result._retn();
         }
     }
@@ -1449,7 +1496,7 @@ throw (CORBA::SystemException)
         boost::mutex::scoped_lock lock(releaseObjectLock);
 
         if (_releaseAlreadyCalled) {
-            LOG_DEBUG(Application_impl, "skipping componentDevices call because releaseObject has been called");
+            RH_DEBUG(_baseLog, "skipping componentDevices call because releaseObject has been called");
             return result._retn();
         }
     }
@@ -1525,7 +1572,7 @@ bool Application_impl::waitForComponents (std::set<std::string>& identifiers, in
 
     boost::mutex::scoped_lock lock(_registrationMutex);
     while (!_checkRegistrations(identifiers)) {
-      LOG_DEBUG(Application_impl, "Waiting for components....APP:" << _identifier << "  list " << identifiers.size() );
+      RH_DEBUG(_baseLog, "Waiting for components....APP:" << _identifier << "  list " << identifiers.size() );
         if (!_registrationCondition.timed_wait(lock, end)) {
             break;
         }
@@ -1573,17 +1620,17 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
     redhawk::ApplicationComponent* comp = findComponent(componentId);
 
     if (!comp) {
-        LOG_WARN(Application_impl, "Unexpected component '" << componentId
+        RH_WARN(_baseLog, "Unexpected component '" << componentId
                  << "' registered with application '" << _appName << "'");
         comp = addComponent(componentId, softwareProfile);
     } else if (softwareProfile != comp->getSoftwareProfile()) {
         // Mismatch between expected and reported SPD path
-        LOG_WARN(Application_impl, "Component '" << componentId << "' software profile " << softwareProfile
+        RH_WARN(_baseLog, "Component '" << componentId << "' software profile " << softwareProfile
                  << " does not match expected profile " << comp->getSoftwareProfile());
         comp->setSoftwareProfile(softwareProfile);
     }
 
-    LOG_TRACE(Application_impl, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
+    RH_TRACE(_baseLog, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
     comp->setComponentObject(resource);
     _registrationCondition.notify_all();
 }
@@ -1623,6 +1670,7 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const std::string&
     _components.push_back(redhawk::ApplicationComponent(componentId));
     redhawk::ApplicationComponent* component = &(_components.back());
     component->setSoftwareProfile(softwareProfile);
+    component->setLogger(_baseLog);
     return component;
 }
 
@@ -1633,7 +1681,7 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
         throw std::logic_error("container '" + identifier + "' is already registered");
     }
     const std::string& profile = container->getSoftPkg()->getSPDFile();
-    LOG_DEBUG(Application_impl, "Adding container '" << identifier << "' with profile " << profile);
+    RH_DEBUG(_baseLog, "Adding container '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
     component->setName(container->getInstantiation()->getID());
     component->setImplementationId(container->getImplementation()->getID());
@@ -1650,7 +1698,7 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
         throw std::logic_error("component '" + identifier + "' is already registered");
     }
     const std::string& profile = deployment->getSoftPkg()->getSPDFile();
-    LOG_DEBUG(Application_impl, "Adding component '" << identifier << "' with profile " << profile);
+    RH_DEBUG(_baseLog, "Adding component '" << identifier << "' with profile " << profile);
     redhawk::ApplicationComponent* component = addComponent(identifier, profile);
     component->setName(deployment->getInstantiation()->getID());
     component->setImplementationId(deployment->getImplementation()->getID());
@@ -1663,19 +1711,19 @@ void Application_impl::componentTerminated(const std::string& componentId, const
     boost::mutex::scoped_lock lock(_registrationMutex);
     redhawk::ApplicationComponent* component = findComponent(componentId);
     if (!component) {
-        LOG_WARN(Application_impl, "Unrecognized component '" << componentId << "' from application '" << _identifier
+        RH_WARN(_baseLog, "Unrecognized component '" << componentId << "' from application '" << _identifier
                  << "' terminated abnormally on device " << deviceId);
         return;
     }
     if (!component->getChildren().empty()) {
-        LOG_ERROR(Application_impl, "Component host from application '" << _appName
+        RH_ERROR(_baseLog, "Component host from application '" << _appName
                   << "' containing " << component->getChildren().size()
                   << " component(s) terminated abnormally on device " << deviceId);
         BOOST_FOREACH(redhawk::ApplicationComponent* child, component->getChildren()) {
             _checkComponentConnections(child);
         }
     } else {
-        LOG_ERROR(Application_impl, "Component '" << component->getName()
+        RH_ERROR(_baseLog, "Component '" << component->getName()
                   << "' from application '" << _appName
                   << "' terminated abnormally on device " << deviceId);
         _checkComponentConnections(component);
@@ -1686,20 +1734,20 @@ void Application_impl::componentTerminated(const std::string& componentId, const
 
 void Application_impl::_checkComponentConnections(redhawk::ApplicationComponent* component)
 {
-    LOG_DEBUG(Application_impl, "Checking for connections that depend on terminated component "
+    RH_DEBUG(_baseLog, "Checking for connections that depend on terminated component "
               << component->getIdentifier());
     const std::string& name = component->getName();
     int connection_count = 0;
     BOOST_FOREACH(ConnectionNode& connection, _connections) {
         if (connection.dependencyTerminated(ossie::Endpoint::COMPONENT, name)) {
-            LOG_TRACE(Application_impl, "Application '" << _appName << "' connection '"
+            RH_TRACE(_baseLog, "Application '" << _appName << "' connection '"
                       << connection.identifier << "' depends on terminated component '"
                       << name << "'");
             connection_count++;
         }
     }
     if (connection_count > 0) {
-        LOG_DEBUG(Application_impl, "Application '" << _appName << "' has " << connection_count
+        RH_DEBUG(_baseLog, "Application '" << _appName << "' has " << connection_count
                  << " connection(s) depending on terminated component '" << name << "'");
     }
 }

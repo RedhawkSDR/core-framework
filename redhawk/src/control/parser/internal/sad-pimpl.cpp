@@ -31,6 +31,8 @@
 
 CREATE_LOGGER(sad_parser);
 
+rh_logger::LoggerPtr sad::parserLog;
+
 namespace sad
 {
   // softwareassembly_pimpl
@@ -212,7 +214,7 @@ namespace sad
   void partitioning_pimpl::
   hostcollocation (const ossie::SoftwareAssembly::HostCollocation& hostcollocation)
   {
-    LOG_TRACE(sad_parser, "Adding host collocations");
+    RH_TRACE(sad::parserLog, "Adding host collocations");
     partitioning->collocations.push_back(hostcollocation);
   }
 
@@ -304,7 +306,7 @@ namespace sad
   void componentinstantiation_pimpl::
   findcomponent (const ::std::string& namingservicename)
   {
-    LOG_TRACE(sad_parser, "setting instantiation naming service name " << namingservicename);
+    RH_TRACE(sad::parserLog, "setting instantiation naming service name " << namingservicename);
     componentInstantiation.namingservicename = namingservicename;
   }
 
@@ -317,14 +319,14 @@ namespace sad
   void componentinstantiation_pimpl::
   affinity (ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
   {
-    LOG_TRACE(sad_parser, "affinity properties");
+    RH_TRACE(sad::parserLog, "affinity properties");
     componentInstantiation.affinityProperties.swap(affinityProperties);
   }
 
   void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
   {
     componentInstantiation.loggingConfig = log_cfg;
-    LOG_TRACE(sad_parser, "componentinstantiation_pimpl logging cfg "<< componentInstantiation.loggingConfig.first.c_str() << " level " << componentInstantiation.loggingConfig.second.c_str() );    
+    RH_TRACE(sad::parserLog, "componentinstantiation_pimpl logging cfg "<< componentInstantiation.loggingConfig.first.c_str() << " level " << componentInstantiation.loggingConfig.second.c_str() );    
   }
 
   void componentinstantiation_pimpl::devicerequires (ossie::ComponentPropertyList& requiresproperties)
@@ -349,28 +351,28 @@ namespace sad
   void affinity_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    LOG_TRACE(sad_parser, "Adding simpleref ");
+    RH_TRACE(sad::parserLog, "Adding simpleref ");
     affinityProperties.push_back(simpleref.clone());
   }
 
   void affinity_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    LOG_TRACE(sad_parser, "Adding simplesequenceref");
+    RH_TRACE(sad::parserLog, "Adding simplesequenceref");
     affinityProperties.push_back(simplesequenceref.clone());
   }
 
   void affinity_pimpl::
   structref (const ossie::StructPropertyRef& structref)
   {
-    LOG_TRACE(sad_parser, "Adding structref");
+    RH_TRACE(sad::parserLog, "Adding structref");
     affinityProperties.push_back(structref.clone());
   }
 
   void affinity_pimpl::
   structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
   {
-    LOG_TRACE(sad_parser, "Adding structsequenceref");
+    RH_TRACE(sad::parserLog, "Adding structsequenceref");
     affinityProperties.push_back(structsequenceref.clone());
   }
 
@@ -390,13 +392,13 @@ namespace sad
   void loggingconfig_pimpl::level ( const ::std::string &v )
   {
     info.second=v;
-    LOG_TRACE(sad_parser, " loggingconfig : parser found level " << v );
+    RH_TRACE(sad::parserLog, " loggingconfig : parser found level " << v );
   }
 
   const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
   {
     info.first = this->post_string();
-    LOG_TRACE(sad_parser, " loggingconfig : first " << info.first << "second " << info.second );
+    RH_TRACE(sad::parserLog, " loggingconfig : first " << info.first << "second " << info.second );
     return info;
   }
 
@@ -485,7 +487,7 @@ namespace sad
   ::std::string findcomponent_pimpl::
   post_findcomponent ()
   {
-    LOG_TRACE(sad_parser, "post findcomponent: " << namingservicename)
+    RH_TRACE(sad::parserLog, "post findcomponent: " << namingservicename)
     return namingservicename;
   }
 
@@ -632,28 +634,28 @@ namespace sad
   void idvalue_pimpl::
   pre ()
   {
-    LOG_TRACE(sad_parser, "pre idvalue");
+    RH_TRACE(sad::parserLog, "pre idvalue");
     simple = ossie::IdValue();
   }
 
   void idvalue_pimpl::
   id (const ::std::string& id)
   {
-    LOG_TRACE(sad_parser, "idvalue id: " << id);
+    RH_TRACE(sad::parserLog, "idvalue id: " << id);
     simple._id = id;
   }
 
   void idvalue_pimpl::
   value (const ::std::string& value)
   {
-    LOG_TRACE(sad_parser, "idvalue value: " << value);
+    RH_TRACE(sad::parserLog, "idvalue value: " << value);
     simple._value = value;
   }
 
   const ossie::IdValue& idvalue_pimpl::
   post_idvalue ()
   {
-    LOG_TRACE(sad_parser, "post idvalue");
+    RH_TRACE(sad::parserLog, "post idvalue");
     return simple;
   }
 
@@ -1070,7 +1072,7 @@ namespace sad
       //connname << "connection_" << (connections.size());
       //connections.back().connectionId = connname.str();
       //}
-      LOG_TRACE(sad_parser, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
+      RH_TRACE(sad::parserLog, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
   }
 
   ::std::vector<ossie::Connection>& connections_pimpl::
@@ -1118,7 +1120,7 @@ namespace sad
   void connectinterface_pimpl::
   id (const ::std::string& id)
   {
-      LOG_TRACE(sad_parser, "connection id " << id);
+      RH_TRACE(sad::parserLog, "connection id " << id);
       connection->connectionId = id;
   }
 

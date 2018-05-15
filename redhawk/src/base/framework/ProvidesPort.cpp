@@ -58,7 +58,7 @@ namespace redhawk {
         TransportStack transports = TransportRegistry::GetTransports(repo_id);
         for (TransportStack::iterator iter = transports.begin(); iter != transports.end(); ++iter) {
             TransportFactory* transport = *iter;
-            RH_DEBUG(logger, "Adding provides transport '" << transport->transportType()
+            RH_DEBUG(_portLog, "Adding provides transport '" << transport->transportType()
                      << "' for '" << repo_id << "'");
             _transportManagers.push_back(transport->createProvidesManager(this));
         }
@@ -128,7 +128,7 @@ namespace redhawk {
             delete transport;
             throw ExtendedCF::NegotiationError(exc.what());
         } catch (...) {
-            RH_ERROR(logger, "Unexpected error starting transport type '" << transportType << "'");
+            RH_ERROR(_portLog, "Unexpected error starting transport type '" << transportType << "'");
             delete transport;
             throw ExtendedCF::NegotiationError("failed to start transport");
         }
@@ -158,19 +158,14 @@ namespace redhawk {
         try {
             transport->second->stopTransport();
         } catch (const std::exception& exc) {
-            RH_ERROR(logger, "Error stopping transport '" << transportId << "': " << exc.what());
+            RH_ERROR(_portLog, "Error stopping transport '" << transportId << "': " << exc.what());
         } catch (...) {
-            RH_ERROR(logger, "Unknown error stopping transport '" << transportId << "'");
+            RH_ERROR(_portLog, "Unknown error stopping transport '" << transportId << "'");
         }
 
         // Finish cleaning up
         delete transport->second;
         _transports.erase(transport);
-    }
-
-    void NegotiableProvidesPortBase::setLogger(LOGGER newLogger)
-    {
-        logger = newLogger;
     }
 
     ProvidesTransportManager* NegotiableProvidesPortBase::_getTransportManager(const std::string& transportType)

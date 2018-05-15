@@ -23,6 +23,7 @@ package ${package};
 
 import ${component.package}.${component.baseclass.name};
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 /**
  * @generated
@@ -49,6 +50,12 @@ public class ${classname} extends ${portgenerator.poaClass()} implements PortBas
 
         //begin-user-code
         //end-user-code
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 /*{% for operation in portgenerator.operations() %}*/
 

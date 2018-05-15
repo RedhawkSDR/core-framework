@@ -37,6 +37,7 @@ import BULKIO.PortUsageType;
 import org.apache.log4j.Logger;
 
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 import bulkio.sriState;
 import bulkio.linkStatistics;
@@ -117,6 +118,8 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
      */
     protected Logger   logger = null;
 
+    public RHLogger _portLog = null;
+
     protected bulkio.sri.Comparator    sri_cmp;
 
     protected bulkio.SriListener   sriCallback;
@@ -186,6 +189,11 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
         synchronized (this.sriUpdateLock) {
 	    logger = newlogger;
 	}
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
 

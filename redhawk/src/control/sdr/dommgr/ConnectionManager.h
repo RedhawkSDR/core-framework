@@ -39,10 +39,16 @@ public:
 
     virtual void listConnections(CORBA::ULong count, CF::ConnectionManager::ConnectionStatusSequence_out connections, CF::ConnectionStatusIterator_out iter);
 
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _connMgrLog = logptr;
+    };
+
 private:
     ossie::Endpoint* requestToEndpoint(const CF::ConnectionManager::EndpointRequest& request);
 
     DomainManager_impl* _domainManager;
+
+    rh_logger::LoggerPtr _connMgrLog;
 };
 
 #endif // CONNECTIONMANAGER_H

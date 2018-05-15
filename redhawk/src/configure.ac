@@ -341,11 +341,13 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dev/devices/base_programmable/cpp/Makefile \
                 testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
+                testing/sdr/dev/devices/log_test_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/writeonly_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/DevC/cpp/Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
+                testing/sdr/dev/devices/log_test_java/java/Makefile \
                 testing/sdr/dev/devices/LongDevice/cpp/Makefile \
                 testing/sdr/dev/devices/dev_alloc_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/devj/java/Makefile \
@@ -371,12 +373,14 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/huge_msg_java/java/Makefile \
                 testing/sdr/dom/components/timeprop_java/java/Makefile \
+                testing/sdr/dom/components/logger_java/java/Makefile \
                 testing/sdr/dom/components/time_ja_now/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/BasicAC_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicShared/cpp/Makefile \
+                testing/sdr/dom/components/logger/cpp/Makefile \
                 testing/sdr/dom/components/MessageReceiverCpp/Makefile \
                 testing/sdr/dom/components/MessageSenderCpp/Makefile \
                 testing/sdr/dom/components/EventSend/EventSend_java_impl1/Makefile \

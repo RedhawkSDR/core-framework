@@ -29,6 +29,7 @@ libossieparser_la_SOURCES = Properties.cpp \
 			    DeviceManagerConfiguration.cpp \
 			    SoftwareAssembly.cpp \
 			    componentProfile.cpp \
+			    ParserLogs.cpp \
 			    internal/prf-parser.cpp \
 			    internal/dmd-parser.cpp \
 			    internal/dcd-parser.cpp \

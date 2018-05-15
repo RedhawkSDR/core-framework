@@ -40,6 +40,7 @@ from ossie.properties import getCFType
 from ossie.properties import getMemberType
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.utils.formatting import TablePrinter
+from ossie.utils.log_helpers import stringToCode
 from ossie.utils import prop_helpers
 from ossie.utils import rhtime
 import warnings as _warnings
@@ -658,8 +659,20 @@ class RogueService(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
+
+    def resetLog(self):
+        self.ref.resetLog()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -728,8 +741,20 @@ class Service(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
+
+    def resetLog(self):
+        self.ref.resetLog()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -782,9 +807,9 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
         else:
             return 0
 
-    def _set_log_level(self):
+    def _set_log_level(self, value):
         if self.ref:
-            return self.ref._set_log_level()
+            self.ref._set_log_level(value)
         
     def _get_softwareProfile(self):
         if self.ref:
@@ -852,9 +877,30 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
             if self.ref:
                self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
         if self.ref:
-           self.ref.setLogLevel( logid, newLogLevel )
+            self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        if self.ref:
+            return self.ref.getLogLevel(logger_id)
+        else:
+           None
+
+    def getNamedLoggers(self):
+        if self.ref:
+            return self.ref.getNamedLoggers()
+        else:
+           None
+
+    def resetLog(self):
+        if self.ref:
+            self.ref.resetLog()
+        else:
+           None
 
     def getLogConfig(self):
         if self.ref:

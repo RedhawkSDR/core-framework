@@ -38,12 +38,18 @@
 #include <ossie/Events.h>
 #include <ossie/logging/loghelpers.h>
 #include <ossie/FileManager_impl.h>
+#include <ossie/File_impl.h>
+#include <ossie/ParserLogs.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "PersistenceStore.h"
 #include "connectionSupport.h"
 #include "DomainManager_EventSupport.h"
 #include "EventChannelManager.h"
 #include "struct_props.h"
+#include "struct_props.h"
+
+#include "../../parser/internal/dcd-pimpl.h"
 
 
 class Application_impl;
@@ -61,7 +67,7 @@ class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertyS
 ///////////////////////////
 public:
 
-      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool, bool);
+      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool, bool, int);
     ~DomainManager_impl ();
 
     friend class ODM_Channel_Supplier_i;
@@ -235,6 +241,15 @@ public:
 
     rh_logger::LoggerPtr  getLogger() const { return __logger; };
 
+    rh_logger::LoggerPtr  getInstanceLogger(const char *name) {
+        std::string n(name);
+        return getInstanceLogger(n);
+    };
+
+    rh_logger::LoggerPtr  getInstanceLogger(std::string &name) {
+        return this->_baseLog->getChildLogger(name, "");
+    };
+
     bool   bindToDomain() { return _bindToDomain; };
     
     std::string getRedhawkVersion() { return redhawk_version; };
@@ -244,6 +259,10 @@ public:
     uint32_t  getManagerWaitTime();
     uint32_t  getDeviceWaitTime();
     uint32_t  getServiceWaitTime();
+    CF::LogLevel log_level();
+    int getInitialLogLevel() {
+        return _initialLogLevel;
+    };
 
 /////////////////////////////
 // Internal Helper Functions
@@ -387,6 +406,7 @@ private:
     FileManager_impl* fileMgr_servant;
     client_wait_times_struct   client_wait_times;
 
+    int _initialLogLevel;
     bool             _bindToDomain;
 };                                            /* END CLASS DEFINITION DomainManager */
 

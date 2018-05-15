@@ -77,20 +77,25 @@ public:
     (CF::Device::InvalidState, CF::ExecutableDevice::InvalidProcess,
      CORBA::SystemException);
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     // Parse the command-line arguments to retrieve the name of the Component that is to be launched
     static std::string get_component_name_from_exec_params(const CF::Properties& params);
     // Retrieve the name of the Component from its profile
     static std::string component_name_from_profile_name(const std::string& profile_name);
-    
+
     // process affinity options
     virtual void   set_resource_affinity( const CF::Properties& options,
                                           const pid_t rsc_pid,
                                           const char *rsc_name,
                                           const std::vector<int> &bl = std::vector<int>(0) );
-        
+    rh_logger::LoggerPtr _executabledeviceLog;
+
 private:
     CF::ExecutableDevice::ProcessID_Type PID;
+
+    void _init();
 };
 
 #endif

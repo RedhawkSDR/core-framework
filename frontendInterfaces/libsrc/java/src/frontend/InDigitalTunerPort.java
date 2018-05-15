@@ -25,6 +25,7 @@ import FRONTEND.NotSupportedException;
 import FRONTEND.DigitalTunerHelper;
 import frontend.DigitalTunerDelegate;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 public class InDigitalTunerPort extends FRONTEND.DigitalTunerPOA implements PortBase {
 
@@ -43,6 +44,12 @@ public class InDigitalTunerPort extends FRONTEND.DigitalTunerPOA implements Port
         this.name = portName;
         this.delegate = d;
         this.portAccess = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public String getTunerType(String id) {

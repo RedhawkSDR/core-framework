@@ -114,7 +114,8 @@ int old_main(int argc, char* argv[])
     string logfile_uri("");
     string db_uri("");
     string domainName("");
-    int debugLevel = 3;
+    int debugLevel = -1;
+    int initialDebugLevel = -1;
     std::string dpath("");
     std::string name_binding("DomainManager");
     bool  useLogCfgResolver = false;
@@ -168,6 +169,7 @@ int old_main(int argc, char* argv[])
                 std::cout<<"Logging level "<<debugLevel<<" invalid. Lowering to 5"<<std::endl;
                 debugLevel = 5;
             }
+            initialDebugLevel = debugLevel;
         } else if (param == "PERSISTENCE") {
             string value = argv[ii];
             std::transform(value.begin(), value.begin(), value.end(), ::tolower);
@@ -224,6 +226,7 @@ int old_main(int argc, char* argv[])
 
     dpath= domRootPath.string();
 
+    std::string logname("DomainManagerLoader");
     // setup logging context for a component resource
     std::string logcfg_uri = logfile_uri;
     ossie::logging::DomainCtx *ctx_=new ossie::logging::DomainCtx( name_binding, domainName, dpath );
@@ -233,10 +236,10 @@ int old_main(int argc, char* argv[])
     // configure the  logging library
     // This log statement is exempt from the "NO LOG STATEMENTS" warning below
     if ( logfile_uri == "") {
-      LOG_INFO(DomainManager, "Loading DEFAULT logging configuration. " );
+      RH_NL_INFO(logname, "Loading DEFAULT logging configuration. " );
     }
     else {
-      LOG_INFO(DomainManager, "Loading log configuration from uri:" << logfile_uri);
+      RH_NL_INFO(logname, "Loading log configuration from uri:" << logfile_uri);
     }
 
 #if ! defined ENABLE_PERSISTENCE
@@ -244,17 +247,6 @@ int old_main(int argc, char* argv[])
         // reset db_uri to empty... to force ignore of restore operations
         db_uri.clear();
     }
-#endif
-
-#if 0
-    // test logger configuration....
-    LOG_FATAL(DomainManager, "FATAL MESSAGE " );
-    LOG_ERROR(DomainManager, "ERROR MESSAGE " );
-    LOG_WARN(DomainManager, "WARN MESSAGE " );
-    LOG_INFO(DomainManager, "INFO MESSAGE " );
-    LOG_DEBUG(DomainManager, "DEBUG MESSAGE " );
-    LOG_TRACE(DomainManager, "TRACE MESSAGE " );
-    std::cout << " END OF TEST LOGGER MESSAGES " << std::endl;
 #endif
 
     ///////////////////////////////////////////////////////////////////////////
@@ -274,25 +266,25 @@ int old_main(int argc, char* argv[])
 
     // Associate SIGUSR1 to signal_catcher interrupt handler
     if (sigaction(SIGUSR1, &fp_sa, NULL) == -1) {
-        LOG_ERROR(DomainManager, "sigaction(SIGUSR1): " << strerror(errno));
+        RH_NL_ERROR(logname, "sigaction(SIGUSR1): " << strerror(errno));
         return(EXIT_FAILURE);
     }
 
     // Associate SIGINT to signal_catcher interrupt handler
     if (sigaction(SIGINT, &sa, NULL) == -1) {
-        LOG_ERROR(DomainManager, "sigaction(SIGINT): " << strerror(errno));
+        RH_NL_ERROR(logname, "sigaction(SIGINT): " << strerror(errno));
         return(EXIT_FAILURE);
     }
 
     // Associate SIGQUIT to signal_catcher interrupt handler
     if (sigaction(SIGQUIT, &sa, NULL) == -1) {
-        LOG_ERROR(DomainManager, "sigaction(SIGQUIT): " << strerror(errno));
+        RH_NL_ERROR(logname, "sigaction(SIGQUIT): " << strerror(errno));
         return(EXIT_FAILURE);
     }
 
     // Associate SIGTERM to signal_catcher interrupt handler
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
-        LOG_ERROR(DomainManager, "sigaction(SIGTERM): " << strerror(errno));
+        RH_NL_ERROR(logname, "sigaction(SIGTERM): " << strerror(errno));
         return(EXIT_FAILURE);
     }
 
@@ -321,7 +313,7 @@ int old_main(int argc, char* argv[])
         // Install an adaptor to automatically create our own POAs.
         root_poa = ossie::corba::RootPOA();
     } catch ( CORBA::INITIALIZE& ex ) {
-        LOG_FATAL(DomainManager, "Failed to initialize the POA. Is there a Domain Manager already running?");
+        RH_NL_FATAL(logname, "Failed to initialize the POA. Is there a Domain Manager already running?");
         return(EXIT_FAILURE);
     }
     ossie::corba::POACreator *activator_servant = new ossie::corba::POACreator();
@@ -337,29 +329,29 @@ int old_main(int argc, char* argv[])
     // Map i686 to SCA x86
     struct utsname un;
     if (uname(&un) != 0) {
-        LOG_FATAL(DomainManager, "Unable to determine system information: " << strerror(errno));
+        RH_NL_FATAL(logname, "Unable to determine system information: " << strerror(errno));
         return(EXIT_FAILURE);
     }
     if (strcmp("i686", un.machine) == 0) {
         strcpy(un.machine, "x86");
     }
-    LOG_DEBUG(DomainManager, "Machine " << un.machine);
-    LOG_DEBUG(DomainManager, "Version " << un.release);
-    LOG_DEBUG(DomainManager, "OS " << un.sysname);
+    RH_NL_DEBUG(logname, "Machine " << un.machine);
+    RH_NL_DEBUG(logname, "Version " << un.release);
+    RH_NL_DEBUG(logname, "OS " << un.sysname);
     struct rlimit limit;
     if (getrlimit(RLIMIT_NPROC, &limit) == 0) {
-        LOG_DEBUG(DomainManager, "Process limit " << limit.rlim_cur);
+        RH_NL_DEBUG(logname, "Process limit " << limit.rlim_cur);
     }
     if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
-        LOG_DEBUG(DomainManager, "File descriptor limit " << limit.rlim_cur);
+        RH_NL_DEBUG(logname, "File descriptor limit " << limit.rlim_cur);
     }
 
     // Create Domain Manager servant and object
-    LOG_INFO(DomainManager, "Starting Domain Manager");
-    LOG_DEBUG(DomainManager, "Root of DomainManager FileSystem set to " << domRootPath);
-    LOG_DEBUG(DomainManager, "DMD path set to " << dmdFile);
-    LOG_DEBUG(DomainManager, "Domain Name set to " << domainName);
-    if ( bindToDomain ) { LOG_INFO(DomainManager, "Binding applications to the domain." ); }
+    RH_NL_INFO(logname, "Starting Domain Manager");
+    RH_NL_DEBUG(logname, "Root of DomainManager FileSystem set to " << domRootPath);
+    RH_NL_DEBUG(logname, "DMD path set to " << dmdFile);
+    RH_NL_DEBUG(logname, "Domain Name set to " << domainName);
+    if ( bindToDomain ) { RH_NL_INFO(logname, "Binding applications to the domain." ); }
 
     try {
         DomainManager_servant = new DomainManager_impl(dmdFile.c_str(),
@@ -369,7 +361,8 @@ int old_main(int argc, char* argv[])
                                                        (logfile_uri.empty()) ? NULL : logfile_uri.c_str(),
                                                        useLogCfgResolver,
                                                        bindToDomain,
-                                                       enablePersistence
+                                                       enablePersistence,
+                                                       initialDebugLevel
                                                        );
 
         // set logging level for the DomainManager's logger
@@ -378,13 +371,13 @@ int old_main(int argc, char* argv[])
         }
 
     } catch (const CORBA::Exception& ex) {
-        LOG_ERROR(DomainManager, "Terminated with CORBA::" << ex._name() << " exception");
+        RH_NL_ERROR(logname, "Terminated with CORBA::" << ex._name() << " exception");
         return(-1);
     } catch (const std::exception& ex) {
-        LOG_ERROR(DomainManager, "Terminated with exception: " << ex.what());
+        RH_NL_ERROR(logname, "Terminated with exception: " << ex.what());
         return(-1);
     } catch (...) {
-        LOG_ERROR(DomainManager, "Terminated with unknown exception");
+        RH_NL_ERROR(logname, "Terminated with unknown exception");
         return(EXIT_FAILURE);
     }
 
@@ -402,13 +395,13 @@ int old_main(int argc, char* argv[])
         try {
             DomainManager_servant->restoreState(db_uri);
         } catch (const CORBA::Exception& ex) {
-            LOG_FATAL(DomainManager, "Unable to restore state: CORBA::" << ex._name());
+            RH_NL_FATAL(logname, "Unable to restore state: CORBA::" << ex._name());
             return(EXIT_FAILURE);
         } catch (const std::exception& ex) {
-            LOG_FATAL(DomainManager, "Unable to restore state: " << ex.what());
+            RH_NL_FATAL(logname, "Unable to restore state: " << ex.what());
             return(EXIT_FAILURE);
         } catch (...) {
-            LOG_FATAL(DomainManager, "Unrecoverable error restoring state");
+            RH_NL_FATAL(logname, "Unrecoverable error restoring state");
             return(EXIT_FAILURE);
         }
     }
@@ -416,12 +409,12 @@ int old_main(int argc, char* argv[])
     try {
         // Activate the DomainManager servant into its own POA, giving the POA responsibility
         // for its deletion.
-        LOG_DEBUG(DomainManager, "Activating DomainManager into POA");
+        RH_NL_DEBUG(logname, "Activating DomainManager into POA");
         PortableServer::POA_var dommgr_poa = root_poa->find_POA("DomainManager", 1);
         PortableServer::ObjectId_var oid = ossie::corba::activatePersistentObject(dommgr_poa, DomainManager_servant, DomainManager_servant->getFullDomainManagerName());
 
         // Bind the DomainManager object to its full name (e.g. "DomainName/DomainName") in the NameService.
-        LOG_DEBUG(DomainManager, "Binding DomainManager to NamingService name " << DomainManager_servant->getFullDomainManagerName());
+        RH_NL_DEBUG(logname, "Binding DomainManager to NamingService name " << DomainManager_servant->getFullDomainManagerName());
         CF::DomainManager_var DomainManager_obj = DomainManager_servant->_this();
         CosNaming::Name_var name = ossie::corba::stringToName(DomainManager_servant->getFullDomainManagerName());
         try {
@@ -431,40 +424,40 @@ int old_main(int argc, char* argv[])
         } catch (const CosNaming::NamingContext::AlreadyBound&) {
             if (forceRebind) {
                 // Forcibly replace the existing name binding.
-                LOG_INFO(DomainManager, "Replacing existing name binding " << DomainManager_servant->getFullDomainManagerName());
+                RH_NL_INFO(logname, "Replacing existing name binding " << DomainManager_servant->getFullDomainManagerName());
                 ossie::corba::InitialNamingContext()->rebind(name, DomainManager_obj);
             } else {
-                LOG_FATAL(DomainManager, "A DomainManager is already running as " << DomainManager_servant->getFullDomainManagerName());
+                RH_NL_FATAL(logname, "A DomainManager is already running as " << DomainManager_servant->getFullDomainManagerName());
                 return(-1);
             }
         }
 
         CORBA::String_var ior_str = orb->object_to_string(DomainManager_obj);
-        LOG_DEBUG(DomainManager, ior_str);
+        RH_NL_DEBUG(logname, ior_str);
 
         DomainManager_servant->_remove_ref();
 
-        LOG_INFO(DomainManager, "Starting ORB!");
+        RH_NL_INFO(logname, "Starting ORB!");
         DomainManager_servant->run();
 
-        LOG_DEBUG(DomainManager, "Shutting down DomainManager");
+        RH_NL_DEBUG(logname, "Shutting down DomainManager");
         DomainManager_servant->shutdown(received_signal);
 
-        LOG_INFO(DomainManager, "Requesting ORB shutdown");
+        RH_NL_INFO(logname, "Requesting ORB shutdown");
         ossie::corba::OrbShutdown(true);
-        LOG_INFO(DomainManager, "Farewell!");
+        RH_NL_INFO(logname, "Farewell!");
         ossie::logging::Terminate();            //no more logging....
     } catch (const CORBA::Exception& ex) {
-        LOG_FATAL(DomainManager, "Terminated with CORBA::" << ex._name() << " exception");
+        RH_NL_FATAL(logname, "Terminated with CORBA::" << ex._name() << " exception");
         return(-1);
     } catch (const std::exception& ex) {
-        LOG_FATAL(DomainManager, "Terminated with exception: " << ex.what());
+        RH_NL_FATAL(logname, "Terminated with exception: " << ex.what());
         return(-1);
     } catch (...) {
-        LOG_FATAL(DomainManager, "Terminated with unknown exception");
+        RH_NL_FATAL(logname, "Terminated with unknown exception");
         DomainManager_servant->shutdown(-1);
         
-        LOG_INFO(DomainManager, "ORB shutdown.... short startup..");
+        RH_NL_INFO(logname, "ORB shutdown.... short startup..");
         ossie::corba::OrbShutdown(true);
         return(-1);
     }

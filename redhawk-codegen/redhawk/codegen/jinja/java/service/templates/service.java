@@ -33,6 +33,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 import org.ossie.component.Service;
+import org.ossie.component.RHLogger;
 import CF.InvalidObjectReference;
 
 import org.omg.PortableServer.POA;
@@ -52,6 +53,10 @@ public class ${userclass} extends Service implements ${interface}Operations
     public ${userclass}(Map<String, String> execparams)
     {
         setLogger( logger, ${userclass}.class.getName() );
+        if (execparams.containsKey("SERVICE_NAME")) {
+            this.serviceName = execparams.get("SERVICE_NAME");
+            _baseLog = RHLogger.getLogger(this.serviceName);
+        }
     }
 
     public void terminateService()

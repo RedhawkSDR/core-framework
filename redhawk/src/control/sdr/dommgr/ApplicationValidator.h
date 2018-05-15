@@ -45,7 +45,7 @@ namespace redhawk {
         ENABLE_LOGGING;
 
     public:
-        ApplicationValidator(CF::FileSystem_ptr fileSystem);
+        ApplicationValidator(CF::FileSystem_ptr fileSystem, rh_logger::LoggerPtr log);
 
         /**
          * @brief  Validates a SoftwareAssembly
@@ -86,6 +86,7 @@ namespace redhawk {
 
         CF::FileSystem_var fileSystem;
         redhawk::ProfileCache cache;
+        rh_logger::LoggerPtr _appFactoryLog;
     };
 }
 

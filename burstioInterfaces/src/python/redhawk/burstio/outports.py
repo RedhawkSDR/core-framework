@@ -73,7 +73,7 @@ class Queue(object):
             self._maxBursts = bursts
             if self._burstsExceeded():
                 # Wake up the monitor thread to do a push
-                self._log.debug('New max bursts %s triggering push', bursts);
+                self._portLog.debug('New max bursts %s triggering push', bursts);
                 self._executeThreadedFlush()
         finally:
             self._queueMutex.release()
@@ -90,7 +90,7 @@ class Queue(object):
         try:
             self._thresholdBytes = bytes
             if self._bytesExceeded():
-                self._log.debug('New byte threshold %s triggering push', bytes);
+                self._portLog.debug('New byte threshold %s triggering push', bytes);
                 # Wake up the monitor thread to do a push
                 self._executeThreadedFlush()
         finally:
@@ -130,7 +130,7 @@ class Queue(object):
             if self._startTime is None:
                 self._startTime = time.time()
                 # Wake the monitor thread so it can set its timeout
-                self._port._log.trace('Waking monitor thread on first queued burst')
+                self._port._portLog.trace('Waking monitor thread on first queued burst')
                 self._port._scheduleCheck(self._startTime + self._thresholdLatency)
 
             # Add the burst to the queue, tracking the total number of data
@@ -140,13 +140,13 @@ class Queue(object):
 
             # NB: Whether it is executed or not, this trace statement has a
             #     significant impact on performance
-            #self._log.trace('Queue size: %s bursts / %s bytes', len(self._queue), self._queuedBytes)
+            #self._portLog.trace('Queue size: %s bursts / %s bytes', len(self._queue), self._queuedBytes)
 
             # Check whether the max bursts or byte threshold has been exceeded
             # NB: Function calls incur significant overhead in Python, so the
             #     relevant checks are inlined versus calling a method,
             if len(self._queue) >= self._maxBursts or self._queuedBytes >= self._thresholdBytes:
-                self._port._log.debug('Queued burst exceeded threshold, flushing queue')
+                self._port._portLog.debug('Queued burst exceeded threshold, flushing queue')
                 self._flushQueue()
         finally:
             self._queueMutex.release()
@@ -202,7 +202,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
         self._bytesPerElement = traits.size()
 
         # Logging; default logger is the class name
-        self._log = logging.getLogger(self.__class__.__name__)
+        self._portLog = logging.getLogger(self.__class__.__name__)
 
         # Perform latency monitoring and deferred pushes on a separate thread
         self._monitor = ExecutorService()
@@ -263,7 +263,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
         self._routingMode = mode
 
     def setLogger(self, logger):
-        self._log = logger
+        self._portLog = logger
 
     def updateConnectionFilter(self, filterTable):
         new_routes = {}
@@ -320,7 +320,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
             queue._queueBurst(burst)
             if eos:
                 if not self._isInterleaved():
-                    self._log.debug("Flushing '%s' on EOS", sri.streamID)
+                    self._portLog.debug("Flushing '%s' on EOS", sri.streamID)
                     queue.flush()
                 del self._streamQueues[sri.streamID]
         finally:
@@ -338,7 +338,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
             self._queueMutex.release()
 
     def _sendBursts(self, bursts, startTime, queueDepth, streamID=None):
-        self._log.debug('Pushing %d bursts', len(bursts))
+        self._portLog.debug('Pushing %d bursts', len(bursts))
 
         # Count up total elements
         total_elements = sum(len(burst.data) for burst in bursts)
@@ -359,17 +359,17 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
                 except CORBA.MARSHAL, e:
                     if len(bursts) == 1:
                         if connection.alive:
-                            self._log.error('pushBursts to %s failed because the burst size is too long')
+                            self._portLog.error('pushBursts to %s failed because the burst size is too long')
                         connection.alive = False
                     else:
                         self._partitionBursts(bursts, startTime, queueDepth, connection)
                 except Exception, e:
                     if connection.alive:
-                        self._log.error('pushBursts to %s failed: %s', connectionId, e)
+                        self._portLog.error('pushBursts to %s failed: %s', connectionId, e)
                     connection.alive = False
                 except:
                     if connection.alive:
-                        self._log.error('pushBursts to %s failed', connectionId)
+                        self._portLog.error('pushBursts to %s failed', connectionId)
                     connection.alive = False
         finally:
             self._connectionMutex.release()  
@@ -442,7 +442,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
         elif self._isInterleaved():
             queue = self._defaultQueue
         else:
-            self._log.trace('Creating new queue for stream %s', streamID)
+            self._portLog.trace('Creating new queue for stream %s', streamID)
             # Propogate the default queue's settings
             max_bursts = self._defaultQueue.getMaxBursts()
             byte_threshold = self._defaultQueue.getByteThreshold()

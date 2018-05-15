@@ -33,7 +33,7 @@ namespace bulkio {
 
   template <typename PortType>
   InPort<PortType>::InPort(std::string port_name, 
-                           LOGGER_PTR  logger,
+                           LOGGER_PTR  new_logger,
                            bulkio::sri::Compare sriCmp,
                            SriListener *newStreamCB):
     redhawk::NegotiableProvidesPortBase(port_name),
@@ -47,12 +47,12 @@ namespace bulkio {
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 
-    if (!logger) {
+    if (!new_logger) {
         std::string pname("redhawk.bulkio.inport.");
         pname = pname + port_name;
         setLogger(rh_logger::Logger::getLogger(pname));
     } else {
-        setLogger(logger);
+        setLogger(new_logger);
     }
 
 
@@ -66,7 +66,7 @@ namespace bulkio {
       sri_cmp = bulkio::sri::DefaultComparator;
     }
 
-    LOG_DEBUG( logger, "bulkio::InPort CTOR port:" << name << 
+    LOG_DEBUG( _portLog, "bulkio::InPort CTOR port:" << name << 
                " Blocking/MaxInputQueueSize " << blocking << "/" << maxQueue <<  
                " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
   }
@@ -76,12 +76,12 @@ namespace bulkio {
   template <typename PortType>
   InPort<PortType>::~InPort()
   {
-    TRACE_ENTER( logger, "InPort::DTOR" );
+    TRACE_ENTER( _portLog, "InPort::DTOR" );
 
     // block any data coming out of getPacket.. 
     block();
 
-    LOG_TRACE( logger, "PORT:" << name << " DUMP PKTS:" << packetQueue.size() );
+    LOG_TRACE( _portLog, "PORT:" << name << " DUMP PKTS:" << packetQueue.size() );
 
     // purge the queue...
     while (packetQueue.size() != 0) {
@@ -92,7 +92,7 @@ namespace bulkio {
     // clean up allocated containers
     if ( stats ) delete stats;
 
-    TRACE_EXIT( logger, "InPort::DTOR"  );
+    TRACE_EXIT( _portLog, "InPort::DTOR"  );
   }
 
 
@@ -168,7 +168,7 @@ namespace bulkio {
   template <typename PortType>
   void InPort<PortType>::pushSRI(const BULKIO::StreamSRI& H)
   {
-    TRACE_ENTER( logger, "InPort::pushSRI"  );
+    TRACE_ENTER( _portLog, "InPort::pushSRI"  );
 
     if (H.blocking) {
       SCOPED_LOCK lock(dataBufferLock);
@@ -176,12 +176,12 @@ namespace bulkio {
     }
 
     const std::string streamID(H.streamID);
-    LOG_TRACE(logger,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
+    LOG_TRACE(_portLog,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
 
     SCOPED_LOCK lock(sriUpdateLock);
     SriTable::iterator currH = currentHs.find(streamID);
     if (currH == currentHs.end()) {
-      LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
+      LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
       StreamDescriptor sri(H);
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
@@ -193,12 +193,12 @@ namespace bulkio {
       createStream(streamID, sri);
     } else {
       if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
-        LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
+        LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
         currH->second.first = StreamDescriptor(H);
         currH->second.second = true;
       }
     }
-    TRACE_EXIT( logger, "InPort::pushSRI"  );
+    TRACE_EXIT( _portLog, "InPort::pushSRI"  );
   }
 
     namespace {
@@ -233,7 +233,7 @@ namespace bulkio {
   template <typename PortType>
   void  InPort<PortType>::queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
-    TRACE_ENTER( logger, "InPort::pushPacket"  );
+    TRACE_ENTER( _portLog, "InPort::pushPacket"  );
 
     // Discard packets for disabled streams
     if (!_acceptPacket(streamID, EOS)) {
@@ -249,7 +249,7 @@ namespace bulkio {
     }
 
     if (maxQueue == 0) {
-      TRACE_EXIT( logger, "InPort::pushPacket"  );
+      TRACE_EXIT( _portLog, "InPort::pushPacket"  );
       return;
     }
 
@@ -267,7 +267,7 @@ namespace bulkio {
       } else {
         // Unknown stream ID, register a new default SRI following the logic in pushSRI,
         // and set the SRI changed flag
-        LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
+        LOG_WARN(_portLog, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
         sriChanged = true;
         sri = StreamDescriptor(bulkio::sri::create(streamID));
         if (newStreamCallback) {
@@ -285,7 +285,7 @@ namespace bulkio {
     {
       bool flushToReport = false;
       SCOPED_LOCK lock(dataBufferLock);
-      LOG_DEBUG(logger, "bulkio::InPort port blocking:" << blocking);
+      LOG_DEBUG(_portLog, "bulkio::InPort port blocking:" << blocking);
       if (blocking) {
         while (packetQueue.size() >= maxQueue) {
           queueAvailable.wait(lock);
@@ -294,7 +294,7 @@ namespace bulkio {
         bool sriChangedHappened = false;
         bool flagEOS = false;
         if (packetQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
-          LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
+          LOG_DEBUG( _portLog, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
           flushToReport = true;
           while (packetQueue.size() != 0) {
             Packet *tmp = packetQueue.front();
@@ -316,7 +316,7 @@ namespace bulkio {
         }
       }
 
-      LOG_TRACE(logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
+      LOG_TRACE(_portLog, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
       stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
       Packet *tmpIn;
       if (is_copy_required(data)) {
@@ -330,7 +330,7 @@ namespace bulkio {
 
     packetWaiters.notify(streamID);
 
-    TRACE_EXIT( logger, "InPort::pushPacket"  );
+    TRACE_EXIT( _portLog, "InPort::pushPacket"  );
   }
 
 
@@ -372,11 +372,11 @@ namespace bulkio {
   template <typename PortType>
   void InPort<PortType>::block()
   {
-    TRACE_ENTER( logger, "InPort::block"  );
+    TRACE_ENTER( _portLog, "InPort::block"  );
     breakBlock = true;
     dataAvailable.notify_all();
     packetWaiters.interrupt();
-    TRACE_EXIT( logger, "InPort::block"  );
+    TRACE_EXIT( _portLog, "InPort::block"  );
   }
 
   template <typename PortType>
@@ -480,9 +480,9 @@ namespace bulkio {
   template <typename PortType>
   typename InPort<PortType>::Packet* InPort<PortType>::nextPacket(float timeout, const std::string& streamID)
   {
-    TRACE_ENTER(logger, "InPort::nextPacket");
+    TRACE_ENTER(_portLog, "InPort::nextPacket");
     if (breakBlock) {
-      TRACE_EXIT(logger, "InPort::nextPacket");
+      TRACE_EXIT(_portLog, "InPort::nextPacket");
       return NULL;
     }
 
@@ -495,11 +495,11 @@ namespace bulkio {
       boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
       while (!packet) {
         if (timeout == 0.0) {
-          TRACE_EXIT(logger, "InPort::nextPacket");
+          TRACE_EXIT(_portLog, "InPort::nextPacket");
           return NULL;
         } else if (timeout > 0){
           if (!dataAvailable.timed_wait(lock, to_time)) {
-            TRACE_EXIT(logger, "InPort::nextPacket");
+            TRACE_EXIT(_portLog, "InPort::nextPacket");
             return NULL;
           }
         } else {
@@ -509,18 +509,18 @@ namespace bulkio {
             }
         }
         if (breakBlock) {
-          TRACE_EXIT(logger, "InPort::nextPacket");
+          TRACE_EXIT(_portLog, "InPort::nextPacket");
           return NULL;
         }
         packet = fetchPacket(streamID);
       }
       
       if (!packet) {
-        TRACE_EXIT(logger, "InPort::nextPacket");
+        TRACE_EXIT(_portLog, "InPort::nextPacket");
         return NULL;
       }
 
-      LOG_TRACE(logger, "InPort::nextPacket PORT:" << name << " (QUEUE="<< packetQueue.size() << ")");
+      LOG_TRACE(_portLog, "InPort::nextPacket PORT:" << name << " (QUEUE="<< packetQueue.size() << ")");
       queueAvailable.notify_all();
     }
 
@@ -536,7 +536,7 @@ namespace bulkio {
       }
     }
 
-    TRACE_EXIT( logger, "InPort::nextPacket"  );
+    TRACE_EXIT( _portLog, "InPort::nextPacket"  );
     return packet;
   }
 
@@ -571,7 +571,7 @@ namespace bulkio {
     boost::mutex::scoped_lock lock(streamsMutex);
     if (streams.count(streamID) == 0) {
       // New stream
-      LOG_DEBUG(logger, "Creating new stream " << streamID);
+      LOG_DEBUG(_portLog, "Creating new stream " << streamID);
       streams.insert(std::make_pair(streamID, stream));
       lock.unlock();
 
@@ -579,7 +579,7 @@ namespace bulkio {
     } else {
       // An active stream has the same stream ID; add this new stream to the
       // pending list
-      LOG_DEBUG(logger, "Creating pending stream " << streamID);
+      LOG_DEBUG(_portLog, "Creating pending stream " << streamID);
       pendingStreams.insert(std::make_pair(streamID, stream));
     }
   }
@@ -685,7 +685,7 @@ namespace bulkio {
   template <typename PortType>
   void InPort<PortType>::removeStream(const std::string& streamID)
   {
-    LOG_DEBUG(logger, "Removing stream " << streamID);
+    LOG_DEBUG(_portLog, "Removing stream " << streamID);
     boost::mutex::scoped_lock lock(streamsMutex);
 
     // Remove the current stream, and if there's a pending stream with the same
@@ -693,7 +693,7 @@ namespace bulkio {
     streams.erase(streamID);
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
-      LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
+      LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");
       StreamType stream = next->second;
       streams.insert(*next);
       pendingStreams.erase(next);
@@ -739,13 +739,13 @@ namespace bulkio {
       if (EOS) {
           // Acknowledge the end-of-stream by removing the disabled stream
           // before discarding the packet
-          LOG_DEBUG(logger, "Removing stream " << streamID);
+          LOG_DEBUG(_portLog, "Removing stream " << streamID);
           stream->second.close();
           streams.erase(stream);
 
           typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
           if (next != pendingStreams.end()) {
-              LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
+              LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");
               StreamType stream = next->second;
               streams.insert(*next);
               pendingStreams.erase(next);
@@ -809,10 +809,10 @@ namespace bulkio {
   //
   template <typename PortType>
   InNumericPort<PortType>::InNumericPort(std::string port_name, 
-                                         LOGGER_PTR  logger,
+                                         LOGGER_PTR  new_logger,
                                          bulkio::sri::Compare compareSri,
                                          SriListener *newStreamCB) :
-    InPort<PortType>(port_name, logger, compareSri, newStreamCB)
+    InPort<PortType>(port_name, new_logger, compareSri, newStreamCB)
   {
   }
 
@@ -912,10 +912,10 @@ namespace bulkio {
   //  Source Input Port String Definitions
   // ----------------------------------------------------------------------------------------
   InFilePort::InFilePort(std::string port_name, 
-                         LOGGER_PTR  logger,
+                         LOGGER_PTR  new_logger,
                          bulkio::sri::Compare compareSri,
                          SriListener *newStreamCB) :
-    InPort<BULKIO::dataFile>(port_name, logger, compareSri, newStreamCB)
+    InPort<BULKIO::dataFile>(port_name, new_logger, compareSri, newStreamCB)
   {
   }
 
@@ -943,10 +943,10 @@ namespace bulkio {
 
 
   InXMLPort::InXMLPort(std::string name,
-                       LOGGER_PTR  logger,
+                       LOGGER_PTR  new_logger,
                        bulkio::sri::Compare compareSri,
                        SriListener* newStreamCB) :
-    InPort<BULKIO::dataXML>(name, logger, compareSri, newStreamCB)
+    InPort<BULKIO::dataXML>(name, new_logger, compareSri, newStreamCB)
   {
   }
 

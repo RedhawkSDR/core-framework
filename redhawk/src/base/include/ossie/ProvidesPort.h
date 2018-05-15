@@ -48,14 +48,10 @@ namespace redhawk {
                                                                   const CF::Properties& transportProperties);
         virtual void disconnectTransport(const char* transportId);
 
-        void setLogger(LOGGER newLogger);
-
     protected:
         ProvidesTransportManager* _getTransportManager(const std::string& transportType);
 
         ProvidesTransport* _getTransport(const std::string identifier);
-
-        LOGGER logger;
 
         boost::mutex _transportMutex;
 

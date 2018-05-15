@@ -218,12 +218,23 @@ ${className}::~${className}()
             
         //Add to ${component.userclass.header}
         void scaleChanged(const std::string&);
-        
-        
+
+    Logging:
+
+        The member _baseLog is a logger whose base name is the component (or device) instance name.
+        New logs should be created based on this logger name.
+
+        To create a new logger,
+            rh_logger::LoggerPtr my_logger = this->_baseLog->getChildLogger("foo");
+
+        Assuming component instance name abc_1, my_logger will then be created with the 
+        name "abc_1.user.foo".
+
+
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    LOG_DEBUG(${className}, "serviceFunction() example log message");
+    RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
     
     return NOOP;
 }
@@ -235,7 +246,7 @@ CORBA::Boolean ${className}::allocateCapacity(const CF::Properties& capacities)
     bool allocationSuccess = false;
 
     if (isBusy() || isLocked()) {
-        LOG_WARN(${className}, __FUNCTION__ << 
+        RH_WARN(this->_baseLog, __FUNCTION__ << 
             ": Cannot allocate capacities... Device state is locked and/or busy");
         return false;
     }

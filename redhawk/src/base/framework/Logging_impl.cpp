@@ -37,14 +37,39 @@ struct null_deleter
 };
 
 
-Logging_impl::Logging_impl() :
+Logging_impl::Logging_impl(std::string logger_name) :
   _logName(""),
   _logLevel(CF::LogLevels::INFO),
   _logCfgContents(),
   _logCfgURL(""),
-  _loggingCtx()
+  _origLogCfgURL(""),
+  _loggingCtx(),
+  _origLevelSet(false)
 {
 
+  _baseLog = rh_logger::Logger::getNewHierarchy(logger_name);
+  // get default set of macros to fill in
+  _loggingMacros = ossie::logging::GetDefaultMacros();
+
+  ossie::logging::ResolveHostInfo( _loggingMacros );
+
+  _logCfgContents = ossie::logging::GetDefaultConfig();
+
+  // setup logger to be root by default and assign logging level INFO`
+  getLogger( _logName, true );
+};
+
+Logging_impl::Logging_impl(rh_logger::LoggerPtr parent_logger) :
+  _logName(""),
+  _logLevel(CF::LogLevels::INFO),
+  _logCfgContents(),
+  _logCfgURL(""),
+  _origLogCfgURL(""),
+  _loggingCtx(),
+  _origLevelSet(false)
+{
+
+  _baseLog = parent_logger;
   // get default set of macros to fill in
   _loggingMacros = ossie::logging::GetDefaultMacros();
 
@@ -132,10 +157,25 @@ void Logging_impl::setLoggingContext( const std::string &logcfg_url, int logLeve
   STDOUT_DEBUG("Logging_impl setLoggingContext END" );
 }
 
+std::string Logging_impl::getExpandedLogConfig(const std::string &logcfg_url) {
 
+    std::string _logCfgContents;
+
+    if ( logcfg_url == "" ) {
+        STDOUT_DEBUG( "Logging_impl saveLoggingContext Default Configuration.");
+        _logCfgContents=ossie::logging::GetDefaultConfig();
+    } else {
+        // grab contents of URL and save
+        _logCfgContents = "";
+        std::string config_contents = ossie::logging::GetConfigFileContents(logcfg_url);
+        if ( config_contents.size() > 0  ){
+            _logCfgContents= ossie::logging::ExpandMacros(config_contents, _loggingMacros);
+        }
+    }
+    return _logCfgContents;
+}
 
 void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLevel, ossie::logging::ResourceCtxPtr ctx ) {
-
   STDOUT_DEBUG("Logging_impl saveLoggingContext START:");
   if ( ctx ) {
     STDOUT_DEBUG( "Logging_impl saveLoggingContext Apply Macro Context:");
@@ -146,22 +186,8 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
   try {
       // save off logging config url
       _logCfgURL = logcfg_url;
-
-    // test we have a logging URI
-    if ( logcfg_url == "" ) {
-      STDOUT_DEBUG( "Logging_impl saveLoggingContext Default Configuration.");
-      _logCfgContents=ossie::logging::GetDefaultConfig();
-    }
-    else{
-      // grab contents of URL and save
-      _logCfgContents = "";
-      std::string config_contents = ossie::logging::GetConfigFileContents(logcfg_url);
-      if ( config_contents.size() > 0  ){
-	_logCfgContents= ossie::logging::ExpandMacros(config_contents, _loggingMacros);
-      }
-    }
-  }
-  catch( std::exception &e ) {
+      _logCfgContents = getExpandedLogConfig(logcfg_url);
+  } catch( std::exception &e ) {
   }
 
   bool set_level=false;
@@ -189,6 +215,16 @@ void Logging_impl::saveLoggingContext( const std::string &logcfg_url, int logLev
           if ( set_level ) _l->setLevel( _lvl );
           _logName = lname;
       }
+  }
+
+  // set_level means that a debug level was passed to the component/device. If that's the case, tie the log level to the global root logger
+  this->_baseLog->configureLogger(_logCfgContents, set_level, logLevel);
+
+  if (not _origLevelSet) {
+      _origLevelSet = true;
+      _origLogCfgURL = _logCfgURL;
+      _origLogLevel = _logLevel;
+      _origCtx = ctx;
   }
 
   STDOUT_DEBUG("Logging_impl setLoggingContext END" );
@@ -224,8 +260,8 @@ char *Logging_impl::getLogConfig () {
 
 void Logging_impl::setLogConfig( const char *config_contents ) {
 
+  std::string lcfg = ossie::logging::ExpandMacros( config_contents, _loggingMacros );
   if ( logConfigCallback) {
-    std::string lcfg =   ossie::logging::ExpandMacros( config_contents, _loggingMacros );
     (*logConfigCallback)( lcfg.c_str() );
     _logCfgContents = lcfg;
   }
@@ -234,7 +270,7 @@ void Logging_impl::setLogConfig( const char *config_contents ) {
     // check if my level has changed for the logger
     log_level();    
   }
-  
+  this->_baseLog->configureLogger(lcfg);
 }
 
 void Logging_impl::setLogConfigURL( const char *in_url ) {
@@ -267,6 +303,8 @@ void Logging_impl::setLogConfigURL( const char *in_url ) {
 void Logging_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) 
   throw (CF::UnknownIdentifier)
 {
+  if (not haveLoggerHierarchy(logger_id))
+    throw (CF::UnknownIdentifier());
   _logLevel = newLevel;
   if ( logLevelCallback ) {
     (*logLevelCallback)(logger_id, newLevel);
@@ -274,19 +312,73 @@ void Logging_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLev
   else {
     std::string logid("");
     if ( logger_id )  logid=logger_id;
-    ossie::logging::SetLogLevel( logid, newLevel );
+    rh_logger::LoggerPtr tmp_logger(this->_baseLog->getInstanceLogger(logger_id));
+    rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel( newLevel);
+    tmp_logger->setLevel(level);
     if ( _logger && logid == _logger->getName() ) {
         _logLevel = newLevel;
     }
   }
 }
 
-CF::LogLevel Logging_impl::log_level() {
-    if ( _logger ) {
-        CF::LogLevel level = ossie::logging::ConvertRHLevelToCFLevel( _logger->getLevel() );
-        if ( level != _logLevel ) {
-            _logLevel = level;
+bool Logging_impl::haveLogger(const std::string &name)
+{
+    std::vector<std::string> loggers = this->_baseLog->getNamedLoggers();
+    std::string _logger_id(name);
+    bool found_logger = false;
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); it++) {
+        if (*it==_logger_id) {
+            found_logger = true;
+            break;
         }
+    }
+    return found_logger;
+}
+
+bool Logging_impl::haveLoggerHierarchy(const std::string &name)
+{
+    return this->_baseLog->isLoggerInHierarchy(name);
+}
+
+CF::LogLevel Logging_impl::getLogLevel( const char *logger_id ) 
+  throw (CF::UnknownIdentifier)
+{
+    if (not haveLoggerHierarchy(logger_id))
+        throw (CF::UnknownIdentifier());
+    rh_logger::LoggerPtr tmp_logger(this->_baseLog->getInstanceLogger(logger_id));
+    int _level = tmp_logger->getLevel()->toInt();
+    if (_level == rh_logger::Level::OFF_INT)
+        _level = CF::LogLevels::OFF;
+    else if (_level == rh_logger::Level::ALL_INT)
+        _level = CF::LogLevels::ALL;
+    return _level;
+}
+
+void Logging_impl::resetLog() {
+    if (_origLevelSet) {
+        std::vector<std::string> loggers = this->_baseLog->getNamedLoggers();
+        for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); it++) {
+            rh_logger::LoggerPtr _tmplog(this->_baseLog->getInstanceLogger(*it));
+            _tmplog->setLevel(rh_logger::LevelPtr());
+        }
+        this->setLoggingContext(_origLogCfgURL, ossie::logging::ConvertRHLevelToDebug(ossie::logging::ConvertCFLevelToRHLevel(_origLogLevel)), _origCtx);
+    }
+}
+
+CF::StringSequence* Logging_impl::getNamedLoggers() {
+    CF::StringSequence_var retval = new CF::StringSequence();
+    std::vector<std::string> loggers = this->_baseLog->getNamedLoggers();
+    for (unsigned int i=0; i<loggers.size(); i++) {
+        ossie::corba::push_back(retval, CORBA::string_dup(loggers[i].c_str()));
+    }
+
+    return retval._retn();
+}
+
+CF::LogLevel Logging_impl::log_level() {
+    CF::LogLevel level = ossie::logging::ConvertRHLevelToCFLevel( this->_baseLog->getLevel() );
+    if ( level != _logLevel ) {
+        _logLevel = level;
     }
     return _logLevel;
 }
@@ -294,18 +386,19 @@ CF::LogLevel Logging_impl::log_level() {
 
 void Logging_impl::log_level( const CF::LogLevel newLevel ) {
 
+  rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel( newLevel );
   if ( logLevelCallback ) {
     _logLevel = newLevel;
     (*logLevelCallback)( "", newLevel);
   }
   else {
     _logLevel = newLevel;
-    rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel( newLevel );
     // apply new level to resource logger
     if ( _logger ) {
       _logger->setLevel( level );
     }
-  }   
+  }
+  this->_baseLog->setLevel(level);
 }
 
 

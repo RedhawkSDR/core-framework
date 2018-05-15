@@ -217,7 +217,7 @@ DEBUG_NODEBOOTER=False
 GDB_CMD_FILE=None
 def spawnNodeBooter(dmdFile=None, 
                     dcdFile=None, 
-                    debug=0, 
+                    debug=-1, 
                     domainname=None, 
                     loggingURI=None, 
                     endpoint=None, 
@@ -245,7 +245,9 @@ def spawnNodeBooter(dmdFile=None,
     if dbURI:
         args.extend(["--dburl", dbURI])
 
-    args.extend(["-debug", str(debug)])
+    if debug != -1:
+        args.extend(["-debug", str(debug)])
+
     if loggingURI is not None:
         if loggingURI:
             args.extend(["-log4cxx", loggingURI])
@@ -393,7 +395,7 @@ class CorbaTestCase(OssieTestCase):
     def __init__(self, methodName='runTest', orbArgs=[]):
         unittest.TestCase.__init__(self, methodName)
         args = sys.argv
-        self.debuglevel = 3
+        self.debuglevel = -1
         for arg in args:
             if '--debuglevel' in arg:
                 self.debuglevel = arg.split('=')[-1]
@@ -496,7 +498,8 @@ class CorbaTestCase(OssieTestCase):
             return (self._domainBooter, self._domainManager)
 
         # If debug level is not given, default to configured level
-        kwargs.setdefault('debug', self.debuglevel)
+        if self.debuglevel != -1:
+            kwargs.setdefault('debug', self.debuglevel)
 
         # Launch the nodebooter.
         self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, execparams=self._execparams, *args, **kwargs)
@@ -519,7 +522,8 @@ class CorbaTestCase(OssieTestCase):
             return (None, None)
 
         # If debug level is not given, default to configured level
-        kwargs.setdefault('debug', self.debuglevel)
+        if self.debuglevel != -1:
+            kwargs.setdefault('debug', self.debuglevel)
 
         # Launch the nodebooter.
         if domainManager == None:

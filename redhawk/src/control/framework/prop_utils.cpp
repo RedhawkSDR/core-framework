@@ -41,6 +41,10 @@ using namespace ossie;
 
 CREATE_LOGGER(prop_utils)
 
+namespace ossie {
+    rh_logger::LoggerPtr proputilsLog;
+}
+
 CF::DataType ossie::convertPropertyToDataType(const Property* prop) {
     if (dynamic_cast<const SimpleProperty*>(prop) != NULL) {
         const SimpleProperty* simp = dynamic_cast<const SimpleProperty*>(prop);
@@ -208,11 +212,11 @@ static CF::DataType overrideSimpleSequenceValue(const SimpleSequenceProperty* pr
 CF::DataType ossie::overridePropertyValue(const SimpleProperty* prop, const ComponentProperty* compprop) {
     const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(compprop);
     if (!simpleref) {
-        LOG_WARN(prop_utils, "ignoring attempt to override simple property " << prop->getID() << " because override definition is not a simpleref");
+        RH_WARN(proputilsLog, "ignoring attempt to override simple property " << prop->getID() << " because override definition is not a simpleref");
         return convertPropertyToDataType(prop);
     }
 
-    LOG_TRACE(prop_utils, "overriding simple property id " << prop->getID());
+    RH_TRACE(proputilsLog, "overriding simple property id " << prop->getID());
     return overrideSimpleValue(prop, simpleref->getValue());
 }
 
@@ -220,12 +224,12 @@ CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, co
     CF::DataType dataType = convertPropertyToDataType(prop);
     if (dynamic_cast<const SimpleSequencePropertyRef*>(compprop) != NULL) {
         const SimpleSequencePropertyRef* simpleseqref = dynamic_cast<const SimpleSequencePropertyRef*>(compprop);
-        LOG_TRACE(prop_utils, "overriding simpleseq property id " << dataType.id);
+        RH_TRACE(proputilsLog, "overriding simpleseq property id " << dataType.id);
         CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
         CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(prop->getType()));
         dataType.value = ossie::strings_to_any(simpleseqref->getValues(), kind, type);
     } else {
-        LOG_WARN(prop_utils, "ignoring attempt to override simple sequence property " << dataType.id << " because override definition is not a simpleseqref");
+        RH_WARN(proputilsLog, "ignoring attempt to override simple sequence property " << dataType.id << " because override definition is not a simpleseqref");
     }
     return dataType;
 }
@@ -233,7 +237,7 @@ CF::DataType ossie::overridePropertyValue(const SimpleSequenceProperty* prop, co
 static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values)
 {
     const PropertyList& props = prop->getValue();
-    LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
+    RH_TRACE(proputilsLog, "structure has " << props.size() << " elements");
     CF::Properties structval;
     structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
@@ -241,14 +245,14 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
         const std::string id = property->getID();
         ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
         if (itemoverride == values.end()) {
-            LOG_TRACE(prop_utils, "using default value for struct element " << id);
+            RH_TRACE(proputilsLog, "using default value for struct element " << id);
             structval[ii] = convertPropertyToDataType(property);
         } else {
             if (dynamic_cast<const SimpleProperty*>(property) != NULL) {
-                LOG_TRACE(prop_utils, "setting structure element " << id << " to " << (itemoverride->second)[0]);
+                RH_TRACE(proputilsLog, "setting structure element " << id << " to " << (itemoverride->second)[0]);
                 structval[ii] = overrideSimpleValue(dynamic_cast<const SimpleProperty*>(property), static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
             } else if (dynamic_cast<const SimpleSequenceProperty*>(property) != NULL) {
-                LOG_TRACE(prop_utils, "setting structure element " << id);
+                RH_TRACE(proputilsLog, "setting structure element " << id);
                 structval[ii] = overrideSimpleSequenceValue(dynamic_cast<const SimpleSequenceProperty*>(property), static_cast<const SimpleSequencePropertyRef*>(itemoverride->second)->getValues()); 
             }
         }
@@ -260,7 +264,7 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
 static CF::Properties overrideStructValues(const StructProperty* prop, const ossie::ComponentPropertyMap & values, const CF::Properties& configureProperties)
 {
     const PropertyList& props = prop->getValue();
-    LOG_TRACE(prop_utils, "structure has " << props.size() << " elements");
+    RH_TRACE(proputilsLog, "structure has " << props.size() << " elements");
     CF::Properties structval;
     structval.length(props.size());
     for (CORBA::ULong ii = 0; ii < structval.length(); ++ii) {
@@ -269,17 +273,17 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
         ossie::ComponentPropertyMap::const_iterator itemoverride = values.find(id);
         if (dynamic_cast<const SimplePropertyRef*>(itemoverride->second) != NULL) {
             if (itemoverride == values.end()) {
-                LOG_TRACE(prop_utils, "using default value for struct element " << id);
+                RH_TRACE(proputilsLog, "using default value for struct element " << id);
                 structval[ii] = convertPropertyToDataType(property);
             } else {
-                LOG_TRACE(prop_utils, "setting structure element " << id << " to " << static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
+                RH_TRACE(proputilsLog, "setting structure element " << id << " to " << static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue());
                 std::string value = static_cast<const SimplePropertyRef*>(itemoverride->second)->getValue();
                 if (strncmp(value.c_str(), "__MATH__", 8) == 0) {
                     CF::DataType dataType;
 		    const SimpleProperty* simple = dynamic_cast<const SimpleProperty*>(property);
                     dataType.id = CORBA::string_dup(simple->getID());
                     CORBA::TCKind kind = ossie::getTypeKind(simple->getType());
-                    LOG_TRACE(prop_utils, "Invoking custom OSSIE dynamic allocation property support")
+                    RH_TRACE(proputilsLog, "Invoking custom OSSIE dynamic allocation property support")
                     // Turn propvalue into a string for easy parsing
                     std::string mathStatement = value.substr(8);
                     if ((*mathStatement.begin() == '(') && (*mathStatement.rbegin() == ')')) {
@@ -288,11 +292,11 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
                         std::vector<std::string> args;
                         while ((mathStatement.length() > 0) && (mathStatement.find(',') != std::string::npos)) {
                             args.push_back(mathStatement.substr(0, mathStatement.find(',')));
-                            LOG_TRACE(prop_utils, "ARG " << args.back())
+                            RH_TRACE(proputilsLog, "ARG " << args.back())
                             mathStatement.erase(0, mathStatement.find(',') + 1);
                         }
                         args.push_back(mathStatement);
-                        LOG_TRACE(prop_utils, "ARG " << args.back())
+                        RH_TRACE(proputilsLog, "ARG " << args.back())
 
                         if (args.size() != 3) {
                             std::ostringstream eout;
@@ -300,17 +304,17 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
                             throw ossie::PropertyMatchingError(eout.str());
                         }
 
-                        LOG_TRACE(prop_utils, "__MATH__ " << args[0] << " " << args[1] << " " << args[2])
+                        RH_TRACE(proputilsLog, "__MATH__ " << args[0] << " " << args[1] << " " << args[2])
 
                         double operand;
                         operand = strtod(args[0].c_str(), NULL);
 
                         // See if there is a property in the component
-                        LOG_TRACE(prop_utils, "Attempting to find matching property for " << args[1])
+                        RH_TRACE(proputilsLog, "Attempting to find matching property for " << args[1])
                         const CF::DataType* matchingCompProp = 0;
                         for (unsigned int j = 0; j < configureProperties.length(); j++) {
                             if (strcmp(configureProperties[j].id, args[1].c_str()) == 0) {
-                                LOG_TRACE(prop_utils, "Matched property for " << args[1])
+                                RH_TRACE(proputilsLog, "Matched property for " << args[1])
                                 matchingCompProp = &configureProperties[j];
                             }
                             // See if the property we're looking for is a member of a struct
@@ -321,7 +325,7 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
                             if (tmp_ref != NULL) {
                                 for (unsigned prop_idx = 0; prop_idx<tmp_ref->length(); prop_idx++) {
                                     if (strcmp((*tmp_ref)[prop_idx].id, args[1].c_str()) == 0) {
-                                        LOG_TRACE(prop_utils, "Matched property for " << args[1])
+                                        RH_TRACE(proputilsLog, "Matched property for " << args[1])
                                         matchingCompProp = &(*tmp_ref)[prop_idx];
                                     }
                                 }
@@ -349,7 +353,7 @@ static CF::Properties overrideStructValues(const StructProperty* prop, const oss
             } 
         } else if (dynamic_cast<const SimpleSequencePropertyRef*>(itemoverride->second) != NULL) {
 	    if (itemoverride == values.end()) {
-                LOG_TRACE(prop_utils, "using default value for struct element " << id);
+                RH_TRACE(proputilsLog, "using default value for struct element " << id);
                 structval[ii] = convertPropertyToDataType(property);
             } else {
 		structval[ii] = overrideSimpleSequenceValue(static_cast<const SimpleSequenceProperty*>(property), static_cast<const SimpleSequencePropertyRef*>(itemoverride->second)->getValues());
@@ -365,10 +369,10 @@ CF::DataType ossie::overridePropertyValue(const StructProperty* prop, const Comp
 
     const StructPropertyRef* structref = dynamic_cast<const StructPropertyRef*>(compprop);
     if (structref) {
-        LOG_TRACE(prop_utils, "overriding struct property id " << dataType.id);
+        RH_TRACE(proputilsLog, "overriding struct property id " << dataType.id);
         dataType.value <<= overrideStructValues(prop, structref->getValue());
     } else {
-        LOG_WARN(prop_utils, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
+        RH_WARN(proputilsLog, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
     }
     return dataType;
 }
@@ -378,10 +382,10 @@ CF::DataType ossie::overridePropertyValue(const StructProperty* prop, const Comp
 
     const StructPropertyRef* structref = dynamic_cast<const StructPropertyRef*>(compprop);
     if (structref) {
-        LOG_TRACE(prop_utils, "overriding struct property id " << dataType.id << " (supports __MATH__)");
+        RH_TRACE(proputilsLog, "overriding struct property id " << dataType.id << " (supports __MATH__)");
         dataType.value <<= overrideStructValues(prop, structref->getValue(), configureProperties);
     } else {
-        LOG_WARN(prop_utils, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
+        RH_WARN(proputilsLog, "ignoring attempt to override struct property " << dataType.id << " because override definition is not a structref");
     }
     return dataType;
 }
@@ -391,10 +395,10 @@ CF::DataType ossie::overridePropertyValue(const StructSequenceProperty* prop, co
 
     const StructSequencePropertyRef* structsequenceref = dynamic_cast<const StructSequencePropertyRef*>(compprop);
     if (structsequenceref) {
-        LOG_TRACE(prop_utils, "overriding structsequence property id " << dataType.id);
+        RH_TRACE(proputilsLog, "overriding structsequence property id " << dataType.id);
 
         const StructSequencePropertyRef::ValuesList& overrideValues = structsequenceref->getValues();
-        LOG_TRACE(prop_utils, "structsequence has " << overrideValues.size() << " values");
+        RH_TRACE(proputilsLog, "structsequence has " << overrideValues.size() << " values");
 
         CORBA::AnySeq values;
         values.length(overrideValues.size());
@@ -408,7 +412,7 @@ CF::DataType ossie::overridePropertyValue(const StructSequenceProperty* prop, co
         }
         dataType.value <<= values;
     } else {
-        LOG_WARN(prop_utils, "ignoring attempt to override structsequence property " << dataType.id << " because override definition is not a structsequenceref");
+        RH_WARN(proputilsLog, "ignoring attempt to override structsequence property " << dataType.id << " because override definition is not a structsequenceref");
     }
     return dataType;
 }
@@ -427,19 +431,19 @@ bool ossie::checkProcessor(const std::vector<std::string>& processorDeps, const 
         std::string processor = processorDeps[j];
         if (processor != "") {
             matchProcessor = false;
-            LOG_TRACE(prop_utils, "Attempting to match processor " << processor << " against " << props.size() << " properties")
+            RH_TRACE(proputilsLog, "Attempting to match processor " << processor << " against " << props.size() << " properties")
             for (unsigned int i = 0; i < props.size(); i++) {
                 if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
                     const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
                     std::string action = matchingProp->getAction();
-                    LOG_TRACE(prop_utils, "Checking property " << matchingProp->getID() << " " << matchingProp->getName())
+                    RH_TRACE(proputilsLog, "Checking property " << matchingProp->getID() << " " << matchingProp->getName())
                     if (strcmp(matchingProp->getName(), "processor_name") == 0) {
                         const char *tmp_value = matchingProp->getValue();
                         std::string dev_processor_name("");
                         if (tmp_value != NULL) {
                             dev_processor_name = tmp_value;
                         }
-                        LOG_TRACE(prop_utils, "Performing comparison operation '" << dev_processor_name << "' " << action << " '" << processor << "'")
+                        RH_TRACE(proputilsLog, "Performing comparison operation '" << dev_processor_name << "' " << action << " '" << processor << "'")
                         matchProcessor = ossie::perform_action(dev_processor_name, processor, action);
                         if (matchProcessor) break;
                     }
@@ -472,12 +476,12 @@ bool ossie::checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, cons
 
         if (os != "") {
             matchOs = false;
-            LOG_TRACE(prop_utils, "Attempting to match os " << os << " PropertySet Size:" << props.size());
+            RH_TRACE(proputilsLog, "Attempting to match os " << os << " PropertySet Size:" << props.size());
             for (unsigned int i = 0; i < props.size(); i++) {
                 if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
                     const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
                     std::string action = matchingProp->getAction();
-                    LOG_TRACE(prop_utils, "Examine Property: name: " << matchingProp->getName() << " value:" <<
+                    RH_TRACE(proputilsLog, "Examine Property: name: " << matchingProp->getName() << " value:" <<
                               matchingProp->getValue() );
                     if (strcmp(matchingProp->getName(), "os_name") == 0) {
                         const char *tmp_dev_os_name = matchingProp->getValue();
@@ -485,9 +489,9 @@ bool ossie::checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, cons
                         if (tmp_dev_os_name != NULL) {
                             dev_os_name = tmp_dev_os_name;
                         }
-                        LOG_TRACE(prop_utils, "Performing comparison operation " << dev_os_name << " " << action << " " << os);
+                        RH_TRACE(proputilsLog, "Performing comparison operation " << dev_os_name << " " << action << " " << os);
                         matchOs = ossie::perform_action(dev_os_name, os, action);
-                        LOG_TRACE(prop_utils, "Performing comparison operation " << dev_os_name << " " << action << " " << os << " RESULT:" << matchOs);
+                        RH_TRACE(proputilsLog, "Performing comparison operation " << dev_os_name << " " << action << " " << os << " RESULT:" << matchOs);
                         if (matchOs) {
                         	break;
                         }
@@ -496,10 +500,10 @@ bool ossie::checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, cons
             }
         }
 
-        LOG_TRACE(prop_utils, "Attempting to match os version");
+        RH_TRACE(proputilsLog, "Attempting to match os version");
         if (osVersion != "") {
             matchOsVersion = false;
-            LOG_TRACE(prop_utils, "Attempting to match os version" << osVersion)
+            RH_TRACE(proputilsLog, "Attempting to match os version" << osVersion)
                     for (unsigned int i = 0; i < props.size(); i++) {
                 if (dynamic_cast<const SimpleProperty*>(props[i]) != NULL) {
                     const SimpleProperty* matchingProp = dynamic_cast<const SimpleProperty*>(props[i]);
@@ -510,9 +514,9 @@ bool ossie::checkOs(const std::vector<ossie::SPD::NameVersionPair>& osDeps, cons
                         if (tmp_dev_os_version != NULL) {
                             dev_os_version = tmp_dev_os_version;
                         }
-                        LOG_TRACE(prop_utils, "Performing comparison operation " << dev_os_version << " " << action << " " << osVersion);
+                        RH_TRACE(proputilsLog, "Performing comparison operation " << dev_os_version << " " << action << " " << osVersion);
                         matchOsVersion = ossie::perform_action(dev_os_version, osVersion, action);
-                        LOG_TRACE(prop_utils, "Performing comparison operation " << dev_os_version << " " << action << " " << osVersion << " RESULT:" << matchOsVersion);
+                        RH_TRACE(proputilsLog, "Performing comparison operation " << dev_os_version << " " << action << " " << osVersion << " RESULT:" << matchOsVersion);
                         if (matchOsVersion) break;
                     }
                 }
@@ -568,7 +572,7 @@ CF::DataType ossie::convertPropertyToDataType(const StructPropertyRef* prop) {
     for (i = prop->getValue().begin(); i != prop->getValue().end(); ++i) {
         CF::DataType dt;
         dt = convertPropertyRefToDataType((*i).second);
-        LOG_TRACE(prop_utils, "setting struct item " << (*i).first);
+        RH_TRACE(proputilsLog, "setting struct item " << (*i).first);
 	ossie::corba::push_back(structval_, dt);
     }
     dataType.value <<= structval_;
@@ -590,7 +594,7 @@ CF::DataType ossie::convertPropertyToDataType(const StructSequencePropertyRef* p
         for (i = propValues[ii].begin(); i != propValues[ii].end(); ++i) {
             CF::DataType dt;
             dt = convertPropertyRefToDataType((*i).second);
-            LOG_TRACE(prop_utils, "setting struct item " << (*i).first);
+            RH_TRACE(proputilsLog, "setting struct item " << (*i).first);
             ossie::corba::push_back(structval_, dt);
         }
         tmp_struct.value <<= structval_;
@@ -767,10 +771,10 @@ CF::Properties ossie::getAffinityOptions(const ComponentInstantiation::AffinityP
             definitions.reset(new ossie::Properties());
             try {
                 std::stringstream xml(redhawk::affinity::get_property_definitions());
-                LOG_TRACE(prop_utils, "Loading affinity definitions: " << xml.str());
+                RH_TRACE(proputilsLog, "Loading affinity definitions: " << xml.str());
                 definitions->load(xml);
             } catch (...) {
-                LOG_WARN(prop_utils, "Error loading affinity defintions from library");
+                RH_WARN(proputilsLog, "Error loading affinity defintions from library");
             }
         }
     }
@@ -782,7 +786,7 @@ CF::Properties ossie::getAffinityOptions(const ComponentInstantiation::AffinityP
             CF::DataType dt = overridePropertyValue(prop, &propref);
             ossie::corba::push_back(options, dt);
         } else {
-            LOG_WARN(prop_utils, "Ignoring unknown affinity property " << propref.getID());
+            RH_WARN(proputilsLog, "Ignoring unknown affinity property " << propref.getID());
         } 
     }
     return options;

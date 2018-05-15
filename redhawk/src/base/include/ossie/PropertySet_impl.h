@@ -359,6 +359,8 @@ protected:
     
     std::string _propertyQueryTimestamp;
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 private:
     template <typename T>
     PropertyWrapper<T>* castProperty(PropertyInterface* property)
@@ -375,6 +377,8 @@ private:
 
     typedef redhawk::callback<void (const std::string&)> PropertyCallback;
     void setPropertyCallback (const std::string& id, PropertyCallback callback);
+
+    rh_logger::LoggerPtr _propertysetLog;
 
     typedef std::map<std::string, PropertyCallback> PropertyCallbackMap;
     PropertyCallbackMap propCallbacks;

@@ -82,6 +82,8 @@ abstract public class Logging {
     /** internal log4j logger object */
     protected Logger               _logger;
 
+    public RHLogger                _baseLog;
+
     /** log identifier, by default uses root logger or "" **/
     protected String               logName;
 
@@ -103,6 +105,13 @@ abstract public class Logging {
     /** holds the url for the logging configuration */
     protected String               loggingURL;
 
+    /** hold initial values to restore logging after reset */
+    protected boolean _origLevelSet;
+    protected String _origLogCfgURL;
+    protected int _origLogLevel;
+    protected logging.ResourceCtx _origCtx;
+    protected int defaultLogLevel = CF.LogLevels.INFO;
+
     /**
        Constructor that sets the base logging context for a resource. The logger that is passed in is 
        established by Domain base classes: Resource, Device, and Service, to maintain backwards
@@ -122,12 +131,17 @@ abstract public class Logging {
             _logger = Logger.getLogger(logName);
         }
 
+    this._baseLog=null;
 	this.logName=logName;
-	this.logLevel=CF.LogLevels.INFO;
+	this.logLevel=this.defaultLogLevel;
 	this.logConfig ="";
 	this.logListener=null;
 	this.loggingCtx = null;
 	this.loggingURL = null;
+    this._origLevelSet = false;
+    this._origLogCfgURL = "";
+    this._origLogLevel = -1;
+    this._origCtx = null;
 	this.loggingMacros=logging.GetDefaultMacros();
 	logging.ResolveHostInfo( this.loggingMacros );
     }
@@ -288,7 +302,6 @@ abstract public class Logging {
 	    ctx.apply( this.loggingMacros );
 	    this.loggingCtx = ctx;
 	}
-
 	// save off configuration that we are given
 	try{
 	    this.loggingURL = logcfg_url;	    
@@ -335,7 +348,13 @@ abstract public class Logging {
         // for event channel appenders... needs to occur after
         // Domain awareness is established
         logging.SetEventChannelManager( ECM );
-        
+
+        if (!_origLevelSet) {
+            _origLevelSet = true;
+            _origLogCfgURL = logcfg_url;
+            _origLogLevel = oldstyle_loglevel;
+            _origCtx = ctx;
+        }
     }
 
     public void  setEventChannelManager( org.ossie.events.Manager ECM ) {
@@ -354,36 +373,32 @@ abstract public class Logging {
      * @param logging.Resource  a content class from the logging.ResourceCtx tree
      */
     public void setLoggingContext( String logcfg_url, int oldstyle_loglevel, logging.ResourceCtx ctx ) {
+        // test we have a logging URI
+        if ( logcfg_url == null || logcfg_url == "" ) {
+            logging.ConfigureDefault();
+        }
+        else {
+            // apply any context data
+            if ( ctx !=  null ) {
+                ctx.apply( this.loggingMacros );
+                this.loggingCtx = ctx;
+            }
 
-	// test we have a logging URI
-	if ( logcfg_url == null || logcfg_url == "" ) {
-	    logging.ConfigureDefault();
-	}
-	else {
-	    // apply any context data
-	    if ( ctx !=  null ) {
-		ctx.apply( this.loggingMacros );
-		this.loggingCtx = ctx;
-	    }
+            // call setLogConfigURL to load configuration and set log4j
+            if ( logcfg_url != null ) {
+                setLogConfigURL( logcfg_url );
+            }
+        }
 
-	    // call setLogConfigURL to load configuration and set log4j
-	    if ( logcfg_url != null ) {
-		setLogConfigURL( logcfg_url );
-	    }
-	}
-
-	try {
-	    if  ( oldstyle_loglevel > -1  ) {
-		// set log level for this logger 
-		setLogLevel( logName, logging.ConvertLogLevel(oldstyle_loglevel) );
-	    }
-	    else {
-		// grab root logger's level
-		logLevel = logging.ConvertLog4ToCFLevel( Logger.getRootLogger().getLevel() );
-	    }
-	}
-	catch( Exception e ){
-	}
+        try {
+            if  ( oldstyle_loglevel > -1  ) {
+                // set log level for this logger 
+                setLogLevel( logName, logging.ConvertLogLevel(oldstyle_loglevel) );
+            } else {
+                // grab root logger's level
+                logLevel = logging.ConvertLog4ToCFLevel( Logger.getRootLogger().getLevel() );
+            }
+        } catch( Exception e ) {}
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -400,12 +415,9 @@ abstract public class Logging {
      * @return int value of a CF::LogLevels enumeration
      */
     public int log_level() {
-        if ( _logger != null ) {
-            Level logger_level = _logger.getLevel();
-            Level cur_loglevel= logging.ConvertToLog4Level(logLevel);
-            if ( logger_level != null && logger_level != cur_loglevel ) {
-                logLevel = logging.ConvertLog4ToCFLevel(logger_level);
-            }
+        if ( _baseLog != null ) {
+            Level logger_level = _baseLog.getLevel();
+            logLevel = logging.ConvertLog4ToCFLevel(logger_level);
         }
         return logLevel;
 
@@ -420,21 +432,21 @@ abstract public class Logging {
      * @param int value of a CF::LogLevels enumeration
      */
     public void log_level( int newLogLevel ) {
-	if ( this.logListener != null  ) {
-	    logLevel = newLogLevel;
-	    this.logListener.logLevelChanged( logName, newLogLevel );
-	}
-	else {
-	    logLevel = newLogLevel;
-	    Level tlevel= logging.ConvertToLog4Level(newLogLevel);
-	    if ( _logger != null ) {
-		_logger.setLevel(tlevel);
-	    }
-	    else {
-		Logger.getRootLogger().setLevel(tlevel);
-	    }
-	}
-	
+        Level tlevel= logging.ConvertToLog4Level(newLogLevel);
+        if ( this.logListener != null  ) {
+            logLevel = newLogLevel;
+            this.logListener.logLevelChanged( logName, newLogLevel );
+        } else {
+            logLevel = newLogLevel;
+            if ( _logger != null ) {
+                _logger.setLevel(tlevel);
+            } else {
+                Logger.getRootLogger().setLevel(tlevel);
+            }
+        }
+        if ( _baseLog != null ) {
+            _baseLog.setLevel(tlevel);
+        }
     }
 
 
@@ -447,32 +459,89 @@ abstract public class Logging {
      * @param int value of a CF::LogLevels enumeration
      */
     public void setLogLevel( String logger_id, int newLogLevel ) throws UnknownIdentifier {
+        if (!haveLoggerHierarchy(logger_id))
+            throw new CF.UnknownIdentifier();
+        if ( this.logListener != null ) {
+            if ( logger_id == logName ){
+                this.logLevel = newLogLevel;
+            }
+            this.logListener.logLevelChanged( logger_id, newLogLevel );
+        } else {
+            Level tlevel=Level.INFO;
+            tlevel = logging.ConvertToLog4Level(newLogLevel);
 
-	if ( this.logListener != null ) {
-	    if ( logger_id == logName ){
-		this.logLevel = newLogLevel;
-	    }
-
-	    this.logListener.logLevelChanged( logger_id, newLogLevel );
-	}
-	else {
-	    Level tlevel=Level.INFO;
-	    tlevel = logging.ConvertToLog4Level(newLogLevel);	       
-	    
-	    if ( logger_id != null ){
-		Logger logger = Logger.getLogger( logger_id );
-		if ( logger != null ) {
-		    logger.setLevel( tlevel );
+            if ( logger_id != null ) {
+                RHLogger logger = this._baseLog.getLogger( logger_id );
+                if ( logger != null ) {
+                    logger.setLevel( tlevel );
                     if ( logger_id == logName ) {
                         logLevel=newLogLevel;
                     }
-		}
-	    }
-	    else {
-		Logger.getRootLogger().setLevel(tlevel);
-	    }
+                }
+            } else {
+                this._baseLog.getRootLogger().setLevel(tlevel);
+            }
+        }
+    }
 
-	}
+    /**
+     *  haveLoggerHierarchy
+     * 
+     *  Determine whether or not the log name is in this component's hierarchy
+     *
+     * @returns boolean value
+     */
+    protected boolean haveLoggerHierarchy(String name)
+    {
+        return this._baseLog.isLoggerInHierarchy(name);
+    }
+
+    /**
+     *  getLogLevel
+     * 
+     *  Get the logging level for a named logger associated with this resource
+     *
+     * @returns int value of a CF::LogLevels enumeration
+     */
+    public int getLogLevel( String logger_id ) throws UnknownIdentifier {
+        if (!haveLoggerHierarchy(logger_id))
+            throw new CF.UnknownIdentifier();
+        RHLogger tmp_logger = this._baseLog.getLogger(logger_id);
+        Level _level = tmp_logger.getLevel();
+        return logging.ConvertLog4ToCFLevel(_level);
+    }
+
+    /**
+     *  getNamedLoggers
+     * 
+     *  Get a list of the named loggers in this resource
+     *
+     * @returns array of strings with the logger names
+     */
+    public String[] getNamedLoggers() {
+        String[] retval = new String[0];
+        if (this._baseLog != null) {
+            retval = this._baseLog.getNamedLoggers();
+        }
+        return retval;
+    }
+
+    /**
+     *  resetLog
+     * 
+     *  Reset the logger to its initial state
+     *
+     */
+    public void resetLog() {
+        if (_origLevelSet) {
+            String[] loggers = this._baseLog.getNamedLoggers();
+            for (String logger: loggers) {
+                RHLogger _tmplog = this._baseLog.getLogger(logger);
+                _tmplog.setLevel(null);
+            }
+            this.logLevel=this.defaultLogLevel;
+            this.setLoggingContext(this._origLogCfgURL, this._origLogLevel, this._origCtx);
+        }
     }
 
     /**
@@ -528,28 +597,22 @@ abstract public class Logging {
      * @param String URL of file to load
      */
     public void setLogConfigURL( String config_url ) {
-
-	//
-	// Get File contents....
-	//
-	try{
-	    String config_contents="";
-	    
-	    config_contents = logging.GetConfigFileContents(config_url);
-	    
-	    if ( config_contents.length() > 0  ){
-		this.loggingURL = config_url;
-		//  apply contents of file to configuration
-		this.setLogConfig( config_contents );
-	    }
-	    else {
-		_logger.warn( "URL contents could not be resolved, url: " + config_url );
-	    }
-
-	}
-	catch( Exception e ){
-	    _logger.warn( "Exception caught during logging configuration using URL, url: "+ config_url );
-	}
+        //
+        // Get File contents....
+        //
+        try {
+            String config_contents="";
+            config_contents = logging.GetConfigFileContents(config_url);
+            if ( config_contents.length() > 0  ) {
+                this.loggingURL = config_url;
+                this.logConfig = logging.ExpandMacros(config_contents, loggingMacros );
+            }
+            else {
+                _logger.warn( "URL contents could not be resolved, url: " + config_url );
+            }
+        } catch( Exception e ) {
+            _logger.warn( "Exception caught during logging configuration using URL, url: "+ config_url );
+        }
     }
 
 

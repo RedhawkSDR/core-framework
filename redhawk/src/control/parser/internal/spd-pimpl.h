@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_SPD_PIMPL_H
 
 #include "spd-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace spd
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class softPkg_pimpl: public softPkg_pskel
   {
     public:

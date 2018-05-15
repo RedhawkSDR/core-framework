@@ -28,9 +28,11 @@
 #define CXX___XML_XSD_DMD_PIMPL_H
 
 #include "dmd-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace dmd
 {
+  extern rh_logger::LoggerPtr parserLog;
 
   class domainmanagerconfiguration_pimpl: public domainmanagerconfiguration_pskel
   {

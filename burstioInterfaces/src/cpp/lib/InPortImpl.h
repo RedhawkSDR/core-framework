@@ -31,7 +31,6 @@ namespace burstio {
     template <class Traits>
     InPort<Traits>::InPort(std::string port_name) : 
         Port_Provides_base_impl(port_name),
-        __logger(__classlogger),
         queueOffset_(0),
         queuedBursts_(0),
         queueThreshold_(DEFAULT_QUEUE_THRESHOLD),
@@ -45,13 +44,6 @@ namespace burstio {
     InPort<Traits>::~InPort()
     {
     }
-
-    template <class Traits>
-    void InPort<Traits>::setLogger (LoggerPtr logger)
-    {
-        __logger = logger;
-    }
-
 
     template <class Traits>
     size_t InPort<Traits>::getQueueThreshold () const
@@ -70,6 +62,12 @@ namespace burstio {
             queueNotFull_.notify_all();
         }
         queueThreshold_ = count;
+    }
+
+    template <class Traits>
+    void InPort<Traits>::setLogger (rh_logger::LoggerPtr newLogger)
+    {
+        _portLog = newLogger;
     }
 
     template <class Traits>

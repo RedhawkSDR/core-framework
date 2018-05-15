@@ -30,6 +30,8 @@
 
 CREATE_LOGGER(dcd_parser);
 
+rh_logger::LoggerPtr dcd::parserLog;
+
 namespace dcd
 {
   // deviceconfiguration_pimpl
@@ -65,7 +67,7 @@ namespace dcd
   void deviceconfiguration_pimpl::
   partitioning (const ::std::vector<ossie::DevicePlacement>& partitioning)
   {
-      LOG_TRACE(dcd_parser, "set partitioning")
+      RH_TRACE(dcd::parserLog, "set partitioning")
       assert(_dcd.get() != 0);
       _dcd->componentPlacements = partitioning;
   }
@@ -73,7 +75,7 @@ namespace dcd
   void deviceconfiguration_pimpl::
   domainmanager (const ::std::string& domainmanager)
   {
-      LOG_TRACE(dcd_parser, "set domainmanager")
+      RH_TRACE(dcd::parserLog, "set domainmanager")
       assert(_dcd.get() != 0);
       _dcd->domainManagerName = domainmanager;
   }
@@ -81,7 +83,7 @@ namespace dcd
   void deviceconfiguration_pimpl::
   connections (const ::std::vector<ossie::Connection>& connections)
   {
-      LOG_TRACE(dcd_parser, "set connections")
+      RH_TRACE(dcd::parserLog, "set connections")
       assert(_dcd.get() != 0);
       _dcd->connections = connections;
   }
@@ -111,7 +113,7 @@ namespace dcd
   ::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD> deviceconfiguration_pimpl::
   post_deviceconfiguration ()
   {
-      LOG_TRACE(dcd_parser, "post deviceconfiguration")
+      RH_TRACE(dcd::parserLog, "post deviceconfiguration")
       return _dcd;
   }
 
@@ -216,21 +218,21 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void partitioning_pimpl::
   pre ()
   {
-    LOG_TRACE(dcd_parser, "pre partitioning");
+    RH_TRACE(dcd::parserLog, "pre partitioning");
     componentPlacements.clear();
   }
 
   void partitioning_pimpl::
   componentplacement (const ::ossie::DevicePlacement& componentplacement)
   {
-    LOG_TRACE(dcd_parser, "adding component placement " << componentplacement.getFileRefId());
+    RH_TRACE(dcd::parserLog, "adding component placement " << componentplacement.getFileRefId());
     componentPlacements.push_back(componentplacement);
   }
 
   ::std::vector<ossie::DevicePlacement> partitioning_pimpl::
   post_partitioning ()
   {
-    LOG_TRACE(dcd_parser, "post partitioning");
+    RH_TRACE(dcd::parserLog, "post partitioning");
     return componentPlacements;
   }
 
@@ -258,7 +260,7 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void componentplacement_pimpl::
   compositepartofdevice (const ::std::string& compositepartofdevice)
   {
-    LOG_TRACE(dcd_parser, "composite part of device " << compositepartofdevice);
+    RH_TRACE(dcd::parserLog, "composite part of device " << compositepartofdevice);
     componentPlacement.compositePartOfDeviceID = compositepartofdevice;
   }
 
@@ -270,14 +272,14 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void componentplacement_pimpl::
   componentinstantiation (const ::ossie::ComponentInstantiation& componentinstantiation)
   {
-    LOG_TRACE(dcd_parser, "adding component instantiation " << componentinstantiation.getID() << " " << componentinstantiation.getUsageName());
+    RH_TRACE(dcd::parserLog, "adding component instantiation " << componentinstantiation.getID() << " " << componentinstantiation.getUsageName());
     componentPlacement.instantiations.push_back(componentinstantiation);
   }
 
   const ::ossie::DevicePlacement& componentplacement_pimpl::
   post_componentplacement ()
   {
-    LOG_TRACE(dcd_parser, "post componentplacement");
+    RH_TRACE(dcd::parserLog, "post componentplacement");
     return componentPlacement;
   }
 
@@ -335,14 +337,14 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void compositepartofdevice_pimpl::
   refid (const ::std::string& refid)
   {
-    LOG_TRACE(dcd_parser, "compositepartofdevice refid" << compositepartofdevice);
+    RH_TRACE(dcd::parserLog, "compositepartofdevice refid" << compositepartofdevice);
     compositepartofdevice = refid;
   }
 
   ::std::string compositepartofdevice_pimpl::
   post_compositepartofdevice ()
   {
-    LOG_TRACE(dcd_parser, "post compositepartofdevice" << compositepartofdevice);
+    RH_TRACE(dcd::parserLog, "post compositepartofdevice" << compositepartofdevice);
     return compositepartofdevice;
   }
 
@@ -394,14 +396,14 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void componentinstantiation_pimpl::
   usagename (const ::std::string& usagename)
   {
-    LOG_TRACE(dcd_parser, "setting usage name" << usagename);
+    RH_TRACE(dcd::parserLog, "setting usage name" << usagename);
     componentInstantiation.usageName = usagename;
   }
 
   void componentinstantiation_pimpl::
   componentproperties (const ossie::ComponentPropertyList& componentproperties)
   {
-    LOG_TRACE(dcd_parser, "component properties");
+    RH_TRACE(dcd::parserLog, "component properties");
     componentInstantiation.properties = componentproperties;
   }
 
@@ -414,19 +416,19 @@ const ::ossie::ComponentFile &componentfile_pimpl::
   void componentinstantiation_pimpl::
   affinity (const ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
   {
-    LOG_TRACE(dcd_parser, "affinity properties")
+    RH_TRACE(dcd::parserLog, "affinity properties")
     componentInstantiation.affinityProperties = affinityProperties;
   }
 
   void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
   {
-    LOG_TRACE(dcd_parser, "component instantiation - logging config: " << log_cfg.first << "/" << log_cfg.second );
+    RH_TRACE(dcd::parserLog, "component instantiation - logging config: " << log_cfg.first << "/" << log_cfg.second );
     componentInstantiation.loggingConfig = log_cfg;
   }
 
   void componentinstantiation_pimpl::deployerrequires (const ossie::ComponentPropertyList& deployerrequires)
   {
-    LOG_TRACE(dcd_parser, "deployer requires");
+    RH_TRACE(dcd::parserLog, "deployer requires");
     componentInstantiation.deployerrequires = deployerrequires;
   }
 
@@ -435,7 +437,7 @@ const ::ossie::ComponentFile &componentfile_pimpl::
 const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   post_componentinstantiation ()
   {
-    LOG_TRACE(dcd_parser, "post component instantiation " << componentInstantiation.getID() << " " << componentInstantiation.getUsageName());
+    RH_TRACE(dcd::parserLog, "post component instantiation " << componentInstantiation.getID() << " " << componentInstantiation.getUsageName());
     return componentInstantiation;
   }
 
@@ -452,28 +454,28 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void affinity_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    LOG_TRACE(dcd_parser, "Adding simpleref ");
+    RH_TRACE(dcd::parserLog, "Adding simpleref ");
     affinityProperties.push_back(simpleref.clone());
   }
 
   void affinity_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    LOG_TRACE(dcd_parser, "Adding simplesequenceref");
+    RH_TRACE(dcd::parserLog, "Adding simplesequenceref");
     affinityProperties.push_back(simplesequenceref.clone());
   }
 
   void affinity_pimpl::
   structref (const ossie::StructPropertyRef& structref)
   {
-    LOG_TRACE(dcd_parser, "Adding structref");
+    RH_TRACE(dcd::parserLog, "Adding structref");
     affinityProperties.push_back(structref.clone());
   }
 
   void affinity_pimpl::
   structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
   {
-    LOG_TRACE(dcd_parser, "Adding structsequenceref");
+    RH_TRACE(dcd::parserLog, "Adding structsequenceref");
     affinityProperties.push_back(structsequenceref.clone());
   }
 
@@ -500,7 +502,7 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
   {
     info.first = this->post_string();
-    LOG_TRACE(dcd_parser, " logging config: first " << info.first << "second " << info.second );
+    RH_TRACE(dcd::parserLog, " logging config: first " << info.first << "second " << info.second );
     return info;
   }
 
@@ -517,7 +519,7 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void deployerrequires_pimpl::
   requires (const ossie::IdValue& idvalue)
   {
-    LOG_TRACE(dcd_parser, "Adding idvalue " << idvalue._id << " value " << idvalue._value );
+    RH_TRACE(dcd::parserLog, "Adding idvalue " << idvalue._id << " value " << idvalue._value );
     deployerrequires.push_back(idvalue.clone());
   }
 
@@ -541,28 +543,28 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void componentproperties_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    LOG_TRACE(dcd_parser, "Adding simpleref ");
+    RH_TRACE(dcd::parserLog, "Adding simpleref ");
     componentProperties.push_back(simpleref.clone());
   }
 
   void componentproperties_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    LOG_TRACE(dcd_parser, "Adding simplesequenceref");
+    RH_TRACE(dcd::parserLog, "Adding simplesequenceref");
     componentProperties.push_back(simplesequenceref.clone());
   }
 
   void componentproperties_pimpl::
   structref (const ossie::StructPropertyRef& structref)
   {
-    LOG_TRACE(dcd_parser, "Adding structref");
+    RH_TRACE(dcd::parserLog, "Adding structref");
     componentProperties.push_back(structref.clone());
   }
 
   void componentproperties_pimpl::
   structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
   {
-    LOG_TRACE(dcd_parser, "Adding structsequenceref");
+    RH_TRACE(dcd::parserLog, "Adding structsequenceref");
     componentProperties.push_back(structsequenceref.clone());
   }
 
@@ -626,28 +628,28 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void idvalue_pimpl::
   pre ()
   {
-    LOG_TRACE(dcd_parser, "pre idvalue");
+    RH_TRACE(dcd::parserLog, "pre idvalue");
     simple = ossie::IdValue();
   }
 
   void idvalue_pimpl::
   id (const ::std::string& id)
   {
-    LOG_TRACE(dcd_parser, "idvalue id: " << id);
+    RH_TRACE(dcd::parserLog, "idvalue id: " << id);
     simple._id = id;
   }
 
   void idvalue_pimpl::
   value (const ::std::string& value)
   {
-    LOG_TRACE(dcd_parser, "idvalue value: " << value);
+    RH_TRACE(dcd::parserLog, "idvalue value: " << value);
     simple._value = value;
   }
 
   const ossie::IdValue& idvalue_pimpl::
   post_idvalue ()
   {
-    LOG_TRACE(dcd_parser, "post idvalue");
+    RH_TRACE(dcd::parserLog, "post idvalue");
     return simple;
   }
 
@@ -658,28 +660,28 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void simpleref_pimpl::
   pre ()
   {
-    LOG_TRACE(dcd_parser, "pre simpleref");
+    RH_TRACE(dcd::parserLog, "pre simpleref");
     simple = ossie::SimplePropertyRef();
   }
 
   void simpleref_pimpl::
   refid (const ::std::string& refid)
   {
-    LOG_TRACE(dcd_parser, "simpleref id: " << refid);
+    RH_TRACE(dcd::parserLog, "simpleref id: " << refid);
     simple._id = refid;
   }
 
   void simpleref_pimpl::
   value (const ::std::string& value)
   {
-    LOG_TRACE(dcd_parser, "simpleref value: " << value);
+    RH_TRACE(dcd::parserLog, "simpleref value: " << value);
     simple._value = value;
   }
 
   const ossie::SimplePropertyRef& simpleref_pimpl::
   post_simpleref ()
   {
-    LOG_TRACE(dcd_parser, "post simpleref");
+    RH_TRACE(dcd::parserLog, "post simpleref");
     return simple;
   }
 
@@ -1003,7 +1005,7 @@ const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
   void connections_pimpl::
   pre ()
   {
-    LOG_TRACE(dcd_parser, "pre connections");
+    RH_TRACE(dcd::parserLog, "pre connections");
     connections.clear();
   }
 
@@ -1016,13 +1018,13 @@ const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
       if (strlen(connectinterface.getID()) == 0) {
           connections.back().connectionId = ossie::generateUUID();;
       }
-      LOG_TRACE(dcd_parser, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
+      RH_TRACE(dcd::parserLog, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
   }
 
   ::std::vector<ossie::Connection> connections_pimpl::
   post_connections ()
   {
-    LOG_TRACE(dcd_parser, "post connections");
+    RH_TRACE(dcd::parserLog, "post connections");
     return connections;
   }
 
@@ -1032,7 +1034,7 @@ const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
   void connectinterface_pimpl::
   pre ()
   {
-    LOG_TRACE(dcd_parser, "pre connect interface");
+    RH_TRACE(dcd::parserLog, "pre connect interface");
     connection.reset(new ossie::Connection());
   }
 
@@ -1066,14 +1068,14 @@ const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
   void connectinterface_pimpl::
   id (const ::std::string& id)
   {
-      LOG_TRACE(dcd_parser, "connection id " << id);
+      RH_TRACE(dcd::parserLog, "connection id " << id);
       connection->connectionId = id;
   }
 
   ::ossie::Connection connectinterface_pimpl::
   post_connectinterface ()
   {
-    LOG_TRACE(dcd_parser, "post connect interface");
+    RH_TRACE(dcd::parserLog, "post connect interface");
     return *connection;
   }
   

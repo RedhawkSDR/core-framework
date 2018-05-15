@@ -50,6 +50,7 @@ import java.util.List;
 /*{%   endif %}*/
 /*{% endfor %}*/
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 
 import org.apache.log4j.Logger;
 
@@ -219,6 +220,12 @@ public abstract class ${classname} extends ${superClass} {
             }
         });
 /*{% endif %}*/
+    }
+
+    protected void setupPortLoggers() {
+/*{% for port in component.ports %}*/
+        ${port.javaname}.setLogger(this._baseLog.getChildLogger("${port.name}", "ports"));
+/*{% endfor %}*/
     }
 
 /*{% if component.events %}*/

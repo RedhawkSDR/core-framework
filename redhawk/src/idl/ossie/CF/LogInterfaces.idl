@@ -20,6 +20,8 @@
 #ifndef MODULE_CF_LOGGING_INF_IDL
 #define MODULE_CF_LOGGING_INF_IDL
 
+#include <ossie/CF/DataType.idl>
+
 //
 // 
 //  Common Namespace for RedHawk Logging interface...in lue of CosLwLog
@@ -255,16 +257,30 @@ module CF {
      */
     attribute LogLevel   log_level;
 
+    /**
+     * Retrieves the named logger level
+     */
+    LogLevel getLogLevel( in string logger_id )  raises (CF::UnknownIdentifier);
 
     /**
      * Assigns the named logger to the new level
      */
-    void   setLogLevel( in string logger_id, in LogLevel newLevel )  raises (CF::UnknownIdentifier);
-    
+    void setLogLevel( in string logger_id, in LogLevel newLevel )  raises (CF::UnknownIdentifier);
+
     /**
-     * Return the current contents of the logging configuration as a string object. 
+     * Retrieves the list of named loggers associated with the logger
      */
-    string  getLogConfig( );
+    CF::StringSequence getNamedLoggers();
+
+    /**
+     * Reset the logger to its initial configuration state
+     */
+    void resetLog();
+
+    /**
+     * Return the current contents of the logging configuration as a string object.
+     */
+    string getLogConfig( );
 
     /**
      * Set the logging configuration context 

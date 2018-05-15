@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_DCD_PIMPL_H
 
 #include "dcd-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace dcd
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class deviceconfiguration_pimpl: public deviceconfiguration_pskel
   {
     public:
