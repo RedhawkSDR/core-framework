@@ -398,6 +398,7 @@ def createTunerListenerAllocation(existing_allocation_id,listener_allocation_id=
 def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=None,bandwidth=256000,sample_rate=None,device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True,gain=None):
     numTuners = len(device.frontend_tuner_status)
     newAllocation = False
+    allAllocated = False
     #No tuners found on device
     if numTuners == 0:
         print "No Available Tuner"
@@ -405,6 +406,8 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
         if numTuners >= 1:
             for index, key in enumerate(device.frontend_tuner_status):
                 id_csv = device.frontend_tuner_status[index].allocation_id_csv
+                if len(id_csv) != 0:
+                    allAllocated = True
                 if allocation_id != None and allocation_id in id_csv:
                     break
                 if id_csv == '':
@@ -433,7 +436,10 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
                             break
 
         if allocation_id == None and not newAllocation and numTuners >= 1:
-            print "tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties"
+            if allAllocated:
+                print "tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties"
+            else:
+                print "tune(): unable to allocate a tuner with the given parameters"
 
         elif not newAllocation:
             tuner=None
