@@ -440,7 +440,7 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
             tuner_type=None
             allocation_status = _getAllocationStatus(device, numTuners, allocation_id)
             if allocation_status == None:
-                print "tune(): no matching allocation ID's for ",allocation_id
+                print "tune(): unable to allocate a tuner with the given parameters"
                 return  allocation_status
             elif "DigitalTuner_in" in device._providesPortDict.keys():
                 tuner_type = "DigitalTuner"
