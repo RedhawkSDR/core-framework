@@ -212,7 +212,7 @@ def ConvertLogLevel( oldstyle_level ):
     return CF.LogLevels.INFO
 
 def ConvertLog4ToCFLevel( log4level ):
-      if  log4level == logging.FATAL+1 :
+      if  log4level == logging.OFF :
           return CF.LogLevels.OFF
       if  log4level == logging.FATAL :
           return CF.LogLevels.FATAL
@@ -226,14 +226,16 @@ def ConvertLog4ToCFLevel( log4level ):
           return CF.LogLevels.DEBUG
       if  log4level == logging.TRACE :
           return CF.LogLevels.TRACE
-      if  log4level == logging.NOTSET:
+      if  log4level == logging.ALL:
           return CF.LogLevels.ALL
       return CF.LogLevels.INFO
 
 def ConvertToLog4Level( newLevel ):
     level = logging.INFO
+    if  newLevel == -1 :
+            level=logging.NOTSET
     if  newLevel == CF.LogLevels.OFF :
-            level=logging.FATAL+1
+            level=logging.OFF
     if  newLevel == CF.LogLevels.FATAL :
             level=logging.FATAL
     if  newLevel == CF.LogLevels.ERROR :
@@ -247,7 +249,7 @@ def ConvertToLog4Level( newLevel ):
     if  newLevel == CF.LogLevels.TRACE:
             level=logging.TRACE
     if  newLevel == CF.LogLevels.ALL:
-            level=logging.TRACE
+            level=logging.ALL
     return level
 
 

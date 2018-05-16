@@ -87,6 +87,10 @@ namespace redhawk {
         void terminate();
         void unloadFiles();
 
+        void setLogger(rh_logger::LoggerPtr log) {
+            _appComponentLog = log;
+        };
+
     private:
         std::string _identifier;
         std::string _name;
@@ -102,6 +106,7 @@ namespace redhawk {
 
         ApplicationComponent* _componentHost;
         std::vector<ApplicationComponent*> _children;
+        rh_logger::LoggerPtr _appComponentLog;
     };
 }
 

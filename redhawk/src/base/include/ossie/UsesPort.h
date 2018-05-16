@@ -93,9 +93,6 @@ namespace redhawk {
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
 
-        LOGGER getLogger();
-        void setLogger(LOGGER newLogger);
-
     protected:
         class Connection {
         public:

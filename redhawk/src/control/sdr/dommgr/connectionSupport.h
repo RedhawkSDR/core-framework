@@ -40,6 +40,8 @@
 
 namespace ossie
 {
+    extern rh_logger::LoggerPtr connectionSupportLog;
+
     // Exception type for connections that cannot be parsed into our internal
     // structures.
     class InvalidConnection : public std::runtime_error {
@@ -249,6 +251,11 @@ namespace ossie
 
         bool exceptionsEnabled();
 
+        void setLogger(rh_logger::LoggerPtr logptr)
+        {
+            _connectionLog = logptr;
+        };
+
     protected:
         ConnectionManager(DomainLookup* domainLookup,
                           ComponentLookup* componentLookup,
@@ -259,6 +266,7 @@ namespace ossie
         ossie::ComponentLookup* _componentLookup;
         std::string _namingContext;
         bool _enableExceptions;
+        rh_logger::LoggerPtr _connectionLog;
     };
 
     class AppConnectionManager : public ConnectionManager

@@ -177,16 +177,6 @@ namespace redhawk {
         return retVal._retn();
     }
 
-    LOGGER UsesPort::getLogger()
-    {
-        return logger;
-    }
-
-    void UsesPort::setLogger(LOGGER newLogger)
-    {
-        logger = newLogger;
-    }
-
     void UsesPort::_validatePort(CORBA::Object_ptr object)
     {
         const std::string rep_id = getRepid();

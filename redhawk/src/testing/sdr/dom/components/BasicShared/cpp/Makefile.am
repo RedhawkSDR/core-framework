@@ -56,7 +56,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 BasicShared_la_SOURCES = $(redhawk_SOURCES_auto)
-BasicShared_la_LIBADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+BasicShared_la_LIBADD = $(SOFTPKG_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 BasicShared_la_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) -I$(CFDIR)/include
 BasicShared_la_LDFLAGS = -shared -module -export-dynamic -export-symbols-regex 'make_component' -avoid-version $(redhawk_LDFLAGS_auto)
 

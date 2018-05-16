@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:1f44ec52-bcfb-4ea3-ac6f-dc316b308aab" name="logger_py_w">
+  <componentfiles>
+    <componentfile id="logger_dd4afdb2-7405-4d7a-8fd1-cf54668b6c14" type="SPD">
+      <localfile name="/components/logger_py/logger_py.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="logger_dd4afdb2-7405-4d7a-8fd1-cf54668b6c14"/>
+      <componentinstantiation id="logger_py_1" startorder="0">
+        <usagename>logger_py_1</usagename>
+        <findcomponent>
+          <namingservice name="logger_py_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="logger_dd4afdb2-7405-4d7a-8fd1-cf54668b6c14"/>
+      <componentinstantiation id="logger_py_2" startorder="1">
+        <usagename>logger_py_2</usagename>
+        <findcomponent>
+          <namingservice name="logger_py_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="logger_py_1"/>
+  </assemblycontroller>
+</softwareassembly>

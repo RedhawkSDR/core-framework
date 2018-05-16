@@ -34,6 +34,8 @@ using namespace redhawk;
 using namespace ossie;
 namespace fs = boost::filesystem;
 
+rh_logger::LoggerPtr redhawk::deploymentLog;
+
 UsesDeviceDeployment::~UsesDeviceDeployment()
 {
     for (AssignmentList::iterator assign = assignments.begin(); assign != assignments.end(); ++assign) {
@@ -153,7 +155,7 @@ void SoftPkgDeployment::load(redhawk::ApplicationComponent* appComponent, CF::Fi
 
     // Recursively load dependencies
     if (!dependencies.empty()) {
-        RH_NL_TRACE("ApplicationFactory_impl", "Loading " << dependencies.size() <<
+        RH_TRACE(deploymentLog, "Loading " << dependencies.size() <<
                     " dependency(ies) for soft package " << softpkg->getName());
         for (DeploymentList::iterator dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
             (*dep)->load(appComponent, fileSystem, device);
@@ -163,7 +165,7 @@ void SoftPkgDeployment::load(redhawk::ApplicationComponent* appComponent, CF::Fi
     // Determine absolute path of local file
     CF::LoadableDevice::LoadType codeType = getCodeType();
     const std::string fileName = getLocalFile();
-    RH_NL_DEBUG("ApplicationFactory_impl", "Loading file " << fileName
+    RH_DEBUG(deploymentLog, "Loading file " << fileName
                 << " for soft package " << softpkg->getName());
     try {
         device->load(fileSystem, fileName.c_str(), codeType);
@@ -253,6 +255,7 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     container(0),
     appComponent(0)
 {
+    std::string sadLoggingConfig;
     // If the SoftPkg has an associated Properties, check the overrides for
     // validity
     if (softpkg->getProperties()) {
@@ -262,12 +265,28 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
                 if (override.getID() == "LOGGING_CONFIG_URI") {
                     // It's legal to override the logging configuration, even
                     // if it isn't defined in the PRF
+                    const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&override);
+                    if ( ref ) {
+                        CORBA::Any logging_any;
+                        logging_any <<= ref->getValue();
+                        overrideProperty("LOGGING_CONFIG_URI", logging_any);
+                        sadLoggingConfig = ref->getValue();
+                    }
+                } else if (override.getID() == "LOG_LEVEL") {
+                    // It's legal to override the logging configuration, even
+                    // if it isn't defined in the PRF
+                    const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&override);
+                    if ( ref ) {
+                        CORBA::Any log_level_any;
+                        log_level_any <<= ref->getValue();
+                        overrideProperty("LOG_LEVEL", log_level_any);
+                    }
                 } else {
-                    RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override property "
+                    RH_WARN(deploymentLog, "Ignoring attempt to override property "
                               << override.getID() << " that does not exist in component");
-                }                
+                }
             } else if (!property->canOverride()) {
-                RH_NL_WARN("ApplicationFactory_impl", "Ignoring attempt to override read-only property "
+                RH_WARN(deploymentLog, "Ignoring attempt to override read-only property "
                           << property->getID());
             }
         }
@@ -276,22 +295,26 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     
     
     ComponentInstantiation::LoggingConfig lcfg = instantiation->getLoggingConfig();
+    // if a LOGGING_CONFIG_URI was provided in the SAD file, override the one from the component's profile
+    if (not sadLoggingConfig.empty()) {
+        lcfg.first = sadLoggingConfig;
+    }
     if ( !lcfg.first.empty() ){
-        RH_NL_TRACE("ApplicationFactory_impl", "Logging Config: <" << lcfg.first << ">" );
+        RH_TRACE(deploymentLog, "Logging Config: <" << lcfg.first << ">" );
         loggingConfig["LOGGING_CONFIG_URI"] = lcfg.first;
     }
     if ( !lcfg.second.empty() ){
-        RH_NL_TRACE("ApplicationFactory_impl", "Logging Level: <" << lcfg.second << ">" );
+        RH_TRACE(deploymentLog, "Logging Level: <" << lcfg.second << ">" );
         loggingConfig["LOG_LEVEL"] = lcfg.second;
     }
 
     if (!instantiation->getAffinity().empty()) {
-        RH_NL_TRACE("ApplicationFactory_impl", "Setting affinity options");
+        RH_TRACE(deploymentLog, "Setting affinity options");
         affinityOptions = ossie::getAffinityOptions(instantiation->getAffinity());
     }
 
     if (!instantiation->getDeviceRequires().empty()) {
-        RH_NL_TRACE("ApplicationFactory_impl", "Getting devicerequires property set");
+        RH_TRACE(deploymentLog, "Getting devicerequires property set");
         ossie::convertComponentProperties(instantiation->getDeviceRequires(),deviceRequires);
     }
 }
@@ -384,7 +407,7 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
 
     redhawk::PropertyMap affinity = affinityOptions;
     for (redhawk::PropertyMap::const_iterator prop = affinity.begin(); prop != affinity.end(); ++prop) {
-        RH_NL_DEBUG("DomainManager", "ComponentDeployment - Affinity Property: directive id:"
+        RH_DEBUG(deploymentLog, "ComponentDeployment - Affinity Property: directive id:"
                     <<  prop->getId() << "/" <<  prop->getValue().toString());
     }
     if (!nicAssignment.empty()) {
@@ -465,6 +488,8 @@ redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
 redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
 {
    redhawk::PropertyMap properties;
+   bool has_LOGGING_CONFIG_URI = false;
+   bool has_LOG_LEVEL = false;
    if (softpkg->getProperties()) {
        BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
            if (property->isExecParam()) {
@@ -476,10 +501,33 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
            } else if (!(property->isProperty() && property->isCommandLine())) {
                continue;
            }
+           std::string property_id = property->getID();
+           if (property_id == "LOGGING_CONFIG_URI") {
+               has_LOGGING_CONFIG_URI = true;
+           }
+           if (property_id == "LOG_LEVEL") {
+               has_LOG_LEVEL = true;
+           }
            CF::DataType dt = getPropertyValue(property);
            if (!ossie::any::isNull(dt.value)) {
                properties.push_back(dt);
            }
+       }
+   }
+   if ((not has_LOGGING_CONFIG_URI) and appComponent->isVisible()) {
+       if (overrides.find("LOGGING_CONFIG_URI") != overrides.end()) {
+           CF::DataType dt;
+           dt.id = CORBA::string_dup("LOGGING_CONFIG_URI");
+           dt.value <<= overrides["LOGGING_CONFIG_URI"].toString().c_str();
+           properties.push_back(dt);
+       }
+   }
+   if ((not has_LOG_LEVEL) and appComponent->isVisible()) {
+       if (overrides.find("LOG_LEVEL") != overrides.end()) {
+           CF::DataType dt;
+           dt.id = CORBA::string_dup("LOG_LEVEL");
+           dt.value <<= overrides["LOG_LEVEL"].toString().c_str();
+           properties.push_back(dt);
        }
    }
 
@@ -572,11 +620,11 @@ redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() con
 {
     redhawk::PropertyMap options = affinityOptions;
     for (redhawk::PropertyMap::const_iterator prop = options.begin(); prop != options.end(); ++prop) {
-        RH_NL_DEBUG("DomainManager", "ComponentDeployment getAffinityOptionsWithAssignment ... Affinity Property: directive id:"  <<  prop->getId() << "/" <<  prop->getValue().toString());
+        RH_DEBUG(deploymentLog, "ComponentDeployment getAffinityOptionsWithAssignment ... Affinity Property: directive id:"  <<  prop->getId() << "/" <<  prop->getValue().toString());
     }
 
     if (!nicAssignment.empty()) {
-       RH_NL_DEBUG("DomainManager", "ComponentDeployment getAffinityOptionsWithAssignment ... NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment);
+       RH_DEBUG(deploymentLog, "ComponentDeployment getAffinityOptionsWithAssignment ... NIC AFFINITY: pol/value "  <<  "nic"  << "/" << nicAssignment);
        options.push_back(redhawk::PropertyType("nic", nicAssignment));
     }
 
@@ -708,7 +756,7 @@ void ComponentDeployment::initializeProperties()
         throw ComponentError(this, eout.str());
     }
 
-    RH_NL_DEBUG("ApplicationFactory_impl", "Initializing properties for component " << identifier);
+    RH_DEBUG(deploymentLog, "Initializing properties for component " << identifier);
     try {
         resource->initializeProperties(init_props);
     } catch (const CF::PropertySet::InvalidConfiguration& exc) {
@@ -734,7 +782,7 @@ void ComponentDeployment::initialize()
         initializeProperties();
     }
 
-    RH_NL_TRACE("ApplicationFactory_impl", "Initializing component " << identifier);
+    RH_TRACE(deploymentLog, "Initializing component " << identifier);
     try {
         resource->initialize();
     } catch (const CF::LifeCycle::InitializeError& error) {
@@ -761,11 +809,11 @@ void ComponentDeployment::configure()
 {
     if (!softpkg->isScaCompliant()) {
         // If the component is non-SCA compliant then we don't expect anything beyond this
-        RH_NL_TRACE("ApplicationFactory_impl", "Skipping configure of non SCA-compliant component "
+        RH_TRACE(deploymentLog, "Skipping configure of non SCA-compliant component "
                     << identifier);
         return;
     } else if (!isResource()) {
-        RH_NL_TRACE("ApplicationFactory_impl", "Skipping configure of non-resource component "
+        RH_TRACE(deploymentLog, "Skipping configure of non-resource component "
                     << identifier);
         return;
     }
@@ -779,7 +827,7 @@ void ComponentDeployment::configure()
     if (CORBA::is_nil(resource)) {
         // NB: I think having a valid CORBA reference is a pre-condition of
         // getting to this point in the first place
-        RH_NL_ERROR("ApplicationFactory_impl", "Could not get component reference");
+        RH_ERROR(deploymentLog, "Could not get component reference");
         throw redhawk::ComponentError(this, "no CORBA reference");
     }
 
@@ -804,10 +852,10 @@ void ComponentDeployment::configure()
             eout << partials[index].id;
         }
         eout << ". The behavior for the component is undefined";
-        RH_NL_WARN("ApplicationFactory_impl", eout.str());
+        RH_WARN(deploymentLog, eout.str());
     }
 
-    RH_NL_TRACE("ApplicationFactory_impl", "Configuring component " << identifier);
+    RH_TRACE(deploymentLog, "Configuring component " << identifier);
     try {
         resource->configure(config_props);
     } catch (const CF::PropertySet::InvalidConfiguration& exc) {

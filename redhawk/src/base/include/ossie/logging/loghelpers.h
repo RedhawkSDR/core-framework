@@ -39,6 +39,11 @@ namespace ossie
 
   namespace logging {
 
+    // resolve logging config uri from command line
+    std::string  ResolveLocalUri( const std::string &logfile_uri,
+                                  const std::string &rootPath,
+                                  std::string &validated_uri );
+
     std::string GetDeviceMgrPath( const std::string &dm,
                                   const std::string &node );
 

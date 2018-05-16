@@ -555,7 +555,7 @@ void GPP_i::update_grp_child_pids() {
         catch(...){
             std::stringstream errstr;
             errstr << "Unable to process id:  "<<proc_id;
-            LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+            RH_DEBUG(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
             continue;
         }
     }
@@ -597,20 +597,20 @@ void GPP_i::update_grp_child_pids() {
                 } catch ( ... ) {
                     std::stringstream errstr;
                     errstr << "Invalid line format in stat file, pid :" << _pid << " field number " << fcnt << " line " << line ;
-                    LOG_WARN(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                    RH_WARN(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
                     continue;
                 }
 
             } catch ( ... ) {
                 std::stringstream errstr;
                 errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
-                LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                RH_DEBUG(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
             if ( fcnt < 37 ) {
                 std::stringstream errstr;
                 errstr << "Insufficient fields proc/<pid>/stat: "<<stat_filename.str()<<" file (expected>=37 received=" << fcnt << ")";
-                LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                RH_DEBUG(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
             parsed_stat[pid] = tmp;
@@ -654,7 +654,7 @@ std::vector<component_monitor_struct> GPP_i::get_component_monitor() {
             if ((grp_children.find(_pid.pid) == grp_children.end()) or (parsed_stat.find(_pid.pid) == parsed_stat.end())) {
                 std::stringstream errstr;
                 errstr << "Could not find /proc/"<<_pid.pid<<"/stat. The process corresponding to component "<<_pid.identifier<<" is no longer there";
-                LOG_WARN(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+                RH_WARN(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
             component_monitor_struct tmp;
@@ -705,7 +705,7 @@ void GPP_i::process_ODM(const CORBA::Any &data) {
               i=std::find_if( i, pids.end(), std::bind2nd( FindApp(), appId ) );
               if ( i != pids.end() ) {
                 i->app_started = true;
-                LOG_TRACE(GPP_i, "Monitor_Processes.. APP STARTED:" << i->pid << " app: " << i->appName );
+                RH_TRACE(this->_baseLog, "Monitor_Processes.. APP STARTED:" << i->pid << " app: " << i->appName );
                 i++;
               }
             }
@@ -718,7 +718,7 @@ void GPP_i::process_ODM(const CORBA::Any &data) {
               i=std::find_if( i, pids.end(), std::bind2nd( FindApp(), appId ) );
               if ( i != pids.end() ) {
                 i->app_started = false;
-                LOG_TRACE(GPP_i, "Monitor_Processes.. APP STOPPED :" << i->pid << " app: " << i->appName );
+                RH_TRACE(this->_baseLog, "Monitor_Processes.. APP STOPPED :" << i->pid << " app: " << i->appName );
                 i++;
               }
             }
@@ -782,13 +782,13 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
       ExecPartitionList::iterator iter =  execPartitions.begin();
       std::ostringstream ss;
       ss  << boost::format("%-6s %-4s %-7s %-7s %-7s ") % "SOCKET" % "CPUS" % "USER"  % "SYSTEM"  % "IDLE"  ;
-      LOG_INFO(GPP_i, ss.str()  );
+      RH_INFO(this->_baseLog, ss.str()  );
       ss.clear();
       ss.str("");
       for ( ; iter != execPartitions.end(); iter++ ) {
         iter->update();  iter->update();
         ss  << boost::format("%-6d %-4d %-7.2f %-7.2f %-7.2f ") % iter->id % iter->stats.get_ncpus() % iter->stats.get_user_percent()  % iter->stats.get_system_percent()  % iter->stats.get_idle_percent() ;
-        LOG_INFO(GPP_i, ss.str()  );    
+        RH_INFO(this->_baseLog, ss.str()  );    
         ss.clear();
         ss.str("");
       }
@@ -814,7 +814,7 @@ GPP_i::initializeNetworkMonitor()
     std::vector<std::string> filtered_devices( nic_facade->get_filtered_devices() );
     for( size_t i=0; i<nic_devices.size(); ++i )
     {
-        LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
+        RH_INFO(this->_baseLog, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
         NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(_identifier,
                                                                                    nic_devices[i],
                                                                                    MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
@@ -896,7 +896,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
     odm_consumer = mymgr->Subscriber("ODM_Channel");
     odm_consumer->setDataArrivedListener(this, &GPP_i::process_ODM);
   } catch ( ... ) {
-    LOG_WARN(GPP_i, "Unable to register with EventChannelManager, disabling domain event notification.");
+    RH_WARN(this->_baseLog, "Unable to register with EventChannelManager, disabling domain event notification.");
   }
 
   //
@@ -905,10 +905,10 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   if ( componentOutputLog != "" ) {
     _componentOutputLog =__ExpandEnvVars(componentOutputLog);
     _handle_io_redirects = true;
-    LOG_INFO(GPP_i, "Turning on Component Output Redirection file: " << _componentOutputLog );
+    RH_INFO(this->_baseLog, "Turning on Component Output Redirection file: " << _componentOutputLog );
   }
   else {
-    LOG_INFO(GPP_i, "Component Output Redirection is DISABLED." << componentOutputLog );
+    RH_INFO(this->_baseLog, "Component Output Redirection is DISABLED." << componentOutputLog );
   }
 
   //
@@ -1043,7 +1043,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv) {
 
     if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
+        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
         WriteLock wlock(pidLock);
 	int64_t init_mem_free = (int64_t) memInitVirtFree;
         // type cast required for correct calc on 32bit os
@@ -1056,7 +1056,7 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
 
 
     if ( !(nv->load_avg < 0.0) && !(fabs(ov->load_avg - nv->load_avg ) < std::numeric_limits<double>::epsilon()) ) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg );
+        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg );
         WriteLock wlock(pidLock);
         loadCapacity = loadTotal * ((double)nv->load_avg / 100.0);
         loadFree = loadCapacity;
@@ -1064,14 +1064,14 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
     }
 
     if ( !(nv->cpu_idle < 0.0) && !(fabs(ov->cpu_idle - nv->cpu_idle ) < std::numeric_limits<double>::epsilon())) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle );
+        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle );
         WriteLock wlock(pidLock);
         modified_thresholds.cpu_idle = nv->cpu_idle;
     }
 
 
     if ( !(nv->nic_usage < 0) && !(fabs(ov->nic_usage - nv->nic_usage ) < std::numeric_limits<double>::epsilon())) {
-        LOG_DEBUG(GPP_i, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage );
+        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage );
         WriteLock wlock(monitorLock);
         modified_thresholds.nic_usage = nv->nic_usage;
     }
@@ -1106,7 +1106,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
     {
         std::stringstream errstr;
         errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-        LOG_ERROR(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
 
@@ -1137,12 +1137,12 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
     CF::Application_var _app = CF::Application::_nil();
     CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
     if (CORBA::is_nil(obj)) {
-        LOG_WARN(GPP_i, "Invalid application registrar IOR");
+        RH_WARN(this->_baseLog, "Invalid application registrar IOR");
     } else {
         CF::ApplicationRegistrar_var _appRegistrar = CF::ApplicationRegistrar::_nil();
         _appRegistrar = CF::ApplicationRegistrar::_narrow(obj);
         if (CORBA::is_nil(_appRegistrar)) {
-            LOG_WARN(GPP_i, "Invalid application registrar IOR");
+            RH_WARN(this->_baseLog, "Invalid application registrar IOR");
         } else {
             _app = _appRegistrar->app();
             if (not CORBA::is_nil(_app)) {
@@ -1239,7 +1239,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
                 invalidOptions[invalidOptions.length() - 1].value
                         = options[i].value;
             } else
-                LOG_WARN(GPP_i, "Received a PRIORITY_ID execute option...ignoring.")
+                RH_WARN(this->_baseLog, "Received a PRIORITY_ID execute option...ignoring.")
             }
         if (options[i].id == CF::ExecutableDevice::STACK_SIZE_ID) {
             CORBA::TypeCode_var atype = options[i].value.type();
@@ -1249,7 +1249,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
                 invalidOptions[invalidOptions.length() - 1].value
                         = options[i].value;
             } else
-                LOG_WARN(GPP_i, "Received a STACK_SIZE_ID execute option...ignoring.")
+                RH_WARN(this->_baseLog, "Received a STACK_SIZE_ID execute option...ignoring.")
             }
     }
 
@@ -1283,7 +1283,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
     // change permissions to 7--
     if (chmod(path.c_str(), S_IRWXU) != 0) {
-        LOG_ERROR(GPP_i, "Unable to change permission on executable");
+        RH_ERROR(this->_baseLog, "Unable to change permission on executable");
         throw CF::ExecutableDevice::ExecuteFail(CF::CF_EACCES,
                 "Unable to change permission on executable");
     }
@@ -1310,15 +1310,15 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
     }
     args.push_back(path);
 
-    LOG_DEBUG(GPP_i, "Building param list for process " << path);
+    RH_DEBUG(this->_baseLog, "Building param list for process " << path);
     for (CORBA::ULong i = 0; i < parameters.length(); ++i) {
-        LOG_DEBUG(GPP_i, "id=" << ossie::corba::returnString(parameters[i].id) << " value=" << ossie::any_to_string(parameters[i].value));
+        RH_DEBUG(this->_baseLog, "id=" << ossie::corba::returnString(parameters[i].id) << " value=" << ossie::any_to_string(parameters[i].value));
         CORBA::TypeCode_var atype = parameters[i].value.type();
         args.push_back(ossie::corba::returnString(parameters[i].id));
         args.push_back(ossie::any_to_string(parameters[i].value));
     }
 
-    LOG_DEBUG(GPP_i, "Forking process " << path);
+    RH_DEBUG(this->_baseLog, "Forking process " << path);
 
     std::vector<char*> argv(args.size() + 1, NULL);
     for (std::size_t i = 0; i < args.size(); ++i) {
@@ -1333,12 +1333,12 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
     int comp_fd[2];
     if ( _handle_io_redirects ) {
       if ( pipe( comp_fd ) == -1 ) {
-        LOG_ERROR(GPP_i, "Failure to create redirected IO for:" << path);
+        RH_ERROR(this->_baseLog, "Failure to create redirected IO for:" << path);
         throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to create redirected IO for component");
       }
       
       if ( fcntl( comp_fd[0], F_SETFD, FD_CLOEXEC ) == -1 ) {
-        LOG_ERROR(GPP_i, "Failure to support redirected IO for:" << path);
+        RH_ERROR(this->_baseLog, "Failure to support redirected IO for:" << path);
         throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to support redirected IO for component");
       }
  
@@ -1435,7 +1435,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
         exit(returnval);
     }
     else if (pid < 0 ){
-        LOG_ERROR(GPP_i, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
+        RH_ERROR(this->_baseLog, "Error forking child process (errno: " << errno << " msg=\"" << strerror(errno) << "\")" );
         switch (errno) {
             case E2BIG:
                 throw CF::ExecutableDevice::ExecuteFail(CF::CF_E2BIG,
@@ -1469,7 +1469,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
     if ( _handle_io_redirects ) {
       close(comp_fd[1]);
-      LOG_TRACE(GPP_i, "Adding Task for IO Redirection PID:" << pid << " : stdout "<< comp_fd[0] );
+      RH_TRACE(this->_baseLog, "Adding Task for IO Redirection PID:" << pid << " : stdout "<< comp_fd[0] );
       WriteLock wlock(fdsLock);
       // trans form file name if contains env or exec param expansion
       std::string rfname=__ExpandEnvVars(componentOutputLog);
@@ -1478,7 +1478,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
     }
 
 
-    LOG_DEBUG(GPP_i, "Execute success: name:" << name << " : "<< path);
+    RH_DEBUG(this->_baseLog, "Execute success: name:" << name << " : "<< path);
 
     return pid;
 }
@@ -1486,7 +1486,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
 void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
 {
-    LOG_TRACE(GPP_i, " Terminate request, processID: " << processId);
+    RH_TRACE(this->_baseLog, " Terminate request, processID: " << processId);
     try {
       markPidTerminated( processId );
       ExecutableDevice_impl::terminate(processId);
@@ -1509,11 +1509,11 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
     if (!comp.terminated) {
         // release of component can exit process before terminate is called
         if (WIFEXITED(status) && (WEXITSTATUS(status) != 0)) {
-            LOG_ERROR(GPP_i, "Unexpected component exit with non-zero status " << WEXITSTATUS(status)
+            RH_ERROR(this->_baseLog, "Unexpected component exit with non-zero status " << WEXITSTATUS(status)
                       << ", App/Identifier/Process: " << comp.appName << "/" << comp.identifier << "/" << pid);
             sendChildNotification(comp.identifier, comp.appName);
         } else if (WIFSIGNALED(status)) {
-            LOG_ERROR(GPP_i, "Unexepected component termination with signal " << WTERMSIG(status)
+            RH_ERROR(this->_baseLog, "Unexepected component termination with signal " << WTERMSIG(status)
                       << ", App/Identifier/Process: " << comp.appName << "/" << comp.identifier << "/" << pid);
             sendChildNotification(comp.identifier, comp.appName);
         }
@@ -1538,7 +1538,7 @@ bool GPP_i::_check_nic_thresholds()
         threshold += monitor->get_threshold_value();
         actual += monitor->get_measured_value();
 
-        LOG_TRACE(GPP_i, __FUNCTION__ << ": NicThreshold: " << monitor->get_resource_id() << " exceeded " << monitor->is_threshold_exceeded() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
+        RH_TRACE(this->_baseLog, __FUNCTION__ << ": NicThreshold: " << monitor->get_resource_id() << " exceeded " << monitor->is_threshold_exceeded() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
         if ( monitor->is_threshold_exceeded() ) nic_exceeded++;
     }
 
@@ -1560,9 +1560,9 @@ bool GPP_i::_check_thread_limits( const thresholds_struct &thresholds)
       //
       // check current process limits
       //
-      LOG_TRACE(GPP_i, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_threads << "/" << gpp_limits.max_threads );
+      RH_TRACE(this->_baseLog, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_threads << "/" << gpp_limits.max_threads );
       if (gpp_limits.current_threads>(gpp_limits.max_threads*_tthreshold)) {
-        LOG_WARN(GPP_i, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_threads   << "/" << (gpp_limits.max_threads*_tthreshold) );
+        RH_WARN(this->_baseLog, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_threads   << "/" << (gpp_limits.max_threads*_tthreshold) );
         return true;
       }
     }
@@ -1571,9 +1571,9 @@ bool GPP_i::_check_thread_limits( const thresholds_struct &thresholds)
       //
       // check current system limits
       //
-      LOG_TRACE(GPP_i, "_sys_check_limits threads (cur/max): "  << sys_limits.current_threads << "/" << sys_limits.max_threads );
+      RH_TRACE(this->_baseLog, "_sys_check_limits threads (cur/max): "  << sys_limits.current_threads << "/" << sys_limits.max_threads );
       if (sys_limits.current_threads>( sys_limits.max_threads *_tthreshold)) {
-        LOG_WARN(GPP_i, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_threads   << "/" << (sys_limits.max_threads*_tthreshold) );
+        RH_WARN(this->_baseLog, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_threads   << "/" << (sys_limits.max_threads*_tthreshold) );
         return true;
       }
     }
@@ -1588,9 +1588,9 @@ bool GPP_i::_check_file_limits( const thresholds_struct &thresholds)
       //
       // check current process limits
       //
-      LOG_TRACE(GPP_i, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_open_files << "/" << gpp_limits.max_open_files );
+      RH_TRACE(this->_baseLog, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_open_files << "/" << gpp_limits.max_open_files );
       if (gpp_limits.current_open_files>(gpp_limits.max_open_files*_fthreshold)) {
-        LOG_WARN(GPP_i, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_open_files   << "/" << (gpp_limits.max_open_files*_fthreshold) );
+        RH_WARN(this->_baseLog, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_open_files   << "/" << (gpp_limits.max_open_files*_fthreshold) );
         return true;
       }
     }
@@ -1599,9 +1599,9 @@ bool GPP_i::_check_file_limits( const thresholds_struct &thresholds)
       //
       // check current system limits
       //
-      LOG_TRACE(GPP_i, "_sys_check_limits threads (cur/max): "  << sys_limits.current_open_files << "/" << sys_limits.max_open_files );
+      RH_TRACE(this->_baseLog, "_sys_check_limits threads (cur/max): "  << sys_limits.current_open_files << "/" << sys_limits.max_open_files );
       if (sys_limits.current_open_files>( sys_limits.max_open_files *_fthreshold)) {
-        LOG_WARN(GPP_i, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_open_files   << "/" << (sys_limits.max_open_files*_fthreshold) );
+        RH_WARN(this->_baseLog, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_open_files   << "/" << (sys_limits.max_open_files*_fthreshold) );
         return true;
       }
     }
@@ -1619,14 +1619,14 @@ void GPP_i::updateUsageState()
 {
     // allow for global ignore of thresholds
     if ( thresholds.ignore == true  ) {
-        LOG_TRACE(GPP_i, "Ignoring threshold checks ");
+        RH_TRACE(this->_baseLog, "Ignoring threshold checks ");
         if (getPids().size() == 0) {
-            LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
+            RH_TRACE(this->_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
             _resetReason();
             setUsageState(CF::Device::IDLE);
         }
         else {
-            LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
+            RH_TRACE(this->_baseLog, "Usage State ACTIVE.....  ");
             _resetReason();
             setUsageState(CF::Device::ACTIVE);
         }
@@ -1652,7 +1652,7 @@ void GPP_i::updateUsageState()
           oss <<  "   Nic: " << m->get_resource_id() << " exceeded " << m->is_threshold_exceeded() << " threshold=" << m->get_threshold() << " measured=" << m->get_measured() << std::endl;
       }
 
-      LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
+      RH_TRACE(this->_baseLog,  "USAGE STATE: " << std::endl <<
                 " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
                 " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
                 " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
@@ -1711,12 +1711,12 @@ void GPP_i::updateUsageState()
       setUsageState(CF::Device::BUSY);
   }
   else if (getPids().size() == 0) {
-    LOG_TRACE(GPP_i, "Usage State IDLE (trigger) pids === 0...  ");
+    RH_TRACE(this->_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
     _resetReason();
     setUsageState(CF::Device::IDLE);
   }
   else {
-    LOG_TRACE(GPP_i, "Usage State ACTIVE.....  ");
+    RH_TRACE(this->_baseLog, "Usage State ACTIVE.....  ");
     _resetReason();
     setUsageState(CF::Device::ACTIVE);
   }
@@ -1731,7 +1731,7 @@ void GPP_i::_setReason( const std::string &reason, const std::string &event, con
 
     if ( reason != "" ) {
         if ( reason != _busy_reason ) {
-            LOG_INFO(GPP_i, "GPP BUSY, REASON: " << reason << " " << event );
+            RH_INFO(this->_baseLog, "GPP BUSY, REASON: " << reason << " " << event );
             _busy_timestamp = boost::posix_time::microsec_clock::local_time();
             _busy_mark = boost::posix_time::microsec_clock::local_time();
             _busy_reason = reason;
@@ -1748,7 +1748,7 @@ void GPP_i::_setReason( const std::string &reason, const std::string &event, con
             busy_reason = oss.str();
             if ( last_msg.total_seconds() >  2 ) {
                 _busy_mark = now;
-                LOG_INFO(GPP_i, "GPP BUSY, " << oss.str() );
+                RH_INFO(this->_baseLog, "GPP BUSY, " << oss.str() );
             }
         }
     }
@@ -1861,7 +1861,7 @@ int GPP_i::serviceFunction()
   catch( const boost::thread_resource_error& e ){
     std::stringstream errstr;
     errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-    LOG_ERROR(GPP_i, __FUNCTION__ << ": " << errstr.str() );
+    RH_ERROR(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
   }
 
   //
@@ -1874,13 +1874,13 @@ int GPP_i::serviceFunction()
     ExecPartitionList::iterator iter =  execPartitions.begin();
     std::ostringstream ss;
     ss  << boost::format("%-6s %-4s %-7s %-7s %-7s ") % "SOCKET" % "CPUS" % "USER"  % "SYSTEM"  % "IDLE";
-    LOG_TRACE(GPP_i, ss.str()  );
+    RH_TRACE(this->_baseLog, ss.str()  );
     ss.clear();
     ss.str("");
     for ( ; iter != execPartitions.end(); iter++ ) {
     
       ss  << boost::format("%-6d %-4d %-7.2f %-7.2f %-7.2f ") % iter->id % iter->stats.get_ncpus() % iter->stats.get_user_percent()  % iter->stats.get_system_percent()  % iter->stats.get_idle_percent() ;
-      LOG_TRACE(GPP_i, ss.str()  );    
+      RH_TRACE(this->_baseLog, ss.str()  );    
       ss.clear();
       ss.str("");
     }
@@ -1890,7 +1890,7 @@ int GPP_i::serviceFunction()
   std::for_each( threshold_monitors.begin(), threshold_monitors.end(), boost::bind( &Updateable::update, _1 ) );
 
   for( size_t i=0; i<threshold_monitors.size(); ++i ) {
-    LOG_TRACE(GPP_i, __FUNCTION__ << ": resource_id=" << threshold_monitors[i]->get_resource_id() << 
+    RH_TRACE(this->_baseLog, __FUNCTION__ << ": resource_id=" << threshold_monitors[i]->get_resource_id() << 
               " threshold=" << threshold_monitors[i]->get_threshold() << " measured=" << threshold_monitors[i]->get_measured());
   }
 
@@ -2011,18 +2011,18 @@ void GPP_i::_affinity_changed( const affinity_struct *ovp, const affinity_struct
 
   if ( ovp )  {
     const affinity_struct ov = *ovp;
-    LOG_DEBUG(GPP_i, "OV:                " );
-    LOG_DEBUG(GPP_i, "OV: ov.policy/context " << ov.exec_directive_class << "/" << ov.exec_directive_value );
-    LOG_DEBUG(GPP_i, "OV: ov.blacklist size " << ov.blacklist_cpus.size() );
-    LOG_DEBUG(GPP_i, "OV: ov.force_override " << ov.force_override );
-    LOG_DEBUG(GPP_i, "OV: ov.disabled       " << ov.disabled );
+    RH_DEBUG(this->_baseLog, "OV:                " );
+    RH_DEBUG(this->_baseLog, "OV: ov.policy/context " << ov.exec_directive_class << "/" << ov.exec_directive_value );
+    RH_DEBUG(this->_baseLog, "OV: ov.blacklist size " << ov.blacklist_cpus.size() );
+    RH_DEBUG(this->_baseLog, "OV: ov.force_override " << ov.force_override );
+    RH_DEBUG(this->_baseLog, "OV: ov.disabled       " << ov.disabled );
   }
 
-  LOG_DEBUG(GPP_i, "NV:                " );
-  LOG_DEBUG(GPP_i, "NV: nv.policy/context " << nv.exec_directive_class << "/" << nv.exec_directive_value );
-  LOG_DEBUG(GPP_i, "NV: nv.blacklist size " << nv.blacklist_cpus.size() );
-  LOG_DEBUG(GPP_i, "NV: nv.force_override " << nv.force_override );
-  LOG_DEBUG(GPP_i, "NV: nv.disabled       " << nv.disabled );
+  RH_DEBUG(this->_baseLog, "NV:                " );
+  RH_DEBUG(this->_baseLog, "NV: nv.policy/context " << nv.exec_directive_class << "/" << nv.exec_directive_value );
+  RH_DEBUG(this->_baseLog, "NV: nv.blacklist size " << nv.blacklist_cpus.size() );
+  RH_DEBUG(this->_baseLog, "NV: nv.force_override " << nv.force_override );
+  RH_DEBUG(this->_baseLog, "NV: nv.disabled       " << nv.disabled );
 
   // change affinity struct to affinity spec..
   redhawk::affinity::AffinityDirective value;
@@ -2110,11 +2110,11 @@ bool GPP_i::allocate_mcastegress_capacity(const CORBA::Long &value)
     boost::mutex::scoped_lock lock(propertySetAccess);
     std::string  except_msg("Invalid allocation");
     bool retval=false;
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Allocating mcastegress allocation " << value);
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": Allocating mcastegress allocation " << value);
 
     if ( mcastnicInterface == "" )  {
       std::string msg = "mcastnicEgressCapacity request failed because no mcastnicInterface has been configured";
-      LOG_DEBUG(GPP_i, __FUNCTION__ <<  msg );
+      RH_DEBUG(this->_baseLog, __FUNCTION__ <<  msg );
       throw CF::Device::InvalidState(msg.c_str());
       return retval;
     }
@@ -2124,7 +2124,7 @@ bool GPP_i::allocate_mcastegress_capacity(const CORBA::Long &value)
       std::ostringstream os;
       os << "mcastnicEgressCapacity request: " <<  value << " failed because of insufficent capacity available, current: " <<  mcastnicEgressCapacity;
       std::string msg = os.str();
-      LOG_DEBUG(GPP_i, __FUNCTION__ <<  msg );
+      RH_DEBUG(this->_baseLog, __FUNCTION__ <<  msg );
       CF::Properties errprops;
       errprops.length(1);
       errprops[0].id = "mcastnicEgressCapacity";
@@ -2143,7 +2143,7 @@ bool GPP_i::allocate_mcastegress_capacity(const CORBA::Long &value)
 void GPP_i::deallocate_mcastegress_capacity(const CORBA::Long &value)
 {
     boost::mutex::scoped_lock lock(propertySetAccess);
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Deallocating mcastegress allocation " << value);
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": Deallocating mcastegress allocation " << value);
 
     mcastnicEgressCapacity = value + mcastnicEgressCapacity;
     if ( mcastnicEgressCapacity > mcastnicEgressThresholdValue ) {
@@ -2158,11 +2158,11 @@ bool GPP_i::allocate_reservation_request(const redhawk__reservation_request_stru
     if (isBusy()) {
         return false;
     }
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": allocating reservation_request allocation ");
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": allocating reservation_request allocation ");
     {
         WriteLock rlock(pidLock);
         if (applicationReservations.find(value.obj_id) != applicationReservations.end()){
-            LOG_INFO(GPP_i, __FUNCTION__ << ": Cannot make multiple reservations against the same application: "<<value.obj_id);
+            RH_INFO(this->_baseLog, __FUNCTION__ << ": Cannot make multiple reservations against the same application: "<<value.obj_id);
         }
         if (applicationReservations.find(value.obj_id) == applicationReservations.end()) {
             applicationReservations[value.obj_id] = application_reservation();
@@ -2193,7 +2193,7 @@ bool GPP_i::allocate_reservation_request(const redhawk__reservation_request_stru
 void GPP_i::deallocate_reservation_request(const redhawk__reservation_request_struct &value)
 {
     WriteLock rlock(pidLock);
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Deallocating reservation_request allocation ");
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": Deallocating reservation_request allocation ");
     for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
         if (app_it->first == value.obj_id) {
             applicationReservations.erase(app_it);
@@ -2209,11 +2209,11 @@ bool GPP_i::allocate_mcastingress_capacity(const CORBA::Long &value)
     boost::mutex::scoped_lock lock(propertySetAccess);
     std::string  except_msg("Invalid allocation");
     bool retval=false;
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Allocating mcastingress allocation " << value);
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": Allocating mcastingress allocation " << value);
 
     if ( mcastnicInterface == "" )  {
       std::string msg = "mcastnicIngressCapacity request failed because no mcastnicInterface has been configured" ;
-      LOG_DEBUG(GPP_i, __FUNCTION__ <<  msg );
+      RH_DEBUG(this->_baseLog, __FUNCTION__ <<  msg );
       throw CF::Device::InvalidState(msg.c_str());
     }
 
@@ -2222,7 +2222,7 @@ bool GPP_i::allocate_mcastingress_capacity(const CORBA::Long &value)
       std::ostringstream os;
       os << "mcastnicIngressCapacity request: " << value << " failed because of insufficent capacity available, current: " <<  mcastnicIngressCapacity;
       std::string msg = os.str();
-      LOG_DEBUG(GPP_i, __FUNCTION__ <<  msg );
+      RH_DEBUG(this->_baseLog, __FUNCTION__ <<  msg );
       CF::Properties errprops;
       errprops.length(1);
       errprops[0].id = "mcastnicIngressCapacity";
@@ -2242,7 +2242,7 @@ bool GPP_i::allocate_mcastingress_capacity(const CORBA::Long &value)
 void GPP_i::deallocate_mcastingress_capacity(const CORBA::Long &value)
 {
     boost::mutex::scoped_lock lock(propertySetAccess);
-    LOG_DEBUG(GPP_i, __FUNCTION__ << ": Deallocating mcastingress deallocation " << value);
+    RH_DEBUG(this->_baseLog, __FUNCTION__ << ": Deallocating mcastingress deallocation " << value);
 
     mcastnicIngressCapacity = value + mcastnicIngressCapacity;
     if ( mcastnicIngressCapacity > mcastnicIngressThresholdValue ) {
@@ -2259,10 +2259,10 @@ bool GPP_i::allocateCapacity_nic_allocation(const nic_allocation_struct &alloc)
     WriteLock wlock(nicLock);
     std::string  except_msg("Invalid allocation");
     bool success=false;
-    LOG_TRACE(GPP_i, __FUNCTION__ << ": Allocating nic_allocation (identifier=" << alloc.identifier << ")");
+    RH_TRACE(this->_baseLog, __FUNCTION__ << ": Allocating nic_allocation (identifier=" << alloc.identifier << ")");
     try
     {
-        LOG_TRACE(GPP_i, __FUNCTION__ << ": ALLOCATION: { identifier: \"" << alloc.identifier << "\", data_rate: " << alloc.data_rate << ", data_size: " << alloc.data_size << ", multicast_support: \"" << alloc.multicast_support << "\", ip_addressable: \"" << alloc.ip_addressable << "\", interface: \"" << alloc.interface << "\" }");
+        RH_TRACE(this->_baseLog, __FUNCTION__ << ": ALLOCATION: { identifier: \"" << alloc.identifier << "\", data_rate: " << alloc.data_rate << ", data_size: " << alloc.data_size << ", multicast_support: \"" << alloc.multicast_support << "\", ip_addressable: \"" << alloc.ip_addressable << "\", interface: \"" << alloc.interface << "\" }");
         success = nic_facade->allocate_capacity(alloc);
         
         if( success )
@@ -2275,7 +2275,7 @@ bool GPP_i::allocateCapacity_nic_allocation(const nic_allocation_struct &alloc)
                   status = nic_allocation_status[i];
                   // need to check if processor socket servicing interface has enough idle capacity
                   if ( _check_exec_partition( status.interface ) == true ) {
-                      LOG_TRACE(GPP_i, __FUNCTION__ << ": SUCCESS: { identifier: \"" << status.identifier << "\", data_rate: " << status.data_rate << ", data_size: " << status.data_size << ", multicast_support: \"" << status.multicast_support << "\", ip_addressable: \"" << status.ip_addressable << "\", interface: \"" << status.interface << "\" }");
+                      RH_TRACE(this->_baseLog, __FUNCTION__ << ": SUCCESS: { identifier: \"" << status.identifier << "\", data_rate: " << status.data_rate << ", data_size: " << status.data_size << ", multicast_support: \"" << status.multicast_support << "\", ip_addressable: \"" << status.ip_addressable << "\", interface: \"" << status.interface << "\" }");
                     break;
                   }
                   else {
@@ -2311,9 +2311,9 @@ bool GPP_i::allocateCapacity_nic_allocation(const nic_allocation_struct &alloc)
 void GPP_i::deallocateCapacity_nic_allocation(const nic_allocation_struct &alloc)
 {
   WriteLock wlock(nicLock);
-  LOG_TRACE(GPP_i, __FUNCTION__ << ": Deallocating nic_allocation (identifier=" << alloc.identifier << ")");
+  RH_TRACE(this->_baseLog, __FUNCTION__ << ": Deallocating nic_allocation (identifier=" << alloc.identifier << ")");
   try {
-      LOG_DEBUG(GPP_i, __FUNCTION__ << ": { identifier: \"" << alloc.identifier << "\", data_rate: " << alloc.data_rate << ", data_size: " << alloc.data_size << ", multicast_support: \"" << alloc.multicast_support << "\", ip_addressable: \"" << alloc.ip_addressable << "\", interface: \"" << alloc.interface << "\" }");
+      RH_DEBUG(this->_baseLog, __FUNCTION__ << ": { identifier: \"" << alloc.identifier << "\", data_rate: " << alloc.data_rate << ", data_size: " << alloc.data_size << ", multicast_support: \"" << alloc.multicast_support << "\", ip_addressable: \"" << alloc.ip_addressable << "\", interface: \"" << alloc.interface << "\" }");
       nic_facade->deallocate_capacity(alloc);
     }
   catch( ... )
@@ -2355,19 +2355,19 @@ bool GPP_i::allocate_memCapacity(const CORBA::LongLong &value) {
   if (isBusy()) {
     return false;
   }
-  LOG_DEBUG(GPP_i, "allocate memory (REQUEST) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
+  RH_DEBUG(this->_baseLog, "allocate memory (REQUEST) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
   if ( value > memCapacity or value > memCapacityThreshold )
     return false;
 
   memCapacity -= value;
-  LOG_DEBUG(GPP_i, "allocate memory (SUCCESS) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
+  RH_DEBUG(this->_baseLog, "allocate memory (SUCCESS) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
   return true;
 }
 
 void GPP_i::deallocate_memCapacity(const CORBA::LongLong &value) {
-  LOG_DEBUG(GPP_i, "deallocate memory (REQUEST) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
+  RH_DEBUG(this->_baseLog, "deallocate memory (REQUEST) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
   memCapacity += value;
-  LOG_DEBUG(GPP_i, "deallocate memory (SUCCESS) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
+  RH_DEBUG(this->_baseLog, "deallocate memory (SUCCESS) value: " << value << " memCapacity: " << memCapacity << " memFree:" << memFree  );
   if ( memCapacity > memCapacityThreshold ) {
     memCapacity  = memCapacityThreshold;
   }
@@ -2387,12 +2387,12 @@ bool GPP_i::allocate_loadCapacity(const double &value) {
   // get current system load and calculated reservation load
   if ( reserved_capacity_per_component == 0.0 ) {
 
-    LOG_DEBUG(GPP_i, "allocate load capacity, (REQUEST) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
+    RH_DEBUG(this->_baseLog, "allocate load capacity, (REQUEST) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
     // get system monitor report...
     double load_threshold = modified_thresholds.load_avg;
     double sys_load = system_monitor->get_loadavg();
     if ( sys_load + value >  load_threshold   ) {
-        LOG_WARN(GPP_i, "Allocate load capacity would exceed measured system load, current loadavg: "  << sys_load << " requested: " << value << " threshold: " << load_threshold );
+        RH_WARN(this->_baseLog, "Allocate load capacity would exceed measured system load, current loadavg: "  << sys_load << " requested: " << value << " threshold: " << load_threshold );
     }
     
     // perform classic load capacity
@@ -2400,7 +2400,7 @@ bool GPP_i::allocate_loadCapacity(const double &value) {
       std::ostringstream os;
       os << " Allocate load capacity failed due to insufficient capacity, available capacity:" << loadCapacity << " requested capacity: " << value;
       std::string msg = os.str();
-      LOG_DEBUG(GPP_i, msg );
+      RH_DEBUG(this->_baseLog, msg );
       CF::Properties errprops;
       errprops.length(1);
       errprops[0].id = "DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056 (loadCapacity)";
@@ -2409,18 +2409,18 @@ bool GPP_i::allocate_loadCapacity(const double &value) {
     }
 
     loadCapacity -= value;
-    LOG_DEBUG(GPP_i, "allocate load capacity, (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
+    RH_DEBUG(this->_baseLog, "allocate load capacity, (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
   }
   else { 
     // manage load capacity handled via reservation
-    LOG_WARN(GPP_i, "Allocate load capacity allowed, GPP using component reservations for managing load capacity." );
+    RH_WARN(this->_baseLog, "Allocate load capacity allowed, GPP using component reservations for managing load capacity." );
 
     loadCapacity -= value;
     if ( loadCapacity < 0.0 ) {
         loadCapacity = 0.0;
     }
 
-    LOG_DEBUG(GPP_i, "allocate load capacity, (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
+    RH_DEBUG(this->_baseLog, "allocate load capacity, (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
 
   }
   
@@ -2429,12 +2429,12 @@ bool GPP_i::allocate_loadCapacity(const double &value) {
 }
 
 void GPP_i::deallocate_loadCapacity(const double &value) {
-  LOG_DEBUG(GPP_i, "deallocate load capacity, (REQUEST) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
+  RH_DEBUG(this->_baseLog, "deallocate load capacity, (REQUEST) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
   loadCapacity += value;
   if ( loadCapacity > loadFree ) {
       loadCapacity = loadFree;
   }
-  LOG_DEBUG(GPP_i, "deallocate load capacity,  (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
+  RH_DEBUG(this->_baseLog, "deallocate load capacity,  (SUCCESS) value: " << value << " loadCapacity: " << loadCapacity << " loadFree:" << loadFree );
   updateThresholdMonitors();
   updateUsageState();
   return;
@@ -2451,13 +2451,13 @@ void GPP_i::deallocate_loadCapacity(const double &value) {
 
 void GPP_i::send_threshold_event(const threshold_event_struct& message)
 {
-  LOG_INFO(GPP_i, __FUNCTION__ << ": " << message.message );
+  RH_INFO(this->_baseLog, __FUNCTION__ << ": " << message.message );
   MessageEvent_out->sendMessage(message);
 }
 
 void GPP_i::sendChildNotification(const std::string &comp_id, const std::string &app_id)
 {
-  LOG_INFO(GPP_i, "Child termination notification on the IDM channel : comp:" << comp_id  << " app:" <<app_id);
+  RH_INFO(this->_baseLog, "Child termination notification on the IDM channel : comp:" << comp_id  << " app:" <<app_id);
   redhawk::events::DomainEventWriter writer(idm_publisher);
   writer.sendComponentTermination( _identifier.c_str(), app_id.c_str(), comp_id.c_str() );
 }
@@ -2471,7 +2471,7 @@ void GPP_i::updateThresholdMonitors()
   for( ; iter != threshold_monitors.end(); iter++ ) {
     ThresholdMonitorPtr monitor=*iter;
     monitor->update();
-    LOG_TRACE(GPP_i, __FUNCTION__ << ": resource_id=" << monitor->get_resource_id() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
+    RH_TRACE(this->_baseLog, __FUNCTION__ << ": resource_id=" << monitor->get_resource_id() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
   }
 }
 
@@ -2518,7 +2518,7 @@ void GPP_i::update()
       }
     }
   }
-  LOG_TRACE(GPP_i, __FUNCTION__ << " Completed first pass, record pstats for nproc: " << nres << " res_set " << reservation_set );
+  RH_TRACE(this->_baseLog, __FUNCTION__ << " Completed first pass, record pstats for nproc: " << nres << " res_set " << reservation_set );
 
   // set number reservations that are not started
   n_reservations = nres;
@@ -2533,7 +2533,7 @@ void GPP_i::update()
   int64_t f_use_end_total = user;
   float f_total = (float)(f_end_total-f_start_total);
   if ( f_total <= 0.0 ) {
-    LOG_TRACE(GPP_i, __FUNCTION__ << std::endl<< " System Ticks end/start " << f_end_total << "/" << f_start_total << std::endl );
+    RH_TRACE(this->_baseLog, __FUNCTION__ << std::endl<< " System Ticks end/start " << f_end_total << "/" << f_start_total << std::endl );
     f_total=1.0;
   }
   float inverse_load_per_core = ((float)processor_cores)/(f_total);
@@ -2565,7 +2565,7 @@ void GPP_i::update()
       if ( !(usage_out % 500) || usage < 0 || percent_core < 0.0 ) {  
         uint64_t u, p2, p1;
         u = i->get_pstat_usage(p2,p1);
-        LOG_INFO(GPP_i, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
+        RH_INFO(this->_baseLog, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
                  "  usage " << usage << std::endl << 
                  "  u " << usage << std::endl << 
                  "  p2 " << p2 << std::endl << 
@@ -2621,7 +2621,7 @@ void GPP_i::update()
     }
   }
 
-  LOG_TRACE(GPP_i, __FUNCTION__ << " Completed SECOND pass, record pstats for processes" );
+  RH_TRACE(this->_baseLog, __FUNCTION__ << " Completed SECOND pass, record pstats for processes" );
 
   aggregate_usage *= inverse_load_per_core;
   non_specialized_aggregate_usage *= inverse_load_per_core;
@@ -2632,7 +2632,7 @@ void GPP_i::update()
   utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
   utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+  RH_DEBUG(this->_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
            " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
            " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
            "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
@@ -2645,7 +2645,7 @@ void GPP_i::update()
            " loadTotal: " << loadTotal  << std::endl <<
            " loadFree(Modified): " << loadFree <<std::endl );
 
-  LOG_TRACE(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
+  RH_TRACE(this->_baseLog, __FUNCTION__ << "  Reservation : " << std::endl << 
            "  total sys usage: " << f_end_total << std::endl << 
            "  total user usage: " << f_use_end_total << std::endl << 
            "  reservation_set: " << reservation_set << std::endl << 
@@ -2658,7 +2658,7 @@ void GPP_i::update()
            "  maximum: " << utilization[0].maximum << std::endl );
 
   const SystemMonitor::Report &rpt = system_monitor->getReport();
-  LOG_TRACE(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
+  RH_TRACE(this->_baseLog, __FUNCTION__ << " SysInfo Load : " << std::endl << 
            "  one: " << rpt.load.one_min << std::endl << 
            "  five: " << rpt.load.five_min << std::endl << 
            "  fifteen: " << rpt.load.fifteen_min << std::endl );
@@ -2668,7 +2668,7 @@ void GPP_i::update()
   loadAverage.fifteenmin = rpt.load.fifteen_min;
 
   memFree = rpt.virtual_memory_free / mem_free_units;
-  LOG_TRACE(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
+  RH_TRACE(this->_baseLog, __FUNCTION__ << "Memory : " << std::endl << 
            " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
            " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
            " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
@@ -2713,11 +2713,11 @@ int GPP_i::sigchld_handler(int sig)
       FD_SET(sig_fd, &readfds);
       select(sig_fd+1, &readfds, NULL, NULL, &tv);
       if (FD_ISSET(sig_fd, &readfds)) {
-        LOG_TRACE(GPP_i, " Checking for signals from SIGNALFD(" << sig_fd << ") cnt:" << cnt++ );
+        RH_TRACE(this->_baseLog, " Checking for signals from SIGNALFD(" << sig_fd << ") cnt:" << cnt++ );
         s = read(sig_fd, &si, sizeof(struct signalfd_siginfo));
-        LOG_TRACE(GPP_i, " RETURN from SIGNALFD(" << sig_fd << ") cnt/ret:" << cnt << "/" << s );
+        RH_TRACE(this->_baseLog, " RETURN from SIGNALFD(" << sig_fd << ") cnt/ret:" << cnt << "/" << s );
         if (s != sizeof(struct signalfd_siginfo)){
-          LOG_ERROR(GPP_i, "SIGCHLD handling error ...");
+          RH_ERROR(this->_baseLog, "SIGCHLD handling error ...");
           break;
         }
 
@@ -2732,12 +2732,12 @@ int GPP_i::sigchld_handler(int sig)
         //  will issue a notification event message for non domain terminated resources.. ie. segfaults..
         //
         if ( si.ssi_signo == SIGCHLD) {
-          LOG_TRACE(GPP_i, "Child died , pid .................................." << si.ssi_pid);
+          RH_TRACE(this->_baseLog, "Child died , pid .................................." << si.ssi_pid);
           int status;
           pid_t child_pid;
           bool reap=false;
           while( (child_pid = waitpid(-1, &status, WNOHANG)) > 0 ) {
-            LOG_TRACE(GPP_i, "WAITPID died , pid .................................." << child_pid);
+            RH_TRACE(this->_baseLog, "WAITPID died , pid .................................." << child_pid);
             if ( (uint)child_pid == si.ssi_pid ) reap=true;
             _component_cleanup( child_pid, status );
           }
@@ -2746,7 +2746,7 @@ int GPP_i::sigchld_handler(int sig)
           }
         }
         else {
-          LOG_TRACE(GPP_i, "read from signalfd --> signo:" << si.ssi_signo);
+          RH_TRACE(this->_baseLog, "read from signalfd --> signo:" << si.ssi_signo);
         }
       } 
       else {
@@ -2755,7 +2755,7 @@ int GPP_i::sigchld_handler(int sig)
     }
   }
 
-  //LOG_TRACE(GPP_i, "sigchld_handler RETURN.........loop cnt:" << cnt);
+  //RH_TRACE(this->_baseLog, "sigchld_handler RETURN.........loop cnt:" << cnt);
   return NOOP;
 }
 
@@ -2769,21 +2769,21 @@ int GPP_i::redirected_io_handler()
 
   // check we have a log file
   if ( _componentOutputLog == "" ) {
-    LOG_DEBUG(GPP_i, " Component IO redirect ON but no file specified. ");
+    RH_DEBUG(this->_baseLog, " Component IO redirect ON but no file specified. ");
     return NOOP;
   }
 
-  LOG_DEBUG(GPP_i, " Locking For Redirect Processing............. ");
+  RH_DEBUG(this->_baseLog, " Locking For Redirect Processing............. ");
   ReadLock lock(fdsLock);  
 
   int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
   if ( redirect_file != -1 )  {
     if ( lseek(redirect_file, 0, SEEK_END) == -1  )  {
-      LOG_DEBUG(GPP_i, " Unable to SEEK To file end, file: " << _componentOutputLog);
+      RH_DEBUG(this->_baseLog, " Unable to SEEK To file end, file: " << _componentOutputLog);
     }
   }
   else {
-    LOG_TRACE(GPP_i, " Unable to open up componentOutputLog,  fallback to /dev/null   tried log: " << _componentOutputLog);
+    RH_TRACE(this->_baseLog, " Unable to open up componentOutputLog,  fallback to /dev/null   tried log: " << _componentOutputLog);
     redirect_file = open("/dev/null", O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
   }
 
@@ -2805,16 +2805,16 @@ int GPP_i::redirected_io_handler()
 
       // open up a specific redirect file 
       if ( fd->fname != "" && fd->fname != _componentOutputLog ) {
-        LOG_TRACE(GPP_i, " OPEN FILE - PID: " << fd->pid << "  fname " << fd->fname);
+        RH_TRACE(this->_baseLog, " OPEN FILE - PID: " << fd->pid << "  fname " << fd->fname);
         rd_fd = open(fd->fname.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
         if ( rd_fd == -1 )  {
-          LOG_ERROR(GPP_i, " Unable to open component output log: " << fd->fname);
+          RH_ERROR(this->_baseLog, " Unable to open component output log: " << fd->fname);
           rd_fd = redirect_file;  
         }
         else {
           fopens++;
           if ( lseek(rd_fd, 0, SEEK_END) == -1  )  {
-            LOG_DEBUG(GPP_i, " Unable to SEEK To file end, file: " << fd->fname);
+            RH_DEBUG(this->_baseLog, " Unable to SEEK To file end, file: " << fd->fname);
           }
         }
       }
@@ -2829,17 +2829,17 @@ int GPP_i::redirected_io_handler()
         result=0;
         size = 0;
         if (ioctl (fd->cout, FIONREAD, &size) == -1) {
-          LOG_ERROR(GPP_i, "(redirected IO) Error requesting how much to read,  PID: " << fd->pid << " FD:" << fd->cout );        
+          RH_ERROR(this->_baseLog, "(redirected IO) Error requesting how much to read,  PID: " << fd->pid << " FD:" << fd->cout );        
           close(fd->cout);
           fd->cout = -1;
         }
         if ( fd->cout != -1 && rd_fd != -1 )  {
-          LOG_TRACE(GPP_i, " SPLICE DATA From Child to Output SIZE " << size << "...... PID: " << fd->pid << " FD:" << fd->cout );        
+          RH_TRACE(this->_baseLog, " SPLICE DATA From Child to Output SIZE " << size << "...... PID: " << fd->pid << " FD:" << fd->cout );        
           result = splice( fd->cout, NULL, rd_fd, NULL, size,0 );
-          LOG_TRACE(GPP_i, " SPLICE DATA From Child to Output RES:" << result << "... PID: " << fd->pid << " FD:" << fd->cout );        
+          RH_TRACE(this->_baseLog, " SPLICE DATA From Child to Output RES:" << result << "... PID: " << fd->pid << " FD:" << fd->cout );        
         }
         if ( (int64_t)result == -1 )  {
-          LOG_ERROR(GPP_i, "(redirected IO) Error during transfer to redirected file,  PID: " << fd->pid << " FD:" << fd->cout );        
+          RH_ERROR(this->_baseLog, "(redirected IO) Error during transfer to redirected file,  PID: " << fd->pid << " FD:" << fd->cout );        
           close(fd->cout);
           fd->cout = -1;
         }
@@ -2861,7 +2861,7 @@ int GPP_i::redirected_io_handler()
 
   // close file while we wait
   if ( redirect_file ) close(redirect_file);
-  LOG_DEBUG(GPP_i, " IO REDIRECT,  NPROCS: "<< redirectedFds.size() << " OPEN/CLOSE " << fopens << "/" << fcloses <<" PROCESSED PROCS/Bytes " << cnt << "/" << nbytes );
+  RH_DEBUG(this->_baseLog, " IO REDIRECT,  NPROCS: "<< redirectedFds.size() << " OPEN/CLOSE " << fopens << "/" << fcloses <<" PROCESSED PROCS/Bytes " << cnt << "/" << nbytes );
   return NOOP;
 }
 
@@ -2883,7 +2883,7 @@ void GPP_i::addProcess(int pid, const std::string &appName, const std::string &i
   ProcessList:: iterator result = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
   if ( result != pids.end() ) return;
 
-  LOG_DEBUG(GPP_i, "START Adding Process/RES: "  <<  pid << "/" << req_reservation << "  APP:" << appName );
+  RH_DEBUG(this->_baseLog, "START Adding Process/RES: "  <<  pid << "/" << req_reservation << "  APP:" << appName );
   component_description tmp;
   tmp.appName = appName;
   tmp.pid  = pid;
@@ -2895,7 +2895,7 @@ void GPP_i::addProcess(int pid, const std::string &appName, const std::string &i
   if (applicationReservations.find(appName) != applicationReservations.end()) {
       applicationReservations[appName].component_pids.push_back(pid);
   }
-  LOG_DEBUG(GPP_i, "END Adding Process/RES: "  <<  pid << "/" << req_reservation << "  APP:" << appName );
+  RH_DEBUG(this->_baseLog, "END Adding Process/RES: "  <<  pid << "/" << req_reservation << "  APP:" << appName );
 }
 
 GPP_i::component_description GPP_i::getComponentDescription(int pid)
@@ -2912,7 +2912,7 @@ void GPP_i::markPidTerminated( const int pid)
     ReadLock lock(pidLock);
     ProcessList:: iterator it = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
     if (it == pids.end()) return;
-    LOG_DEBUG(GPP_i, " Mark For Termination: "  <<  it->pid << "  APP:" << it->appName );
+    RH_DEBUG(this->_baseLog, " Mark For Termination: "  <<  it->pid << "  APP:" << it->appName );
     it->app_started= false;
     it->terminated = true;
 }
@@ -2924,7 +2924,7 @@ void GPP_i::removeProcess(int pid)
     WriteLock wlock(pidLock);
     ProcessList:: iterator result = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
     if ( result != pids.end() ) {
-      LOG_DEBUG(GPP_i, "Monitor Process: REMOVE Process: " << result->pid << " app: " << result->appName );
+      RH_DEBUG(this->_baseLog, "Monitor Process: REMOVE Process: " << result->pid << " app: " << result->appName );
       pids.erase(result);
     }
   }
@@ -2934,7 +2934,7 @@ void GPP_i::removeProcess(int pid)
     ProcessFds::iterator i=std::find_if( redirectedFds.begin(), redirectedFds.end(), std::bind2nd( FindRedirect(), pid ) );
     if ( i != redirectedFds.end() )  {
       i->close();
-      LOG_DEBUG(GPP_i, "Redirectio IO ..REMOVE Redirected pid:" << pid  );
+      RH_DEBUG(this->_baseLog, "Redirectio IO ..REMOVE Redirected pid:" << pid  );
       redirectedFds.erase(i);
     }
   }

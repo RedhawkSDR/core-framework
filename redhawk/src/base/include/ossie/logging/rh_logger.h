@@ -24,6 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+#include <vector>
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/circular_buffer.hpp>
@@ -213,6 +214,8 @@ namespace rh_logger {
 
   public:
 
+    static const std::string USER_LOGS;
+    static const std::string SYSTEM_LOGS;
     //
     // Logging record events
     //
@@ -254,6 +257,10 @@ namespace rh_logger {
     //
     static LoggerPtr getLogger( const std::string &name );
     static LoggerPtr getLogger( const char *name );
+    static LoggerPtr getNewHierarchy( const std::string &name );
+
+    virtual LoggerPtr getInstanceLogger( const std::string &name );
+    LoggerPtr getChildLogger( const std::string &logname, const std::string &ns=USER_LOGS );
 
     static LoggerPtr getResourceLogger( const std::string &name );
     static const std::string &getResourceLoggerName();
@@ -284,7 +291,6 @@ namespace rh_logger {
     virtual void   debug( const std::string &msg );
     virtual void   trace( const std::string &msg );
 
-
     virtual bool isFatalEnabled() const;
     virtual bool isErrorEnabled() const;
     virtual bool isWarnEnabled() const;
@@ -313,6 +319,8 @@ namespace rh_logger {
     virtual void appendLogRecord( const LogRecord &rec);
     virtual void appendLogRecord( const LevelPtr &level, const std::string &msg);
 
+    virtual void configureLogger(const std::string &configuration, bool root_reset=false, int level=-1);
+
     //
     //  Set the logging event history limit
     //
@@ -322,7 +330,13 @@ namespace rh_logger {
     //  Get the logging event history limit
     //
     virtual size_t  getLogRecordLimit();
-    
+
+    virtual std::vector<std::string> getNamedLoggers();
+
+    virtual bool isLoggerInHierarchy(const std::string& search_name);
+
+    virtual void* getUnderlyingLogger();
+
   protected:
 
     Logger( const char *name );

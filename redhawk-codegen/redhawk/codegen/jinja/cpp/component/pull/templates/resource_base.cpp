@@ -102,6 +102,7 @@ ${className}::${className}(const char *uuid, const char *label) :
 /*{%   else %}*/
     addPort("${port.name}", ${port.cppname});
 /*{%   endif %}*/
+    ${port.cppname}->setLogger(this->_baseLog->getChildLogger("${port.name}", "ports"));
 /*{%   if port.name == 'propEvent' %}*/
 /*{%     for property in component.events %}*/
     ${port.cppname}->registerProperty(this->_identifier, this->naming_service_name, this->getPropertyFromId("${property.identifier}"));

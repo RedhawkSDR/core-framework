@@ -48,6 +48,8 @@ namespace ossie
 
   namespace SpdSupport {
 
+      extern rh_logger::LoggerPtr spdSupportLog;
+
       class   ResourceInfo;
       class   SoftpkgInfo;
       class   ImplementationInfo;

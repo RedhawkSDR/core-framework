@@ -31,6 +31,8 @@
 
 namespace redhawk {
 
+    extern rh_logger::LoggerPtr deploymentLog;
+
     class ApplicationComponent;
 
     class UsesDeviceAssignment

@@ -63,8 +63,7 @@ namespace bulkio {
     }
     addDisconnectListener(this, &OutPort::_disconnectListenerAdapter);
 
-    LOG_DEBUG( logger, "bulkio::OutPort::CTOR port:" << name );
-
+    LOG_DEBUG( _portLog, "bulkio::OutPort::CTOR port:" << name );
   }
 
   template <typename PortType>
@@ -76,7 +75,8 @@ namespace bulkio {
   template <typename PortType>
   void OutPort<PortType>::pushSRI(const BULKIO::StreamSRI& H)
   {
-      TRACE_ENTER(logger, "OutPort::pushSRI" );
+      TRACE_ENTER(_portLog, "OutPort::pushSRI" );
+      LOG_TRACE(_portLog, "OutPort::pushSRI" );
 
       const std::string sid(H.streamID);
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -107,18 +107,18 @@ namespace bulkio {
                   continue;
               }
 
-              LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
+              LOG_DEBUG(_portLog,"pushSRI - PORT:" << name << " CONNECTION:" << connection_id << " SRI streamID:"
                         << stream.streamID() << " Mode:" << sri.mode << " XDELTA:" << 1.0/sri.xdelta);
               try {
                   transport->pushSRI(sid, sri, stream.modcount());
               } catch (const redhawk::FatalTransportError& err) {
-                  LOG_ERROR(logger, "PUSH-SRI FAILED " << err.what()
+                  LOG_ERROR(_portLog, "PUSH-SRI FAILED " << err.what()
                             << " PORT/CONNECTION: " << name << "/" << connection_id);
               }
           }
       }
 
-      TRACE_EXIT(logger, "OutPort::pushSRI");
+      TRACE_EXIT(_portLog, "OutPort::pushSRI");
   }
 
   template <typename PortType>
@@ -163,7 +163,7 @@ namespace bulkio {
   {
       typename StreamMap::iterator existing = streams.find(streamID);
       if (existing == streams.end()) {
-          LOG_TRACE(logger, "Creating new stream '" << streamID << "' with default SRI");
+          LOG_TRACE(_portLog, "Creating new stream '" << streamID << "' with default SRI");
 
           // No SRI associated with the stream ID, create a default one and add
           // it to the list; it will get pushed to downstream connections below
@@ -208,11 +208,11 @@ namespace bulkio {
                 transport->pushSRI(streamID, stream.sri(), stream.modcount());
                 transport->pushPacket(data, T, EOS, streamID, stream.sri());
             } catch (const redhawk::FatalTransportError& err) {
-                LOG_ERROR(logger, "PUSH-PACKET FAILED " << err.what()
+                LOG_ERROR(_portLog, "PUSH-PACKET FAILED " << err.what()
                           << " PORT/CONNECTION: " << name << "/" << connection_id);
                 transport->setAlive(false);
             } catch (const redhawk::TransportError& err) {
-                LOG_ERROR(logger, "pushPacket error on connection '" << connection_id << "': " << err.what());
+                LOG_ERROR(_portLog, "pushPacket error on connection '" << connection_id << "': " << err.what());
             }
         }
     }
@@ -274,7 +274,7 @@ namespace bulkio {
               throw CF::Port::InvalidPort(1, "Unable to narrow");
           }
       } catch (const CORBA::SystemException&) {
-          LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
+          LOG_ERROR( _portLog, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
           throw CF::Port::InvalidPort(1, "Unable to narrow");
       }
 

@@ -134,7 +134,10 @@ public:
     std::string getDirection() const;
 
 protected:
+
     friend class MessageSupplierPort;
+
+    rh_logger::LoggerPtr _messageconsumerLog;
 
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 

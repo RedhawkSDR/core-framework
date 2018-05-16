@@ -525,7 +525,7 @@ namespace bulkio {
 
     typedef InPort<PortType> super;
     using super::packetWaiters;
-    using super::logger;
+    using super::_portLog;
     typedef typename super::StreamMap StreamMap;
     using super::streams;
     using super::streamsMutex;

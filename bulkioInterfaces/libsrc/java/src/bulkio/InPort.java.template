@@ -25,6 +25,8 @@ package bulkio;
 
 import org.apache.log4j.Logger;
 
+import org.ossie.component.RHLogger;
+
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 import BULKIO.PrecisionUTCTime;
@@ -84,6 +86,11 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
 
     public void setLogger(Logger logger){
         impl.setLogger(logger);
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        setLogger(logger.getL4Logger());
     }
 
     /**

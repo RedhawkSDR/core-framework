@@ -337,18 +337,29 @@ void ${className}::updateUsageState()
 
         void ${className}::scaleChanged(float oldValue, float newValue)
         {
-            LOG_DEBUG(${className}, "scaleValue changed from" << oldValue << " to " << newValue);
+            RH_DEBUG(this->_baseLog, "scaleValue changed from" << oldValue << " to " << newValue);
         }
             
         void ${className}::statusChanged(const status_struct& oldValue, const status_struct& newValue)
         {
-            LOG_DEBUG(${className}, "status changed");
+            RH_DEBUG(this->_baseLog, "status changed");
         }
             
         //Add to ${component.userclass.header}
         void scaleChanged(float oldValue, float newValue);
         void statusChanged(const status_struct& oldValue, const status_struct& newValue);
-        
+
+    Logging:
+
+        The member _baseLog is a logger whose base name is the component (or device) instance name.
+        New logs should be created based on this logger name.
+
+        To create a new logger,
+            rh_logger::LoggerPtr my_logger = this->_baseLog->getChildLogger("foo");
+
+        Assuming component instance name abc_1, my_logger will then be created with the 
+        name "abc_1.user.foo".
+
 /*{% if component is device %}*/
     Allocation:
     
@@ -380,7 +391,7 @@ void ${className}::updateUsageState()
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    LOG_DEBUG(${className}, "serviceFunction() example log message");
+    RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
     
     return NOOP;
 }

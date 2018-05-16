@@ -29,8 +29,12 @@
 
 #include<memory>
 #include "prf-pskel.h"
+#include <ossie/logging/rh_logger.h>
+
 namespace prf
 {
+    extern rh_logger::LoggerPtr parserLog;
+
     class Unit_pimpl: public virtual Unit_pskel,
       public ::xml_schema::string_pimpl
     {

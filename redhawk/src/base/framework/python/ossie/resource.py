@@ -313,7 +313,7 @@ class _PropertyChangeRec(object):
                 self.props[id_].recordChanged()
 
 class Resource(object):
-    def __init__(self, identifier, execparams, propertydefs=(), loggerName=None):
+    def __init__(self, identifier, execparams, propertydefs=(), loggerName=None, baseLogName=None):
         """propertydefs is a iterable of tuples that contain
 
         (propid, propname, type, mode, defaultvalue, units, action, kinds)
@@ -344,15 +344,22 @@ class Resource(object):
         self.loggingMacros = ossie.logger.GetDefaultMacros()
         ossie.logger.ResolveHostInfo( self.loggingMacros )
         self.loggingCtx = None
-        self.loggingURL=None
+        self.loggingURL = None
+        self._origLevelSet = False
 
         if loggerName == None:
             self._logid = execparams.get("NAME_BINDING", self._id )
             self._logid = self._logid.rsplit("_", 1)[0]
         else:
             self._logid = loggerName
+        if baseLogName == None:
+            baseLogName = execparams.get("NAME_BINDING", self._id )
         self._logid = self._logid.replace(":","_")
         self._log = logging.getLogger(self._logid)
+        self._baseLog = logging.getLogger(baseLogName)
+        self._resourceLog = self._baseLog.getChildLogger('Resource', ossie.utils.log4py.SYSTEM_LOGS)
+        self._portSupplierLog = self._baseLog.getChildLogger('PortSupplier', ossie.utils.log4py.SYSTEM_LOGS)
+        self._propertySetLog = self._baseLog.getChildLogger('PropertySet', ossie.utils.log4py.SYSTEM_LOGS)
         loglevel = self._log.getEffectiveLevel()
         if loglevel == logging.NOTSET:
             self.logLevel = logging.INFO
@@ -402,7 +409,7 @@ class Resource(object):
     #########################################
     # CF::Resource
     def start(self):
-        self._log.trace("start()")
+        self._resourceLog.trace("start()")
         # Check all ports for a startPort() method, and call it if one exists
         for portdef in self.__ports.itervalues():
             port = portdef.__get__(self)
@@ -411,7 +418,7 @@ class Resource(object):
         self._started = True
 
     def stop(self):
-        self._log.trace("stop()")
+        self._resourceLog.trace("stop()")
         # Check all ports for a stopPort() method, and call it if one exists
         for portdef in self.__ports.itervalues():
             port = portdef.__get__(self)
@@ -431,21 +438,21 @@ class Resource(object):
     #########################################
     # CF::LifeCycle
     def initialize(self):
-        self._log.trace("initialize()")
+        self._resourceLog.trace("initialize()")
         if not self.__initialized:
             self.__initialized = True
             try:
                 self.constructor()
                 self.__init_monitors()
             except Exception, exc:
-                self._log.error("initialize(): %s", str(exc))
+                self._resourceLog.error("initialize(): %s", str(exc))
                 raise CF.LifeCycle.InitializeError([str(exc)])
 
     def constructor(self):
         pass
 
     def releaseObject(self):
-        self._log.trace("releaseObject()")
+        self._resourceLog.trace("releaseObject()")
         self.stopPropertyChangeMonitor()
         # disable logging that uses EventChannels
         ossie.logger.SetEventChannelManager(None)
@@ -461,26 +468,26 @@ class Resource(object):
         """The default behavior of getPort() will automatically
         return ports as defined by 'usesport' and 'providesport'
         static class attributes."""
-        self._log.trace("getPort(%s)", name)
+        self._portSupplierLog.trace("getPort(%s)", name)
         try:
             portdef = self.__ports[name]
         except KeyError:
-            self._log.warning("getPort() could not find port %s", name)
+            self._portSupplierLog.warning("getPort() could not find port %s", name)
             raise CF.PortSupplier.UnknownPort()
         else:
             portobj = portdef.__get__(self)
             if portobj == None:
-                self._log.warning("component did not implement port %s",name)
+                self._portSupplierLog.warning("component did not implement port %s",name)
                 raise CF.PortSupplier.UnknownPort()
             port = portobj._this()
             if not portdef.isValid(port):
-                self._log.warning("getPort() for %s did match required repid", name)
-            self._log.trace("getPort() --> %s", port)
+                self._portSupplierLog.warning("getPort() for %s did match required repid", name)
+            self._portSupplierLog.trace("getPort() --> %s", port)
             return port
 
     def getPortSet(self):
        """Return list of ports for this Resource"""
-       self._log.trace("getPortSet()")
+       self._portSupplierLog.trace("getPortSet()")
        portList = []
        for name, portdef in self.__ports.iteritems():
            obj_ptr = self.getPort(name)
@@ -582,6 +589,7 @@ class Resource(object):
                 cfg_data=ossie.logger.GetConfigFileContents( logcfg_url )
                 if cfg_data and len(cfg_data) > 0 :
                     self.logConfig = ossie.logger.ExpandMacros( cfg_data, self.loggingMacros )
+                    self.logConfig = ossie.logger.ConfigureWithContext( self.logConfig, self.loggingMacros  )
             except:
                 pass
 
@@ -599,20 +607,25 @@ class Resource(object):
         # assign an event channel manager to the logging library
         ossie.logger.SetEventChannelManager( self._ecm )
 
+        if not self._origLevelSet:
+            self._origLevelSet = True;
+            self._origLogCfgURL = logcfg_url;
+            self._origLogLevel = oldstyle_loglevel;
+            self._origCtx = rscCtx;
 
     def setLogListenerCallback(self, logListenerCB ):
         self.logListenerCallback=logListenerCB
-        
+
     def addPropertyChangeListener(self, id, callback):
         self._props.addChangeListener(callback, id)
 
     #########################################
     # CF::LogConfiguration
     def _get_log_level(self):
-        if self._log:
-            lvl = ossie.logger.ConvertLog4ToCFLevel( self._log.getEffectiveLevel())
+        if self._baseLog:
+            lvl = ossie.logger.ConvertLog4ToCFLevel( self._baseLog.getEffectiveLevel())
             if lvl != self._logLevel:
-                self.logLevel = self._log.getEffectiveLevel()
+                self.logLevel = self._baseLog.getEffectiveLevel()
                 self._logLevel = lvl
 
         return self._logLevel
@@ -633,21 +646,43 @@ class Resource(object):
             ossie.logger.SetLogLevel( self._logid, newLogLevel )
             self._logLevel = newLogLevel
             self.logLevel = ossie.logger.ConvertToLog4Level( newLogLevel )
+            self._baseLog.setLevel(self.logLevel)
 
     def setLogLevel(self, logid, newLogLevel ):
+
+        if not self._baseLog.isLoggerInHierarchy(logid):
+            raise CF.UnknownIdentifier()
 
         if ossie.logger.SupportedCFLevel(newLogLevel) == False:
             return
 
         if self.logListenerCallback and callable(self.logListenerCallback.logLevelChanged):
-            #self._logLevel = newLogLevel
-            #self.logLevel = ossie.logger.ConvertToLog4Level( newLogLevel )
             self.logListenerCallback.logLevelChanged(logid, newLogLevel)
         else:
             ossie.logger.SetLogLevel( logid, newLogLevel )
             if logid == self._logid:
                 self._logLevel = newLogLevel
                 self.logLevel = ossie.logger.ConvertToLog4Level( newLogLevel )
+
+    def getLogLevel(self, logid ):
+        if not self._baseLog.isLoggerInHierarchy(logid):
+            raise CF.UnknownIdentifier()
+
+        lvl = ossie.logger.ConvertLog4ToCFLevel(logging.getLogger(logid).getEffectiveLevel())
+        return lvl
+
+    def getNamedLoggers(self):
+        return self._baseLog.getCurrentLoggers()
+
+    def resetLog(self):
+        for _logid in self._baseLog.getCurrentLoggers():
+            if _logid == self._baseLog.name:
+                ossie.logger.SetLogLevel(_logid, -1)
+            _b_id = _logid
+            while _b_id != self._baseLog.name:
+                ossie.logger.SetLogLevel(_b_id, -1)
+                _b_id = logging.getLogger(_b_id).parent.name
+        self.setLoggingContext(self._origLogCfgURL, self._origLogLevel, self._origCtx)
 
     def getLogConfig(self):
         return self.logConfig
@@ -693,7 +728,7 @@ class Resource(object):
     # CF::TestableObject
     def runTest(self, testid, properties):
         """Override this function to provide the desired behavior."""
-        self._log.trace("runTest()")
+        self._resourceLog.trace("runTest()")
         raise CF.TestableObject.UnknownTest()
     
     _propertyQueryTimestamp = 'QUERY_TIMESTAMP'
@@ -704,7 +739,7 @@ class Resource(object):
         self.propertySetAccess.acquire()
         # If the list is empty, get all props
         if configProperties == []:
-            self._log.trace("query all properties")
+            self._propertySetLog.trace("query all properties")
             try:
                 rv = []
                 for propid in self._props.keys():
@@ -712,7 +747,7 @@ class Resource(object):
                         try:
                             value = self._props.query(propid)
                         except Exception, e:
-                            self._log.error('Failed to query %s: %s', propid, e)
+                            self._propertySetLog.error('Failed to query %s: %s', propid, e)
                             value = any.to_any(None)
                         prp = self._props.getPropDef(propid)
                         if type(prp) == ossie.properties.struct_property:
@@ -737,7 +772,7 @@ class Resource(object):
 
         # otherwise get only the requested ones
         else:
-            self._log.trace("query %s properties", len(configProperties))
+            self._propertySetLog.trace("query %s properties", len(configProperties))
             try:
                 unknownProperties = []
                 for prop in configProperties:
@@ -748,7 +783,7 @@ class Resource(object):
                         try:
                             prop.value = self._props.query(prop.id)
                         except Exception, e:
-                            self._log.error('Failed to query %s: %s', prop.id, e)
+                            self._propertySetLog.error('Failed to query %s: %s', prop.id, e)
                         prp = self._props.getPropDef(prop.id)
                         if type(prp) == ossie.properties.struct_property:
                             newvalval = []
@@ -776,11 +811,11 @@ class Resource(object):
             rv = configProperties
         self.propertySetAccess.release()
 	
-        self._log.trace("query -> %s properties", len(rv))
+        self._propertySetLog.trace("query -> %s properties", len(rv))
         return rv
 
     def initializeProperties(self, ctorProps):
-        self._log.trace("initializeProperties(%s)", ctorProps)
+        self._propertySetLog.trace("initializeProperties(%s)", ctorProps)
 
         with self.propertySetAccess:
             # Disallow multiple calls
@@ -796,28 +831,28 @@ class Resource(object):
                             # run configure on property.. disable callback feature
                             self._props.construct(prop.id, prop.value)
                         except ValueError, e:
-                            self._log.warning("Invalid value provided to construct for property %s %s", prop.id, e)
+                            self._propertySetLog.warning("Invalid value provided to construct for property %s %s", prop.id, e)
                             notSet.append(prop)
                     else:
-                        self._log.warning("Tried to construct non-existent, readonly, or property with action not equal to external %s", prop.id)
+                        self._propertySetLog.warning("Tried to construct non-existent, readonly, or property with action not equal to external %s", prop.id)
                         notSet.append(prop)
                 except Exception, e:
-                    self._log.exception("Unexpected exception.")
+                    self._propertySetLog.exception("Unexpected exception.")
                     notSet.append(prop)
 
             if notSet:
                 if len(notSet) < len(ctorProps):
-                    self._log.warning("Property initialization failed with partial configuration, %s", notSet)
+                    self._propertySetLog.warning("Property initialization failed with partial configuration, %s", notSet)
                     raise CF.PropertySet.PartialConfiguration(notSet)
                 else:
-                    self._log.warning("Property initialization failed with invalid configuration, %s", notSet)
+                    self._propertySetLog.warning("Property initialization failed with invalid configuration, %s", notSet)
                     raise CF.PropertySet.InvalidConfiguration("Failure", notSet)
 
-        self._log.trace("initializeProperties(%s)", ctorProps)
+        self._propertySetLog.trace("initializeProperties(%s)", ctorProps)
 
 
     def configure(self, configProperties):
-        self._log.trace("configure(%s)", configProperties)
+        self._propertySetLog.trace("configure(%s)", configProperties)
         self.propertySetAccess.acquire()
         notSet = []
         error_message = ''
@@ -827,29 +862,29 @@ class Resource(object):
                     try:
                         self._props.configure(prop.id, prop.value)
                     except Exception, e:
-                        self._log.warning("Invalid value provided to configure for property %s: %s", prop.id, e)
+                        self._propertySetLog.warning("Invalid value provided to configure for property %s: %s", prop.id, e)
                         notSet.append(prop)
                 else:
-                    self._log.warning("Tried to configure non-existent, readonly, or property with action not equal to external %s", prop.id)
+                    self._propertySetLog.warning("Tried to configure non-existent, readonly, or property with action not equal to external %s", prop.id)
                     notSet.append(prop)
             except Exception, e:
                 error_message += str(e)
-                self._log.exception("Unexpected exception.")
+                self._propertySetLog.exception("Unexpected exception.")
                 notSet.append(prop)
 
         if len(notSet) > 0 and len(notSet) < len(configProperties):
             self.propertySetAccess.release()
-            self._log.warning("Configure failed with partial configuration, %s", notSet)
+            self._propertySetLog.warning("Configure failed with partial configuration, %s", notSet)
             raise CF.PropertySet.PartialConfiguration(notSet)
         elif len(notSet) > 0 and len(notSet) >= len(configProperties):
             self.propertySetAccess.release()
-            self._log.warning("Configure failed with invalid configuration, %s", notSet)
+            self._propertySetLog.warning("Configure failed with invalid configuration, %s", notSet)
             raise CF.PropertySet.InvalidConfiguration("Failure: "+error_message, notSet)
         self.propertySetAccess.release()
-        self._log.trace("configure(%s)", configProperties)
+        self._propertySetLog.trace("configure(%s)", configProperties)
 
     def registerPropertyListener(self, listener, prop_ids, interval):
-        self._log.trace("registerPropertyListener(%s)", prop_ids)
+        self._propertySetLog.trace("registerPropertyListener(%s)", prop_ids)
         self.propertySetAccess.acquire()
 
         
@@ -858,12 +893,12 @@ class Resource(object):
 
         # If the list is empty, get all props
         if prop_ids == []:
-            self._log.trace("registering all properties")
+            self._propertySetLog.trace("registering all properties")
             for propid in self._props.keys():
                 if self._props.has_id(propid) and self._props.isQueryable(propid):
                     props[propid] = _PCL_Monitor()
         else:
-            self._log.trace("registering %s properties", len(prop_ids))
+            self._propertySetLog.trace("registering %s properties", len(prop_ids))
             for pid in prop_ids:
                 if self._props.has_id(pid) and self._props.isQueryable(pid):
                     props[pid] = _PCL_Monitor()
@@ -872,7 +907,7 @@ class Resource(object):
                     unknownProperties.append(CF.DataType(pid,value))
 
         if len(unknownProperties) > 0:
-            self._log.warning("registerPropertyListener, called with invalid properties %s", unknownProperties)
+            self._propertySetLog.warning("registerPropertyListener, called with invalid properties %s", unknownProperties)
             self.propertySetAccess.release()
             raise CF.UnknownProperties(unknownProperties)
 
@@ -880,21 +915,21 @@ class Resource(object):
         pcl = None
         is_ec = False
         try:
-            self._log.debug("registerPropertyListener, Registering Event Channel...")
+            self._propertySetLog.debug("registerPropertyListener, Registering Event Channel...")
             pcl = _EC_PropertyChangeListener(listener)
             is_ec = True
         except:
             pcl = None
-            self._log.debug("registerPropertyListener, Try for PropertyChangeListener next...")
+            self._propertySetLog.debug("registerPropertyListener, Try for PropertyChangeListener next...")
 
         if is_ec == False:
             try:
-                self._log.debug("registerPropertyListener, Trying PropertyChangeListener interface...")
+                self._propertySetLog.debug("registerPropertyListener, Trying PropertyChangeListener interface...")
                 pcl = _INF_PropertyChangeListener(listener)
             except:
                 #print traceback.format_exc()
                 pcl = None
-                self._log.warning("registerPropertyListener, Caller provided invalid registrant.")
+                self._propertySetLog.warning("registerPropertyListener, Caller provided invalid registrant.")
                 self.propertySetAccess.release()
                 raise CF.InvalidObjectReference("registerPropertyListener, Caller provided invalid registrant.")
             
@@ -904,25 +939,25 @@ class Resource(object):
         reg_id = rec.regId
         self._props.addChangeListener( rec.callback )
         self._propChangeRegistry[reg_id] = rec
-        self._log.debug( "registerPropertyListener .. reg_id/interval: " + str(reg_id) + "/" + str(rec.reportInterval) + " callback: "+  str(self._propChangeRegistry[reg_id].callback))
+        self._propertySetLog.debug( "registerPropertyListener .. reg_id/interval: " + str(reg_id) + "/" + str(rec.reportInterval) + " callback: "+  str(self._propChangeRegistry[reg_id].callback))
         
         # start 
         if self._propChangeThread and self._propChangeThread.isRunning() == False :
-            self._log.debug( "registerPropertyListener  Starting PROPERTY CHANGE THREAD ... resource/reg_id: " + str(self._name) + "/" + str(reg_id) )
+            self._propertySetLog.debug( "registerPropertyListener  Starting PROPERTY CHANGE THREAD ... resource/reg_id: " + str(self._name) + "/" + str(reg_id) )
             self._propChangeThread.startThread()        
 
         self.propertySetAccess.release()
         return reg_id
 
     def unregisterPropertyListener(self, reg_id ):
-        self._log.debug("unregisterPropertyListener")
+        self._propertySetLog.debug("unregisterPropertyListener")
         self.propertySetAccess.acquire()
         if reg_id in self._propChangeRegistry:
             try:
-                self._log.debug("unregisterPropertyListener - Remove registration " + str(reg_id) )             
+                self._propertySetLog.debug("unregisterPropertyListener - Remove registration " + str(reg_id) )             
                 self._props.removeChangeListener( self._propChangeRegistry[reg_id].callback )
                 del self._propChangeRegistry[reg_id]
-                self._log.debug("unregisterPropertyListener - Removed registration " + str(reg_id) )
+                self._propertySetLog.debug("unregisterPropertyListener - Removed registration " + str(reg_id) )
 
             except:
                  pass
@@ -931,9 +966,9 @@ class Resource(object):
                 self.stopPropertyChangeMonitor()
                 
             self.propertySetAccess.release()
-            self._log.trace("unregisterPropertyListener")
+            self._propertySetLog.trace("unregisterPropertyListener")
         else:
-            self._log.trace("unregisterPropertyListener - end")
+            self._propertySetLog.trace("unregisterPropertyListener - end")
             self.propertySetAccess.release()
             raise CF.InvalidIdentifier()
 
@@ -944,25 +979,25 @@ class Resource(object):
 
     def stopPropertyChangeMonitor(self):
         if self._propChangeThread:
-            self._log.debug( "Stopping PROPERTY CHANGE THREAD ... ")
+            self._propertySetLog.debug( "Stopping PROPERTY CHANGE THREAD ... ")
             self._propChangeThread.stopThread()
 
     def _propertyChangeServiceFunction(self):
-        self._log.debug("_propertyChangeServiceFunction - START")
+        self._propertySetLog.debug("_propertyChangeServiceFunction - START")
         delay = 0.0
         now = time.time()
         self.propertySetAccess.acquire()
         try:
-            self._log.debug("_propertyChangeServiceFunction - checking registry.... " + str(len(self._propChangeRegistry)))
+            self._propertySetLog.debug("_propertyChangeServiceFunction - checking registry.... " + str(len(self._propChangeRegistry)))
             for regid,rec in self._propChangeRegistry.iteritems():
 
                 # process changes for each property
                 for k,p in rec.props.iteritems():
-                    self._log.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
+                    self._propertySetLog.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
                     try:
                         if self._propMonitors[k].isChanged():
                             p.recordChanged()
-                        self._log.debug("_propertyChangeServiceFunction - prop/changed. " + str(k) + "/" + str(self._propMonitors[k].isChanged()))
+                        self._propertySetLog.debug("_propertyChangeServiceFunction - prop/changed. " + str(k) + "/" + str(self._propMonitors[k].isChanged()))
                     except Exception, e:
                         pass
 
@@ -974,7 +1009,7 @@ class Resource(object):
                     idx=0
                     # process changes for each property
                     for k,p in rec.props.iteritems():
-                        self._log.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
+                        self._propertySetLog.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
                         if  p.isChanged() == True :
                             try:
                                 value = self._props.query(k)
@@ -985,9 +1020,9 @@ class Resource(object):
 
                     if len(rpt_props) > 0  and rec.pcl:
                         try:
-                            self._log.debug("_propertyChangeServiceFunction - sending notification reg_id:" + str( regid ))
+                            self._propertySetLog.debug("_propertyChangeServiceFunction - sending notification reg_id:" + str( regid ))
                             if rec.pcl.notify( rec, rpt_props ) != 0:
-                                self._log.error("Publishing changes to PropertyChangeListener FAILED, reg_id:" + str( regid ))
+                                self._propertySetLog.error("Publishing changes to PropertyChangeListener FAILED, reg_id:" + str( regid ))
                         except:
                             pass
                     
@@ -996,7 +1031,7 @@ class Resource(object):
 
                 if  delay == 0.0 : delay = dur
                 if dur > 0 : delay = min( delay, dur )
-                self._log.debug("_propertyChangeServiceFunction -  delay :" + str( delay ))
+                self._propertySetLog.debug("_propertyChangeServiceFunction -  delay :" + str( delay ))
         except:
             pass
 
@@ -1005,11 +1040,11 @@ class Resource(object):
            for k,mon in self._propMonitors.iteritems():
                mon.reset()
 
-        self._log.debug("_propertyChangeServiceFunction -  adjust thread delay :" + str( delay ))
+        self._propertySetLog.debug("_propertyChangeServiceFunction -  adjust thread delay :" + str( delay ))
         if delay > 0 : self._propChangeThread.setThreadDelay(delay)
         self.propertySetAccess.release()
         
-        self._log.debug("_propertyChangeServiceFunction - STOP")
+        self._propertySetLog.debug("_propertyChangeServiceFunction - STOP")
         return -1
 
 

@@ -24,4 +24,5 @@ public interface PortBase
 {
 	String getRepid();
 	String getDirection();
+    void setLogger(RHLogger logger);
 }

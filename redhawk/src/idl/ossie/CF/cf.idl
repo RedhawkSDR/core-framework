@@ -1143,7 +1143,7 @@ module CF {
                 CF::ExecutableDevice::ExecuteFail);
     };
     /* The DeviceManager interface is used to manage a set of logical Devices and services. */
-    interface DeviceManager : PropertyEmitter, PortSet {
+    interface DeviceManager : PropertyEmitter, PortSet, Logging {
       /* This structure provides the object reference and name of services that have registered with the DeviceManager. */
       struct ServiceType {
         Object serviceObject;

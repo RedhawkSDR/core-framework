@@ -43,6 +43,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
           sdr/dev/devices/writeonly_cpp/cpp \
+          sdr/dev/devices/log_test_cpp/cpp \
           sdr/dev/devices/DevC/cpp \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
@@ -56,6 +57,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/TestCppsoftpkgDeps \
           sdr/dom/components/BasicAC/BasicAC_cpp_impl1 \
           sdr/dom/components/BasicShared/cpp \
+          sdr/dom/components/logger/cpp \
           sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1 \
           sdr/dom/components/MessageReceiverCpp \
           sdr/dom/components/MessageSenderCpp \
@@ -96,6 +98,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dev/devices/devj/java \
            sdr/dev/devices/writeonly_java/java \
            sdr/dev/devices/DevC/java \
+           sdr/dev/devices/log_test_java/java \
            sdr/dev/devices/java_dev/java \
            sdr/dev/services/BasicService_java/java \
            sdr/dom/components/BasicAC/basicac_java_impl1 \
@@ -106,6 +109,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/huge_msg_java/java \
            sdr/dom/components/msg_through_java/java \
            sdr/dom/components/timeprop_java/java \
+           sdr/dom/components/logger_java/java \
            sdr/dom/components/time_ja_now/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \

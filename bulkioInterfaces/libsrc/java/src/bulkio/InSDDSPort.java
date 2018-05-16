@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
@@ -96,6 +97,8 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
      */
     protected Logger   logger = null;
 
+    public RHLogger _portLog = null;
+
     // callback when SDDS Stream Requests happen
     protected Callback                 attach_detach_callback;
 
@@ -155,6 +158,13 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
         synchronized (this.sriUpdateLock) {
 	    logger = newlogger;
 	}
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        synchronized (this.sriUpdateLock) {
+            this._portLog = logger;
+        }
     }
 
     /**
@@ -268,8 +278,8 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
      */
     public void pushSRI(StreamSRI H, PrecisionUTCTime T) {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
 	}
 
         synchronized (this.sriUpdateLock) {
@@ -295,8 +305,8 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
             }
         }
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
 	}
 
     }
@@ -308,22 +318,22 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
      */
     public String attach(SDDSStreamDefinition stream, String userid) throws AttachError, StreamInputError {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort attach  ENTER (port=" + name +")" );
-	    logger.debug("SDDS PORT: ATTACH REQUEST STREAM/USER:" + stream.id +"/" + userid );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort attach  ENTER (port=" + name +")" );
+	    _portLog.debug("SDDS PORT: ATTACH REQUEST STREAM/USER:" + stream.id +"/" + userid );
 	}
 
 	String attachId = null;
 	if ( attach_detach_callback != null ) {
-	    if ( logger != null ) {
-		logger.debug("SDDS PORT: CALLING ATTACH CALLBACK, STREAM/USER:" + stream.id +"/" + userid );
+	    if ( _portLog != null ) {
+		_portLog.debug("SDDS PORT: CALLING ATTACH CALLBACK, STREAM/USER:" + stream.id +"/" + userid );
 	    }
 	    try {
 		attachId = attach_detach_callback.attach(stream, userid);
 	    }
 	    catch(Exception e) {
-		if ( logger != null ) {
-		    logger.error("SDDS PORT: CALLING ATTACH EXCEPTION, STREAM/USER:" + stream.id +"/" + userid );
+		if ( _portLog != null ) {
+		    _portLog.error("SDDS PORT: CALLING ATTACH EXCEPTION, STREAM/USER:" + stream.id +"/" + userid );
 		}
 		throw new AttachError("Callback Failed");		
 	    }
@@ -335,9 +345,9 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
         this.attachedUsers.put(attachId, userid);
 
 
-	if ( logger != null ) {
-	    logger.debug("SDDS PORT: ATTACH COMPLETED, ID:" + attachId + " STREAM/USER:" + stream.id +"/" + userid );
-	    logger.trace("bulkio.InPort attach  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.debug("SDDS PORT: ATTACH COMPLETED, ID:" + attachId + " STREAM/USER:" + stream.id +"/" + userid );
+	    _portLog.trace("bulkio.InPort attach  EXIT (port=" + name +")" );
 	}
 
         return attachId;
@@ -348,21 +358,21 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
      */
     public void detach(String attachId) throws DetachError, StreamInputError {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort detach  ENTER (port=" + name +")" );
-	    logger.debug("SDDS PORT: DETACH REQUEST ID:" + attachId  );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort detach  ENTER (port=" + name +")" );
+	    _portLog.debug("SDDS PORT: DETACH REQUEST ID:" + attachId  );
 	}
 
 	if ( attach_detach_callback != null ) {
 	    try {
-		if ( logger != null ) {
-		    logger.debug("SDDS PORT: CALLING DETACH CALLBACK ID:" + attachId  );
+		if ( _portLog != null ) {
+		    _portLog.debug("SDDS PORT: CALLING DETACH CALLBACK ID:" + attachId  );
 		}
 		attach_detach_callback.detach(attachId);
 	    }
 	    catch( Exception e ) {
-		if ( logger != null ) {
-		    logger.error("SDDS PORT: DETACH CALLBACK EXCEPTION, ID:" + attachId  );
+		if ( _portLog != null ) {
+		    _portLog.error("SDDS PORT: DETACH CALLBACK EXCEPTION, ID:" + attachId  );
 		}
 		throw new DetachError();
 	    }
@@ -370,9 +380,9 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA implements PortBase {
         this.attachedStreamMap.remove(attachId);
         this.attachedUsers.remove(attachId);
 
-	if ( logger != null ) {
-	    logger.debug("SDDS PORT: DETACH SUCCESS, ID:" + attachId  );
-	    logger.trace("bulkio.InPort detach  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.debug("SDDS PORT: DETACH SUCCESS, ID:" + attachId  );
+	    _portLog.trace("bulkio.InPort detach  EXIT (port=" + name +")" );
 	}
     }
 

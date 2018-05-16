@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:6d36c876-3513-4a65-a133-318e56d3e323" name="log_test_java_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="log_test_java_7d5780dd-b830-4be5-9ed5-b97e8b329f52" type="SPD">
+      <localfile name="/devices/log_test_java/log_test_java.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="log_test_java_7d5780dd-b830-4be5-9ed5-b97e8b329f52"/>
+      <componentinstantiation id="log_test_java_node:log_test_java_1">
+        <usagename>log_test_java_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="log_test_java_7d5780dd-b830-4be5-9ed5-b97e8b329f52"/>
+      <componentinstantiation id="log_test_java_node:log_test_java_2">
+        <usagename>log_test_java_2</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

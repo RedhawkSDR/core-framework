@@ -200,6 +200,8 @@ public:
       if ( xfersize > 0 ) transferSize=xfersize;
     }
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
 
     // Increment the loadedFiles counter
@@ -227,6 +229,7 @@ protected:
 
     // Returns the base directory in use for the file cache
     const std::string& getCacheDirectory();
+    rh_logger::LoggerPtr _loadabledeviceLog;
 
  private:
     LoadableDevice_impl(); // No default constructor

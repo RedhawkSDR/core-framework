@@ -101,6 +101,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             # Instantiate the default implementations for all ports on this ${artifactType}
 #{% for port in component.ports %}
             self.${port.pyname} = ${port.constructor}
+            self.${port.pyname}._portLog = self._baseLog.getChildLogger('${port.name}', 'ports')
 #{% endfor %}
 #{% if component.hasmultioutport %}
             self.addPropertyChangeListener('connectionTable',self.updated_connectionTable)
@@ -129,7 +130,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             try:
                 self.stop()
             except Exception:
-                self._log.exception("Error stopping")
+                self._baseLog.exception("Error stopping")
             ${superclass}.releaseObject(self)
 
         ######################################################################
@@ -185,7 +186,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is provides and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''provides port(s)'''
+'''provides port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}
@@ -193,7 +194,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is uses and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''uses port(s)'''
+'''uses port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}

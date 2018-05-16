@@ -37,6 +37,16 @@ void Port_impl::disconnectPort(const char* connectionId)
 {
 }
 
+LOGGER PortBase::getLogger()
+{
+    return _portLog;
+}
+
+void PortBase::setLogger(LOGGER newLogger)
+{
+    _portLog = newLogger;
+}
+
 namespace redhawk {
 
     PortCallError::PortCallError( const std::string &msg, const std::vector<std::string> &connectionids ) :

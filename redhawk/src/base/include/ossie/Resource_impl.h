@@ -78,6 +78,7 @@ public:
     char* identifier () throw (CORBA::SystemException);
     CORBA::Boolean started() throw (CORBA::SystemException);
     char* softwareProfile () throw (CORBA::SystemException);
+    CF::StringSequence* getNamedLoggers();
     
     virtual void run ();
     virtual void halt ();
@@ -121,6 +122,8 @@ public:
     std::string naming_service_name;
     std::string _parent_id;
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
 
@@ -153,6 +156,8 @@ private:
         return component;
     }
 
+    rh_logger::LoggerPtr _resourceLog;
+
     // Generic implementation of start_component, taking a function pointer to
     // a component constructor (via make_component).
     typedef boost::function<Resource_impl* (const std::string&, const std::string&)> ctor_type;
@@ -166,6 +171,5 @@ private:
 
 public:
     static Resource_impl* create_component(ctor_type, const CF::Properties& parameters);
-
 };
 #endif

@@ -23,6 +23,7 @@ import frontend.RFInfoDelegate;
 import FRONTEND.RFInfoPkt;
 import FRONTEND.RFInfoHelper;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 public class InRFInfoPort extends FRONTEND.RFInfoPOA implements PortBase {
 
@@ -41,6 +42,12 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA implements PortBase {
         this.name = portName;
         this.delegate = d;
         this.portAccess = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public String rf_flow_id() {

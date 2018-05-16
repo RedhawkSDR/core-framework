@@ -107,7 +107,7 @@ namespace bulkio {
 
 
     InAttachablePort(std::string port_name, 
-                     LOGGER_PTR    logger,
+                     LOGGER_PTR    new_logger,
                      InAttachablePort::Callback *attach_detach_cb = NULL,
                      bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator, 
                      bulkio::time::Compare timeCmp = bulkio::time::DefaultComparator,
@@ -294,8 +294,6 @@ namespace bulkio {
     
     // statistics
     linkStatistics           *stats;
-
-    LOGGER_PTR               logger;
     
     SRICallback          newSRICallback;
 
@@ -567,14 +565,14 @@ namespace bulkio {
                       ConnectionEventListener *disconnectCB=NULL );
 
     OutAttachablePort(std::string port_name,
-                      LOGGER_PTR  logger,
+                      LOGGER_PTR  new_logger,
                       ConnectionEventListener *connectCB=NULL,
                       ConnectionEventListener *disconnectCB=NULL );
 
     virtual ~OutAttachablePort();
    
     //
-    // Allow users to set own logger
+    // Allow users to set own Logger
     //
     void setLogger( LOGGER_PTR newLogger );
 
@@ -750,8 +748,6 @@ namespace bulkio {
 
     std::vector<bulkio::connection_descriptor_struct> filterTable;
 
-    LOGGER_PTR                                     logger;
-       
   private:
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;

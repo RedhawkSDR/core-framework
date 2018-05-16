@@ -42,8 +42,9 @@ namespace {
     }
 }
 
-ProfileCache::ProfileCache(CF::FileSystem_ptr fileSystem) :
-    fileSystem(CF::FileSystem::_duplicate(fileSystem))
+ProfileCache::ProfileCache(CF::FileSystem_ptr fileSystem, rh_logger::LoggerPtr log) :
+    fileSystem(CF::FileSystem::_duplicate(fileSystem)),
+    _profilecache_log(log)
 {
 }
 
@@ -57,7 +58,7 @@ const SoftPkg* ProfileCache::loadProfile(const std::string& spdFilename)
     // to load it
     if (softpkg->getPRFFile() && !softpkg->getProperties()) {
         const std::string prf_file = softpkg->getPRFFile();
-        LOG_TRACE(ProfileCache, "Loading PRF file " << prf_file);
+        RH_TRACE(_profilecache_log, "Loading PRF file " << prf_file);
         try {
             File_stream prf_stream(fileSystem, prf_file.c_str());
             softpkg->loadProperties(prf_stream);
@@ -72,7 +73,7 @@ const SoftPkg* ProfileCache::loadProfile(const std::string& spdFilename)
     // to load it
     if (softpkg->getSCDFile() && !softpkg->getDescriptor()) {
         const std::string scd_file = softpkg->getSCDFile();
-        LOG_TRACE(ProfileCache, "Loading SCD file " << scd_file);
+        RH_TRACE(_profilecache_log, "Loading SCD file " << scd_file);
         try {
             File_stream scd_stream(fileSystem, scd_file.c_str());
             softpkg->loadDescriptor(scd_stream);
@@ -91,12 +92,12 @@ const SoftPkg* ProfileCache::loadSoftPkg(const std::string& filename)
     // Check the cache first
     BOOST_FOREACH(SoftPkg& softpkg, profiles) {
         if (softpkg.getSPDFile() == filename) {
-            LOG_TRACE(ProfileCache, "Found existing SPD " << filename);
+            RH_TRACE(_profilecache_log, "Found existing SPD " << filename);
             return &softpkg;
         }
     }
 
-    LOG_TRACE(ProfileCache, "Loading SPD file " << filename);
+    RH_TRACE(_profilecache_log, "Loading SPD file " << filename);
     SoftPkg* softpkg = 0;
     try {
         File_stream spd_stream(fileSystem, filename.c_str());

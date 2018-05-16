@@ -202,6 +202,17 @@ class ${className}(${baseClass}):
             
             The callback is then registered on the component as:
             self.addPropertyChangeListener('baudRate', self.mycallback)
+
+        Logging:
+
+            The member _baseLog is a logger whose base name is the component (or device) instance name.
+            New logs should be created based on this logger name.
+
+            To create a new logger,
+                my_logger = self._baseLog.getChildLogger("foo")
+
+            Assuming component instance name abc_1, my_logger will then be created with the 
+            name "abc_1.user.foo".
             
 #{% if component is device %}
         Allocation:
@@ -263,7 +274,7 @@ class ${className}(${baseClass}):
         """
 
         # TODO fill in your code here
-        self._log.debug("process() example log message")
+        self._baseLog.debug("process() example log message")
         return NOOP
 
 #{% block extensions %}

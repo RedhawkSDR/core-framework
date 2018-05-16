@@ -40,6 +40,7 @@ class ${className}(${component.baseclass}):
 
     def __init__(self, name="${className}", execparams={}):
         self.name = name
+        self._baseLog = logging.getLogger(self.name)
         self._log = logging.getLogger(self.name)
 
     def terminateService(self):

@@ -37,6 +37,8 @@
 
 namespace ossie
 {
+    extern rh_logger::LoggerPtr proputilsLog;
+
     CF::DataType convertPropertyToDataType(const Property* prop);
     CF::DataType convertPropertyRefToDataType(const ComponentProperty* prop);
     CF::DataType convertPropertyRefToDataType(const ComponentProperty& prop);

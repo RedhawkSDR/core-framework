@@ -73,11 +73,6 @@ namespace ossie {
 
   namespace logging {
 
-    // resolve logging config uri from command line
-    std::string  ResolveLocalUri( const std::string &logfile_uri,
-                                  const std::string &rootPath,
-                                  std::string &validated_uri );
-
     static const std::string DomPrefix("dom");
     static const std::string DevMgrPrefix("devmgr");
     static const std::string DevicePrefix("dev");
@@ -1110,19 +1105,19 @@ namespace ossie {
         }
 
         if ( ptype == XML_PROPS ) {
-          STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
-          log4cxx::xml::DOMConfigurator::configure(fname);
-        }
-        else {
-          STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
-          log4cxx::helpers::Properties  props;
-          // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
-          log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
-          props.load(is);
-          STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
-          log4cxx::PropertyConfigurator::configure(props);
-
-          if (saveTemp)  boost::filesystem::remove(fname);
+            STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
+            log4cxx::xml::DOMConfigurator::configure(fname);
+        } else {
+            STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
+            log4cxx::helpers::Properties  props;
+            // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
+            log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
+            props.load(is);
+            STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
+            log4cxx::PropertyConfigurator::configure(props);
+            if (saveTemp) {
+                boost::filesystem::remove(fname);
+            }
         }
 
         cfgContents = fileContents;

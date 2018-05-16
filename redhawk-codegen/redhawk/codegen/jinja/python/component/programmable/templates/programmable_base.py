@@ -137,7 +137,7 @@ class ${className}(${baseClass}):
         # Validate that the ${executeType} was instantiated properly
         if not ${executeType}:
             msg = "Unable to instantiate '%s'" % str(name)
-            self._log.error(msg)
+            self._baseLog.error(msg)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, msg)
         
         # Validate that we can set the parentDevice reference on the persona
@@ -145,7 +145,7 @@ class ${className}(${baseClass}):
             persona._parentDevice = self
         else:
             msg = "Unable to set parent device on persona '%s'" % str(name)
-            self._log.warning(msg)
+            self._baseLog.warning(msg)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, msg)
 
         # Setup variables for storing the mappings
@@ -231,14 +231,14 @@ class ${className}(${baseClass}):
                 self._populateHwLoadRequest(hwLoadRequestsContainer, capacity)
 
                 if not (self.hwLoadRequestsAreValid(hwLoadRequestsContainer)):
-                    self._log.warn("Received invalid hw_load_request - Not allocating hardware!")
+                    self._baseLog.warn("Received invalid hw_load_request - Not allocating hardware!")
                     continue;
 
                 hwLoadStatusesContainer = self.getHwLoadStatusesContainer()
                 allocationSuccess = self._applyHwLoadRequests(hwLoadRequestsContainer,
                                                               hwLoadStatusesContainer)
                 if (allocationSuccess):
-                    self._log.warn("TODO: Figure out this callback in allocateCapacity")
+                    self._baseLog.warn("TODO: Figure out this callback in allocateCapacity")
                     # TODO: Figure out the callback
         finally:
             self.updateAdminStates()
@@ -254,7 +254,7 @@ class ${className}(${baseClass}):
             if capacity.id != HW_LOAD_REQUEST_PROP:
                 continue;
 
-            self._log.debug("Deallocating hw_load_requests...")
+            self._baseLog.debug("Deallocating hw_load_requests...")
 
             # TODO: Populate hwLoadRequestsToRemove
             hwLoadStatusesContainer = self.getHwLoadStatusesContainer()
@@ -267,12 +267,12 @@ class ${className}(${baseClass}):
 
         if not deallocationSuccess:
             msg = "Unable to deallocate hw_load_requests!"
-            self._log.error(msg)
+            self._baseLog.error(msg)
             raise CF.Device.InvalidCapacity(msg, capacities)
 
     
     def releaseObject(self):
-        self._log.debug("Received release call")
+        self._baseLog.debug("Received release call")
         # Wrapped in list in order to use list copy
         for fakePid in list(self._processMap.keys()):
             self.terminate(fakePid)
@@ -323,7 +323,7 @@ class ${className}(${baseClass}):
                 success |= self._applyHwLoadRequest(loadRequest, availableStatusContainer)
                 usedStatusIndices.append(availableStatusIndex)
             else:
-                self._log.error("Device cannot be allocated against.  No more hw_load capacity available!")
+                self._baseLog.error("Device cannot be allocated against.  No more hw_load capacity available!")
                 success = False
 
             # Rollback all statuses that we're previously valid
@@ -368,11 +368,11 @@ class ${className}(${baseClass}):
         loadStatusStruct.state = HwLoadStates.INACTIVE
 
     def loadHardware(self, newStatus):
-        self._log.debug("Method 'loadHardware' is not implemented!")
+        self._baseLog.debug("Method 'loadHardware' is not implemented!")
         return True
 
     def unloadHardware(self, loadStatus):
-        self._log.debug("Method 'unloadHardware' is not implemented")
+        self._baseLog.debug("Method 'unloadHardware' is not implemented")
 
     def _removeHwLoadRequestFromStatus(self, hwLoadRequest, hwLoadStatusContainer):
         for hwLoadStatus in hwLoadStatusContainer:
@@ -405,7 +405,7 @@ class ${className}(${baseClass}):
             for resource in self._${executeType}Map.values():
                 resourceId = resource._get_identifier()
                 if runningPersonas.count(resourceId) < 1:
-                    self._log.debug("Locking device: '%s'" % str(resourceId)) 
+                    self._baseLog.debug("Locking device: '%s'" % str(resourceId)) 
                     resource._set_adminState(CF.Device.LOCKED)
 
 #{% endif %}
@@ -420,7 +420,7 @@ class ${className}(${baseClass}):
         # Iterate through each request in list
         for request in requestVals:
             if request.id != "hw_load_request":
-                self._log.warn("Unable to convert incoming request - PropId must be 'hw_load_request'")
+                self._baseLog.warn("Unable to convert incoming request - PropId must be 'hw_load_request'")
                 continue;
             
             request_id = ""
@@ -467,7 +467,7 @@ class ${className}(${baseClass}):
                 for status in container:
                     # Validate that our container has the 'request_id' field
                     if not hasattr(status, "request_id"):
-                        self._log.warn("Unable to locate status by request_id: \
+                        self._baseLog.warn("Unable to locate status by request_id: \
                                         HwLoadStatuses does not have request_id field!")
                         return retVal
 

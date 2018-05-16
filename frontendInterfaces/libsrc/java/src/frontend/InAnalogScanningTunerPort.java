@@ -25,6 +25,7 @@ import FRONTEND.NotSupportedException;
 import FRONTEND.AnalogScanningTunerHelper;
 import frontend.AnalogScanningTunerDelegate;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 import FRONTEND.ScanningTunerPackage.ScanStatus;
 import FRONTEND.ScanningTunerPackage.ScanStrategy;
 import BULKIO.PrecisionUTCTime;
@@ -46,6 +47,12 @@ public class InAnalogScanningTunerPort extends FRONTEND.AnalogScanningTunerPOA i
         this.name = portName;
         this.delegate = d;
         this.portAccess = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public String getTunerType(String id) {

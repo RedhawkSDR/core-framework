@@ -52,9 +52,10 @@ public:
 
 PREPARE_CF_LOGGING(ApplicationValidator);
 
-ApplicationValidator::ApplicationValidator(CF::FileSystem_ptr fileSystem) :
+ApplicationValidator::ApplicationValidator(CF::FileSystem_ptr fileSystem, rh_logger::LoggerPtr log) :
     fileSystem(CF::FileSystem::_duplicate(fileSystem)),
-    cache(fileSystem)
+    cache(fileSystem, log),
+    _appFactoryLog(log)
 {
 }
 
@@ -126,12 +127,12 @@ void ApplicationValidator::validateSoftPkgRef(const SPD::SoftPkgRef& softpkgref)
     }
 
     // Basic checking for valid, existing filename
-    LOG_TRACE(ApplicationValidator, "Validating SPD " << spd_file);
+    RH_TRACE(_appFactoryLog, "Validating SPD " << spd_file);
     if (!fileExists(spd_file)) {
         throw validation_error("softpkgref " + spd_file + " does not exist");
     }
     if (!endsWith(spd_file, ".spd.xml")) {
-        LOG_WARN(ApplicationValidator, "SPD file " << spd_file << " should end with .spd.xml");
+        RH_WARN(_appFactoryLog, "SPD file " << spd_file << " should end with .spd.xml");
     }
 
     // If this fails, it will throw redhawk::invalid_profile
@@ -155,7 +156,7 @@ void ApplicationValidator::validateSoftPkgRef(const SPD::SoftPkgRef& softpkgref)
                 validateImplementation(softpkg, implementation, false);
                 valid_implementations++;
             } catch (const validation_error& err) {
-                LOG_WARN(ApplicationValidator, err.what());
+                RH_WARN(_appFactoryLog, err.what());
             }
         }
         if (valid_implementations == 0) {
@@ -168,11 +169,11 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
                                                   const SPD::Implementation& implementation,
                                                   bool executable)
 {
-    LOG_TRACE(ApplicationValidator, "Validating SPD implementation " << implementation.getID());
+    RH_TRACE(_appFactoryLog, "Validating SPD implementation " << implementation.getID());
 
     // Always ensure that the localfile exists
     std::string localfile = _relativePath(softpkg, implementation.getCodeFile());
-    LOG_TRACE(ApplicationValidator, "Validating code localfile " << localfile);
+    RH_TRACE(_appFactoryLog, "Validating code localfile " << localfile);
     if (!fileExists(localfile)) {
         throw bad_implementation(softpkg, implementation, "missing localfile " + localfile);
     }
@@ -184,7 +185,7 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
             throw bad_implementation(softpkg, implementation, "has no entry point");
         }
         std::string entry_point = _relativePath(softpkg, implementation.getEntryPoint());
-        LOG_TRACE(ApplicationValidator, "Validating code entry point " << entry_point);
+        RH_TRACE(_appFactoryLog, "Validating code entry point " << entry_point);
         if (!fileExists(entry_point)) {
             throw bad_implementation(softpkg, implementation, "missing entrypoint " + entry_point);
         }
@@ -225,7 +226,7 @@ void ApplicationValidator::validateHostCollocation(const SoftwareAssembly::HostC
                 else {
                     devReq.first = instantiation.getID();
                     devReq.second = deviceRequires;
-                    LOG_TRACE(ApplicationValidator, "devicerequires collocation: " << collocation.getName() << " instantiation :" << devReq.first << " devicerequires: " << devReq.second);
+                    RH_TRACE(_appFactoryLog, "devicerequires collocation: " << collocation.getName() << " instantiation :" << devReq.first << " devicerequires: " << devReq.second);
                 }
             }
         }
@@ -240,12 +241,12 @@ void ApplicationValidator::validateComponentPlacement(const ComponentPlacement& 
     }
 
     // Basic checking for valid, existing filename
-    LOG_TRACE(ApplicationValidator, "Validating SPD " << spd_file);
+    RH_TRACE(_appFactoryLog, "Validating SPD " << spd_file);
     if (!fileExists(spd_file)) {
         throw validation_error("componentfile " + placement._componentFileRef + " points to non-existent file " + spd_file);
     }
     if (!endsWith(spd_file, ".spd.xml")) {
-        LOG_WARN(ApplicationValidator, "SPD file " << spd_file << " should end with .spd.xml");
+        RH_WARN(_appFactoryLog, "SPD file " << spd_file << " should end with .spd.xml");
     }
 
     // If this fails, it will throw redhawk::invalid_profile
@@ -255,13 +256,13 @@ void ApplicationValidator::validateComponentPlacement(const ComponentPlacement& 
     if (softpkg->getPRFFile()) {
         std::string prf_file = softpkg->getPRFFile();
         if (!endsWith(prf_file, ".prf.xml")) {
-            LOG_WARN(ApplicationValidator, "PRF file " << prf_file << " should end with .prf.xml");
+            RH_WARN(_appFactoryLog, "PRF file " << prf_file << " should end with .prf.xml");
         }
     }
     if (softpkg->getSCDFile()) {
         std::string scd_file = softpkg->getSCDFile();
         if (!endsWith(scd_file, ".scd.xml")) {
-            LOG_WARN(ApplicationValidator, "SCD file " << scd_file << " should end with .scd.xml");
+            RH_WARN(_appFactoryLog, "SCD file " << scd_file << " should end with .scd.xml");
         }
     }
 
@@ -271,7 +272,7 @@ void ApplicationValidator::validateComponentPlacement(const ComponentPlacement& 
             validateImplementation(softpkg, implementation, true);
             valid_implementations++;
         } catch (const validation_error& err) {
-            LOG_WARN(ApplicationValidator, err.what());
+            RH_WARN(_appFactoryLog, err.what());
         }
     }
     if (valid_implementations == 0) {
@@ -304,7 +305,7 @@ const Properties* ApplicationValidator::getAssemblyControllerProperties(const So
 
 bool ApplicationValidator::fileExists(const std::string& filename)
 {
-    LOG_TRACE(ApplicationValidator, "Checking existence of file '" << filename << "'");
+    RH_TRACE(_appFactoryLog, "Checking existence of file '" << filename << "'");
     try {
         return fileSystem->exists(filename.c_str());
     } catch (...) {

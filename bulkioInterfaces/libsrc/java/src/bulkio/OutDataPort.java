@@ -45,8 +45,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
      */
     public void connectPort(final org.omg.CORBA.Object connection, final String connectionId) throws CF.PortPackage.InvalidPort, CF.PortPackage.OccupiedPort
     {
-        if (logger != null) {
-            logger.trace("bulkio.OutPort connectPort ENTER (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort connectPort ENTER (port=" + name +")");
         }
 
         if (connection == null) {
@@ -84,8 +84,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             // take sub-byte elements (i.e., dataBit) into account.
             stats.setBitSize(helper.bitSize());
             this.stats.put(connectionId, stats);
-            if (logger != null) {
-                logger.debug("bulkio.OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
+            if (_portLog != null) {
+                _portLog.debug("bulkio.OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
             }
         }
 
@@ -93,8 +93,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             callback.connect(connectionId);
         }
 
-        if (logger != null) {
-            logger.trace("bulkio.OutPort connectPort EXIT (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort connectPort EXIT (port=" + name +")");
         }
     }
 
@@ -103,8 +103,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
      */
     public void disconnectPort(String connectionId) throws CF.PortPackage.InvalidPort
     {
-        if (logger != null) {
-            logger.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")");
         }
 
         synchronized (this.updatingPortsLock) {
@@ -125,8 +125,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                     try {
                         sendPacket(port, data, tstamp, true, streamID);
                     } catch(Exception e) {
-                        if (logger != null) {
-                            logger.error("Call to pushPacket failed on port " + name + " connection " + connectionId);
+                        if (_portLog != null) {
+                            _portLog.error("Call to pushPacket failed on port " + name + " connection " + connectionId);
                         }
                     }
                 }
@@ -140,10 +140,10 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                 entry.getValue().connections.remove(connectionId);
             }
 
-            if (logger != null) {
-                logger.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
+            if (_portLog != null) {
+                _portLog.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
                 for(Map.Entry<String,SriMapStruct> entry: this.currentSRIs.entrySet()) {
-                    logger.trace("bulkio.OutPort updated currentSRIs key=" + entry.getKey() + ", value.sri=" + entry.getValue().sri + ", value.connections=" + entry.getValue().connections);
+                    _portLog.trace("bulkio.OutPort updated currentSRIs key=" + entry.getKey() + ", value.sri=" + entry.getValue().sri + ", value.connections=" + entry.getValue().connections);
                 }
             }
         }
@@ -152,8 +152,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             callback.disconnect(connectionId);
         }
 
-        if (logger != null) {
-            logger.trace("bulkio.OutPort disconnectPort EXIT (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort disconnectPort EXIT (port=" + name +")");
         }
     }
 
@@ -162,8 +162,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
      */
     public void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
-        if (logger != null) {
-            logger.trace("bulkio.OutPort pushPacket  ENTER (port=" + this.name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort pushPacket  ENTER (port=" + this.name +")");
         }
 
         synchronized(this.updatingPortsLock) {
@@ -176,8 +176,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             pushPacketData(data, time, endOfStream, streamID);
         }
 
-        if (logger != null) {
-            logger.trace("bulkio.OutPort pushPacket  EXIT (port=" + this.name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort pushPacket  EXIT (port=" + this.name +")");
         }
     }
 
@@ -204,14 +204,14 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
      */
     public void pushSRI(StreamSRI header)
     {
-        if (logger != null) {
-            logger.trace("bulkio.OutPort pushSRI  ENTER (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort pushSRI  ENTER (port=" + name +")");
         }
 
         // Header cannot be null
         if (header == null) {
-            if (logger != null) {
-                logger.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")");
+            if (_portLog != null) {
+                _portLog.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")");
             }
             return;
         }
@@ -246,8 +246,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                         this.updateStats(connectionID);
                     } catch (Exception e) {
                         if ( this.reportConnectionErrors(connectionID)) {
-                            if (this.logger != null) {
-                                logger.error("Call to pushSRI failed on port " + name + " connection " + connectionID);
+                            if (this._portLog != null) {
+                                _portLog.error("Call to pushSRI failed on port " + name + " connection " + connectionID);
                             }
                         }
                     }
@@ -255,8 +255,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             }
         }
 
-        if (logger != null) {
-            logger.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")");
+        if (_portLog != null) {
+            _portLog.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")");
         }
     }
 
@@ -285,8 +285,8 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
                     this.stats.get(connectionID).update(length, (float)0.0, endOfStream, streamID, false);
                 } catch (Exception e) {
                     if ( this.reportConnectionErrors(connectionID)) {
-                        if ( this.logger != null ) {
-                            logger.error("Call to pushPacket failed on port " + name + " connection " + connectionID);
+                        if ( this._portLog != null ) {
+                            _portLog.error("Call to pushPacket failed on port " + name + " connection " + connectionID);
                         }
                     }
                 }

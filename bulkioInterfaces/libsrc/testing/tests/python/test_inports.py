@@ -202,7 +202,7 @@ class InPortTest(object):
         stream_id = 'invalid_stream'
 
         # Turn off the port's logging to avoid dumping a warning to the screen
-        self.port.logger.setLevel(logging.OFF);
+        self.port.getLogger().setLevel(logging.OFF);
 
         # Push data without an SRI to check that the sriChanged flag is still
         # set and the SRI callback gets called
