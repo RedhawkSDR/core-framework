@@ -171,8 +171,6 @@ namespace redhawk {
 
         bool _hasConnection(const std::string& connectionId);
 
-        LOGGER logger;
-
         ConnectionList _connections;
 
     private:
