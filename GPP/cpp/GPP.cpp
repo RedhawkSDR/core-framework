@@ -42,6 +42,7 @@
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/sysinfo.h>
+#include <sys/epoll.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -203,11 +204,12 @@ namespace rh_logger {
 //
 //  proc_redirect class and helpers
 //
-class FindRedirect : public std::binary_function< GPP_i::proc_redirect, int, bool >  {
+class FindRedirect : public std::binary_function< GPP_i::ProcRedirectPtr, int, bool >  {
 
 public:
-  bool operator() ( const GPP_i::proc_redirect &a, const int &pid ) const {
-    return a.pid == pid;
+    //    bool operator() ( const GPP_i::proc_redirect &a, const int &pid ) const {
+  bool operator() ( const GPP_i::ProcRedirectPtr a, const int &pid ) const {
+    return a->pid == pid;
   };
 };
 
@@ -409,6 +411,7 @@ void GPP_i::_init() {
   //
   _handle_io_redirects = false;
   _componentOutputLog ="";
+  epfd=epoll_create(400);
 
   //
   // add our local set affinity method that performs numa library calls
@@ -746,13 +749,13 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
       ExecPartitionList::iterator iter =  execPartitions.begin();
       std::ostringstream ss;
       ss  << boost::format("%-6s %-4s %-7s %-7s %-7s ") % "SOCKET" % "CPUS" % "USER"  % "SYSTEM"  % "IDLE"  ;
-      LOG_INFO(GPP_i, ss.str()  );
+      LOG_TRACE(GPP_i, ss.str()  );
       ss.clear();
       ss.str("");
       for ( ; iter != execPartitions.end(); iter++ ) {
         iter->update();  iter->update();
         ss  << boost::format("%-6d %-4d %-7.2f %-7.2f %-7.2f ") % iter->id % iter->stats.get_ncpus() % iter->stats.get_user_percent()  % iter->stats.get_system_percent()  % iter->stats.get_idle_percent() ;
-        LOG_INFO(GPP_i, ss.str()  );    
+        LOG_TRACE(GPP_i, ss.str()  );    
         ss.clear();
         ss.str("");
       }
@@ -1285,16 +1288,32 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 
     // setup to capture stdout and stderr from children.
     int comp_fd[2];
+    std::string rfname;
     if ( _handle_io_redirects ) {
-      if ( pipe( comp_fd ) == -1 ) {
-        LOG_ERROR(GPP_i, "Failure to create redirected IO for:" << path);
-        throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to create redirected IO for component");
-      }
+	rfname=__ExpandEnvVars(componentOutputLog);
+	rfname=__ExpandProperties(rfname, parameters );
+	if ( rfname == _componentOutputLog ) {
+	    LOG_TRACE(GPP_i, "Redirect to common file for :" << path << " file: " << rfname );
+	    if ( pipe( comp_fd ) == -1 ) {
+		LOG_ERROR(GPP_i, "Failure to create redirected IO for:" << path);
+		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to create redirected IO for component");
+	    }
       
-      if ( fcntl( comp_fd[0], F_SETFD, FD_CLOEXEC ) == -1 ) {
-        LOG_ERROR(GPP_i, "Failure to support redirected IO for:" << path);
-        throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to support redirected IO for component");
-      }
+	    if ( fcntl( comp_fd[0], F_SETFD, FD_CLOEXEC ) == -1 ) {
+		LOG_ERROR(GPP_i, "Failure to support redirected IO for:" << path);
+		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to support redirected IO for component");
+	    }
+	}
+	else { // per process logging
+	    LOG_TRACE(GPP_i, "Redirect per process for :" << path << " file: " << rfname );
+	    comp_fd[0]=-1;
+	    comp_fd[1] = open(rfname.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
+	    if ( comp_fd[1] == -1 ) {
+		LOG_ERROR(GPP_i, "Failure to create redirected IO for:" << path);
+		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to create redirected IO for component");
+	    }
+	}
+	  
  
     }
     
@@ -1356,7 +1375,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
             exit(-1);
         } 
 
-        close(comp_fd[0]);
+        if ( comp_fd[0] != -1 ) close(comp_fd[0]);
         close(comp_fd[1]);
       }
 
@@ -1425,10 +1444,14 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
       close(comp_fd[1]);
       LOG_TRACE(GPP_i, "Adding Task for IO Redirection PID:" << pid << " : stdout "<< comp_fd[0] );
       WriteLock wlock(fdsLock);
-      // trans form file name if contains env or exec param expansion
-      std::string rfname=__ExpandEnvVars(componentOutputLog);
-      rfname=__ExpandProperties(rfname, parameters );
-      redirectedFds.push_front( proc_redirect( rfname, pid, comp_fd[0] ) );
+      if ( comp_fd[0] != -1 ) {
+	  ProcRedirectPtr rd = ProcRedirectPtr( new proc_redirect( rfname, pid, comp_fd[0] ) );
+	  redirectedFds.push_front( rd  );
+	  epoll_event event;
+	  event.data.ptr = (void*)(rd.get());
+	  event.events = EPOLLIN;
+	  int ret = epoll_ctl (epfd, EPOLL_CTL_ADD, comp_fd[0], &event);
+      }
     }
 
 
@@ -1591,7 +1614,7 @@ void GPP_i::updateUsageState()
           oss <<  "   Nic: " << m->get_resource_id() << " exceeded " << m->is_threshold_exceeded() << " threshold=" << m->get_threshold() << " measured=" << m->get_measured() << std::endl;
       }
 
-      LOG_DEBUG(GPP_i,  "USAGE STATE: " << std::endl <<
+      LOG_TRACE(GPP_i,  "USAGE STATE: " << std::endl <<
                 " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
                 " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
                 " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
@@ -1813,13 +1836,13 @@ int GPP_i::serviceFunction()
     ExecPartitionList::iterator iter =  execPartitions.begin();
     std::ostringstream ss;
     ss  << boost::format("%-6s %-4s %-7s %-7s %-7s ") % "SOCKET" % "CPUS" % "USER"  % "SYSTEM"  % "IDLE";
-    LOG_DEBUG(GPP_i, ss.str()  );
+    LOG_TRACE(GPP_i, ss.str()  );
     ss.clear();
     ss.str("");
     for ( ; iter != execPartitions.end(); iter++ ) {
     
       ss  << boost::format("%-6d %-4d %-7.2f %-7.2f %-7.2f ") % iter->id % iter->stats.get_ncpus() % iter->stats.get_user_percent()  % iter->stats.get_system_percent()  % iter->stats.get_idle_percent() ;
-      LOG_DEBUG(GPP_i, ss.str()  );    
+      LOG_TRACE(GPP_i, ss.str()  );    
       ss.clear();
       ss.str("");
     }
@@ -1950,18 +1973,18 @@ void GPP_i::_affinity_changed( const affinity_struct *ovp, const affinity_struct
 
   if ( ovp )  {
     const affinity_struct ov = *ovp;
-    LOG_DEBUG(GPP_i, "OV:                " );
-    LOG_DEBUG(GPP_i, "OV: ov.policy/context " << ov.exec_directive_class << "/" << ov.exec_directive_value );
-    LOG_DEBUG(GPP_i, "OV: ov.blacklist size " << ov.blacklist_cpus.size() );
-    LOG_DEBUG(GPP_i, "OV: ov.force_override " << ov.force_override );
-    LOG_DEBUG(GPP_i, "OV: ov.disabled       " << ov.disabled );
+    LOG_TRACE(GPP_i, "OV:                " );
+    LOG_TRACE(GPP_i, "OV: ov.policy/context " << ov.exec_directive_class << "/" << ov.exec_directive_value );
+    LOG_TRACE(GPP_i, "OV: ov.blacklist size " << ov.blacklist_cpus.size() );
+    LOG_TRACE(GPP_i, "OV: ov.force_override " << ov.force_override );
+    LOG_TRACE(GPP_i, "OV: ov.disabled       " << ov.disabled );
   }
 
-  LOG_DEBUG(GPP_i, "NV:                " );
-  LOG_DEBUG(GPP_i, "NV: nv.policy/context " << nv.exec_directive_class << "/" << nv.exec_directive_value );
-  LOG_DEBUG(GPP_i, "NV: nv.blacklist size " << nv.blacklist_cpus.size() );
-  LOG_DEBUG(GPP_i, "NV: nv.force_override " << nv.force_override );
-  LOG_DEBUG(GPP_i, "NV: nv.disabled       " << nv.disabled );
+  LOG_TRACE(GPP_i, "NV:                " );
+  LOG_TRACE(GPP_i, "NV: nv.policy/context " << nv.exec_directive_class << "/" << nv.exec_directive_value );
+  LOG_TRACE(GPP_i, "NV: nv.blacklist size " << nv.blacklist_cpus.size() );
+  LOG_TRACE(GPP_i, "NV: nv.force_override " << nv.force_override );
+  LOG_TRACE(GPP_i, "NV: nv.disabled       " << nv.disabled );
 
   // change affinity struct to affinity spec..
   redhawk::affinity::AffinityDirective value;
@@ -2485,7 +2508,7 @@ void GPP_i::update()
   utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
   utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
            " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
            " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
            "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
@@ -2498,7 +2521,7 @@ void GPP_i::update()
            " loadTotal: " << loadTotal  << std::endl <<
            " loadFree(Modified): " << loadFree <<std::endl );
 
-  LOG_DEBUG(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << "  Reservation : " << std::endl << 
            "  total sys usage: " << f_end_total << std::endl << 
            "  total user usage: " << f_use_end_total << std::endl << 
            "  reservation_set: " << reservation_set << std::endl << 
@@ -2511,7 +2534,7 @@ void GPP_i::update()
            "  maximum: " << utilization[0].maximum << std::endl );
 
   const SystemMonitor::Report &rpt = system_monitor->getReport();
-  LOG_DEBUG(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << " SysInfo Load : " << std::endl << 
            "  one: " << rpt.load.one_min << std::endl << 
            "  five: " << rpt.load.five_min << std::endl << 
            "  fifteen: " << rpt.load.fifteen_min << std::endl );
@@ -2521,7 +2544,7 @@ void GPP_i::update()
   loadAverage.fifteenmin = rpt.load.fifteen_min;
 
   memFree = rpt.virtual_memory_free / mem_free_units;
-  LOG_DEBUG(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
+  LOG_TRACE(GPP_i, __FUNCTION__ << "Memory : " << std::endl << 
            " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
            " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
            " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
@@ -2626,7 +2649,7 @@ int GPP_i::redirected_io_handler()
     return NOOP;
   }
 
-  LOG_DEBUG(GPP_i, " Locking For Redirect Processing............. ");
+  LOG_TRACE(GPP_i, " Locking For Redirect Processing............. ");
   ReadLock lock(fdsLock);  
 
   int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
@@ -2642,79 +2665,48 @@ int GPP_i::redirected_io_handler()
 
   size_t   size = 0;
   uint64_t cnt = 0;
-  uint64_t fopens = 0;
   uint64_t fcloses = 0;
   uint64_t nbytes = 0;
   size_t   result=0;
   int      rd_fd =0;
-  ProcessFds::iterator fd = redirectedFds.begin();
-  for ( ; fd != redirectedFds.end() && _handle_io_redirects ; fd++ ) {
 
-    // set default redirect to be master
-    rd_fd=redirect_file;
+  size_t nfds=redirectedFds.size();
+  // set default redirect to be master
+  rd_fd=redirect_file;
+  std::vector<epoll_event> events(nfds);
+  int rfds = epoll_wait(epfd, events.data(), nfds, 10);
 
-    // check if our pid is vaid
-    if ( fd->pid > 0 and fd->cout > -1 ) {
-
-      // open up a specific redirect file 
-      if ( fd->fname != "" && fd->fname != _componentOutputLog ) {
-        LOG_TRACE(GPP_i, " OPEN FILE - PID: " << fd->pid << "  fname " << fd->fname);
-        rd_fd = open(fd->fname.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
-        if ( rd_fd == -1 )  {
-          LOG_ERROR(GPP_i, " Unable to open component output log: " << fd->fname);
-          rd_fd = redirect_file;  
-        }
-        else {
-          fopens++;
-          if ( lseek(rd_fd, 0, SEEK_END) == -1  )  {
-            LOG_DEBUG(GPP_i, " Unable to SEEK To file end, file: " << fd->fname);
-          }
-        }
+  if ( rfds > 0 ) {
+      for ( int i=0; i< rfds; i++ ) { 
+	  size = 0;
+	  result=0;
+	  proc_redirect *fd=(proc_redirect*)events[i].data.ptr;
+	  if (ioctl (fd->cout, FIONREAD, &size) == -1) {
+	      LOG_ERROR(GPP_i, "(redirected IO) Error requesting how much to read,  PID: " << fd->pid << " FD:" << fd->cout );       
+	      close(fd->cout);
+	      fd->cout = -1;
+	      fcloses++;
+	  }
+	  if ( fd->cout != -1 && rd_fd != -1 )  {
+	      result = splice( fd->cout, NULL, rd_fd, NULL, size,0 );
+	      LOG_TRACE(GPP_i, " SPLICE DATA From Child to Output RES:" << result << "...  PID: " << fd->pid << " FD:" << fd->cout );        
+	  }
+	  if ( (int64_t)result == -1 )  {
+	      LOG_ERROR(GPP_i, "(redirected IO) Error during transfer to redirected file,   PID: " << fd->pid << " FD:" << fd->cout );        
+	      close(fd->cout);
+	      fd->cout = -1;
+	      fcloses++;
+	  }
+	  else {
+	      nbytes += result;
+	      cnt++;
+	  }
       }
-
-      fd_set readfds;
-      FD_ZERO(&readfds);
-      FD_SET(fd->cout, &readfds);
-      struct timeval tv = {0, 50};
-      select(fd->cout+1, &readfds, NULL, NULL, &tv);
-      if (FD_ISSET(fd->cout, &readfds)) {
-
-        result=0;
-        size = 0;
-        if (ioctl (fd->cout, FIONREAD, &size) == -1) {
-          LOG_ERROR(GPP_i, "(redirected IO) Error requesting how much to read,  PID: " << fd->pid << " FD:" << fd->cout );        
-          close(fd->cout);
-          fd->cout = -1;
-        }
-        if ( fd->cout != -1 && rd_fd != -1 )  {
-          LOG_TRACE(GPP_i, " SPLICE DATA From Child to Output SIZE " << size << "...... PID: " << fd->pid << " FD:" << fd->cout );        
-          result = splice( fd->cout, NULL, rd_fd, NULL, size,0 );
-          LOG_TRACE(GPP_i, " SPLICE DATA From Child to Output RES:" << result << "... PID: " << fd->pid << " FD:" << fd->cout );        
-        }
-        if ( (int64_t)result == -1 )  {
-          LOG_ERROR(GPP_i, "(redirected IO) Error during transfer to redirected file,  PID: " << fd->pid << " FD:" << fd->cout );        
-          close(fd->cout);
-          fd->cout = -1;
-        }
-        else {
-          nbytes += result;
-          cnt++;
-        }
-      }
-
-    }
-
-    /// close our per component redirected io file if we opened one
-    if ( rd_fd != -1 && rd_fd != redirect_file ) {
-      fcloses++;
-      close(rd_fd);
-    }
-
   }
-
+  
   // close file while we wait
   if ( redirect_file ) close(redirect_file);
-  LOG_DEBUG(GPP_i, " IO REDIRECT,  NPROCS: "<< redirectedFds.size() << " OPEN/CLOSE " << fopens << "/" << fcloses <<" PROCESSED PROCS/Bytes " << cnt << "/" << nbytes );
+  LOG_DEBUG(GPP_i, " IO REDIRECT,  NPROCS: "<< redirectedFds.size() << " CLOSED: " << fcloses <<" PROCESSED PROCS/Bytes " << cnt << "/" << nbytes );
   return NOOP;
 }
 
@@ -2783,9 +2775,11 @@ void GPP_i::removeProcess(int pid)
     WriteLock  wlock(fdsLock);
     ProcessFds::iterator i=std::find_if( redirectedFds.begin(), redirectedFds.end(), std::bind2nd( FindRedirect(), pid ) );
     if ( i != redirectedFds.end() )  {
-      i->close();
-      LOG_DEBUG(GPP_i, "Redirectio IO ..REMOVE Redirected pid:" << pid  );
-      redirectedFds.erase(i);
+	ProcRedirectPtr rdp=*i;
+	rdp->close();
+	rdp.reset();
+	LOG_DEBUG(GPP_i, "Redirectio IO ..REMOVE Redirected pid:" << pid  );
+	redirectedFds.erase(i);
     }
   }
     
