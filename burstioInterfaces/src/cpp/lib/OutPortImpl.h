@@ -659,7 +659,7 @@ namespace burstio {
             streamQueues_[streamID] = &defaultQueue_;
             return defaultQueue_;
         } else {
-            RH_TRACE(logger, "Creating new queue for stream " << streamID);
+            RH_TRACE(_portLog, "Creating new queue for stream " << streamID);
             // Propagate the default queue's settings
             size_t max_bursts = defaultQueue_.getMaxBursts();
             size_t byte_threshold = defaultQueue_.getByteThreshold();
