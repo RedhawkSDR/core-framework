@@ -424,7 +424,7 @@ bool Property::isExternal() const
 
 std::string Property::mapPrimitiveToComplex(const std::string& type) const 
 {
-    std::string newType;
+    std::string newType = type;
     if (type.compare("float") == 0) {
         newType = "complexFloat";
     } else if (type.compare("double") == 0) {
