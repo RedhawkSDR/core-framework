@@ -598,7 +598,6 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                                         break
 
                             if _ov_key == None or not overloadedValue.has_key(_ov_key):
-                                print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
                                 if _DEBUG:
                                     print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
                                 continue
@@ -621,6 +620,19 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                 continue
             if allProps[prop].mode != "readonly" and 'configure' in allProps[prop].kinds:
                 setattr(component, allProps[prop].clean_name, allProps[prop].defValue)
+
+def _loadStructMembers(parent):
+    simples = parent.get_simpleref()
+    value = {}
+    for simple in simples:
+        value[str(simple.refid)] = str(simple.value)
+    simpleseqs = parent.get_simplesequenceref()
+    for simpleseq in simpleseqs:
+        _seq = []
+        for seq_value in simpleseq.values.get_value():
+            _seq.append(str(seq_value))
+        value[str(simpleseq.refid)] = _seq
+    return value
 
 def loadSADFile(filename, props={}):
     '''
@@ -923,16 +935,8 @@ def loadSADFile(filename, props={}):
                         for struct in structs:
                             if not (struct.refid in configurable[sandboxComponent._instanceName]):
                                 continue
-                            simples = struct.get_simpleref()
                             value = {}
-                            for simple in simples:
-                                value[str(simple.refid)] = str(simple.value)
-                            simpleseqs = struct.get_simplesequenceref()
-                            for simpleseq in simpleseqs:
-                                _seq = []
-                                for seq_value in simpleseq.values.get_value():
-                                    _seq.append(str(seq_value))
-                                value[str(simpleseq.refid)] = _seq
+                            value.update(_loadStructMembers(struct))
                             if struct.refid in props and assemblyController:
                                 value = props[struct.refid]
                                 props.pop(struct.refid)
@@ -951,16 +955,8 @@ def loadSADFile(filename, props={}):
                                 continue
                             values_vals = []
                             for struct_template in structseq.get_structvalue():
-                                simples = struct_template.get_simpleref()
                                 value = {}
-                                for simple in simples:
-                                    value[str(simple.refid)] = str(simple.value)
-                                simpleseqs = struct_template.get_simplesequenceref()
-                                for simpleseq in simpleseqs:
-                                    _seq = []
-                                    for seq_value in simpleseq.values.get_value():
-                                        _seq.append(str(seq_value))
-                                    value[str(simpleseq.refid)] = _seq
+                                value.update(_loadStructMembers(struct_template))
                                 values_vals.append(value)
                             if structseq.refid in props and assemblyController:
                                 values_vals = props[structseq.refid]
