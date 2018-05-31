@@ -437,60 +437,115 @@ CORBA::Any ossie::string_to_any(std::string value, CORBA::TypeCode_ptr type)
 
 CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind)
 {
+    return strings_to_any(values, kind, NULL);
+}
+
+CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind, CORBA::TypeCode_ptr type)
+{
     CORBA::Any result;
     switch (kind) {
     case CORBA::tk_boolean:
         result <<= strings_to_boolean_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_char:
         result <<= strings_to_char_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_double:
         result <<= strings_to_double_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_octet:
         result <<= strings_to_octet_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_ushort:
         result <<= strings_to_unsigned_short_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_short:
         result <<= strings_to_short_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_float:
         result <<= strings_to_float_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_ulong:
         result <<= strings_to_unsigned_long_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_long:
         result <<= strings_to_long_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_longlong:
         result <<= strings_to_long_long_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_ulonglong:
         result <<= strings_to_unsigned_long_long_sequence(values);
-        break;
-
+        return result;
     case CORBA::tk_string:
         result <<= strings_to_string_sequence(values);
-        break;
+        return result;
     default:
         result = CORBA::Any();
     }
+    if (type != NULL) {
+        std::string structName = any_to_string(*(type->parameter(0)));
+        if (structName == "complexFloat"){
+            result <<= strings_to_complex_float_sequence(values);
+        } else if (structName == "complexBoolean"){
+            result <<= strings_to_complex_boolean_sequence(values);
+        } else if (structName == "complexULong"){
+            result <<= strings_to_complex_unsigned_long_sequence(values);
+        } else if (structName == "complexShort"){
+            result <<= strings_to_complex_short_sequence(values);
+        } else if (structName == "complexOctet"){
+            result <<= strings_to_complex_octet_sequence(values);
+        } else if (structName == "complexChar"){
+            result <<= strings_to_complex_char_sequence(values);
+        } else if (structName == "complexUShort"){
+            result <<= strings_to_complex_unsigned_short_sequence(values);
+        } else if (structName == "complexDouble"){
+            result <<= strings_to_complex_double_sequence(values);
+        } else if (structName == "complexLong"){
+            result <<= strings_to_complex_long_sequence(values);
+        } else if (structName == "complexLongLong"){
+            result <<= strings_to_complex_long_long_sequence(values);
+        } else if (structName == "complexULongLong"){
+            result <<= strings_to_complex_unsigned_long_long_sequence(values);
+        } else {
+            result = CORBA::Any();
+        }
+    }
     return result;
 }
+
+/*CORBA::Any ossie::strings_to_any(const std::vector<std::string>& values, CORBA::TypeCode_ptr type)
+{
+    CORBA::Any result;
+    std::string structName = any_to_string(*(type->parameter(0)));
+    if (structName == "complexFloat"){
+        result <<= strings_to_complex_float_sequence(values);
+    } else if (structName == "complexBoolean"){
+        result <<= strings_to_complex_boolean_sequence(values);
+    } else if (structName == "complexULong"){
+        result <<= strings_to_complex_unsigned_long_sequence(values);
+    } else if (structName == "complexShort"){
+        result <<= strings_to_complex_short_sequence(values);
+    } else if (structName == "complexOctet"){
+        result <<= strings_to_complex_octet_sequence(values);
+    } else if (structName == "complexChar"){
+        result <<= strings_to_complex_char_sequence(values);
+    } else if (structName == "complexUShort"){
+        result <<= strings_to_complex_unsigned_short_sequence(values);
+    } else if (structName == "complexDouble"){
+        result <<= strings_to_complex_double_sequence(values);
+    } else if (structName == "complexLong"){
+        result <<= strings_to_complex_long_sequence(values);
+    } else if (structName == "complexLongLong"){
+        result <<= strings_to_complex_long_long_sequence(values);
+    } else if (structName == "complexULongLong"){
+        result <<= strings_to_complex_unsigned_long_long_sequence(values);
+    } else {
+        result = CORBA::Any();
+    }
+
+    return result;
+}*/
 
 /*
  * Convert a CORBA::Any to a string in the format A+jB.
@@ -794,14 +849,45 @@ CORBA::BooleanSeq* ossie::strings_to_boolean_sequence(const std::vector<std::str
     return result._retn();
 }
 
+CF::complexBooleanSeq* ossie::strings_to_complex_boolean_sequence(const std::vector<std::string> &values)
+{
+    CF::complexBooleanSeq_var result = new CF::complexBooleanSeq;
+
+    result->length(values.size());
+    CF::complexBoolean *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<bool, CF::complexBoolean>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
+    }
+    return result._retn();
+}
+
 CORBA::CharSeq* ossie::strings_to_char_sequence(const std::vector<std::string> &values)
 {
     CORBA::CharSeq_var result = new CORBA::CharSeq;
 
     result->length(values.size());
     for (unsigned int i = 0; i < values.size(); ++i) {
-
         result[i] = values[i][0];
+    }
+    return result._retn();
+}
+
+CF::complexCharSeq* ossie::strings_to_complex_char_sequence(const std::vector<std::string> &values)
+{
+    CF::complexCharSeq_var result = new CF::complexCharSeq;
+
+    result->length(values.size());
+    CF::complexChar *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<int, CF::complexChar>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
     return result._retn();
 }
@@ -813,6 +899,23 @@ CORBA::DoubleSeq* ossie::strings_to_double_sequence(const std::vector<std::strin
     result->length(values.size());
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = strtod(values[i].c_str(), NULL);
+    }
+
+    return result._retn();
+}
+
+CF::complexDoubleSeq* ossie::strings_to_complex_double_sequence(const std::vector<std::string> &values)
+{
+    CF::complexDoubleSeq_var result = new CF::complexDoubleSeq;
+
+    result->length(values.size());
+    CF::complexDouble *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<double, CF::complexDouble>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
 
     return result._retn();
@@ -831,6 +934,24 @@ CORBA::FloatSeq* ossie::strings_to_float_sequence(const std::vector<std::string>
     return result._retn();
 }
 
+CF::complexFloatSeq* ossie::strings_to_complex_float_sequence(const std::vector<std::string> &values)
+{
+    CF::complexFloatSeq_var result = new CF::complexFloatSeq;
+
+    result->length(values.size());
+
+    CF::complexFloat *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<float, CF::complexFloat>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
+    }
+
+    return result._retn();
+}
+
 CORBA::ShortSeq* ossie::strings_to_short_sequence(const std::vector<std::string> &values)
 {
     CORBA::ShortSeq_var result = new CORBA::ShortSeq;
@@ -839,6 +960,24 @@ CORBA::ShortSeq* ossie::strings_to_short_sequence(const std::vector<std::string>
 
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = (short) strtol(values[i].c_str(), NULL, 0);
+    }
+
+    return result._retn();
+}
+
+CF::complexShortSeq* ossie::strings_to_complex_short_sequence(const std::vector<std::string> &values)
+{
+    CF::complexShortSeq_var result = new CF::complexShortSeq;
+
+    result->length(values.size());
+
+    CF::complexShort*vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<short, CF::complexShort>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
 
     return result._retn();
@@ -857,6 +996,24 @@ CORBA::LongSeq* ossie::strings_to_long_sequence(const std::vector<std::string> &
     return result._retn();
 }
 
+CF::complexLongSeq* ossie::strings_to_complex_long_sequence(const std::vector<std::string> &values)
+{
+    CF::complexLongSeq_var result = new CF::complexLongSeq;
+
+    result->length(values.size());
+
+    CF::complexLong *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<CORBA::Long, CF::complexLong>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
+    }
+
+    return result._retn();
+}
+
 CORBA::LongLongSeq* ossie::strings_to_long_long_sequence(const std::vector<std::string> &values)
 {
     CORBA::LongLongSeq_var result = new CORBA::LongLongSeq;
@@ -865,6 +1022,24 @@ CORBA::LongLongSeq* ossie::strings_to_long_long_sequence(const std::vector<std::
 
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = strtoll(values[i].c_str(), NULL, 0);
+    }
+
+    return result._retn();
+}
+
+CF::complexLongLongSeq* ossie::strings_to_complex_long_long_sequence(const std::vector<std::string> &values)
+{
+    CF::complexLongLongSeq_var result = new CF::complexLongLongSeq;
+
+    result->length(values.size());
+
+    CF::complexLongLong *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<CORBA::LongLong, CF::complexLongLong>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
 
     return result._retn();
@@ -883,6 +1058,24 @@ CORBA::ULongLongSeq* ossie::strings_to_unsigned_long_long_sequence(const std::ve
     return result._retn();
 }
 
+CF::complexULongLongSeq* ossie::strings_to_complex_unsigned_long_long_sequence(const std::vector<std::string> &values)
+{
+    CF::complexULongLongSeq_var result = new CF::complexULongLongSeq;
+
+    result->length(values.size());
+
+    CF::complexULongLong *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<CORBA::ULongLong, CF::complexULongLong>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
+    }
+
+    return result._retn();
+}
+
 CORBA::OctetSeq* ossie::strings_to_octet_sequence(const std::vector<std::string> &values)
 {
     CORBA::OctetSeq_var result = new CORBA::OctetSeq;
@@ -891,6 +1084,24 @@ CORBA::OctetSeq* ossie::strings_to_octet_sequence(const std::vector<std::string>
 
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = (short) strtol(values[i].c_str(), NULL, 0);
+    }
+
+    return result._retn();
+}
+
+CF::complexOctetSeq* ossie::strings_to_complex_octet_sequence(const std::vector<std::string> &values)
+{
+    CF::complexOctetSeq_var result = new CF::complexOctetSeq;
+
+    result->length(values.size());
+
+    CF::complexOctet *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<unsigned int, CF::complexOctet>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
 
     return result._retn();
@@ -909,6 +1120,24 @@ CORBA::UShortSeq* ossie::strings_to_unsigned_short_sequence(const std::vector<st
     return result._retn();
 }
 
+CF::complexUShortSeq* ossie::strings_to_complex_unsigned_short_sequence(const std::vector<std::string> &values)
+{
+    CF::complexUShortSeq_var result = new CF::complexUShortSeq;
+
+    result->length(values.size());
+
+    CF::complexUShort *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<unsigned short, CF::complexUShort>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
+    }
+
+    return result._retn();
+}
+
 CORBA::ULongSeq* ossie::strings_to_unsigned_long_sequence(const std::vector<std::string> &values)
 {
     CORBA::ULongSeq_var result = new CORBA::ULongSeq;
@@ -917,6 +1146,24 @@ CORBA::ULongSeq* ossie::strings_to_unsigned_long_sequence(const std::vector<std:
 
     for (unsigned int i = 0; i < values.size(); ++i) {
         result[i] = (unsigned long) atoll(values[i].c_str());
+    }
+
+    return result._retn();
+}
+
+CF::complexULongSeq* ossie::strings_to_complex_unsigned_long_sequence(const std::vector<std::string> &values)
+{
+    CF::complexULongSeq_var result = new CF::complexULongSeq;
+
+    result->length(values.size());
+
+    CF::complexULong *vtmp;
+    CORBA::Any tmp;
+    for (unsigned int i = 0; i < values.size(); ++i) {
+        tmp = convertComplexStringToAny<CORBA::ULong, CF::complexULong>(values[i]);
+        tmp >>= vtmp;
+        result[i].imag = vtmp->imag;
+        result[i].real = vtmp->real;
     }
 
     return result._retn();

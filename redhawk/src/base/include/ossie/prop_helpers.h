@@ -101,6 +101,8 @@ namespace ossie
     std::string any_to_string(const CORBA::Any& value);
 
     CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind);
+    CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind, CORBA::TypeCode_ptr type);
+
     CORBA::BooleanSeq* strings_to_boolean_sequence(const std::vector<std::string> &values);
     CORBA::CharSeq* strings_to_char_sequence(const std::vector<std::string> &values);
     CORBA::DoubleSeq* strings_to_double_sequence(const std::vector<std::string> &values);
@@ -113,6 +115,18 @@ namespace ossie
     CORBA::ULongSeq* strings_to_unsigned_long_sequence(const std::vector<std::string> &values);
     CORBA::ULongLongSeq* strings_to_unsigned_long_long_sequence(const std::vector<std::string> &values);
     CORBA::StringSeq* strings_to_string_sequence(const std::vector<std::string> &values);
+
+    CF::complexBooleanSeq* strings_to_complex_boolean_sequence(const std::vector<std::string> &values);
+    CF::complexCharSeq* strings_to_complex_char_sequence(const std::vector<std::string> &values);
+    CF::complexDoubleSeq* strings_to_complex_double_sequence(const std::vector<std::string> &values);
+    CF::complexFloatSeq* strings_to_complex_float_sequence(const std::vector<std::string> &values);
+    CF::complexShortSeq* strings_to_complex_short_sequence(const std::vector<std::string> &values);
+    CF::complexLongSeq* strings_to_complex_long_sequence(const std::vector<std::string> &values);
+    CF::complexLongLongSeq* strings_to_complex_long_long_sequence(const std::vector<std::string> &values);
+    CF::complexOctetSeq* strings_to_complex_octet_sequence(const std::vector<std::string> &values);
+    CF::complexUShortSeq* strings_to_complex_unsigned_short_sequence(const std::vector<std::string> &values);
+    CF::complexULongSeq* strings_to_complex_unsigned_long_sequence(const std::vector<std::string> &values);
+    CF::complexULongLongSeq* strings_to_complex_unsigned_long_long_sequence(const std::vector<std::string> &values);
 
     CORBA::TCKind       getTypeKind(std::string type);
     CORBA::TypeCode_ptr getTypeCode(std::string type);
