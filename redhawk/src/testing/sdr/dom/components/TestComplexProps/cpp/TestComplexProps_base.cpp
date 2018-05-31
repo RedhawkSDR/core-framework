@@ -1,22 +1,3 @@
-/*
- * This file is protected by Copyright. Please refer to the COPYRIGHT file
- * distributed with this source distribution.
- *
- * This file is part of REDHAWK core.
- *
- * REDHAWK core is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- */
 #include "TestComplexProps_base.h"
 
 /*******************************************************************************************
@@ -30,55 +11,31 @@
 ******************************************************************************************/
 
 TestComplexProps_base::TestComplexProps_base(const char *uuid, const char *label) :
-    Resource_impl(uuid, label),
-    serviceThread(0)
+    Component(uuid, label),
+    ThreadedComponent()
 {
-    construct();
+    loadProperties();
 }
 
-void TestComplexProps_base::construct()
+TestComplexProps_base::~TestComplexProps_base()
 {
-    Resource_impl::_started = false;
-    loadProperties();
-    serviceThread = 0;
-    
-    PortableServer::ObjectId_var oid;
 }
 
 /*******************************************************************************************
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void TestComplexProps_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
-{
-}
-
 void TestComplexProps_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
 {
-    boost::mutex::scoped_lock lock(serviceThreadLock);
-    if (serviceThread == 0) {
-        serviceThread = new ProcessThread<TestComplexProps_base>(this, 0.1);
-        serviceThread->start();
-    }
-    
-    if (!Resource_impl::started()) {
-    	Resource_impl::start();
-    }
+    Component::start();
+    ThreadedComponent::startThread();
 }
 
 void TestComplexProps_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
 {
-    boost::mutex::scoped_lock lock(serviceThreadLock);
-    // release the child thread (if it exists)
-    if (serviceThread != 0) {
-        if (!serviceThread->release(2)) {
-            throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
-        }
-        serviceThread = 0;
-    }
-    
-    if (Resource_impl::started()) {
-    	Resource_impl::stop();
+    Component::stop();
+    if (!ThreadedComponent::stopThread()) {
+        throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
     }
 }
 
@@ -91,119 +48,105 @@ void TestComplexProps_base::releaseObject() throw (CORBA::SystemException, CF::L
         // TODO - this should probably be logged instead of ignored
     }
 
-    // deactivate ports
-    releaseInPorts();
-    releaseOutPorts();
-
-
-    Resource_impl::releaseObject();
+    Component::releaseObject();
 }
 
 void TestComplexProps_base::loadProperties()
 {
     addProperty(complexBooleanProp,
-                std::complex<bool> (0,1),
+                std::complex<bool>(false,true),
                 "complexBooleanProp",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexULongProp,
-                std::complex<CORBA::ULong> (4,5),
+                std::complex<CORBA::ULong>(4,5),
                 "complexULongProp",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexShortProp,
-                std::complex<short> (4,5),
+                std::complex<short>(4,5),
                 "complexShortProp",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexFloatProp,
-                std::complex<float> (4.0,5.0),
+                std::complex<float>(4.0,5.0),
                 "complexFloatProp",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexOctetProp,
-                std::complex<unsigned char> (4,5),
+                std::complex<unsigned char>(4,5),
                 "complexOctetProp",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
-
-    addProperty(complexCharProp,
-                std::complex<char> (4,5),
-                "complexCharProp",
-                "",
-                "readwrite",
-                "",
-                "external",
-                "configure");
+                "property");
 
     addProperty(complexUShort,
-                std::complex<unsigned short> (4,5),
+                std::complex<unsigned short>(4,5),
                 "complexUShort",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexDouble,
-                std::complex<double> (4.0,5.0),
+                std::complex<double>(4.0,5.0),
                 "complexDouble",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexLong,
-                std::complex<CORBA::Long> (4,5),
+                std::complex<CORBA::Long>(4,5),
                 "complexLong",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexLongLong,
-                std::complex<CORBA::LongLong> (4,5),
+                std::complex<CORBA::LongLong>(4LL,5LL),
                 "complexLongLong",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexULongLong,
-                std::complex<CORBA::ULongLong> (4,5),
+                std::complex<CORBA::ULongLong>(4LL,5LL),
                 "complexULongLong",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     // Set the sequence with its initial values
-    complexFloatSequence.push_back(std::complex<float> (4.0,5.0));
-    complexFloatSequence.push_back(std::complex<float> (4.0,5.0));
-    complexFloatSequence.push_back(std::complex<float> (4.0,5.0));
+    complexFloatSequence.push_back(std::complex<float>(6.0,7.0));
+    complexFloatSequence.push_back(std::complex<float>(4.0,5.0));
+    complexFloatSequence.push_back(std::complex<float>(4.0,5.0));
     addProperty(complexFloatSequence,
                 complexFloatSequence,
                 "complexFloatSequence",
@@ -211,7 +154,7 @@ void TestComplexProps_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(FloatStruct,
                 FloatStruct_struct(),
@@ -220,7 +163,7 @@ void TestComplexProps_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexFloatStruct,
                 complexFloatStruct_struct(),
@@ -229,7 +172,7 @@ void TestComplexProps_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(FloatStructSequence,
                 "FloatStructSequence",
@@ -237,14 +180,24 @@ void TestComplexProps_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(complexFloatStructSequence,
+                complexFloatStructSequence,
                 "complexFloatStructSequence",
                 "",
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
+
+    {
+        complexFloatStructSequenceMember_struct __tmp;
+        __tmp.complex_float_seq.push_back(std::complex<float>(9.0,4.0));
+        __tmp.complexFloatStructSequenceMemberMemember = std::complex<float>(6.0,5.0);
+        complexFloatStructSequence.push_back(__tmp);
+    }
 
 }
+
+
