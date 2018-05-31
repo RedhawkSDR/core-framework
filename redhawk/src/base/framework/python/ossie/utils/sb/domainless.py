@@ -110,6 +110,7 @@ import traceback
 from omniORB import CORBA, any
 
 from ossie import parsers
+from ossie import properties as core_properties
 from ossie.utils import prop_helpers
 from ossie.utils.model import _DEBUG
 from ossie.utils.model import *
@@ -425,6 +426,75 @@ class overloadContainer:
         self.value = value
         self.type = type
 
+def convertStringToComplex(value, basetype):
+    _split = value.split('+')
+    real_idx = -1
+    imag_idx = -1
+    for idx in range(len(_split)):
+        if 'j' in _split[idx]:
+            if imag_idx != -1:
+                raise Exception("the proposed overload (id="+id+") is not a complex number ("+value+")")
+            imag_idx = idx
+        else:
+            if real_idx != -1:
+                raise Exception("the proposed overload (id="+id+") is not a complex number ("+value+")")
+            real_idx = idx
+    _real = None
+    _imag = None
+    if real_idx != -1:
+        _real = basetype(_split[real_idx])
+    if imag_idx != -1:
+        _imag_str = _split[imag_idx].replace('j', '')
+        _imag = basetype(_imag_str)
+
+    if not _real and not _imag:
+        return None
+    if _real and not _imag:
+        return complex(basetype(_real))
+    if not _real and _imag:
+        return complex(basetype(_imag))
+    return complex(basetype(_real), basetype(_imag))
+
+def convertToValue(valuetype, value):
+    if valuetype == 'string' or valuetype == 'char':
+        return value
+    elif valuetype == 'boolean':
+        if type(value) == list:
+            return [bool(s) for s in value]
+        else:
+            return bool(value)
+    elif valuetype == 'complexBoolean':
+        if type(value) == list:
+            return [convertStringToComplex(s, bool) for s in value]
+        else:
+            return convertStringToComplex(value, bool)
+    elif valuetype == 'ulong' or valuetype == 'short' or valuetype == 'octet' or \
+            valuetype == 'ushort' or valuetype == 'long' or valuetype == 'longlong' or \
+            valuetype == 'ulonglong':
+        if type(value) == list:
+            return [int(s) for s in value]
+        else:
+            return int(value)
+    elif valuetype == 'complexULong' or valuetype == 'complexShort' or valuetype == 'complexOctet' or \
+            valuetype == 'complexUShort' or valuetype == 'complexLong' or valuetype == 'complexLongLong' or \
+            valuetype == 'complexULongLong':
+        if type(value) == list:
+            return [convertStringToComplex(s, int) for s in value]
+        else:
+            return convertStringToComplex(value, int)
+    elif valuetype == 'float' or valuetype == 'double':
+        if type(value) == list:
+            return [float(s) for s in value]
+        else:
+            return float(value)
+    elif valuetype == 'complexFloat' or valuetype == 'complexDouble':
+        if type(value) == list:
+            return [convertStringToComplex(s, float) for s in value]
+        else:
+            return convertStringToComplex(value, float)
+    else:
+        raise Exception('bad value type')
+
 def overloadProperty(component, simples=None, simpleseq=None, struct=None, structseq=None):
     if len(component._properties) > 0:
         allProps = dict([(str(prop.id),prop) for prop in component._properties])
@@ -434,34 +504,17 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
             for overload in simples:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
-                    if entry.valueType == 'string' or entry.valueType == 'char':
-                        setattr(component, entry.clean_name, overload.value)
-                    elif entry.valueType == 'boolean':
-                        setattr(component, entry.clean_name, bool(overload.value))
-                    elif entry.valueType == 'ulong' or entry.valueType == 'short' or entry.valueType == 'octet' or \
-                         entry.valueType == 'ushort' or entry.valueType == 'long' or entry.valueType == 'longlong' or \
-                         entry.valueType == 'ulonglong':
-                        setattr(component, entry.clean_name, int(overload.value))
-                    elif entry.valueType == 'float' or entry.valueType == 'double':
-                        setattr(component, entry.clean_name, float(overload.value))
-                    else:
-                         print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+                    try:
+                        setattr(component, entry.clean_name, convertToValue(entry.valueType, overload.value))
+                    except Exception, e:
+                        print e, "Problem overloading id="+entry.id
             for overload in simpleseq:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
-                    if entry.valueType == 'string' or entry.valueType == 'char':
-                        setattr(component, entry.clean_name, overload.value)
-                    elif entry.valueType == 'boolean':
-                        setattr(component, entry.clean_name, [bool(s) for s in overload.value])
-                    elif entry.valueType == 'ulong' or entry.valueType == 'short' or entry.valueType == 'octet' or \
-                         entry.valueType == 'ushort' or entry.valueType == 'long' or entry.valueType == 'longlong' or \
-                         entry.valueType == 'ulonglong':
-                        stuff=[int(s) for s in overload.value]
-                        setattr(component, entry.clean_name, stuff)
-                    elif entry.valueType == 'float' or entry.valueType == 'double':
-                        setattr(component, entry.clean_name, [float(s) for s in overload.value])
-                    else:
-                         print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+                    try:
+                        setattr(component, entry.clean_name, convertToValue(entry.valueType, overload.value))
+                    except Exception, e:
+                        print e, "Problem overloading id="+entry.id
             for overload in struct:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
@@ -504,18 +557,10 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
 
                         # cleanup struct key if it has illegal characters...
                         st_clean = st_clean.translate(translation)
-                        if simple[1] == 'string' or simple[1] == 'char':
-                            structValue[st_clean] = overload.value[_ov_key]
-                        elif simple[1] == 'boolean':
-                            structValue[st_clean] = bool(overload.value[_ov_key])
-                        elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
-                                simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
-                                simple[1] == 'ulonglong':
-                                structValue[st_clean] = int(overload.value[_ov_key])
-                        elif simple[1] == 'float' or simple[1] == 'double':
-                            structValue[st_clean] = float(overload.value[_ov_key])
-                        else:
-                             print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
+                        try:
+                            structValue[st_clean] = convertToValue(simple[1], overload.value[_ov_key])
+                        except Exception, e:
+                            print e, "Problem overloading id="+entry.id
 
                     if _DEBUG:
                          print "setattr  ", component, " clean name ", entry.clean_name,  " struct ", structValue
@@ -553,6 +598,7 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                                         break
 
                             if _ov_key == None or not overloadedValue.has_key(_ov_key):
+                                print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
                                 if _DEBUG:
                                     print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
                                 continue
@@ -562,19 +608,10 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
 
                             # cleanup struct key if it has illegal characters...
                             st_clean = st_clean.translate(translation)
-                            if simple[1] == 'string' or simple[1] == 'char':
-                                structValue[st_clean] = overloadedValue[_ov_key]
-                            elif simple[1] == 'boolean':
-                                structValue[st_clean] = bool(overloadedValue[_ov_key])
-                            elif simple[1] == 'ulong' or simple[1] == 'short' or simple[1] == 'octet' or \
-                                    simple[1] == 'ushort' or simple[1] == 'long' or simple[1] == 'longlong' or \
-                                    simple[1] == 'ulonglong':
-                                    structValue[st_clean] = int(overloadedValue[_ov_key])
-                            elif simple[1] == 'float' or simple[1] == 'double':
-                                structValue[st_clean] = float(overloadedValue[_ov_key])
-                            else:
-                                 print "the proposed overload (id="+entry.id+") is not of a supported type ("+entry.valueType+")"
-
+                            try:
+                                structValue[st_clean] = convertToValue(simple[1], overloadedValue[_ov_key])
+                            except Exception, e:
+                                print e, "Problem overloading id="+entry.id
 
                         structSeqValue.append(structValue)
                     setattr(component, entry.clean_name, structSeqValue)
@@ -654,7 +691,6 @@ def loadSADFile(filename, props={}):
         componentPlacements = sad.partitioning.get_componentplacement()
         for hostCollocation in sad.get_partitioning().get_hostcollocation():
             componentPlacements.extend(hostCollocation.get_componentplacement())
-
 
         log.debug("Creating start order for: %s", filename )
         startorder={}
@@ -891,6 +927,12 @@ def loadSADFile(filename, props={}):
                             value = {}
                             for simple in simples:
                                 value[str(simple.refid)] = str(simple.value)
+                            simpleseqs = struct.get_simplesequenceref()
+                            for simpleseq in simpleseqs:
+                                _seq = []
+                                for seq_value in simpleseq.values.get_value():
+                                    _seq.append(str(seq_value))
+                                value[str(simpleseq.refid)] = _seq
                             if struct.refid in props and assemblyController:
                                 value = props[struct.refid]
                                 props.pop(struct.refid)
@@ -913,6 +955,12 @@ def loadSADFile(filename, props={}):
                                 value = {}
                                 for simple in simples:
                                     value[str(simple.refid)] = str(simple.value)
+                                simpleseqs = struct_template.get_simplesequenceref()
+                                for simpleseq in simpleseqs:
+                                    _seq = []
+                                    for seq_value in simpleseq.values.get_value():
+                                        _seq.append(str(seq_value))
+                                    value[str(simpleseq.refid)] = _seq
                                 values_vals.append(value)
                             if structseq.refid in props and assemblyController:
                                 values_vals = props[structseq.refid]
