@@ -152,7 +152,8 @@ class GPP_i : public GPP_base
           void close();
         };
 
-
+         typedef boost::shared_ptr<proc_redirect>              ProcRedirectPtr;
+	  
         struct component_description {
 	  static const int pstat_history_len=5;
           int         pid;
@@ -257,7 +258,7 @@ class GPP_i : public GPP_base
           typedef boost::shared_ptr<SystemMonitor>              SystemMonitorPtr;
           typedef std::map<int, component_description >         ProcessMap;
           typedef std::deque< component_description >           ProcessList;
-          typedef std::deque< proc_redirect >                   ProcessFds;
+          typedef std::deque< ProcRedirectPtr >                 ProcessFds;
           typedef std::map<std::string, application_reservation>    ApplicationReservationMap;
 
           void addProcess(int pid, 
@@ -276,6 +277,7 @@ class GPP_i : public GPP_base
           Lock                                                pidLock;
           Lock                                                fdsLock;
           ProcessFds                                          redirectedFds;
+	  int                                                 epfd;
           bool                                                _handle_io_redirects;
           std::string                                         _componentOutputLog;
 
