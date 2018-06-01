@@ -32,7 +32,7 @@ except ImportError:
 
 
 Validate_simpletypes_ = True
-if sys.version_info.major == 2:
+if sys.version_info[0] == 2:
     BaseStrType_ = basestring
 else:
     BaseStrType_ = str
@@ -399,7 +399,7 @@ except ImportError as exp:
             return dict(((v, k) for k, v in mapping.iteritems()))
         @staticmethod
         def gds_encode(instring):
-            if sys.version_info.major == 2:
+            if sys.version_info[0] == 2:
                 return instring.encode(ExternalEncoding)
             else:
                 return instring
@@ -407,7 +407,7 @@ except ImportError as exp:
         def convert_unicode(instring):
             if isinstance(instring, str):
                 result = quote_xml(instring)
-            elif sys.version_info.major == 2 and isinstance(instring, unicode):
+            elif sys.version_info[0] == 2 and isinstance(instring, unicode):
                 result = quote_xml(instring).encode('utf8')
             else:
                 result = GeneratedsSuper.gds_encode(str(instring))
