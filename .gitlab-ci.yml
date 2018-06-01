@@ -49,6 +49,9 @@ stages:
     - rm -rf output && mkdir output
     - docker cp $id:/tmp/repo/repo.tar.gz output/repo.tar.gz
     - docker rm -f $id || true
+    - cd output
+    - tar xf repo.tar.gz
+    - cd $CI_PROJECT_DIR
   artifacts:
     name: $CI_JOB_NAME
     paths:
@@ -295,3 +298,56 @@ test-trigger:release:
     - tags
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+.s3: &s3
+  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  stage: deploy
+  tags:
+    - s3
+  script:
+    - /usr/bin/s3cmd sync s3://$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/$arch .
+    - mkdir -p $arch
+    - for file in `find output -name *.rpm`; do
+        cp $file $arch;
+      done
+    - repomanage --keep=2 --old $arch| xargs rm -f; createrepo --update $arch
+    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE-$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist --acl-public --recursive || true
+
+deploy-el7:
+  variables:
+    dist: el7
+    arch: x86_64
+  dependencies:
+    - redhawk:el7
+    - bulkio:el7
+    - burstio:el7
+    - frontend:el7
+    - gpp:el7
+    - redhawk-codegen:el7
+  <<: *s3
+
+deploy-el6:
+  variables:
+    dist: el6
+    arch: x86_64
+  dependencies:
+    - redhawk:el6
+    - bulkio:el6
+    - burstio:el6
+    - frontend:el6
+    - gpp:el6
+    - redhawk-codegen:el6
+  <<: *s3
+
+deploy-el6-i386:
+  variables:
+    dist: el6
+    arch: i686
+  dependencies:
+    - redhawk:el6-i386
+    - bulkio:el6-i386
+    - burstio:el6-i386
+    - frontend:el6-i386
+    - gpp:el6-i386
+    - redhawk-codegen:el6-i386
+  <<: *s3
