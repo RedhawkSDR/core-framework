@@ -93,6 +93,11 @@ namespace redhawk {
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
 
+        void setLogger(LOGGER newLogger) {
+            PortBase::setLogger(newLogger);
+            logger = newLogger;
+        };
+
     protected:
         class Connection {
         public:
