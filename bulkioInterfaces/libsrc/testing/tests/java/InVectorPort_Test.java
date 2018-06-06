@@ -43,6 +43,7 @@ import BULKIO.StreamSRI;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
+import org.ossie.component.RHLogger;
 import BULKIO.dataSDDSPackage.AttachError;
 import BULKIO.dataSDDSPackage.DetachError;
 import BULKIO.dataSDDSPackage.StreamInputError;
@@ -245,7 +246,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -371,7 +372,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -497,7 +498,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -622,7 +623,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -748,7 +749,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -874,7 +875,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -1000,7 +1001,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -1125,7 +1126,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -1251,7 +1252,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
@@ -1377,7 +1378,7 @@ public class InVectorPort_Test {
 
         // Push to an invalid stream with no logger, ensure that nothing fails
         ctx.sid = "null_logger";
-        port.setLogger(null);
+        port.setLogger((RHLogger)null);
         port.pushPacket(v, TS, false, "null_logger");
     }
 
