@@ -303,18 +303,23 @@ class Logging_impl
   // current logging level set for this component via execparams, or  LogConfiguration API
   CF::LogLevel                   _logLevel;
 
-  // current logging object
+  // static logging object (deprecated)
   LOGGER                         _logger;
 
   // logging macro defintion table;
   ossie::logging::MacroTable     _loggingMacros;
+
+  // logger instance
+  rh_logger::LoggerPtr           _baseLog;
 
   bool haveLogger(const std::string &name);
   bool haveLoggerHierarchy(const std::string &name);
 
  public:
 
-  rh_logger::LoggerPtr _baseLog;
+  rh_logger::LoggerPtr getBaseLogger() {
+      return this->_baseLog;
+  }
 
  private:
 
