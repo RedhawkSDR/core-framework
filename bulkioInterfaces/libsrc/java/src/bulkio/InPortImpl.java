@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import CF.DataType;
+import org.ossie.component.RHLogger;
 
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
@@ -150,6 +151,14 @@ class InPortImpl<A> {
     public void setLogger(Logger newlogger) {
         synchronized (this.sriUpdateLock) {
             logger = newlogger;
+        }
+    }
+
+    public void setLogger(RHLogger logger) {
+        if (logger != null) {
+            setLogger(logger.getL4Logger());
+        } else {
+            setLogger((Logger) null);
         }
     }
 

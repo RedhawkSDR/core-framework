@@ -90,7 +90,7 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
 
     public void setLogger(RHLogger logger)
     {
-        setLogger(logger.getL4Logger());
+        impl.setLogger(logger);
     }
 
     /**

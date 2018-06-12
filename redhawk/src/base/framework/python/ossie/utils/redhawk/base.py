@@ -219,7 +219,7 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
             dm_procs.append( _envContainer(sp, stdout_fp) )
 
         if globals().has_key('currentdevmgrs'):
-            globals()['currentdevmgrs'].append(dm_procs)
+            globals()['currentdevmgrs'] += dm_procs
         else:
             globals()['currentdevmgrs'] = dm_procs
 

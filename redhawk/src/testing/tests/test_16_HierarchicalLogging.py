@@ -22,6 +22,7 @@ from _unitTestHelpers import scatest
 from ossie.utils import sb, redhawk
 import unittest, contextlib, time, os
 from ossie.cf import CF
+import tempfile
 
 @scatest.requireLog4cxx
 class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
@@ -128,6 +129,8 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.assertEquals(app_2.getLogLevel('logger_2'), 30000)
         self.assertEquals(app_2.comps[logger_1].getLogConfig(), high_thresh_cfg)
         self.assertEquals(app_2.comps[logger_2].getLogConfig(), high_thresh_cfg)
+        app_1.start()
+        time.sleep(1.5)
 
     def test_application_cpp_access(self):
         self.cname = "logger"
@@ -221,6 +224,61 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.assertEquals(CF.LogLevels.ALL, app.getLogLevel(self.cname+'_1.namespace.lower'))
         self.assertEquals(CF.LogLevels.ALL, app.getLogLevel(self.cname+'_1.user.more_stuff'))
         self.assertEquals(CF.LogLevels.ALL, app.getLogLevel(self.cname+'_1.user.some_stuff'))
+
+@scatest.requireLog4cxx
+class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
+    def setUp(self):
+        self.tmpfile=tempfile.mktemp()
+        devmgrs = ['test_ExecutableDevice_node']
+        self._rhDom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                         kick_device_managers=True,
+                                         device_managers = devmgrs,
+                                         stdout=self.tmpfile)
+
+        try:
+            self.waitForDeviceManager(devmgrs[0])
+        except:
+            traceback.print_exc()
+            pass
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        try:
+            os.remove(self.tmpfile)
+        except:
+            pass
+        # need to let event service clean up event channels
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    def application_default_log(self, appname, compname):
+        app = self._rhDom.createApplication(appname)
+        app.setLogLevel(compname+'_1.user.more_stuff', 'all')
+        app.start()
+        begin_time = time.time()
+        while time.time()-begin_time < 1.5:
+            fp = open(self.tmpfile, 'r')
+            output=fp.read()
+            fp.close()
+            if output.find(compname+'_1.user.more_stuff') != -1:
+                break
+            time.sleep(0.1)
+        app.stop()
+        self.assertNotEqual(output.find(compname+'_1.user.more_stuff'), -1)
+
+    def test_application_default_log_cpp(self):
+        self.application_default_log("/waveforms/logger_w/logger_w.sad.xml", 'logger')
+
+    def test_application_default_log_py(self):
+        self.application_default_log("/waveforms/logger_py_w/logger_py_w.sad.xml", 'logger_py')
+
+    def test_application_default_log_java(self):
+        self.application_default_log("/waveforms/logger_java_w/logger_java_w.sad.xml", 'logger_java')
+
 
 def all_log_levels(_obj):
     _obj.comp = sb.launch(_obj.cname, properties={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/high_thresh.cfg'})

@@ -85,7 +85,7 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements InDataPort<BUL
     }
 
     public void setLogger(RHLogger logger) {
-        setLogger(logger.getL4Logger());
+        impl.setLogger(logger);
     }
 
     /**

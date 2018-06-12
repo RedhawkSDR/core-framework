@@ -123,7 +123,7 @@ class CppLoggingConfig(scatest.CorbaTestCase):
               "# Direct log messages to STDOUT\n" + \
               "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
               "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
-              "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+              "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{3}:%L - %m%n\n"
 
         c_cfg=self.comp.ref.getLogConfig()
 
@@ -235,7 +235,7 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
 	    "# Direct log messages to STDOUT\n" + \
 	    "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
 	    "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
-	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{3}:%L - %m%n\n"
 
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
@@ -427,7 +427,7 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
 	    "# Direct log messages to STDOUT\n" + \
 	    "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
 	    "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
-	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
 
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
@@ -570,7 +570,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
 	    "# Direct log messages to STDOUT\n" + \
 	    "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
 	    "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
-	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+	    "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
 
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")

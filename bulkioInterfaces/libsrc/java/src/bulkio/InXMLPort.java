@@ -86,7 +86,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements InDataPort<BULKI
 
     public void setLogger(RHLogger logger)
     {
-        setLogger(logger.getL4Logger());
+        impl.setLogger(logger);
     }
 
     /**

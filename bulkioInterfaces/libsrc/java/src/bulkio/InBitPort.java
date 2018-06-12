@@ -67,7 +67,7 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
 
     public void setLogger(RHLogger logger)
     {
-        setLogger(logger.getL4Logger());
+        impl.setLogger(logger);
     }
 
     /**

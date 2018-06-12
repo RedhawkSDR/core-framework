@@ -527,7 +527,7 @@ namespace events {
 
     if ( obj  ){
       _obj = obj;
-      _resourceLog = _obj->_baseLog;
+      _resourceLog = _obj->getBaseLogger();
       _eventManagerLog = _resourceLog->getChildLogger("EventManager", "system");
       _obj_id = ossie::corba::returnString(obj->identifier());
       RH_DEBUG(_eventManagerLog,  "Resolve Device and Domain Managers...");

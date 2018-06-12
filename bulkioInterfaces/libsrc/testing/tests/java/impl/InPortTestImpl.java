@@ -29,6 +29,8 @@ import org.junit.runner.RunWith;
 
 import org.apache.log4j.Level;
 
+import org.ossie.component.RHLogger;
+
 import bulkio.InDataPort;
 import bulkio.DataTransfer;
 
@@ -315,7 +317,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         Assert.assertEquals(0, listener.changedSRIs.size());
 
         // Push to an invalid stream with no logger, ensure that nothing fails
-        port.setLogger(null);
+        port.setLogger((RHLogger) null);
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, "null_logger");
     }
 
