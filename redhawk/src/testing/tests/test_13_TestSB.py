@@ -426,18 +426,29 @@ class SBTestTest(scatest.CorbaTestCase):
         Tests for the correct initialization of 'property' kind properties
         based on whether command line is set, and overrides via launch().
         """
-        # First, test with defaults
-        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml')
+        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml', impl='cpp')
         self.assertNotEqual(comp, None)
+        prop = comp.query([CF.DataType('mystruct', any.to_any(None))])
+        found = False
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+        self.assertTrue(found)
 
-    def test_zeroLengthSeqStruct(self):
-        """
-        Tests for the correct initialization of 'property' kind properties
-        based on whether command line is set, and overrides via launch().
-        """
-        # First, test with defaults
-        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml')
+        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml', impl='python')
         self.assertNotEqual(comp, None)
+        prop = comp.query([CF.DataType('mystruct', any.to_any(None))])
+        found = False
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+        self.assertTrue(found)
 
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()
