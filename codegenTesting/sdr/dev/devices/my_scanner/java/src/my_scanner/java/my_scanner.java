@@ -520,7 +520,15 @@ public class my_scanner extends my_scanner_base {
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
-        FRONTEND.ScanningTunerPackage.ScanStatus status = null;
+        FRONTEND.ScanningTunerPackage.ScanStatus status = new FRONTEND.ScanningTunerPackage.ScanStatus();
+        status.start_time = new BULKIO.PrecisionUTCTime();
+        status.center_tune_frequencies = new double[0];
+        status.strategy = new FRONTEND.ScanningTunerPackage.ScanStrategy();
+        status.strategy.scan_mode = FRONTEND.ScanningTunerPackage.ScanMode.MANUAL_SCAN;
+        status.strategy.scan_definition = new FRONTEND.ScanningTunerPackage.ScanModeDefinition();
+        status.strategy.scan_definition.center_frequency(100.0);
+        status.strategy.control_mode = FRONTEND.ScanningTunerPackage.OutputControlMode.TIME_BASED;
+        status.strategy.control_value = 123.0;
         return status;
     }
 

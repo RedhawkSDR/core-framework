@@ -489,7 +489,10 @@ double my_scanner_i::getTunerOutputSampleRate(const std::string& allocation_id){
 frontend::ScanStatus my_scanner_i::getScanStatus(const std::string& allocation_id) {
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
+    frontend::ManualStrategy *initial_strategy = new frontend::ManualStrategy(0);
+    initial_strategy->control_value = 123.0;
+    frontend::ScanStrategy *tmp = initial_strategy->clone();
+    delete initial_strategy;
     frontend::ScanStatus retval(tmp);
     return retval;
 }

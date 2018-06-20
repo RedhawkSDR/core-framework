@@ -364,7 +364,7 @@ class my_scanner_i(my_scanner_base):
             FRONTEND.ScanningTuner.MANUAL_SCAN, 
             FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
             FRONTEND.ScanningTuner.TIME_BASED, 
-            0.0)
+            123.0)
         _scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
                                            start_time=bulkio.timestamp.now(),
                                            center_tune_frequencies=[],

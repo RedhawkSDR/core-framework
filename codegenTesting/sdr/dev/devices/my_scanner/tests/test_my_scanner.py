@@ -42,31 +42,33 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
-        _bad_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=0.0,returnDict=False)
-        _good_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=1000.0,returnDict=False)
-        _bad_scanner=frontend.createScannerAllocation(returnDict=False)
-        _good_scanner=frontend.createScannerAllocation(min_freq=10000.0,returnDict=False)
-        self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _bad_scanner]))
-        self.assertFalse(self.comp.allocateCapacity([_good_tuner, _bad_scanner]))
-        self.assertFalse(self.comp.allocateCapacity([_bad_tuner, _good_scanner]))
-        self.assertTrue(self.comp.allocateCapacity([_good_tuner, _good_scanner]))
-        self.comp.deallocateCapacity([_good_tuner, _good_scanner])
-        self.assertTrue(self.comp.allocateCapacity([_good_scanner, _good_tuner]))
-        _ref = None
+        bad_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=0.0,returnDict=False)
+        good_tuner=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1', bandwidth=1000.0,returnDict=False)
+        bad_scanner=frontend.createScannerAllocation(returnDict=False)
+        good_scanner=frontend.createScannerAllocation(min_freq=10000.0,returnDict=False)
+        self.assertFalse(self.comp.allocateCapacity([bad_tuner, bad_scanner]))
+        self.assertFalse(self.comp.allocateCapacity([good_tuner, bad_scanner]))
+        self.assertFalse(self.comp.allocateCapacity([bad_tuner, good_scanner]))
+        self.assertTrue(self.comp.allocateCapacity([good_tuner, good_scanner]))
+        self.comp.deallocateCapacity([good_tuner, good_scanner])
+        self.assertTrue(self.comp.allocateCapacity([good_scanner, good_tuner]))
+        ref = None
         for port in self.comp.ports:
             if port.name == 'DigitalScanningTuner_in':
-                _ref = port.ref
+                ref = port.ref
                 break
         self.assertEquals(self.comp.strategy_request, 'initial')
-        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
-        _ref.setScanStrategy('1', _scan_strategy)
+        scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        ref.setScanStrategy('1', scan_strategy)
         self.assertEquals(self.comp.strategy_request, 'manual')
-        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.DISCRETE_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(discrete_freq_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
-        _ref.setScanStrategy('1', _scan_strategy)
+        scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.DISCRETE_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(discrete_freq_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        ref.setScanStrategy('1', scan_strategy)
         self.assertEquals(self.comp.strategy_request, 'discrete')
-        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.SPAN_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(freq_scan_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
-        _ref.setScanStrategy('1', _scan_strategy)
+        scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.SPAN_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(freq_scan_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
+        ref.setScanStrategy('1', scan_strategy)
         self.assertEquals(self.comp.strategy_request, 'span')
+        status = ref.getScanStatus('1')
+        self.assertEquals(status.strategy.control_value, 123)
         self.comp.stop()
 
 if __name__ == "__main__":
