@@ -601,6 +601,17 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
 
+        dev = devMgr._get_registeredDevices()[0]
+        prop = dev.query([])
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+
+        self.assertTrue(found)
+
     def test_ComponentPropertyOverride_cpp(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
