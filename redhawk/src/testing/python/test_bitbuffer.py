@@ -34,7 +34,7 @@ class BitBufferTest(unittest.TestCase):
         # Allocating
         NUM_BITS = 17
         buf = bitbuffer(bits=NUM_BITS)
-        self.assertEqual(NUM_BITS, len(buf), 'new bitbuffer should be zero-length')
+        self.assertEqual(NUM_BITS, len(buf), 'new bitbuffer should have length 17')
         self.failUnless(bool(buf), 'bitbuffer with non-zero length should evaluate to True')
 
     def testFromInt(self):
@@ -44,6 +44,30 @@ class BitBufferTest(unittest.TestCase):
         data = buf.bytes()
         self.assertEqual('\xBA\xDC\x0D', data[:3])
         self.assertEqual(0xE0, ord(data[3]) & 0xF0)
+
+        # Ignore some of the most significant bits
+        # 00(11 0100 0101 0110 0111 1000)
+        #     3    4    5    6    7    8
+        # =
+        # 1101 0001 0101 1001 1110 00xx
+        #    D    1    5    9    E
+        buf = bitbuffer(0x12345678, 22)
+        self.assertEqual(22, len(buf))
+        data = buf.bytes()
+        self.assertEqual('\xD1\x59', data[:2])
+        self.assertEqual(0xE0, ord(data[2]) & 0xFC)
+
+        # Since value is right-aligned, any higher bits are 0
+        # 1111 0101 1010 1101
+        #    F    5    A    D
+        # =
+        # 0000 0001 1110 1011 0101 101x
+        #    0    1    E    B    5    A
+        buf = bitbuffer(0xF5AD, 23)
+        self.assertEqual(23, len(buf))
+        data = buf.bytes()
+        self.assertEqual('\x01\xEB', data[:2])
+        self.assertEqual(0x5A, ord(data[2]) & 0xFE)
 
     def testFromArray(self):
         # Test with a large array, using the default behavior for number of
@@ -433,6 +457,29 @@ class BitBufferTest(unittest.TestCase):
         ascii = buf.takeskip(7, 1, start=41, end=97)
         result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
         self.assertEqual(msg[5:12], result)
+
+    def testAdd(self):
+        buf1 = bitbuffer(0xADD, 13)
+        buf2 = bitbuffer(0xC0DE5, 21)
+
+        # 0xADD (13) = 0101011011101
+        # 0xC0DE5 (21) = 011000000110111100101
+        # =
+        # 0101 0110 1110 1011 0000 0011 0111 1001 01xx
+        #    5    6    E    B    0    3    7    9    4
+        result = buf1 + buf2
+        self.assertEqual(34, len(result))
+        data = result.bytes()
+        self.assertEqual('\x56\xEB\x03\x79', data[:4])
+        self.assertEqual(0x40, ord(data[4]) & 0xC0)
+
+    def testHex(self):
+        # Using hex conversion should give same results as equivalent integer
+        intval = 0x123456789ABCDEF
+        buf = bitbuffer(intval, 60)
+        # NB: comparing the result of two hex() expressions avoids potential
+        # formatting differences in the output of hex()
+        self.assertEqual(hex(intval), hex(buf))
 
 if __name__ == '__main__':
     import runtests
