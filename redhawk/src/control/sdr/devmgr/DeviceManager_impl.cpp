@@ -334,7 +334,7 @@ CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id ) throw (CF:
 
 CF::StringSequence* DeviceManager_impl::getNamedLoggers()
 {
-    CF::StringSequence_var retval = Logging_impl::getNamedLoggers()
+    CF::StringSequence_var retval = Logging_impl::getNamedLoggers();
     BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
         CF::Device_var device_ref = _device->device;
         CF::StringSequence_var device_logger_list = device_ref->getNamedLoggers();
