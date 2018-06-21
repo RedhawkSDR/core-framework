@@ -385,6 +385,7 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
                 cmdlineProps[name] = value;
             } else if (name == "DEBUG_LEVEL") {
                 debug_level = atoi(value.c_str());
+                cmdlineProps[name] = value;
             } else if (name == "DOM_PATH") {
                 dpath = value;
             } else {  // any other argument is part of the cmdlineProps

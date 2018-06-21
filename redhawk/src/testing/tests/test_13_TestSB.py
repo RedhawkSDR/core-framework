@@ -31,6 +31,7 @@ import warnings
 import subprocess
 import commands
 import struct
+import tempfile
 
 from omniORB import CORBA, any, tcInternal
 
@@ -205,6 +206,81 @@ class SBEventChannelTest(scatest.CorbaTestCase):
         self.assertEquals(rec_data._v, payload)
         pub.terminate()
         sub.terminate()
+
+class SBStdOutTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+        try:
+            os.remove(self.tmpfile)
+        except:
+            pass
+
+    def test_debugCmdExec(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', execparams={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertTrue('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdProp(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', properties={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertTrue('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdExecNoMsg(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', execparams={'DEBUG_LEVEL':4}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertFalse('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdPropNoMsg(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', properties={'DEBUG_LEVEL':4}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertFalse('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
