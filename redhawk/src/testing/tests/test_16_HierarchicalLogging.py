@@ -255,7 +255,7 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         # cycle period is 10 milliseconds
         time.sleep(0.1)
 
-    def test_domain_hierarchyAll(self):
+    def test_domain_hierarchy_all(self):
         self._rhDom.setLogLevel('DomainManager', 'all')
         self._rhDom.devMgrs[0].setLogLevel('DeviceManager', 'all')
         props = self._rhDom.query([])
