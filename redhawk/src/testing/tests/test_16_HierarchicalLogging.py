@@ -255,6 +255,28 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         # cycle period is 10 milliseconds
         time.sleep(0.1)
 
+    def test_domain_hierarchyAll(self):
+        self._rhDom.setLogLevel('DomainManager', 'all')
+        self._rhDom.devMgrs[0].setLogLevel('DeviceManager', 'all')
+        props = self._rhDom.query([])
+        props = self._rhDom.devMgrs[0].query([])
+        fp = open(self.tmpfile, 'r')
+        output=fp.read()
+        fp.close()
+        self.assertTrue('DomainManager.PropertySet' in output)
+        self.assertTrue('DeviceManager.PropertySet' in output)
+
+    def test_domain_hierarchy(self):
+        self._rhDom.setLogLevel('DomainManager', 'info')
+        self._rhDom.devMgrs[0].setLogLevel('DeviceManager', 'info')
+        props = self._rhDom.query([])
+        props = self._rhDom.devMgrs[0].query([])
+        fp = open(self.tmpfile, 'r')
+        output=fp.read()
+        fp.close()
+        self.assertFalse('DomainManager.PropertySet' in output)
+        self.assertFalse('DeviceManager.PropertySet' in output)
+
     def application_default_log(self, appname, compname):
         app = self._rhDom.createApplication(appname)
         app.setLogLevel(compname+'_1.user.more_stuff', 'all')

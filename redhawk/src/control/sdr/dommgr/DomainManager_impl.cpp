@@ -97,6 +97,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     this->_baseLog->configureLogger(expanded_config, true);
 
     redhawk::setupParserLoggers(this->_baseLog);
+    PropertySet_impl::setLogger(this->_baseLog->getChildLogger("PropertySet", ""));
 
     RH_TRACE(this->_baseLog, "Looking for DomainManager POA");
     _connectionManager.setLogger(this->_baseLog->getChildLogger("ConnectionManager", ""));

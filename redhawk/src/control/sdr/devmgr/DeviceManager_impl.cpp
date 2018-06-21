@@ -316,7 +316,7 @@ void DeviceManager_impl::setLogLevel( const char *logger_id, const CF::LogLevel 
         } catch (const CF::UnknownIdentifier& ex) {
         }
     }
-    throw (CF::UnknownIdentifier());
+    Logging_impl::setLogLevel(logger_id, newLevel);
 }
 
 CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
@@ -329,12 +329,12 @@ CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id ) throw (CF:
         } catch (const CF::UnknownIdentifier& ex) {
         }
     }
-    throw (CF::UnknownIdentifier());
+    return Logging_impl::getLogLevel(logger_id);
 }
 
 CF::StringSequence* DeviceManager_impl::getNamedLoggers()
 {
-    CF::StringSequence_var retval = new CF::StringSequence();
+    CF::StringSequence_var retval = Logging_impl::getNamedLoggers()
     BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
         CF::Device_var device_ref = _device->device;
         CF::StringSequence_var device_logger_list = device_ref->getNamedLoggers();
@@ -351,6 +351,7 @@ void DeviceManager_impl::resetLog()
         CF::Device_var device_ref = _device->device;
         device_ref->resetLog();
     }
+    Logging_impl::resetLog();
 }
 
 
@@ -833,6 +834,8 @@ void DeviceManager_impl::postConstructor (
 {
     myObj = _this();
 
+    PropertySet_impl::setLogger(this->_baseLog->getChildLogger("PropertySet", ""));
+    PortSupplier_impl::setLogger(this->_baseLog->getChildLogger("PortSupplier", ""));
     // Create the device file system in the DeviceManager POA.
     RH_TRACE(this->_baseLog, "Creating device file system")
     FileSystem_impl* fs_servant = new FileSystem_impl(_fsroot.c_str());
