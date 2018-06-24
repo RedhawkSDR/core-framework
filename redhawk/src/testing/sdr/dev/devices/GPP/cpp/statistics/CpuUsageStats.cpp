@@ -56,6 +56,18 @@ CpuUsageStats::CpuUsageStats(const CpuList &cpus, const int nhistory  ):
   _update_stats();
 }
 
+
+CpuUsageStats::CpuUsageStats(const CpuUsageStats &src  )
+{
+    prev_cpus_stat_ = src.prev_cpus_stat_;
+    current_cpus_stat_ = src.current_cpus_stat_;
+    proc_stat_ = src.proc_stat_;
+    cpus_ = src.cpus_;
+    metrics_ = src.metrics_;
+    average_ = src.average_;
+    history_db_ = src.history_db_;
+}
+
 double CpuUsageStats::get_user_percent() const
 {
   return metrics_[ ProcStat::CPU_JIFFIES_USER ];
@@ -87,6 +99,17 @@ double CpuUsageStats::get_idle_average() const
   return average_[ ProcStat::CPU_JIFFIES_IDLE ];
 }
 
+uint64_t CpuUsageStats::get_all_usage() const
+{
+  return cpus_all_itv;
+}
+
+uint64_t CpuUsageStats::get_user_usage() const
+{
+  return cpus_user_itv;
+  return 0;
+}
+
 
 
 void CpuUsageStats::compute_statistics()
@@ -96,6 +119,8 @@ void CpuUsageStats::compute_statistics()
 
   // sum up all jiffies for all required cpus or all
   Accumulator cpus_itv =  _get_interval_total();
+  cpus_all_itv = cpus_itv;
+  cpus_user_itv =_get_user_total();
 
   std::fill( metrics_.begin(),metrics_.end(), 0 );
   std::fill( average_.begin(),average_.end(), 0 );
@@ -134,6 +159,20 @@ CpuUsageStats::Accumulator CpuUsageStats::_get_interval_total() const
     return 0;
 }
 
+CpuUsageStats::Accumulator CpuUsageStats::_get_user_total() const
+{
+  if( !prev_cpus_stat_.empty() ) {
+    uint64_t  scc; 
+    uint64_t  scp;
+    scc = _sum_jiffie_list( current_cpus_stat_, ProcStat::CPU_JIFFIES_SYSTEM );
+    scp = _sum_jiffie_list( prev_cpus_stat_, ProcStat::CPU_JIFFIES_SYSTEM );
+    DEBUG(std::cout << " _get_user_total  scc/scp/diff " << scc << "/" << scp << "/" << scc - scp << std::endl);
+    return scc - scp;
+  }
+  else
+    return 0;
+}
+
 
 void CpuUsageStats::_update_stats() {
   proc_stat_.update_state();
@@ -163,7 +202,7 @@ CpuUsageStats::Accumulator  CpuUsageStats::_sum_jiffies(const ProcStat::CpuStats
 {
 
   uint64_t  accum=0;
-  // filter out cpus that were identified... if list == 0 then do not filer any
+  // filter out cpus that were identified... if list == 0 then do not filter any
   if ( cpus_.size() == 0 ) { 
     ProcStat::CpuStats::const_iterator iter = cpu_stats.begin();
     for ( int i=0; iter != cpu_stats.end(); i++, iter++ ) {
@@ -177,6 +216,33 @@ CpuUsageStats::Accumulator  CpuUsageStats::_sum_jiffies(const ProcStat::CpuStats
       if ( cpus_[i] < cpu_stats.size() ) {
         int cpu_idx = cpus_[i];
         accum += std::accumulate( cpu_stats[cpu_idx].jiffies.begin(), cpu_stats[cpu_idx].jiffies.end(), 0);       // skip guest counters...
+      }
+    }
+  }
+
+  DEBUG(std::cout << " _sum_jiffies accum:  " << accum << std::endl);
+  return accum;
+}
+
+CpuUsageStats::Accumulator  CpuUsageStats::_sum_jiffie_list(const ProcStat::CpuStats& cpu_stats, 
+							const ProcStat::CpuJiffiesField &jiffie_max ) const
+{
+
+  uint64_t  accum=0;
+  // filter out cpus that were identified... if list == 0 then do not filter any
+  if ( cpus_.size() == 0 ) { 
+    ProcStat::CpuStats::const_iterator iter = cpu_stats.begin();
+    for ( int i=0; iter != cpu_stats.end(); i++, iter++ ) {
+      accum += std::accumulate( (*iter).jiffies.begin(), (*iter).jiffies.begin()+jiffie_max, 0 );              // skip guest counters...
+      DEBUG(std::cout << " _sum_jiffies cpu/accum:  " << i << "/" << accum << std::endl);
+    }
+  }
+  else {
+    // filter out cpus that were identified... 
+    for( uint32_t i=0; i < cpus_.size(); i++ ) {
+      if ( cpus_[i] < cpu_stats.size() ) {
+        int cpu_idx = cpus_[i];
+        accum += std::accumulate( cpu_stats[cpu_idx].jiffies.begin(), cpu_stats[cpu_idx].jiffies.begin()+jiffie_max, 0);       // skip guest counters...
       }
     }
   }

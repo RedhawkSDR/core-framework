@@ -27,7 +27,6 @@
 #include "ProcStatParser.h"
 #include "ParserExceptions.h"
 
-
 #ifdef DEBUG_ON
 #define DEBUG(x)            x
 #else

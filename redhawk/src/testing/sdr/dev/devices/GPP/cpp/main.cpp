@@ -2,14 +2,14 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK core.
+ * This file is part of REDHAWK GPP.
  *
- * REDHAWK core is free software: you can redistribute it and/or modify it
+ * REDHAWK GPP is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+ * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
  * for more details.
@@ -36,11 +36,11 @@ void signal_catcher(int sig)
 }
 int main(int argc, char* argv[])
 {
-
   //
   // Install signal handler for processing SIGCHLD through
   // signal file descriptor to avoid whitelist/blacklist function calls
   //
+  // add command line arg, to setup signalfd in start_device
   std::vector<std::string> gpp_argv(argv, argv+argc);
   gpp_argv.push_back("USESIGFD");
 
@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
   }
 
   struct sigaction sa;
+  sigemptyset(&sa.sa_mask);
   sa.sa_handler = signal_catcher;
   sa.sa_flags = 0;
   devicePtr = 0;

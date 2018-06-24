@@ -35,6 +35,8 @@ namespace gpp
     
     namespace affinity {
 
+      bool   check_numa();
+
       /**
          Find the socket assocated with a particular network interface
 

@@ -48,6 +48,7 @@ public:
   //CpuUsageStats( );
   CpuUsageStats( const int nhistory=5 );
   CpuUsageStats( const CpuList &cpus, const int nhistory=5 );
+  CpuUsageStats( const CpuUsageStats &src );
 
   virtual ~CpuUsageStats() {}
 
@@ -60,15 +61,20 @@ public:
   virtual double get_user_average() const;
   virtual double get_system_average() const;
   virtual double get_idle_average() const;
+          uint64_t   get_all_usage() const;       
+          uint64_t   get_user_usage() const;
 
 protected:
 
     typedef ProcStat::Jiffie        Accumulator;
 
     virtual Accumulator _get_interval_total() const;
+    virtual Accumulator _get_user_total() const;
     virtual double      _calc_metric( const ProcStat::CpuJiffiesField & jiffie, const Accumulator itv ) const;
     virtual double     _calc_average(  const ProcStat::CpuJiffiesField & jiffie ) const;
     virtual Accumulator _sum_jiffies( const ProcStat::CpuStats & cpu_stats ) const;
+    virtual Accumulator _sum_jiffie_list( const ProcStat::CpuStats & cpu_stats,
+					  const ProcStat::CpuJiffiesField & jiffie_max ) const;
     virtual Accumulator _sum_jiffie_field( const ProcStat::CpuStats& cpu_stats,
                                            const ProcStat::CpuJiffiesField & jiffie ) const;
     bool                _accum_cpu( const uint32_t cpu_id ) const;
@@ -82,6 +88,8 @@ private:
     MetricsList             metrics_;
     MetricsList             average_;
     MetricsHistory          history_db_;
+    Accumulator             cpus_all_itv;
+    Accumulator             cpus_user_itv;
 };
 
 

@@ -113,6 +113,7 @@ post_IsOptional ()
 void action_pimpl::
 pre ()
 {
+  _type = "external";
 }
 
 void action_pimpl::

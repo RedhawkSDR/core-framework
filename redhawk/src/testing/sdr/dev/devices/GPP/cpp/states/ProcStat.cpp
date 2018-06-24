@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+#include <stdio.h>
 #include "ProcStat.h"
 #include "parsers/ProcStatParser.h"
 
@@ -44,4 +45,26 @@ ProcStat::get() const
 }
 
 
+static void __readone(FILE *input, int64_t *x) { fscanf(input, "%lld ",(long long *) x); }
+static void __readstr(FILE *input, char *x) {  fscanf(input, "%s ", x);}
 
+int ProcStat::GetTicks( int64_t &r_sys, int64_t &r_user ) {
+
+  char cpu[512];
+  int retval=-1;
+  int64_t user, nice, sys, idle, iowait, irq, softirq;
+  FILE *input=fopen("/proc/stat", "r");
+  if( !input ) return retval;
+  __readstr(input,cpu);
+  __readone(input,&user);
+  __readone(input,&nice);
+  __readone(input,&sys);
+  __readone(input,&idle);
+  __readone(input,&iowait);
+  __readone(input,&irq);
+  __readone(input,&softirq);
+  fclose(input);
+  r_sys = user+nice+sys+idle;
+  r_user = user+nice+sys;
+  return 0;
+} 
