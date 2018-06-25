@@ -106,6 +106,7 @@ namespace bulkio    {
 
 #define FOREACH_PORT_TYPE(x)     \
     FOREACH_NUMERIC_PORT_TYPE(x) \
+    x(BULKIO::dataBit);          \
     x(BULKIO::dataFile);         \
     x(BULKIO::dataXML);
 

@@ -34,6 +34,7 @@
 #include <ossie/BULKIO/bio_dataUlongLong.h>
 #include <ossie/BULKIO/bio_dataFloat.h>
 #include <ossie/BULKIO/bio_dataDouble.h>
+#include <ossie/BULKIO/bio_dataBit.h>
 #include <ossie/BULKIO/bio_dataFile.h>
 #include <ossie/BULKIO/bio_dataXML.h>
 #include <ossie/BULKIO/bio_dataSDDS.h>

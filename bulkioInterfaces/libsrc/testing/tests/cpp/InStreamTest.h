@@ -20,30 +20,37 @@
 #ifndef BULKIO_INSTREAMTEST_H
 #define BULKIO_INSTREAMTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
-#include <ossie/debug.h>
+#include "InPortTestFixture.h"
 
 template <class Port>
-class InStreamTest : public CppUnit::TestFixture
+class InStreamTest : public InPortTestFixture<Port>
 {
+    typedef InPortTestFixture<Port> TestBase;
+
     CPPUNIT_TEST_SUITE(InStreamTest);
+    CPPUNIT_TEST(testTimestamp);
+    CPPUNIT_TEST(testGetCurrentStreamEmptyPacket);
     CPPUNIT_TEST(testGetCurrentStreamEmptyEos);
     CPPUNIT_TEST(testGetCurrentStreamDataEos);
-    CPPUNIT_TEST(testSriModeChanges);
+    CPPUNIT_TEST(testSriChanges);
+    CPPUNIT_TEST(testDisable);
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void setUp();
-    void tearDown();
+    void testTimestamp();
 
+    void testGetCurrentStreamEmptyPacket();
     void testGetCurrentStreamEmptyEos();
     void testGetCurrentStreamDataEos();
-    void testSriModeChanges();
+    void testSriChanges();
+
+    void testDisable();
 
 protected:
-    virtual std::string getPortName() const = 0;
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
 
-    Port* port;
+    using TestBase::port;
 };
 
 template <class Port>
@@ -56,6 +63,8 @@ class BufferedInStreamTest : public InStreamTest<Port>
     CPPUNIT_TEST(testTryreadPeek);
     CPPUNIT_TEST(testReadPeek);
     CPPUNIT_TEST(testReadPartial);
+    CPPUNIT_TEST(testReadTimestamps);
+    CPPUNIT_TEST(testDisableDiscard);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -65,9 +74,32 @@ public:
     void testTryreadPeek();
     void testReadPeek();
     void testReadPartial();
+    void testReadTimestamps();
+
+    void testDisableDiscard();
+
+protected:
+    typedef typename Port::StreamType StreamType;
+    typedef typename StreamType::DataBlockType DataBlockType;
+
+    using TestBase::port;
+};
+
+template <class Port>
+class NumericInStreamTest : public BufferedInStreamTest<Port>
+{
+    typedef BufferedInStreamTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericInStreamTest, TestBase);
+    CPPUNIT_TEST(testSriModeChanges);
+    CPPUNIT_TEST(testReadTimestampsComplex);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testSriModeChanges();
+
+    void testReadTimestampsComplex();
 
 private:
-    typedef typename Port::PortSequenceType PortSequenceType;
     typedef typename Port::StreamType StreamType;
     typedef typename StreamType::DataBlockType DataBlockType;
 

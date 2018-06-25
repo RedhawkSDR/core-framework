@@ -39,18 +39,18 @@ namespace bulkio {
 
   template <typename PortType>
   OutPort<PortType>::OutPort(const std::string& name,
-                                 LOGGER_PTR new_logger,
+                                 LOGGER_PTR logger,
                                  ConnectionEventListener *connectCB,
                                  ConnectionEventListener *disconnectCB) :
     redhawk::NegotiableUsesPort(name)
   {
 
-      if (!new_logger) {
+    if (!logger) {
         std::string pname("redhawk.bulkio.outport.");
         pname = pname + name;
         setLogger(rh_logger::Logger::getLogger(pname));
     } else {
-        setLogger(new_logger);
+        setLogger(logger);
     }
 
     if ( connectCB ) {
@@ -410,10 +410,10 @@ namespace bulkio {
 
   template <typename PortType>
   OutNumericPort<PortType>::OutNumericPort(const std::string& name,
-                                               LOGGER_PTR new_logger,
+                                               LOGGER_PTR logger,
                                                ConnectionEventListener *connectCB,
                                                ConnectionEventListener *disconnectCB ) :
-    OutPort<PortType>(name, new_logger, connectCB, disconnectCB)
+    OutPort<PortType>(name, logger, connectCB, disconnectCB)
   {
   }
 
@@ -464,10 +464,10 @@ namespace bulkio {
 
 
   OutCharPort::OutCharPort(const std::string& name,
-                           LOGGER_PTR new_logger,
+                           LOGGER_PTR logger,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
-    OutNumericPort<BULKIO::dataChar>(name, new_logger, connectCB, disconnectCB)
+    OutNumericPort<BULKIO::dataChar>(name, logger, connectCB, disconnectCB)
   {
 
   }
@@ -498,6 +498,18 @@ namespace bulkio {
   }
 
 
+  OutBitPort::OutBitPort(const std::string& name, LOGGER_PTR logger) :
+    OutPort<BULKIO::dataBit>(name, logger)
+  {
+  }
+
+
+  void OutBitPort::pushPacket(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID)
+  {
+    _sendPacket(data, T, EOS, streamID);
+  }
+
+
   OutFilePort::OutFilePort(const std::string& name,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
@@ -507,10 +519,10 @@ namespace bulkio {
 
 
   OutFilePort::OutFilePort(const std::string& name,
-                           LOGGER_PTR new_logger,
+                           LOGGER_PTR logger,
                            ConnectionEventListener *connectCB,
                            ConnectionEventListener *disconnectCB) :
-    OutPort<BULKIO::dataFile>(name,new_logger, connectCB, disconnectCB)
+    OutPort<BULKIO::dataFile>(name,logger, connectCB, disconnectCB)
   {
   }
 
@@ -544,10 +556,10 @@ namespace bulkio {
 
 
   OutXMLPort::OutXMLPort(const std::string& name,
-                         LOGGER_PTR new_logger,
+                         LOGGER_PTR logger,
                          ConnectionEventListener *connectCB,
                          ConnectionEventListener *disconnectCB) :
-    OutPort<BULKIO::dataXML>(name,new_logger,connectCB, disconnectCB)
+    OutPort<BULKIO::dataXML>(name,logger,connectCB, disconnectCB)
   {
   }
 

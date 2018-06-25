@@ -63,12 +63,15 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              PropertyMonitor.h \
              Autocomplete.h \
              Versions.h \
+             refcount_memory.h \
              shared_buffer.h \
              ExecutorService.h \
              UsesPort.h \
              ProvidesPort.h \
              Transport.h \
-             BufferManager.h
+             BufferManager.h \
+             bitops.h \
+             bitbuffer.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
 	     internal/message_traits.h \

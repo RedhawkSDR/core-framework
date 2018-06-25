@@ -98,6 +98,31 @@ namespace bulkio {
     };
 
     template <>
+    void CorbaTransport<BULKIO::dataBit>::_pushPacketImpl(const redhawk::shared_bitbuffer& data,
+                                                          const BULKIO::PrecisionUTCTime& T,
+                                                          bool EOS,
+                                                          const char* streamID)
+    {
+        BULKIO::BitSequence buffer;
+        size_t bytes = (data.size() + 7) / 8;
+        const CORBA::Octet* ptr;
+        redhawk::bitbuffer temp;
+        if (data.offset() == 0) {
+            // Bit buffer is byte-aligned, so it can be directly wrapped with a
+            // non-owning CORBA sequence
+            ptr = reinterpret_cast<const CORBA::Octet*>(data.data());
+        } else {
+            // Not byte-aligned, copy bits into a temporary buffer and use that
+            // as the data for the CORBA sequence
+            temp = data.copy();
+            ptr = reinterpret_cast<const CORBA::Octet*>(temp.data());
+        }
+        buffer.data.replace(bytes, bytes, const_cast<CORBA::Octet*>(ptr), false);
+        buffer.bits = data.size();
+        _objref->pushPacket(buffer, T, EOS, streamID);
+    }
+
+    template <>
     void CorbaTransport<BULKIO::dataFile>::_pushPacketImpl(const std::string& data,
                                                             const BULKIO::PrecisionUTCTime& T,
                                                             bool EOS,
@@ -124,11 +149,9 @@ namespace bulkio {
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
         ChunkingTransport(OutPort<PortType>* parent, PtrType port) :
-            CorbaTransport<PortType>(parent, port)      
+            CorbaTransport<PortType>(parent, port),
+            maxSamplesPerPush(_getMaxSamplesPerPush())
         {
-            // Multiply by some number < 1 to leave some margin for the CORBA header
-            const size_t maxPayloadSize = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
-            maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
         }
 
         /*
@@ -189,7 +212,17 @@ namespace bulkio {
         }
 
     private:
-        size_t maxSamplesPerPush;
+        static inline size_t _getMaxSamplesPerPush()
+        {
+            // Take the maximum transfer size in bytes, multiply by some number
+            // < 1 to leave some margin for the CORBA header, then determine
+            // the maximum number of elements via bits, to support numeric data
+            // data types (e.g., float) and packed bits.
+            const size_t max_bits = (size_t) (bulkio::Const::MaxTransferBytes() * .9) * 8;
+            return max_bits / NativeTraits<PortType>::bits;
+        }
+
+        const size_t maxSamplesPerPush;
     };
 
     template <typename PortType>
@@ -215,7 +248,7 @@ namespace bulkio {
         return new CorbaTransport<BULKIO::dataXML>(parent, port);
     }
 
-#define INSTANTIATE_TEMPLATE(x)                 \
+#define INSTANTIATE_TEMPLATE(x)                \
     template class CorbaTransport<x>;          \
     template class CorbaTransportFactory<x>;
 
@@ -224,4 +257,5 @@ namespace bulkio {
 
     FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+    INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataBit);
 }

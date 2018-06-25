@@ -73,6 +73,11 @@ public:
         {
         }
 
+        size_t size() const
+        {
+            return data.length();
+        }
+
         SequenceType data;
         BULKIO::PrecisionUTCTime T;
         bool EOS;
@@ -81,6 +86,12 @@ public:
 
     std::vector<Packet> packets;
 };
+
+template <>
+inline size_t InPortStub<BULKIO::dataBit>::Packet::size() const
+{
+    return data.bits;
+}
 
 template <>
 class InPortStub<BULKIO::dataXML> : public InPortStubBase<BULKIO::dataXML>
@@ -97,6 +108,11 @@ public:
             EOS(EOS),
             streamID(streamID)
         {
+        }
+
+        size_t size() const
+        {
+            return data.size();
         }
 
         std::string data;
@@ -123,6 +139,11 @@ public:
             EOS(EOS),
             streamID(streamID)
         {
+        }
+
+        size_t size() const
+        {
+            return data.size();
         }
 
         std::string data;

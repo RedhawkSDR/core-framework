@@ -43,6 +43,7 @@ nodist_libbulkiojni_la_SOURCES = \
 	ossie/BULKIO/jni_bio_dataXML.cpp \
 	ossie/BULKIO/jni_bio_dataShort.cpp \
 	ossie/BULKIO/jni_bio_dataDouble.cpp \
+	ossie/BULKIO/jni_bio_dataBit.cpp \
 	ossie/BULKIO/jni_bio_dataChar.cpp \
 	ossie/BULKIO/jni_bio_dataOctet.cpp \
 	ossie/BULKIO/jni_bio_dataUlong.cpp \
@@ -61,6 +62,7 @@ nobase_nodist_include_HEADERS = \
 	ossie/BULKIO/jni_bio_dataXML.h \
 	ossie/BULKIO/jni_bio_dataShort.h \
 	ossie/BULKIO/jni_bio_dataDouble.h \
+	ossie/BULKIO/jni_bio_dataBit.h \
 	ossie/BULKIO/jni_bio_dataChar.h \
 	ossie/BULKIO/jni_bio_dataOctet.h \
 	ossie/BULKIO/jni_bio_dataUlong.h \

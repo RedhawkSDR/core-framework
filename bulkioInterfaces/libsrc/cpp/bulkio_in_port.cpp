@@ -33,7 +33,7 @@ namespace bulkio {
 
   template <typename PortType>
   InPort<PortType>::InPort(std::string port_name, 
-                           LOGGER_PTR  new_logger,
+                           LOGGER_PTR  logger,
                            bulkio::sri::Compare sriCmp,
                            SriListener *newStreamCB):
     redhawk::NegotiableProvidesPortBase(port_name),
@@ -42,17 +42,21 @@ namespace bulkio {
     maxQueue(100),
     breakBlock(false),
     blocking(false),
-    stats(new linkStatistics(port_name, sizeof(TransportType)))
+    stats(new linkStatistics(port_name))
   {
+    // Manually set the bit size because the statistics ctor only takes a byte
+    // count
+    stats->setBitSize(NativeTraits<PortType>::bits);
+
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 
-    if (!new_logger) {
+    if (!logger) {
         std::string pname("redhawk.bulkio.inport.");
         pname = pname + port_name;
         setLogger(rh_logger::Logger::getLogger(pname));
     } else {
-        setLogger(new_logger);
+        setLogger(logger);
     }
 
 
@@ -216,6 +220,18 @@ namespace bulkio {
             return data.copy();
         }
 
+        inline bool is_copy_required(const redhawk::shared_bitbuffer& data)
+        {
+            // If the data comes from a non-shared source (a raw pointer), we
+            // need to make a copy.
+            return (data.transient() && !data.empty());
+        }
+
+        inline const redhawk::shared_bitbuffer copy_data(const redhawk::shared_bitbuffer& data)
+        {
+            return data.copy();
+        }
+
         inline bool is_copy_required(const std::string&)
         {
             // Strings don't have sharing semantics, so no copy is required.
@@ -251,6 +267,13 @@ namespace bulkio {
     if (maxQueue == 0) {
       TRACE_EXIT( _portLog, "InPort::pushPacket"  );
       return;
+    }
+
+    // Discard empty packets if EOS is not set, as there is no useful data or
+    // metadata to be had--since T applies to the 1st sample (which does not
+    // exist), all we have is a stream ID
+    if (data.empty() && !EOS) {
+        return;
     }
 
     StreamDescriptor sri;
@@ -463,15 +486,13 @@ namespace bulkio {
     return getPacket(timeout, "");
   }
 
-
   template <typename PortType>
   typename InPort<PortType>::DataTransferType * InPort<PortType>::getPacket(float timeout, const std::string& streamID)
   {
     DataTransferType* transfer = 0;
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
     if (packet) {
-      transfer = new DataTransferType(PortSequenceType(), packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
-      transfer->dataBuffer.assign(packet->buffer.begin(), packet->buffer.end());
+      transfer = new DataTransferType(packet->buffer, packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
     }
     return transfer;
   }
@@ -809,10 +830,10 @@ namespace bulkio {
   //
   template <typename PortType>
   InNumericPort<PortType>::InNumericPort(std::string port_name, 
-                                         LOGGER_PTR  new_logger,
+                                         LOGGER_PTR  logger,
                                          bulkio::sri::Compare compareSri,
                                          SriListener *newStreamCB) :
-    InPort<PortType>(port_name, new_logger, compareSri, newStreamCB)
+    InPort<PortType>(port_name, logger, compareSri, newStreamCB)
   {
   }
 
@@ -908,14 +929,26 @@ namespace bulkio {
   }
 
 
+  InBitPort::InBitPort(const std::string& name, LOGGER_PTR logger) :
+    InPort<BULKIO::dataBit>(name, logger)
+  {
+  }
+
+  void InBitPort::pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+    redhawk::shared_bitbuffer::data_type* ptr = const_cast<BULKIO::BitSequence&>(data).data.get_buffer(1);
+    redhawk::shared_bitbuffer buffer(ptr, data.bits);
+    queuePacket(buffer, T, EOS, streamID);
+  }
+
   // ----------------------------------------------------------------------------------------
   //  Source Input Port String Definitions
   // ----------------------------------------------------------------------------------------
   InFilePort::InFilePort(std::string port_name, 
-                         LOGGER_PTR  new_logger,
+                         LOGGER_PTR  logger,
                          bulkio::sri::Compare compareSri,
                          SriListener *newStreamCB) :
-    InPort<BULKIO::dataFile>(port_name, new_logger, compareSri, newStreamCB)
+    InPort<BULKIO::dataFile>(port_name, logger, compareSri, newStreamCB)
   {
   }
 
@@ -943,10 +976,10 @@ namespace bulkio {
 
 
   InXMLPort::InXMLPort(std::string name,
-                       LOGGER_PTR  new_logger,
+                       LOGGER_PTR  logger,
                        bulkio::sri::Compare compareSri,
                        SriListener* newStreamCB) :
-    InPort<BULKIO::dataXML>(name, new_logger, compareSri, newStreamCB)
+    InPort<BULKIO::dataXML>(name, logger, compareSri, newStreamCB)
   {
   }
 

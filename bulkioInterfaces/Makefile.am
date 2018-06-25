@@ -55,6 +55,7 @@ bio_dataUshort.idl \
 bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
+bio_dataBit.idl \
 bio_dataSDDS.idl \
 bio_dataVITA49.idl
 
@@ -129,6 +130,8 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/ossie/BULKIO/bio_dataLongLongDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataUlongLongSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataUlongLongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
 	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
@@ -153,6 +156,7 @@ pkginclude_HEADERS = \
 	src/cpp/ossie/BULKIO/bio_dataLong.h \
 	src/cpp/ossie/BULKIO/bio_dataLongLong.h \
 	src/cpp/ossie/BULKIO/bio_dataUlongLong.h \
+	src/cpp/ossie/BULKIO/bio_dataBit.h \
 	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
 	src/cpp/ossie/BULKIO/bio_dataVITA49.h
 
@@ -216,7 +220,6 @@ PYTHON_PACKAGE := $(LOWER_CASE_IDL_MODULE).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES) $(IDL_INTERNAL_FILES))
-PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
 PY_IDL_INCLUDES := -I idl
@@ -232,11 +235,7 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-$(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py
-	python setup.py $(OSSIE_V_pysetup) build --build-lib build/lib
-	$(AM_V_at)touch $(PY_BUILD_OUT_DIR)
-
-all-python: $(PY_BUILD_OUT_DIR)
+all-python: $(PY_SRC_OUT_DIR)/__init__.py
 
 install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
 	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)

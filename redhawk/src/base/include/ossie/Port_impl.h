@@ -333,6 +333,7 @@ public:
         return "Direction";
     }
 
+    LOGGER getLogger();
     void setLogger(LOGGER newLogger);
 
 protected:

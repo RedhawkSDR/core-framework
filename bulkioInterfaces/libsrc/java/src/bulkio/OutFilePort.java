@@ -39,7 +39,7 @@ public class OutFilePort extends OutDataPort<dataFileOperations,String> {
     }
 
     public OutFilePort(String portName, Logger logger, ConnectionEventListener eventCB) {
-        super(portName, logger, eventCB, 1);
+        super(portName, logger, eventCB, new FileDataHelper());
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }
@@ -49,21 +49,8 @@ public class OutFilePort extends OutDataPort<dataFileOperations,String> {
         return BULKIO.dataFileHelper.id();
     }
 
-    public void pushPacket(String data, PrecisionUTCTime time, boolean endOfStream, String streamID)
-    {
-        super.pushPacket(data, time, endOfStream, streamID);
-    }
-
     protected dataFileOperations narrow(org.omg.CORBA.Object obj) {
         return BULKIO.dataFileHelper.narrow(obj);
-    }
-
-    protected String emptyArray() {
-        return "";
-    }
-
-    protected int arraySize(String data) {
-        return data.length();
     }
 
     protected void sendPacket(dataFileOperations port, String data, PrecisionUTCTime time, boolean endOfStream, String streamID) {

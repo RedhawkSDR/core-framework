@@ -39,7 +39,7 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
     }
 
     public OutXMLPort(String portName, Logger logger, ConnectionEventListener eventCB) {
-        super(portName, logger, eventCB, 1);
+        super(portName, logger, eventCB, new XMLDataHelper());
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName); 
         }
@@ -58,14 +58,6 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
 
     protected dataXMLOperations narrow(org.omg.CORBA.Object obj) {
         return BULKIO.dataXMLHelper.narrow(obj);
-    }
-
-    protected String emptyArray() {
-        return "";
-    }
-
-    protected int arraySize(String data) {
-        return data.length();
     }
 
     protected void sendPacket(dataXMLOperations port, String data, PrecisionUTCTime time, boolean endOfStream, String streamID) {

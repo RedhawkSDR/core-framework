@@ -43,7 +43,12 @@ namespace bulkio {
   template <class PortType>
   struct OutStreamTraits
   {
-      typedef BufferedOutputStream<PortType> OutStreamType;
+      typedef NumericOutputStream<PortType> OutStreamType;
+  };
+
+  template <>
+  struct OutStreamTraits<BULKIO::dataBit> {
+      typedef OutBitStream OutStreamType;
   };
 
   template <>
@@ -104,12 +109,12 @@ namespace bulkio {
     // OutPort Creates a uses port object for publishing data to the framework
     //
     // @param name  name assigned to the port located in scd.xml file
-    // @param new_logger  Logger to receive port logging output
+    // @param logger  logger to receive port logging output
     // @param connectionCB  callback that will be called when the connectPort method is called
     // @pararm disconnectDB callback that receives notification when a disconnectPort happens
     //
     OutPort(const std::string& name, 
-            LOGGER_PTR new_logger,
+            LOGGER_PTR logger,
             ConnectionEventListener *connectCB=NULL,
             ConnectionEventListener *disconnectCB=NULL);
 
@@ -344,7 +349,7 @@ namespace bulkio {
                    ConnectionEventListener *disconnectCB=NULL);
 
     OutNumericPort(const std::string& name, 
-                   LOGGER_PTR new_logger,
+                   LOGGER_PTR logger,
                    ConnectionEventListener *connectCB=NULL,
                    ConnectionEventListener *disconnectCB=NULL);
 
@@ -403,7 +408,7 @@ namespace bulkio {
 		ConnectionEventListener *disconnectCB=NULL );
 
     OutCharPort(const std::string& name, 
-		LOGGER_PTR new_logger,
+		LOGGER_PTR logger,
 		ConnectionEventListener *connectCB=NULL,
 		ConnectionEventListener *disconnectCB=NULL );
 
@@ -422,6 +427,15 @@ namespace bulkio {
   };
 
 
+  class OutBitPort : public OutPort<BULKIO::dataBit> {
+  public:
+    typedef char* NativeSequenceType;
+
+    OutBitPort(const std::string& name, LOGGER_PTR logger=LOGGER_PTR()); 
+
+    void pushPacket(const redhawk::shared_bitbuffer& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+  };
+
   //
   // OutFilePort
   //
@@ -438,7 +452,7 @@ namespace bulkio {
 
 
     OutFilePort(const std::string& name, 
-                LOGGER_PTR new_logger, 
+                LOGGER_PTR logger, 
                 ConnectionEventListener *connectCB=NULL,
                 ConnectionEventListener *disconnectCB=NULL);
 
@@ -498,7 +512,7 @@ namespace bulkio {
 
 
     OutXMLPort(const std::string& name, 
-               LOGGER_PTR new_logger, 
+               LOGGER_PTR logger, 
                ConnectionEventListener *connectCB=NULL,
                ConnectionEventListener *disconnectCB=NULL);
 

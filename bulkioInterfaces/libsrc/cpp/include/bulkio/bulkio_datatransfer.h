@@ -24,6 +24,8 @@
 #include <vector>
 
 #include <ossie/PropertyMap.h>
+#include <ossie/shared_buffer.h>
+#include <ossie/bitbuffer.h>
 
 #include <BULKIO/bulkioDataTypes.h>
 
@@ -46,15 +48,10 @@ namespace bulkio {
     // 
     //
     template <typename BufferType>
-    struct DataTransfer {
-        typedef BufferType DataBufferType;
-
-        //
-        // Construct a DataTransfer object to be returned from an InPort's getPacket method
-        // 
-        template <class Tin>
-        DataTransfer(const Tin& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const char* streamID,
-                     const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+    struct DataTransferBase {
+        DataTransferBase(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS,
+                         const char* streamID, const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+            dataBuffer(data),
             T(T),
             EOS(EOS),
             streamID(streamID),
@@ -62,10 +59,9 @@ namespace bulkio {
             sriChanged(sriChanged),
             inputQueueFlushed(inputQueueFlushed)
         {
-            assign(dataBuffer, data);
         }
 
-        DataBufferType dataBuffer;
+        BufferType dataBuffer;
         BULKIO::PrecisionUTCTime T;
         bool EOS;
         std::string streamID;
@@ -81,6 +77,43 @@ namespace bulkio {
         const redhawk::PropertyMap& getKeywords() const
         {
             return redhawk::PropertyMap::cast(SRI.keywords);
+        }
+    };
+
+    template <typename BufferType>
+    struct DataTransfer : public DataTransferBase<BufferType>
+    {
+        typedef BufferType DataBufferType;
+
+        DataTransfer(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS,
+                     const char* streamID, const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+            DataTransferBase<BufferType>(data, T, EOS, streamID, H, sriChanged, inputQueueFlushed)
+        {
+        }
+    };
+
+    template <typename NativeType>
+    struct DataTransfer< std::vector<NativeType> > : public DataTransferBase< std::vector<NativeType> > {
+        typedef std::vector<NativeType> DataBufferType;
+
+        //
+        // Construct a DataTransfer object to be returned from an InPort's getPacket method
+        // 
+        DataTransfer(const redhawk::shared_buffer<NativeType>& data, const BULKIO::PrecisionUTCTime& T, bool EOS,
+                     const char* streamID, const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+            DataTransferBase<DataBufferType>(DataBufferType(), T, EOS, streamID, H, sriChanged, inputQueueFlushed)
+        {
+            // To preserve data integrity, copy the contents of the shared
+            // buffer to the vector
+            this->dataBuffer.assign(data.begin(), data.end());
+        }
+
+        template <class Tin>
+        DataTransfer(const _CORBA_Sequence<Tin>& data, const BULKIO::PrecisionUTCTime& T, bool EOS,
+                     const char* streamID, const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+            DataTransferBase<DataBufferType>(DataBufferType(), T, EOS, streamID, H, sriChanged, inputQueueFlushed)
+        {
+            assign(this->dataBuffer, data);
         }
 
     private:
@@ -99,62 +132,41 @@ namespace bulkio {
                 dest.assign(src.get_buffer(), src.get_buffer() + src.length());
             }
         }
-
     };
 
     template <>
-    struct DataTransfer<std::string> {
+    struct DataTransfer<std::string> : public DataTransferBase<std::string> {
+        typedef std::string DataBufferType;
+
         //
         // Construct a DataTransfer object to be returned from an InPort's getPacket method
         // 
+        DataTransfer(const std::string& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const char* streamID,
+                     const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
+            DataTransferBase<std::string>(data, T, EOS, streamID, H, sriChanged, inputQueueFlushed)
+        {
+        }
+
         DataTransfer(const char* data, const BULKIO::PrecisionUTCTime& T, bool EOS, const char* streamID,
                      const BULKIO::StreamSRI& H, bool sriChanged, bool inputQueueFlushed) :
-            T(T),
-            EOS(EOS),
-            streamID(streamID),
-            SRI(H),
-            sriChanged(sriChanged),
-            inputQueueFlushed(inputQueueFlushed)
+            DataTransferBase<std::string>(toString(data), T, EOS, streamID, H, sriChanged, inputQueueFlushed)
         {
-            assign(dataBuffer, data);
         }
 
         DataTransfer(const char* data, bool EOS, const char* streamID, const BULKIO::StreamSRI& H,
                      bool sriChanged, bool inputQueueFlushed) :
-            T(),
-            EOS(EOS),
-            streamID(streamID),
-            SRI(H),
-            sriChanged(sriChanged),
-            inputQueueFlushed(inputQueueFlushed)
+            DataTransferBase<std::string>(toString(data), BULKIO::PrecisionUTCTime(), EOS, streamID, H,
+                                          sriChanged, inputQueueFlushed)
         {
-            assign(dataBuffer, data);
-        }
-
-        std::string dataBuffer;
-        BULKIO::PrecisionUTCTime T;
-        bool EOS;
-        std::string streamID;
-        BULKIO::StreamSRI SRI;
-        bool sriChanged;
-        bool inputQueueFlushed;
-
-        redhawk::PropertyMap& getKeywords()
-        {
-            return redhawk::PropertyMap::cast(SRI.keywords);
-        }
-
-        const redhawk::PropertyMap& getKeywords() const
-        {
-            return redhawk::PropertyMap::cast(SRI.keywords);
         }
 
     private:
-        static void assign(std::string& dest, const char* src)
+        static inline std::string toString(const char* src)
         {
-            if (src) {
-                dest = src;
+            if (!src) {
+                return std::string();
             }
+            return src;
         }
     };
 
@@ -170,6 +182,7 @@ namespace bulkio {
     typedef DataTransfer<std::vector<CORBA::Float> > FloatDataTransfer;
     typedef DataTransfer<std::vector<CORBA::Double> > DoubleDataTransfer;
     typedef DataTransfer<std::string> StringDataTransfer;
+    typedef DataTransfer<redhawk::shared_bitbuffer> BitDataTransfer;
 }
 
 #endif // __bulkio_datatransfer_h

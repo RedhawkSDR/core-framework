@@ -376,6 +376,12 @@ namespace bulkio {
      * packets worth of data into a single push.  By default, buffering is
      * disabled.
      *
+     * @warning  Do not declare instances of this template class directly in
+     *           user code; the template parameter and class name are not
+     *           considered API. Use the type-specific @c typedef instead, such
+     *           as bulkio::OutFloatStream, or the nested @c typedef StreamType
+     *           from an %OutPort.
+     *
      * @par  Data Buffering
      *
      * BufferedOutputStreams can combine multiple small chunks of data into a
@@ -402,16 +408,9 @@ namespace bulkio {
     template <class PortType>
     class BufferedOutputStream : public OutputStream<PortType> {
     public:
-        /// @brief  The native type of a real sample.
-        typedef typename NativeTraits<PortType>::NativeType ScalarType;
-        /// @brief  The native type of a complex sample.
-        typedef std::complex<ScalarType> ComplexType;
+        /// @brief  Data type for write().
+        typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-        /// @brief  The shared_buffer type for real data.
-        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
-        /// @brief  The shared_buffer type for complex data.
-        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
-       
         /**
          * @brief  Default constructor.
          * @see  OutPort::createStream(const std::string&)
@@ -462,6 +461,78 @@ namespace bulkio {
         void flush();
 
         /**
+         * @brief  Writes data to the stream.
+         * @param data  The data to write.
+         * @param time  Time stamp of first element.
+         *
+         * If buffering is disabled, @a data is sent as a single packet with
+         * the given time stamp.
+         *
+         * When buffering is enabled, @a data is copied into the internal
+         * buffer. If the internal buffer exceeds the configured buffer size,
+         * one or more packets will be sent.
+         *
+         * If there are any pending SRI changes, the new SRI is pushed first.
+         */
+        void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time);
+
+    protected:
+        /// @cond IMPL
+        typedef OutputStream<PortType> Base;
+
+        friend class OutPort<PortType>;
+        typedef OutPort<PortType> OutPortType;
+        BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+
+        class Impl;
+        Impl& impl();
+        const Impl& impl() const;
+        /// @endcond
+    };
+
+
+    /**
+     * @brief BulkIO output stream class for numeric data types.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     *
+     * %NumericOutputStream provides overloaded write methods for both real and
+     * complex sample data.
+     *
+     * @warning  Do not declare instances of this template class directly in
+     *           user code; the template parameter and class name are not
+     *           considered API. Use the type-specific @c typedef instead, such
+     *           as bulkio::OutFloatStream, or the nested @c typedef StreamType
+     *           from an %OutPort.
+     */
+    template <class PortType>
+    class NumericOutputStream : public BufferedOutputStream<PortType> {
+    public:
+        /// @brief  The native type of a real sample.
+        typedef typename NativeTraits<PortType>::NativeType ScalarType;
+        /// @brief  The native type of a complex sample.
+        typedef std::complex<ScalarType> ComplexType;
+
+        /// @brief  The shared_buffer type for real data.
+        typedef redhawk::shared_buffer<ScalarType> ScalarBuffer;
+        /// @brief  The shared_buffer type for complex data.
+        typedef redhawk::shared_buffer<ComplexType> ComplexBuffer;
+       
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %NumericOutputStream. This stream is not associated
+         * with a stream from any output port. No methods may be called on the
+         * the %NumericOutputStream except for boolean tests and comparison. A
+         * null stream will always test as not valid, and will compare equal to
+         * another stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
+        NumericOutputStream();
+
+        /*
          * @brief  Write real sample data to the stream.
          * @param data  %shared_buffer containing real data.
          * @param time  Time stamp of first sample.
@@ -586,7 +657,10 @@ namespace bulkio {
          * Convenience wrapper for write(const ScalarBuffer&,const BULKIO::PrecisionUTCTime&)
          * that creates a transient buffer from @a data and @a count.
          */
-        void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
+        void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(ScalarBuffer::make_transient(data, count), time);
+        }
 
         /**
          * @brief  Writes one or more packets of real data.
@@ -600,7 +674,10 @@ namespace bulkio {
          * Convenience wrapper for write(const ScalarBuffer&,const std::list<bulkio::SampleTimestamp>&)
          * that creates a transient buffer from @a data and @a count.
          */
-        void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
+        void write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(ScalarBuffer::make_transient(data, count), times);
+        }
 
         /**
          * @brief  Writes a packet of complex data.
@@ -614,7 +691,10 @@ namespace bulkio {
          * Convenience wrapper for write(const ComplexBuffer&,const BULKIO::PrecisionUTCTime&)
          * that creates a transient buffer from @a data and @a count.
          */
-        void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time);
+        void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+        {
+            write(ComplexBuffer::make_transient(data, count), time);
+        }
 
         /**
          * @brief  Writes one or more packets of complex data.
@@ -630,30 +710,52 @@ namespace bulkio {
          * Convenience wrapper for write(const ComplexBuffer&,const std::list<bulkio::SampleTimestamp>&)
          * that creates a transient buffer from @a data and @a count.
          */
-        void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times);
+        void write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+        {
+            write(ComplexBuffer::make_transient(data, count), times);
+        }
 
     private:
         /// @cond IMPL
-        typedef OutputStream<PortType> Base;
+        typedef BufferedOutputStream<PortType> Base;
 
         friend class OutPort<PortType>;
         typedef OutPort<PortType> OutPortType;
-        BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+        NumericOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port);
 
-        class Impl;
-        Impl& impl();
-        const Impl& impl() const;
+        template <typename Sample>
+        inline void _writeMultiple(const redhawk::shared_buffer<Sample>& data,
+                                   const std::list<bulkio::SampleTimestamp>& times);
         /// @endcond
     };
 
 
+    /**
+     * @brief BulkIO XML output stream class.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     */
     class OutXMLStream : public OutputStream<BULKIO::dataXML> {
     public:
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %OutXMLStream. This stream is not associated with a
+         * stream from any output port. No methods may be called on the the
+         * %OutXMLStream except for boolean tests and comparison. A null stream
+         * will always test as not valid, and will compare equal to another
+         * stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
         OutXMLStream();
 
         /**
-         * @brief  Write XML data to the stream.
-         * @param xmlString  The XML string to write.
+         * @brief  Writes XML data to the stream.
+         * @param xmlString  An XML string.
+         *
+         * The XML string @a data is sent as a single packet.
          */
         void write(const std::string& xmlString);
 
@@ -668,34 +770,58 @@ namespace bulkio {
     };
 
 
+    /**
+     * @brief BulkIO file output stream class.
+     * @headerfile  bulkio_out_stream.h <bulkio/bulkio_out_stream.h>
+     */
     class OutFileStream : public OutputStream<BULKIO::dataFile> {
     public:
+        /**
+         * @brief  Default constructor.
+         * @see  OutPort::createStream(const std::string&)
+         * @see  OutPort::createStream(const BULKIO::StreamSRI&)
+         *
+         * Create a null %OutFileStream. This stream is not associated with a
+         * stream from any output port. No methods may be called on the the
+         * %OutFileStream except for boolean tests and comparison. A null
+         * stream will always test as not valid, and will compare equal to
+         * another stream if and only if the other stream is also null.
+         *
+         * New, valid streams are created via an output port.
+         */
         OutFileStream();
 
         /**
-         * @brief  Write a file URI to the stream.
-         * @param data  The file URI to write.
+         * @brief  Writes a file URI to the stream.
+         * @param URL  The file URI to write.
+         * @param time  Time stamp of file data.
+         *
+         * The URI is sent as a single packet with the given time stamp.
          */
         void write(const std::string& URL, const BULKIO::PrecisionUTCTime& time);
 
     private:
+        /// @cond IMPL
         typedef OutputStream<BULKIO::dataFile> Base;
 
         friend class OutPort<BULKIO::dataFile>;
         typedef OutPort<BULKIO::dataFile> OutPortType;
         OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port);
+        /// @endcond
     };
 
-    typedef BufferedOutputStream<BULKIO::dataChar>      OutCharStream;
-    typedef BufferedOutputStream<BULKIO::dataOctet>     OutOctetStream;
-    typedef BufferedOutputStream<BULKIO::dataShort>     OutShortStream;
-    typedef BufferedOutputStream<BULKIO::dataUshort>    OutUShortStream;
-    typedef BufferedOutputStream<BULKIO::dataLong>      OutLongStream;
-    typedef BufferedOutputStream<BULKIO::dataUlong>     OutULongStream;
-    typedef BufferedOutputStream<BULKIO::dataLongLong>  OutLongLongStream;
-    typedef BufferedOutputStream<BULKIO::dataUlongLong> OutULongLongStream;
-    typedef BufferedOutputStream<BULKIO::dataFloat>     OutFloatStream;
-    typedef BufferedOutputStream<BULKIO::dataDouble>    OutDoubleStream;
+
+    typedef BufferedOutputStream<BULKIO::dataBit>      OutBitStream;
+    typedef NumericOutputStream<BULKIO::dataChar>      OutCharStream;
+    typedef NumericOutputStream<BULKIO::dataOctet>     OutOctetStream;
+    typedef NumericOutputStream<BULKIO::dataShort>     OutShortStream;
+    typedef NumericOutputStream<BULKIO::dataUshort>    OutUShortStream;
+    typedef NumericOutputStream<BULKIO::dataLong>      OutLongStream;
+    typedef NumericOutputStream<BULKIO::dataUlong>     OutULongStream;
+    typedef NumericOutputStream<BULKIO::dataLongLong>  OutLongLongStream;
+    typedef NumericOutputStream<BULKIO::dataUlongLong> OutULongLongStream;
+    typedef NumericOutputStream<BULKIO::dataFloat>     OutFloatStream;
+    typedef NumericOutputStream<BULKIO::dataDouble>    OutDoubleStream;
 
 } // end of bulkio namespace
 

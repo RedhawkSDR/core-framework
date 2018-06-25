@@ -21,7 +21,7 @@
 #ifndef EXECUTORSERVICETEST_H
 #define EXECUTORSERVICETEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 #include <ossie/ExecutorService.h>
 

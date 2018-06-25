@@ -22,6 +22,7 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <ossie/debug.h>
+#include <bulkio/bulkio_typetraits.h>
 
 template <class OutPort, class InPort>
 class LocalTest : public CppUnit::TestFixture
@@ -44,10 +45,10 @@ public:
 protected:
     typedef typename OutPort::StreamType OutStreamType;
     typedef typename InPort::StreamType InStreamType;
-    typedef typename OutStreamType::ScalarType ScalarType;
     typedef typename InStreamType::DataBlockType DataBlockType;
-
-    virtual std::string getPortName() const = 0;
+    typedef typename OutPort::CorbaType CorbaType;
+    typedef typename bulkio::BufferTraits<CorbaType>::BufferType BufferType;
+    typedef typename bulkio::BufferTraits<CorbaType>::MutableBufferType MutableBufferType;
 
     OutPort* outPort;
     InPort* inPort;

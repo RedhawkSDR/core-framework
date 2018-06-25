@@ -22,12 +22,14 @@ package bulkio;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
+
 import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
+
 import CF.DataType;
+import org.ossie.properties.AnyUtils;
+
 import BULKIO.PortStatistics;
-import bulkio.SizeOf;
+
 
 /**
  * @generated

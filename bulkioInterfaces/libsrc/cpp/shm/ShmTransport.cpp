@@ -122,12 +122,12 @@ namespace bulkio {
                 // Check that the buffer is already in shared memory (this is
                 // hoped to be the common case); if not, copy it into another
                 // buffer that is allocated in shared memory
-                if (data.is_process_shared()) {
-                    base = data.base();
+                if (data.get_memory().is_process_shared()) {
+                    base = data.get_memory().address();
                     offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
                 } else {
                     copy = data.copy(redhawk::shm::Allocator<typename BufferType::value_type>());
-                    base = copy.base();
+                    base = copy.get_memory().address();
                     offset = 0;
                 }
 

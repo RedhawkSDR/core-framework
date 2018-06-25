@@ -21,7 +21,7 @@
 #ifndef SHAREDBUFFERTEST_H
 #define SHAREDBUFFERTEST_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include "CFTest.h"
 
 class SharedBufferTest : public CppUnit::TestFixture
 {
@@ -33,16 +33,18 @@ class SharedBufferTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testIteration);
     CPPUNIT_TEST(testCopy);
     CPPUNIT_TEST(testSwap);
+    CPPUNIT_TEST(testResize);
     CPPUNIT_TEST(testSharing);
     CPPUNIT_TEST(testSlicing);
     CPPUNIT_TEST(testTrim);
     CPPUNIT_TEST(testTrimShared);
+    CPPUNIT_TEST(testReplace);
     CPPUNIT_TEST(testRecast);
     CPPUNIT_TEST(testAllocator);
     CPPUNIT_TEST(testAllocatorCopy);
     CPPUNIT_TEST(testCustomDeleter);
     CPPUNIT_TEST(testTransient);
-    CPPUNIT_TEST(testBase);
+    CPPUNIT_TEST(testGetMemory);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -59,12 +61,14 @@ public:
     void testIteration();
     void testCopy();
     void testSwap();
+    void testResize();
 
     // Extended container behavior
     void testSharing();
     void testSlicing();
     void testTrim();
     void testTrimShared();
+    void testReplace();
     void testRecast();
 
     // Advanced features
@@ -72,7 +76,7 @@ public:
     void testAllocatorCopy();
     void testCustomDeleter();
     void testTransient();
-    void testBase();
+    void testGetMemory();
 
 private:
     template <class Buffer>

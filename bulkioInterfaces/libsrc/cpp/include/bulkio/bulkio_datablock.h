@@ -27,13 +27,13 @@
 #include <boost/shared_ptr.hpp>
 
 #include <ossie/shared_buffer.h>
+#include <ossie/bitbuffer.h>
 
 #include <BULKIO/bulkioDataTypes.h>
-
+#include "bulkio_base.h"
 
 namespace bulkio {
 
-    class SRI;
     class StreamDescriptor;
 
     /**
@@ -86,8 +86,8 @@ namespace bulkio {
      * @headerfile  bulkio_datablock.h <bulkio/bulkio_datablock.h>
      *
      * %DataBlock is a smart pointer-based class that encapsulates the result
-     * of a read operation on an input stream. It includes both sample data,
-     * which may be real or complex, and metadata, which includes signal-
+     * of a read operation on an input stream. It contains both data, which
+     * varies with the input stream type, and metadata, including signal-
      * related information (SRI).
      *
      * @warning  Do not declare instances of this template class directly in user
@@ -148,7 +148,7 @@ namespace bulkio {
          *
          * @note  This method is typically used by input streams.
          */
-        DataBlock(const StreamDescriptor& sri, const T& buffer);
+        explicit DataBlock(const StreamDescriptor& sri, const T& buffer=T());
       
         /**
          * @brief  Copies this block's data and metadata.
@@ -183,7 +183,21 @@ namespace bulkio {
          */
         double xdelta() const;
 
-        const T& data() const;
+        /**
+         * @brief  Read-only access to block data.
+         * @returns  Read-only reference to the data buffer.
+         * @pre  Block is valid.
+         */
+        const T& buffer() const;
+
+        /**
+         * @brief  Replaces the data contents of this block.
+         * @param other  New data.
+         * @pre  Block is valid.
+         *
+         * @note  This method is typically used by InputStream.
+         */
+        void buffer(const T& other);
 
         /**
          * @brief  Checks whether the SRI has changed since the last read from
@@ -518,6 +532,7 @@ namespace bulkio {
         /**
          * @brief  Gets the size of the data in terms of real samples.
          * @returns  Number of real samples.
+         * @pre  Block is valid.
          * @see  cxsize()
          */
         size_t size() const;
@@ -565,7 +580,7 @@ namespace bulkio {
 
         /**
          * @brief  Read-only access to real sample data.
-         * @returns  %shared_buffer of real samples.
+         * @returns  Read-only reference to %shared_buffer of real samples.
          * @pre  Block is valid.
          * @see  cxbuffer() const
          *
@@ -574,7 +589,7 @@ namespace bulkio {
          *
          * To interpret the data as complex samples, use cxbuffer() const.
          */
-        ScalarBuffer buffer() const;
+        const ScalarBuffer& buffer() const;
 
         /**
          * @brief  Read-only access to complex sample data.
@@ -589,14 +604,7 @@ namespace bulkio {
          */
         ComplexBuffer cxbuffer() const;
 
-        /**
-         * @brief  Replaces the contents of this block with a new buffer.
-         * @param  %shared_buffer containing real data.
-         * @pre  Block is valid.
-         *
-         * @note  This method is typically used by InputStream.
-         */
-        void buffer(const ScalarBuffer& other);
+        using DataBlock<ScalarBuffer>::buffer;
 
     private:
         /// @cond IMPL
@@ -615,6 +623,7 @@ namespace bulkio {
     typedef SampleDataBlock<CORBA::ULongLong> ULongLongDataBlock;
     typedef SampleDataBlock<CORBA::Float>     FloatDataBlock;
     typedef SampleDataBlock<CORBA::Double>    DoubleDataBlock;
+    typedef DataBlock<redhawk::shared_bitbuffer> BitDataBlock;
     typedef DataBlock<std::string>            StringDataBlock;
 
 }  // end of bulkio namespace

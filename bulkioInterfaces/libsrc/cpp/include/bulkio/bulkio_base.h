@@ -425,8 +425,6 @@ namespace bulkio {
 
 
   };
-
-
 }  // end of bulkio namespace
 
 

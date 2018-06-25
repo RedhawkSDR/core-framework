@@ -25,9 +25,11 @@
 #include <vector>
 
 #include <ossie/shared_buffer.h>
+#include <ossie/bitbuffer.h>
 
 #include "BULKIO_Interfaces.h"
 #include <ossie/BULKIO/internal/bio_dataExt.h>
+#include "bulkio_base.h"
 
 namespace bulkio {
 
@@ -42,6 +44,7 @@ namespace bulkio {
         typedef POA_BULKIO::internal::NAME##Ext POATypeExt;     \
         typedef TT TransportType;                               \
         typedef ST SequenceType;                                \
+        static const char* name() { return #NAME; }             \
     };
 
     DEFINE_CORBA_TRAITS(dataChar, CORBA::Char, PortTypes::CharSequence);
@@ -54,6 +57,7 @@ namespace bulkio {
     DEFINE_CORBA_TRAITS(dataUlongLong, CORBA::ULongLong, PortTypes::UlongLongSequence);
     DEFINE_CORBA_TRAITS(dataFloat, CORBA::Float, PortTypes::FloatSequence);
     DEFINE_CORBA_TRAITS(dataDouble, CORBA::Double, PortTypes::DoubleSequence);
+    DEFINE_CORBA_TRAITS(dataBit, CORBA::Octet, BULKIO::BitSequence);
     DEFINE_CORBA_TRAITS(dataFile, char, char*);
     DEFINE_CORBA_TRAITS(dataXML, char, char*);
 
@@ -62,11 +66,19 @@ namespace bulkio {
     template <typename PortType>
     struct NativeTraits {
         typedef typename CorbaTraits<PortType>::TransportType NativeType;
+        static const size_t bits = sizeof(NativeType) * 8;
     };
 
     template <>
     struct NativeTraits<BULKIO::dataChar> {
         typedef int8_t NativeType;
+        static const size_t bits = 8;
+    };
+
+    template <>
+    struct NativeTraits<BULKIO::dataBit> {
+        typedef redhawk::shared_bitbuffer::data_type NativeType;
+        static const size_t bits = 1;
     };
 
     template <typename PortType>
@@ -74,18 +86,28 @@ namespace bulkio {
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef std::vector<NativeType> VectorType;
         typedef redhawk::shared_buffer<NativeType> BufferType;
+        typedef redhawk::buffer<NativeType> MutableBufferType;
     };
 
     template <>
-    struct BufferTraits<BULKIO::dataXML> {
+    struct BufferTraits<BULKIO::dataBit> {
+        typedef redhawk::shared_bitbuffer VectorType;
+        typedef redhawk::shared_bitbuffer BufferType;
+        typedef redhawk::bitbuffer MutableBufferType;
+    };
+
+    struct StringBufferTraits {
         typedef std::string VectorType;
         typedef std::string BufferType;
+        typedef std::string MutableBufferType;
     };
 
     template <>
-    struct BufferTraits<BULKIO::dataFile> {
-        typedef std::string VectorType;
-        typedef std::string BufferType;
+    struct BufferTraits<BULKIO::dataXML> : public StringBufferTraits {
+    };
+
+    template <>
+    struct BufferTraits<BULKIO::dataFile> : public StringBufferTraits {
     };
 }
 

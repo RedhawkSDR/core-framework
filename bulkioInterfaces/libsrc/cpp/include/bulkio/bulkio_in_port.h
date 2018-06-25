@@ -305,7 +305,7 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
     InPort(std::string port_name, 
-           LOGGER_PTR   new_logger,
+           LOGGER_PTR   logger,
            bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
            SriListener *newStreamCB = NULL );
 
@@ -489,7 +489,7 @@ namespace bulkio {
     //                       if all members match then return true, otherwise false.  This is used during the pushSRI method
     // @param newStreamCB interface that is called when new SRI.streamID is received
     InNumericPort(std::string port_name, 
-                  LOGGER_PTR new_logger,
+                  LOGGER_PTR logger,
                   bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
                   SriListener *newStreamCB = NULL);
 
@@ -534,6 +534,14 @@ namespace bulkio {
     StreamList getReadyStreams(size_t samples);
   };
 
+  class InBitPort : public InPort<BULKIO::dataBit>
+  {
+  public:
+    InBitPort(const std::string& name, LOGGER_PTR logger=LOGGER_PTR());
+
+    virtual void pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
+  };
+
   //
   //  InStringPort
   //  Base template for simple data transfers between Input/Output ports.  This class is defined by 2 trait classes
@@ -558,7 +566,7 @@ namespace bulkio {
     // @param newStreamCB interface that is called when new SRI.streamID is received
 
     InFilePort(std::string port_name, 
-               LOGGER_PTR  new_logger,
+               LOGGER_PTR  logger,
                bulkio::sri::Compare=bulkio::sri::DefaultComparator,
                SriListener* newStreamCB=0);
 
@@ -583,7 +591,7 @@ namespace bulkio {
   class InXMLPort : public InPort<BULKIO::dataXML>
   {
   public:
-    InXMLPort(std::string port_name, LOGGER_PTR new_logger,
+    InXMLPort(std::string port_name, LOGGER_PTR logger,
               bulkio::sri::Compare=bulkio::sri::DefaultComparator,
               SriListener* newStreamCB=NULL);
 

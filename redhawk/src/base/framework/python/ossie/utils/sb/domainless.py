@@ -127,7 +127,7 @@ __all__ = ('show', 'loadSADFile', 'IDELocation', 'connectedIDE', 'getIDE_REF',
            'getDEBUG', 'setDEBUG', 'getComponent', 'IDE_REF', 'setIDE_REF',
            'stop', 'catalog', 'redirectSTDOUT', 'orb', 'reset', 'launch', 'api',
            'createEventChannel', 'getEventChannel', 'getService', 'browse',
-           'release', '_get_started')
+           'release', 'started', '_get_started')
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -1149,7 +1149,11 @@ def api(descriptor, objType=None, destfile=None):
         destfile.close()
 
 def _get_started():
-    return _getSandbox()._get_started()
+    warnings.warn('_get_started() is deprecated, use started()', DeprecationWarning)
+    return started()
+
+def started():
+    return _getSandbox().started
 
 def start():
     _getSandbox().start()

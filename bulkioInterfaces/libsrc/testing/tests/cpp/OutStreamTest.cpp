@@ -24,39 +24,6 @@
 #include "bulkio.h"
 
 template <class Port>
-void OutStreamTest<Port>::setUp()
-{
-    ossie::corba::CorbaInit(0,0);
-
-    std::string name = "data" + getPortName() + "_out";
-    port = new Port(name);
-
-    stub = new InPortStub<CorbaType>();
-    PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(stub);
-
-    CORBA::Object_var objref = stub->_this();
-    port->connectPort(objref, "test_connection");
-}
-
-template <class Port>
-void OutStreamTest<Port>::tearDown()
-{
-    port->disconnectPort("test_connection");
-
-    // The port has not been used as a CORBA object, so we can delete it directly
-    delete port;
-
-    try {
-        PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->servant_to_id(stub);
-        ossie::corba::RootPOA()->deactivate_object(oid);
-    } catch (...) {
-        // Ignore CORBA exceptions
-    }
-    stub->_remove_ref();
-    stub = 0;
-}
-
-template <class Port>
 void OutStreamTest<Port>::testOperators()
 {
     StreamType null_stream;
@@ -96,7 +63,7 @@ void OutStreamTest<Port>::testBasicWrite()
     const BULKIO::PrecisionUTCTime time = bulkio::time::utils::now();
     _writeSinglePacket(stream, 256, time);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL((size_t) 256, (size_t) stub->packets[0].data.length());
+    CPPUNIT_ASSERT_EQUAL((size_t) 256, stub->packets[0].size());
     CPPUNIT_ASSERT(!stub->packets[0].EOS);
     CPPUNIT_ASSERT_MESSAGE("Received incorrect time stamp", _checkLastTimestamp(time));
     CPPUNIT_ASSERT_EQUAL(stream.streamID(), stub->packets[0].streamID);
@@ -281,6 +248,16 @@ bool OutStreamTest<Port>::_checkLastTimestamp(const BULKIO::PrecisionUTCTime& ti
     return (time == stub->packets.back().T);
 }
 
+// Specialization for dataBit, which uses redhawk::bitbuffer
+template <>
+void OutStreamTest<bulkio::OutBitPort>::_writeSinglePacket(StreamType& stream, size_t size,
+                                                           const BULKIO::PrecisionUTCTime& time)
+{
+    redhawk::bitbuffer buffer(size);
+    buffer.fill(0, buffer.size(), 0);
+    stream.write(buffer, time);
+}
+
 // Specialization for dataFile, which uses std::string
 template <>
 void OutStreamTest<bulkio::OutFilePort>::_writeSinglePacket(StreamType& stream, size_t size,
@@ -319,7 +296,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     CPPUNIT_ASSERT(stub->packets.size() == 0);
 
     // First write is below the buffer size
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 0);
@@ -332,7 +309,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // but only up to the buffer size (48*3 == 144)
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), stub->packets.back().size());
 
     // There should now be 16 samples in the queue; writing another 48 should
     // not trigger a push
@@ -342,7 +319,7 @@ void BufferedOutStreamTest<Port>::testBufferedWrite()
     // Flush the stream and make sure we get as many samples as expected
     stream.flush();
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL((CORBA::ULong) 64, stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL((size_t) 64, stub->packets.back().size());
 
     // Disable buffering; push should happen immediately
     stream.setBufferSize(0);
@@ -358,11 +335,11 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     stream.setBufferSize(100);
 
     // With an empty queue, large write should go right through
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(256);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
 
     // Queue up a bit of data
     buffer.resize(16);
@@ -374,7 +351,7 @@ void BufferedOutStreamTest<Port>::testWriteSkipBuffer()
     buffer.resize(128);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 2);
-    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(stream.bufferSize(), stub->packets.back().size());
 }
 
 template <class Port>
@@ -385,7 +362,7 @@ void BufferedOutStreamTest<Port>::testFlush()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->H.size() == 0);
@@ -395,7 +372,7 @@ void BufferedOutStreamTest<Port>::testFlush()
     stream.flush();
     CPPUNIT_ASSERT(stub->H.size() == 1);
     CPPUNIT_ASSERT(stub->packets.size() == 1);
-    CPPUNIT_ASSERT_EQUAL(buffer.size(), (size_t) stub->packets.back().data.length());
+    CPPUNIT_ASSERT_EQUAL(buffer.size(), stub->packets.back().size());
 }
 
 template <class Port>
@@ -405,7 +382,7 @@ void BufferedOutStreamTest<Port>::testFlushOnClose()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->H.size() == 0);
@@ -429,7 +406,7 @@ void BufferedOutStreamTest<Port>::testFlushOnSriChange()
     stream.subsize(0);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
 
@@ -484,7 +461,7 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
     stream.setBufferSize(64);
 
     // Queue data (should not flush)
-    std::vector<ScalarType> buffer;
+    BufferType buffer;
     buffer.resize(48);
     stream.write(buffer, bulkio::time::utils::now());
     CPPUNIT_ASSERT(stub->packets.size() == 0);
@@ -517,14 +494,14 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsReal()
+void NumericOutStreamTest<Port>::testWriteTimestampsReal()
 {
     StreamType stream = port->createStream("write_timestamps_real");
     _writeTimestampsImpl(stream, false);
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsComplex()
+void NumericOutStreamTest<Port>::testWriteTimestampsComplex()
 {
     StreamType stream = port->createStream("write_timestamps_complex");
     stream.complex(true);
@@ -532,7 +509,7 @@ void BufferedOutStreamTest<Port>::testWriteTimestampsComplex()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::testWriteTimestampsMixed()
+void NumericOutStreamTest<Port>::testWriteTimestampsMixed()
 {
    StreamType stream = port->createStream("write_timestamps_mixed");
    stream.complex(true);
@@ -540,7 +517,7 @@ void BufferedOutStreamTest<Port>::testWriteTimestampsMixed()
 }
 
 template <class Port>
-void BufferedOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool complexData)
+void NumericOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool complexData)
 {
     // Generate a ramp using the scalar type; if the data needs to be pushed as
     // complex, it will be reintepreted there
@@ -598,24 +575,24 @@ void BufferedOutStreamTest<Port>::_writeTimestampsImpl(StreamType& stream, bool 
         typedef BASE<PORT> TestBase;                                    \
         CPPUNIT_TEST_SUB_SUITE(TESTCLASS, TestBase);                    \
         CPPUNIT_TEST_SUITE_END();                                       \
-        virtual std::string getPortName() const { return #NAME; };      \
     };                                                                  \
     CPPUNIT_TEST_SUITE_REGISTRATION(TESTCLASS);
 
 #define CREATE_TEST(x,BASE) CREATE_TEST_IMPL(Out##x##StreamTest,bulkio::Out##x##Port,x,BASE)
 #define CREATE_BASIC_TEST(x) CREATE_TEST(x,OutStreamTest)
-#define CREATE_BUFFERED_TEST(x) CREATE_TEST(x,BufferedOutStreamTest)
+#define CREATE_NUMERIC_TEST(x) CREATE_TEST(x,NumericOutStreamTest)
 
-CREATE_BUFFERED_TEST(Octet);
-CREATE_BUFFERED_TEST(Char);
-CREATE_BUFFERED_TEST(Short);
-CREATE_BUFFERED_TEST(UShort);
-CREATE_BUFFERED_TEST(Long);
-CREATE_BUFFERED_TEST(ULong);
-CREATE_BUFFERED_TEST(LongLong);
-CREATE_BUFFERED_TEST(ULongLong);
-CREATE_BUFFERED_TEST(Float);
-CREATE_BUFFERED_TEST(Double);
+CREATE_NUMERIC_TEST(Octet);
+CREATE_NUMERIC_TEST(Char);
+CREATE_NUMERIC_TEST(Short);
+CREATE_NUMERIC_TEST(UShort);
+CREATE_NUMERIC_TEST(Long);
+CREATE_NUMERIC_TEST(ULong);
+CREATE_NUMERIC_TEST(LongLong);
+CREATE_NUMERIC_TEST(ULongLong);
+CREATE_NUMERIC_TEST(Float);
+CREATE_NUMERIC_TEST(Double);
 
+CREATE_TEST(Bit,BufferedOutStreamTest);
 CREATE_BASIC_TEST(XML);
 CREATE_BASIC_TEST(File);

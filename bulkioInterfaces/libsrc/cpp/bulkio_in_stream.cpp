@@ -27,6 +27,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/ptr_container/ptr_deque.hpp>
 
+#include <ossie/bitops.h>
+
 using bulkio::InputStream;
 
 template <class PortType>
@@ -63,7 +65,8 @@ public:
             return DataBlockType();
         }
         DataBlockType block(packet->SRI, packet->buffer);
-        block.addTimestamp(packet->T);
+        // Add timestamp via a templatized method so that dataXML can omit it
+        _addTimestamp(block, packet->T);
         _setBlockFlags(block, *packet);
         // Update local SRI from packet
         StreamDescriptor::operator=(packet->SRI);
@@ -191,11 +194,26 @@ protected:
         }
     }
 
+    void _addTimestamp(DataBlockType& block, const BULKIO::PrecisionUTCTime& time)
+    {
+        block.addTimestamp(time);
+    }
+
     InPortType* _port;
     EosState _eosState;
     bool _enabled;
     bool _newstream;
 };
+
+namespace bulkio {
+    template <>
+    void InputStream<BULKIO::dataXML>::Impl::_addTimestamp(bulkio::StringDataBlock& block,
+                                                           const BULKIO::PrecisionUTCTime&)
+    {
+        // Discard the time stamp, which was created by the input port to adapt to
+        // the common template implementation
+    }
+}
 
 template <class PortType>
 InputStream<PortType>::InputStream() :
@@ -292,6 +310,7 @@ public:
     typedef typename ImplBase::PacketType PacketType;
     typedef typename NativeTraits<PortType>::NativeType NativeType;
     typedef typename BufferTraits<PortType>::BufferType BufferType;
+    typedef typename BufferTraits<PortType>::MutableBufferType MutableBufferType;
 
     Impl(const bulkio::StreamDescriptor& sri, InPortType* port) :
         ImplBase(sri, port),
@@ -542,7 +561,7 @@ private:
             data.buffer(front.buffer.slice(_sampleOffset, last_offset));
         } else {
             // We have to span multiple packets to get the data
-            redhawk::buffer<NativeType> buffer(count);
+            MutableBufferType buffer(count);
             data.buffer(buffer);
             size_t data_offset = 0;
 
@@ -561,7 +580,7 @@ private:
                 const size_t available = input_data.size() - packet_offset;
                 const size_t pass = std::min(available, count);
 
-                std::copy(&input_data[packet_offset], &input_data[packet_offset+pass], &buffer[data_offset]);
+                buffer.replace(data_offset, pass, input_data, packet_offset);
                 data_offset += pass;
                 packet_offset += pass;
                 count -= pass;
@@ -581,17 +600,19 @@ private:
         return data;
     }
 
-    void _addTimestamp(DataBlockType& data, size_t input_offset, size_t output_offset, BULKIO::PrecisionUTCTime time)
+    void _addTimestamp(DataBlockType& data, size_t inputOffset, size_t outputOffset, BULKIO::PrecisionUTCTime time)
     {
         // Determine the timestamp of this chunk of data; if this is the
         // first chunk, the packet offset (number of samples already read)
         // must be accounted for, so adjust the timestamp based on the SRI.
         // Otherwise, the adjustment is a noop.
-        double time_offset = input_offset * data.xdelta();
-        if (data.complex()) {
+        double time_offset = inputOffset * data.xdelta();
+        // Check the SRI directly for the complex mode because bit data blocks
+        // intentionally do not have a complex() method.
+        if (data.sri().mode != 0) {
             // Complex data; each sample is two values
             time_offset /= 2.0;
-            output_offset /= 2;
+            outputOffset /= 2;
         }
 
         // If there is a time offset, apply the adjustment and mark the timestamp
@@ -602,7 +623,7 @@ private:
             synthetic = true;
         }
 
-        data.addTimestamp(bulkio::SampleTimestamp(time, output_offset, synthetic));
+        data.addTimestamp(bulkio::SampleTimestamp(time, outputOffset, synthetic));
     }
 
     const StreamDescriptor* _nextSRI(bool blocking)
@@ -673,7 +694,6 @@ private:
     size_t _samplesQueued;
     size_t _sampleOffset;
 };
-
 
 template <class PortType>
 BufferedInputStream<PortType>::BufferedInputStream() :
@@ -765,5 +785,6 @@ const typename BufferedInputStream<PortType>::Impl& BufferedInputStream<PortType
 #define INSTANTIATE_NUMERIC_TEMPLATE(x) \
     template class BufferedInputStream<x>;
 
-    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
-    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+INSTANTIATE_NUMERIC_TEMPLATE(BULKIO::dataBit);

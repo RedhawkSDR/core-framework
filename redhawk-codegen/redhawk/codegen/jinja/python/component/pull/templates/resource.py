@@ -114,27 +114,36 @@ class ${className}(${baseClass}):
 
             Each port instance is accessed through members of the following form: self.port_<PORT NAME>
             
-            Data is obtained in the process function through the getPacket call (BULKIO only) on a
-            provides port member instance. The optional argument is a timeout value, in seconds.
-            A zero value is non-blocking, while a negative value is blocking. Constants have been
-            defined for these values, bulkio.const.BLOCKING and bulkio.const.NON_BLOCKING. If no
-            timeout is given, it defaults to non-blocking.
-            
-            The return value is a named tuple with the following fields:
-                - dataBuffer
-                - T
-                - EOS
-                - streamID
-                - SRI
-                - sriChanged
-                - inputQueueFlushed
-            If no data is available due to a timeout, all fields are None.
+            Data is passed to the serviceFunction through by reading from input streams
+            (BulkIO only). UDP multicast (dataSDDS and dataVITA49) ports do not support
+            streams.
 
-            To send data, call the appropriate function in the port directly. In the case of BULKIO,
-            convenience functions have been added in the port classes that aid in output.
-            
+            The input stream from which to read can be requested with the getCurrentStream()
+            method. The optional argument to getCurrentStream() is a floating point number that
+            specifies the time to wait in seconds. A zero value is non-blocking. A negative value
+            is blocking.  Constants have been defined for these values, bulkio.const.BLOCKING and
+            bulkio.const.NON_BLOCKING.
+
+            More advanced uses of input streams are possible; refer to the REDHAWK documentation
+            for more details.
+
+            Input streams return data blocks that include the SRI that was in effect at the time
+            the data was received, and the time stamps associated with that data.
+
+            To send data using a BulkIO interface, create an output stream and write the
+            data to it. When done with the output stream, the close() method sends and end-of-
+            stream flag and cleans up.
+
+            If working with complex data (i.e., the "mode" on the SRI is set to 1),
+            the data block's complex attribute will return True. Data blocks provide a
+            cxdata attribute that gives the data as a list of complex values:
+
+                if block.complex:
+                    outData = [val.conjugate() for val in block.cxdata]
+                    outputStream.write(outData, block.getStartTime())
+
             Interactions with non-BULKIO ports are left up to the ${artifactType} developer's discretion.
-            
+
         Messages:
     
             To receive a message, you need (1) an input port of type MessageEvent, (2) a message prototype described
@@ -236,23 +245,30 @@ class ${className}(${baseClass}):
             #   - A float value called amplitude
             #   - A boolean called increaseAmplitude
             
-            packet = self.port_dataShort_in.getPacket()
-            
-            if packet.dataBuffer is None:
+            inputStream = self.port_dataShort_in.getCurrentStream()
+            if not inputStream:
                 return NOOP
-                
-            outData = range(len(packet.dataBuffer))
-            for i in range(len(packet.dataBuffer)):
-                if self.increaseAmplitude:
-                    outData[i] = float(packet.dataBuffer[i]) * self.amplitude
-                else:
-                    outData[i] = float(packet.dataBuffer[i])
-                
-            # NOTE: You must make at least one valid pushSRI call
-            if packet.sriChanged:
-                self.port_dataFloat_out.pushSRI(packet.SRI);
 
-            self.port_dataFloat_out.pushPacket(outData, packet.T, packet.EOS, packet.streamID)
+            outputStream = self.port_dataFloat_out.getStream(inputStream.streamID)
+            if not outputStream:
+                outputStream = self.port_dataFloat_out.createStream(inputStream.sri)
+
+            block = inputStream.read()
+            if not block:
+                if inputStream.eos():
+                    outputStream.close()
+                return NOOP
+
+            if self.increaseAmplitude:
+                scale = self.amplitude
+            else:
+                scale = 1.0
+            outData = [float(val) * scale for val in block.data]
+
+            if block.sriChanged:
+                outputStream.sri = block.sri
+
+            outputStream.write(outData, block.getStartTime())
             return NORMAL
             
         """

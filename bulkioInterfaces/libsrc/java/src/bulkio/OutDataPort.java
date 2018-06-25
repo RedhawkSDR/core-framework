@@ -33,11 +33,11 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Size of a single element
      */
-    protected final int sizeof;
+    protected final DataHelper<A> helper;
 
-    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, int size) {
+    protected OutDataPort(String portName, Logger logger, ConnectionEventListener connectionListener, DataHelper<A> helper) {
         super(portName, logger, connectionListener);
-        this.sizeof = size;
+        this.helper = helper;
     }
 
     /**
@@ -49,20 +49,41 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
             _portLog.trace("bulkio.OutPort connectPort ENTER (port=" + name +")");
         }
 
+        if (connection == null) {
+            throw new CF.PortPackage.InvalidPort((short) 1, "Nil object reference");
+        }
+
+        // Attempt to check the type of the remote object to reject invalid
+        // types; note this does not require the lock
+        final String repo_id = getRepid();
+        boolean valid;
+        try {
+            valid = connection._is_a(repo_id);
+        } catch (Exception exc) {
+            // If _is_a throws an exception, assume the remote object is
+            // unreachable (probably dead)
+            throw new CF.PortPackage.InvalidPort((short) 1, "Object unreachable");
+        }
+
+        if (!valid) {
+            throw new CF.PortPackage.InvalidPort((short) 1, "Object does not support "+repo_id);
+        }
+
+        final E port = this.narrow(connection);
+
+        // Acquire the state lock before modifying the container
         synchronized (this.updatingPortsLock) {
-            final E port;
-            try {
-                port = this.narrow(connection);
-            } catch (final Exception ex) {
-                if (_portLog != null) {
-                    _portLog.error("bulkio.OutPort CONNECT PORT: " + name + " PORT NARROW FAILED");
-                }
-                throw new CF.PortPackage.InvalidPort((short)1, "Invalid port for connection '" + connectionId + "'");
+            // Prevent duplicate connection IDs
+            if (this.outConnections.containsKey(connectionId)) {
+                throw new CF.PortPackage.OccupiedPort();
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            this.stats.put(connectionId, new linkStatistics(this.name, this.sizeof));
-
+            linkStatistics stats = new linkStatistics(this.name, 1);
+            // Update bit size from the helper, because element size does not
+            // take sub-byte elements (i.e., dataBit) into account.
+            stats.setBitSize(helper.bitSize());
+            this.stats.put(connectionId, stats);
             if (_portLog != null) {
                 _portLog.debug("bulkio.OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
             }
@@ -80,30 +101,32 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Breaks a connection.
      */
-    public void disconnectPort(String connectionId) {
+    public void disconnectPort(String connectionId) throws CF.PortPackage.InvalidPort
+    {
         if (_portLog != null) {
             _portLog.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")");
         }
 
         synchronized (this.updatingPortsLock) {
             final E port = this.outConnections.remove(connectionId);
-            if (port != null)
-            {
-                // Create an empty data packet with an invalid timestamp to
-                // send with the end-of-stream
-                final A data = emptyArray();
-                final BULKIO.PrecisionUTCTime tstamp = bulkio.time.utils.notSet();
-                for (Map.Entry<String, SriMapStruct> entry: this.currentSRIs.entrySet()) {
-                    final String streamID = entry.getKey();
+            if (port == null) {
+                throw new CF.PortPackage.InvalidPort((short) 2, "No connection "+connectionId);
+            }
 
-                    final SriMapStruct sriMap = entry.getValue();
-                    if (sriMap.connections.contains(connectionId)) {
-                        try {
-                            sendPacket(port, data, tstamp, true, streamID);
-                        } catch(Exception e) {
-                            if (_portLog != null) {
-                                _portLog.error("Call to pushPacket failed on port " + name + " connection " + connectionId);
-                            }
+            // Create an empty data packet with an invalid timestamp to send
+            // with the end-of-stream
+            final A data = helper.emptyArray();
+            final BULKIO.PrecisionUTCTime tstamp = bulkio.time.utils.notSet();
+            for (Map.Entry<String, SriMapStruct> entry: this.currentSRIs.entrySet()) {
+                final String streamID = entry.getKey();
+
+                final SriMapStruct sriMap = entry.getValue();
+                if (sriMap.connections.contains(connectionId)) {
+                    try {
+                        sendPacket(port, data, tstamp, true, streamID);
+                    } catch(Exception e) {
+                        if (_portLog != null) {
+                            _portLog.error("Call to pushPacket failed on port " + name + " connection " + connectionId);
                         }
                     }
                 }
@@ -137,7 +160,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Sends an array of samples.
      */
-    protected void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
+    public void pushPacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
         if (_portLog != null) {
             _portLog.trace("bulkio.OutPort pushPacket  ENTER (port=" + this.name +")");
@@ -239,7 +262,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected void pushSinglePacket(A data, PrecisionUTCTime time, boolean endOfStream, String streamID)
     {
-        final int length = arraySize(data);
+        final int length = helper.arraySize(data);
         SriMapStruct sriStruct = this.currentSRIs.get(streamID);
         if (this.active) {
             for (Entry<String,E> entry : this.outConnections.entrySet()) {
@@ -279,6 +302,4 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
 
     protected abstract E narrow(org.omg.CORBA.Object obj);
     protected abstract void sendPacket(E port, A data, PrecisionUTCTime time, boolean endOfStream, String streamID);
-    protected abstract int arraySize(A array);
-    protected abstract A emptyArray();
 }

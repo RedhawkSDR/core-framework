@@ -23,17 +23,16 @@ import struct
 import os
 import array
 import threading
-from ossie.utils.bulkio import bulkio_helpers
+import bulkio_helpers
 import time
 import logging
 from new import classobj
 from ossie.utils.redhawk.base import attach
 try:
-    from bulkio import InputStream, StreamMgr
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
-except Exception, e:
+except:
     pass
-from ossie.utils import _uuid, rhtime
+from ossie.utils import _uuid
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -196,7 +195,9 @@ class ArraySource(object):
         T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(currentSampleTime), currentSampleTime - int(currentSampleTime))
         self.pushPacket([], T, True, self.sri.streamID)
 
-class ArraySink(StreamMgr):
+
+
+class ArraySink(object):
     """
     Simple class used to receive data from a port and store it in a python
     array.
@@ -215,7 +216,6 @@ class ArraySink(StreamMgr):
         Inputs:
             <porttype>        The BULKIO__POA data type
         """
-        StreamMgr.__init__(self)
         self.port_type = porttype
         self.sri=bulkio_helpers.defaultSRI
         self.data = []
@@ -224,24 +224,13 @@ class ArraySink(StreamMgr):
         self.breakBlock = False
         self.port_lock = threading.Lock()
         self.port_cond = threading.Condition(self.port_lock)
-
-    def __getattribute__(self, name):
-        if name == 'gotEOS':
-            _stream = object.__getattribute__(self, 'getCurrentStream')(0)
-            if _stream:
-                return _stream.eos()
-            attr = object.__getattribute__(self, name)
-            return attr
-        else:
-            attr = object.__getattribute__(self, name)
-            return attr
-
+    
     class estimateStruct():
         len_data=0
         num_timestamps=0
-        def __init__(self, data=0, timestamps=0):
-            self.len_data = data
-            self.num_timestamps = timestamps
+        def __init__(self, data=[], timestamps=[]):
+            self.len_data = len(data)
+            self.num_timestamps = len(timestamps)
 
     def _isActive(self):
         return not self.gotEOS and not self.breakBlock
@@ -262,17 +251,12 @@ class ArraySink(StreamMgr):
         self.port_cond.release()
 
     def eos(self):
-        _stream = self.getCurrentStream(0)
-        if _stream:
-            return _stream.eos()
         return self.gotEOS
 
     def waitEOS(self):
         self.port_cond.acquire()
         try:
             while self._isActive():
-                if self.eos():
-                    break
                 self.port_cond.wait()
             return self.gotEOS
         finally:
@@ -287,10 +271,6 @@ class ArraySink(StreamMgr):
                    generate the header file
         """
         self.sri = H
-        if not self._livingStreams.has_key(H.streamID):
-            self._livingStreams[H.streamID] = InputStream(self, H)
-        else:
-            self._livingStreams[H.streamID]._updateSRI(H)
 
     def pushPacket(self, data, ts, EOS, stream_id):
         """
@@ -302,83 +282,88 @@ class ArraySink(StreamMgr):
             <EOS>         Flag indicating if this is the End Of the Stream
             <stream_id>   The unique stream id
         """
-        if not self._livingStreams.has_key(stream_id):
-            self._livingStreams[stream_id] = InputStream(self, BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, stream_id, False, []))
-        _stream = self._livingStreams[stream_id]
-        _stream._updateData(data, ts, EOS)
-        if EOS:
-            self._streams.append(_stream)
-            self._livingStreams.pop(stream_id)
-
-        # legacy stuff
-        self.data += data
+        self.port_cond.acquire()
+        try:
+            self.gotEOS = EOS
+            if len(data) != 0:
+                self.timestamps.append([len(self.data), ts])
+            self.data += data
+            self.port_cond.notifyAll()
+        finally:
+            self.port_cond.release()
 
     def estimateData(self):
         self.port_cond.acquire()
         estimate = self.estimateStruct()
-        _streams = self.getStreams()
-        _total_data = 0
-        _total_tstamps = 0
-        for _stream in _streams:
-            (data_len,tstamp_len) = _stream.dataEstimate()
-            _total_data += data_len
-            _total_tstamps += tstamp_len
-        estimate = self.estimateStruct(_total_data, _total_tstamps)
-        self.port_cond.release()
-        return estimate
-
-    def __syncAssocData(self, reference):
-        retval = []
-        length_to_erase = None
-        for i,(l,t) in enumerate(reference[::-1]):
-            if l > length:
-                reference[len(reference)-i-1][0] = l - length
-                continue
-            if length_to_erase == None:
-                length_to_erase = len(reference)-i
-            retval.append((l,t))
-        if length_to_erase != None:
-            del reference[:length_to_erase]
-        return retval
-
-    def retrieveData(self, length=None):
-        retval = []
-        rettime = []
-        while True:
-            self.port_cond.acquire()
-            _stream = self.getCurrentStream(0)
+        try:
+            estimate = self.estimateStruct(self.data, self.timestamps)
+        finally:
             self.port_cond.release()
-            if not _stream and length != None:
-                time.sleep(0.1)
-                continue
-            break
-        if not _stream:
-            return (None, None)
-        done = False
-        goal = length
+        return estimate
+        
+    def retrieveData(self, length=None):
         self.port_cond.acquire()
-        if length == None:
-            goal = _stream.samplesAvailable()
-        self.port_cond.release()
-        samples_read = 0
-        while True:
-            _block = _stream.read(count=length)
-            if not _block:
-                break
-            retval += _block.data()
-            # The block timestamp offsets are relative to the start of that
-            # block, so adjust for any previous data offsets
-            rettime += [(off+samples_read, ts) for off, ts in _block.getTimestamps()]
-            goal_offset = 1
-            if _block.sri().subsize != 0:
-                samples_read += sum(len(frame) for frame in _block.data())
+        try:
+            if length is None:
+                # No length specified; get all of the data.
+                length = len(self.data)
+                
+            # have not received any data yet (and I need a minimum amount)
+            if self.sri == None and len(self.data) == 0 and length != 0:
+                self.port_cond.wait()
+            
+            if self.sri != None and self.sri.subsize != 0:
+                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                if float(length)/frameLength != length/frameLength:
+                    print 'The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data'
+                    return (None,None)
+
+            # Wait for there to be enough data.
+            while len(self.data) < length and self._isActive():
+                self.port_cond.wait()
+
+            if len(self.data) > length:
+                # More data is available than was requested. Return only
+                # as much data as was asked for, and the associated
+                # timestamps.
+                rettime = []
+                length_to_erase = None
+                for i,(l,t) in enumerate(self.timestamps[::-1]):
+                    if l > length:
+                        self.timestamps[len(self.timestamps)-i-1][0] = l - length
+                        continue
+                    if length_to_erase == None:
+                        length_to_erase = len(self.timestamps)-i
+                    rettime.append((l,t))
+                if length_to_erase != None:
+                    del self.timestamps[:length_to_erase]
+                if self.sri.subsize == 0:
+                    retval = self.data[:length]
+                else:
+                    retval = []
+                    frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                    for idx in range(length/frameLength):
+                        retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
+                del self.data[:length]
+                return (retval, rettime)
+
+            # No length was provided, or length is equal to the length of data.
+            # Return all data and timestamps.
+            if self.sri == None:
+                (retval, rettime) = (self.data, self.timestamps)
+            elif self.sri.subsize == 0:
+                (retval, rettime) = (self.data, self.timestamps)
             else:
-                samples_read += len(_block.data())
-            if samples_read >= goal:
-                break
-        if len(self.data) >= len(retval):
-            self.data[:len(retval)] = []
-        return (retval, rettime)
+                retval = []
+                frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
+                for idx in range(length/frameLength):
+                    retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
+                rettime = self.timestamps
+            self.data = []
+            self.timestamps = []
+            return (retval, rettime)
+        finally:
+            self.port_cond.release()
 
     def getPort(self):
         """
@@ -574,13 +559,13 @@ class XmlArraySink(ArraySink):
             <EOS>         Flag indicating if this is the End Of the Stream
             <stream_id>   The unique stream id
         """
-        if not self._livingStreams.has_key(stream_id):
-            self._livingStreams[stream_id] = InputStream(self, BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, stream_id, False, []))
-        _stream = self._livingStreams[stream_id]
-        _stream._updateData([data], None, EOS)
-        if EOS:
-            self._streams.append(_stream)
-            self._livingStreams.pop(stream_id)
+        self.port_cond.acquire()
+        try:
+            self.gotEOS = EOS
+            self.data.append(data)
+            self.port_cond.notifyAll()
+        finally:
+            self.port_cond.release()
 
 class XmlArraySource(ArraySource):
     "This sub-class exists to override pushPacket for dataXML ports."

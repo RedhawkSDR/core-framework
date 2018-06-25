@@ -23,11 +23,13 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ossie/debug.h>
 
-#include "InPortStub.h"
+#include "OutPortTestFixture.h"
 
 template <class Port>
-class OutStreamTest : public CppUnit::TestFixture
+class OutStreamTest : public OutPortTestFixture<Port>
 {
+    typedef OutPortTestFixture<Port> TestBase;
+
     CPPUNIT_TEST_SUITE(OutStreamTest);
     CPPUNIT_TEST(testOperators);
     CPPUNIT_TEST(testBasicWrite);
@@ -38,9 +40,6 @@ class OutStreamTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE_END();
 
 public:
-    void setUp();
-    void tearDown();
-
     void testOperators();
 
     void testBasicWrite();
@@ -54,16 +53,14 @@ public:
 
 protected:
     typedef typename Port::StreamType StreamType;
-    typedef typename Port::CorbaType CorbaType;
 
-    virtual std::string getPortName() const = 0;
     void _writeSinglePacket(StreamType& stream, size_t size,
                             const BULKIO::PrecisionUTCTime& time=bulkio::time::utils::now());
 
     bool _checkLastTimestamp(const BULKIO::PrecisionUTCTime& time);
 
-    Port* port;
-    InPortStub<CorbaType>* stub;
+    using TestBase::port;
+    using TestBase::stub;
 };
 
 template <class Port>
@@ -77,9 +74,6 @@ class BufferedOutStreamTest : public OutStreamTest<Port>
     CPPUNIT_TEST(testFlushOnClose);
     CPPUNIT_TEST(testFlushOnSriChange);
     CPPUNIT_TEST(testFlushOnBufferSizeChange);
-    CPPUNIT_TEST(testWriteTimestampsReal);
-    CPPUNIT_TEST(testWriteTimestampsComplex);
-    CPPUNIT_TEST(testWriteTimestampsMixed);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -91,6 +85,26 @@ public:
     void testFlushOnSriChange();
     void testFlushOnBufferSizeChange();
 
+protected:
+    typedef typename Port::StreamType StreamType;
+    typedef typename Port::CorbaType CorbaType;
+    typedef typename bulkio::BufferTraits<CorbaType>::MutableBufferType BufferType;
+
+    using TestBase::port;
+    using TestBase::stub;
+};
+
+template <class Port>
+class NumericOutStreamTest : public BufferedOutStreamTest<Port>
+{
+    typedef BufferedOutStreamTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericOutStreamTest, TestBase);
+    CPPUNIT_TEST(testWriteTimestampsReal);
+    CPPUNIT_TEST(testWriteTimestampsComplex);
+    CPPUNIT_TEST(testWriteTimestampsMixed);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
     void testWriteTimestampsReal();
     void testWriteTimestampsComplex();
     void testWriteTimestampsMixed();
