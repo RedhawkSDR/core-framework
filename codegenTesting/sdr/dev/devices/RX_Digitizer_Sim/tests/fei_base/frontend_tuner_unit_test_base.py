@@ -2401,18 +2401,6 @@ class FrontendTunerTests(unittest.TestCase):
             self.check(dataSink1.eos(),True,'%s: Controller did receive EOS after deallocation of tuner'%(comp_port_name))
             if listener2:
                 self.check(dataSink4.eos(),True,'%s: Listener received EOS after deallocation of tuner'%(comp_port_name))
-                # cleanup listener2
-                comp_port_obj.disconnectPort(listener2['LISTENER_ID'])
-                try:
-                    self.dut_ref.deallocateCapacity(listenerAlloc2)
-                except CF.Device.InvalidCapacity, e:
-                    # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
-                    pass
-            # cleanup listener1
-            comp_port_obj.disconnectPort(listener1['LISTENER_ID'])
-        # cleanup controller
-        comp_port_obj.disconnectPort(controller['ALLOC_ID'])
-        comp_port_obj.disconnectPort(bad_conn_id)
 
     # TODO - noseify
     def testFRONTEND_3_5_TunerStatusProperties(self):
