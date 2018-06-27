@@ -24,6 +24,17 @@ import unittest, contextlib, time, os
 from ossie.cf import CF
 import tempfile
 
+def killDomain(name):
+    pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+    for pid in pids:
+        try:
+            cmdline=open(os.path.join('/proc', pid, 'cmdline'), 'rb').read()
+            if 'DOMAIN_NAME' in cmdline:
+                if name in cmdline:
+                    os.kill(int(pid), 2)
+        except:
+            pass
+
 @scatest.requireLog4cxx
 class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
     def setUp(self):
@@ -233,7 +244,8 @@ class ApplicationDomainLogging(scatest.CorbaTestCase):
         self._rhDom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
                                          kick_device_managers=True,
                                          device_managers = devmgrs,
-                                         stdout=self.tmpfile)
+                                         stdout=self.tmpfile,
+                                         detached=False)
 
         try:
             self.waitForDeviceManager(devmgrs[0])
@@ -251,6 +263,12 @@ class ApplicationDomainLogging(scatest.CorbaTestCase):
             os.remove(self.tmpfile)
         except:
             pass
+
+        try:
+            self._rhDom.terminate()
+        except:
+            pass
+        killDomain(scatest.getTestDomainName())
         # need to let event service clean up event channels
         # cycle period is 10 milliseconds
         time.sleep(0.1)
