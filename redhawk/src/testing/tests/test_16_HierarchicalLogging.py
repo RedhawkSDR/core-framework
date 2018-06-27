@@ -226,7 +226,7 @@ class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.assertEquals(CF.LogLevels.ALL, app.getLogLevel(self.cname+'_1.user.some_stuff'))
 
 @scatest.requireLog4cxx
-class CppHierarchicalDomainLogging(scatest.CorbaTestCase):
+class ApplicationDomainLogging(scatest.CorbaTestCase):
     def setUp(self):
         self.tmpfile=tempfile.mktemp()
         devmgrs = ['test_ExecutableDevice_node']
