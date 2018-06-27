@@ -75,7 +75,7 @@ class _TestVector:
                       (_DataTypeTest("complexLongLong", CF.complexLongLong(4, 5), CF.complexLongLong(2, 3), CF._tc_complexLongLong)),
                       (_DataTypeTest("complexULongLong", CF.complexULongLong(4, 5), CF.complexULongLong(2, 3), CF._tc_complexULongLong)),
                       (_DataTypeTest("complexFloatSequence", [CF.complexFloat(6, 7), CF.complexFloat(4, 5), CF.complexFloat(8, 9)], [CF.complexFloat(1, 2), CF.complexFloat(10, 20)], None)),
-                      (_DataTypeTest("complexFloatStruct", (CF.complexFloat(6, 7), [CF.complexFloat(3, 4)]), (CF.complexFloat(6, 7), [CF.complexFloat(-5, 5), CF.complexFloat(9, -8)]), ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq'])),
+                      (_DataTypeTest("complexFloatStruct", (CF.complexFloat(6, 7), [CF.complexFloat(3, 4)]), (CF.complexFloat(6, 7), [CF.complexFloat(-5, 5), CF.complexFloat(9, -8), CF.complexFloat(-13, -24), CF.complexFloat(21, -22), CF.complexFloat(31, 0), CF.complexFloat(0, 431), CF.complexFloat(0, -567), CF.complexFloat(-3567, 0)]), ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq'])),
                       (_DataTypeTest("complexFloatStructSequence", [(CF.complexFloat(6, 5), [CF.complexFloat(9, 4)])], [(CF.complexFloat(32, 33), [CF.complexFloat(45, 55), CF.complexFloat(69, 78)]), (CF.complexFloat(42, 43), [CF.complexFloat(145, 155), CF.complexFloat(169, 178), CF.complexFloat(279, 998)])], ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']))]
 
         self._runTest(testStruct)
@@ -236,7 +236,7 @@ class SandboxTests(scatest.CorbaTestCase):
                       (_SandboxDataTypeTest(["complexLongLong"], CF.complexLongLong(2, 3), CF._tc_complexLongLong)),
                       (_SandboxDataTypeTest(["complexULongLong"], CF.complexULongLong(2, 3), CF._tc_complexULongLong)),
                       (_SandboxDataTypeTest(["complexFloatSequence"], [CF.complexFloat(1, 2), CF.complexFloat(10, 20)], None)),
-                      (_SandboxDataTypeTest(['complexFloatStruct', ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq']], (CF.complexFloat(6, 7), [CF.complexFloat(-5, 5), CF.complexFloat(9, -8)]), None)),
+                      (_SandboxDataTypeTest(['complexFloatStruct', ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq']], (CF.complexFloat(6, 7), [CF.complexFloat(-5, 5), CF.complexFloat(9, -8), CF.complexFloat(-13, -24), CF.complexFloat(21, -22), CF.complexFloat(31, 0), CF.complexFloat(0, 431), CF.complexFloat(0, -567), CF.complexFloat(-3567, 0)]), None)),
                       (_SandboxDataTypeTest(['complexFloatStructSequence', ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']], [(CF.complexFloat(32, 33), [CF.complexFloat(45, 55), CF.complexFloat(69, 78)]), (CF.complexFloat(42, 43), [CF.complexFloat(145, 155), CF.complexFloat(169, 178), CF.complexFloat(279, 998)])], None))]
 
         retval = sb.loadSADFile('sdr/dom/waveforms/TestComplexPropsSADOverrides/TestComplexPropsSADOverrides.sad.xml')

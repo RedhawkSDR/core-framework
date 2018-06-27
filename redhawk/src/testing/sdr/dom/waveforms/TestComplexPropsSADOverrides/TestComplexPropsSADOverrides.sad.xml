@@ -47,6 +47,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
                 <values>
                     <value>-5+j5</value>
                     <value>9-j8</value>
+                    <value>-13-j24</value>
+                    <value>21-j22</value>
+                    <value>31</value>
+                    <value>j431</value>
+                    <value>-j567</value>
+                    <value>-3567</value>
                 </values>
             </simplesequenceref>
           </structref>

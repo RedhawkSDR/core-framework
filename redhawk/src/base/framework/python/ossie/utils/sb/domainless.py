@@ -431,6 +431,10 @@ def convertStringToComplex(value, basetype):
     _split = value.split('+')
     if value[1:].find('-') != -1:
         _split = value.split('-')
+        if len(_split) == 3: # negative real, negative imaginary
+            if _split[0] == '':
+                _split.pop(0)
+                _split[0] = '-'+_split[0]
         negative_imag = True
     real_idx = -1
     imag_idx = -1
@@ -456,9 +460,9 @@ def convertStringToComplex(value, basetype):
     if not _real and not _imag:
         return None
     if _real and not _imag:
-        return complex(basetype(_real))
+        return complex(basetype(_real), 0)
     if not _real and _imag:
-        return complex(basetype(_imag))
+        return complex(0, basetype(_imag))
     return complex(basetype(_real), basetype(_imag))
 
 def convertToValue(valuetype, value):
