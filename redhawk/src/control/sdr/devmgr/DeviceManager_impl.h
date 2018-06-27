@@ -61,7 +61,7 @@ class DeviceManager_impl:
 
 public:
   DeviceManager_impl (const char*, const char*, const char*, const char*, const struct utsname &uname, bool, 
-                      const char *, bool *, const std::string&);
+                      const char *, bool *, const std::string&, int);
 
     ~DeviceManager_impl ();
     char* deviceConfigurationProfile ()
@@ -404,6 +404,7 @@ private:
     // Registration record for Domain's IDM_Channel 
     ossie::events::EventChannelReg_var   idm_registration;
     std::string                          IDM_IOR;
+    int _initialDebugLevel;
 
 };
 

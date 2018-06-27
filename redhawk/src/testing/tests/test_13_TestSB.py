@@ -240,6 +240,20 @@ class SBStdOutTest(scatest.CorbaTestCase):
         self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
         new_stdout.close()
 
+    def test_debugDevCmdExec(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dev/devices/devcpp/devcpp.spd.xml', execparams={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example TRACE log message' in stdout_contents)
+        self.assertTrue('TRACE devcpp_1.system.Device' in stdout_contents)
+        self.assertTrue('serviceFunction() example DEBUG log message' in stdout_contents)
+        new_stdout.close()
+
     def test_debugCmdProp(self):
         self.tmpfile=tempfile.mktemp()
         fp_tmpfile=open(self.tmpfile, 'w')

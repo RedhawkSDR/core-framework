@@ -957,6 +957,48 @@ class CppDeviceHierarchicalDomainLogging(scatest.CorbaTestCase):
         self.assertEquals(_devMgr.getLogLevel('log_test_cpp_1'), 40000)
         self.assertEquals(_devMgr.getLogLevel('log_test_cpp_2'), 40000)
 
+    def test_devMgr_level_trace(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=5)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.ALL) # CF ALL and CF TRACE overlap for compatibility reasons
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.ALL)
+
+    def test_devMgr_level_debug(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=4)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.DEBUG)
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.DEBUG)
+
+    def test_devMgr_level_info(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=3)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.INFO)
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.INFO)
+
+    def test_devMgr_level_warn(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=2)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.WARN)
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.WARN)
+
+    def test_devMgr_level_error(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=1)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.ERROR)
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.ERROR)
+
+    def test_devMgr_level_fatal(self):
+        devBooter, self._devMgr = self.launchDeviceManager('/nodes/node_device_deps/DeviceManager.dcd.xml.cpp', debug=0)
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom.devMgrs), 1)
+        self.assertEquals(self._rhDom.devMgrs[0]._get_log_level(), CF.LogLevels.FATAL)
+        self.assertEquals(self._rhDom.devMgrs[0].devs[0]._get_log_level(), CF.LogLevels.FATAL)
+
 if __name__ == "__main__":
   # Run the unittests
   unittest.main()

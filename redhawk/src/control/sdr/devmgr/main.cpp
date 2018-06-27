@@ -193,6 +193,7 @@ int main(int argc, char* argv[])
     std::string logfile_uri;
     std::string domainName;
     int debugLevel = -1;
+    int initialDebugLevel = -1;
     std::string dpath("");
     std::string cpuBlackList("");
     std::string node_name("DEVICE_MANAGER");
@@ -239,6 +240,7 @@ int main(int argc, char* argv[])
                 std::cout<<"Logging level "<<debugLevel<<" invalid. Lowering to 5"<<std::endl;
                 debugLevel = 5;
             }
+            initialDebugLevel = debugLevel;
         } else if (ii > 0 ) {
             execparams[param] = argv[ii];
         }
@@ -457,7 +459,8 @@ int main(int argc, char* argv[])
                                                        useLogCfgResolver,
                                                        cpuBlackList.c_str(),
                                                        &internalShutdown_devMgr,
-                                                       spdFile
+                                                       spdFile,
+                                                       initialDebugLevel
                                                        );
         DeviceManager_servant->setExecparamProperties(execparams);
         pstage=0;

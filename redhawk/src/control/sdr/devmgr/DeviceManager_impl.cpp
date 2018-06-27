@@ -57,11 +57,13 @@ DeviceManager_impl::DeviceManager_impl(
         bool           useLogCfgResolver,
         const char     *cpuBlackList,
         bool*          internalShutdown,
-        const std::string &spdFile ):
+        const std::string &spdFile,
+        int initialDebugLevel ):
     Logging_impl("DeviceManager"),
     DomainWatchThread(NULL),
     _registeredDevices(),
-    devmgr_info(0)
+    devmgr_info(0),
+    _initialDebugLevel(initialDebugLevel)
 {
 
     __logger = rh_logger::Logger::getResourceLogger("DeviceManager_impl");
@@ -863,6 +865,10 @@ void DeviceManager_impl::postConstructor (
     }
     std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
     this->_baseLog->configureLogger(expanded_config, true);
+    if (_initialDebugLevel != -1) {
+        rh_logger::LevelPtr level = ossie::logging::ConvertCFLevelToRHLevel(ossie::logging::ConvertDebugToCFLevel(_initialDebugLevel));
+        this->_baseLog->setLevel(level);
+    }
 
     redhawk::setupParserLoggers(this->_baseLog);
 
