@@ -94,11 +94,6 @@ BOOLEAN_VALUE_HERE=False
                 del self.listeners[listen_alloc_id]
 
 #{% if component.hasmultioutport %}
-            old_table = self.connectionTable
-            for entry in list(self.connectionTable):
-                if entry.connection_id == listen_alloc_id:
-                    self.connectionTable.remove(entry)
-
 #{%   for port_out in component.ports if port_out.multiout %}
             # Check to see if port "${port_out.pyname}" has a connection for this listener
             tmp = self.${port_out.pyname}._get_connections()
@@ -107,6 +102,12 @@ BOOLEAN_VALUE_HERE=False
                 if connection_id == listen_alloc_id:
                     self.${port_out.pyname}.disconnectPort(connection_id)
 #{%   endfor %}
+
+            old_table = self.connectionTable
+            for entry in list(self.connectionTable):
+                if entry.connection_id == listen_alloc_id:
+                    self.connectionTable.remove(entry)
+
             self.connectionTableChanged(old_table, self.connectionTable)
 #{% endif %}
 
