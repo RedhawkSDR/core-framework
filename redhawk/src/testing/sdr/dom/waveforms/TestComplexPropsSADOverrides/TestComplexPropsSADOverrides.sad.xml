@@ -53,6 +53,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
                     <value>j431</value>
                     <value>-j567</value>
                     <value>-3567</value>
+                    <value>-5.25+j5.25</value>
+                    <value>9.25-j8.25</value>
                 </values>
             </simplesequenceref>
           </structref>
