@@ -98,7 +98,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #self.comp.start()
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -114,17 +114,15 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         if not retval:
             self.assertFalse("Allocation Failed")
 
-        #Sleep and let data and SRI flow    
-        time.sleep(1)
-        
-        #Check Tuner 1 SRI
-        sri = sink.sri()
-        print "SRI 1 1st Time" , sri
-        self.assertEqual(sri.streamID, allocationID, "SRI 1 Did not Match")
-        self.assertAlmostEqual(sri.xdelta, 1.0/2.5e6,5)
+        #Check Tuner 1 SRI, letting data and SRI flow for up to 1s
+        data = sink.read(timeout=1)
+        self.failIf(data is None)
+        print "SRI 1 1st Time" , data.sri
+        self.assertEqual(data.sri.streamID, allocationID, "SRI 1 Did not Match")
+        self.assertAlmostEqual(data.sri.xdelta, 1.0/2.5e6,5)
 
         #Create Allocation and Sink for Tuner 2
-        sink2 = sb.DataSink()               
+        sink2 = sb.StreamSink()
         alloc2 = self._generateAlloc(cf=110e6,sr=5e6,bw=4e6)
         allocationID2 = properties.props_to_dict(alloc2)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink2,connectionId=allocationID2)
@@ -143,37 +141,37 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         time.sleep(1)
 
         #Check Tuner 1 SRI Again (should not change)
-        sri = sink.sri()
-        print "SRI 1 2nd Time" , sri
-        self.assertEqual(sri.streamID, allocationID, "SRI 1 Did not Match Second Time")
-        self.assertAlmostEqual(sri.xdelta, 1.0/2.5e6,5)
+        data = sink.read(timeout=0)
+        self.failIf(data is None)
+        print "SRI 1 2nd Time" , data.sri
+        self.assertEqual(data.sri.streamID, allocationID, "SRI 1 Did not Match Second Time")
+        self.assertAlmostEqual(data.sri.xdelta, 1.0/2.5e6,5)
 
         #Check Tuner 2 SRI
-        sri2 = sink2.sri()
-        print "SRI 2 " , sri2
+        data2 = sink2.read(timeout=0)
+        print "SRI 2 " , data2.sri
         print "allocationID2",  allocationID2
-        self.assertEqual(sri2.streamID, allocationID2,"SRI 2 Did not MAtch")
-        self.assertAlmostEqual(sri2.xdelta, 1.0/5.0e6,5)
+        self.assertEqual(data2.sri.streamID, allocationID2,"SRI 2 Did not MAtch")
+        self.assertAlmostEqual(data2.sri.xdelta, 1.0/5.0e6,5)
 
         #Check Tuner 1 Data
-        data= sink.getData() 
-        self.assertTrue(len(data)>0)
+        self.assertTrue(len(data.data)>0)
         
         #Check Tuner 2 Data
-        data2= sink2.getData()
-        if len(data2) == 0:
-            time.sleep(1)
-            data2 = sink2.getData()
-        self.assertTrue(len(data2)>0)
+        self.assertTrue(len(data2.data)>0)
         
         #Deallocate Tuners
         self.comp.deallocateCapacity(alloc)
         self.comp.deallocateCapacity(alloc2)
-        time.sleep(1)
-        
+
         #Check that they sent EOS
-        self.assertTrue(sink.eos())
-        self.assertTrue(sink2.eos())
+        data = sink.read(timeout=1, eos=True)
+        self.failIf(data is None)
+        self.failUnless(data.eos)
+
+        data2 = sink2.read(timeout=1, eos=True)
+        self.failIf(data2 is None)
+        self.failUnless(data2.eos)
 
     def testValidRFInfoPacket(self):
         
