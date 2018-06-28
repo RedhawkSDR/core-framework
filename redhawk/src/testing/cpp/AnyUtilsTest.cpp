@@ -156,7 +156,11 @@ namespace {
         CORBA::LongLong min = limits::min() + epsilon;
         // In essence, mask out the least significant bits of the maximum
         CORBA::LongLong max = limits::max() - (epsilon - 1);
-        testRangeImpl(min, max, min - epsilon, max + epsilon);
+        // On 32-bit x86, we need to ensure that the difference between the
+        // double-precision "under" value and the 64-bit signed integer values
+        // is enough to register as out of range; multiplying the epsilon value
+        // by 4 (i.e., shift up by 2 bits) solves the problem.
+        testRangeImpl(min, max, min - (epsilon*4), max + epsilon);
     }
 
     template <>
