@@ -305,6 +305,14 @@ namespace bulkio {
             return 0;
         }
 
+        // Check whether shared memory is enabled--there may not be enough free
+        // space to create the heap. The degraded send-via-FIFO mode is usually
+        // slower CORBA.
+        if (!redhawk::shm::isEnabled()) {
+            RH_NL_DEBUG("ShmTransport", "Cannot create SHM transport, shared memory is not available");
+            return 0;
+        }
+
         return new ShmOutputTransport<PortType>(this->_port, object);
     }
 
