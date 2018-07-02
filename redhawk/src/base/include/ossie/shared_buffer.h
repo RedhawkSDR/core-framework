@@ -520,7 +520,7 @@ namespace redhawk {
 #elif defined(_RH_SHARED_BUFFER_USE_STD_ALLOC)
         typedef std::allocator<T> default_allocator;
 #else
-        typedef ::redhawk::shm::Allocator<T> default_allocator;
+        typedef ::redhawk::shm::HybridAllocator<T> default_allocator;
 #endif
 
         /**

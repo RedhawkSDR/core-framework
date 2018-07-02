@@ -1,9 +1,30 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK core.
+ *
+ * REDHAWK core is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
 #include "Superblock.h"
 #include "Block.h"
 #include "ThreadState.h"
 #include "offset_ptr.h"
 
 #include <ossie/shm/MappedFile.h>
+#include <ossie/BufferManager.h>
 
 #include <stdexcept>
 #include <cstring>
@@ -47,6 +68,7 @@ Superblock::Superblock(const std::string& heap, size_t offset, size_t size) :
     _offset(offset),
     _size(size),
     _dataStart(MappedFile::PAGE_SIZE),
+    _used(0),
     _first(0),
     _last(0)
 {
@@ -76,6 +98,11 @@ size_t Superblock::offset() const
 size_t Superblock::size() const
 {
     return _size;
+}
+
+size_t Superblock::used() const
+{
+    return _used;
 }
 
 void* Superblock::attach(size_t offset)
@@ -198,6 +225,8 @@ void Superblock::_deallocate(Block* block)
     assert(block->byteSize() >= sizeof(FreeBlock));
     LOG_DEALLOC(block->byteSize());
 
+    _used -= block->byteSize();
+
 #if ALLOC_DEBUG > 1
     std::cout << "Returning block@" << block << std::endl;
     std::cout << "  offset: " << block->offset() << std::endl;
@@ -229,6 +258,7 @@ void Superblock::_deallocate(Block* block)
 void Superblock::_queueFree(Block* block)
 {
     assert(block->isFree());
+
     FreeBlock* free_block = reinterpret_cast<FreeBlock*>(block);
     if (!_first) {
         // No free blocks exist
@@ -297,7 +327,7 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
     // preserve alignment on all architectures; otherwise, atomic operations
     // may cause a fatal bus error.
     bytes = std::max(bytes + sizeof(Block), sizeof(FreeBlock));
-    size_t blocks = (bytes + sizeof(Block) + Block::BLOCK_SIZE - 1) / Block::BLOCK_SIZE;
+    size_t blocks = Block::bytes_to_blocks(bytes);
 
     LOG_ALLOC(bytes);
 
@@ -353,6 +383,7 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
 #if ALLOC_DEBUG > 1
     _dump(std::cout);
 #endif
+    _used += block->byteSize();
 
     return block->data();
 }

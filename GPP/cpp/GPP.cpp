@@ -72,25 +72,19 @@
 #include <unistd.h>
 #endif
 
-#include "ossie/Events.h"
-#include "ossie/affinity.h"
-
+#include <ossie/Events.h>
+#include <ossie/affinity.h>
+#include <ossie/shm/System.h>
+#include <ossie/shm/Allocator.h>
+#include <ossie/shm/SuperblockFile.h>
 
 #include "GPP.h"
 #include "utils/affinity.h"
 #include "utils/SymlinkReader.h"
-#include "utils/ReferenceWrapper.h"
 #include "parsers/PidProcStatParser.h"
 #include "states/ProcStat.h"
 #include "states/ProcMeminfo.h"
 #include "statistics/CpuUsageStats.h"
-#include "reports/NicThroughputThresholdMonitor.h"
-#include "reports/FreeMemoryThresholdMonitor.h"
-
-#define PROCESSOR_NAME "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b"
-#define OS_NAME        "DCE:4a23ad60-0b25-4121-a630-68803a498f75"
-#define OS_VERSION     "DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192"
-
 
 
 class SigChildThread : public ThreadedComponent {
@@ -121,6 +115,8 @@ private:
 };
 
 
+static const uint64_t MB_TO_BYTES = 1024*1024;
+
 uint64_t conv_units( const std::string &units ) {
   uint64_t unit_m=1024*1024;
   if ( units == "Kb" ) unit_m = 1e3;
@@ -128,7 +124,7 @@ uint64_t conv_units( const std::string &units ) {
   if ( units == "Gb" ) unit_m = 1e9;
   if ( units == "Tb" ) unit_m = 1e12;
   if ( units == "KB" ) unit_m = 1024;
-  if ( units == "MB" || units == "MiB" ) unit_m = 1024*1024;
+  if ( units == "MB" || units == "MiB" ) unit_m = MB_TO_BYTES;
   if ( units == "GB" ) unit_m = 1024*1024*1024;
   if ( units == "TB" ) unit_m = (uint64_t)1024*1024*1024*1024;
   return unit_m;
@@ -453,19 +449,19 @@ void GPP_i::_init() {
   //
 
   // Add property change listeners for affinity information...
-  addPropertyChangeListener( "affinity", this, &GPP_i::_affinity_changed );
+  addPropertyListener(affinity, this, &GPP_i::_affinity_changed);
 
   // add property change listener
-  addPropertyChangeListener("reserved_capacity_per_component", this, &GPP_i::reservedChanged);
+  addPropertyListener(reserved_capacity_per_component, this, &GPP_i::reservedChanged);
 
   // add property change listener
-  addPropertyChangeListener("DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176", this, &GPP_i::_component_output_changed);
+  addPropertyListener(componentOutputLog, this, &GPP_i::_component_output_changed);
 
   // add property change listener
-  addPropertyChangeListener("DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1", this, &GPP_i::mcastnicThreshold_changed);
+  addPropertyListener(mcastnicThreshold, this, &GPP_i::mcastnicThreshold_changed);
 
   // add property change listener thresholds
-  addPropertyChangeListener("thresholds", this, &GPP_i::thresholds_changed);
+  addPropertyListener(thresholds, this, &GPP_i::thresholds_changed);
 
   utilization_entry_struct cpu;
   cpu.description = "CPU cores";
@@ -475,9 +471,6 @@ void GPP_i::_init() {
   cpu.maximum = 0;
   utilization.push_back(cpu);
 
-  // shadow property to allow for disabling of values
-  __thresholds = thresholds;
-  
   setPropertyQueryImpl(this->component_monitor, this, &GPP_i::get_component_monitor);
 
   // tie allocation modifier callbacks to identifiers
@@ -506,21 +499,35 @@ void GPP_i::_init() {
 
 void GPP_i::constructor()
 {
-    if (this->workingDirectory.empty() or this->cacheDirectory.empty()) {
-        char* tmp;
-        std::string path;
-        tmp = getcwd(NULL, 200);
-        if (tmp != NULL) {
-            path = std::string(tmp);
-            free(tmp);
-        }
-        if (this->workingDirectory.empty()) {
-            this->workingDirectory = path;
-        }
-        if (this->cacheDirectory.empty()) {
-            this->cacheDirectory = path;
+    // Get the initial working directory
+    char buf[PATH_MAX+1];
+    getcwd(buf, sizeof(buf));
+    std::string path = buf;
+
+    // If a working directory was given, change to that
+    if (!workingDirectory.empty()) {
+        if (chdir(workingDirectory.c_str())) {
+            RH_ERROR(_baseLog, "Cannot change working directory to " << workingDirectory);
+            workingDirectory = "";
         }
     }
+    // Otherwise, default to the initial working directory
+    if (workingDirectory.empty()) {
+        workingDirectory = path;
+    }
+
+    // If no cache directory given, use initial working directory
+    if (cacheDirectory.empty()) {
+        cacheDirectory = path;
+    }
+
+    RH_DEBUG(_baseLog, "Working directory: " << workingDirectory);
+    RH_DEBUG(_baseLog, "Cache directory: " << cacheDirectory);
+
+    shmCapacity = redhawk::shm::getSystemTotalMemory() / MB_TO_BYTES;
+
+    // Initialize system and user CPU ticks
+    ProcStat::GetTicks(_systemTicks, _userTicks);
 }
 
 
@@ -771,7 +778,11 @@ int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
         soc.id = i;
         soc.cpus = cpus;
         soc.stats = cpu_usage;
-        soc.idle_threshold = __thresholds.cpu_idle;      
+        if (!thresholds.ignore && (thresholds.cpu_idle >= 0.0)) {
+            soc.idle_threshold = thresholds.cpu_idle;
+        } else {
+            soc.idle_threshold = 0.0;
+        }
         soc.load_capacity.max =  cpus.size() * 1.0;
         soc.load_capacity.measured = 0.0;
         soc.load_capacity.allocated = 0.0;
@@ -813,25 +824,30 @@ GPP_i::initializeNetworkMonitor()
 
     data_model.push_back( nic_facade );
 
+    _allNicsThresholdMonitor = boost::make_shared<ThresholdMonitorSet>("nics", "NIC_THROUGHPUT");
+    threshold_monitors.push_back(_allNicsThresholdMonitor);
+
     std::vector<std::string> nic_devices( nic_facade->get_devices() );
     std::vector<std::string> filtered_devices( nic_facade->get_filtered_devices() );
     for( size_t i=0; i<nic_devices.size(); ++i )
     {
-        RH_INFO(this->_baseLog, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
-        NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(_identifier,
-                                                                                   nic_devices[i],
-                                                                                   MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
-                                                                                   boost::bind(&NicFacade::get_throughput_by_device, nic_facade, nic_devices[i]) ) );
-
-        // monitors that affect busy state...
-        for ( size_t ii=0; ii < filtered_devices.size(); ii++ ) {
-            if ( nic_devices[i] == filtered_devices[ii] ) {
-                nic_monitors.push_back(nic_m);
-                break;
-            }
+        // Only use the filtered set of devices, which we can get away with
+        // here because it cannot be updated after this method runs. In the
+        // future, if the available NICs can be dynamically changed, all of the
+        // possible NICs will need to be created here and selectively marked as
+        // active/inactive (distinct from threshold enable/disable).
+        const std::string& nic = nic_devices[i];
+        if (std::find(filtered_devices.begin(), filtered_devices.end(), nic) == filtered_devices.end()) {
+            RH_INFO(_baseLog, __FUNCTION__ << ": Skipping interface (" << nic << ")");
+            continue;
         }
-        addThresholdMonitor(nic_m);
+
+        RH_INFO(_baseLog, __FUNCTION__ << ": Adding interface (" << nic << ")");
+        ThresholdMonitorPtr nic_m = boost::make_shared<FunctionThresholdMonitor>(nic, "NIC_THROUGHPUT", this, &GPP_i::_nicThresholdCheck);
+        nic_m->add_listener(this, &GPP_i::_nicThresholdStateChanged);
+        _allNicsThresholdMonitor->add_monitor(nic_m);
     }
+
 }
 
 void
@@ -858,30 +874,182 @@ GPP_i::initializeResourceMonitors()
   data_model.push_back( process_limits );
 
   //  observer to monitor when cpu idle pass threshold value
-  addThresholdMonitor( ThresholdMonitorPtr( new CpuThresholdMonitor(_identifier, &modified_thresholds.cpu_idle,
-                                                                    *(system_monitor->getCpuStats()), false )));
+  _cpuIdleThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "CPU_IDLE", this, &GPP_i::_cpuIdleThresholdCheck);
+  _cpuIdleThresholdMonitor->add_listener(this, &GPP_i::_cpuIdleThresholdStateChanged);
+  threshold_monitors.push_back(_cpuIdleThresholdMonitor);
 
-  // add available memory monitor, mem_free defaults to MB
-  addThresholdMonitor( ThresholdMonitorPtr( new FreeMemoryThresholdMonitor(_identifier,
-                      MakeCref<CORBA::LongLong, float>(modified_thresholds.mem_free),
-                      ConversionWrapper<CORBA::LongLong, int64_t>(memCapacity, mem_cap_units, std::multiplies<int64_t>() ) )));
+  _loadAvgThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("cpu", "LOAD_AVG", this, &GPP_i::_loadAvgThresholdCheck);
+  _loadAvgThresholdMonitor->add_listener(this, &GPP_i::_loadAvgThresholdStateChanged);
+  threshold_monitors.push_back(_loadAvgThresholdMonitor);
+
+  _freeMemThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("physical_ram", "MEMORY_FREE", this, &GPP_i::_freeMemThresholdCheck);
+  _freeMemThresholdMonitor->add_listener(this, &GPP_i::_freeMemThresholdStateChanged);
+  threshold_monitors.push_back(_freeMemThresholdMonitor);
+
+  _threadThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "THREADS", this, &GPP_i::_threadThresholdCheck);
+  _threadThresholdMonitor->add_listener(this, &GPP_i::_threadThresholdStateChanged);
+  threshold_monitors.push_back(_threadThresholdMonitor);
+
+  _fileThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("ulimit", "OPEN_FILES", this, &GPP_i::_fileThresholdCheck);
+  _fileThresholdMonitor->add_listener(this, &GPP_i::_fileThresholdStateChanged);
+  threshold_monitors.push_back(_fileThresholdMonitor);
+
+  _shmThresholdMonitor = boost::make_shared<FunctionThresholdMonitor>("shm", "SHM_FREE", this, &GPP_i::_shmThresholdCheck);
+  _shmThresholdMonitor->add_listener(this, &GPP_i::_shmThresholdStateChanged);
+  threshold_monitors.push_back(_shmThresholdMonitor);
 }
 
-void
-GPP_i::addThresholdMonitor( ThresholdMonitorPtr t )
+//
+// Threshold policy and event handling
+//
+
+bool GPP_i::_cpuIdleThresholdCheck(ThresholdMonitor* monitor)
 {
-    t->attach_listener( boost::bind(&GPP_i::send_threshold_event, this, _1) );
-    threshold_monitors.push_back( t );
+    double sys_idle = system_monitor->get_idle_percent();
+    double sys_idle_avg = system_monitor->get_idle_average();
+    RH_TRACE(_baseLog, "Update CPU idle threshold monitor, threshold=" << modified_thresholds.cpu_idle
+             << " current=" << sys_idle << " average=" << sys_idle_avg);
+    return (sys_idle < modified_thresholds.cpu_idle) && (sys_idle_avg < modified_thresholds.cpu_idle);
 }
 
-void
-GPP_i::setShadowThresholds( const thresholds_struct &nv ) {
-    if ( nv.cpu_idle >= 0.0 ) __thresholds.cpu_idle = nv.cpu_idle;
-    if ( nv.load_avg >= 0.0 ) __thresholds.load_avg = nv.load_avg;
-    if ( nv.mem_free >= 0 ) __thresholds.mem_free = nv.mem_free;
-    if ( nv.nic_usage >= 0 ) __thresholds.nic_usage = nv.nic_usage;
-    if ( nv.files_available >= 0.0 ) __thresholds.files_available = nv.files_available;
-    if ( nv.threads >= 0.0 ) __thresholds.threads = nv.threads;
+void GPP_i::_cpuIdleThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, system_monitor->get_idle_percent(), modified_thresholds.cpu_idle);
+}
+
+bool GPP_i::_loadAvgThresholdCheck(ThresholdMonitor* monitor)
+{
+    double load_avg = system_monitor->get_loadavg();
+    RH_TRACE(_baseLog, "Update load average threshold monitor, threshold=" << modified_thresholds.load_avg
+             << " measured=" << load_avg);
+    return (load_avg > modified_thresholds.load_avg);
+}
+
+void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, system_monitor->get_loadavg(), modified_thresholds.load_avg);
+}
+
+bool GPP_i::_freeMemThresholdCheck(ThresholdMonitor* monitor)
+{
+    int64_t mem_free = system_monitor->get_mem_free();
+    RH_TRACE(_baseLog, "Update free memory threshold monitor, threshold=" << modified_thresholds.mem_free
+             << " measured=" << mem_free);
+    return (mem_free < modified_thresholds.mem_free);
+}
+
+void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, system_monitor->get_mem_free(), modified_thresholds.mem_free);
+}
+
+bool GPP_i::_threadThresholdCheck(ThresholdMonitor* monitor)
+{
+    int gpp_max_threads = gpp_limits.max_threads * modified_thresholds.threads;
+    int sys_max_threads = sys_limits.max_threads * modified_thresholds.threads;
+    RH_TRACE(_baseLog, "Update thread threshold monitor (GPP), threshold=" << gpp_max_threads
+             << " measured=" << gpp_limits.current_threads);
+    RH_TRACE(_baseLog, "Update thread threshold monitor (system), threshold=" << sys_max_threads
+             << " measured=" << sys_limits.current_threads);
+    if (gpp_limits.current_threads > gpp_max_threads) {
+        return true;
+    } else if (sys_limits.current_threads > sys_max_threads) {
+        return true;
+    }
+    return false;
+}
+
+void GPP_i::_threadThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, gpp_limits.current_threads, gpp_limits.max_threads * modified_thresholds.threads);
+}
+
+bool GPP_i::_fileThresholdCheck(ThresholdMonitor* monitor)
+{
+    int gpp_max_open_files = gpp_limits.max_open_files * modified_thresholds.files_available;
+    int sys_max_open_files = sys_limits.max_open_files * modified_thresholds.files_available;
+    RH_TRACE(_baseLog, "Update file threshold monitor (GPP), threshold=" << gpp_max_open_files
+             << " measured=" << gpp_limits.current_open_files);
+    RH_TRACE(_baseLog, "Update file threshold monitor (system), threshold=" << sys_max_open_files
+             << " measured=" << sys_limits.current_open_files);
+    if (gpp_limits.current_open_files > gpp_max_open_files) {
+        return true;
+    } else if (sys_limits.current_open_files > sys_max_open_files) {
+        return true;
+    }
+    return false;
+}
+
+void GPP_i::_fileThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, gpp_limits.current_open_files,
+                          gpp_limits.max_open_files * modified_thresholds.files_available);
+}
+
+bool GPP_i::_shmThresholdCheck(ThresholdMonitor* monitor)
+{
+    RH_TRACE(_baseLog, "Update shared memory threshold monitor, threshold=" << modified_thresholds.shm_free
+             << " measured=" << shmFree);
+    return shmFree < modified_thresholds.shm_free;
+}
+
+void GPP_i::_shmThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    _sendThresholdMessage(monitor, shmFree, modified_thresholds.shm_free);
+}
+
+bool GPP_i::_nicThresholdCheck(ThresholdMonitor* monitor)
+{
+    const std::string& nic = monitor->get_resource_id();
+    float measured = nic_facade->get_throughput_by_device(nic);
+    RH_TRACE(_baseLog, "Update NIC threshold monitor " << nic
+             << " threshold=" << modified_thresholds.nic_usage
+             << " measured=" << measured);
+    return measured >= modified_thresholds.nic_usage;
+}
+
+void GPP_i::_nicThresholdStateChanged(ThresholdMonitor* monitor)
+{
+    std::string nic = monitor->get_resource_id();
+    float measured = nic_facade->get_throughput_by_device(nic);
+    _sendThresholdMessage(monitor, measured, modified_thresholds.nic_usage);
+}
+
+template <typename T1, typename T2>
+void GPP_i::_sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured, const T2& threshold)
+{
+    bool exceeded = monitor->is_threshold_exceeded();
+
+    threshold_event_struct message;
+    message.source_id = _identifier;
+    message.resource_id = monitor->get_resource_id();
+    message.threshold_class = monitor->get_threshold_class();
+    if (exceeded) {
+        message.type = enums::threshold_event::type::Threshold_Exceeded;
+    } else {
+        message.type = enums::threshold_event::type::Threshold_Not_Exceeded;
+    }
+    if (monitor->is_enabled()) {
+        message.threshold_value = boost::lexical_cast<std::string>(threshold);
+    } else {
+        message.threshold_value = "<disabled>";
+    }
+    message.measured_value = boost::lexical_cast<std::string>(measured);
+
+    std::stringstream sstr;
+    sstr << message.threshold_class << " threshold ";
+    if (!exceeded) {
+        sstr << "not ";
+    }
+    sstr << "exceeded "
+         << "(resource_id=" << message.resource_id
+         << " threshold_value=" << message.threshold_value
+         << " measured_value=" << message.measured_value << ")";
+    message.message = sstr.str();
+
+    message.timestamp = time(NULL);
+
+    send_threshold_event(message);
 }
 
 //
@@ -963,14 +1131,14 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   //
   const SystemMonitor::Report &rpt = system_monitor->getReport();
 
-  // thresholds can be individually disabled, use shadow thresholds for actual calculations and conditions
-  setShadowThresholds( thresholds );
-
   //
   // load average attributes
   //
   loadTotal = loadCapacityPerCore * (float)processor_cores;
-  loadCapacity = loadTotal * ((double)__thresholds.load_avg / 100.0);
+  loadCapacity = loadTotal;
+  if (!thresholds.ignore && thresholds.load_avg >= 0.0) {
+      loadCapacity *= thresholds.load_avg / 100.0;
+  }
   loadFree = loadCapacity;
   idle_capacity_modifier = 100.0 * reserved_capacity_per_component/((float)processor_cores);
  
@@ -979,19 +1147,25 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   //
   memInitVirtFree=rpt.virtual_memory_free;  // assume current state to be total available
   int64_t init_mem_free = (int64_t) memInitVirtFree;
-  memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(__thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
-  if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
+  if (!thresholds.ignore && thresholds.mem_free >= 0) {
+      memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
+      if (memInitCapacityPercent < 0.0) {
+          memInitCapacityPercent = 100.0;
+      }
+  } else {
+      memInitCapacityPercent = 100.0;
+  }
   memFree =  init_mem_free / mem_free_units;
   memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent)) / mem_cap_units ;
   memCapacityThreshold = memCapacity;
+
+  shmFree = redhawk::shm::getSystemFreeMemory() / MB_TO_BYTES;
 
   //
   // set initial modified thresholds
   //
   modified_thresholds = thresholds;
-  modified_thresholds.mem_free = __thresholds.mem_free*thresh_mem_free_units;
-  modified_thresholds.load_avg = loadTotal * ( (double)__thresholds.load_avg / 100.0);
-  modified_thresholds.cpu_idle = __thresholds.cpu_idle;
+  thresholds_changed(thresholds, thresholds);
 
   loadAverage.onemin = rpt.load.one_min;
   loadAverage.fivemin = rpt.load.five_min;
@@ -1011,12 +1185,6 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   gpp_limits.max_threads = pid_rpt.threads_limit;
   gpp_limits.current_open_files = pid_rpt.files;
   gpp_limits.max_open_files = pid_rpt.files_limit;
-
-  // enable monitors to push out state change events..
-  MonitorSequence::iterator iter=threshold_monitors.begin();
-  for( ; iter != threshold_monitors.end(); iter++ ) {
-    if  ( *iter ) (*iter)->enable_dispatch();
-  }
 
   //
   // setup mcast interface allocations, used by older systems -- need to deprecate
@@ -1043,44 +1211,97 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 }
 
 
-void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_struct *nv) {
-
-    if ( !(nv->mem_free < 0 ) && ov->mem_free != nv->mem_free ) {
-        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov->mem_free << "/" << nv->mem_free );
-        WriteLock wlock(pidLock);
-	int64_t init_mem_free = (int64_t) memInitVirtFree;
+void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_struct& nv)
+{
+    WriteLock wlock(monitorLock);
+    if (nv.ignore || (nv.mem_free < 0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.MEM_FREE DISABLED");
+        modified_thresholds.mem_free = 0;
+        _freeMemThresholdMonitor->disable();
+    } else {
+        if (ov.mem_free != nv.mem_free) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov.mem_free << "/" << nv.mem_free);
+        }
+        int64_t init_mem_free = (int64_t) memInitVirtFree;
         // type cast required for correct calc on 32bit os
-        memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv->mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
+        memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv.mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
         if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
-        memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units ;
+        memCapacity = ((int64_t)( init_mem_free * memInitCapacityPercent) ) / mem_cap_units;
         memCapacityThreshold = memCapacity;
-        modified_thresholds.mem_free = nv->mem_free*thresh_mem_free_units;
+        modified_thresholds.mem_free = nv.mem_free*thresh_mem_free_units;
+        _freeMemThresholdMonitor->enable();
     }
 
-
-    if ( !(nv->load_avg < 0.0) && !(fabs(ov->load_avg - nv->load_avg ) < std::numeric_limits<double>::epsilon()) ) {
-        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov->load_avg << "/" << nv->load_avg );
-        WriteLock wlock(pidLock);
-        loadCapacity = loadTotal * ((double)nv->load_avg / 100.0);
+    if (nv.ignore || (nv.load_avg < 0.0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.LOAD_AVG DISABLED");
+        modified_thresholds.load_avg = loadTotal;
+        _loadAvgThresholdMonitor->disable();
+    } else {
+        if (fabs(ov.load_avg - nv.load_avg) >= std::numeric_limits<double>::epsilon()) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.LOAD_AVG CHANGED  old/new " << ov.load_avg << "/" << nv.load_avg);
+        }
+        loadCapacity = loadTotal * ((double)nv.load_avg / 100.0);
         loadFree = loadCapacity;
-        modified_thresholds.load_avg = loadTotal * ( (double)nv->load_avg / 100.0);
+        modified_thresholds.load_avg = loadTotal * ( (double)nv.load_avg / 100.0);
+        _loadAvgThresholdMonitor->enable();
     }
 
-    if ( !(nv->cpu_idle < 0.0) && !(fabs(ov->cpu_idle - nv->cpu_idle ) < std::numeric_limits<double>::epsilon())) {
-        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov->cpu_idle << "/" << nv->cpu_idle );
-        WriteLock wlock(pidLock);
-        modified_thresholds.cpu_idle = nv->cpu_idle;
+    if (nv.ignore || (nv.cpu_idle < 0.0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.CPU_IDLE DISABLED");
+        modified_thresholds.cpu_idle = 0.0;
+        _cpuIdleThresholdMonitor->disable();
+    } else {
+        if (fabs(ov.cpu_idle - nv.cpu_idle) >= std::numeric_limits<double>::epsilon()) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.CPU_IDLE CHANGED  old/new " << ov.cpu_idle << "/" << nv.cpu_idle);
+        }
+        modified_thresholds.cpu_idle = nv.cpu_idle;
+        _cpuIdleThresholdMonitor->enable();
     }
 
-
-    if ( !(nv->nic_usage < 0) && !(fabs(ov->nic_usage - nv->nic_usage ) < std::numeric_limits<double>::epsilon())) {
-        RH_DEBUG(this->_baseLog, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov->nic_usage << "/" << nv->nic_usage );
-        WriteLock wlock(monitorLock);
-        modified_thresholds.nic_usage = nv->nic_usage;
+    if (nv.ignore || (nv.nic_usage < 0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.NIC_USAGE DISABLED");
+        _allNicsThresholdMonitor->disable();
+    } else {
+        if (ov.nic_usage != nv.nic_usage) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.NIC_USAGE CHANGED  old/new " << ov.nic_usage << "/" << nv.nic_usage);
+        }
+        modified_thresholds.nic_usage = nv.nic_usage;
+        _allNicsThresholdMonitor->enable();
     }
 
-    setShadowThresholds( *nv );
+    if (nv.ignore || (nv.shm_free < 0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.SHM_FREE DISABLED");
+        _shmThresholdMonitor->disable();
+    } else {
+        if (ov.shm_free != nv.shm_free) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.SHM_FREE CHANGED  old/new "
+                      << ov.shm_free << "/" << nv.shm_free);
+        }
+        modified_thresholds.shm_free = nv.shm_free;
+        _shmThresholdMonitor->enable();
+    }
 
+    if (nv.ignore || (nv.threads < 0.0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.THREADS DISABLED");
+        _threadThresholdMonitor->disable();
+    } else {
+        if (fabs(ov.threads - nv.threads) >= std::numeric_limits<double>::epsilon()) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.THREADS CHANGED  old/new " << ov.threads << "/" << nv.threads);
+        }
+        modified_thresholds.threads = 1.0 - (nv.threads * .01);
+        _threadThresholdMonitor->enable();
+    }
+
+    if (nv.ignore || (nv.files_available < 0.0)) {
+        RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE DISABLED");
+        _fileThresholdMonitor->disable();
+    } else {
+        if (fabs(ov.files_available - nv.files_available) >= std::numeric_limits<double>::epsilon()) {
+            RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.FILES_AVAILABLE CHANGED  old/new " << ov.files_available << "/" << nv.files_available);
+        }
+        modified_thresholds.files_available = 1.0 - (nv.files_available * .01);
+        _fileThresholdMonitor->enable();
+    }
 }
 
 void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError) {
@@ -1099,7 +1320,6 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
            CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
            CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
-
     boost::recursive_mutex::scoped_lock lock;
     try
     {
@@ -1113,46 +1333,42 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
 
-    std::vector<std::string> prepend_args;
-    std::string naming_context_ior;
-    CF::Properties variable_parameters;
-    variable_parameters = parameters;
-    redhawk::PropertyMap& tmp_params = redhawk::PropertyMap::cast(variable_parameters);
+    redhawk::PropertyMap tmp_params(parameters);
     float reservation_value = -1;
     if (tmp_params.find("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE") != tmp_params.end()) {
-        double reservation_value_d;
-        if (!tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value)) {
-            if (tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].getValue(reservation_value_d)) {
-                reservation_value = reservation_value_d;
-            } else {
-                reservation_value = -1;
-            }
+        try {
+            reservation_value = tmp_params["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"].toFloat();
+        } catch (const std::exception&) {
+            reservation_value = -1;
         }
         tmp_params.erase("RH::GPP::MODIFIED_CPU_RESERVATION_VALUE");
     }
-    naming_context_ior = tmp_params["NAMING_CONTEXT_IOR"].toString();
-    std::string app_id;
-    std::string component_id = tmp_params["COMPONENT_IDENTIFIER"].toString();
+
+    std::string component_id = tmp_params.get("COMPONENT_IDENTIFIER", std::string()).toString();
     if (applicationReservations.find(component_id) != applicationReservations.end()) {
         applicationReservations.erase(component_id);
     }
-    std::string name_binding = tmp_params["NAME_BINDING"].toString();
-    CF::Application_var _app = CF::Application::_nil();
-    CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
-    if (CORBA::is_nil(obj)) {
-        RH_WARN(this->_baseLog, "Invalid application registrar IOR");
-    } else {
-        CF::ApplicationRegistrar_var _appRegistrar = CF::ApplicationRegistrar::_nil();
-        _appRegistrar = CF::ApplicationRegistrar::_narrow(obj);
-        if (CORBA::is_nil(_appRegistrar)) {
-            RH_WARN(this->_baseLog, "Invalid application registrar IOR");
+
+    std::string naming_context_ior = tmp_params.get("NAMING_CONTEXT_IOR", std::string()).toString();
+    std::string app_id;
+    if (!naming_context_ior.empty()) {
+        CORBA::Object_var obj = ossie::corba::Orb()->string_to_object(naming_context_ior.c_str());
+        if (CORBA::is_nil(obj)) {
+            RH_WARN(_baseLog, "Invalid application registrar IOR");
         } else {
-            _app = _appRegistrar->app();
-            if (not CORBA::is_nil(_app)) {
-                app_id = ossie::corba::returnString(_app->identifier());
+            CF::ApplicationRegistrar_var app_registrar = CF::ApplicationRegistrar::_narrow(obj);
+            if (CORBA::is_nil(app_registrar)) {
+                RH_WARN(_baseLog, "Invalid application registrar IOR");
+            } else {
+                CF::Application_var application = app_registrar->app();
+                if (!CORBA::is_nil(application)) {
+                    app_id = ossie::corba::returnString(application->identifier());
+                }
             }
         }
     }
+
+    std::vector<std::string> prepend_args;
     if (useScreen) {
         std::string ld_lib_path(getenv("LD_LIBRARY_PATH"));
         setenv("GPP_LD_LIBRARY_PATH",ld_lib_path.c_str(),1);
@@ -1188,6 +1404,8 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
         prepend_args.push_back("-m");
         prepend_args.push_back("-c");
         prepend_args.push_back(binary_location+"gpp.screenrc");
+
+        std::string name_binding = tmp_params.get("NAME_BINDING", std::string()).toString();
         if ((not component_id.empty()) and (not name_binding.empty())) {
             if (component_id.find("DCE:") != std::string::npos) {
                 component_id = component_id.substr(4, std::string::npos);
@@ -1541,92 +1759,12 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
     }
 
     removeProcess(pid);
+
+    // Ensure that if the process created a shared memory heap, it gets removed
+    // to avoid wasting shared memory
+    _cleanupProcessShm(pid);
+
     return true;
-}
-
-
-bool GPP_i::_check_nic_thresholds()
-{
-    uint64_t threshold=0;
-    double   actual=0;
-    size_t   nic_exceeded=0;
-    bool     retval=false;
-    //
-    ReadLock rlock(monitorLock);
-    NicMonitorSequence::iterator iter=nic_monitors.begin();
-    for( ; iter != nic_monitors.end(); iter++ ) {
-        NicMonitorPtr monitor=*iter;
-        threshold += monitor->get_threshold_value();
-        actual += monitor->get_measured_value();
-
-        RH_TRACE(this->_baseLog, __FUNCTION__ << ": NicThreshold: " << monitor->get_resource_id() << " exceeded " << monitor->is_threshold_exceeded() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
-        if ( monitor->is_threshold_exceeded() ) nic_exceeded++;
-    }
-
-    if ( nic_monitors.size() != 0 && nic_monitors.size() == nic_exceeded ) {
-        std::ostringstream oss;
-        oss << "Threshold (cumulative) : " << threshold << " Actual (cumulative) : " << actual;
-        _setReason( "NIC USAGE ", oss.str() );
-        retval = true;
-    }
-
-    return retval;
-}
-
-bool GPP_i::_check_thread_limits( const thresholds_struct &thresholds)
-{
-    float _tthreshold = 1 - __thresholds.threads * .01;
-
-    if (gpp_limits.max_threads != -1) {
-      //
-      // check current process limits
-      //
-      RH_TRACE(this->_baseLog, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_threads << "/" << gpp_limits.max_threads );
-      if (gpp_limits.current_threads>(gpp_limits.max_threads*_tthreshold)) {
-        RH_WARN(this->_baseLog, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_threads   << "/" << (gpp_limits.max_threads*_tthreshold) );
-        return true;
-      }
-    }
-
-    if ( sys_limits.max_threads != -1 ) {
-      //
-      // check current system limits
-      //
-      RH_TRACE(this->_baseLog, "_sys_check_limits threads (cur/max): "  << sys_limits.current_threads << "/" << sys_limits.max_threads );
-      if (sys_limits.current_threads>( sys_limits.max_threads *_tthreshold)) {
-        RH_WARN(this->_baseLog, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_threads   << "/" << (sys_limits.max_threads*_tthreshold) );
-        return true;
-      }
-    }
-    return false;
-}
-
-bool GPP_i::_check_file_limits( const thresholds_struct &thresholds)
-{
-    float _fthreshold = 1 - __thresholds.files_available * .01;
-
-    if (gpp_limits.max_open_files != -1) {
-      //
-      // check current process limits
-      //
-      RH_TRACE(this->_baseLog, "_gpp_check_limits threads (cur/max): "  << gpp_limits.current_open_files << "/" << gpp_limits.max_open_files );
-      if (gpp_limits.current_open_files>(gpp_limits.max_open_files*_fthreshold)) {
-        RH_WARN(this->_baseLog, "GPP process thread limit threshold exceeded,  count/threshold: " <<  gpp_limits.current_open_files   << "/" << (gpp_limits.max_open_files*_fthreshold) );
-        return true;
-      }
-    }
-
-    if ( sys_limits.max_open_files != -1 ) {
-      //
-      // check current system limits
-      //
-      RH_TRACE(this->_baseLog, "_sys_check_limits threads (cur/max): "  << sys_limits.current_open_files << "/" << sys_limits.max_open_files );
-      if (sys_limits.current_open_files>( sys_limits.max_open_files *_fthreshold)) {
-        RH_WARN(this->_baseLog, "SYSTEM thread limit threshold exceeded,  count/threshold: " <<  sys_limits.current_open_files   << "/" << (sys_limits.max_open_files*_fthreshold) );
-        return true;
-      }
-    }
-    return false;
 }
 
 
@@ -1640,15 +1778,14 @@ void GPP_i::updateUsageState()
 {
     // allow for global ignore of thresholds
     if ( thresholds.ignore == true  ) {
-        RH_TRACE(this->_baseLog, "Ignoring threshold checks ");
+        _resetBusyReason();
+        RH_TRACE(_baseLog, "Ignoring threshold checks ");
         if (getPids().size() == 0) {
-            RH_TRACE(this->_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
-            _resetReason();
+            RH_TRACE(_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
             setUsageState(CF::Device::IDLE);
         }
         else {
-            RH_TRACE(this->_baseLog, "Usage State ACTIVE.....  ");
-            _resetReason();
+            RH_TRACE(_baseLog, "Usage State ACTIVE.....  ");
             setUsageState(CF::Device::ACTIVE);
         }
         return;
@@ -1663,122 +1800,117 @@ void GPP_i::updateUsageState()
   double max_allowable_load =  utilization[0].maximum;
   double subscribed =  utilization[0].subscribed;
 
+  uint64_t all_nics_threshold = 0;
+  double all_nics_throughput = 0.0;
 
-  {
-      std::stringstream oss;
-      ReadLock rlock(monitorLock);
-      NicMonitorSequence::iterator iter=nic_monitors.begin();
-      for( ; iter != nic_monitors.end(); iter++ ) {
-          NicMonitorPtr m = *iter;
-          oss <<  "   Nic: " << m->get_resource_id() << " exceeded " << m->is_threshold_exceeded() << " threshold=" << m->get_threshold() << " measured=" << m->get_measured() << std::endl;
-      }
+  ReadLock rlock(monitorLock);
 
-      RH_TRACE(this->_baseLog,  "USAGE STATE: " << std::endl <<
-                " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
-                " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
-                " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
-                " RESRV: threshold " <<  max_allowable_load << " Actual: " << subscribed  << std::endl <<
-                " Ingress threshold: " << mcastnicIngressThresholdValue << " capacity: " <<  mcastnicIngressCapacity  << std::endl <<
-                " Egress threshold: " << mcastnicEgressThresholdValue << " capacity: " <<  mcastnicEgressCapacity  << std::endl  <<
-                " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
-                " NIC: " << std::endl << oss.str()
-                );
+  std::stringstream nic_message;
+  std::vector<std::string> filtered_nics = nic_facade->get_filtered_devices();
+  for (size_t index = 0; index < filtered_nics.size(); ++index) {
+      const std::string& nic = filtered_nics[index];
+      double throughput = nic_facade->get_throughput_by_device(nic);
+      nic_message << "   Nic: " << nic
+                  << " threshold=" << modified_thresholds.nic_usage
+                  << " measured=" << throughput << std::endl;
+
+      all_nics_threshold += modified_thresholds.nic_usage;
+      all_nics_throughput += throughput;
   }
+
+  RH_TRACE(_baseLog,  "USAGE STATE: " << std::endl <<
+            " CPU:  threshold " <<  modified_thresholds.cpu_idle << " Actual: " << sys_idle  << " Avg: " << sys_idle_avg  << std::endl <<
+            " MEM:  threshold " <<  modified_thresholds.mem_free << " Actual: " << mem_free  << std::endl <<
+            " LOAD: threshold " <<  modified_thresholds.load_avg << " Actual: " << sys_load  << std::endl <<
+            " RESRV: threshold " <<  max_allowable_load << " Actual: " << subscribed  << std::endl <<
+            " Ingress threshold: " << mcastnicIngressThresholdValue << " capacity: " <<  mcastnicIngressCapacity  << std::endl <<
+            " Egress threshold: " << mcastnicEgressThresholdValue << " capacity: " <<  mcastnicEgressCapacity  << std::endl  <<
+            " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
+            " NIC: " << std::endl << nic_message.str()
+            );
   
-  if (!(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0)) {
-      if (sys_idle < modified_thresholds.cpu_idle) {
-          if ( sys_idle_avg < modified_thresholds.cpu_idle) {
-              std::ostringstream oss;
-              oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
-              _setReason( "CPU IDLE", oss.str() );
-              setUsageState(CF::Device::BUSY);
-              return;
-          }
-      }
+  if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
+      _setBusyReason("CPU IDLE", oss.str());
   }
-
-  if ( !(thresholds.mem_free < 0) && (mem_free < modified_thresholds.mem_free)) {
-        std::ostringstream oss;
-        oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
-        _setReason( "FREE MEMORY", oss.str() );
-        setUsageState(CF::Device::BUSY);
+  else if (_freeMemThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " <<  modified_thresholds.mem_free << " Actual: " << mem_free;
+      _setBusyReason("FREE MEMORY", oss.str());
   }
-
-  else if ( !(thresholds.cpu_idle < 0) && !(thresholds.load_avg < 0) && ( sys_load > modified_thresholds.load_avg )) {
+  else if (_loadAvgThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.load_avg << " Actual: " << sys_load;
-      _setReason( "LOAD AVG", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("LOAD AVG", oss.str());
   }
-  else if ( reserved_capacity_per_component != 0 && (subscribed > max_allowable_load) ) {
+  else if ((reserved_capacity_per_component != 0) && (subscribed > max_allowable_load)) {
       std::ostringstream oss;
       oss << "Threshold: " << max_allowable_load << " Actual(subscribed) " << subscribed;
-      _setReason( "RESERVATION CAPACITY", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("RESERVATION CAPACITY", oss.str());
   }
-  else if ( !(thresholds.nic_usage < 0) && _check_nic_thresholds() ) {
-      setUsageState(CF::Device::BUSY);
+  else if (_shmThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold: " << modified_thresholds.shm_free << " Actual: " << shmFree;
+      _setBusyReason("SHARED MEMORY", oss.str());
   }
-  else if (!(thresholds.threads < 0) && _check_thread_limits(thresholds)) {
+  else if (_allNicsThresholdMonitor->is_threshold_exceeded()) {
+      std::ostringstream oss;
+      oss << "Threshold (cumulative) : " << all_nics_threshold << " Actual (cumulative) : " << all_nics_throughput;
+      _setBusyReason("NIC USAGE ", oss.str());
+  }
+  else if (_threadThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads;
-      _setReason( "ULIMIT (MAX_THREADS)", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("ULIMIT (MAX_THREADS)", oss.str());
   }
-  else if (!(thresholds.files_available < 0) && _check_file_limits(thresholds)) {
+  else if (_fileThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
-      _setReason( "ULIMIT (MAX_FILES)", oss.str() );
-      setUsageState(CF::Device::BUSY);
+      _setBusyReason("ULIMIT (MAX_FILES)", oss.str());
   }
   else if (getPids().size() == 0) {
-    RH_TRACE(this->_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
-    _resetReason();
+    RH_TRACE(_baseLog, "Usage State IDLE (trigger) pids === 0...  ");
+    _resetBusyReason();
     setUsageState(CF::Device::IDLE);
   }
   else {
-    RH_TRACE(this->_baseLog, "Usage State ACTIVE.....  ");
-    _resetReason();
+    RH_TRACE(_baseLog, "Usage State ACTIVE.....  ");
+    _resetBusyReason();
     setUsageState(CF::Device::ACTIVE);
   }
 }
 
 
-void GPP_i::_resetReason() {
-    _setReason("","");
+void GPP_i::_resetBusyReason() {
+    _busy.mark = _busy.timestamp = boost::posix_time::not_a_date_time;
+    _busy.resource.clear();
+    busy_reason.clear();
 }
 
-void GPP_i::_setReason( const std::string &reason, const std::string &event, const bool enable_timestamp ) {
-
-    if ( reason != "" ) {
-        if ( reason != _busy_reason ) {
-            RH_INFO(this->_baseLog, "GPP BUSY, REASON: " << reason << " " << event );
-            _busy_timestamp = boost::posix_time::microsec_clock::local_time();
-            _busy_mark = boost::posix_time::microsec_clock::local_time();
-            _busy_reason = reason;
-            std::ostringstream oss;
-            oss << "(time: " << _busy_timestamp << ") REASON: " << _busy_reason << " EXCEEDED " << event;
-            busy_reason = oss.str();
-        }
-        else if ( reason == _busy_reason ) {
-            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration dur = now - _busy_timestamp;
-            boost::posix_time::time_duration last_msg = now - _busy_mark;
-            std::ostringstream oss;
-            oss << "(first/duration: " << _busy_timestamp << "/" << dur << ") REASON: " << _busy_reason << " EXCEEDED " << event;
-            busy_reason = oss.str();
-            if ( last_msg.total_seconds() >  2 ) {
-                _busy_mark = now;
-                RH_INFO(this->_baseLog, "GPP BUSY, " << oss.str() );
-            }
+void GPP_i::_setBusyReason(const std::string& resource, const std::string& message)
+{
+    if (resource != _busy.resource) {
+        RH_INFO(_baseLog, "GPP BUSY, REASON: " << resource << " " << message);
+        _busy.timestamp = boost::posix_time::microsec_clock::local_time();
+        _busy.mark = boost::posix_time::microsec_clock::local_time();
+        _busy.resource = resource;
+        std::ostringstream oss;
+        oss << "(time: " << _busy.timestamp << ") REASON: " << _busy.resource << " EXCEEDED " << message;
+        busy_reason = oss.str();
+    } else {
+        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration dur = now - _busy.timestamp;
+        boost::posix_time::time_duration last_msg = now - _busy.mark;
+        std::ostringstream oss;
+        oss << "(first/duration: " << _busy.timestamp << "/" << dur << ") REASON: " << _busy.resource << " EXCEEDED " << message;
+        busy_reason = oss.str();
+        if ( last_msg.total_seconds() >  2 ) {
+            _busy.mark = now;
+            RH_INFO(_baseLog, "GPP BUSY, " << oss.str() );
         }
     }
-    else {
-        _busy_timestamp = boost::posix_time::microsec_clock::local_time();
-        _busy_mark = _busy_timestamp;
-        busy_reason = reason;
-        _busy_reason = reason;
-    }
+    setUsageState(CF::Device::BUSY);
 }
 
 /**
@@ -1908,12 +2040,7 @@ int GPP_i::serviceFunction()
   }
 
   // update monitors to see if thresholds are exceeded
-  std::for_each( threshold_monitors.begin(), threshold_monitors.end(), boost::bind( &Updateable::update, _1 ) );
-
-  for( size_t i=0; i<threshold_monitors.size(); ++i ) {
-    RH_TRACE(this->_baseLog, __FUNCTION__ << ": resource_id=" << threshold_monitors[i]->get_resource_id() << 
-              " threshold=" << threshold_monitors[i]->get_threshold() << " measured=" << threshold_monitors[i]->get_measured());
-  }
+  updateThresholdMonitors();
 
   // update device usages state for the GPP
   updateUsageState();
@@ -1951,44 +2078,33 @@ void GPP_i::_set_vlan_property()
 //
 
 
-void GPP_i::_component_output_changed(const std::string *oldValue, const std::string *newValue)
+void GPP_i::_component_output_changed(const std::string& oldValue, const std::string& newValue)
 {
-  if(  newValue ) {
-    if ( *newValue == "" ) { 
-      _componentOutputLog="";
-      _handle_io_redirects = false; 
-      return;
+    if (newValue.empty()) { 
+        _componentOutputLog="";
+        _handle_io_redirects = false; 
+        return;
     }
     
     _componentOutputLog =__ExpandEnvVars(componentOutputLog);
     _handle_io_redirects = true;
-  }
-  else {
-    _componentOutputLog="";
-    _handle_io_redirects = false;
-  }
-
 }
 
 
-void GPP_i::reservedChanged(const float *oldValue, const float *newValue)
+void GPP_i::reservedChanged(float oldValue, float newValue)
 {
-  if(  newValue ) {
-    reserved_capacity_per_component = *newValue;
     idle_capacity_modifier = 100.0 * reserved_capacity_per_component/((float)processor_cores);
 
     ExecPartitionList::iterator iter = execPartitions.begin();
     for( ; iter != execPartitions.end(); iter++ ) {
-      iter->idle_cap_mod = 100.0 * reserved_capacity_per_component / ((float)iter->cpus.size());
+        iter->idle_cap_mod = 100.0 * reserved_capacity_per_component / ((float)iter->cpus.size());
     }
-  }
 }
 
 
-void  GPP_i::mcastnicThreshold_changed(const CORBA::Long *oldvalue, const CORBA::Long *newvalue) {
-
-  if(  newvalue ) {
-    int threshold = *newvalue;
+void  GPP_i::mcastnicThreshold_changed(int oldvalue, int newvalue)
+{
+    int threshold = newvalue;
     if ( threshold >= 0 && threshold <= 100 ) {
       double origIngressThreshold = mcastnicIngressThresholdValue;
       double origEgressThreshold = mcastnicIngressThresholdValue;
@@ -2015,10 +2131,7 @@ void  GPP_i::mcastnicThreshold_changed(const CORBA::Long *oldvalue, const CORBA:
         mcastnicEgressCapacity = mcastnicEgressThresholdValue;
         mcastnicEgressFree = mcastnicEgressCapacity;
       }
-
     }
-  }
-
 }
 
 
@@ -2183,17 +2296,19 @@ bool GPP_i::allocate_reservation_request(const redhawk__reservation_request_stru
     {
         WriteLock rlock(pidLock);
         if (applicationReservations.find(value.obj_id) != applicationReservations.end()){
-            RH_INFO(this->_baseLog, __FUNCTION__ << ": Cannot make multiple reservations against the same application: "<<value.obj_id);
-        }
-        if (applicationReservations.find(value.obj_id) == applicationReservations.end()) {
+            RH_INFO(_baseLog, __FUNCTION__ << ": Cannot make multiple reservations against the same application: "<<value.obj_id);
+        } else {
             applicationReservations[value.obj_id] = application_reservation();
         }
 
+        std::map<std::string,float>& reservations = applicationReservations[value.obj_id].reservation;
         for (unsigned int idx=0; idx<value.kinds.size(); idx++) {
-            if (applicationReservations[value.obj_id].reservation.find(value.kinds[idx]) == applicationReservations[value.obj_id].reservation.end()) {
-                applicationReservations[value.obj_id].reservation[value.kinds[idx]] = strtof(value.values[idx].c_str(), 0);
+            const std::string& kind = value.kinds[idx];
+            float capacity = strtof(value.values[idx].c_str(), 0);
+            if (reservations.count(kind) == 0) {
+                reservations[kind] = capacity;
             } else {
-                applicationReservations[value.obj_id].reservation[value.kinds[idx]] += strtof(value.values[idx].c_str(), 0);
+                reservations[kind] += capacity;
             }
         }
     }
@@ -2347,16 +2462,6 @@ void GPP_i::deallocateCapacity_nic_allocation(const nic_allocation_struct &alloc
     }
 }
 
-void GPP_i::deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
-{
-    GPP_base::deallocateCapacity(capacities);
-}
-CORBA::Boolean GPP_i::allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
-{
-    bool retval = GPP_base::allocateCapacity(capacities);
-    return retval;
-}
-
 
 bool GPP_i::allocate_diskCapacity(const double &value) {
 
@@ -2488,231 +2593,212 @@ void GPP_i::sendChildNotification(const std::string &comp_id, const std::string 
 void GPP_i::updateThresholdMonitors()
 {
   WriteLock wlock(monitorLock);
-  MonitorSequence::iterator iter=threshold_monitors.begin();
-  for( ; iter != threshold_monitors.end(); iter++ ) {
-    ThresholdMonitorPtr monitor=*iter;
-    monitor->update();
-    RH_TRACE(this->_baseLog, __FUNCTION__ << ": resource_id=" << monitor->get_resource_id() << " threshold=" << monitor->get_threshold() << " measured=" << monitor->get_measured());
-  }
+  std::for_each(threshold_monitors.begin(), threshold_monitors.end(), boost::bind(&Updateable::update, _1));
+}
+
+
+void GPP_i::updateProcessStats()
+{
+    // establish what the actual load is per floor_reservation
+    // if the actual load -per is less than the reservation, compute the
+    // different and add the difference to the cpu_idle
+    {
+        WriteLock rlock(pidLock);
+        this->update_grp_child_pids();
+    }
+
+    // Update system and user clocks and determine how much time has elapsed
+    // since the last measurement
+    int64_t last_system_ticks = _systemTicks;
+    int64_t last_user_ticks = _userTicks;
+    ProcStat::GetTicks(_systemTicks, _userTicks);
+    int64_t system_elapsed = _systemTicks - last_system_ticks;
+    int64_t user_elapsed = _userTicks - last_user_ticks;
+
+    float inverse_load_per_core = ((float)processor_cores)/(system_elapsed);
+    float aggregate_usage = 0;
+    float non_specialized_aggregate_usage = 0;
+
+    ReadLock rlock(pidLock);
+    for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+        app_it->second.usage = 0;
+    }
+    double reservation_set = 0;
+    size_t nres=0;
+    int usage_out=0;
+
+    for (ProcessList::iterator i=this->pids.begin(); i!=pids.end(); i++, usage_out++) {
+        if (i->terminated) {
+            continue;
+        }
+        
+        // get delta from last pstat
+        int64_t usage = i->get_pstat_usage();
+
+        double percent_core = (double)usage * inverse_load_per_core;
+        i->core_usage = percent_core;
+        double res =  i->reservation;
+
+#if 0
+        // debug assist
+        if ( !(usage_out % 500) || usage < 0 || percent_core < 0.0 ) {  
+            uint64_t u, p2, p1;
+            u = i->get_pstat_usage(p2,p1);
+            RH_INFO(_baseLog, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
+                     "  usage " << usage << std::endl << 
+                     "  u " << usage << std::endl << 
+                     "  p2 " << p2 << std::endl << 
+                     "  p1 " << p1 << std::endl << 
+                     "  percent_core: " << percent_core << std::endl << 
+                     "  reservation: " << i->reservation << std::endl );
+        }
+#endif
+
+        if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+            if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+                applicationReservations[i->appName].usage += percent_core;
+            }
+        }
+
+        if (i->app_started) {
+            // if component is not using enough the add difference between minimum and current load
+            if ( percent_core < res ) {
+                reservation_set += 100.00 * ( res - percent_core)/((double)processor_cores);
+            }
+            // for components with non specific 
+            if ( res == -1.0 ) {
+                non_specialized_aggregate_usage +=  percent_core / inverse_load_per_core;
+            }
+            else {
+                aggregate_usage += percent_core / inverse_load_per_core;
+            }
+        } else {
+            if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
+                if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
+                    continue;
+                }
+            }
+            nres++;
+            if ( i->reservation == -1) {
+                reservation_set += idle_capacity_modifier;
+            } else {
+                reservation_set += 100.0 * i->reservation/((float)processor_cores);
+            }
+        }
+    }
+
+    // set number reservations that are not started
+    n_reservations = nres;
+
+    for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
+        if (app_it->second.reservation.find("cpucores") != app_it->second.reservation.end()) {
+            bool found_app = false;
+            for ( ProcessList::iterator _pid_it=this->pids.begin();_pid_it!=pids.end(); _pid_it++) {
+                if (applicationReservations.find(_pid_it->appName) != applicationReservations.end()) {
+                    found_app = true;
+                    break;
+                }
+            }
+            if (not found_app) {
+                if (app_it->second.reservation["cpucores"] == -1) {
+                    reservation_set += idle_capacity_modifier;
+                } else {
+                    reservation_set += 100.0 * app_it->second.reservation["cpucores"]/((float)processor_cores);
+                }
+            } else {
+                if (app_it->second.usage < app_it->second.reservation["cpucores"]) {
+                    reservation_set += 100.00 * ( app_it->second.reservation["cpucores"] - app_it->second.usage)/((double)processor_cores);
+                }
+            }
+        }
+    }
+
+    RH_TRACE(_baseLog, __FUNCTION__ << " Completed pass, record pstats for processes" );
+
+    aggregate_usage *= inverse_load_per_core;
+    non_specialized_aggregate_usage *= inverse_load_per_core;
+    utilization[0].component_load = aggregate_usage + non_specialized_aggregate_usage;
+    float estimate_total = (user_elapsed) * inverse_load_per_core;
+    utilization[0].system_load = std::max(utilization[0].component_load, estimate_total); // for very light loads, sometimes there is a measurement mismatch because of timing
+    utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
+
+    // The maximum CPU utilization is in terms of cores; if a threshold is set,
+    // normalize it to the range [0,1] and scale the maximum by that ratio
+    float cpu_idle_threshold = 0.0;
+    utilization[0].maximum = processor_cores;
+    if (!thresholds.ignore && (thresholds.cpu_idle >= 0.0)) {
+        utilization[0].maximum *= (1.0 - thresholds.cpu_idle * 0.01);
+        modified_thresholds.cpu_idle = thresholds.cpu_idle + reservation_set;
+        cpu_idle_threshold = thresholds.cpu_idle;
+    }
+
+    RH_DEBUG(_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+              " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
+              " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
+              "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
+              " threshold(req): " << cpu_idle_threshold << std::endl <<
+              " idle modifier: " << idle_capacity_modifier << std::endl <<
+              " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
+              " number of reservations: " << n_reservations << std::endl <<
+              " processes: " << pids.size() << std::endl <<
+              " loadCapacity: " << loadCapacity  << std::endl <<
+              " loadTotal: " << loadTotal  << std::endl <<
+              " loadFree(Modified): " << loadFree <<std::endl );
+
+    RH_TRACE(_baseLog, __FUNCTION__ << "  Reservation : " << std::endl << 
+              "  total sys usage: " << system_elapsed << std::endl << 
+              "  total user usage: " << user_elapsed << std::endl << 
+              "  reservation_set: " << reservation_set << std::endl << 
+              "  inverse_load_per_core: " << inverse_load_per_core << std::endl << 
+              "  aggregate_usage: " << aggregate_usage << std::endl << 
+              "  (non_spec) aggregate_usage: " << non_specialized_aggregate_usage << std::endl << 
+              "  component_load: " << utilization[0].component_load << std::endl << 
+              "  system_load: " << utilization[0].system_load << std::endl << 
+              "  subscribed: " << utilization[0].subscribed << std::endl << 
+              "  maximum: " << utilization[0].maximum << std::endl );
 }
 
 void GPP_i::update()
 {
-  // establish what the actual load is per floor_reservation
-  // if the actual load -per is less than the reservation, compute the different and add the difference to the cpu_idle
-  // read the clock from the system (start)
+    updateProcessStats();
 
-  int64_t user=0, system=0;
-  ProcStat::GetTicks( system, user);
-  int64_t f_start_total = system;
-  int64_t f_use_start_total = user;
-  float reservation_set = 0;
-  size_t nres=0;
-  int64_t usage=0;
+    const SystemMonitor::Report &rpt = system_monitor->getReport();
+    RH_TRACE(_baseLog, __FUNCTION__ << " SysInfo Load : " << std::endl << 
+              "  one: " << rpt.load.one_min << std::endl << 
+              "  five: " << rpt.load.five_min << std::endl << 
+              "  fifteen: " << rpt.load.fifteen_min << std::endl );
 
-  {
-    WriteLock rlock(pidLock);
-    
-    this->update_grp_child_pids();
-    
-    ProcessList::iterator i=this->pids.begin();
-    for ( ; i!=pids.end(); i++) {
-      
-      if ( !i->terminated ) {
+    loadAverage.onemin = rpt.load.one_min;
+    loadAverage.fivemin = rpt.load.five_min;
+    loadAverage.fifteenmin = rpt.load.fifteen_min;
 
-        // update pstat usage for each process
-        usage = i->get_pstat_usage();
+    memFree = rpt.virtual_memory_free / mem_free_units;
+    RH_TRACE(_baseLog, __FUNCTION__ << "Memory : " << std::endl << 
+              " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
+              " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
+              " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
+              " sys_monitor.mem_free: " << rpt.physical_memory_free  << std::endl << 
+              " memFree: " << memFree  << std::endl << 
+              " memCapacity: " << memCapacity  << std::endl << 
+              " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
+              " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
 
-        if ( !i->app_started ) {
-          if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
-            if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
-              continue;
-            }
-          }
-          nres++;
-          if ( i->reservation == -1) {
-            reservation_set += idle_capacity_modifier;
-          } else {
-            reservation_set += 100.0 * i->reservation/((float)processor_cores);
-          }
-        }
-      }
-    }
-  }
-  RH_TRACE(this->_baseLog, __FUNCTION__ << " Completed first pass, record pstats for nproc: " << nres << " res_set " << reservation_set );
+    shmFree = redhawk::shm::getSystemFreeMemory() / MB_TO_BYTES;
 
-  // set number reservations that are not started
-  n_reservations = nres;
-  
-  // wait a little bit
-  usleep(500000);
-
-
-  user=0, system=0;
-  ProcStat::GetTicks( system, user);
-  int64_t f_end_total = system;
-  int64_t f_use_end_total = user;
-  float f_total = (float)(f_end_total-f_start_total);
-  if ( f_total <= 0.0 ) {
-    RH_TRACE(this->_baseLog, __FUNCTION__ << std::endl<< " System Ticks end/start " << f_end_total << "/" << f_start_total << std::endl );
-    f_total=1.0;
-  }
-  float inverse_load_per_core = ((float)processor_cores)/(f_total);
-  float aggregate_usage = 0;
-  float non_specialized_aggregate_usage = 0;
-  double percent_core;
-
-  ReadLock rlock(pidLock);
-  ProcessList::iterator i=this->pids.begin(); 
-  int usage_out=0;
-  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
-      app_it->second.usage = 0;
-  }
-  for ( ; i!=pids.end(); i++, usage_out++) {
-    
-    usage = 0;
-    percent_core =0;
-    if ( !i->terminated ) {
-        
-      // get delta from last pstat
-      usage = i->get_pstat_usage();
-
-      percent_core = (double)usage * inverse_load_per_core;
-      i->core_usage = percent_core;
-      double res =  i->reservation;
-
-#if 0
-      // debug assist
-      if ( !(usage_out % 500) || usage < 0 || percent_core < 0.0 ) {  
-        uint64_t u, p2, p1;
-        u = i->get_pstat_usage(p2,p1);
-        RH_INFO(this->_baseLog, __FUNCTION__ << std::endl<< "PROC SPEC PID: " << i->pid << std::endl << 
-                 "  usage " << usage << std::endl << 
-                 "  u " << usage << std::endl << 
-                 "  p2 " << p2 << std::endl << 
-                 "  p1 " << p1 << std::endl << 
-                 "  percent_core: " << percent_core << std::endl << 
-                 "  reservation: " << i->reservation << std::endl );
-      }
-#endif
-
-      if ( applicationReservations.find(i->appName) != applicationReservations.end()) {
-          if (applicationReservations[i->appName].reservation.find("cpucores") != applicationReservations[i->appName].reservation.end()) {
-              applicationReservations[i->appName].usage += percent_core;
-          }
-      }
-
-      if ( i->app_started ) {
-
-        // if component is not using enough the add difference between minimum and current load
-        if ( percent_core < res ) {
-          reservation_set += 100.00 * ( res - percent_core)/((double)processor_cores);
-        }
-        // for components with non specific 
-        if ( res == -1.0 ) {
-          non_specialized_aggregate_usage +=  percent_core / inverse_load_per_core;
-        }
-        else {
-          aggregate_usage += percent_core / inverse_load_per_core;
-        }
-      }
-    }
-  }
-
-  for (ApplicationReservationMap::iterator app_it=applicationReservations.begin(); app_it!=applicationReservations.end(); app_it++) {
-    if (app_it->second.reservation.find("cpucores") != app_it->second.reservation.end()) {
-      bool found_app = false;
-      for ( ProcessList::iterator _pid_it=this->pids.begin();_pid_it!=pids.end(); _pid_it++) {
-        if (applicationReservations.find(_pid_it->appName) != applicationReservations.end()) {
-            found_app = true;
-            break;
-        }
-      }
-      if (not found_app) {
-        if (app_it->second.reservation["cpucores"] == -1) {
-            reservation_set += idle_capacity_modifier;
-        } else {
-          reservation_set += 100.0 * app_it->second.reservation["cpucores"]/((float)processor_cores);
-        }
-      } else {
-        if (app_it->second.usage < app_it->second.reservation["cpucores"]) {
-          reservation_set += 100.00 * ( app_it->second.reservation["cpucores"] - app_it->second.usage)/((double)processor_cores);
-        }
-      }
-    }
-  }
-
-  RH_TRACE(this->_baseLog, __FUNCTION__ << " Completed SECOND pass, record pstats for processes" );
-
-  aggregate_usage *= inverse_load_per_core;
-  non_specialized_aggregate_usage *= inverse_load_per_core;
-  modified_thresholds.cpu_idle = __thresholds.cpu_idle + reservation_set;
-  utilization[0].component_load = aggregate_usage + non_specialized_aggregate_usage;
-  float estimate_total = (f_use_end_total-f_use_start_total) * inverse_load_per_core;
-  utilization[0].system_load = (utilization[0].component_load > estimate_total) ? utilization[0].component_load : estimate_total; // for very light loads, sometimes there is a measurement mismatch because of timing
-  utilization[0].subscribed = (reservation_set * (float)processor_cores) / 100.0 + utilization[0].component_load;
-  utilization[0].maximum = processor_cores-(__thresholds.cpu_idle/100.0) * processor_cores;
-
-  RH_TRACE(this->_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
-           " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
-           " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
-           "         idle avg: " << system_monitor->get_idle_average() << std::endl << 
-           " threshold(req): " << __thresholds.cpu_idle << std::endl <<
-           " idle modifier: " << idle_capacity_modifier << std::endl <<
-           " reserved_cap_per_component: " << reserved_capacity_per_component << std::endl <<
-           " number of reservations: " << n_reservations << std::endl <<
-           " processes: " << pids.size() << std::endl <<
-           " loadCapacity: " << loadCapacity  << std::endl <<
-           " loadTotal: " << loadTotal  << std::endl <<
-           " loadFree(Modified): " << loadFree <<std::endl );
-
-  RH_TRACE(this->_baseLog, __FUNCTION__ << "  Reservation : " << std::endl << 
-           "  total sys usage: " << f_end_total << std::endl << 
-           "  total user usage: " << f_use_end_total << std::endl << 
-           "  reservation_set: " << reservation_set << std::endl << 
-           "  inverse_load_per_core: " << inverse_load_per_core << std::endl << 
-           "  aggregate_usage: " << aggregate_usage << std::endl << 
-           "  (non_spec) aggregate_usage: " << non_specialized_aggregate_usage << std::endl << 
-           "  component_load: " << utilization[0].component_load << std::endl << 
-           "  system_load: " << utilization[0].system_load << std::endl << 
-           "  subscribed: " << utilization[0].subscribed << std::endl << 
-           "  maximum: " << utilization[0].maximum << std::endl );
-
-  const SystemMonitor::Report &rpt = system_monitor->getReport();
-  RH_TRACE(this->_baseLog, __FUNCTION__ << " SysInfo Load : " << std::endl << 
-           "  one: " << rpt.load.one_min << std::endl << 
-           "  five: " << rpt.load.five_min << std::endl << 
-           "  fifteen: " << rpt.load.fifteen_min << std::endl );
-
-  loadAverage.onemin = rpt.load.one_min;
-  loadAverage.fivemin = rpt.load.five_min;
-  loadAverage.fifteenmin = rpt.load.fifteen_min;
-
-  memFree = rpt.virtual_memory_free / mem_free_units;
-  RH_TRACE(this->_baseLog, __FUNCTION__ << "Memory : " << std::endl << 
-           " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
-           " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
-           " sys_monitor.mem_total: " << rpt.physical_memory_total  << std::endl << 
-           " sys_monitor.mem_free: " << rpt.physical_memory_free  << std::endl << 
-           " memFree: " << memFree  << std::endl << 
-           " memCapacity: " << memCapacity  << std::endl << 
-           " memCapacityThreshold: " << memCapacityThreshold << std::endl << 
-           " memInitCapacityPercent: " << memInitCapacityPercent << std::endl );
-
-  //
-  // transfer limits to properties
-  //
-  const Limits::Contents &sys_rpt =rpt.sys_limits;
-  sys_limits.current_threads = sys_rpt.threads;
-  sys_limits.max_threads = sys_rpt.threads_limit;
-  sys_limits.current_open_files = sys_rpt.files;
-  sys_limits.max_open_files = sys_rpt.files_limit;
-  process_limits->update_state();
-  const Limits::Contents &pid_rpt = process_limits->get();
-  gpp_limits.current_threads = pid_rpt.threads;
-  gpp_limits.max_threads = pid_rpt.threads_limit;
-  gpp_limits.current_open_files = pid_rpt.files;
-  gpp_limits.max_open_files = pid_rpt.files_limit;
+    //
+    // transfer limits to properties
+    //
+    const Limits::Contents &sys_rpt =rpt.sys_limits;
+    sys_limits.current_threads = sys_rpt.threads;
+    sys_limits.max_threads = sys_rpt.threads_limit;
+    sys_limits.current_open_files = sys_rpt.files;
+    sys_limits.max_open_files = sys_rpt.files_limit;
+    process_limits->update_state();
+    const Limits::Contents &pid_rpt = process_limits->get();
+    gpp_limits.current_threads = pid_rpt.threads;
+    gpp_limits.max_threads = pid_rpt.threads_limit;
+    gpp_limits.current_open_files = pid_rpt.files;
+    gpp_limits.max_open_files = pid_rpt.files_limit;
 }
 
 
@@ -3055,4 +3141,22 @@ int  GPP_i::_get_deploy_on_partition() {
 
   if ( psoc > -1 ) { RH_NL_INFO("GPP", " Deploy resource on selected SOCKET PARTITON, socket:" << psoc ); }
   return psoc;
+}
+
+void GPP_i::_cleanupProcessShm(pid_t pid)
+{
+    const std::string heap_name = redhawk::shm::getProcessHeapName(pid);
+    redhawk::shm::SuperblockFile heap(heap_name);
+    try {
+        heap.open(false);
+    } catch (const std::exception&) {
+        // Ignore error, it probably doesn't exist
+        return;
+    }
+    RH_DEBUG(_baseLog, "Removing shared memory heap '" << heap_name << "'");
+    try {
+        heap.file().unlink();
+    } catch (const std::exception&) {
+        // Someone else removed it in the meantime
+    }
 }

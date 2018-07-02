@@ -184,13 +184,7 @@ bool PropertyInterface::isQueryable () const
 
 bool PropertyInterface::isProperty () const
 {
-  std::vector<std::string>::const_iterator p = kinds.begin();
-  while (p != kinds.end()) {
-    if ((*p) == std::string("property"))
-      return true;
-    p++;
-  }
-  return false;
+    return (std::find(kinds.begin(), kinds.end(), "property") != kinds.end());
 }
 
 bool PropertyInterface::isConfigurable () const
@@ -235,10 +229,10 @@ void PropertyInterface::configure(const std::string& _id, const std::string& _na
     std::string::size_type istart = 0;
     while (istart < _kinds.size()) {
         std::string::size_type iend = _kinds.find(',', istart);
-        kinds.push_back(_kinds.substr(istart, iend));
         if (iend == std::string::npos) {
-            break;
+            iend = _kinds.size();
         }
+        kinds.push_back(_kinds.substr(istart, iend-istart));
         istart = iend + 1;
     }
 }

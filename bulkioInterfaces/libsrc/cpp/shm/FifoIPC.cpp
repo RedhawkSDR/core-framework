@@ -82,8 +82,10 @@ namespace bulkio {
 
 
     Pipe::Pipe() :
-        _fd(-1)
+        _fd(-1),
+        _blockSize(32768)
     {
+        // Setting a default block size of 32K seems to give the best performance
     }
 
     Pipe::~Pipe()
@@ -128,27 +130,40 @@ namespace bulkio {
 
     size_t Pipe::read(void* buffer, size_t bytes)
     {
-        boost::this_thread::interruption_point();
-        ssize_t count = ::read(_fd, buffer, bytes);
-        if (count < 0) {
-            throw std::runtime_error("read failed: " + getErrorMessage());
+        char* ptr = static_cast<char*>(buffer);
+        size_t remain = bytes;
+        while (remain > 0) {
+            boost::this_thread::interruption_point();
+            size_t todo = std::min(remain, _blockSize);
+            ssize_t pass = ::read(_fd, ptr, todo);
+            if (pass < 0) {
+                throw std::runtime_error("read failed: " + getErrorMessage());
+            }
+            remain -= pass;
+            ptr += pass;
         }
-        return count;
+        return bytes;
     }
 
     void Pipe::write(const void* data, size_t bytes)
     {
-        size_t total = 0;
-        while (total < bytes) {
+        const char* ptr = static_cast<const char*>(data);
+        size_t remain = bytes;
+        while (remain > 0) {
             boost::this_thread::interruption_point();
-            ssize_t pass = ::write(_fd, data, bytes);
+            size_t todo = std::min(remain, _blockSize);
+            ssize_t pass = ::write(_fd, ptr, todo);
             if (pass <= 0) {
                 if (pass < 0) {
                     throw std::runtime_error("write failed: " + getErrorMessage());
                 }
                 return;
             }
-            total += pass;
+            if (((size_t) pass) < todo) {
+                std::cerr << "only wrote " << pass << std::endl;
+            }
+            ptr += pass;
+            remain -= pass;
         }
     }
 

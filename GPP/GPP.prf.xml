@@ -69,15 +69,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="execparam"/>
     <action type="external"/>
   </simple>
-
   <simple id="DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176" mode="readwrite" name="componentOutputLog" type="string">
     <description>If provided, all component output will be redirected to this file.  The GPP will not delete or rotate these logs.  The provided value may contain environment variables or reference component exec-params with @EXEC_PARAM@.  For example, this would be a valid value $SDRROOT/logs/@COMPONENT_IDENTIFIER@.log</description>
     <value></value>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-
-
   <struct id="nic_allocation" mode="readwrite" name="nic_allocation">
     <description>DCE:e4e86070-a121-45d4-a144-00386f2188e3</description>
     <simple id="nic_allocation::identifier" name="identifier" type="string">
@@ -86,6 +83,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 Required
 
 </description>
+      <value></value>
     </simple>
     <simple id="nic_allocation::data_rate" name="data_rate" type="float">
       <description>Data rate being allocated.  See data_size for unit of measurement.
@@ -114,11 +112,13 @@ Optional</description>
       <description>Requires the IP address to be addressable from the interface.
 
 Optional</description>
+      <value></value>
     </simple>
     <simple id="nic_allocation::interface" name="interface" type="string">
       <description>Requires this specific interface.
 
 Optional</description>
+      <value></value>
     </simple>
     <configurationkind kindtype="allocation"/>
   </struct>
@@ -153,35 +153,85 @@ Optional</description>
   </structsequence>
   <structsequence id="nic_metrics" mode="readonly">
     <struct id="nic_metrics_struct">
-      <simple id="nic_metrics::interface" name="interface" type="string"/>
-      <simple id="nic_metrics::mac_address" name="mac_address" type="string"/>
+      <simple id="nic_metrics::interface" name="interface" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::mac_address" name="mac_address" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::rate" name="rate" type="double">
         <value>0.0</value>
         <units>Mbps</units>
       </simple>
-      <simple id="nic_metrics::ipv4_address" name="ipv4_address" type="string"/>
-      <simple id="nic_metrics::ipv4_netmask" name="ipv4_netmask" type="string"/>
-      <simple id="nic_metrics::ipv4_broadcast" name="ipv4_broadcast" type="string"/>
-      <simple id="nic_metrics::ipv6_address" name="ipv6_address" type="string"/>
-      <simple id="nic_metrics::ipv6_netmask" name="ipv6_netmask" type="string"/>
-      <simple id="nic_metrics::ipv6_scope" name="ipv6_scope" type="string"/>
-      <simple id="nic_metrics::flags" name="flags" type="string"/>
-      <simple id="nic_metrics::module" name="module" type="string"/>
-      <simple id="nic_metrics::mtu" name="mtu" type="string"/>
-      <simple id="nic_metrics::state" name="state" type="string"/>
-      <simple id="nic_metrics::rx_bytes" name="rx_bytes" type="string"/>
-      <simple id="nic_metrics::rx_compressed" name="rx_compressed" type="string"/>
-      <simple id="nic_metrics::rx_crc_errors" name="rx_crc_errors" type="string"/>
-      <simple id="nic_metrics::rx_dropped" name="rx_dropped" type="string"/>
-      <simple id="nic_metrics::rx_errors" name="rx_errors" type="string"/>
-      <simple id="nic_metrics::rx_packets" name="rx_packets" type="string"/>
-      <simple id="nic_metrics::tx_bytes" name="tx_bytes" type="string"/>
-      <simple id="nic_metrics::tx_compressed" name="tx_compressed" type="string"/>
-      <simple id="nic_metrics::tx_dropped" name="tx_dropped" type="string"/>
-      <simple id="nic_metrics::tx_errors" name="tx_errors" type="string"/>
-      <simple id="nic_metrics::tx_packets" name="tx_packets" type="string"/>
-      <simple id="nic_metrics::tx_queue_len" name="tx_queue_len" type="string"/>
-      <simple id="nic_metrics::vlans" name="vlans" type="string"/>
+      <simple id="nic_metrics::ipv4_address" name="ipv4_address" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv4_netmask" name="ipv4_netmask" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv4_broadcast" name="ipv4_broadcast" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_address" name="ipv6_address" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_netmask" name="ipv6_netmask" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::ipv6_scope" name="ipv6_scope" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::flags" name="flags" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::module" name="module" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::mtu" name="mtu" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::state" name="state" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_bytes" name="rx_bytes" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_compressed" name="rx_compressed" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_crc_errors" name="rx_crc_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_dropped" name="rx_dropped" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_errors" name="rx_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::rx_packets" name="rx_packets" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_bytes" name="tx_bytes" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_compressed" name="tx_compressed" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_dropped" name="tx_dropped" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_errors" name="tx_errors" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_packets" name="tx_packets" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::tx_queue_len" name="tx_queue_len" type="string">
+        <value></value>
+      </simple>
+      <simple id="nic_metrics::vlans" name="vlans" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::multicast_support" name="multicast_support" type="boolean">
         <value>False</value>
       </simple>
@@ -189,7 +239,9 @@ Optional</description>
         <value>0</value>
         <units>Mbps</units>
       </simple>
-      <simple id="nic_metrics::time_string_utc" name="time_string_utc" type="string"/>
+      <simple id="nic_metrics::time_string_utc" name="time_string_utc" type="string">
+        <value></value>
+      </simple>
       <simple id="nic_metrics::time" name="time" type="double">
         <value>0</value>
       </simple>
@@ -200,7 +252,6 @@ Optional</description>
     </struct>
     <configurationkind kindtype="configure"/>
   </structsequence>
-
   <simple id="DCE:4e416acc-3144-47eb-9e38-97f1d24f7700" mode="readwrite" name="mcastnicInterface" type="string">
     <description>The Multicast NIC interface associated with this GPP (e.g. eth1).  If not provided no multicast allocations are permitted.</description>
     <value></value>
@@ -251,7 +302,6 @@ Optional</description>
     <kind kindtype="event"/>
     <action type="external"/>
   </simple>
-
   <simple id="DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1" mode="readwrite" name="mcastnicThreshold" type="long">
     <description>Percentage of total Multicast NIC this GPP can use for capacity management</description>
     <value>80</value>
@@ -260,13 +310,11 @@ Optional</description>
     <kind kindtype="event"/>
     <action type="external"/>
   </simple>
-
   <simplesequence id="DCE:65544aad-4c73-451f-93de-d4d76984025a" mode="readwrite" name="mcastnicVLANs" type="long">
     <description>When queired, returns the list of vlans on this host.  When used as an allocation, defines the list of VLANS the component requires.</description>
     <kind kindtype="allocation"/>
     <action type="external"/>
   </simplesequence>
-
   <struct id="advanced" mode="readwrite">
     <simple id="maximum_throughput_percentage" type="double">
       <value>80.0</value>
@@ -296,7 +344,6 @@ Optional</description>
     </struct>
     <configurationkind kindtype="configure"/>
   </structsequence>
-
   <struct id="threshold_event" mode="readonly">
     <simple id="threshold_event::source_id" name="source_id" type="string">
       <description>Identifier of component or device that generated this message</description>
@@ -331,7 +378,6 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="message"/>
   </struct>
-
   <simple id="threshold_cycle_time" mode="readwrite" name="threshold_cycle_time" type="ulong">
     <description>cycle time between updates of metric capture, calculations and threshold evaluations.</description>
     <value>500</value>
@@ -339,76 +385,61 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-
   <simple id="busy_reason" mode="readonly" name="busy_reason" type="string">
     <description>Report reason why the GPP had it's usage state set to BUSY.</description>
     <value></value>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-
   <simple id="cacheDirectory" mode="readonly" name="cacheDirectory" type="string">
     <description>Select a cache directory other than the default.</description>
     <value></value>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-
   <simple id="workingDirectory" mode="readonly" name="workingDirectory" type="string">
     <description>Select a working directory other than the default.</description>
     <value></value>
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
-
   <struct id="thresholds" mode="readwrite">
     <description>The thresholds that cause a failure for allocations</description>
     <simple id="ignore" type="boolean">
       <value>false</value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="cpu_idle" type="float">
       <value>10</value>
       <units>%</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="load_avg" type="float">
       <value>80</value>
       <units>%</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="mem_free" mode="readwrite" type="longlong">
       <value>10</value>
       <units>MB</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="nic_usage" type="long">
       <value>900</value>
       <units>MB/s</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="files_available" mode="readwrite" name="files_available" type="float" complex="false">
       <description>The percentage of file handles remaining to the GPP that triggers a threshold condition</description>
       <value>3</value>
       <units>%</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="threads" mode="readwrite" name="threads" type="float" complex="false">
       <description>The percentage of threads available to the GPP that triggers a threshold condition</description>
       <value>3</value>
       <units>%</units>
-      <kind kindtype="property"/>
-      <action type="external"/>
+    </simple>
+    <simple id="shm_free" name="shm_free" type="longlong">
+      <value>10</value>
+      <units>MB</units>
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-
   <simple id="DCE:6565bffd-cb09-4927-9385-2ecac68035c7" mode="readonly" name="memFree" type="longlong">
     <description>Amount of RAM in the GPP not in use (measured)</description>
     <units>MiB</units>
@@ -420,6 +451,16 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <description>Amount of RAM in the GPP not allocated to an application</description>
     <units>MiB</units>
     <kind kindtype="allocation"/>
+    <action type="external"/>
+  </simple>
+  <simple id="shmFree" mode="readonly" name="shmFree" type="longlong">
+    <units>MB</units>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="shmCapacity" mode="readonly" name="shmCapacity" type="longlong">
+    <units>MB</units>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="DCE:28b23bc8-e4c0-421b-9c52-415a24715209" mode="readonly" name="loadTotal" type="double">
@@ -454,42 +495,28 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <kind kindtype="event"/>
     <action type="external"/>
   </simple>
-
   <struct id="DCE:9da85ebc-6503-48e7-af36-b77c7ad0c2b4" mode="readonly" name="loadAverage">
     <description>The current load average, as reported by /proc/loadavg.  Each core on a computer can have a load average between 0.0 and 1.0.  This differs greatly from CPU percentage (as reported by top).  Load averages differ in two significant ways: 1) they measure the trend of CPU utlization, and 2) they include all demand for the CPU not only how much was active at the time of measurement.  Load averages do not include any processes or threads waiting on I/O, networking, databases, or anything else not demanding the CPU.</description>
-    <simple id="onemin" mode="readwrite" name="onemin" type="double">
-      <kind kindtype="configure"/>
-      <action type="external"/>
-    </simple>
-    <simple id="fivemin" mode="readwrite" name="fivemin" type="double">
-      <kind kindtype="configure"/>
-      <action type="external"/>
-    </simple>
-    <simple id="fifteenmin" mode="readwrite" name="fifteenmin" type="double">
-      <kind kindtype="configure"/>
-      <action type="external"/>
-    </simple>
+    <simple id="onemin" mode="readwrite" name="onemin" type="double"/>
+    <simple id="fivemin" mode="readwrite" name="fivemin" type="double"/>
+    <simple id="fifteenmin" mode="readwrite" name="fifteenmin" type="double"/>
     <configurationkind kindtype="configure"/>
     <configurationkind kindtype="event"/>
   </struct>
-
-  <simple id="reserved_capacity_per_component" name="reserved_capacity_per_component" mode="readwrite" type="float">
+  <simple id="reserved_capacity_per_component" mode="readwrite" name="reserved_capacity_per_component" type="float">
     <value>0.1</value>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
-
   <simple id="processor_cores" mode="readonly" type="short">
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
-
   <simple id="processor_monitor_list" mode="readonly" type="string">
     <description>list of cpu ids that are being monitored for loadavg and idle utilization.</description>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
-
   <struct id="gpp_limits" mode="readonly">
     <simple id="current_threads" type="long">
       <description>The current number of threads for the GPP</description>
@@ -505,7 +532,6 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-
   <struct id="sys_limits" mode="readonly">
     <simple id="sys_limits::current_threads" name="current_threads" type="long">
       <description>The current number of threads running on the system</description>
@@ -521,7 +547,6 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-  
   <structsequence id="utilization" mode="readonly">
     <struct id="utilization_entry">
       <simple id="description" type="string"/>
@@ -532,8 +557,6 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
-
-
   <structsequence id="component_monitor" mode="readonly">
     <struct id="component_monitor::component_monitor" name="component_monitor">
       <simple id="component_monitor::component_monitor::component_id" name="component_id" type="string"/>
@@ -554,20 +577,16 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
-
   <struct id="redhawk::reservation_request" mode="readwrite">
     <simple id="redhawk::reservation_request::obj_id" name="obj_id" type="string"/>
     <simplesequence id="redhawk::reservation_request::kinds" name="kinds" type="string"/>
     <simplesequence id="redhawk::reservation_request::values" name="values" type="string"/>
     <configurationkind kindtype="allocation"/>
   </struct>
-
   <struct id="affinity" mode="readwrite">
     <simple id="affinity::exec_directive_value" mode="readwrite" name="exec_directive_value" type="string" optional="false">
       <description>The context specification for the exec_directive_class.   See numa library manpage for socket(numa node) and cpu list specifications.  For cgroup/cpuset option then a pre-existing cgroup name is required.</description>
       <value>0</value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="affinity::exec_directive_class" mode="readwrite" name="exec_directive_class" type="string" optional="false">
       <description>The classification of the affinity policy to apply.</description>
@@ -578,35 +597,23 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <enumeration label="cpu" value="cpu"/>
         <enumeration label="cgroup" value="cgroup"/>
       </enumerations>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="affinity::force_override" mode="readwrite" name="force_override" type="boolean" optional="false">
       <description>determines if the specified affinity policy (exec_directive_value, exec_directive_class) is inherited by RH resources started from this GPP.</description>
       <value>false</value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="affinity::blacklist_cpus" mode="readwrite" name="blacklist_cpus" type="string">
       <description>list of cpu ids to black list when making affinity requests. see numa library manpage for cpu list specifications. </description>
       <value></value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="affinity::deploy_per_socket" mode="readwrite" name="deploy_per_socket" type="boolean">
       <description>If no affinity specification is provide during deployment, then enabling this will deploy resources on next available processor socket. (force_override will ignore this)</description>
       <value>false</value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <simple id="affinity::disabled" mode="readwrite" name="disabled" type="boolean">
       <description>controls if affinity requests are processed by the GPP.</description>
       <value>true</value>
-      <kind kindtype="property"/>
-      <action type="external"/>
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
-
-
 </properties>

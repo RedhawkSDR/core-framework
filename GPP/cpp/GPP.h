@@ -31,8 +31,6 @@
 #include "statistics/Statistics.h"
 #include "statistics/CpuUsageStats.h"
 #include "reports/SystemMonitorReporting.h"
-#include "reports/CpuThresholdMonitor.h"
-#include "reports/NicThroughputThresholdMonitor.h"
 #include "NicFacade.h"
 #include "ossie/Events.h"
 
@@ -110,8 +108,6 @@ class GPP_i : public GPP_base
         void sendChildNotification(const std::string &comp_id, const std::string &app_id);
         bool allocateCapacity_nic_allocation(const nic_allocation_struct &value);
         void deallocateCapacity_nic_allocation(const nic_allocation_struct &value);
-        void deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
-        CORBA::Boolean allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
         void releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
 
 
@@ -244,17 +240,11 @@ class GPP_i : public GPP_base
           void process_ODM(const CORBA::Any &data);
 
           void updateUsageState();
-          void setShadowThresholds(const thresholds_struct &newVals );
 
-          typedef boost::shared_ptr<NicThroughputThresholdMonitor>   NicMonitorPtr;
           typedef boost::shared_ptr<ThresholdMonitor>           ThresholdMonitorPtr;
           typedef std::vector< uint32_t >                       CpuList;
           typedef std::vector< boost::shared_ptr<Updateable> >  UpdateableSequence;
-          typedef std::vector<boost::shared_ptr<State> >        StateSequence;
-          typedef std::vector<boost::shared_ptr<Statistics> >   StatisticsSequence;
-          typedef std::vector<boost::shared_ptr<Reporting> >    ReportingSequence;
           typedef std::vector< ThresholdMonitorPtr >            MonitorSequence;
-          typedef std::vector< NicMonitorPtr >                  NicMonitorSequence;
           typedef boost::shared_ptr<SystemMonitor>              SystemMonitorPtr;
           typedef std::map<int, component_description >         ProcessMap;
           typedef std::deque< component_description >           ProcessList;
@@ -266,11 +256,11 @@ class GPP_i : public GPP_base
                       const std::string &identifier,
                       const float       req_reservation );
           void removeProcess(int pid );
-          void addThresholdMonitor( ThresholdMonitorPtr threshold_monitor );
-          void reservedChanged(const float *oldValue, const float *newValue);
-          void mcastnicThreshold_changed(const CORBA::Long *oldValue, const CORBA::Long *newValue);
-          void thresholds_changed(const thresholds_struct *oldValue, const thresholds_struct *newValue);
+          void reservedChanged(float oldValue, float newValue);
+          void mcastnicThreshold_changed(int oldValue, int newValue);
+          void thresholds_changed(const thresholds_struct& oldValue, const thresholds_struct& newValue);
           void update();
+          void updateProcessStats();
 
           ProcessList                                         pids;
           size_t                                              n_reservations;
@@ -284,7 +274,6 @@ class GPP_i : public GPP_base
           Lock                                                nicLock;
           NicFacadePtr                                        nic_facade;
           MonitorSequence                                     threshold_monitors;
-          NicMonitorSequence                                  nic_monitors;
           SystemMonitorPtr                                    system_monitor;
           ProcessLimitsPtr                                    process_limits;
           ExecPartitionList                                   execPartitions;
@@ -292,7 +281,6 @@ class GPP_i : public GPP_base
         
           Lock                                                monitorLock;
           UpdateableSequence                                  data_model;
-          thresholds_struct                                   __thresholds;             
           thresholds_struct                                   modified_thresholds;
           uint64_t                                            thresh_mem_free_units;
           uint64_t                                            mem_free_units;
@@ -312,17 +300,20 @@ class GPP_i : public GPP_base
           redhawk::events::SubscriberPtr                      odm_consumer;       // interface that receives ODM_Channel events
           redhawk::events::ManagerPtr                         mymgr;              // interface to manage event channel access
 
-          std::string                                         _busy_reason;
-          boost::posix_time::ptime                            _busy_timestamp;          // time when busy reason was initially set
-          boost::posix_time::ptime                            _busy_mark;               // track message output
+          // State tracking for busy reason
+          struct {
+              std::string              resource;
+              boost::posix_time::ptime timestamp;          // time when busy reason was initially set
+              boost::posix_time::ptime mark;               // track message output
+          } _busy;
 
         private:
 
           //
           // set the busy reason property for the GPP..  
           //
-          void  _resetReason();
-          void  _setReason( const std::string &reason, const std::string &event, const bool enable_timestamp = true );
+          void  _resetBusyReason();
+          void  _setBusyReason(const std::string& resource, const std::string& message);
 
           bool  _component_cleanup( const int pid, const int exit_status );
 
@@ -363,7 +354,7 @@ class GPP_i : public GPP_base
           //
           // Callback when componentOutputLog is changed
           //
-          void _component_output_changed(const std::string *ov, const std::string *nv );
+          void _component_output_changed(const std::string& ov, const std::string& nv);
 
           //
           // Set vlan list attribute
@@ -385,20 +376,52 @@ class GPP_i : public GPP_base
           //
           void _init();
         
+          ThresholdMonitorPtr _cpuIdleThresholdMonitor;
+          ThresholdMonitorPtr _freeMemThresholdMonitor;
+          ThresholdMonitorPtr _loadAvgThresholdMonitor;
+          ThresholdMonitorPtr _threadThresholdMonitor;
+          ThresholdMonitorPtr _fileThresholdMonitor;
+          ThresholdMonitorPtr _shmThresholdMonitor;
+
+          boost::shared_ptr<ThresholdMonitorSet> _allNicsThresholdMonitor;
+
+          template <typename T1, typename T2>
+          void _sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured, const T2& threshold);
+          bool _shmThresholdCheck(ThresholdMonitor* monitor);
+          void _shmThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _cpuIdleThresholdCheck(ThresholdMonitor* monitor);
+          void _cpuIdleThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _loadAvgThresholdCheck(ThresholdMonitor* monitor);
+          void _loadAvgThresholdStateChanged(ThresholdMonitor* monitor);
+
+          bool _freeMemThresholdCheck(ThresholdMonitor* monitor);
+          void _freeMemThresholdStateChanged(ThresholdMonitor* monitor);
+
           //
           // check thread limits for the process and system
           //
-          bool _check_thread_limits( const thresholds_struct &threshold);
+          bool _threadThresholdCheck(ThresholdMonitor* monitor);
+          void _threadThresholdStateChanged(ThresholdMonitor* monitor);
 
           //
           // check file limits for the process and system
           //
-          bool _check_file_limits( const thresholds_struct &threshold);
+          bool _fileThresholdCheck(ThresholdMonitor* monitor);
+          void _fileThresholdStateChanged(ThresholdMonitor* monitor);
 
           //
           // check threshold limits for nic interfaces to determine busy state
           //
-          bool _check_nic_thresholds();
+          bool _nicThresholdCheck(ThresholdMonitor* monitor);
+          void _nicThresholdStateChanged(ThresholdMonitor* monitor);
+
+          void _cleanupProcessShm(pid_t pid);
+
+          // Processor time counters
+          int64_t _systemTicks;
+          int64_t _userTicks;
 
           std::string user_id;
           ossie::ProcessThread                                _signalThread;

@@ -20,6 +20,9 @@
 
 #include "BitBufferTest.h"
 
+#include <cstring>
+#include <stdexcept>
+
 #include <ossie/bitbuffer.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BitBufferTest);

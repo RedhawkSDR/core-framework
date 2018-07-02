@@ -2,14 +2,14 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK GPP.
+ * This file is part of REDHAWK core.
  *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it
+ * REDHAWK core is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
  * for more details.
@@ -17,19 +17,19 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef FREE_MEMORY_THRESHOLD_MONITOR_H_
-#define FREE_MEMORY_THRESHOLD_MONITOR_H_
-#include "ThresholdMonitor.h"
 
-class FreeMemoryThresholdMonitor : public GenericThresholdMonitor<int64_t>
-{
-public:
+#ifndef REDHAWK_SHM_SYSTEM_H
+#define REDHAWK_SHM_SYSTEM_H
 
-    FreeMemoryThresholdMonitor( const std::string& source_id, QueryFunction threshold, QueryFunction measured ) ;
+#include <cstddef>
+#include <string>
 
-    static std::string GetResourceId(){ return "physical_ram"; }
-    static std::string GetMessageClass(){ return "MEMORY_FREE"; }
+namespace redhawk {
+    namespace shm {
+        const char* getSystemPath();
+        size_t getSystemTotalMemory();
+        size_t getSystemFreeMemory();
+    }
+}
 
-};
-
-#endif
+#endif // REDHAWK_SHM_SYSTEM_H

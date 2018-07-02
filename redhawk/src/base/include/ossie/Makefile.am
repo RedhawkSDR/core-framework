@@ -85,6 +85,6 @@ nobase_pkginclude_HEADERS = internal/equals.h \
 	     shm/Heap.h \
 	     shm/HeapClient.h \
 	     shm/MappedFile.h \
-	     shm/ProcessHeap.h \
-	     shm/SuperblockFile.h
+	     shm/SuperblockFile.h \
+	     shm/System.h
 

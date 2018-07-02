@@ -1,3 +1,23 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK core.
+ *
+ * REDHAWK core is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
 #include <ossie/shm/Heap.h>
 #include "Superblock.h"
 #include "Block.h"
@@ -17,6 +37,11 @@ using namespace redhawk::shm;
 
 #define PAGE_ROUND_DOWN(x,p) ((x/p)*p)
 #define PAGE_ROUND_UP(x,p) (((x+p-1)/p)*p)
+
+bool MemoryRef::operator! () const
+{
+    return heap.empty();
+}
 
 class Heap::PrivateHeap {
 public:
@@ -45,8 +70,12 @@ public:
         }
 
         Superblock* superblock = _heap->_createSuperblock(bytes);
-        _superblocks.insert(_superblocks.begin(), superblock);
-        return superblock->allocate(state, bytes);
+        if (superblock) {
+            _superblocks.insert(_superblocks.begin(), superblock);
+            return superblock->allocate(state, bytes);
+        }
+
+        return 0;
     }
 
 private:
@@ -59,7 +88,8 @@ private:
 };
 
 Heap::Heap(const std::string& name) :
-    _file(name)
+    _file(name),
+    _canGrow(true)
 {
     _file.create();
     int nprocs = sysconf(_SC_NPROCESSORS_CONF);
@@ -70,6 +100,15 @@ Heap::Heap(const std::string& name) :
 
 Heap::~Heap()
 {
+    // Remove the file when the owner exits; other processes connected to the
+    // same superblock file will still be able to access everything, but no new
+    // connections are possible
+    try {
+        _file.file().unlink();
+    } catch (const std::exception&) {
+        // It may have been removed from another context, nothing else to do
+    }
+
 #ifdef HEAP_DEBUG
     std::cout << _superblocks.size() << " superblocks" << std::endl;
     std::cout << _file.size() << " total bytes" << std::endl;
@@ -90,10 +129,15 @@ void Heap::deallocate(void* ptr)
 MemoryRef Heap::getRef(const void* ptr)
 {
     Block* block = Block::from_pointer(const_cast<void*>(ptr));
-    const Superblock* superblock = block->getSuperblock();
     MemoryRef ref;
-    ref.heap = superblock->heap();
-    ref.superblock = superblock->offset();
+    const Superblock* superblock = block->getSuperblock();
+    if (superblock) {
+        ref.heap = superblock->heap();
+        ref.superblock = superblock->offset();
+    } else {
+        ref.heap = "";
+        ref.superblock = 0;
+    }
     ref.offset = block->offset();
     return ref;
 }
@@ -123,6 +167,10 @@ ThreadState* Heap::_getThreadState()
 Superblock* Heap::_createSuperblock(size_t minSize)
 {
     boost::mutex::scoped_lock lock(_mutex);
+    if (!_canGrow) {
+        return 0;
+    }
+
     size_t superblock_size = DEFAULT_SUPERBLOCK_SIZE;
     const char* superblock_size_env = getenv("SUPERBLOCK_SIZE");
     if (superblock_size_env) {
@@ -147,5 +195,11 @@ Superblock* Heap::_createSuperblock(size_t minSize)
     if (minSize > superblock_size) {
         superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
     }
-    return _file.createSuperblock(superblock_size);
+
+    try {
+        return _file.createSuperblock(superblock_size);
+    } catch (const std::bad_alloc&) {
+        _canGrow = false;
+        return 0;
+    }
 }

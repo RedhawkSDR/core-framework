@@ -24,11 +24,21 @@
 #include <cstddef>
 #include <string>
 
-#include "ProcessHeap.h"
-
 namespace redhawk {
 
     namespace shm {
+
+        class Heap;
+
+        std::string getProcessHeapName(pid_t pid);
+
+        Heap* getProcessHeap();
+        bool isEnabled();
+        void* allocate(size_t bytes);
+        void deallocate(void* ptr);
+
+        void* allocateHybrid(size_t bytes);
+        void deallocateHybrid(void* ptr);
 
         template <class T>
         struct Allocator : public std::allocator<T>
@@ -63,12 +73,62 @@ namespace redhawk {
             pointer allocate(size_type count)
             {
                 size_type bytes = count * sizeof(value_type);
-                return static_cast<pointer>(ProcessHeap::Instance().allocate(bytes));
+                void* ptr = redhawk::shm::allocate(bytes);
+                if (!ptr) {
+                    throw std::bad_alloc();
+                }
+                return static_cast<pointer>(ptr);
             }
 
             void deallocate(pointer ptr, size_type /*unused*/)
             {
-                ProcessHeap::Instance().deallocate(ptr);
+                redhawk::shm::deallocate(ptr);
+            }
+        };
+
+        template <class T>
+        struct HybridAllocator : public std::allocator<T>
+        {
+        public:
+            typedef std::allocator<T> base;
+            typedef typename base::pointer pointer;
+            typedef typename base::value_type value_type;
+            typedef typename base::size_type size_type;
+
+            template <typename U>
+            struct rebind {
+                typedef HybridAllocator<U> other;
+            };
+
+            HybridAllocator() throw() :
+                base()
+            {
+            }
+
+            HybridAllocator(const HybridAllocator& other) throw() :
+                base(other)
+            {
+            }
+
+            template <typename U>
+            HybridAllocator(const HybridAllocator<U>& other) throw() :
+                base(other)
+            {
+            }
+
+            pointer allocate(size_type count)
+            {
+                size_type bytes = count * sizeof(value_type);
+                void* ptr = redhawk::shm::allocateHybrid(bytes);
+                if (!ptr) {
+                    throw std::bad_alloc();
+                }
+                return static_cast<pointer>(ptr);
+            }
+
+            void deallocate(pointer ptr, size_type /*unused*/)
+            {
+                redhawk::shm::deallocateHybrid(ptr);
             }
         };
     }

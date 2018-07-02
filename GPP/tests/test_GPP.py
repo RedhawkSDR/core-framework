@@ -23,98 +23,542 @@ import unittest
 import os
 import socket
 import time
-import signal
 import commands
 import sys
-import threading
 import Queue
-from omniORB import any
-from ossie.cf import ExtendedEvent
-from ossie.parsers import DCDParser
-from omniORB import CORBA
-import omniORB
+import shutil
+import subprocess, multiprocessing
+
+from omniORB import any, CORBA
+
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.utils.sandbox.registrar import ApplicationRegistrarStub
-import subprocess, multiprocessing
+from ossie.utils.sandbox import naming
 from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
-from shutil import copyfile
-import shutil
-import os
-import shutil
+import ossie.properties
+from redhawk import numa
 
-# numa layout: node 0 cpus, node 1 cpus, node 0 cpus sans cpuid=0
+from _unitTestHelpers import scatest, runtestHelpers
 
-maxcpus=32
-maxnodes=2
-all_cpus='0-'+str(maxcpus-1)
-all_cpus_sans0='1-'+str(maxcpus-1)
-numa_match={ "all" : "0-31",
-             "sock0": "0-7,16-23",
-             "sock1": "8-15,24-31", 
-             "sock0sans0": "1-7,16-23", 
-             "sock1sans0": "1-7,16-23", 
-             "5" : "5",
-             "8-10" : "8-10" }
-numa_layout=[ "0-7,16-23", "8-15,24-31" ]
+def hasNumaSupport():
+    return runtestHelpers.haveDefine('../cpp/Makefile', 'HAVE_LIBNUMA')
 
-affinity_test_src={ "all" : "0-31",
-                 "sock0": "0",
-                 "sock1": "1", 
-                 "sock0sans0": "0", 
-                 "5" : "5",
-                 "8-10" : "8,9,10",
-                 "eface" : "em1" }
+skipUnless = scatest._skipUnless
+def requireNuma(obj):
+    return skipUnless(hasNumaSupport(), 'Affinity control is disabled')(obj)
 
-def get_match( key="all" ):
-    if key and  key in numa_match:
-        return numa_match[key]
-    return numa_match["all"]
+topology = numa.NumaTopology()
 
-def spawnNodeBooter(dmdFile=None, 
-                    dcdFile=None, 
-                    debug=0, 
-                    domainname=None, 
-                    loggingURI=None, 
-                    endpoint=None, 
-                    dbURI=None, 
-                    execparams="", 
-                    nodeBooterPath=os.getenv('OSSIEHOME')+"/bin/nodeBooter",
-                    sdrroot = None):
-    args = []
-    if dmdFile != None:
-        args.extend(["-D", dmdFile])
-    if dcdFile != None:
-        args.extend(["-d", dcdFile])
-    if domainname == None:
-        # Always use the --domainname argument because
-        # we don't want to have to read the DCD files or regnerate them
-        args.extend(["--domainname", 'sample_domain'])
-    else:
-        args.extend(["--domainname", domainname])
+def wait_predicate(pred, timeout):
+    end = time.time() + timeout
+    while time.time() < end:
+        if pred():
+            return
+        time.sleep(0.1)
 
-    if endpoint == None:
-        args.append("--nopersist")
-    else:
-        args.extend(["-ORBendPoint", endpoint])
+def nolaunch(obj):
+    """
+    Decorator to disable automatic launch of the GPP from the setUp() method.
+    This is for use by tests that must override properties that can only be set
+    via the command line or initializeProperties().
+    """
+    obj.nolaunch = True
+    return obj
 
-    if dbURI:
-        args.extend(["--dburl", dbURI])
-    
-    if sdrroot == None:
-        sdrroot = os.getenv('SDRROOT')
+# Base unit testing class for new-style GPP tests, based off of the default
+# generated unit test. Adds simplified management and cleanup of programs
+# launched by the GPP.
+class GPPSandboxTest(ossie.utils.testing.RHTestCase):
+    # Path to the SPD file, relative to this file. This must be set in order to
+    # launch the device.
+    SPD_FILE = '../GPP.spd.xml'
 
-    args.extend(["-debug", str(debug)])
-    args.extend(execparams.split(" "))
-    args.insert(0, nodeBooterPath)
+    def setUp(self):
+        print "\n-----------------------"
+        print "Running: ", self.id().split('.')[-1]
+        print "-----------------------\n"
 
-    print '\n-------------------------------------------------------------------'
-    print 'Launching nodeBooter', " ".join(args)
-    print '-------------------------------------------------------------------'
-    nb = ossie.utils.Popen(args, cwd=sdrroot, shell=False, preexec_fn=os.setpgrp)
+        if self._shouldLaunch():
+            self.launchGPP()
+        else:
+            self.comp = None
 
-    return nb
+        self._pids = []
+        self._testDirs = []
+        self._testFiles = []
+        self._busyProcs = []
+
+    def _shouldLaunch(self):
+        method = getattr(self, self._testMethodName, None)
+        if not method:
+            return True
+        # Check for the 'nolaunch' attribute (its value is irrelevant); unless
+        # it's present, launch the GPP
+        return not hasattr(method, 'nolaunch')
+
+    def launchGPP(self, properties={}):
+        # Launch the device, using the selected implementation
+        self.comp = sb.launch(self.spd_file, impl=self.impl, properties=properties)
+        return self.comp
+
+    def tearDown(self):
+        # Clean up any leftover busy subprocesses
+        for proc in self._busyProcs:
+            if proc.poll() is None:
+                proc.kill()
+
+        # Terminate all launched executables, ignoring errors
+        remaining_pids = []
+        for pid in self._pids:
+            try:
+                self.comp.ref.terminate(pid)
+            except:
+                remaining_pids.append(pid)
+
+        # In case the GPP really failed badly, manually kill the processes
+        for pid in remaining_pids:
+            try:
+                os.killpg(pid, 9)
+            except OSError:
+                pass
+
+        # Clean up all sandbox artifacts created during test
+        sb.release()
+
+        for filename in self._testFiles:
+            try:
+                os.unlink(filename)
+            except OSError:
+                pass
+
+        for path in self._testDirs:
+            shutil.rmtree(path)
+
+    def addTestDirectory(self, path):
+        self._testDirs.append(path)
+
+    def addTestFile(self, path):
+        self._testFiles.append(path)
+
+    def removeTestFile(self, path):
+        self._testFiles.remove(path)
+
+    def addBusyTasks(self, count):
+        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in xrange(count)]
+
+    def clearBusyTasks(self):
+        for proc in self._busyProcs:
+            proc.kill()
+        self._busyProcs = []
+
+    def waitUsageState(self, state, timeout):
+        wait_predicate(lambda: self.comp._get_usageState() == state, timeout)
+        self.assertEqual(self.comp._get_usageState(), state)
+
+    def _execute(self, executable, options, parameters):
+        if isinstance(options, dict):
+            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
+        if isinstance(parameters, dict):
+            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
+        pid = self.comp.ref.execute(executable, options, parameters)
+        if pid != 0:
+            self._pids.append(pid)
+        return pid
+
+    def _launchComponent(self, executable, name, profile, options={}, parameters={}):
+        # Using the stub from the naming module allows fetching the component
+        # object, which the other version does not support; these should be
+        # consolidated at some point
+        appReg = naming.ApplicationRegistrarStub()
+        appreg_ior = sb.orb.object_to_string(appReg._this())
+
+        params = {}
+        params.update(parameters)
+        params['COMPONENT_IDENTIFIER'] = name
+        params['NAME_BINDING'] =  name
+        params['PROFILE_NAME'] = profile
+        params['NAMING_CONTEXT_IOR'] = appreg_ior
+
+        pid = self._execute(executable, options, params)
+        self.assertNotEqual(pid, 0)
+
+        wait_predicate(lambda: appReg.getObject(name) is not None, 2.0)
+        comp = appReg.getObject(name)
+        self.failIf(comp is None, "component '" + name + "' never registered")
+
+        return (pid, comp)
+
+    def _launchComponentStub(self, name, options={}, parameters={}):
+        executable = '/dat/component_stub/python/component_stub.py'
+        profile = '/component_stub/component_stub.spd.xml'
+        return self._launchComponent(executable, name, profile, options, parameters)
+
+
+class GPPTests(GPPSandboxTest):
+    def testPropertyEvents(self):
+        event_queue = Queue.Queue()
+        event_channel = sb.createEventChannel('properties')
+        event_channel.eventReceived.addListener(event_queue.put)
+
+        self.comp.connect(event_channel)
+
+        self.comp.loadThreshold = 81
+        
+        # Make sure the background status events are emitted
+        try:
+            event = event_queue.get(timeout=1.0)
+        except Queue.Empty:
+            self.fail('Property change event not received')
+        event = any.from_any(event, keep_structs=True)
+        event_dict = ossie.properties.props_to_dict(event.properties)
+        self.assertEqual(self.comp._id, event.sourceId)
+        self.assertEqual(self.comp.loadThreshold.id, event.properties[0].id)
+        self.assertEqual(81, any.from_any(event.properties[0].value))
+
+    def testLimits(self):
+        # Check that the system limits are sane
+        self.assertTrue(self.comp.sys_limits.current_threads > 0)
+        self.assertTrue(self.comp.sys_limits.max_threads > self.comp.sys_limits.current_threads)
+        self.assertTrue(self.comp.sys_limits.current_open_files > 0)
+        self.assertTrue(self.comp.sys_limits.max_open_files > self.comp.sys_limits.current_open_files)
+
+        # Check that the GPP's process limits are also sane
+        self.assertTrue(self.comp.gpp_limits.current_threads > 0)
+        self.assertTrue(self.comp.gpp_limits.max_threads > self.comp.gpp_limits.current_threads)
+        self.assertTrue(self.comp.gpp_limits.current_open_files > 0)
+        self.assertTrue(self.comp.gpp_limits.max_open_files > self.comp.gpp_limits.current_open_files)
+
+    def testReservation(self):
+        # Set the idle threshold to 30% (i.e., can use up to 70%) and the
+        # reserved capacity per component to 25%; this gives plenty of headroom
+        # with two components (50% utilization leaves a 20% margin), but a
+        # third component unambiguously crosses into the busy threshold
+        self.comp.thresholds.cpu_idle = 30
+        self.comp.reserved_capacity_per_component = 0.25 * self.comp.processor_cores
+        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+
+        self._launchComponentStub('reservation_1')
+        self._launchComponentStub('reservation_2')
+
+        # Give the GPP a couple of measurement cycles to make sure it doesn't
+        # go busy; the CPU utilization (always the first entry) should report
+        # 50% subscribed
+        time.sleep(2)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        expected = 0.5 * self.comp.processor_cores
+        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+
+        # Launch the third component and give up to 2 seconds for the GPP to go
+        # busy; CPU utilization should now be 75% subscribed
+        self._launchComponentStub('reservation_3')
+        self.waitUsageState(CF.Device.BUSY, 2.0)
+        expected = 0.75 * self.comp.processor_cores
+        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+
+        # Reduce the reserved capacity such that it consumes less than the idle
+        # threshold (10% x 3 = 30% active = 70% idle)
+        self.comp.reserved_capacity_per_component = 0.1 * self.comp.processor_cores
+        self.waitUsageState(CF.Device.ACTIVE, 2.0)
+        # 30% is an inexact fraction, so allow a little tolerance
+        expected = 0.3 * self.comp.processor_cores
+        self.assertAlmostEquals(expected, self.comp.utilization[0].subscribed, 1)
+
+    def testFloorReservation(self):
+        # Reserve an absurdly large amount of cores, which should drive the GPP
+        # to a busy state immediately
+        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+        params = {"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0}
+        self._launchComponentStub('floor_reservation_1', parameters=params)
+
+        self.waitUsageState(CF.Device.BUSY, 2.0)
+
+    def _unpackThresholdEvents(self, message):
+        for dt in any.from_any(message, keep_structs=True):
+            if dt.id != 'threshold_event':
+                continue
+            props = any.from_any(dt.value, keep_structs=True)
+            yield ossie.properties.props_to_dict(props)
+
+    def _checkThresholdEvent(self, resourceId, thresholdClass, exceeded):
+        try:
+            event = self.queue.get(timeout=2.0)
+        except Queue.Empty:
+            self.fail('Threshold event not received')
+        self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
+        self.assertEqual(thresholdClass, event['threshold_event::threshold_class'])
+        self.assertEqual(resourceId, event['threshold_event::resource_id'])
+        self._assertThresholdState(event, exceeded)
+
+    def _assertThresholdState(self, event, exceeded):
+        if exceeded:
+            event_type = 'THRESHOLD_EXCEEDED'
+        else:
+            event_type = 'THRESHOLD_NOT_EXCEEDED'
+        self.assertEqual(event_type, event['threshold_event::type'])
+
+    def _testThresholdEventType(self, name, resourceId, thresholdClass, value):
+        # Save the original value and set the test value to trigger an
+        # "exceeded" event
+        orig_value = self.comp.thresholds[name]
+        self.comp.thresholds[name] = value
+        self._checkThresholdEvent(resourceId, thresholdClass, True)
+
+        # Turning off the threshold should trigger a "not exceeded" event
+        self.comp.thresholds.ignore = True
+        self._checkThresholdEvent(resourceId, thresholdClass, False)
+
+        # Turning it on again should trigger another "exceeded" event
+        self.comp.thresholds.ignore = False
+        self._checkThresholdEvent(resourceId, thresholdClass, True)
+
+        # Restore the original value, trigger "not exceeded" event
+        self.comp.thresholds[name] = orig_value
+        self._checkThresholdEvent(resourceId, thresholdClass, False)
+
+    def _checkNicEvents(self, nics, exceeded):
+        expected = set(nics)
+        end = time.time() + 2.0
+        while expected and (time.time() < end):
+            try:
+                event = self.queue.get_nowait()
+            except Queue.Empty:
+                time.sleep(0.1)
+                continue
+
+            # Only 1 device connected to the event channel, the source ID had
+            # better be correct
+            self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
+
+            # Should only be receiving one NIC message from each configured
+            # interface
+            nic_name = event['threshold_event::resource_id']
+            self.failUnless(nic_name in nics, 'Received message from unexpected NIC %s' % nic_name)
+            self.failUnless(nic_name in expected, 'Received too many messages from NIC %s' % nic_name)
+            threshold_class = event['threshold_event::threshold_class']
+            self.assertEqual('NIC_THROUGHPUT', threshold_class, 'Received unexpected threshold class %s' % threshold_class)
+            self._assertThresholdState(event, exceeded)
+            expected.remove(nic_name)
+
+        self.assertEqual(set(), expected, 'Did not receive message from NIC(s): ' + ' '.join(expected))
+
+    def testThresholdEvents(self):
+        # Cut down the threshold cycle time to trigger events faster (we're not
+        # worried about the extra processing time here)
+        self.comp.threshold_cycle_time = 0.1
+
+        # Create a virtual event channel to queue the GPP's messages
+        event_channel = sb.createEventChannel('thresholds')
+        self.queue = Queue.Queue()
+        def queue_message(message):
+            # Unpack and queue up threshold event messages
+            for event in self._unpackThresholdEvents(message):
+                self.queue.put(event)
+
+        event_channel.eventReceived.addListener(queue_message)
+        self.comp.connect(event_channel, usesPortName="MessageEvent_out")
+
+        # Test all thresholds except NIC, which is a little more complex
+        self._testThresholdEventType('cpu_idle', 'cpu', 'CPU_IDLE', 100)
+        self._testThresholdEventType('mem_free', 'physical_ram', 'MEMORY_FREE', self.comp.memFree + 100)
+        self._testThresholdEventType('load_avg', 'cpu', 'LOAD_AVG', 0)
+        self._testThresholdEventType('shm_free', 'shm', 'SHM_FREE', self.comp.shmCapacity)
+        self._testThresholdEventType('files_available', 'ulimit', 'OPEN_FILES', 100.0)
+        self._testThresholdEventType('threads', 'ulimit', 'THREADS', 100.0)
+
+        # If there is more than one NIC (real or virtual), each one will emit
+        # an event; we only really care about the "available" NICs
+        nics = list(self.comp.available_nic_interfaces)
+        nic_usage = int(self.comp.thresholds.nic_usage)
+        self.comp.thresholds.nic_usage = 0
+        self._checkNicEvents(nics, True)
+
+        # Turning off the threshold should trigger "not exceeded" event(s)
+        self.comp.thresholds.ignore = True
+        self._checkNicEvents(nics, False)
+
+        # Turning it on again should trigger "exceeded" event(s)
+        self.comp.thresholds.ignore = False
+        self._checkNicEvents(nics, True)
+
+        # Restore the original value, trigger "not exceeded" event(s)
+        self.comp.thresholds.nic_usage = nic_usage
+        self._checkNicEvents(nics, False)
+
+    def testDefaultDirectories(self):
+        # Test that when cache and working directory are not given, the
+        # properties still have meaningful values
+        cwd = os.getcwd()
+        self.assertEquals(cwd, self.comp.cacheDirectory)
+        self.assertEquals(cwd, self.comp.workingDirectory)
+
+    @nolaunch
+    def testCacheDirectory(self):
+        # Create an alternate directory for the cache
+        cache_dir = os.path.join(os.getcwd(), 'testCacheDirectory')
+        os.mkdir(cache_dir)
+        self.addTestDirectory(cache_dir)
+        self.launchGPP({'cacheDirectory':cache_dir})
+
+        # Make sure the property is correct
+        self.assertEqual(cache_dir, self.comp.cacheDirectory)
+
+        # Load a file and check that it was copied to the right place
+        expected = os.path.join(cache_dir, 'bin/echo_pid.py')
+        self.failIf(os.path.exists(expected))
+        fs_stub = ComponentTests.FileSystemStub()
+        self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
+        self.failUnless(os.path.isfile(expected))
+
+    @nolaunch
+    def testWorkingDirectory(self):
+        # Create an alternate directory for the working directory
+        working_dir = os.path.join(os.getcwd(), 'testWorkingDirectory')
+        os.mkdir(working_dir)
+        self.addTestDirectory(working_dir)
+        self.launchGPP({'workingDirectory':working_dir})
+
+        # Make sure the property is correct
+        self.assertEqual(working_dir, self.comp.workingDirectory)
+
+        # Run a test executable that writes to its current directory
+        expected = os.path.join(working_dir, 'pid.out')
+        self.failIf(os.path.exists(expected))
+        pid = self._execute("/bin/echo_pid.py", {}, {})
+        wait_predicate(lambda: os.path.exists(expected), 1.0)
+        self.failUnless(os.path.exists(expected))
+
+        # Read the output file and make sure that the right PID was written
+        with open(expected, 'r') as fp:
+            echo_pid = int(fp.read().strip())
+        self.assertEqual(pid, echo_pid)
+
+    @nolaunch
+    def testCacheAndWorkingDirectory(self):
+        # Test the interaction of the cache and working directories; create an
+        # alternate directory for both
+        base_dir = os.path.join(os.getcwd(), 'testCacheAndWorkingDirectory')
+        os.mkdir(base_dir)
+        self.addTestDirectory(base_dir)
+        cache_dir  = os.path.join(base_dir, 'cache')
+        os.mkdir(cache_dir)
+        working_dir = os.path.join(base_dir, 'cwd')
+        os.mkdir(working_dir)
+        self.launchGPP({'cacheDirectory':cache_dir, 'workingDirectory':working_dir})
+
+        # Make sure the properties are correct
+        self.assertEqual(cache_dir, self.comp.cacheDirectory)
+        self.assertEqual(working_dir, self.comp.workingDirectory)
+
+        # Load a file and check that it was copied to the right place
+        expected = os.path.join(cache_dir, 'bin/echo_pid.py')
+        self.failIf(os.path.exists(expected))
+        fs_stub = ComponentTests.FileSystemStub()
+        self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
+        self.failUnless(os.path.isfile(expected))
+
+        # Run a test executable that writes to its current directory
+        expected = os.path.join(working_dir, 'pid.out')
+        self.failIf(os.path.exists(expected))
+        pid = self._execute("/bin/echo_pid.py", {}, {})
+        wait_predicate(lambda: os.path.exists(expected), 1.0)
+        self.failUnless(os.path.exists(expected))
+
+        # Read the output file and make sure that the right PID was written
+        with open(expected, 'r') as fp:
+            echo_pid = int(fp.read().strip())
+        self.assertEqual(pid, echo_pid)
+
+    def testSharedMemoryProperties(self):
+        status = os.statvfs('/dev/shm')
+
+        # The total shouldn't change in normal operation, so using the same
+        # expected integer math should give the same value
+        total = (status.f_blocks * status.f_frsize) / 1024 / 1024
+        self.assertEqual(total, self.comp.shmCapacity)
+
+        # Free could vary slightly if something else is happening on the
+        # system, so give it a little bit of slack (1 MB)
+        free = (status.f_bfree * status.f_frsize) / 1024 / 1024
+        self.failIf(abs(free - self.comp.shmFree) > 1)
+
+    def testBusyCpuIdle(self):
+        # Disable load average threshold
+        self.comp.thresholds.load_avg = -1
+
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+
+        # Task all of the CPUs to be busy (more or less) and wait for the idle
+        # threshold to be exceeded
+        self.addBusyTasks(self.comp.processor_cores)
+        self.waitUsageState(CF.Device.BUSY, 5.0)
+        self.failUnless("CPU IDLE" in self.comp.busy_reason.upper())
+
+        # Clear all busy tasks and wait for the device to go back to idle
+        self.clearBusyTasks()
+        self.waitUsageState(CF.Device.IDLE, 5.0)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.busy_reason, "")
+
+    def testBusyLoadAvg(self):
+        # Disable CPU idle threshold and lower the load average threshold so
+        # that it's easier to exceed
+        self.comp.thresholds.cpu_idle = -1
+        self.comp.thresholds.load_avg = 25
+
+        # The load average may exceed the threshold to begin with, depending on
+        # what the system was doing before this test
+        print 'Waiting for load average to fall below threshold, may take a while'
+        self.waitUsageState(CF.Device.IDLE, 30.0)
+
+        # Occupy all of the CPUs with busy tasks and wait for the load average
+        # to exceed the threshold; this may take a while, since it's based on a
+        # 1 minute window
+        self.addBusyTasks(self.comp.processor_cores)
+        print 'Waiting for load average to exceed threshold, may take a while'
+        self.waitUsageState(CF.Device.BUSY, 30.0)
+        self.failUnless("LOAD AVG" in self.comp.busy_reason.upper())
+
+        # Clear all of the busy tasks; again, due to the 1 minute window, it
+        # may take a little while for the load average to drop back below the
+        # threshold
+        self.clearBusyTasks()
+        print 'Waiting for load average to fall below threshold, may take a while'
+        self.waitUsageState(CF.Device.IDLE, 30.0)
+        self.assertEqual(self.comp.busy_reason, "")
+
+    def testBusySharedMemory(self):
+        # Cut down the update time for testing
+        self.comp.threshold_cycle_time = 0.1
+
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+
+        # Set the shared memory threshold a little below the current free, so
+        # that a relative small uptick in usage will cross the threshold
+        current_shm = int(self.comp.shmFree)
+        self.comp.thresholds.shm_free = current_shm - 2
+
+        # Create a temporary file that consumes a few MB, enough to cross the
+        # threshold and a little further just to be sure
+        shm_file = '/dev/shm/test-%d' % os.getpid()
+        fill_size = 4*1024*1024
+        self.addTestFile(shm_file)
+        with open(shm_file, 'w') as fp: 
+            # Resize the file and write one byte every page to ensure that
+            # shared memory is consumed
+            fp.truncate(fill_size)
+            for pos in xrange(0, fill_size, 4096):
+                fp.seek(pos)
+                fp.write('\x00')
+
+        self.waitUsageState(CF.Device.BUSY, 1.0)
+
+        # Remove the file, which should push the free shared memory back over
+        # the threshold
+        os.unlink(shm_file)
+        self.waitUsageState(CF.Device.IDLE, 1.0)
+
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
@@ -132,6 +576,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             os.remove(sproc)
         except:
             pass
+
         try:
             # kill all busy.py just in case
             os.system('pkill -9 -f busy.py')
@@ -159,27 +604,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         else:
             return default
 
-    def check_affinity(self, pname, affinity_match="0-31", use_pidof=True, pid_in=None):
-        try:
-            if pid_in:
-                pid=pid_in
-                o2=os.popen('cat /proc/'+str(pid)+'/status | grep Cpus_allowed_list')
-            else:
-                if use_pidof == True:
-                    o1=os.popen('pidof -x '+pname )
-                else:
-                    o1=os.popen('pgrep -f '+pname )
-                pid=o1.read()
-                o2=os.popen('cat /proc/'+pid.split('\n')[0]+'/status | grep Cpus_allowed_list')
-            cpus_allowed=o2.read().split()
-        except:
-            cpus_allowed=[]
-
-        #print pname, cpus_allowed
-        self.assertEqual(cpus_allowed[1],affinity_match)
-        return
-
-        
     def runGPP(self, execparam_overrides={}, initialize=True, configure={}):
         #######################################################################
         # Launch the component with the default execparams
@@ -255,11 +679,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
     # Create a test file system
     class FileStub(CF__POA.File):
-        def __init__(self):
-            self.fobj = open("dat/component_stub.py")
+        def __init__(self, path):
+            self.path = path
+            self.fobj = open(self.path)
         
         def sizeOf(self):
-            return os.path.getsize("dat/component_stub.py")
+            return os.path.getsize(self.path)
         
         def read(self, bytes):
             return self.fobj.read(bytes)
@@ -268,15 +693,20 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             return self.fobj.close()
             
     class FileSystemStub(CF__POA.FileSystem):
+        def __init__(self, path='.'):
+            self.path = os.path.abspath(path)
+            
         def list(self, path):
-            return [CF.FileSystem.FileInformationType(path[1:], CF.FileSystem.PLAIN, 100, [])]
+            path = os.path.basename(path)
+            return [CF.FileSystem.FileInformationType(path, CF.FileSystem.PLAIN, 100, [])]
         
         def exists(self, fileName):
-            tmp_fileName = './dat/'+fileName
+            tmp_fileName = self.path + fileName
             return os.access(tmp_fileName, os.F_OK)
             
         def open(self, path, readonly):
-            file = ComponentTests.FileStub()
+            tmp_fileName = self.path + path
+            file = ComponentTests.FileStub(tmp_fileName)
             return file._this()
 
     def testExecute(self):
@@ -285,7 +715,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         configureProps = self.getPropertySet(kinds=("configure",), modes=("readwrite", "writeonly"), includeNil=False)
         self.comp_obj.configure(configureProps)
         
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
         
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -323,156 +753,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             pass
         else:
             self.fail("Process failed to terminate")
-            
-    def testBusy(self):
-        self.runGPP()
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        cores = multiprocessing.cpu_count()
-        sleep_time = 3+cores/10.0
-        if sleep_time < 7:
-            sleep_time = 7
-        procs = []
-        for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br=self.comp.busy_reason.queryValue()
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        self.assertEqual(br_cpu, True)
-        for proc in procs:
-            proc.kill()
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(self.comp.busy_reason, "")
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
-        
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid = self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid, 0)
-        time.sleep(1)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
-        cores = multiprocessing.cpu_count()
-        procs = []
-        for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        for proc in procs:
-            proc.kill()
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.ACTIVE)
-        self.assertEqual(self.comp.busy_reason.queryValue(), "")
-        
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            self.fail("Process failed to execute")
-        time.sleep(1)    
-        self.comp_obj.terminate(pid)
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Process failed to terminate")
-
-
-
-    def test_busy_allow(self):
-        self.runGPP(execparam_overrides={'DEBUG_LEVEL': 3 })
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        cores = multiprocessing.cpu_count()
-        sleep_time = 3+cores/10.0
-        if sleep_time < 7:
-            sleep_time = 7
-        procs = []
-        for core in range(cores*2+5):
-            procs.append(subprocess.Popen('./busy.py'))
-        time.sleep(sleep_time)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        br=self.comp.busy_reason.queryValue()
-        br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-        self.assertEqual(br_cpu, True)
-
-        # turn off check for idle
-        self.comp.thresholds.cpu_idle = 0.0
-        # wait for busy to be reported... should just be load avg .. takes approx 1 minute
-        for i in range(42):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="LOAD AVG" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        self.assertEqual(br_cpu, True)
-
-        # turn off check for load_avg
-        self.comp.thresholds.load_avg = 100.0
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            if br == "":
-                break
-            time.sleep(1.5)
-        # wait for busy to be reported... should just be load avg now
-        br=self.comp.busy_reason.queryValue()
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(br, "")
-
-        # turn on check for cpu_idle check
-        self.comp.thresholds.cpu_idle = 10.0
-        # wait for busy to be reported... should just be load avg now
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="CPU IDLE" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-        br_cpu="CPU IDLE" in br.upper()
-        self.assertEqual(br_cpu, True)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-
-        # turn on check for load_avg check
-        self.comp.thresholds.load_avg = 80.0
-        # wait for busy to be reported... should just be load avg now
-        for i in range(5):
-            br=self.comp.busy_reason.queryValue()
-            br_cpu="CPU IDLE" in br.upper() or "LOAD AVG" in br.upper()
-            if br_cpu == True:
-                break
-            time.sleep(1.5)
-
-        self.assertEqual(br_cpu, True)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.BUSY)
-        for proc in procs:
-            proc.kill()
-        for i in range(40):
-            br=self.comp.busy_reason.queryValue()
-            if br == "":
-                break
-            time.sleep(1.5)
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        self.assertEqual(self.comp.busy_reason.queryValue(), "")
-        time.sleep(1)    
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-        except OSError:
-            pass
 
 
     def visual_testBusy(self):
@@ -485,7 +765,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             sleep_time = 7
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
             print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
@@ -500,7 +780,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
         self.assertEqual(self.comp.busy_reason, "")
 
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
 
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -519,7 +799,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         cores = multiprocessing.cpu_count()
         procs = []
         for core in range(cores*2):
-            procs.append(subprocess.Popen('./busy.py'))
+            procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
             print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
@@ -559,7 +839,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         useScreen = qr[0].value.value()
         self.assertEqual(useScreen, True)
         
-        fs_stub = ComponentTests.FileSystemStub()
+        fs_stub = ComponentTests.FileSystemStub('./dat')
         fs_stub_var = fs_stub._this()
         
         self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
@@ -626,7 +906,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def test_scraping_proc(self):
 
         # start up subprocess with spaces in the name...
-        proc="./busy.py"
+        proc="bin/busy.py"
         sproc="./spacely sprockets"
         shutil.copy(proc,sproc)
         procs = subprocess.Popen(sproc)
@@ -645,95 +925,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         except:
             pass
 
-        
-    def testPropertyEvents(self):
-        class Consumer_i(CosEventChannelAdmin__POA.ProxyPushConsumer):
-            def __init__(self, parent, instance_id):
-                self.supplier = None
-                self.parent = parent
-                self.instance_id = instance_id
-                self.existence_lock = threading.Lock()
-                
-            def push(self, data):
-                self.parent.actionQueue.put(data)
-            
-            def connect_push_supplier(self, supplier):
-                self.supplier = supplier
-                
-            def disconnect_push_consumer(self):
-                self.existence_lock.acquire()
-                try:
-                    self.supplier.disconnect_push_supplier()
-                except:
-                    pass
-                self.existence_lock.release()
-            
-        class SupplierAdmin_i(CosEventChannelAdmin__POA.SupplierAdmin):
-            def __init__(self, parent):
-                self.parent = parent
-                self.instance_counter = 0
-        
-            def obtain_push_consumer(self):
-                self.instance_counter += 1
-                self.parent.consumer_lock.acquire()
-                self.parent.consumers[self.instance_counter] = Consumer_i(self.parent,self.instance_counter)
-                objref = self.parent.consumers[self.instance_counter]._this()
-                self.parent.consumer_lock.release()
-                return objref
-        
-        class EventChannelStub(CosEventChannelAdmin__POA.EventChannel):
-            def __init__(self):
-                self.consumer_lock = threading.RLock()
-                self.consumers = {}
-                self.actionQueue = Queue.Queue()
-                self.supplier_admin = SupplierAdmin_i(self)
-
-            def for_suppliers(self):
-                return self.supplier_admin._this()
-
-        #######################################################################
-        # Launch the device
-        self.runGPP({"propertyEventRate": 5})
-        
-        orb = CORBA.ORB_init()
-        obj_poa = orb.resolve_initial_references("RootPOA")
-        poaManager = obj_poa._get_the_POAManager()
-        poaManager.activate()
-
-        eventChannel = EventChannelStub()
-        eventChannelId = obj_poa.activate_object(eventChannel)
-        eventPort = self.comp_obj.getPort("propEvent")
-        eventPort = eventPort._narrow(CF.Port)
-        eventPort.connectPort(eventChannel._this(), "eventChannel")
-
-        #configureProps = self.getPropertySet(kinds=("configure",), modes=("readwrite", "writeonly"), includeNil=False)
-        configureProps = [CF.DataType(id='DCE:22a60339-b66e-4309-91ae-e9bfed6f0490',value=any.to_any(81))]
-        self.comp_obj.configure(configureProps)
-        
-        # Make sure the background status events are emitted
-        time.sleep(0.5)
-        
-        self.assert_(eventChannel.actionQueue.qsize() > 0)
-        
-        event = eventChannel.actionQueue.get()
-        event = any.from_any(event, keep_structs=True)
-        event_dict = ossie.properties.props_to_dict(event.properties)
-        self.assert_(self.comp_obj._get_identifier() == event.sourceId)
-        self.assert_('DCE:22a60339-b66e-4309-91ae-e9bfed6f0490' == event.properties[0].id)
-        self.assert_(81 == any.from_any(event.properties[0].value))
-
-
-    def test_workingCacheDirView(self):
-        # set mcast exec param values for the test
-        eparms = { "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700": 'eth0',
-                   'DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec': 100,
-                   'DCE:442d5014-2284-4f46-86ae-ce17e0749da0': 100 }
-        self.runGPP(eparms)
-        cwd = os.getcwd()
-        self.assertEquals(cwd,self.comp.cacheDirectory)
-        self.assertEquals(cwd,self.comp.workingDirectory)
-
-
+       
     def test_mcastNicThreshold(self):
 
         # set mcast exec param values for the test
@@ -835,19 +1027,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # now try to allocate capacity, should fail
         allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
         self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
-
-    def test_sys_limits(self):
-
-        self.runGPP()
-        p=CF.DataType(id='sys_limits',value=any.to_any(None))
-        retval = self.comp.query([p])[0].value._v
-        ids = []
-        for item in retval:
-            ids.append(item.id)
-        self.assertTrue('sys_limits::current_threads')
-        self.assertTrue('sys_limits::max_threads')
-        self.assertTrue('sys_limits::current_open_files')
-        self.assertTrue('sys_limits::max_open_files')
 
     def get_single_nic_interface(self):
         import commands
@@ -1081,409 +1260,175 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
+@requireNuma
+class AffinityTests(GPPSandboxTest):
+    def setUp(self):
+        super(AffinityTests,self).setUp()
 
-    def DeployWithAffinityOptions(self, options_list, numa_layout_test, bl_cpus ):
-        self.runGPP()
+        # Always enable affinity handling for these tests
+        self.comp.affinity.disabled = False
 
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, bl_cpus)), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
+    def _getAllowedCpuList(self, pid):
+        filename = '/proc/%d/status' % pid
+        with open(filename, 'r') as fp:
+            for line in fp:
+                if not 'Cpus_allowed_list' in line:
+                    continue
+                cpu_list = line.split()[1]
+                return numa.parseValues(cpu_list, ",")
+        return []
 
-        self.comp_obj.configure(props)
+    def _deployWithAffinityOptions(self, name, affinity={}):
+        options = {}
+        if affinity:
+            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
+        pid, comp = self._launchComponentStub(name, options=options)
+        return pid
 
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
+    def _getNicAffinity(self, nic):
+        cpu_list = []
+        with open('/proc/interrupts', 'r') as fp:
+            for line in fp:
+                # Remove final newline and make sure the line ends with the NIC
+                # name (in the unlikely event a machine goes up to "em11")
+                line = line.rstrip()
+                if not line.endswith(nic):
+                    continue
+                # Discard the first entry (the IRQ number) and the last two
+                # (type and name) to get the CPU IRQ service totals
+                cpu_irqs = line.split()[1:-2]
+                for cpu, count in enumerate(cpu_irqs):
+                    if int(count) > 0:
+                        cpu_list.append(cpu)
+                break
+        return cpu_list
 
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid = self.comp_obj.execute("/component_stub.py", [
-                CF.DataType(id="AFFINITY", value=any.to_any( options_list ) ) ],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid, 0)
-
-        self.check_affinity( 'component_stub.py', get_match(numa_layout_test), False)
-        
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            self.fail("Process failed to execute")
-        time.sleep(1)    
-        self.comp_obj.terminate(pid)
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            pass
-        else:
-            self.fail("Process failed to terminate")
-
-
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes required')
     def testNicAffinity(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='nic',value=any.to_any(affinity_test_src['eface'])) ], "sock0", '' )
+        # Pick the first NIC and figure out which CPU(s) service its IRQ, then
+        # build the list of all CPUs on that node
+        self.assertNotEqual(0, len(self.comp.available_nic_interfaces), 'no available NIC interfaces')
+        nic = self.comp.available_nic_interfaces[0]
+        nodes = set(topology.getNodeForCpu(cpu) for cpu in self._getNicAffinity(nic))
+        # Join the CPU lists together
+        nic_cpus = sum((node.cpus for node in nodes), [])
+
+        # Launch the component stub with affinity based on the selected NIC;
+        # with no CPU blacklist, GPP will assign the component to all of the
+        # CPUs on the same socket(s)
+        pid = self._deployWithAffinityOptions('nic_affinity_1', {'nic':nic})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(nic_cpus, allowed_cpus)
 
     def testNicAffinityWithBlackList(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='nic',value=any.to_any(affinity_test_src['eface'])) ], "sock0sans0", '0' )
+        # Pick the first NIC
+        self.assertNotEqual(0, len(self.comp.available_nic_interfaces), 'no available NIC interfaces')
+        nic = self.comp.available_nic_interfaces[0]
+        nic_cpus = self._getNicAffinity(nic)
+        if len(nic_cpus) > 1:
+            # There's more than one CPU assigned to service NIC interrupts,
+            # just blacklist the first one
+            blacklist_cpu = nic_cpus.pop(0)
+        else:
+            # Only one CPU for NIC interrupts, figure out its node and
+            # blacklist one of the other CPUs
+            cpu = nic_cpus[0]
+            node = topology.getNodeForCpu(cpu)
+            # Find the CPU in the list and select the next one (wrapping around
+            # as necessary) to ensure that we don't blacklist the wrong CPU
+            index = node.cpus.index(cpu)
+            index = (index + 1) % len(node.cpus)
+            blacklist_cpu = node.cpus[index]
+
+        # With a CPU blacklist, only the CPUs that are expliclitly allowed to
+        # handle the NIC are in the allowed list, as opposed to all CPUs in the
+        # same socket(s)
+        self.comp.affinity.blacklist_cpus = str(blacklist_cpu)
+        pid = self._deployWithAffinityOptions('nic_affinity_bl_1', {'nic':nic})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(nic_cpus, allowed_cpus)
 
     def testCpuAffinity(self):
-        if maxcpus > 6:
-            self.DeployWithAffinityOptions( [ CF.DataType(id='affinity::exec_directive_class',value=any.to_any('cpu')),
-                                              CF.DataType(id='affinity::exec_directive_value',value=any.to_any(affinity_test_src['5'])) ], "5", '' )
+        # Pick the last CPU in the last node; the component should only be
+        # allowed to run on that CPU
+        cpu = topology.nodes[-1].cpus[-1]
+        pid = self._deployWithAffinityOptions('cpu_affinity_1', {'affinity::exec_directive_class': 'cpu',
+                                                                 'affinity::exec_directive_value': cpu})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual([cpu], allowed_cpus)
 
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes are required')
     def testSocketAffinity(self):
-        self.DeployWithAffinityOptions( [ CF.DataType(id='affinity::exec_directive_class',value=any.to_any('socket')),
-                               CF.DataType(id='affinity::exec_directive_value',value=any.to_any(affinity_test_src['sock1'])) ], 
-                                        "sock1sans0", '0' )
+        # Pick the last node and deploy to it; the process should be allowed to
+        # run on all CPUs from that node
+        node = topology.nodes[-1]
+        pid = self._deployWithAffinityOptions('socket_affinity_1', {'affinity::exec_directive_class': 'socket',
+                                                                    'affinity::exec_directive_value': node.node})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(node.cpus, allowed_cpus)
 
-    def testDeployOnSocket(self):
-        self.runGPP()
+    @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes are required')
+    def testSocketAffinityWithBlackList(self):
+        # Pick the last node for deployment, but blacklist the first half of
+        # its CPUs
+        node = topology.nodes[-1]
+        cpu_count = len(node.cpus)
+        blacklist_cpus = node.cpus[:cpu_count/2]
+        cpu_list = node.cpus[cpu_count/2:]
 
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, False)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, True)),   ## enable deploy_on 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
-
-        self.comp_obj.configure(props)
-
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
-
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid0 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid0, 0)
-
-        comp_id = "DCE:00000000-0000-0000-0000-000000000001:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid1 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-
-        self.assertNotEqual(pid1, 0)
-
-        self.check_affinity( 'component_stub.py', get_match("sock0"), False, pid0)
-        self.check_affinity( 'component_stub.py', get_match("sock0"), False, pid1)
-        
-        for pid in [ pid0, pid1 ]:
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Process failed to execute")
-            time.sleep(1)    
-            self.comp_obj.terminate(pid)
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                pass
-            else:
-                self.fail("Process failed to terminate")
+        self.comp.affinity.blacklist_cpus = ','.join(str(cpu) for cpu in blacklist_cpus)
+        pid = self._deployWithAffinityOptions('socket_affinity_bl_1', {'affinity::exec_directive_class': 'socket',
+                                                                       'affinity::exec_directive_value': node.node})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual(cpu_list, allowed_cpus)
 
     def testForceOverride(self):
-        self.runGPP()
+        # Configure the GPP to always deploy to CPU 0
+        self.comp.affinity.exec_directive_value = '0'
+        self.comp.affinity.exec_directive_class = 'cpu'
+        self.comp.affinity.force_override = True
 
-        # enable affinity processing..
-        props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '1')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
-                         ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, True)), 
-                         ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, '')), 
-                         ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, True)), 
-                         ossie.cf.CF.DataType(id='affinity::disabled', value=CORBA.Any(CORBA.TC_boolean, False))  ## enable affinity
-                       ] ))]
+        # Set a runtime affinity directive for CPU1; this should be ignored
+        pid = self._deployWithAffinityOptions('force_override_1', {'affinity::exec_directive_class': 'cpu',
+                                                                   'affinity::exec_directive_value': '1'})
+        allowed_cpus = self._getAllowedCpuList(pid)
+        self.assertEqual([0], allowed_cpus)
 
-        self.comp_obj.configure(props)
+    def testDeployOnSocket(self):
+        self.comp.affinity.deploy_per_socket = True
 
-        self.assertEqual(self.comp_obj._get_usageState(), CF.Device.IDLE)
-        
-        fs_stub = ComponentTests.FileSystemStub()
-        fs_stub_var = fs_stub._this()
+        pid0 = self._deployWithAffinityOptions('deploy_on_socket_1')
+        allowed_cpus = self._getAllowedCpuList(pid0)
+        self.assertEqual(topology.nodes[0].cpus, allowed_cpus)
 
-        ## Run a component with NIC based affinity
-        self.comp_obj.load(fs_stub_var, "/component_stub.py", CF.LoadableDevice.EXECUTABLE)
-        self.assertEqual(os.path.isfile("component_stub.py"), True) # Technically this is an internal implementation detail that the file is loaded into the CWD of the device
-        
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid0 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
-        self.assertNotEqual(pid0, 0)
+        pid1 = self._deployWithAffinityOptions('deploy_on_socket_2')
+        allowed_cpus = self._getAllowedCpuList(pid1)
+        self.assertEqual(topology.nodes[0].cpus, allowed_cpus)
 
-        comp_id = "DCE:00000000-0000-0000-0000-000000000001:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        pid1 = self.comp_obj.execute("/component_stub.py", [],
-                [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                 CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                 CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))])
 
-        self.assertNotEqual(pid1, 0)
-
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid0)
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid1)
-        
-        for pid in [ pid0, pid1 ]:
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                self.fail("Process failed to execute")
-            time.sleep(1)    
-            self.comp_obj.terminate(pid)
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                pass
-            else:
-                self.fail("Process failed to terminate")
-
-    def testReservation(self):
-        self.runGPP()
-        self.comp.thresholds.cpu_idle = 50
-        self.comp.reserved_capacity_per_component = 0.5
-        number_reservations = (self.comp.processor_cores / self.comp.reserved_capacity_per_component) * ((100-self.comp.thresholds.cpu_idle)/100.0)
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
-        for i in range(int(number_reservations-1)):
-            self.child_pids.append(self.comp.ref.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+str(i))), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_"+str(i))), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-            time.sleep(0.1)
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
-
-    def testFloorReservation(self):
-        self.runGPP()
-        self.comp.thresholds.cpu_idle = 10
-        self.comp.reserved_capacity_per_component = 0.5
-        number_reservations = (self.comp.processor_cores / self.comp.reserved_capacity_per_component) * ((100-self.comp.thresholds.cpu_idle)/100.0)
-        comp_id = "DCE:00000000-0000-0000-0000-000000000000:waveform_1"
-        app_id = "waveform_1"
-        appReg = ApplicationRegistrarStub(comp_id, app_id)
-        appreg_ior = sb.orb.object_to_string(appReg._this())
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+'_1')), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_1")), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2.1)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id+'_1')), CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub_1")), CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")), CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior))]))
-        time.sleep(2.1)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.ACTIVE)
-        pid = self.child_pids.pop()
-        self.comp_obj.terminate(pid)
-        time.sleep(2.1)
-        reservation = CF.DataType(id="RH::GPP::MODIFIED_CPU_RESERVATION_VALUE", value=any.to_any(1000.0))
-        self.child_pids.append(self.comp_obj.execute("/component_stub.py", [], [CF.DataType(id="COMPONENT_IDENTIFIER", value=any.to_any(comp_id)), 
-                                                               CF.DataType(id="NAME_BINDING", value=any.to_any("component_stub")),CF.DataType(id="PROFILE_NAME", value=any.to_any("/component_stub/component_stub.spd.xml")),
-                                                               CF.DataType(id="NAMING_CONTEXT_IOR", value=any.to_any(appreg_ior)), reservation]))
-        time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(),CF.Device.BUSY)
-
-class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
+class DomainSupport(scatest.CorbaTestCase):
     """Test for all component implementations in test"""
-    child_pids = []
-    dom = None
-    _domainBooter = None
-    _domainManager = None
-    _deviceBooter = None
-    _deviceLock = threading.Lock()
-    _deviceBooters = []
-    _deviceManagers = []
-    sdrroot = ''
     
-    def _getDeviceManager(self, domMgr, id):
-        for devMgr in domMgr._get_deviceManagers():
-            try:
-                if id == devMgr._get_identifier():
-                    return devMgr
-            except CORBA.Exception:
-                # The DeviceManager being checked is unreachable.
-                pass
-        return None
-    
-    def waitTermination(self, child, timeout=5.0, pause=0.1):
-        while child.poll() is None and timeout > 0.0:
-            timeout -= pause
-            time.sleep(pause)
-        return child.poll() != None
-
-    def terminateChild(self, child, signals=(signal.SIGINT, signal.SIGTERM)):
-        if child.poll() != None:
-           return
-        try:
-            for sig in signals:
-                os.kill(child.pid, sig)
-                if self.waitTermination(child):
-                    break
-            child.wait()
-        except OSError, e:
-            pass
-        finally:
-            pass
-
-    def launchDomainManager(self, dmdFile="", domain_name = '', sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
-        # Only allow one DomainManager, although this isn't a hard requirement.
-        # If it has exited, allow a relaunch.
-        if self._domainBooter and self._domainBooter.poll() == None:
-            return (self._domainBooter, self._domainManager)
-        self.sdrroot = sdrroot
-
-        # Launch the nodebooter.
-        self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, domainname = domain_name, sdrroot=sdrroot, *args, **kwargs)
-        number_attempts = 0
-        while self._domainBooter.poll() == None:
-            try:
-                self.dom = redhawk.attach(domain_name)
-            except:
-                number_attempts += 1
-                if number_attempts >= 20:
-                    raise
-                time.sleep(0.1)
-                continue
-            self._domainManager = self.dom.ref
-            if self._domainManager:
-                try:
-                    self._domainManager._get_identifier()
-                    break
-                except:
-                    pass
-        return (self._domainBooter, self._domainManager)
-
-    def _addDeviceBooter(self, devBooter):
-        self._deviceLock.acquire()
-        try:
-            self._deviceBooters.append(devBooter)
-        finally:
-            self._deviceLock.release()
-
-    def _addDeviceManager(self, devMgr):
-        self._deviceLock.acquire()
-        try:
-            self._deviceManagers.append(devMgr)
-        finally:
-            self._deviceLock.release()
-
-    def launchDeviceManager(self, dcdFile, domainManager=None, wait=True, sdrroot=os.getcwd()+'/sdr', *args, **kwargs):
-        if not os.path.isfile(sdrroot+'/dev'+dcdFile):
-            print "ERROR: Invalid DCD path provided to launchDeviceManager ", dcdFile
-            return (None, None)
-        self.sdrroot = sdrroot
-
-        # Launch the nodebooter.
-        if domainManager == None:
-            name = None
-        else:
-            name = domainManager._get_name()
-        devBooter = spawnNodeBooter(dcdFile=sdrroot+'/dev'+dcdFile, domainname=name, sdrroot=sdrroot, *args, **kwargs)
-        self._addDeviceBooter(devBooter)
-
-        if wait:
-            devMgr = self.waitDeviceManager(devBooter, dcdFile, domainManager)
-        else:
-            devMgr = None
-
-        return (devBooter, devMgr)
-
-    def waitDeviceManager(self, devBooter, dcdFile, domainManager=None):
-        try:
-            dcdPath = self.sdrroot+'/dev'+dcdFile
-        except IOError:
-            print "ERROR: Invalid DCD path provided to waitDeviceManager", dcdFile
-            return None
-
-        # Parse the DCD file to get the identifier and number of devices, which can be
-        # determined from the number of componentplacement elements.
-        dcd = DCDParser.parse(dcdPath)
-        if dcd.get_partitioning():
-            numDevices = len(dcd.get_partitioning().get_componentplacement())
-        else:
-            numDevices = 0
-
-        # Allow the caller to override the DomainManager (assuming they have a good reason).
-        if not domainManager:
-            domainManager = self._domainManager
-
-        # As long as the nodebooter process is still alive, keep checking for the
-        # DeviceManager.
-        devMgr = None
-        while devBooter.poll() == None:
-            devMgrs = self.dom.devMgrs
-            for dM in devMgrs:
-                if dcd.get_id() == dM._get_identifier():
-                    devMgr = dM.ref
-            #devMgr = self._getDeviceManager(domainManager, dcd.get_id())
-            if devMgr:
-                break
-            time.sleep(0.1)
-
-        if devMgr:
-            self._waitRegisteredDevices(devMgr, numDevices)
-            self._addDeviceManager(devMgr)
-        return devMgr
-
-    def _waitRegisteredDevices(self, devMgr, numDevices, timeout=5.0, pause=0.1):
-        while timeout > 0.0:
-            if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
-                return True
-            else:
-                timeout -= pause
-                time.sleep(pause)
-        return False
-
     def _makeLink(self, src, dest):
         if os.path.exists(dest):
             os.unlink(dest)
         os.symlink(src, dest)
 
+    def launchDomainManager(self, *args, **kwargs):
+        domBooter, domMgr = super(DomainSupport,self).launchDomainManager(*args, loggingURI='', nodeBooterPath='nodeBooter', **kwargs)
+        if domMgr is None:
+            self.dom = None
+        else:
+            self.dom = redhawk.attach(domMgr._get_name())
+        return domBooter, domMgr
+
+    def launchDeviceManager(self, *args, **kwargs):
+        return super(DomainSupport,self).launchDeviceManager(*args, loggingURI='', nodeBooterPath='nodeBooter', **kwargs)
+
     def setUp(self):
         super(DomainSupport,self).setUp()
-        self.child_pids=[]
-        self._domainBooter = None
-        self._domainManager = None
-        self._deviceBooter = None
-        self.orig_sdrroot=os.getenv('SDRROOT')
-        os.putenv('SDRROOT', os.getcwd()+'/sdr')
+        self.orig_sdrroot=os.environ['SDRROOT']
+        os.environ['SDRROOT'] = os.getcwd()+'/sdr'
         print "\n-----------------------"
         print "Running: ", self.id().split('.')[-1]
         print "-----------------------\n"
@@ -1493,53 +1438,9 @@ class DomainSupport(ossie.utils.testing.ScaComponentTestCase):
 
     def tearDown(self):
         super(DomainSupport, self).tearDown()
-        try:
-            # kill all busy.py just in case
-            os.system('pkill -9 -f busy.py')
-        except OSError:
-            pass
-        for child_p in self.child_pids:
-            try:
-                print "teardown (2)", child_p
-                os.system('kill -9 '+str(child_p))
-            except OSError:
-                pass
-        if self.dom != None:
-            time.sleep(1)
-            self.dom.terminate()
-            self.dom = None
-            self.terminateChild(self._domainBooter)
-        if self._domainBooter:
-            self.terminateChild(self._domainBooter)
-        if self._deviceBooter:
-            self.terminateChild(self._deviceBooter)
-        os.putenv('SDRROOT', self.orig_sdrroot)
+        os.environ['SDRROOT'] = self.orig_sdrroot
 
 class ComponentTests_SystemReservations(DomainSupport):
-    def setUp(self):
-        super(ComponentTests_SystemReservations,self).setUp()
-
-    def tearDown(self):
-        super(ComponentTests_SystemReservations, self).tearDown()
-
-    def runGPP(self, execparam_overrides={}, initialize=True):
-        #######################################################################
-        # Launch the component with the default execparams
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        execparams.update(execparam_overrides)
-        #execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        #execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        #self.launch(execparams, debugger='valgrind')
-        self.launch(execparams, initialize=initialize )
-        
-        #######################################################################
-        # Verify the basic state of the component
-        self.assertNotEqual(self.comp_obj, None)
-        self.assertEqual(self.comp_obj._non_existent(), False)
-        self.assertEqual(self.comp_obj._is_a("IDL:CF/ExecutableDevice:1.0"), True)
-        #self.assertEqual(self.spd.get_id(), self.comp_obj._get_identifier())
-        
     def close(self, value_1, value_2, margin = 0.01):
         if (value_2 * (1-margin)) < value_1 and (value_2 * (1+margin)) > value_1:
             return True
@@ -1552,9 +1453,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testMonitorComponents(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         app_1=self.dom.createApplication('/waveforms/load_comp_w/load_comp_w.sad.xml','load_comp_w',[])
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 6
@@ -1579,9 +1480,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testDeadlock(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
@@ -1597,9 +1498,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testSystemReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1710,9 +1611,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1748,9 +1649,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadGenericReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1778,9 +1679,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1809,9 +1710,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadTwoSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1840,9 +1741,9 @@ class ComponentTests_SystemReservations(DomainSupport):
     def testAppOverloadOneSpecificReservation(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
         self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
-        self._domainBooter, domMgr = self.launchDomainManager(domain_name='REDHAWK_TEST_'+str(os.getpid()))
+        self._domainBooter, domMgr = self.launchDomainManager()
         self.assertNotEquals(domMgr,None)
-        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
         self.assertNotEquals(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
@@ -1871,31 +1772,25 @@ class ComponentTests_SystemReservations(DomainSupport):
 class LoadableDeviceVariableDirectoriesTest(DomainSupport):
     def setUp(self):
         super(LoadableDeviceVariableDirectoriesTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
+        self.launchDomainManager()
         self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
 
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
+        dcd_file = 'sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml'
+        with open(dcd_file + '.in', 'r') as fp:
+            original = fp.read()
 
         cwd = os.getcwd()
         self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
         self.cache_dir = self.base_dir+'/cache'
         self.cwd_dir = self.base_dir+'/cwd'
-        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
+        modified = original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
         modified = modified.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
 
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
+        with open(dcd_file, 'w') as fp:
+            fp.write(modified)
+        self._testFiles.append(dcd_file)
 
     def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCache_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-
         super(LoadableDeviceVariableDirectoriesTest, self).tearDown()
         for file in self._testFiles:
             os.unlink(file)
@@ -1903,10 +1798,10 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         shutil.rmtree(self.base_dir)
 
     def test_CheckDEPLOYMENTROOT(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         pid = str(app._get_componentProcessIds()[0].processId)
@@ -1916,13 +1811,13 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         _args = cmdline.split('\x00')
         idx = _args.index('RH::DEPLOYMENT_ROOT')
         deployment_root=_args[idx+1]
-        self.assertEquals(deployment_root, self._rhDom.devices[0].cacheDirectory)
+        self.assertEquals(deployment_root, self.dom.devices[0].cacheDirectory)
 
     def test_CompConfigCacheCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
+        self.assertNotEqual(self.dom, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCache_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
+        app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
         self.assertEquals(app.comps[0].cwd, self.cwd_dir)
         found_dir = False
@@ -1933,255 +1828,11 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
                     break
         self.assertTrue(found_dir)
 
-class LoadableDeviceVariableCacheDirTest(DomainSupport):
-    def setUp(self):
-        super(LoadableDeviceVariableCacheDirTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
-        self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
-        
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
-        
-        cwd = os.getcwd()
-        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
-        self.cache_dir = self.base_dir+'/cache'
-        self.cwd_dir = self.cache_dir
-        modified = self.original.replace('@@@CACHE_DIRECTORY@@@', self.cache_dir)
-        
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
 
-    def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-        
-        super(LoadableDeviceVariableCacheDirTest, self).tearDown()
-        
-        shutil.rmtree(self.base_dir)
-            
-    def test_CompConfigCache(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCacheOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
-        self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd.py' in files:
-                if 'cache/components/check_cwd/python' in root:
-                    found_dir = True
-        self.assertEquals(found_dir, True)
-
-class LoadableDeviceVariableCWDTest(DomainSupport):
-    def setUp(self):
-        super(LoadableDeviceVariableCWDTest,self).setUp()
-        self._domainName = 'REDHAWK_TEST_'+str(os.getpid())
-        self._domainBooter, self._domMgr = self.launchDomainManager(domain_name=self._domainName)
-        self._testFiles = []
-        self._rhDom = redhawk.attach(self._domainName)
-        
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'r')
-        self.original = fp.read()
-        fp.close()
-        
-        cwd = os.getcwd()
-        self.base_dir = cwd + '/LoadableDeviceVariableDirectoriesTest'
-        self.cwd_dir = self.base_dir+'/cwd'
-        modified = self.original.replace('@@@CURRENT_WORKING_DIRECTORY@@@', self.cwd_dir)
-        
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(modified)
-        fp.close()
-
-    def tearDown(self):
-        fp = open('sdr/dev/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml', 'w')
-        fp.write(self.original)
-        fp.close()
-        
-        super(LoadableDeviceVariableCWDTest, self).tearDown()
-        
-        shutil.rmtree(self.base_dir)
-            
-    def test_CompConfigCWD(self):
-        self.assertNotEqual(self._domMgr, None)
-        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_VarCWDOnly_node/DeviceManager.dcd.xml", domainManager=self.dom.ref)
-        self.assertNotEqual(devMgr, None)
-        app = self._rhDom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
-        self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
-        found_dir = False
-        for root, dirs, files in os.walk(self.base_dir):
-            if 'check_cwd.py' in files:
-                if 'cwd/components/check_cwd/python' in root:
-                    found_dir = True
-        self.assertEquals(found_dir, True)
-
-
-    # TODO Add additional tests here
-    #
-    # See:
-    #   ossie.utils.testing.bulkio_helpers,
-    #   ossie.utils.testing.bluefile_helpers
-    # for modules that will assist with testing components with BULKIO ports
-
-def get_nonnuma_affinity_ctx( affinity_ctx ):
-    # test should run but affinity will be ignored
-    import multiprocessing
-    maxcpus=multiprocessing.cpu_count()
-    maxnodes=1
-    all_cpus='0-'+str(maxcpus-1)
-    all_cpus_sans0='0-'+str(maxcpus-1)
-    if maxcpus == 2:
-        all_cpus_sans0='0-1'
-    elif maxcpus == 1 :
-        all_cpus='0'
-        all_cpus_sans0=''
-
-    numa_layout=[ all_cpus ]
-    affinity_match={ "all" :  all_cpus,
-             "sock0":  all_cpus,
-             "sock1": all_cpus,
-             "sock0sans0":  all_cpus_sans0,
-             "sock1sans0":  all_cpus_sans0,
-             "5" : all_cpus,
-             "8-10" : all_cpus }
-
-    affinity_ctx['maxcpus']=maxcpus
-    affinity_ctx['maxnodes']=maxnodes
-    affinity_ctx['all_cpus']=all_cpus
-    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
-    affinity_ctx['numa_layout']=numa_layout
-    affinity_ctx['affinity_match']=affinity_match
-
-def get_numa_affinity_ctx( affinity_ctx ):
-    # test numaclt --show .. look for cpu bind of 0,1 and cpu id atleast 31
-    maxnode=0
-    maxcpu=0
-    lines = [line.rstrip() for line in os.popen('numactl --show')]
-    for l in lines:
-        if l.startswith('nodebind'):
-            maxnode=int(l.split()[-1])
-        if l.startswith('physcpubind'):
-            maxcpu=int(l.split()[-1])
-
-    maxcpus=maxcpu+1
-    maxnodes=maxnode+1
-    numa_layout=[]
-    try:
-      for i in range(maxnodes):
-          xx = [line.rstrip() for line in open('/sys/devices/system/node/node'+str(i)+'/cpulist')]
-          numa_layout.append(xx[0])
-    except:
-        pass
-
-    all_cpus='0-'+str(maxcpus-1)
-    all_cpus_sans0='1-'+str(maxcpus-1)
-    if maxcpus == 2:
-        all_cpus_sans0='1'
-    elif maxcpus == 1 :
-        all_cpus="0"
-        all_cpus_sans0=''
-
-    affinity_match = { "all":all_cpus,
-                       "sock0":  all_cpus,
-                       "sock1": all_cpus,
-                       "sock0sans0":  all_cpus_sans0,
-                       "sock1sans0":  all_cpus_sans0,
-                       "5" : all_cpus,
-                       "8-10" : all_cpus }
-
-    if len(numa_layout) > 0:
-        affinity_match["sock0"]=numa_layout[0]
-        aa=numa_layout[0]
-        if maxcpus > 2:
-            affinity_match["sock0sans0"] = str(int(aa[0])+1)+aa[1:]
-
-    if len(numa_layout) > 1:
-        affinity_match["sock1"]=numa_layout[1]
-        affinity_match["sock1sans0"]=numa_layout[1]
-
-    if maxcpus > 5:
-        affinity_match["5"]="5"
-
-    if maxcpus > 11:
-        affinity_match["8-10"]="8-10"
-
-    if maxcpus == 2:
-        affinity_match["5"] = all_cpus_sans0
-        affinity_match["8-10"]= all_cpus_sans0
-
-    affinity_ctx['maxcpus']=maxcpus
-    affinity_ctx['maxnodes']=maxnodes
-    affinity_ctx['all_cpus']=all_cpus
-    affinity_ctx['all_cpus_sans0']=all_cpus_sans0
-    affinity_ctx['numa_layout']=numa_layout
-    affinity_ctx['affinity_match']=affinity_match
-
-    
 if __name__ == "__main__":
-    # figure out numa layout, test numaclt --show ..
-    all_cpus="0"
-    maxnode=1
-    maxcpu=1
-    eface="em1"
-    #
-    # Figure out ethernet interface to use
-    #
-    lines = [line.rstrip() for line in os.popen('cat /proc/net/dev')]
-    import re
-    for l in lines[2:]:
-        t1=l.split(':')[0].lstrip()
-        if re.match('e.*', t1 ) :
-            eface=t1
-            break
-
-    affinity_test_src['eface']=eface
-
-    nonnuma_affinity_ctx={}
-    get_nonnuma_affinity_ctx(nonnuma_affinity_ctx)
-    numa_affinity_ctx={}
-    get_numa_affinity_ctx(numa_affinity_ctx)
-
-    # figure out if GPP has numa library dependency
-    lines = [ line.rstrip() for line in os.popen('ldd ../cpp/GPP') ]
-    numa=False
-    for l in lines:
-        if "libnuma" in l:
-            numa=True
-
-    if numa:
-        print "NumaSupport ", numa_affinity_ctx
-        maxcpus = numa_affinity_ctx['maxcpus']
-        maxnodes = numa_affinity_ctx['maxnodes']
-        all_cpus = numa_affinity_ctx['all_cpus']
-        all_cpus_sans0 = numa_affinity_ctx['all_cpus_sans0']
-        numa_layout=numa_affinity_ctx['numa_layout']
-        numa_match=numa_affinity_ctx['affinity_match']
-    else:
-        print "NonNumaSupport ", nonnuma_affinity_ctx
-        maxcpus = nonnuma_affinity_ctx['maxcpus']
-        maxnodes = nonnuma_affinity_ctx['maxnodes']
-        all_cpus = nonnuma_affinity_ctx['all_cpus']
-        all_cpus_sans0 = nonnuma_affinity_ctx['all_cpus_sans0']
-        numa_layout=nonnuma_affinity_ctx['numa_layout']
-        numa_match=nonnuma_affinity_ctx['affinity_match']
-
-    if maxnodes < 2 :
-        affinity_test_src["sock1"] = "0"
-
-    if maxcpus == 2:
-        affinity_test_src["8-10"] = all_cpus_sans0
-        affinity_test_src["5"] = all_cpus_sans0
-    else:
-        if maxcpus < 9 or maxcpus < 11 :
-            affinity_test_src["8-10"] = all_cpus
-            affinity_test_src["5"] = all_cpus
-
-    print "numa findings maxnodes:", maxnodes, " maxcpus:", maxcpus, " numa_match:", numa_match, " numa_layout", numa_layout, " map:", affinity_test_src
+    if False:
+        # Debugging support: enable this conditional to dump NUMA topology
+        print "NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus))
+        for node in topology.nodes:
+            print 'Node', node.node, 'CPUs:', node.cpus
     ossie.utils.testing.main("../GPP.spd.xml") # By default tests all implementations

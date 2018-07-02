@@ -25,7 +25,7 @@
 # Source: load_comp.spd.xml
 from ossie.resource import start_component
 import logging
-import subprocess
+import multiprocessing
 
 from load_comp_base import *
 
@@ -42,7 +42,11 @@ class load_comp_i(load_comp_base):
 
         """
         # TODO add customization here.
-        sp = subprocess.Popen(['../../../../busy.py'], executable='../../../../busy.py')
+        def busy():
+            while True:
+                pass
+        mp = multiprocessing.Process(target=busy)
+        mp.start()
         
     def process(self):
         """

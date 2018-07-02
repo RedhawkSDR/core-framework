@@ -18,29 +18,37 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef REDHAWK_SHM_PROCESSHEAP_H
-#define REDHAWK_SHM_PROCESSHEAP_H
+#include <sys/statvfs.h>
 
-#include <boost/scoped_ptr.hpp>
+#include <ossie/shm/System.h>
 
-#include "Heap.h"
+#define SHMDIR "/dev/shm"
 
 namespace redhawk {
-
     namespace shm {
 
-        class ProcessHeap {
-        public:
-            static Heap& Instance();
-        private:
-            // Cannot instantiate
-            ProcessHeap();
+        const char* getSystemPath()
+        {
+            return SHMDIR;
+        }
 
-            static void _initialize();
+        size_t getSystemTotalMemory()
+        {
+            struct statvfs status;
+            if (statvfs(SHMDIR, &status)) {
+                return 0;
+            }
 
-            static boost::scoped_ptr<Heap> _instance;
-        };
+            return (status.f_blocks * status.f_frsize);
+        }
+
+        size_t getSystemFreeMemory()
+        {
+            struct statvfs status;
+            if (statvfs(SHMDIR, &status)) {
+                return 0;
+            }
+            return (status.f_bfree * status.f_frsize);
+        }
     }
 }
-
-#endif // REDHAWK_SHM_PROCESSHEAP_H

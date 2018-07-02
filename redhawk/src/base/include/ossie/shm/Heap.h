@@ -35,6 +35,8 @@ namespace redhawk {
             std::string heap;
             size_t superblock;
             size_t offset;
+
+            bool operator!() const;
         };
 
         class Heap {
@@ -52,7 +54,7 @@ namespace redhawk {
         private:
             struct PrivateHeap;
 
-            // Not copyable
+            // Non-copyable, non-assignable
             Heap(const Heap&);
             Heap& operator=(const Heap&);
 
@@ -68,6 +70,7 @@ namespace redhawk {
             boost::mutex _mutex;
 
             SuperblockFile _file;
+            bool _canGrow;
 
             std::vector<PrivateHeap*> _allocs;
 

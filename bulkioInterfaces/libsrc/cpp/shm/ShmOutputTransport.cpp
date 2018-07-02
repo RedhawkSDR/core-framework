@@ -18,12 +18,13 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "ShmTransport.h"
-#include "ShmProvidesTransport.h"
+#include "ShmOutputTransport.h"
 #include "FifoIPC.h"
 #include "MessageBuffer.h"
 
 #include <numeric>
+
+#include <ossie/shm/Heap.h>
 
 #include <bulkio_in_port.h>
 #include <bulkio_out_port.h>
@@ -32,21 +33,53 @@
 
 namespace bulkio {
 
+    struct ShmStatPoint {
+        ShmStatPoint() :
+            shmTransfer(0),
+            copied(0)
+        {
+        }
+
+        ShmStatPoint(bool shmTransfer, bool copied) :
+            shmTransfer(shmTransfer),
+            copied(copied)
+        {
+        }
+
+        ShmStatPoint operator+ (const ShmStatPoint& other) const
+        {
+            ShmStatPoint result(*this);
+            result += other;
+            return result;
+        }
+
+        ShmStatPoint& operator+= (const ShmStatPoint& other)
+        {
+            shmTransfer += other.shmTransfer;
+            copied += other.copied;
+            return *this;
+        }
+
+        int shmTransfer;
+        int copied;
+    };
+
     template <typename PortType>
-    class ShmTransport : public OutputTransport<PortType>
+    class ShmOutputTransport : public OutputTransport<PortType>
     {
     public:
         typedef typename PortType::_ptr_type PtrType;
         typedef typename OutputTransport<PortType>::BufferType BufferType;
+        typedef typename BufferType::value_type ElementType;
         typedef typename CorbaTraits<PortType>::TransportType TransportType;
 
-        ShmTransport(OutPort<PortType>* parent, PtrType port) :
+        ShmOutputTransport(OutPort<PortType>* parent, PtrType port) :
             OutputTransport<PortType>(parent, port),
             _fifo()
         {
         }
 
-        ~ShmTransport()
+        ~ShmOutputTransport()
         {
         }
 
@@ -80,15 +113,6 @@ namespace bulkio {
             _fifo.disconnect();
         }
 
-        double getCopyRate()
-        {
-            if (_copyStats.empty()) {
-                return 0.0;
-            }
-            size_t copies = std::accumulate(_copyStats.begin(), _copyStats.end(), 0);
-            return  copies * 100.0 / _copyStats.size();
-        }
-
     protected:
         virtual void _pushSRI(const BULKIO::StreamSRI& sri)
         {
@@ -104,69 +128,123 @@ namespace bulkio {
                                  bool EOS,
                                  const std::string& streamID)
         {
-            MessageBuffer msg;
-            msg.write("pushPacket");
+            MessageBuffer header;
+            header.write("pushPacket");
 
-            msg.write(data.size());
+            header.write(data.size());
+            header.write(T);
+            header.write(EOS);
+            header.write(streamID);
 
             // Temporary buffer to ensure that if a copy is made, it gets
             // released after the transfer
             BufferType copy;
 
+            // Data may be sent over the FIFO if shared memory is unavailable;
+            // this is slower but provides a more graceful failure mode
+            const void* body = 0;
+            size_t body_size = 0;
+
             // If the packet is non-empty, write the additional shared memory
             // information for the remote side to pick up
             if (!data.empty()) {
-                const void* base;
-                size_t offset;
+                // Track whether the buffer was able to be transferred via a
+                // shared memory object, or if it has to be copied
+                bool shm_transfer = false;
 
                 // Check that the buffer is already in shared memory (this is
                 // hoped to be the common case); if not, copy it into another
-                // buffer that is allocated in shared memory
                 if (data.get_memory().is_process_shared()) {
-                    base = data.get_memory().address();
-                    offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+                    // Include the offset from the start of allocated memory to
+                    // the first element of the buffer
+                    const void* base = data.get_memory().address();
+                    size_t offset = reinterpret_cast<size_t>(data.data()) - reinterpret_cast<size_t>(base);
+                    shm_transfer = _transferBuffer(header, base, offset);
                 } else {
-                    copy = data.copy(redhawk::shm::Allocator<typename BufferType::value_type>());
-                    base = copy.get_memory().address();
-                    offset = 0;
+                    // Try to explicitly allocate from shared memory via the
+                    // global function (which will return a null pointer on
+                    // failure, as opposed to throwing an exception)
+                    size_t count = data.size();
+                    size_t bytes = count * sizeof(ElementType);
+                    ElementType* ptr = static_cast<ElementType*>(redhawk::shm::allocate(bytes));
+                    if (ptr) {
+                        // Make a copy of the data into the new shared memory,
+                        // ensuring it gets cleaned up appropriately
+                        std::memcpy(ptr, data.data(), bytes);
+                        copy = BufferType(ptr, count, redhawk::shm::deallocate);
+                        shm_transfer = _transferBuffer(header, ptr, 0);
+                    } else {
+                        // Shared memory must be exhausted, fall back to using
+                        // in-band transfer
+                        shm_transfer = false;
+                    }
                 }
 
-                redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
-                msg.write(ref.heap);
-                msg.write(ref.superblock);
-                msg.write(ref.offset);
-                msg.write(offset);
+                // If we weren't able to transfer the buffer using shared
+                // memory, set up to copy it via the FIFO
+                if (!shm_transfer) {
+                    header.write(true);
+                    body = data.data();
+                    body_size = data.size() * sizeof(data[0]);
+                }
             }
 
-            msg.write(T);
-            msg.write(EOS);
-            msg.write(streamID);
+            _sendMessage(header.buffer(), header.size(), body, body_size);
 
-            _sendMessage(msg);
-
-            _recordExtendedStatistics(!copy.empty());
+            ShmStatPoint stat(body_size == 0, !copy.empty());
+            _recordExtendedStatistics(stat);
         }
 
         virtual redhawk::PropertyMap _getExtendedStatistics()
         {
+            ShmStatPoint stats = std::accumulate(_extendedStats.begin(), _extendedStats.end(), ShmStatPoint());
+            double copy_rate = 0.0;
+            double shm_rate = 0.0;
+            if (!_extendedStats.empty()) {
+                copy_rate = stats.copied * 100.0 / _extendedStats.size();
+                shm_rate = stats.shmTransfer * 100.0 / _extendedStats.size();
+            }
+
             redhawk::PropertyMap statistics;
-            statistics["shm::copy_rate"] = getCopyRate();
+            statistics["shm::copy_rate"] = copy_rate;
+            statistics["shm::shm_rate"] = shm_rate;
             return statistics;
         }
 
     private:
-        void _recordExtendedStatistics(bool copied)
+        void _recordExtendedStatistics(const ShmStatPoint& stat)
         {
-            _copyStats.push_back(copied);
-            if (_copyStats.size() > 10) {
-                _copyStats.pop_front();
+            _extendedStats.push_back(stat);
+            if (_extendedStats.size() > 10) {
+                _extendedStats.pop_front();
             }
         }
 
-        void _sendMessage(const MessageBuffer& message)
+        bool _transferBuffer(MessageBuffer& header, const void* base, size_t offset)
+        {
+            redhawk::shm::MemoryRef ref = redhawk::shm::Heap::getRef(base);
+            if (!ref) {
+                // The allocator was unable to use shared memory
+                return false;
+            }
+
+            header.write(false);
+            header.write(ref.heap);
+            header.write(ref.superblock);
+            header.write(ref.offset);
+            header.write(offset);
+
+            return true;
+        }
+
+        void _sendMessage(const void* header, size_t hsize, const void* body, size_t bsize)
         {
             try {
-                _fifo.write(message.buffer(), message.size());
+                _fifo.write(&hsize, sizeof(hsize));
+                _fifo.write(header, hsize);
+                if (bsize > 0) {
+                    _fifo.write(body, bsize);
+                }
             } catch (const std::exception& exc) {
                 throw redhawk::FatalTransportError(exc.what());
             }
@@ -181,7 +259,7 @@ namespace bulkio {
 
         FifoEndpoint _fifo;
 
-        std::deque<bool> _copyStats;
+        std::deque<ShmStatPoint> _extendedStats;
     };
 
     template <typename PortType>
@@ -226,7 +304,15 @@ namespace bulkio {
             return 0;
         }
 
-        return new ShmTransport<PortType>(this->_port, object);
+        // Check whether shared memory is enabled--there may not be enough free
+        // space to create the heap. The degraded send-via-FIFO mode is usually
+        // slower CORBA.
+        if (!redhawk::shm::isEnabled()) {
+            RH_NL_DEBUG("ShmTransport", "Cannot create SHM transport, shared memory is not available");
+            return 0;
+        }
+
+        return new ShmOutputTransport<PortType>(this->_port, object);
     }
 
     template <typename PortType>
@@ -260,54 +346,9 @@ namespace bulkio {
         shm_transport->finishConnect(fifo_name);
     }
 
-    template <typename PortType>
-    class ShmTransportFactory : public BulkioTransportFactory<PortType>
-    {
-    public:
-        ShmTransportFactory()
-        {
-        }
-
-        virtual std::string transportType()
-        {
-            return "shmipc";
-        }
-
-        virtual int defaultPriority()
-        {
-            return 1;
-        }
-
-        virtual InputManager<PortType>* createInputManager(InPort<PortType>* port)
-        {
-            return new ShmInputManager<PortType>(port);
-        }
-
-        virtual OutputManager<PortType>* createOutputManager(OutPort<PortType>* port)
-        {
-            return new ShmOutputManager<PortType>(port);
-        }
-    };
-
 #define INSTANTIATE_TEMPLATE(x)                 \
-    template class ShmTransport<x>;             \
-    template class ShmOutputManager<x>;         \
-    template class ShmTransportFactory<x>;
+    template class ShmOutputTransport<x>;       \
+    template class ShmOutputManager<x>;
 
     FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_TEMPLATE);
-
-    static int initializeModule()
-    {
-#define REGISTER_FACTORY(x) \
-        {                                                               \
-            static ShmTransportFactory<x> factory;                      \
-            redhawk::TransportRegistry::RegisterTransport(&factory);    \
-        }
-
-        FOREACH_NUMERIC_PORT_TYPE(REGISTER_FACTORY);
-
-        return 0;
-    }
-
-    static int initialized = initializeModule();
 }

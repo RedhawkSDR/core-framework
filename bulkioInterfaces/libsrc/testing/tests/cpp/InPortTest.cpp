@@ -20,6 +20,8 @@
 
 #include "InPortTest.h"
 
+#include <boost/scoped_ptr.hpp>
+
 class SriListener {
 public:
     void updateSRI(BULKIO::StreamSRI& sri)

@@ -72,3 +72,11 @@ def haveLoggingSupport(filename):
             if line.split('=')[1] == ' \n':
                 log4cxx_support = False
     return log4cxx_support
+
+def haveDefine(filename, variable):
+    definition = '-D%s=1' % variable
+    with open(filename, 'r') as fp:
+        for line in fp:
+            if definition in line:
+                return True
+    return False

@@ -33,11 +33,27 @@ namespace redhawk {
 
         class SuperblockFile {
         public:
+            struct Statistics
+            {
+                size_t size;
+                size_t used;
+                size_t superblocks;
+                size_t unused;
+            };
+
             SuperblockFile(const std::string& name);
             ~SuperblockFile();
 
+            static bool IsSuperblockFile(const std::string& name);
+
+            pid_t creator() const;
+            int refcount() const;
+            bool isOrphaned() const;
+
+            Statistics getStatistics();
+
             void create();
-            void open();
+            void open(bool attach=true);
             void close();
 
             Superblock* getSuperblock(size_t offset);
@@ -45,14 +61,19 @@ namespace redhawk {
 
             const std::string& name() const;
 
+            MappedFile& file();
+
         private:
-            // Not copyable
+            // Non-copyable, non-assignable
             SuperblockFile(const SuperblockFile&);
             SuperblockFile& operator=(const SuperblockFile&);
+
+            void _detach();
 
             Superblock* _mapSuperblock(size_t offset);
 
             MappedFile _file;
+            bool _attached;
 
             struct Header;
             Header* _header;

@@ -58,6 +58,9 @@ namespace bulkio {
 
     private:
         int _fd;
+
+        // Maximum size to read/write on a single pass
+        size_t _blockSize;
     };
 
     class FifoEndpoint {
