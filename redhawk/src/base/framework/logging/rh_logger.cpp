@@ -924,9 +924,13 @@ namespace rh_logger {
     Logger(name),
     l4logger()
   {
-    _instanceRootLogger = hierarchy->getRootLogger();
-    l4logger = hierarchy->getLogger(name);
-    _rootHierarchy = hierarchy;
+      if (hierarchy) {
+        _instanceRootLogger = hierarchy->getRootLogger();
+        l4logger = hierarchy->getLogger(name);
+        _rootHierarchy = hierarchy;
+      } else {
+        l4logger = log4cxx::Logger::getLogger(name);
+      }
   }
 
   L4Logger::L4Logger( const char *name ) :
