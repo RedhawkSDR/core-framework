@@ -873,12 +873,13 @@ void ProgramProfile::fillSeqForStructProperty(CF::Properties &props) {
                             for (redhawk::PropertyMap::iterator structIter = structProps.begin(); structIter != structProps.end(); ++structIter) {
                                 if (structProps[ossie::corba::returnString(structIter->id)].isNil()) {
                                     // is the nil value for a sequence?
-                                    std::vector<std::string> empty_string_vector;
                                     for (ossie::PropertyList::const_iterator internal_iter = tmp_struct->getValue().begin(); internal_iter != tmp_struct->getValue().end(); ++internal_iter) {
                                         std::string _inner_id(internal_iter->getID());
                                         if (_inner_id == ossie::corba::returnString(structIter->id)) {
                                             const ossie::SimpleSequenceProperty* _type = dynamic_cast<const ossie::SimpleSequenceProperty*>(&(*internal_iter));
-                                            structProps[ossie::corba::returnString(structIter->id)] = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()), NULL);
+                                            std::vector<std::string> empty_string_vector;
+                                            CORBA::TypeCode_ptr _typecode = ossie::getTypeCode(static_cast<std::string>(_type->getType()));
+                                            structProps[ossie::corba::returnString(structIter->id)] = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()), _typecode);
                                         }
                                     }
                                 }

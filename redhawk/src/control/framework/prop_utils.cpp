@@ -124,6 +124,7 @@ CF::DataType ossie::convertPropertyToDataType(const SimpleSequenceProperty* prop
     CF::DataType dataType;
     dataType.id = CORBA::string_dup(prop->getID());
     if (!prop->isNone()) {
+        std::string tmp = static_cast<std::string>(prop->getType());
         CORBA::TCKind kind = ossie::getTypeKind(static_cast<std::string>(prop->getType()));
         CORBA::TypeCode_ptr type = ossie::getTypeCode(static_cast<std::string>(prop->getType()));
         dataType.value = ossie::strings_to_any(prop->getValues(), kind, type);

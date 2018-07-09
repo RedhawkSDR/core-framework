@@ -20,9 +20,19 @@
 
 # REDHAWK-specific version of generateDS base class
 # Implements only the methods that are explicitly used by the parsers
+import sys
+
+ExternalEncoding = 'ascii'
+
 class GeneratedsSuper(object):
     def gds_format_string(self, input_data, input_name=''):
         return input_data
+    @staticmethod
+    def gds_encode(instring):
+        if sys.version_info[0] == 2:
+            return instring.encode(ExternalEncoding)
+        else:
+            return instring
     def gds_validate_string(self, input_data, node, input_name=''):
         if input_data is None:
             # ElementTree parsers return None for empty text nodes

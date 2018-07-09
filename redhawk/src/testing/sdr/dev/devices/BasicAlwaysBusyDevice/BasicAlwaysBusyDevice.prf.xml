@@ -200,7 +200,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>
             This property returns the value for the last stack size passed as an option for execute
         </description>
-        <kind kindtype="configuration"/>
+        <kind kindtype="configure"/>
     </simple>
     <simple id="check_PRIORITY"
             name="check PRIORITY"
@@ -209,7 +209,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>
             This property returns the value for the last priority passed as an option for execute
         </description>
-        <kind kindtype="configuration"/>
+        <kind kindtype="configure"/>
     </simple>
     <simple id="DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2" mode="readonly" name="execparams" type="string">
         <description>The execparms passed to the component.</description> 

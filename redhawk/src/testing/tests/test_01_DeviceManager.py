@@ -615,7 +615,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         dev = devMgr._get_registeredDevices()[0]
         prop = dev.query([])
         for p in prop:
-            print p.id
             if p.id == 'mystruct':
                 val = p.value.value()
                 for v in val:

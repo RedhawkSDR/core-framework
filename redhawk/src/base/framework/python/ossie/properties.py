@@ -759,8 +759,11 @@ class _property(object):
             
             # The value is good if both real and imag members fall within 
             # the bounds.
-            goodValue = boundChecker.inBounds(value["real"]) and boundChecker.inBounds(value["imag"])
-            
+            if type(value) == dict:
+                goodValue = boundChecker.inBounds(value["real"]) and boundChecker.inBounds(value["imag"])
+            else:
+                goodValue = boundChecker.inBounds(value.real) and boundChecker.inBounds(value.imag)
+
         return goodValue
 
     def checkValue(self, value, obj):

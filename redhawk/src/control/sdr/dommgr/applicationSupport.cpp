@@ -953,7 +953,8 @@ void ComponentInfo::fillSeqForStructProperty(CF::Properties &props) {
                                         if (_inner_id == ossie::corba::returnString(structIter->id)) {
                                             const ossie::SimpleSequenceProperty* _type = dynamic_cast<const ossie::SimpleSequenceProperty*>(*internal_iter);
                                             std::vector<std::string> empty_string_vector;
-                                            structProps[ossie::corba::returnString(structIter->id)] = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()));
+                                            CORBA::TypeCode_ptr _typecode = ossie::getTypeCode(static_cast<std::string>(_type->getType()));
+                                            structProps[ossie::corba::returnString(structIter->id)] = ossie::strings_to_any(empty_string_vector, ossie::getTypeKind(_type->getType()), _typecode);
                                         }
                                     }
                                 }
