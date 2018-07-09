@@ -47,6 +47,7 @@ class CppPropertyMapper(PropertyMapper):
     def mapSimpleSequenceProperty(self, prop):
         cppprop = self.mapProperty(prop)
         cppprop['cpptype'] = cpp.sequenceType(prop.type(), prop.isComplex())
+        cppprop['iscomplex'] = prop.isComplex()
         cppprop['isOptional'] = prop.isOptional()
         if prop.hasValue():
             cppprop['cppvalues'] = [cpp.literal(v, 
@@ -79,7 +80,7 @@ class CppPropertyMapper(PropertyMapper):
                 if type(value[identifier]) == list:
                     newval[identifier] = []
                     for val in value[identifier]:
-                        newval[identifier].append(cpp.literal(val, field['type']))
+                        newval[identifier].append(cpp.literal(val, field['type'], field['iscomplex']))
                 else:
-                    newval[identifier] = cpp.literal(value[identifier], field['type'])
+                    newval[identifier] = cpp.literal(value[identifier], field['type'], field['iscomplex'])
         return newval

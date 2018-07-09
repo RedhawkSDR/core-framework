@@ -25,7 +25,7 @@ if test "x$GENERATE_DS" == "x"; then
   GENERATE_DS="generateDS.py"
 fi
 
-GENERATE_DS_FLAGS="-f --no-process-includes --silence -m"
+GENERATE_DS_FLAGS="-f --silence -m"
 echo "Generating DCD parser"
 ${GENERATE_DS} ${GENERATE_DS_FLAGS} -o ossie/parsers/dcd.py     ../../../xml/xsd/dcd.xsd
 echo "Generating DMD parser"

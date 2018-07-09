@@ -21,6 +21,7 @@
 from omniORB import any
 from _unitTestHelpers import scatest
 from ossie.cf import CF
+from ossie.utils import sb
 from omniORB import CORBA
 import numpy
 from _unitTestHelpers import runtestHelpers
@@ -34,92 +35,52 @@ class _DataTypeTest:
         self.override = override
         self.typecode = typecode
 
+def _compareComplex(parent, item_1, item_2):
+    parent.assertEquals(item_1.real, item_2.real)
+    parent.assertEquals(item_1.imag, item_2.imag)
 
+def _compareStructs(parent, struct_1, struct_2):
+    for _struct_mem_idx in range(len(struct_2)):
+        if type(struct_2[_struct_mem_idx]) == list:
+            for idx_val in range(len(struct_2[_struct_mem_idx])):
+                _compareComplex(parent, struct_1[_struct_mem_idx].value._v[idx_val], struct_2[_struct_mem_idx][idx_val])
+        else:
+            _compareComplex(parent, struct_1[_struct_mem_idx].value._v, struct_2[_struct_mem_idx])
+
+def _compareComplexValues(parent, val1, val2):
+    if type(val2) == list:
+        if len(val2) != 0:
+            if type(val2[0]) == tuple: # sequence of structs
+                for _struct_seq_idx in range(len(val2)):
+                    _compareStructs(parent, val1[_struct_seq_idx]._v, val2[_struct_seq_idx])
+            else:
+                for idx_val in range(len(val1)):
+                    _compareComplex(parent, val1[idx_val], val2[idx_val])
+    elif type(val2) == tuple:
+        _compareStructs(parent, val1, val2)
+    else:
+        _compareComplex(parent, val1, val2)
 
 class _TestVector:
-    '''
-    def test_complexBoolean(self):
-        testStruct = (_DataTypeTest("complexBooleanProp",
-                                    CF.complexBoolean(False, True),
-                                    CF.complexBoolean(True, False),
-                                    CF._tc_complexBoolean))
-        self._runTest(testStruct)
 
-    def test_complexULong(self):
-        testStruct = (_DataTypeTest("complexULongProp",
-                                    CF.complexULong(4, 5),
-                                    CF.complexULong(2, 3),
-                                    CF._tc_complexULong))
-        self._runTest(testStruct)
+    def test_complexOverrides(self):
+        testStruct = [(_DataTypeTest("complexBooleanProp", CF.complexBoolean(False, True), CF.complexBoolean(True, False), CF._tc_complexBoolean)),
+                      (_DataTypeTest("complexULongProp", CF.complexULong(4, 5), CF.complexULong(2, 3), CF._tc_complexULong)),
+                      (_DataTypeTest("complexShortProp", CF.complexShort(4,5), CF.complexShort(2,3), CF._tc_complexShort)),
+                      (_DataTypeTest("complexFloatProp", CF.complexFloat(4.0, 5.0), CF.complexFloat(2.0, 3.0), CF._tc_complexFloat)),
+                      (_DataTypeTest("complexOctetProp", CF.complexOctet(4, 5), CF.complexOctet(2, 3), CF._tc_complexOctet)),
+                      (_DataTypeTest("complexUShort", CF.complexUShort(4, 5), CF.complexUShort(2, 3), CF._tc_complexUShort)),
+                      (_DataTypeTest("complexDouble", CF.complexDouble(4.0, 5.0), CF.complexDouble(2.0, 3.0), CF._tc_complexDouble)),
+                      (_DataTypeTest("complexLong", CF.complexLong(4, 5), CF.complexLong(2, 3), CF._tc_complexLong)),
+                      (_DataTypeTest("complexLongLong", CF.complexLongLong(4, 5), CF.complexLongLong(2, 3), CF._tc_complexLongLong)),
+                      (_DataTypeTest("complexULongLong", CF.complexULongLong(4, 5), CF.complexULongLong(2, 3), CF._tc_complexULongLong)),
+                      (_DataTypeTest("complexFloatSequence", [CF.complexFloat(6, 7), CF.complexFloat(4, 5), CF.complexFloat(8, 9)], [CF.complexFloat(1, 2), CF.complexFloat(10, 20)], None)),
+                      (_DataTypeTest("complexFloatStruct", (CF.complexFloat(6, 7), [CF.complexFloat(3, 4)]), (CF.complexFloat(6, 7), [CF.complexFloat(5, 5), CF.complexFloat(9, 8)]), ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq'])),
+                      (_DataTypeTest("complexFloatStructSequence", [(CF.complexFloat(6, 5), [CF.complexFloat(9, 4)])], [(CF.complexFloat(32, 33), [CF.complexFloat(45, 55), CF.complexFloat(69, 78)]), (CF.complexFloat(42, 43), [CF.complexFloat(145, 155), CF.complexFloat(169, 178), CF.complexFloat(279, 998)])], ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']))]
 
-    def test_complexShort(self):
-        testStruct = (_DataTypeTest("complexShortProp",
-                                    CF.complexShort(4,5),
-                                    CF.complexShort(2,3),
-                                    CF._tc_complexShort))
         self._runTest(testStruct)
-    '''
-    def test_complexFloat(self):
-        testStruct = (_DataTypeTest("complexFloatProp",
-                                    CF.complexFloat(4.0, 5.0),
-                                    CF.complexFloat(2.0, 3.0),
-                                    CF._tc_complexFloat))
-        self._runTest(testStruct)
-    '''
-    def test_complexOctet(self):
-        testStruct = (_DataTypeTest("complexOctetProp",
-                                    CF.complexOctet(4, 5),
-                                    CF.complexOctet(2, 3),
-                                    CF._tc_complexOctet))
-        self._runTest(testStruct)
-
-    def test_complexUShort(self):
-        testStruct = (_DataTypeTest("complexUShort",
-                                    CF.complexUShort(4, 5),
-                                    CF.complexUShort(2, 3),
-                                    CF._tc_complexUShort))
-        self._runTest(testStruct)
-
-    def test_complexDouble(self):
-        testStruct = (_DataTypeTest("complexDouble",
-                                    CF.complexDouble(4.0, 5.0),
-                                    CF.complexDouble(2.0, 3.0),
-                                    CF._tc_complexDouble))
-        self._runTest(testStruct)
-
-    def test_complexLong(self):
-        testStruct = (_DataTypeTest("complexLong",
-                                    CF.complexLong(4, 5),
-                                    CF.complexLong(2, 3),
-                                    CF._tc_complexLong))
-        self._runTest(testStruct)
-
-    def test_complexLongLong(self):
-        testStruct = (_DataTypeTest("complexLongLong",
-                                    CF.complexLongLong(4, 5),
-                                    CF.complexLongLong(2, 3),
-                                    CF._tc_complexLongLong))
-        self._runTest(testStruct)
-
-    def test_complexULongLong(self):
-        testStruct = (_DataTypeTest("complexULongLong",
-                                    CF.complexULongLong(4, 5),
-                                    CF.complexULongLong(2, 3),
-                                    CF._tc_complexULongLong))
-        self._runTest(testStruct)
-    '''
-#    def test_complexChar(self):
-#        testStruct = (_DataTypeTest(
-#            "complexCharProp",
-#            CF.complexChar(0, 1),
-#            CF.complexChar(2, 3),
-#            CF._tc_complexChar))
-#        self._runTest(testStruct)
 
 class SetupCommon:
-    def _compareComplexValues(self, val1, val2):
-        self.assertEquals(val1.real, val2.real)
-        self.assertEquals(val1.imag, val2.imag)
     def setUp_(self, sadpath):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
@@ -131,6 +92,7 @@ class SetupCommon:
                 self._app = appFact.create(appFact._get_name(), [], [])
             except:
                 pass
+        self.assertNotEqual(self._app, None)
 
     def tearDown_(self):
         if self._app:
@@ -147,7 +109,7 @@ class SetupCommon:
         self.assertNotEqual(self._app, None, "Application not created")
 
 
-class CppPropertiesSADOverridesTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
+class CppPropertiesSADOverridesLaunchTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
     def setUp(self):
         SetupCommon.setUp_(self, sadpath = "/waveforms/TestComplexPropsSADOverrides/TestComplexPropsSADOverrides.sad.xml")
 
@@ -157,17 +119,13 @@ class CppPropertiesSADOverridesTest(scatest.CorbaTestCase, _TestVector, SetupCom
     def preconditions(self):
         SetupCommon.preconditions_(self)
 
-    def _runTest(self, dataTypeTest):
-        # Create a property structure
-        prop = CF.DataType(id = dataTypeTest.id,
-                           value = CORBA.Any(dataTypeTest.typecode,
-                                             dataTypeTest.default))
-        # Check the default property value via query
-        defaultProps = self._app.query([prop])
-        self._compareComplexValues(defaultProps[0].value.value(), dataTypeTest.override)
+    def _runTest(self, dataTypeTests):
+        for dataTypeTest in dataTypeTests:
+            prop = CF.DataType(id = dataTypeTest.id, value = any.to_any(None))
+            defaultProps = self._app.query([prop])
+            _compareComplexValues(self, defaultProps[0].value.value(), dataTypeTest.override)
 
-
-class SandboxTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
+class CppPropertiesSADConfigureTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
     def setUp(self):
         SetupCommon.setUp_(self, sadpath = "/waveforms/TestComplexPropsWaveform/TestComplexPropsWaveform.sad.xml")
 
@@ -177,7 +135,7 @@ class SandboxTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
     def preconditions(self):
         SetupCommon.preconditions_(self)
 
-    def _runTest(self, dataTypeTest):
+    def _runTest(self, dataTypeTests):
         '''
         1.  Check the default value of the property via the query method.
         2.  Configure the property with an override value.
@@ -185,63 +143,69 @@ class SandboxTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
 
         '''
         # Create a property structure
-        prop = CF.DataType(id = dataTypeTest.id,
-                           value = CORBA.Any(dataTypeTest.typecode,
-                                             dataTypeTest.override))
+        for dataTypeTest in dataTypeTests:
+            if dataTypeTest.typecode == None:
+                _anyvalue = any.to_any(dataTypeTest.override)
+            elif type(dataTypeTest.typecode) == list:
+                if type(dataTypeTest.override) == tuple:
+                    _val = []
+                    for name_idx in range(len(dataTypeTest.typecode)):
+                        _val.append(CF.DataType(id=dataTypeTest.typecode[name_idx], value=any.to_any(dataTypeTest.override[name_idx])))
+                    _anyvalue = any.to_any(_val)
+                elif type(dataTypeTest.override) == list:
+                    _val = []
+                    for _override in dataTypeTest.override:
+                        _inner_val = []
+                        for name_idx in range(len(dataTypeTest.typecode)):
+                            _inner_val.append(CF.DataType(id=dataTypeTest.typecode[name_idx], value=any.to_any(_override[name_idx])))
+                        _val.append(any.to_any(_inner_val))
+                    _anyvalue = any.to_any(_val)
+                else:
+                    a=b
+            else:
+                _anyvalue = CORBA.Any(dataTypeTest.typecode, dataTypeTest.override)
+            query_prop = CF.DataType(id = dataTypeTest.id, value = any.to_any(None))
+            configure_prop = CF.DataType(id = dataTypeTest.id, value = _anyvalue)
 
-        # Check the default property value via query
-        defaultProps = self._app.query([prop])
-        self._compareComplexValues(defaultProps[0].value.value(), dataTypeTest.default)
+            # Check the default property value via query
+            defaultProps = self._app.query([query_prop])
+            _compareComplexValues(self, defaultProps[0].value.value(), dataTypeTest.default)
 
-        # Call configure with the property with an override value
-        # then check, via query, if the configuration worked
-        self._app.configure([prop])
-        newProps = self._app.query([prop])
-        self._compareComplexValues(newProps[0].value.value(), dataTypeTest.override)
+            # Call configure with the property with an override value
+            # then check, via query, if the configuration worked
+            self._app.configure([configure_prop])
+            newProps = self._app.query([query_prop])
+            _compareComplexValues(self, newProps[0].value.value(), dataTypeTest.override)
 
-    def _queryDefaults(self, component):
-        defaults = {"boolean"   : component.complexBooleanProp,
-                    "ulong"     : component.complexULongProp,
-                    "short"     : component.complexShortProp,
-                    "float"     : component.complexFloatProp,
-                    "octet"     : component.complexOctetProp,
-                    "ushort"    : component.complexUShort,
-                    "double"    : component.complexDouble,
-                    "long"      : component.complexLong,
-                    "longlong"  : component.complexLongLong,
-                    "ulonglong" : component.complexULongLong}
-        # TODO: char
-        #"char"      : component.complexCharProp,
-        #"char"      : numpy.complex(0,1),
-        return defaults
+class _SandboxDataTypeTest:
+    def __init__(self, _id, expected, typecode):
+        self._id = _id
+        self.expected = expected
+        self.typecode = typecode
+
+class SandboxTests(scatest.CorbaTestCase):
+    def setUp(self):
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.domainless._getSandbox().shutdown()
 
     def test_sandboxComplexProps(self):
-        from ossie.utils import sb
-
-        # values from the component PRF file
-        expectedDefaults = {
-            "boolean"   : numpy.complex(False, True),
-            "ulong"     : numpy.complex(4,5),
-            "short"     : numpy.complex(4,5),
-            "float"     : numpy.complex(4.,5.),
-            "octet"     : numpy.complex(4,5),
-            "ushort"    : numpy.complex(4,5),
-            "double"    : numpy.complex(4.,5.),
-            "long"      : numpy.complex(4,5),
-            "longlong"  : numpy.complex(4,5),
-            "ulonglong" : numpy.complex(4,5)}
-
-
-        '''
-            "cFloatSeq"       : component.complexFloatSeq,
-            "cFloatStruct"    : component.complexFloatStruct,
-            "cFloatStructSeq" : component.complexFloatStructSeq}
-            "cFloatSeq"       : [CF.complexFloat(real=1.0, imag=0.0),
-                                 CF.complexFloat(real=1.0, imag=0.0),
-                                 CF.complexFloat(real=1.0, imag=0.0)],
-            "cFloatStruct"    : {"complexFloatStructMember": CF.complexFloat(real=1.0, imag=0.0)},
-            "cFloatStructSeq" : [{"complexFloatStructMember": CF.complexFloat(real=1.0, imag=0.0)}]}
-        '''
+        testSet = [(_SandboxDataTypeTest(["complexBooleanProp"], CF.complexBoolean(False, True), CF._tc_complexBoolean)),
+                      (_SandboxDataTypeTest(["complexULongProp"], CF.complexULong(4, 5), CF._tc_complexULong)),
+                      (_SandboxDataTypeTest(["complexShortProp"], CF.complexShort(4,5), CF._tc_complexShort)),
+                      (_SandboxDataTypeTest(["complexFloatProp"], CF.complexFloat(4.0, 5.0), CF._tc_complexFloat)),
+                      (_SandboxDataTypeTest(["complexOctetProp"], CF.complexOctet(4, 5), CF._tc_complexOctet)),
+                      (_SandboxDataTypeTest(["complexUShort"], CF.complexUShort(4, 5), CF._tc_complexUShort)),
+                      (_SandboxDataTypeTest(["complexDouble"], CF.complexDouble(4.0, 5.0), CF._tc_complexDouble)),
+                      (_SandboxDataTypeTest(["complexLong"], CF.complexLong(4, 5), CF._tc_complexLong)),
+                      (_SandboxDataTypeTest(["complexLongLong"], CF.complexLongLong(4, 5), CF._tc_complexLongLong)),
+                      (_SandboxDataTypeTest(["complexULongLong"], CF.complexULongLong(4, 5), CF._tc_complexULongLong)),
+                      (_SandboxDataTypeTest(["complexFloatSequence"], [CF.complexFloat(6, 7), CF.complexFloat(4, 5), CF.complexFloat(8, 9)], None)),
+                      (_SandboxDataTypeTest(['complexFloatStruct', ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq']], (CF.complexFloat(6, 7), [CF.complexFloat(3, 4)]), None)),
+                      (_SandboxDataTypeTest(['complexFloatStructSequence', ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']], [(CF.complexFloat(9, 4), [CF.complexFloat(6, 5)])], None))]
 
         # Create an instance of the test component in all 3 languages
         components = {"cpp"   : sb.launch("TestComplexProps", impl="cpp"),
@@ -251,34 +215,42 @@ class SandboxTest(scatest.CorbaTestCase, _TestVector, SetupCommon):
 
         sb.start()
 
+        prop_idx = {}
+        for idx in range(len(components['cpp']._properties)):
+            prop_idx[components['cpp']._properties[idx].id] = idx
         for language in components.keys():
-            # allow for visual inspection of complex sequences
-            # TODO: replace this with an automated comparison
-            print language
-            print components[language].complexFloatProp
-            print "simple struct member"
-            print components[language].FloatStruct.FloatStructMember
-            components[language].FloatStruct.FloatStructMember = 9
-            print components[language].FloatStruct.FloatStructMember
-            print "complex struct member"
-            print components[language].complexFloatStruct.complexFloatStructMember
-            components[language].complexFloatStruct.complexFloatStructMember = complex(9,10)
-            print components[language].complexFloatStruct.complexFloatStructMember
+            for _test in testSet:
+                _prop = components[language]._properties[prop_idx[_test._id[0]]]
+                _value = _prop._queryValue().value()
+                _compareComplexValues(self, _value, _test.expected)
 
+    def test_loadSADFile(self):
+        testSet = [(_SandboxDataTypeTest(["complexBooleanProp"], CF.complexBoolean(True, False), CF._tc_complexBoolean)),
+                      (_SandboxDataTypeTest(["complexULongProp"], CF.complexULong(2, 3), CF._tc_complexULong)),
+                      (_SandboxDataTypeTest(["complexShortProp"], CF.complexShort(2, 3), CF._tc_complexShort)),
+                      (_SandboxDataTypeTest(["complexFloatProp"], CF.complexFloat(2, 3), CF._tc_complexFloat)),
+                      (_SandboxDataTypeTest(["complexOctetProp"], CF.complexOctet(2, 3), CF._tc_complexOctet)),
+                      (_SandboxDataTypeTest(["complexUShort"], CF.complexUShort(2, 3), CF._tc_complexUShort)),
+                      (_SandboxDataTypeTest(["complexDouble"], CF.complexDouble(2, 3), CF._tc_complexDouble)),
+                      (_SandboxDataTypeTest(["complexLong"], CF.complexLong(2, 3), CF._tc_complexLong)),
+                      (_SandboxDataTypeTest(["complexLongLong"], CF.complexLongLong(2, 3), CF._tc_complexLongLong)),
+                      (_SandboxDataTypeTest(["complexULongLong"], CF.complexULongLong(2, 3), CF._tc_complexULongLong)),
+                      (_SandboxDataTypeTest(["complexFloatSequence"], [CF.complexFloat(1, 2), CF.complexFloat(10, 20)], None)),
+                      (_SandboxDataTypeTest(['complexFloatStruct', ['complexFloatStructMember', 'complexFloatStruct::complex_float_seq']], (CF.complexFloat(6, 7), [CF.complexFloat(5, 5), CF.complexFloat(9, 8)]), None)),
+                      (_SandboxDataTypeTest(['complexFloatStructSequence', ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']], [(CF.complexFloat(32, 33), [CF.complexFloat(45, 55), CF.complexFloat(69, 78)]), (CF.complexFloat(42, 43), [CF.complexFloat(145, 155), CF.complexFloat(169, 178), CF.complexFloat(279, 998)])], None))]
 
-            print components[language].complexFloatSequence
-            components[language].complexFloatSequence = [complex(6,7)]*3
-            print components[language].complexFloatSequence
-            print ""
+        retval = sb.loadSADFile('sdr/dom/waveforms/TestComplexPropsSADOverrides/TestComplexPropsSADOverrides.sad.xml')
+        self.assertEquals(retval, True)
+        comp_ac = sb.getComponent('TestComplexProps_1')
 
+        sb.start()
 
-        for componentKey in components.keys():
-            # loop through all three languages and query for the default
-            # property values
-            defaults = self._queryDefaults(components[componentKey])
-            for key in defaults.keys():
-                # Loop through the default property values and compare them
-                # to the expected values.
-                self._compareComplexValues(defaults[key], expectedDefaults[key])
-
-        sb.domainless._cleanUpLaunchedComponents()
+        prop_idx = {}
+        for idx in range(len(comp_ac._propertySet)):
+            prop_idx[comp_ac._propertySet[idx].id] = idx
+        for _test in testSet:
+            if _test._id[0]=='complexBooleanProp':
+                continue
+            _prop = comp_ac._propertySet[prop_idx[_test._id[0]]]
+            _value = _prop._queryValue().value()
+            _compareComplexValues(self, _value, _test.expected)
