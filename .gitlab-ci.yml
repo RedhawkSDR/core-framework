@@ -59,7 +59,6 @@ stages:
     expire_in: 2 days
   except:
     - master
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:el6-i386:
   stage: package-redhawk-codegen
@@ -263,7 +262,6 @@ deploy:
         curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
       fi
   except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
 
 #Trigger separate tests pipeline
@@ -298,8 +296,6 @@ test-trigger:release:
                               $test_url
   only:
     - tags
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .s3: &s3
   image: ${docker_registry}utils/s3cmd:el6-createrepo
