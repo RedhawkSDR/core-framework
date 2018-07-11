@@ -313,7 +313,8 @@ test-trigger:release:
         cp $file $arch;
       done
     - repomanage --keep=2 --old $arch| xargs rm -f; createrepo --update $arch
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist --acl-public --recursive || true
+    - CI_COMMIT_REF_SLUG_NO_RC = $CI_COMMIT_REF_SLUG | sed 's/-rc[0-9]*//'
+    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist --acl-public --recursive || true
 
 deploy-el7:
   variables:
