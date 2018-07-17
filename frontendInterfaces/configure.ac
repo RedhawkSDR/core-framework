@@ -41,11 +41,11 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.1.3])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.0])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 # If you depend on other IDL modules, such as CF or BULKIO add them here
-PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.1])
+PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.2])
 AC_CHECK_PYMODULE(bulkio.bulkioInterfaces, [], [AC_MSG_ERROR([the python bulkio.bulkioInterfaces module is required])])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
