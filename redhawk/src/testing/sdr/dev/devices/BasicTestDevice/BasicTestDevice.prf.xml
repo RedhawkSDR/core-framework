@@ -168,6 +168,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </description>
 	<units>unknown</units>
         <kind kindtype="allocation"/>
+        <action/>
     </simple>
     <!-- execparams -->
     <simple id="DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648"

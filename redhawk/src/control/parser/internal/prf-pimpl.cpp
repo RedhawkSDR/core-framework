@@ -121,6 +121,7 @@ post_IsOptional ()
 void action_pimpl::
 pre ()
 {
+    _type = ossie::Property::ACTION_DEFAULT;
 }
 
 void action_pimpl::
