@@ -35,7 +35,7 @@ Prefix:         %{_prefix}
 #{$ endblock $}
 Name:           {{name}}
 Version:        {{component.version}}
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        {{component.type}} %{name}{{' '+component.title if component.title}}
 
 Group:          REDHAWK/{{component.type}}s
