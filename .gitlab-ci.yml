@@ -1,8 +1,9 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  other_repos: $yum_repo_url/redhawk-dependencies
+  other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
   redhawk_version: '2.2.0'
+  redhawk_deps: 'develop-2.2'
 
 stages:
  - package-redhawk-codegen
@@ -33,7 +34,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=$other_repos/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -308,15 +309,31 @@ test-trigger:release:
     - s3
   script:
     - CI_COMMIT_REF_SLUG_NO_RC=${CI_COMMIT_REF_SLUG%-rc[0-9]*};
-    - /usr/bin/s3cmd sync s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/$arch .
     - /usr/bin/s3cmd sync s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/$arch .
     - mkdir -p $arch
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
     - repomanage --keep=2 --old $arch| xargs rm -f; createrepo --update $arch
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist --acl-public --recursive || true
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist --acl-public --recursive || true
+    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
+    - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
+        /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
+      fi
+    # Pull down dependencies to create aggregated "cf-and-deps" repo
+    - mkdir -p cf-and-deps/$arch
+    - curl ${s3_repo_url}/redhawk-dependencies/redhawk-dependencies/yum/${redhawk_deps}/$dist/$arch/redhawk-dependencies.repo > /etc/yum.repos.d/redhawk-dependencies.repo
+    - reposync --download_path=tmp
+               --newest-only
+               --repoid=redhawk-dependencies
+    - for file in `find tmp -name *.rpm`; do
+        cp $file cf-and-deps/$arch;
+      done
+    - for file in `find output -name *.rpm`; do
+        cp $file cf-and-deps/$arch;
+      done
+    - createrepo cf-and-deps/$arch
+    - cd cf-and-deps
+    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
 
 deploy-el7:
   variables:
