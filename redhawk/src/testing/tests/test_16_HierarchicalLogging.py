@@ -316,6 +316,7 @@ class ApplicationDomainLogging(scatest.CorbaTestCase):
     def test_application_default_log_py(self):
         self.application_default_log("/waveforms/logger_py_w/logger_py_w.sad.xml", 'logger_py')
 
+    @scatest.requireJava
     def test_application_default_log_java(self):
         self.application_default_log("/waveforms/logger_java_w/logger_java_w.sad.xml", 'logger_java')
 

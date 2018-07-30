@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
-#
+# -*- coding: utf-8 -*-
+
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
 #
@@ -18,6 +18,25 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
+
+#
+# Generated Mon Jul 30 12:29:35 2018 by generateDS.py version 2.29.14.
+# Python 2.7.5 (default, Nov  6 2016, 00:28:07)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-11)]
+#
+# Command line options:
+#   ('-f', '')
+#   ('--silence', '')
+#   ('-m', '')
+#   ('-o', 'ossie/parsers/scd.py')
+#
+# Command line arguments:
+#   ../../../xml/xsd/scd.xsd
+#
+# Command line:
+#   /usr/bin/generateDS.py -f --silence -m -o "ossie/parsers/scd.py" ../../../xml/xsd/scd.xsd
+#
+# Current working directory (os.getcwd()):
+#   python
 #
 
 import sys

@@ -207,6 +207,7 @@ class SBEventChannelTest(scatest.CorbaTestCase):
         pub.terminate()
         sub.terminate()
 
+@scatest.requireLog4cxx
 class SBStdOutTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)

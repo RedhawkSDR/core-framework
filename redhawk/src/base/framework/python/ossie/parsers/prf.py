@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
-#
+# -*- coding: utf-8 -*-
+
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
 #
@@ -18,6 +18,25 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
+
+#
+# Generated Mon Jul 30 12:29:35 2018 by generateDS.py version 2.29.14.
+# Python 2.7.5 (default, Nov  6 2016, 00:28:07)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-11)]
+#
+# Command line options:
+#   ('-f', '')
+#   ('--silence', '')
+#   ('-m', '')
+#   ('-o', 'ossie/parsers/prf.py')
+#
+# Command line arguments:
+#   ../../../xml/xsd/prf.xsd
+#
+# Command line:
+#   /usr/bin/generateDS.py -f --silence -m -o "ossie/parsers/prf.py" ../../../xml/xsd/prf.xsd
+#
+# Current working directory (os.getcwd()):
+#   python
 #
 
 import sys
@@ -1707,7 +1726,7 @@ class simple(GeneratedsSuper):
         # Validate type PropertyValueType, a restriction on xs:string.
         if value is not None and Validate_simpletypes_:
             value = str(value)
-            enumerations = ['string', 'boolean', 'ulong', 'objref', 'short', 'float', 'octet', 'char', 'ushort', 'double', 'long', 'longlong', 'ulonglong']
+            enumerations = ['string', 'boolean', 'ulong', 'objref', 'short', 'float', 'octet', 'char', 'ushort', 'double', 'long', 'longlong', 'ulonglong', 'utctime']
             enumeration_respectee = False
             for enum in enumerations:
                 if value == enum:
@@ -2128,7 +2147,7 @@ class simpleSequence(GeneratedsSuper):
         # Validate type PropertyValueType, a restriction on xs:string.
         if value is not None and Validate_simpletypes_:
             value = str(value)
-            enumerations = ['string', 'boolean', 'ulong', 'objref', 'short', 'float', 'octet', 'char', 'ushort', 'double', 'long', 'longlong', 'ulonglong']
+            enumerations = ['string', 'boolean', 'ulong', 'objref', 'short', 'float', 'octet', 'char', 'ushort', 'double', 'long', 'longlong', 'ulonglong', 'utctime']
             enumeration_respectee = False
             for enum in enumerations:
                 if value == enum:
