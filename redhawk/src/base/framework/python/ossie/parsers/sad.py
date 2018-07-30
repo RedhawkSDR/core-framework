@@ -1613,7 +1613,7 @@ class loggingconfig(GeneratedsSuper):
     def __init__(self, level=None, valueOf_=None):
         self.original_tagname_ = None
         self.level = _cast(None, level)
-        self.valueOf_ = valueOf_
+        self.value = valueOf_
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
             subclass = getSubclassFromModule_(
@@ -1628,11 +1628,11 @@ class loggingconfig(GeneratedsSuper):
     def get_level(self): return self.level
     def set_level(self, level): self.level = level
     levelProp = property(get_level, set_level)
-    def get_valueOf_(self): return self.valueOf_
-    def set_valueOf_(self, valueOf_): self.valueOf_ = valueOf_
+    def get_value(self): return self.value
+    def set_value(self, valueOf_): self.value = valueOf_
     def hasContent_(self):
         if (
-            (1 if type(self.valueOf_) in [int,float] else self.valueOf_)
+            (1 if type(self.value ) in [int,float] else self.value)
         ):
             return True
         else:
@@ -1653,7 +1653,7 @@ class loggingconfig(GeneratedsSuper):
         self.exportAttributes(outfile, level, already_processed, namespace_, name_='loggingconfig')
         if self.hasContent_():
             outfile.write('>')
-            outfile.write(self.convert_unicode(self.valueOf_))
+            outfile.write(self.convert_unicode(self.value))
             self.exportChildren(outfile, level + 1, namespace_='', name_='loggingconfig', pretty_print=pretty_print)
             outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
         else:
@@ -1667,7 +1667,7 @@ class loggingconfig(GeneratedsSuper):
     def build(self, node):
         already_processed = set()
         self.buildAttributes(node, node.attrib, already_processed)
-        self.valueOf_ = get_all_text_(node)
+        self.value = get_all_text_(node)
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
@@ -1903,7 +1903,7 @@ class idvalue(GeneratedsSuper):
     superclass = None
     def __init__(self, id_=None, value=None):
         self.original_tagname_ = None
-        self.id_ = _cast(None, id_)
+        self.id = _cast(None, id_)
         self.value = _cast(None, value)
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
@@ -1916,8 +1916,8 @@ class idvalue(GeneratedsSuper):
         else:
             return idvalue(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_id(self): return self.id_
-    def set_id(self, id_): self.id_ = id_
+    def get_id(self): return self.id
+    def set_id(self, id_): self.id = id_
     idProp = property(get_id, set_id)
     def get_value(self): return self.value
     def set_value(self, value): self.value = value
@@ -1950,9 +1950,9 @@ class idvalue(GeneratedsSuper):
         else:
             outfile.write('/>%s' % (eol_, ))
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='idvalue'):
-        if self.id_ is not None and 'id' not in already_processed:
+        if self.id is not None and 'id' not in already_processed:
             already_processed.add('id')
-            outfile.write(' id=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.id_), input_name='id')), ))
+            outfile.write(' id=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.id), input_name='id')), ))
         if self.value is not None and 'value' not in already_processed:
             already_processed.add('value')
             outfile.write(' value=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.value), input_name='value')), ))
@@ -1969,7 +1969,7 @@ class idvalue(GeneratedsSuper):
         value = find_attr_value_('id', node)
         if value is not None and 'id' not in already_processed:
             already_processed.add('id')
-            self.id_ = value
+            self.id = value
         value = find_attr_value_('value', node)
         if value is not None and 'value' not in already_processed:
             already_processed.add('value')
