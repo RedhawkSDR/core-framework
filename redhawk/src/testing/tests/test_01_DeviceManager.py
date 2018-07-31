@@ -81,7 +81,8 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
         self.assertFalse(os.access(cachedir, os.R_OK|os.W_OK|os.X_OK), 'Current user can still access directory')
         try:
             devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
-        except:
+        except Exception, e:
+            print e
             pass
         self.assertEquals(255, devmgr_nb.returncode)
         self.assertEquals(devMgr, None)
