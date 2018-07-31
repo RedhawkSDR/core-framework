@@ -600,11 +600,14 @@ class CorbaTestCase(OssieTestCase):
 
     def _waitRegisteredDevices(self, devMgr, numDevices, timeout=5.0, pause=0.1):
         while timeout > 0.0:
-            if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
-                return True
-            else:
-                timeout -= pause
-                time.sleep(pause)
+            try: # when responding to error conditions during some tests, the Device Manager will trigger a TRANSIENT error
+                if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
+                    return True
+                else:
+                    timeout -= pause
+                    time.sleep(pause)
+            except:
+                break
         return False
 
     def waitTermination(self, child, timeout=5.0, pause=0.1):

@@ -645,7 +645,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 self._domMgr.installApplication(sadpath)
                 appFact = self._domMgr._get_applicationFactories()[0]
                 self._app = appFact.create(appFact._get_name(), [], [])
-            except Exception, e:
+            except:
                 pass
 
         propId = "DCE:c709f95e-6b05-439a-9db9-dba95e70888e"
