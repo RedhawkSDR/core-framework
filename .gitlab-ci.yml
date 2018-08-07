@@ -2,8 +2,8 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
-  redhawk_version: '2.2.0'
-  redhawk_deps: 'develop-2.2'
+  redhawk_version: '2.3.0'
+  redhawk_deps: 'develop-2.3'
 
 stages:
  - package-redhawk-codegen
