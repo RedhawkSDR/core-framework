@@ -3,7 +3,7 @@ variables:
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
   redhawk_version: '2.3.0'
-  redhawk_deps: 'develop-2.3'
+  redhawk_deps: 'develop'
 
 stages:
  - package-redhawk-codegen
