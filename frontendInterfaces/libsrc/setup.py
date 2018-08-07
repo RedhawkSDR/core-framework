@@ -29,7 +29,7 @@ packages = ['frontend' ]
 # replaces it (i.e. a developer does a command-line build), use 1.X.X
 version='__VERSION__'
 if version.find('__') == 0:
-    version = '2.4.3'
+    version = '2.5.0'
 
 setup(
         name='frontend',
