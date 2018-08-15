@@ -50,6 +50,8 @@ parsers/ProcStatParser.cpp \
 parsers/ProcStatParser.h \
 parsers/ProcMeminfoParser.cpp \
 parsers/ProcMeminfoParser.h \
+parsers/PidProcStatParser.cpp \
+parsers/PidProcStatParser.h \
 states/NicState.cpp \
 states/NicState.h \
 states/Limits.cpp \
@@ -61,6 +63,8 @@ states/ProcStat.cpp \
 states/ProcStat.h \
 states/ProcMeminfo.cpp \
 states/ProcMeminfo.h \
+states/Limits.cpp \
+states/Limits.h \
 statistics/CpuUsageAccumulator.cpp \
 statistics/CpuUsageAccumulator.h \
 statistics/CpuUsageStats.cpp \
@@ -80,6 +84,8 @@ utils/EnvironmentPathParser.h \
 utils/EventDispatcher.h \
 utils/FileReader.cpp \
 utils/FileReader.h \
+utils/popen.cpp \
+utils/popen.h \
 utils/IOError.h \
 utils/OverridableSingleton.h \
 utils/ReferenceWrapper.h \
