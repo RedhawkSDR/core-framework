@@ -193,8 +193,8 @@ void TestComplexProps_base::loadProperties()
 
     {
         complexFloatStructSequenceMember_struct __tmp;
-        __tmp.complex_float_seq.push_back(std::complex<float>(6.0,5.0));
-        __tmp.complexFloatStructSequenceMemberMemember = std::complex<float>(9.0,4.0);
+        __tmp.complex_float_seq.push_back(std::complex<float>(9.0,4.0));
+        __tmp.complexFloatStructSequenceMemberMemember = std::complex<float>(6.0,5.0);
         complexFloatStructSequence.push_back(__tmp);
     }
 
