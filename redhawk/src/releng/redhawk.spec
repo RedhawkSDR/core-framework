@@ -51,9 +51,6 @@ Requires:       python-matplotlib
 %endif
 
 Requires:       python
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-Requires:       python-lxml
-%endif
 Requires:       numpy
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
