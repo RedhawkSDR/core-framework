@@ -109,8 +109,8 @@ module FRONTEND {
     struct CartesianPositionInfo {
     	boolean valid;
         string datum; /** Default: DATUM_WGS84 */
-        double x; /** Default Unit: Degrees */
-        double y; /** Default Unit: Degrees */
+        double x; /** Default Unit: Meters */
+        double y; /** Default Unit: Meters */
         double z; /** Default Unit: Meters */
     };
 
