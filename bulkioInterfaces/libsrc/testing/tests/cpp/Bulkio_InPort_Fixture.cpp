@@ -429,6 +429,41 @@ void Bulkio_InPort_Fixture::test_stream_sri_changed(T* port)
 
 }
 
+template <typename T>
+void Bulkio_InPort_Fixture::test_get_packet_stream_removed(T* port)
+{
+  typedef typename T::PortSequenceType PortSequenceType;
+  typedef typename T::StreamList StreamList;
+
+  const size_t stream_count = port->getStreams().size();
+
+  // Create a new stream and push some data to it
+  const char* stream_id = "test_get_packet_stream_removed";
+  BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+  // push sri , data seqeunce
+  port->pushSRI(sri);
+  PortSequenceType data;
+  data.length(1024);
+  port->pushPacket(data, bulkio::time::utils::now(), true, sri.streamID);
+
+  StreamList streams = port->getStreams();
+  CPPUNIT_ASSERT_EQUAL(stream_count + 1, streams.size());
+
+  boost::scoped_ptr<typename T::dataTransfer> packet;
+  packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT(packet);
+  CPPUNIT_ASSERT_EQUAL(true, packet->EOS);
+
+  // The set of streams should have returned to the original
+  streams = port->getStreams();
+  CPPUNIT_ASSERT_EQUAL(stream_count, streams.size());
+  for (typename StreamList::iterator iter = streams.begin(); iter != streams.end(); ++iter) {
+      if (iter->streamID() == stream_id) {
+          CPPUNIT_FAIL("stream not removed on getPacket() with EOS");
+      }
+  }
+}
+
 
 
 
@@ -515,6 +550,7 @@ Bulkio_InPort_Fixture::test_int8()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -539,6 +575,7 @@ Bulkio_InPort_Fixture::test_int16()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -560,6 +597,7 @@ Bulkio_InPort_Fixture::test_int32()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -583,6 +621,7 @@ Bulkio_InPort_Fixture::test_int64()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -605,6 +644,7 @@ Bulkio_InPort_Fixture::test_uint8()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -626,7 +666,7 @@ Bulkio_InPort_Fixture::test_uint16()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
-
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -649,6 +689,7 @@ Bulkio_InPort_Fixture::test_uint32()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -671,6 +712,7 @@ Bulkio_InPort_Fixture::test_uint64()
   test_port_api( port );
   test_stream_disable( port );
   test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 

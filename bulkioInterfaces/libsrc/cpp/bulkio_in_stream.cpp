@@ -508,7 +508,7 @@ private:
     }
 
     float timeout = blocking?bulkio::Const::BLOCKING:bulkio::Const::NON_BLOCKING;
-    DataTransferType* packet = _port->getPacket(timeout, _streamID);
+    DataTransferType* packet = _port->nextPacket(timeout, _streamID);
     if (!packet) {
       return false;
     }

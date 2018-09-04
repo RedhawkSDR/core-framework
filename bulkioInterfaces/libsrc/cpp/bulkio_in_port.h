@@ -327,6 +327,12 @@ namespace bulkio {
     void queuePacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
     //
+    // Fetches the next packet for the given stream ID, blocking for up to
+    // timeout seconds for one to be available
+    //
+    DataTransferType* nextPacket(float timeout, const std::string& streamID);
+
+    //
     // Returns a pointer to the first packet in the queue, blocking for up to
     // timeout seconds for one to be available
     //

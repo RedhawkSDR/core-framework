@@ -440,6 +440,19 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::getPacket(float timeout, const std::string& streamID)
   {
+    DataTransferType* packet = nextPacket(timeout, streamID);
+    if (packet && packet->EOS) {
+      // When user code is calling getPacket(), it is safe to assume they are
+      // not using using the stream API, so remove the associated stream here
+      // to avoid leaking memory
+      removeStream(packet->streamID);
+    }
+    return packet;
+  }
+
+  template < typename PortTraits >
+  typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::nextPacket(float timeout, const std::string& streamID)
+  {
     TRACE_ENTER( logger, "InPort::getPacket"  );
     if (breakBlock) {
       TRACE_EXIT( logger, "InPort::getPacket"  );
@@ -860,8 +873,13 @@ namespace  bulkio {
 
     boost::mutex::scoped_lock lock(streamsMutex);
     typename StreamMap::iterator current = streams.find(streamID);
-    current->second.close();
-    streams.erase(current);
+    if (current != streams.end()) {
+      // There should always be a stream with the expected streamID when this
+      // method is called, but just to be safe, only close and remove when we
+      // know it's a valid stream
+      current->second.close();
+      streams.erase(current);
+    }
 
     // If there's a pending stream waiting, move it to the active list
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
