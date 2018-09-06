@@ -429,7 +429,15 @@ class overloadContainer:
         self.type = type
 
 def convertStringToComplex(value, basetype):
+    negative_imag = False
     _split = value.split('+')
+    if value[1:].find('-') != -1:
+        _split = value.split('-')
+        if len(_split) == 3: # negative real, negative imaginary
+            if _split[0] == '':
+                _split.pop(0)
+                _split[0] = '-'+_split[0]
+        negative_imag = True
     real_idx = -1
     imag_idx = -1
     for idx in range(len(_split)):
@@ -448,13 +456,15 @@ def convertStringToComplex(value, basetype):
     if imag_idx != -1:
         _imag_str = _split[imag_idx].replace('j', '')
         _imag = basetype(_imag_str)
+        if negative_imag:
+            _imag = _imag * -1
 
     if not _real and not _imag:
         return None
     if _real and not _imag:
-        return complex(basetype(_real))
+        return complex(basetype(_real), 0)
     if not _real and _imag:
-        return complex(basetype(_imag))
+        return complex(0, basetype(_imag))
     return complex(basetype(_real), basetype(_imag))
 
 def convertToValue(valuetype, value):

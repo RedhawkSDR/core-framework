@@ -152,7 +152,6 @@ class GPP_i : public GPP_base
           void close();
         };
 
-
         struct component_description {
 	  static const int pstat_history_len=5;
           int         pid;
@@ -387,7 +386,6 @@ class GPP_i : public GPP_base
           // check file and thread limits for the process and system
           //
           bool _check_limits( const thresholds_struct &threshold);
-
           //
           // check threshold limits for nic interfaces to determine busy state
           //

@@ -33,24 +33,37 @@ def parseValues(line, delim=','):
 
 class NumaNode(object):
     def __init__(self, node):
+        self._available = True
         self.node = node
         self.cpus = self._getCpuList()
 
     def _getCpuList(self):
-        filename = '/sys/devices/system/node/node%d/cpulist' % self.node
-        with open(filename) as f:
-            line = f.readline().strip()
-            return parseValues(line, ',')
+        try:
+            filename = '/sys/devices/system/node/node%d/cpulist' % self.node
+            with open(filename) as f:
+                line = f.readline().strip()
+                return parseValues(line, ',')
+        except IOError, e:
+            self._available = False
+            return []
 
 class NumaTopology(object):
     def __init__(self):
+        self._available = True
         self.nodes = [NumaNode(node) for node in self._getNodes()]
         self.cpus = sum((node.cpus for node in self.nodes), [])
 
+    def available(self):
+        return self._available
+
     def _getNodes(self):
-        with open('/sys/devices/system/node/online') as f:
-            line = f.readline().strip()
-            return parseValues(line, ',')
+        try:
+            with open('/sys/devices/system/node/online') as f:
+                line = f.readline().strip()
+                return parseValues(line, ',')
+        except IOError, e:
+            self._available = False
+            return []
 
     def getNodeForCpu(self, cpu):
         for node in self.nodes:

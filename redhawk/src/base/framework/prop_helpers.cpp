@@ -172,8 +172,12 @@ bool ossie::compare_anys(const CORBA::Any& a, const CORBA::Any& b, std::string& 
  */
 template <typename  Type, class CFComplexType>
 CORBA::Any ossie::convertComplexStringToAny(std::string value) {
-    char sign, j;  // sign represents + or -, j represents the letter j in the string
+    
+    char sign = '+'; // sign represents + or -
+    char j = 0; // j represents the letter j in the string
     Type A, B;     // A is the real value, B is the complex value
+    A = 0;
+    B = 0;
 
     CORBA::Any result;
 
@@ -181,10 +185,23 @@ CORBA::Any ossie::convertComplexStringToAny(std::string value) {
     std::stringstream stream(value);
     stream >> A >> sign >> j >> B;
 
+    if (value.size() > 1) {
+        if (value[0] == 'j') {
+            std::stringstream stream(value);
+            stream >> j >> B;
+        } else if ((value[0] == '-') and (value[1] == 'j')) {
+            std::stringstream stream(value);
+            stream >> sign >> j >> B;
+        }
+    }
+
     // if A-jB instead of A+jB, flip the sign of B
     if (sign == '-') {
         B *= -1;
     }
+
+    if (value.find('j') == std::string::npos)
+        B = 0;
 
     // Create a complex representation and convert it to a CORBA::any.
     CFComplexType cfComplex;

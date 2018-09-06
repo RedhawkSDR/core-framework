@@ -45,11 +45,12 @@ from _unitTestHelpers import scatest, runtestHelpers
 def hasNumaSupport():
     return runtestHelpers.haveDefine('../cpp/Makefile', 'HAVE_LIBNUMA')
 
+topology = numa.NumaTopology()
+
 skipUnless = scatest._skipUnless
 def requireNuma(obj):
-    return skipUnless(hasNumaSupport(), 'Affinity control is disabled')(obj)
+    return skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')(obj)
 
-topology = numa.NumaTopology()
 
 def wait_predicate(pred, timeout):
     end = time.time() + timeout
@@ -1278,6 +1279,19 @@ class AffinityTests(GPPSandboxTest):
                 return numa.parseValues(cpu_list, ",")
         return []
 
+    def _getNumCpus(self):
+        output=2
+        try:
+            status,output=commands.getstatusoutput("ls -d /sys/devices/system/cpu/cpu[0-9]*  | wc -l")
+            if status == 0:
+                return int(output)
+            else:
+                status,output=commands.getstatusoutput("lscpu  | egrep '^CPU\('  | awk  '{ print  $2 }'")
+                return int(output)
+        except:
+            pass
+        return output
+
     def _deployWithAffinityOptions(self, name, affinity={}):
         options = {}
         if affinity:
@@ -1286,6 +1300,7 @@ class AffinityTests(GPPSandboxTest):
         return pid
 
     def _getNicAffinity(self, nic):
+        ncpus=self._getNumCpus()
         cpu_list = []
         with open('/proc/interrupts', 'r') as fp:
             for line in fp:
@@ -1296,7 +1311,8 @@ class AffinityTests(GPPSandboxTest):
                     continue
                 # Discard the first entry (the IRQ number) and the last two
                 # (type and name) to get the CPU IRQ service totals
-                cpu_irqs = line.split()[1:-2]
+                ncpus+=1
+                cpu_irqs = line.split()[1:ncpus]
                 for cpu, count in enumerate(cpu_irqs):
                     if int(count) > 0:
                         cpu_list.append(cpu)
@@ -1325,6 +1341,9 @@ class AffinityTests(GPPSandboxTest):
         self.assertNotEqual(0, len(self.comp.available_nic_interfaces), 'no available NIC interfaces')
         nic = self.comp.available_nic_interfaces[0]
         nic_cpus = self._getNicAffinity(nic)
+        # find all the cpus for each node
+        nodes = set(topology.getNodeForCpu(cpu) for cpu in self._getNicAffinity(nic))
+        cpulist = sum((node.cpus for node in nodes), [])
         if len(nic_cpus) > 1:
             # There's more than one CPU assigned to service NIC interrupts,
             # just blacklist the first one
@@ -1334,11 +1353,17 @@ class AffinityTests(GPPSandboxTest):
             # blacklist one of the other CPUs
             cpu = nic_cpus[0]
             node = topology.getNodeForCpu(cpu)
+            cpulist = node.cpus[:]
             # Find the CPU in the list and select the next one (wrapping around
             # as necessary) to ensure that we don't blacklist the wrong CPU
             index = node.cpus.index(cpu)
             index = (index + 1) % len(node.cpus)
             blacklist_cpu = node.cpus[index]
+
+        
+        # default nic deployment is per socket, use cpulist per
+        # node to check results
+        nic_cpus=[ x for x in cpulist if x not in [blacklist_cpu]]
 
         # With a CPU blacklist, only the CPUs that are expliclitly allowed to
         # handle the NIC are in the allowed list, as opposed to all CPUs in the

@@ -5,11 +5,30 @@
 burstio_top=../../..
 burstio_libsrc_top=$burstio_top/src
 export LD_LIBRARY_PATH=$burstio_libsrc_top/cpp/.libs:$burstio_libsrc_top/java/.libs:${LD_LIBRARY_PATH}
-export PYTHONPATH=$burstio_libsrc_top/python/redhawk:$burstio_libsrc_top/python:${PYTHONPATH}
+export PYTHONPATH=$burstio_libsrc_top/python:${PYTHONPATH}
 
 #
 #  Run Python based testing..
 #
+
+# work around for import issues with redhawk bitbuffer
+bbuffer_link="../../src/python/redhawk/bitbuffer.py"
+
+cleanup_redhawk_import() {
+  [ -L $bbuffer_link ] && rm "$bbuffer_link"
+  [ -f $bbuffer_link"c" ] && rm $bbuffer_link"c"
+}
+
+setup_redhawk_import() {
+
+  cleanup_redhawk_import
+
+  pushd ../../src/python/redhawk
+  ln -s $OSSIEHOME/lib/python/redhawk/bitbuffer.py bitbuffer.py
+  popd
+}
+
+setup_redhawk_import
 if [ $# -gt 0 ]
 then
     # run an associated test script
@@ -24,7 +43,8 @@ else
     cd -
 fi
 
-
+# clean up
+cleanup_redhawk_import
 
 #
 #  Run Java based testing
