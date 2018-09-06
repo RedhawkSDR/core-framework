@@ -375,6 +375,15 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    def test_DependencyActionDefaultKind(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        domMgr.createApplication("/waveforms/math_py_w/math_py_w.sad.xml", 'some_app', [], [])
+        self.assertEqual(len(domMgr._get_applications()), 1)
+
     def test_PartialStructProp(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
