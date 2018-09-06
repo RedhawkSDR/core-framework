@@ -35,6 +35,10 @@ cd ../components/TestLargePush/python
 ./reconf; ./configure; make
 cd -
 
+cd ../components/StreamWriteCheck/cpp
+./reconf; ./configure; make -j
+cd -
+
 cd ../components/multiout_attachable/cpp
 ./reconf; ./configure; make -j
 cd -

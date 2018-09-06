@@ -126,7 +126,7 @@ public:
       if (++timestamp == times.end()) {
         last = count;
       } else {
-        last = timestamp->offset;
+        last = timestamp->offset < count? timestamp->offset : count;
         if (_sri.mode != 0 && !is_complex<Sample>::value) {
           // If the stream is complex but the data type is not, adjust sample
           // offset to account for the fact that each real/imaginary pair is
