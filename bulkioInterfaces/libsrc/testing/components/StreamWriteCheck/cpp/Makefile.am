@@ -25,6 +25,10 @@ xmldir = $(prefix)/dom/components/StreamWriteCheck/
 dist_xml_DATA = ../StreamWriteCheck.scd.xml ../StreamWriteCheck.prf.xml ../StreamWriteCheck.spd.xml
 bulkio_top=../../../../../
 bulkio_libsrc_top=$(bulkio_top)/libsrc
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
+
+
 
 distclean-local:
 	rm -rf m4
