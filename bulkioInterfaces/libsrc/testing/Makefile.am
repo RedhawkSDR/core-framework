@@ -23,6 +23,7 @@ SUBDIRS += components/TestLargePush/cpp
 SUBDIRS += components/multiout_attachable/cpp
 SUBDIRS += components/Oversized_framedata/cpp
 SUBDIRS += components/src/cpp
+SUBDIRS += components/StreamWriteCheck/cpp
 SUBDIRS += components/snk_slow/cpp
 if HAVE_JAVASUPPORT
 SUBDIRS += components/TestLargePush/java

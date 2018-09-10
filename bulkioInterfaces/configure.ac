@@ -164,6 +164,7 @@ AC_CONFIG_FILES([libsrc/Makefile \
                  libsrc/testing/components/Java_Ports/java/Makefile \
                  libsrc/testing/components/Oversized_framedata/cpp/Makefile \
                  libsrc/testing/components/src/cpp/Makefile \
+                 libsrc/testing/components/StreamWriteCheck/cpp/Makefile \
                  libsrc/testing/components/snk_slow/cpp/Makefile \
                  libsrc/testing/components/Oversized_framedata/java/Makefile \
                  libsrc/testing/components/TestLargePush/cpp/Makefile \

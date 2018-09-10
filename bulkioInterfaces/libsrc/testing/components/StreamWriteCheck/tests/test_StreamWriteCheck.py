@@ -40,20 +40,20 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
     def testBasicBehavior(self):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
-        source = sb.DataSource("long")
-        sink = sb.DataSink()
+        source = sb.StreamSource(streamID='hello', format="long")
+        sink = sb.StreamSink()
         data = range(100)
         source.connect(self.comp)
         self.comp.connect(sink)
         source.start()
         sink.start()
         for i in range(100):
-            source.push(range(100), False, "hello", 0.1, False, [])
+            source.write(range(100))
         self.comp.start()
         time.sleep(2)
-        recvd = sink.getData(tstamps=True)
-        self.assertEquals(len(recvd[0]), 801)
-        self.assertEquals(len(recvd[1]), 9)
+        recvd = sink.read()
+        self.assertEquals(len(recvd.data), 801)
+        self.assertEquals(len(recvd.timestamps), 9)
         self.comp.stop()
 
 if __name__ == "__main__":
