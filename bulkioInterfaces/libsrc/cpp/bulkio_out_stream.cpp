@@ -61,6 +61,27 @@ public:
         // Send an empty packet with an end-of-stream marker; since there is no
         // sample data, the timestamp does not matter
         _send(BufferType(), bulkio::time::utils::notSet(), true);
+/*=======
+    size_t first = 0;
+    while (first < count) {
+      size_t last = 0;
+      const BULKIO::PrecisionUTCTime& when = timestamp->time;
+      if (++timestamp == times.end()) {
+        last = count;
+      } else {
+        last = timestamp->offset < count? timestamp->offset : count;
+        if (_sri.mode != 0 && !is_complex<Sample>::value) {
+          // If the stream is complex but the data type is not, adjust sample
+          // offset to account for the fact that each real/imaginary pair is
+          // actually two values
+          last *= 2;
+        }
+      }
+      const size_t pass = last-first;
+      write(data+first, pass, when);
+      first += pass;
+>>>>>>> origin/bug/CCB-470-Output-stream-write-length-error
+*/
     }
 
     void setXStart(double start)
