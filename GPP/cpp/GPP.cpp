@@ -1571,7 +1571,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 	else { // per process logging
 	    RH_TRACE(this->_baseLog, "Redirect per process for :" << path << " file: " << rfname );
 	    comp_fd[0]=-1;
-	    comp_fd[1] = open(rfname.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
+	    comp_fd[1] = open(rfname.c_str(), O_RDWR | O_CREAT | O_APPEND , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
 	    if ( comp_fd[1] == -1 ) {
 		RH_ERROR(this->_baseLog, "Failure to create redirected IO for:" << path);
 		throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to create redirected IO for component");
@@ -2883,7 +2883,7 @@ int GPP_i::redirected_io_handler()
   RH_DEBUG(this->_baseLog, " Locking For Redirect Processing............. ");
   ReadLock lock(fdsLock);  
 
-  int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
+  int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT | O_APPEND , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
   if ( redirect_file != -1 )  {
     if ( lseek(redirect_file, 0, SEEK_END) == -1  )  {
       RH_DEBUG(this->_baseLog, " Unable to SEEK To file end, file: " << _componentOutputLog);
