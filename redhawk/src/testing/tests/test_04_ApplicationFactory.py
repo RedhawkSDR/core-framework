@@ -420,10 +420,10 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         app = domMgr.createApplication("/waveforms/slow_stop_cpp_w/slow_stop_cpp_w.sad.xml", 'slow_stop_cpp_w', [], [])
-        time.sleep(1)
         app.start()
-        time.sleep(0.1)
+        self.assertEquals(app._get_started(), True)
         app.stop()
+        self.assertEquals(app._get_started(), False)
 
     def test_NoTimeout(self):
         nodebooter, domMgr = self.launchDomainManager()
