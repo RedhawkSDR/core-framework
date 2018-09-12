@@ -2883,7 +2883,7 @@ int GPP_i::redirected_io_handler()
   RH_DEBUG(this->_baseLog, " Locking For Redirect Processing............. ");
   ReadLock lock(fdsLock);  
 
-  int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT | O_APPEND , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
+  int redirect_file = open(_componentOutputLog.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH  );
   if ( redirect_file != -1 )  {
     if ( lseek(redirect_file, 0, SEEK_END) == -1  )  {
       RH_DEBUG(this->_baseLog, " Unable to SEEK To file end, file: " << _componentOutputLog);
