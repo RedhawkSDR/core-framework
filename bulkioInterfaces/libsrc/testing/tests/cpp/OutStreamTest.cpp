@@ -533,7 +533,6 @@ void NumericOutStreamTest<Port>::testStreamWriteCheck()
         CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet timestamp is incorrect", ts->time, stub->packets[ii].T);
         CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet offset does not match timestamp offset", expected_offset, scalars_received);
         scalars_received += stub->packets[ii].data.length();
-        std::cout<<"scalar received: "<<stub->packets[ii].data.length()<<std::endl;
     }
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Final packet size is incorrect", scalars_received, push_size);
 }
