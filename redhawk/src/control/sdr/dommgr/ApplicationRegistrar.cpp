@@ -70,6 +70,15 @@ void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resourc
           try {
               _application->registerComponent(obj);
           }
+          catch( CF::InvalidObjectReference &ex ) {
+		throw;
+	  }
+          catch( CF::DuplicateName &ex ) {
+		throw;
+	  }
+          catch( CORBA::SystemException &ex) {
+		throw;
+	  }
           catch(...) {
             if ( Name != NULL ) {
                 RH_NL_INFO("ApplicationRegistrar", "Unhandled exception from application, registering " << Name );
