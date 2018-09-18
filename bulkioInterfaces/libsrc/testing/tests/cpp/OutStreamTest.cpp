@@ -493,7 +493,50 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
     CPPUNIT_ASSERT_MESSAGE("Disabling buffering did not flush", stub->packets.size() == 3);
 }
 
-template <class Port>
+void NumericOutStreamTest<Port>::testStreamWriteCheck()
+{
+    StreamType stream = port->createStream("compound_push");
+    // Generate a ramp using the scalar type; if the data needs to be pushed as
+    // complex, it will be reintepreted there
+    std::vector<ScalarType> scalars;
+    size_t number_tstamps = 10;
+    size_t payload_tstamps = 9;
+    size_t single_push_size = 100;
+    scalars.resize(single_push_size*number_tstamps);
+    for (size_t ii = 0; ii < scalars.size(); ++ii) {
+        scalars[ii] = ii;
+    }
+    size_t sample_count = scalars.size();
+
+    // Create 9 timestamps
+    BULKIO::PrecisionUTCTime start = bulkio::time::utils::now();
+    std::list<bulkio::SampleTimestamp> tstamps;
+    for (size_t tstamp_idx=0; tstamp_idx<number_tstamps; tstamp_idx++) {
+        tstamps.push_back(bulkio::SampleTimestamp(start+tstamp_idx, single_push_size*tstamp_idx));
+    }
+
+    size_t push_size = 801;
+    stream.write(&scalars[0], push_size, tstamps);
+
+    // Data should have been broken into one chunk per timestamp
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Number of packets does not match timestamps",
+                                 payload_tstamps, stub->packets.size());
+
+    // Check that the packets are at the right offsets (implicitly checking
+    // that the prior packet was the right size) and have the correct time
+    size_t scalars_received = 0;
+    std::list<bulkio::SampleTimestamp>::iterator ts = tstamps.begin();
+    for (size_t ii = 0; ii < payload_tstamps; ++ii, ++ts) {
+        // Take complex data into account for the expected timestamp offset
+        size_t expected_offset = ts->offset;
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet timestamp is incorrect", ts->time, stub->packets[ii].T);
+        CPPUNIT_ASSERT_EQUAL_MESSAGE("Packet offset does not match timestamp offset", expected_offset, scalars_received);
+        scalars_received += stub->packets[ii].data.length();
+        std::cout<<"scalar received: "<<stub->packets[ii].data.length()<<std::endl;
+    }
+    CPPUNIT_ASSERT_EQUAL_MESSAGE("Final packet size is incorrect", scalars_received, push_size);
+}
+
 void NumericOutStreamTest<Port>::testWriteTimestampsReal()
 {
     StreamType stream = port->createStream("write_timestamps_real");
