@@ -493,6 +493,7 @@ void BufferedOutStreamTest<Port>::testFlushOnBufferSizeChange()
     CPPUNIT_ASSERT_MESSAGE("Disabling buffering did not flush", stub->packets.size() == 3);
 }
 
+template <class Port>
 void NumericOutStreamTest<Port>::testStreamWriteCheck()
 {
     StreamType stream = port->createStream("compound_push");
@@ -537,6 +538,7 @@ void NumericOutStreamTest<Port>::testStreamWriteCheck()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Final packet size is incorrect", scalars_received, push_size);
 }
 
+template <class Port>
 void NumericOutStreamTest<Port>::testWriteTimestampsReal()
 {
     StreamType stream = port->createStream("write_timestamps_real");
