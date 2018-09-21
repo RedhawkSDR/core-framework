@@ -313,7 +313,7 @@ test-trigger:release:
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
-    - createrepo  $arch
+    - createrepo $arch
     - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
     - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
         /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
