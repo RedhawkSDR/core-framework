@@ -40,14 +40,31 @@ def boolLiteral(value):
         value = bool(value)
     return str(value)
 
+def checkValue(value):
+    base=10
+    if type(value) == str:
+        _v=value.upper()
+        if _v.startswith('0X') or _v.startswith('X'):
+            if _v.startswith('X'): value='0'+value
+            base=16
+        if _v.startswith('0O') or _v.startswith('O'):
+            if _v.startswith('O'): value='0'+value
+            base=8
+        if _v.startswith('0B') or _v.startswith('B'):
+            if _v.startswith('B'): value='0'+value
+            base=2
+    return value, base
+
 def floatLiteral(value):
     return repr(float(value))
 
 def intLiteral(value):
-    return repr(int(value))
+    value, base = checkValue(value)
+    return repr(int(value,base))
 
 def longLiteral(value):
-    return repr(long(value))
+    value, base = checkValue(value)
+    return repr(long(value,base))
 
 def stringToBoolean(value):
     if value.lower() == 'true':
