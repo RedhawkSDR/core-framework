@@ -184,9 +184,9 @@ namespace bulkio {
 
     SCOPED_LOCK lock(sriUpdateLock);
     SriTable::iterator currH = currentHs.find(streamID);
+    StreamDescriptor sri(H);
     if (currH == currentHs.end()) {
       LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      StreamDescriptor sri(H);
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
         newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
@@ -196,10 +196,21 @@ namespace bulkio {
       
       createStream(streamID, sri);
     } else {
-      if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
-        LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currH->second.first = StreamDescriptor(H);
-        currH->second.second = true;
+      int eos_count = 0;
+      for (typename PacketQueue::iterator ii = this->packetQueue.begin(); ii != this->packetQueue.end(); ++ii) {
+          if (((*ii)->streamID == streamID) and ((*ii)->EOS)) {
+              eos_count++;
+          }
+      }
+      int additional_streams = 1+pendingStreams.count(streamID); // count current and pending streams
+      if (additional_streams == eos_count) { // current and pending streams are all eos
+        createStream(streamID, sri);
+      } else {
+        if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
+            LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
+            currH->second.first = StreamDescriptor(H);
+            currH->second.second = true;
+        }
       }
     }
     TRACE_EXIT( _portLog, "InPort::pushSRI"  );
