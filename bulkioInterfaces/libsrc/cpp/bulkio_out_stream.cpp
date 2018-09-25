@@ -542,7 +542,6 @@ inline void NumericOutputStream<PortType>::_writeMultiple(const redhawk::shared_
     if (timestamp == times.end()) {
         throw std::logic_error("no timestamps given");
     }
-
     size_t first = 0;
     while (first < data.size()) {
         size_t last = 0;
@@ -550,7 +549,7 @@ inline void NumericOutputStream<PortType>::_writeMultiple(const redhawk::shared_
         if (++timestamp == times.end()) {
             last = data.size();
         } else {
-            last = timestamp->offset;
+            last = timestamp->offset < data.size()? timestamp->offset : data.size();
             if (!is_complex<Sample>::value && this->complex()) {
                 // If the stream is complex but the data type is not, adjust sample
                 // offset to account for the fact that each real/imaginary pair is
