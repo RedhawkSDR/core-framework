@@ -29,6 +29,7 @@ template <class Port>
 class OutStreamTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(OutStreamTest);
+    CPPUNIT_TEST(testStreamWriteCheck);
     CPPUNIT_TEST(testWriteTimestampsReal);
     CPPUNIT_TEST(testWriteTimestampsComplex);
     CPPUNIT_TEST(testWriteTimestampsMixed);
@@ -38,6 +39,7 @@ public:
     void setUp();
     void tearDown();
 
+    void testStreamWriteCheck();
     void testWriteTimestampsReal();
     void testWriteTimestampsComplex();
     void testWriteTimestampsMixed();
