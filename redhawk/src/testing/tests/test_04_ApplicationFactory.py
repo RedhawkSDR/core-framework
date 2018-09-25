@@ -413,6 +413,18 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    def test_cppSlowStop(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        app = domMgr.createApplication("/waveforms/slow_stop_cpp_w/slow_stop_cpp_w.sad.xml", 'slow_stop_cpp_w', [], [])
+        app.start()
+        self.assertEquals(app._get_started(), True)
+        app.stop()
+        self.assertEquals(app._get_started(), False)
+
     def test_NoTimeout(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
