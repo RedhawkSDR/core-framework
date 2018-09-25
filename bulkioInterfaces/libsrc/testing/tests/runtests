@@ -96,14 +96,6 @@ cd ../components/Oversized_framedata/tests/
 cd -
 
 #
-#  Run Partial frame test
-#
-#
-cd ../components/StreamWriteCheck/tests/
-./test_StreamWriteCheck.py
-cd -
-
-#
 #  Run jni reference resolution
 #
 #
