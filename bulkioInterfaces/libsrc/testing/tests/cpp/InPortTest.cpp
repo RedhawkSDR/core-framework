@@ -85,6 +85,31 @@ void InPortTest<Port>::testGetPacket()
 }
 
 template <class Port>
+void InPortTest<Port>::testGetPacketStreamRemoved()
+{
+    typedef typename Port::StreamList StreamList;
+
+    // Create a new stream and push some data to it
+    const char* stream_id = "test_get_packet_stream_removed";
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+
+    this->_pushTestPacket(50, bulkio::time::utils::now(), true, stream_id);
+
+    StreamList streams = port->getStreams();
+    CPPUNIT_ASSERT_EQUAL((size_t) 1, streams.size());
+
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(true, packet->EOS);
+
+    // The set of streams should be empty again
+    streams = port->getStreams();
+    CPPUNIT_ASSERT(streams.empty());
+}
+
+template <class Port>
 void InPortTest<Port>::testActiveSRIs()
 {
     BULKIO::StreamSRISequence_var active_sris = port->activeSRIs();

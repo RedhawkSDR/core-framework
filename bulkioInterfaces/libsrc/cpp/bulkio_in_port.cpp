@@ -493,6 +493,12 @@ namespace bulkio {
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
     if (packet) {
       transfer = new DataTransferType(packet->buffer, packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
+      if (packet->EOS) {
+        // When user code is calling getPacket(), it is safe to assume they are
+        // not using using the stream API, so remove the associated stream here
+        // to avoid leaking memory
+        removeStream(packet->streamID);
+      }
     }
     return transfer;
   }
@@ -711,7 +717,14 @@ namespace bulkio {
 
     // Remove the current stream, and if there's a pending stream with the same
     // stream ID, move it to the active list
-    streams.erase(streamID);
+    typename StreamMap::iterator current = streams.find(streamID);
+    if (current != streams.end()) {
+      // There should always be a stream with the expected streamID when this
+      // method is called, but just to be safe, only close and remove when we
+      // know it's a valid stream
+      current->second.close();
+      streams.erase(current);
+    }
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
       LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");
