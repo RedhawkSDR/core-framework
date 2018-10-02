@@ -948,16 +948,22 @@ void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
 bool GPP_i::_threadThresholdCheck(ThresholdMonitor* monitor)
 {
     int gpp_max_threads = gpp_limits.max_threads * modified_thresholds.threads;
-    int sys_max_threads = sys_limits.max_threads * modified_thresholds.threads;
-    RH_TRACE(_baseLog, "Update thread threshold monitor (GPP), threshold=" << gpp_max_threads
-             << " measured=" << gpp_limits.current_threads);
-    RH_TRACE(_baseLog, "Update thread threshold monitor (system), threshold=" << sys_max_threads
-             << " measured=" << sys_limits.current_threads);
-    if (gpp_limits.current_threads > gpp_max_threads) {
-        return true;
-    } else if (sys_limits.current_threads > sys_max_threads) {
-        return true;
+    if (gpp_limits.max_threads != -1) {
+        RH_TRACE(_baseLog, "Update thread threshold monitor (GPP), threshold=" << gpp_max_threads
+                 << " measured=" << gpp_limits.current_threads);
+        if (gpp_limits.current_threads > gpp_max_threads) {
+            return true;
+        }
     }
+    int sys_max_threads = sys_limits.max_threads * modified_thresholds.threads;
+    if (sys_limits.max_threads != -1) {
+        RH_TRACE(_baseLog, "Update thread threshold monitor (system), threshold=" << sys_max_threads
+                 << " measured=" << sys_limits.current_threads);
+        if (sys_limits.current_threads > sys_max_threads) {
+            return true;
+        }
+    }
+
     return false;
 }
 
