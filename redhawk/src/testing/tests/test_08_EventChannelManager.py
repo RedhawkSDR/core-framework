@@ -387,7 +387,7 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         # push some data and make sure it arrives
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub.getData(), ['hello'])
+        self.assertEquals(em_sub.getData()._v, ['hello'])
 
         # release the subscriber and push some data and make sure it does not arrive
         em_sub.terminate()
@@ -399,7 +399,7 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         em_sub_2 = mgr.Subscriber('IDM_Channel', 'hello_2')
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub_2.getData(), ['hello'])
+        self.assertEquals(em_sub_2.getData()._v, ['hello'])
 
         # release the publisher and push some data and make sure it does not arrive
         em_pub_2 = mgr.Publisher('IDM_Channel', 'foo_2')
@@ -411,4 +411,4 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         # create a new publisher and push some data and make sure the subcriber is still ok
         em_pub_2.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub_2.getData(), ['hello'])
+        self.assertEquals(em_sub_2.getData()._v, ['hello'])
