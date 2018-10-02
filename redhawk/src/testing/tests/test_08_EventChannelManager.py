@@ -23,6 +23,7 @@ from _unitTestHelpers import scatest
 from omniORB import URI, any
 from ossie.cf import CF
 from ossie.properties import *
+from ossie.events import Manager
 import threading
 import time
 
@@ -349,4 +350,65 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
 
         self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, 'ecm_test')
 
+    def test_EM_selfUnregister(self):
+        
+        class domContainer:
+            def __init__(self, dommgr):
+                self.dom = dommgr
+            def getRef(self):
+                return self.dom
 
+        class resourceContainer:
+            def __init__(self, dommgr):
+                self.dom = domContainer(dommgr)
+            def getDomainManager(self):
+                return self.dom
+
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+        ecm = self._domMgr._get_eventChannelMgr()
+
+        # get list of channels (should be ODM/IDM
+        clist,citer = self.ecm.listChannels(2)
+        self.assertEqual(citer, None )
+        self.assertEqual(len(clist), 2 )
+
+        clist,citer = self.ecm.listRegistrants('IDM_Channel', 3)
+        self.assertEqual(citer, None )
+        self.assertEqual(len(clist), 2 )
+
+        evt_reg = CF.EventChannelManager.EventRegistration( channel_name = 'IDM_Channel', reg_id = 'my_reg_id')
+        reg = ecm.registerResource(evt_reg)
+        res = resourceContainer(self._domMgr)
+        mgr = Manager.GetManager(res)
+        em_pub = mgr.Publisher('IDM_Channel', 'foo')
+        em_sub = mgr.Subscriber('IDM_Channel', 'hello')
+
+        # push some data and make sure it arrives
+        em_pub.push(any.to_any(['hello']))
+        time.sleep(1)
+        self.assertEquals(em_sub.getData(), ['hello'])
+
+        # release the subscriber and push some data and make sure it does not arrive
+        em_sub.terminate()
+        em_pub.push(any.to_any(['hello']))
+        time.sleep(1)
+        self.assertEquals(em_sub.getData(), None)
+
+        # create a new subscriber and push some data and make sure the publisher is still ok
+        em_sub_2 = mgr.Subscriber('IDM_Channel', 'hello_2')
+        em_pub.push(any.to_any(['hello']))
+        time.sleep(1)
+        self.assertEquals(em_sub_2.getData(), ['hello'])
+
+        # release the publisher and push some data and make sure it does not arrive
+        em_pub_2 = mgr.Publisher('IDM_Channel', 'foo_2')
+        em_pub.terminate()
+        em_pub.push(any.to_any(['hello']))
+        time.sleep(1)
+        self.assertEquals(em_sub_2.getData(), None)
+
+        # create a new publisher and push some data and make sure the subcriber is still ok
+        em_pub_2.push(any.to_any(['hello']))
+        time.sleep(1)
+        self.assertEquals(em_sub_2.getData(), ['hello'])
