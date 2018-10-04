@@ -73,6 +73,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/foo/bar/comp/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
+          sdr/dom/components/slow_stop_cpp/cpp \
           sdr/dom/components/huge_msg_cpp/cpp \
           sdr/dom/components/zero_length/cpp \
           sdr/dom/components/svc_error_cpp/cpp \
