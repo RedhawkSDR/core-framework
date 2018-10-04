@@ -758,7 +758,7 @@ namespace events {
     try {
         if (not CORBA::is_nil(_ecm)) {
             ossie::events::EventRegistration         ereg;
-            std::string registrationId("pusheventsupplier_registration");
+            std::string registrationId("");
             ereg.channel_name = CORBA::string_dup(name.c_str());
             ereg.reg_id = CORBA::string_dup(registrationId.c_str());
             registration = _ecm->registerResource( ereg );
