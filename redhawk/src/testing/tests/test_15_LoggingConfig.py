@@ -126,6 +126,7 @@ class PyDomainEventLoggingConfig(scatest.CorbaTestCase):
                 reg_count = _c.reg_count
         self.assertEquals(reg_count, 0)
 
+@scatest.requireJava
 class JavaDomainEventLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
         domBooter, self._domMgr = self.launchDomainManager()
