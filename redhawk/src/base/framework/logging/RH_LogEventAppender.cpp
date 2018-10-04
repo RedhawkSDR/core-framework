@@ -113,13 +113,12 @@ channelName("LOG_CHANNEL"),
 	_nameContext(""),
 	_reconnect_retries(10),
 	_reconnect_delay(10),
-	_cleanup_event_channel(0)
-{
-
+	_cleanup_event_channel(0) {
 }
 
 
 RH_LogEventAppender::~RH_LogEventAppender() {
+//use ecm
 
   if ( _event_channel &&  _cleanup_event_channel ) {
       _event_channel.reset();
