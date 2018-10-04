@@ -118,7 +118,6 @@ channelName("LOG_CHANNEL"),
 
 
 RH_LogEventAppender::~RH_LogEventAppender() {
-//use ecm
 
   if ( _event_channel &&  _cleanup_event_channel ) {
       _event_channel.reset();
