@@ -32,6 +32,7 @@
 #include "ossie/debug.h"
 #include "ossie/CorbaUtils.h"
 #include "ossie/EventChannelSupport.h"
+#include <ossie/CF/cf.h>
 
 
 namespace ossie {
@@ -744,6 +745,28 @@ namespace events {
       return;
     }
 
+    CF::EventChannelManager_var _ecm = CF::EventChannelManager::_nil();
+    try {
+        std::string dommgr_name = nc_name+"/"+nc_name;
+        CORBA::Object_var dom_obj = ossie::corba::objectFromName(dommgr_name);
+        CF::DomainManager_ptr dom_ptr = CF::DomainManager::_narrow(dom_obj);
+        _ecm = dom_ptr->eventChannelMgr();
+    } catch (...) {
+    }
+
+    ossie::events::EventChannelReg_var       registration;
+    try {
+        if (not CORBA::is_nil(_ecm)) {
+            ossie::events::EventRegistration         ereg;
+            std::string registrationId("pusheventsupplier_registration");
+            ereg.channel_name = CORBA::string_dup(name.c_str());
+            ereg.reg_id = CORBA::string_dup(registrationId.c_str());
+            registration = _ecm->registerResource( ereg );
+            nc_name = nc_name + "^" + ossie::corba::returnString(registration->reg.reg_id);
+        }
+    } catch (...) {
+    }
+
     CosEventChannelAdmin::SupplierAdmin_var     supplier_admin;
     int tries=retries;
     do
@@ -823,6 +846,28 @@ namespace events {
   };
     
   PushEventSupplier::~PushEventSupplier( ) {
+
+    CF::EventChannelManager_var _ecm = CF::EventChannelManager::_nil();
+    std::string::size_type reg_id_idx = nc_name.find("^");
+    std::string tmp_nc_name = nc_name.substr(0, reg_id_idx);
+    try {
+        std::string dommgr_name = tmp_nc_name+"/"+tmp_nc_name;
+        CORBA::Object_var dom_obj = ossie::corba::objectFromName(dommgr_name);
+        CF::DomainManager_ptr dom_ptr = CF::DomainManager::_narrow(dom_obj);
+        _ecm = dom_ptr->eventChannelMgr();
+    } catch (...) {
+    }
+
+    try {
+        if (not CORBA::is_nil(_ecm)) {
+            std::string reg_id = nc_name.substr(reg_id_idx+1);
+            ossie::events::EventRegistration ereg;
+            ereg.channel_name = CORBA::string_dup(name.c_str());
+            ereg.reg_id = CORBA::string_dup(reg_id.c_str());
+            _ecm->unregister(ereg);
+        }
+    } catch (...) {
+    }
 
     RH_NL_DEBUG("PushEventSupplier", "DTOR - START." );
     CORBA::ORB_ptr orb = ossie::corba::Orb();

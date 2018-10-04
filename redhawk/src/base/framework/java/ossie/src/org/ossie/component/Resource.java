@@ -1223,6 +1223,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
         Thread shutdownWatcher = new Thread(new Runnable() {
                 public void run() {
                     resource_i.waitDisposed();
+                    LogManager.shutdown();
                     // On slow VMs, shutting down the ORB immediately after
                     // releaseObject() sometimes leads to a CORBA.COMM_FAILURE
                     // exception being thrown to the caller, presumably because
