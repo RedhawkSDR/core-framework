@@ -1160,6 +1160,60 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
             prepend_args.push_back(waveform_name+"."+name_binding);
         }
     }
+    bool useDocker = false;
+    if (tmp_params.find("__DOCKER_IMAGE__") != tmp_params.end()) {
+        std::string image_name = tmp_params["__DOCKER_IMAGE__"].toString();
+        LOG_DEBUG(GPP_i, __FUNCTION__ << "Component specified a Docker image: " << image_name);
+        std::string target = GPP_i::find_exec("docker");
+        if(!target.empty()) {
+            char buffer[128];
+            std::string result = "";
+            std::string docker_query = target + " image -q " + image_name;
+            FILE* pipe = popen(docker_query.c_str(), "r");
+            if (!pipe)
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_EINVAL, "Could not run popen");
+            try {
+                while (!feof(pipe)) {
+                    if (fgets(buffer, 128, pipe) != NULL) {
+                        result += buffer;
+                    }
+                }
+            } catch (...) {
+                pclose(pipe);
+                throw;
+            }
+            pclose(pipe);
+            if (result.empty()) {
+                CF::Properties invalidParameters;
+                invalidParameters.length(invalidaParameters.length() + 1);
+                invalidParameters[invalidParameters.length() -1].id = "__DOCKER_IMAGE__";
+                invalidParameters[invalidParameters.length() -1].value <<= image_name.c_str();
+                throw CF::ExecutableDevice::InvalidParameters(invalidParameters);
+            }
+            std::string container_name(component_id);
+            std::replace(container_name.begin(), container_name.end(), ':', '-');
+            prepend_args.push_back(target);
+            prepend_args.push_back("run");
+            prepend_args.push_back("--sig-proxy=true");
+            prepend_args.push_back("--rm");
+            prepend_args.push_back("--name");
+            prepend_args.push_back(container_name);
+            prepend_args.push_back("--net=host");
+            prepend_args.push_back("-v");
+            prepend_args.push_back(docker_omniorb_cfg+":/etc/omniORB.cfg");
+            if ( tmp_params.find("__DOCKER_ARGS__") != tmp_params.end()) {
+                std::string docker_args_raw = tmp_params["__DOCKER_ARGS__"].toString();
+                std::vector<std::string> docker_args;
+                boost::split(docker_args, docker_args_raw, boost::is_any_of(" "));
+                BOOST_FOREACH( const std::string& arg, docker_args) {
+                    prepend_args.push_back(arg);
+                }
+            }
+            prepend_args.push_back(image_name);
+            LOG_DEBUG(GPP_i, __FUNCTION__ << "Component will launch within a Docker container using this image: " << image_name);
+            useDocker = true;
+        }
+    }
     CF::ExecutableDevice::ProcessID_Type ret_pid;
     try {
         ret_pid = do_execute(name, options, tmp_params, prepend_args);
