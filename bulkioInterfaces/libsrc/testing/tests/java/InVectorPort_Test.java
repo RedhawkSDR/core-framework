@@ -1381,4 +1381,793 @@ public class InVectorPort_Test {
         port.pushPacket(v, TS, false, "null_logger");
     }
 
+    @Test
+    public void test_InFloat_queue_flush_flags()
+    {
+	bulkio.InFloatPort port = new bulkio.InFloatPort("dataFloat_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InFloatPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new float[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new float[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new float[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InDouble_queue_flush_flags()
+    {
+	bulkio.InDoublePort port = new bulkio.InDoublePort("dataDouble_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InDoublePort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new double[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new double[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new double[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InOctet_queue_flush_flags()
+    {
+	bulkio.InOctetPort port = new bulkio.InOctetPort("dataOctet_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InOctetPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new byte[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new byte[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new byte[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InChar_queue_flush_flags()
+    {
+	bulkio.InCharPort port = new bulkio.InCharPort("dataChar_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InCharPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new char[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new char[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new char[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InShort_queue_flush_flags()
+    {
+	bulkio.InShortPort port = new bulkio.InShortPort("dataShort_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InShortPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new short[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new short[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new short[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InUShort_queue_flush_flags()
+    {
+	bulkio.InUShortPort port = new bulkio.InUShortPort("dataUshort_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InUShortPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new short[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new short[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new short[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InLong_queue_flush_flags()
+    {
+	bulkio.InLongPort port = new bulkio.InLongPort("dataLong_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new int[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new int[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new int[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InULong_queue_flush_flags()
+    {
+	bulkio.InULongPort port = new bulkio.InULongPort("dataUlong_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InULongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new int[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new int[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new int[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InLongLong_queue_flush_flags()
+    {
+	bulkio.InLongLongPort port = new bulkio.InLongLongPort("dataLongLong_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InLongLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new long[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new long[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new long[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
+
+    @Test
+    public void test_InULongLong_queue_flush_flags()
+    {
+	bulkio.InULongLongPort port = new bulkio.InULongLongPort("dataUlongLong_in");
+
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_data);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri_eos);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        port.pushSRI(sri_change);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	bulkio.InULongLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        port.pushPacket(new long[0], bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        port.pushSRI(sri_change);
+        port.pushPacket(new long[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        port.pushPacket(new long[2], bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_eos.streamID, packet.streamID);
+        assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        assertTrue("EOS should be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+        assertEquals("EOS packet should contain no data", 0, packet.dataBuffer.length);
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_data.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertEquals(sri_change.streamID, packet.streamID);
+        assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        assertFalse("EOS should not be reported", packet.EOS);
+        assertTrue("SRI change should be reported", packet.sriChanged);
+    }
 }
