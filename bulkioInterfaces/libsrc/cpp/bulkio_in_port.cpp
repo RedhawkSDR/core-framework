@@ -272,33 +272,31 @@ namespace  bulkio {
       dataAvailable.notify_all();
     } else {
       SCOPED_LOCK lock(dataBufferLock);
-      bool sriChangedHappened = false;
-      bool flagEOS = false;
-      if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
+      if (workQueue.size() >= queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
         LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
         flushToReport = true;
-        DataTransferType *tmp;
-        while (workQueue.size() != 0) {
-          tmp = workQueue.front();
-          if (tmp->sriChanged == true) {
-            sriChangedHappened = true;
-          }
-          if (tmp->EOS == true) {
-              flagEOS = true;
-          }
-          workQueue.pop_front();
-          delete tmp;
-        }
+
+        // Need to hold the SRI mutex while flushing the queue because it may
+        // update SRI change state
+        SCOPED_LOCK lock(sriUpdateLock);
+        _flushQueue();
+
+        // Update the SRI change flag for this stream, which may have been
+        // modified during the queue flush
+        sriChanged = currentHs[streamID].second;
+        currentHs[streamID].second = false;
       }
-      if (sriChangedHappened)
-        sriChanged = true;
-      if (flagEOS)
-          EOS = true;
 
       LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
+      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
+      // If a flush occurred, always set the flag on the first packet; this may
+      // not be the packet that was just inserted if there were any EOS packets
+      // on the queue
+      if (flushToReport) {
+        workQueue.front()->inputQueueFlushed = true;
+      }
       dataAvailable.notify_all();
     }
 
@@ -307,6 +305,46 @@ namespace  bulkio {
     TRACE_EXIT( logger, "InPort::pushPacket"  );
   }
 
+
+  template < typename PortTraits >
+  void InPortBase< PortTraits >::_flushQueue()
+  {
+    std::set<std::string> sri_changed;
+    WorkQueue saved_packets;
+    for (typename WorkQueue::iterator iter = workQueue.begin(); iter != workQueue.end(); ++iter) {
+      DataTransferType* packet = *iter;
+      if (packet->EOS) {
+        // Remove the SRI change flag for this stream, as further SRI changes
+        // apply to a different stream; set the SRI change flag for the EOS
+        // packet if there was one for this stream earlier in the queue
+        if (sri_changed.erase(packet->streamID)) {
+          packet->sriChanged = true;
+        }
+
+        // Discard data and preserve the EOS packet
+        packet->dataBuffer.clear();
+        saved_packets.push_back(packet);
+      } else {
+        if (packet->sriChanged) {
+          sri_changed.insert(packet->streamID);
+        }
+        delete packet;
+      }
+    }
+    workQueue.swap(saved_packets);
+
+    // Save any SRI change flags that were collected and not applied to an EOS
+    // packet
+    for (std::set<std::string>::iterator stream_id = sri_changed.begin();
+         stream_id != sri_changed.end(); ++stream_id) {
+      // It should be safe to assume that an entry exists for the stream ID,
+      // but just in case, use find instead of operator[]
+      SriMap::iterator currH = currentHs.find(*stream_id);
+      if (currH != currentHs.end()) {
+        currH->second.second = true;
+      }
+    }
+  }
 
   template < typename PortTraits >
   typename InPortBase< PortTraits >::DataTransferType* InPortBase< PortTraits >::peekPacket(float timeout)
