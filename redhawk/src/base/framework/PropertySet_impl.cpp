@@ -461,32 +461,33 @@ char *PropertySet_impl::registerPropertyListener( CORBA::Object_ptr listener, co
 void PropertySet_impl::unregisterPropertyListener( const char *reg_id )   
       throw(CF::InvalidIdentifier)
 {
-  SCOPED_LOCK(propertySetAccess);
-  PropertyChangeRegistry::iterator reg = _propChangeRegistry.find(reg_id);
-  if ( reg != _propChangeRegistry.end()  )  {
+  {
+    SCOPED_LOCK(propertySetAccess);
+    PropertyChangeRegistry::iterator reg = _propChangeRegistry.find(reg_id);
+    if ( reg != _propChangeRegistry.end()  )  {
 
-    PropertyChangeRec *rec = &(reg->second);
-    // need to unregister callback with property
-    PropertyReportTable::iterator p = rec->props.begin();
-    for ( ; p != rec->props.end(); p++ ) {
-      LOG_DEBUG(PropertySet_impl, "RegisterListener: Unregister callback...:" << p->first << " FUNC:" << p->second );
-      PropertyInterface *prop = getPropertyFromId(p->first);
-      if ( prop ) {
-        // check for matching propids..
-        prop->removeChangeListener( p->second, &PCL_Callback::recordChanged );
-      }
+        PropertyChangeRec *rec = &(reg->second);
+        // need to unregister callback with property
+        PropertyReportTable::iterator p = rec->props.begin();
+        for ( ; p != rec->props.end(); p++ ) {
+        LOG_DEBUG(PropertySet_impl, "RegisterListener: Unregister callback...:" << p->first << " FUNC:" << p->second );
+        PropertyInterface *prop = getPropertyFromId(p->first);
+        if ( prop ) {
+            // check for matching propids..
+            prop->removeChangeListener( p->second, &PCL_Callback::recordChanged );
+        }
+        }
+
+    } else {
+        throw CF::InvalidIdentifier();
     }
-
     // remove registration record
     _propChangeRegistry.erase(reg);
-
-    if( _propChangeRegistry.size() == 0   ){
-      _propChangeThread.stop();
-      _propChangeThread.release();
-    }
   }
-  else {
-    throw CF::InvalidIdentifier();
+
+  if( _propChangeRegistry.size() == 0   ){
+    _propChangeThread.stop();
+    _propChangeThread.release();
   }
 }
 
