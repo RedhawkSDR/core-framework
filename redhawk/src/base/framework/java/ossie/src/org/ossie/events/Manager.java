@@ -122,6 +122,11 @@ public class Manager {
 	    _ecm=null;
 	}
 
+        public int disconnect() {
+            unregister();
+            return super.disconnect();
+        }
+
 	private Manager          _ecm;
 	private EventChannelReg  _creg;
 

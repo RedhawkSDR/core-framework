@@ -65,6 +65,8 @@ void ProcessThread::run()
             LOG_FATAL(ProcessThread, "Unhandled exception in service function: "
                       << ossie::corba::describeException(exc));
             exit(-1);
+        } catch (boost::thread_interrupted &) {
+            break;
         } catch (...) {
             LOG_FATAL(ProcessThread, "Unhandled exception in service function");
             exit(-1);
@@ -76,6 +78,8 @@ void ProcessThread::run()
                 boost::this_thread::sleep(boost_delay);
             } catch (boost::thread_interrupted &) {
                 break;
+            } catch (...) {
+                throw;
             }
         }
         else {
