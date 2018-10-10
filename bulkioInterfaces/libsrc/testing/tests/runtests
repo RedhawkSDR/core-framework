@@ -86,7 +86,6 @@ cd ../components/src/tests/
 ./test_src.py
 cd -
 
-#
 #  Run jni reference resolution
 #
 #
