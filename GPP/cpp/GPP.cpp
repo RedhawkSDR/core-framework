@@ -709,38 +709,40 @@ void GPP_i::process_ODM(const CORBA::Any &data) {
 int GPP_i::_setupExecPartitions( const CpuList &bl_cpus ) {
 
 #if HAVE_LIBNUMA
-  // fill in the exec partitions for each numa node identified on the system
-    std::string nodestr("all");
-    struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str());     
+    if ( gpp::affinity::check_numa() == true ) {
+        // fill in the exec partitions for each numa node identified on the system
+        std::string nodestr("all");
+        struct bitmask *node_mask = numa_parse_nodestring((char *)nodestr.c_str());     
 
-    bitmask *cpu_mask = numa_allocate_cpumask(); 
+        bitmask *cpu_mask = numa_allocate_cpumask(); 
     
-    // for each node bit set in the mask then get cpu list
-    int nbytes = numa_bitmask_nbytes(node_mask);
-    for (int i=0; i < nbytes*8; i++ ){
-      if ( numa_bitmask_isbitset( node_mask, i ) ) {
-        numa_node_to_cpus( i, cpu_mask );
+        // for each node bit set in the mask then get cpu list
+        int nbytes = numa_bitmask_nbytes(node_mask);
+        for (int i=0; i < nbytes*8; i++ ){
+            if ( numa_bitmask_isbitset( node_mask, i ) ) {
+                numa_node_to_cpus( i, cpu_mask );
               
-        // foreach cpu identified add to list
-        int nb = numa_bitmask_nbytes(cpu_mask);
-        CpuUsageStats::CpuList cpus;
-        for (int j=0; j < nb*8; j++ ){
-          int count =  std::count( bl_cpus.begin(), bl_cpus.end(), j );
-          if ( numa_bitmask_isbitset( cpu_mask, j ) && count == 0 ) {
-            cpus.push_back( j );
-          }
+                // foreach cpu identified add to list
+                int nb = numa_bitmask_nbytes(cpu_mask);
+                CpuUsageStats::CpuList cpus;
+                for (int j=0; j < nb*8; j++ ){
+                    int count =  std::count( bl_cpus.begin(), bl_cpus.end(), j );
+                    if ( numa_bitmask_isbitset( cpu_mask, j ) && count == 0 ) {
+                        cpus.push_back( j );
+                    }
+                }
+                CpuUsageStats cpu_usage(cpus);
+                exec_socket soc;
+                soc.id = i;
+                soc.cpus = cpus;
+                soc.stats = cpu_usage;
+                soc.idle_threshold = __thresholds.cpu_idle;      
+                soc.load_capacity.max =  cpus.size() * 1.0;
+                soc.load_capacity.measured = 0.0;
+                soc.load_capacity.allocated = 0.0;
+                execPartitions.push_back( soc );
+            }
         }
-        CpuUsageStats cpu_usage(cpus);
-        exec_socket soc;
-        soc.id = i;
-        soc.cpus = cpus;
-        soc.stats = cpu_usage;
-        soc.idle_threshold = __thresholds.cpu_idle;      
-        soc.load_capacity.max =  cpus.size() * 1.0;
-        soc.load_capacity.measured = 0.0;
-        soc.load_capacity.allocated = 0.0;
-        execPartitions.push_back( soc );
-      }
     }
 
 #endif
@@ -803,7 +805,7 @@ GPP_i::initializeResourceMonitors()
 {
 
   // add cpu utilization calculator
-  RH_NL_INFO("GPP", " initialize CPU Montior --- wl size " << wl_cpus.size());
+  RH_NL_INFO("GPP", " initialize CPU Monitor --- wl size " << wl_cpus.size());
 
   // request a system monitor for this GPP
   system_monitor.reset( new SystemMonitor( wl_cpus ) );
