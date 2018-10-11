@@ -30,6 +30,7 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST_SUITE(InPortTest);
     CPPUNIT_TEST(testLegacyAPI);
     CPPUNIT_TEST(testGetPacket);
+    CPPUNIT_TEST(testGetPacketStreamRemoved);
     CPPUNIT_TEST(testActiveSRIs);
     CPPUNIT_TEST(testQueueDepth);
     CPPUNIT_TEST(testState);
@@ -43,6 +44,7 @@ class InPortTest : public InPortTestFixture<Port>
 public:
     void testLegacyAPI();
     void testGetPacket();
+    void testGetPacketStreamRemoved();
     void testActiveSRIs();
     void testQueueDepth();
     void testState();
