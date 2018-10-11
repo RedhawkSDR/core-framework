@@ -2709,6 +2709,45 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         apps = domMgr._get_applications()
         self.assertEqual(len(apps),0)
 
+    def _test_ExecParamToConstruct(self, lang):
+        """
+        Test execparams will pass to constructor
+        """
+        nb, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_GPP_node/DeviceManager.dcd.xml')
+        self.assertNotEqual(devMgr, None)
+        dom=redhawk.attach(domMgr._get_name())
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.emptyvalue.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"")
+        app.releaseObject()
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.eparam.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"eparam1")
+        app.releaseObject()
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.novalue.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"ctor-value")
+        app.releaseObject()
+
+
+    def test_ExecParamToConstruct_cpp(self):
+        self._test_ExecParamToConstruct('cpp')
+
+    def test_ExecParamToConstruct_py(self):
+        self._test_ExecParamToConstruct('py')
+
+    @scatest.requireJava
+    def test_ExecParamToConstruct_java(self):
+        self._test_ExecParamToConstruct('java')
+
+
+
     def test_StopAllComponents(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
         self.assertNotEqual(domMgr, None)
