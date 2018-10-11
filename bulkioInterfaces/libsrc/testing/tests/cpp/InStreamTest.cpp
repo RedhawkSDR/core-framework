@@ -402,6 +402,41 @@ void BufferedInStreamTest<Port>::testReadTimestamps()
 }
 
 template <class Port>
+void BufferedInStreamTest<Port>::testRepeatStreamIds()
+{
+    const char* stream_id = "repeat_stream_ids";
+
+    // Create a new stream and push several packets with known timestamps
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    sri.xdelta = 0.0625;
+    unsigned int number_streams = 6;
+    unsigned int number_packets = 4;
+    for (unsigned int i=0; i<number_streams; ++i) {
+        port->pushSRI(sri);
+        for (unsigned int j=0; j<number_packets-1; ++j) {
+            this->_pushTestPacket(32, bulkio::time::utils::now(), false, sri.streamID);
+        }
+        this->_pushTestPacket(32, bulkio::time::utils::now(), true, sri.streamID);
+    }
+
+    unsigned int received_streams = 0;
+    for (unsigned int i=0; i<number_streams; i++) {
+        unsigned int received_packets = 0;
+        StreamType inputStream = port->getCurrentStream();
+        CPPUNIT_ASSERT_EQUAL(!inputStream, false);
+        received_streams++;
+        for (unsigned int j=0; j<number_packets; ++j) {
+            DataBlockType block = inputStream.read();
+            CPPUNIT_ASSERT(block);
+            received_packets++;
+        }
+        CPPUNIT_ASSERT_EQUAL(inputStream.eos(), true);
+        CPPUNIT_ASSERT_EQUAL(received_packets, number_packets);
+    }
+    CPPUNIT_ASSERT_EQUAL(received_streams, number_streams);
+}
+
+template <class Port>
 void BufferedInStreamTest<Port>::testDisableDiscard()
 {
     const char* stream_id = "disable_discard";
