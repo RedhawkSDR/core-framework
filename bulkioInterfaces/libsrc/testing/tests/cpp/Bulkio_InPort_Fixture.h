@@ -87,6 +87,7 @@ public:
   template < typename T > void test_sri_change( T *port );
   template < typename T > void test_stream_disable( T *port );
   template < typename T > void test_stream_sri_changed( T *port );
+  template < typename T > void test_get_packet_stream_removed( T *port );
 
   rh_logger::LoggerPtr logger;
 };
