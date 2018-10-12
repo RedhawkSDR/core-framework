@@ -37,7 +37,7 @@ fi
 #
 #  Run Java unit tests
 #
-ant -f java/build.xml
+#ant -f java/build.xml
 
 
 #
@@ -50,4 +50,4 @@ cd -
 #
 # Run Python unit tests with XML output
 #
-(cd python && ./runtests.py -x)
+#(cd python && ./runtests.py -x)
