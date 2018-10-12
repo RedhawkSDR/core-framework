@@ -39,6 +39,7 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testSriChangedInvalidStream);
     CPPUNIT_TEST(testStatistics);
     CPPUNIT_TEST(testDiscardEmptyPacket);
+    CPPUNIT_TEST(testQueueFlushFlags);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -53,6 +54,7 @@ public:
     void testSriChangedInvalidStream();
     void testStatistics();
     void testDiscardEmptyPacket();
+    void testQueueFlushFlags();
 
 protected:
     typedef typename Port::dataTransfer PacketType;

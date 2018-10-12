@@ -348,4 +348,81 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNull(packet);
     }
+
+    @Test
+    public void testQueueFlushFlags()
+    {
+        // Push 1 packet for the normal data stream
+        BULKIO.StreamSRI sri_data = bulkio.sri.utils.create("stream_data", 1.0, BULKIO.UNITS_TIME.value, false);
+        corbaPort.pushSRI(sri_data);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push 1 packet for the EOS test stream
+        BULKIO.StreamSRI sri_eos = bulkio.sri.utils.create("stream_eos", 1.0, BULKIO.UNITS_TIME.value, false);
+        corbaPort.pushSRI(sri_eos);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_eos.streamID);
+
+        // Push 1 packet for the SRI change stream
+        BULKIO.StreamSRI sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 0;
+        corbaPort.pushSRI(sri_change);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Grab the packets to ensure the initial conditions are correct
+	DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_data.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_eos.streamID, packet.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_change.streamID, packet.streamID);
+
+        // Push an EOS packet for the EOS stream
+        helper.pushTestPacket(port, 0, bulkio.time.utils.notSet(), true, sri_eos.streamID);
+
+        // Modify the SRI for the SRI change stream and push another packet
+        // (note that we need to create a new StreamSRI object, otherwise the
+        // change won't be registered)
+        sri_change = bulkio.sri.utils.create("stream_change", 1.0, BULKIO.UNITS_TIME.value, false);
+        sri_change.mode = 1;
+        corbaPort.pushSRI(sri_change);
+        helper.pushTestPacket(port, 2, bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_data.streamID);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_data.streamID);
+
+        // Push another packet for the SRI change stream
+        helper.pushTestPacket(port, 2, bulkio.time.utils.now(), false, sri_change.streamID);
+
+        // 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_eos.streamID, packet.streamID);
+        Assert.assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        Assert.assertTrue("EOS should be reported", packet.EOS);
+        Assert.assertFalse("SRI change should not be reported", packet.sriChanged);
+        Assert.assertEquals("EOS packet should contain no data", 0, helper.dataLength(packet.dataBuffer));
+
+        // 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_data.streamID, packet.streamID);
+        Assert.assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("EOS should not be reported", packet.EOS);
+        Assert.assertFalse("SRI change should not be reported", packet.sriChanged);
+
+        // 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_change.streamID, packet.streamID);
+        Assert.assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("EOS should not be reported", packet.EOS);
+        Assert.assertTrue("SRI change should be reported", packet.sriChanged);
+    }
 }

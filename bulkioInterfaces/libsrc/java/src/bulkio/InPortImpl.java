@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -362,11 +364,10 @@ class InPortImpl<A> {
         }
 
         // determine whether to block and wait for an empty space in the queue
-        DataTransfer<A> p = null;
         int elements = helper.arraySize(data);
 
         if (portBlocking) {
-            p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
+            DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
 
             try {
                 queueSem.acquire();
@@ -381,41 +382,39 @@ class InPortImpl<A> {
             }
         } else {
             synchronized (this.dataBufferLock) {
-                if (this.workQueue.size() == this.maxQueueDepth) {
+                boolean flushToReport = false;
+                if (this.workQueue.size() >= this.maxQueueDepth) {
                     if ( logger != null ) {
                         logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
                     }
-                    boolean sriChangedHappened = false;
-                    boolean flagEOS = false;
-                    for (Iterator<DataTransfer<A>> itr = this.workQueue.iterator(); itr.hasNext();) {
-                        if (sriChangedHappened && flagEOS) {
-                            break;
-                        }
-                        DataTransfer<A> currentPacket = itr.next();
-                        if (currentPacket.sriChanged) {
-                            sriChangedHappened = true;
-                        }
-                        if (currentPacket.EOS) {
-                            flagEOS = true;
-                        }
+                    flushToReport = true;
+
+                    // Need to hold the SRI mutex while flushing the queue
+                    // because it may update SRI change state
+                    synchronized (this.sriUpdateLock) {
+                        this._flushQueue();
+
+                        // Update the SRI change flag for this stream, which
+                        // may have been modified during the queue flush
+                        sriState currH = this.currentHs.get(streamID);
+                        sriChanged = currH.isChanged();
+                        currH.setChanged(false);
                     }
-                    if (sriChangedHappened) {
-                        sriChanged = true;
-                    }
-                    if (flagEOS) {
-                        eos = true;
-                    }
-                    this.workQueue.clear();
-                    p = new DataTransfer<A>( data, time, eos, streamID, tmpH, sriChanged, true);
-                    this.stats.update(elements, 0, eos, streamID, true);
-                } else {
-                    p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
-                    this.stats.update(elements, this.workQueue.size()/(float)this.maxQueueDepth, eos, streamID, false);
                 }
+                this.stats.update(elements, (this.workQueue.size()+1)/(float)this.maxQueueDepth, eos, streamID, flushToReport);
                 if ( logger != null ) {
                     logger.trace( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + workQueue.size() + ")");
                 }
+                DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
                 this.workQueue.add(p);
+                // If a flush occurred, always set the flag on the first
+                // packet; this may not be the packet that was just inserted if
+                // there were any EOS packets on the queue
+                if (flushToReport) {
+                    DataTransfer<A> first = this.workQueue.removeFirst();
+                    first = new DataTransfer<A>(first.dataBuffer, first.T, first.EOS, first.streamID, first.SRI, first.sriChanged, true);
+                    this.workQueue.addFirst(first);
+                }
                 this.dataSem.release();
             }
         }
@@ -425,6 +424,42 @@ class InPortImpl<A> {
         }
         return;
 
+    }
+
+    private void _flushQueue()
+    {
+        Set<String> sri_changed = new HashSet<String>();
+        ArrayDeque<DataTransfer<A>> saved_packets = new ArrayDeque<DataTransfer<A>>();
+        for (DataTransfer<A> packet : this.workQueue) {
+            if (packet.EOS) {
+                // Remove the SRI change flag for this stream, as further SRI
+                // changes apply to a different stream; set the SRI change flag
+                // for the EOS packet if there was one for this stream earlier
+                // in the queue
+                boolean sri_flag = packet.sriChanged;
+                if (sri_changed.remove(packet.streamID)) {
+                    sri_flag = true;
+                }
+
+                // Discard data and preserve the EOS packet
+                DataTransfer<A> modified_packet = new DataTransfer<A>(this.helper.emptyArray(), packet.T, true, packet.streamID, packet.SRI, sri_flag, false);
+                saved_packets.addLast(modified_packet);
+            } else if (packet.sriChanged) {
+                sri_changed.add(packet.streamID);
+            }
+        }
+        this.workQueue = saved_packets;
+
+        // Save any SRI change flags that were collected and not applied to an
+        // EOS packet
+        for (String stream_id : sri_changed) {
+            // It should be safe to assume that an entry exists for the stream
+            // ID, but just in case, check the result of get
+            sriState currH = this.currentHs.get(stream_id);
+            if (currH != null) {
+                currH.setChanged(true);
+            }
+        }
     }
 
     /**
