@@ -1646,7 +1646,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # Use the service name connection test waveform to make sure that the
         # DomainManager is connecting it correctly to the first service
         sad_file = '/waveforms/PortConnectServiceName/PortConnectServiceName.sad.xml'
-        app = self._domMgr.createApplication(sad_file, '', [], [])
+        app = self._domMgr.createApplication(sad_file, 'good', [], [])
         components = app._get_registeredComponents()
         comp = components[0].componentObject
         self.assertEqual(1, len(components))
@@ -1665,7 +1665,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devMgr1.shutdown()
         self.assertTrue(self.waitTermination(nb1), "Nodebooter did not die after shutdown")
 
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sad_file, '', [], [])
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sad_file, 'fail', [], [])
 
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):
