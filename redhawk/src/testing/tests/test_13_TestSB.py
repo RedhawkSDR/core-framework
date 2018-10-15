@@ -801,6 +801,37 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+    def test_connectPortSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectProvidesPort/PortConnectProvidesPort.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <providesport>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </providesport>\n'
+        provides_string = provides_string.replace('@__PORTNAME__@', 'resource_in')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
+    def test_connectSupportedInterfaceSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectComponentSupportedInterface/PortConnectComponentSupportedInterface.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
 
     def test_loadSADFile_startorder(self):
         maxpid=32768
