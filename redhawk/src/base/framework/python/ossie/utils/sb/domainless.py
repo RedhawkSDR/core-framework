@@ -412,7 +412,11 @@ def generateSADXML(waveform_name):
         uses_inst_id = None
         for component in sandbox.getComponents():
             if component._instanceName == uses_inst_name:
-                uses_inst_id = component._refid
+                if component._refid[:3] == 'DCE':
+                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                else:
+                    comprefid = component._refid.split(':')[0]
+                uses_inst_id = comprefid
                 break
         if not uses_inst_id:
             continue
@@ -428,7 +432,11 @@ def generateSADXML(waveform_name):
         provides_inst_id = None
         for component in sandbox.getComponents():
             if component._instanceName == provides_name:
-                provides_inst_id = component._refid
+                if component._refid[:3] == 'DCE':
+                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                else:
+                    comprefid = component._refid.split(':')[0]
+                provides_inst_id = comprefid
                 break
         if not provides_inst_id:
             continue
@@ -844,7 +852,7 @@ def loadSADFile(filename, props={}):
             for connection in sad.connections.get_connectinterface():
                 if connection != None:
                     connectionID = None
-                    if connection.get_id() != "":
+                    if connection.get_id():
                         connectionID = connection.get_id()
                     log.debug("CONNECTION INTERFACE: connection ID '%s'", connection.get_id())
                     usesPortComponent = None
@@ -863,7 +871,11 @@ def loadSADFile(filename, props={}):
                         log.debug("CONNECTION INTERFACE: uses port component ref '%s'", usesPortComponentRefid)
                         # Loop through launched components to find one containing the uses port to be connected
                         for component in launchedComponents:
-                            if component._refid == usesPortComponentRefid:
+                            if component._refid[:3] == 'DCE':
+                                comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                            else:
+                                comprefid = component._refid.split(':')[0]
+                            if comprefid == usesPortComponentRefid:
                                 usesPortComponent = component
                                 break
 
@@ -880,7 +892,11 @@ def loadSADFile(filename, props={}):
                             log.debug("CONNECTION INTERFACE: provides port component ref '%s'", providesPortComponentRefid)
                             # Loop through launched components to find one containing the provides port to be connected
                             for component in launchedComponents:
-                                if component._refid == providesPortComponentRefid:
+                                if component._refid[:3] == 'DCE':
+                                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                                else:
+                                    comprefid = component._refid.split(':')[0]
+                                if comprefid == providesPortComponentRefid:
                                     providesPortComponent = component
                                     break
                         elif connection.get_componentsupportedinterface() != None:
@@ -894,7 +910,11 @@ def loadSADFile(filename, props={}):
                                 print "loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port component ref " + str(connection.get_componentsupportedinterface().get_componentinstantiationref().get_refid())
                             # Loop through launched components to find one containing the provides port to be connected
                             for component in launchedComponents:
-                                if component._refid == providesPortComponentRefid:
+                                if component._refid[:3] == 'DCE':
+                                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                                else:
+                                    comprefid = component._refid.split(':')[0]
+                                if comprefid == providesPortComponentRefid:
                                     providesPortComponent = component
                                     break
                         elif connection.get_findby():
