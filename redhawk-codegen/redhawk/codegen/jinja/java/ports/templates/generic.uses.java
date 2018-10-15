@@ -111,13 +111,8 @@ public class ${classname} extends QueryableUsesPort<${interface}> implements Por
             if (this.active) {
                 //begin-user-code
                 //end-user-code
-                
                 if (!__connection_id__.isEmpty()) {
-                    if (this.outPorts.containsKey(__connection_id__)) {
-                        ${'retval = ' if hasreturn}this.outPorts.get(__connection_id__).${operation.name}(${operation.argnames|join(', ')});
-                    } else {
-                        throw new PortCallError("Connection id "+__connection_id__+" not found.", this.getConnectionIds());
-                    }
+                    ${'retval = ' if hasreturn}this.outPorts.get(__connection_id__).${operation.name}(${operation.argnames|join(', ')});
                 } else {
                     for (${interface} p : this.outPorts.values()) {
                         ${'retval = ' if hasreturn}p.${operation.name}(${operation.argnames|join(', ')});
