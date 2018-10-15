@@ -24,6 +24,7 @@ from ossie.utils import uuid
 
 import threading
 from redhawk.frontendInterfaces import FRONTEND
+from ossie.resource import PortCallError
 
 
 class OutPort (CF__POA.Port ):
@@ -52,6 +53,9 @@ class OutPort (CF__POA.Port ):
         finally:
             self.port_lock.release()
 
+    def getConnectionIds(self):
+        return self.outConnections.keys()
+
     def _get_connections(self):
         currentConnections = []
         self.port_lock.acquire()
@@ -60,16 +64,39 @@ class OutPort (CF__POA.Port ):
         self.port_lock.release()
         return currentConnections
 
+    def _evaluateRequestBasedOnConnections(self, __connection_id__, returnValue, inOut, out):
+        if not __connection_id__ and len(self.outConnections) > 1:
+            if (out or inOut or returnValue):
+                raise PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.", self.getConnectionIds())
+
+        if len(self.outConnections) == 0:
+            if (out or inOut or returnValue):
+                raise PortCallError("No connections available.", self.getConnectionIds())
+            else:
+                if __connection_id__:
+                    raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
+        if __connection_id__ and len(self.outConnections) > 0:
+            foundConnection = False
+            for connId, port in self.outConnections.items():
+                if __connection_id__ == connId:
+                    foundConnection = True
+                    break
+            if not foundConnection:
+                raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
+
 class OutFrontendTunerPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.FrontendTuner)
 
-    def getTunerType(self, id):
+    def getTunerType(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     try:
                         retVal = port.getTunerType(id)
@@ -80,12 +107,15 @@ class OutFrontendTunerPort(OutPort):
             
         return retVal
 
-    def getTunerDeviceControl(self, id):
+    def getTunerDeviceControl(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     try:
                         retVal = port.getTunerDeviceControl(id)
@@ -96,12 +126,15 @@ class OutFrontendTunerPort(OutPort):
             
         return retVal
 
-    def getTunerGroupId(self, id):
+    def getTunerGroupId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     try:
                         retVal = port.getTunerGroupId(id)
@@ -112,12 +145,15 @@ class OutFrontendTunerPort(OutPort):
             
         return retVal
 
-    def getTunerRfFlowId(self, id):
+    def getTunerRfFlowId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     try:
                         retVal = port.getTunerRfFlowId(id)
@@ -128,12 +164,15 @@ class OutFrontendTunerPort(OutPort):
             
         return retVal
 
-    def getTunerStatus(self, id):
+    def getTunerStatus(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     try:
                         retVal = port.getTunerStatus(id)
@@ -148,12 +187,15 @@ class OutAnalogTunerPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.AnalogTuner)
 
-    def getTunerType(self, id):
+    def getTunerType(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerType(id)
         finally:
@@ -161,12 +203,15 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def getTunerDeviceControl(self, id):
+    def getTunerDeviceControl(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerDeviceControl(id)
         finally:
@@ -174,12 +219,15 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def getTunerGroupId(self, id):
+    def getTunerGroupId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerGroupId(id)
         finally:
@@ -187,12 +235,15 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def getTunerRfFlowId(self, id):
+    def getTunerRfFlowId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerRfFlowId(id)
         finally:
@@ -200,12 +251,15 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def getTunerStatus(self, id):
+    def getTunerStatus(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerStatus(id)
         finally:
@@ -213,22 +267,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerCenterFrequency(self, id, freq):
+    def setTunerCenterFrequency(self, id, freq, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, false, false);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerCenterFrequency(id, freq)
         finally:
             self.port_lock.release()
             
-    def getTunerCenterFrequency(self, id):
+    def getTunerCenterFrequency(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerCenterFrequency(id)
         finally:
@@ -236,22 +296,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerBandwidth(self, id, bw):
+    def setTunerBandwidth(self, id, bw, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerBandwidth(id, bw)
         finally:
             self.port_lock.release()
             
-    def getTunerBandwidth(self, id):
+    def getTunerBandwidth(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerBandwidth(id)
         finally:
@@ -259,22 +325,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerAgcEnable(self, id, enable):
+    def setTunerAgcEnable(self, id, enable, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerAgcEnable(id, enable)
         finally:
             self.port_lock.release()
             
-    def getTunerAgcEnable(self, id):
+    def getTunerAgcEnable(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerAgcEnable(id)
         finally:
@@ -282,22 +354,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerGain(self, id, gain):
+    def setTunerGain(self, id, gain, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerGain(id, gain)
         finally:
             self.port_lock.release()
             
-    def getTunerGain(self, id):
+    def getTunerGain(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerGain(id)
         finally:
@@ -305,22 +383,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerReferenceSource(self, id, source):
+    def setTunerReferenceSource(self, id, source, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerReferenceSource(id, source)
         finally:
             self.port_lock.release()
             
-    def getTunerReferenceSource(self, id):
+    def getTunerReferenceSource(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerReferenceSource(id)
         finally:
@@ -328,22 +412,28 @@ class OutAnalogTunerPort(OutPort):
             
         return retVal
 
-    def setTunerEnable(self, id, enable):
+    def setTunerEnable(self, id, enable, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerEnable(id, enable)
         finally:
             self.port_lock.release()
             
-    def getTunerEnable(self, id):
+    def getTunerEnable(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerEnable(id)
         finally:
@@ -355,12 +445,15 @@ class OutDigitalTunerPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.DigitalTuner)
 
-    def getTunerType(self, id):
+    def getTunerType(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerType(id)
         finally:
@@ -368,12 +461,15 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def getTunerDeviceControl(self, id):
+    def getTunerDeviceControl(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerDeviceControl(id)
         finally:
@@ -381,12 +477,15 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def getTunerGroupId(self, id):
+    def getTunerGroupId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerGroupId(id)
         finally:
@@ -394,12 +493,15 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def getTunerRfFlowId(self, id):
+    def getTunerRfFlowId(self, id, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerRfFlowId(id)
         finally:
@@ -407,12 +509,15 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def getTunerStatus(self, id):
+    def getTunerStatus(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerStatus(id)
         finally:
@@ -420,22 +525,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerCenterFrequency(self, id, freq):
+    def setTunerCenterFrequency(self, id, freq, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerCenterFrequency(id, freq)
         finally:
             self.port_lock.release()
             
-    def getTunerCenterFrequency(self, id):
+    def getTunerCenterFrequency(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerCenterFrequency(id)
         finally:
@@ -443,22 +554,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerBandwidth(self, id, bw):
+    def setTunerBandwidth(self, id, bw, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerBandwidth(id, bw)
         finally:
             self.port_lock.release()
             
-    def getTunerBandwidth(self, id):
+    def getTunerBandwidth(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerBandwidth(id)
         finally:
@@ -466,22 +583,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerAgcEnable(self, id, enable):
+    def setTunerAgcEnable(self, id, enable, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerAgcEnable(id, enable)
         finally:
             self.port_lock.release()
             
-    def getTunerAgcEnable(self, id):
+    def getTunerAgcEnable(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerAgcEnable(id)
         finally:
@@ -489,22 +612,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerGain(self, id, gain):
+    def setTunerGain(self, id, gain, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerGain(id, gain)
         finally:
             self.port_lock.release()
             
-    def getTunerGain(self, id):
+    def getTunerGain(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerGain(id)
         finally:
@@ -512,22 +641,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerReferenceSource(self, id, source):
+    def setTunerReferenceSource(self, id, source, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerReferenceSource(id, source)
         finally:
             self.port_lock.release()
             
-    def getTunerReferenceSource(self, id):
+    def getTunerReferenceSource(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerReferenceSource(id)
         finally:
@@ -535,22 +670,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerEnable(self, id, enable):
+    def setTunerEnable(self, id, enable, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerEnable(id, enable)
         finally:
             self.port_lock.release()
             
-    def getTunerEnable(self, id):
+    def getTunerEnable(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerEnable(id)
         finally:
@@ -558,22 +699,28 @@ class OutDigitalTunerPort(OutPort):
             
         return retVal
 
-    def setTunerOutputSampleRate(self, id, sr):
+    def setTunerOutputSampleRate(self, id, sr, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port.setTunerOutputSampleRate(id, sr)
         finally:
             self.port_lock.release()
             
-    def getTunerOutputSampleRate(self, id):
+    def getTunerOutputSampleRate(self, id, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port.getTunerOutputSampleRate(id)
         finally:
@@ -585,12 +732,15 @@ class OutGPSPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.GPS)
 
-    def _get_gps_info(self):
+    def _get_gps_info(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_gps_info()
         finally:
@@ -598,22 +748,28 @@ class OutGPSPort(OutPort):
             
         return retVal
 
-    def _set_gps_info(self, data):
+    def _set_gps_info(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_gps_info(data)
         finally:
             self.port_lock.release()
             
-    def _get_gps_time_pos(self):
+    def _get_gps_time_pos(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_gps_time_pos()
         finally:
@@ -621,11 +777,14 @@ class OutGPSPort(OutPort):
             
         return retVal
 
-    def _set_gps_time_pos(self, data):
+    def _set_gps_time_pos(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_gps_time_pos(data)
         finally:
@@ -635,12 +794,15 @@ class OutRFInfoPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.RFInfo)
 
-    def _get_rf_flow_id(self):
+    def _get_rf_flow_id(self, __connection_id__=""):
         retVal = ""
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_rf_flow_id()
         finally:
@@ -648,22 +810,28 @@ class OutRFInfoPort(OutPort):
             
         return retVal
 
-    def _set_rf_flow_id(self, data):
+    def _set_rf_flow_id(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_rf_flow_id(data)
         finally:
             self.port_lock.release()
             
-    def _get_rfinfo_pkt(self):
+    def _get_rfinfo_pkt(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_rfinfo_pkt()
         finally:
@@ -671,11 +839,14 @@ class OutRFInfoPort(OutPort):
             
         return retVal
 
-    def _set_rfinfo_pkt(self, data):
+    def _set_rfinfo_pkt(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_rfinfo_pkt(data)
         finally:
@@ -685,12 +856,15 @@ class OutRFSourcePort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.RFSource)
 
-    def _get_available_rf_inputs(self):
+    def _get_available_rf_inputs(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_available_rf_inputs()
         finally:
@@ -698,22 +872,28 @@ class OutRFSourcePort(OutPort):
             
         return retVal
 
-    def _set_available_rf_inputs(self, data):
+    def _set_available_rf_inputs(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_available_rf_inputs(data)
         finally:
             self.port_lock.release()
             
-    def _get_current_rf_input(self):
+    def _get_current_rf_input(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_current_rf_input()
         finally:
@@ -721,11 +901,14 @@ class OutRFSourcePort(OutPort):
             
         return retVal
 
-    def _set_current_rf_input(self, data):
+    def _set_current_rf_input(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_current_rf_input(data)
         finally:
@@ -735,12 +918,15 @@ class OutNavDataPort(OutPort):
     def __init__(self, name):
         OutPort.__init__(self, name, FRONTEND.NavData)
 
-    def _get_nav_packet(self):
+    def _get_nav_packet(self, __connection_id__=""):
         retVal = None
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     retVal = port._get_nav_packet()
         finally:
@@ -748,11 +934,14 @@ class OutNavDataPort(OutPort):
             
         return retVal
 
-    def _set_nav_packet(self, data):
+    def _set_nav_packet(self, data, __connection_id__=""):
         self.port_lock.acquire()
 
         try:
+            self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
             for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
                 if port != None:
                     port._set_nav_packet(data)
         finally:
