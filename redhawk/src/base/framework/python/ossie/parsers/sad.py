@@ -3304,7 +3304,7 @@ class hostcollocation(GeneratedsSuper):
     superclass = None
     def __init__(self, id=None, name=None, componentplacement=None):
         self.original_tagname_ = None
-        self.id_ = _cast(None, id)
+        self.id_ = _cast(None, id_)
         self.name = _cast(None, name)
         if componentplacement is None:
             self.componentplacement = []
@@ -3328,7 +3328,7 @@ class hostcollocation(GeneratedsSuper):
     def replace_componentplacement_at(self, index, value): self.componentplacement[index] = value
     componentplacementProp = property(get_componentplacement, set_componentplacement)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id_
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
@@ -3561,7 +3561,7 @@ class connectinterface(GeneratedsSuper):
     superclass = None
     def __init__(self, id_=None, usesport=None, providesport=None, componentsupportedinterface=None, findby=None):
         self.original_tagname_ = None
-        self.id_ = _cast(None, id)
+        self.id_ = _cast(None, id_)
         self.usesport = usesport
         self.providesport = providesport
         self.componentsupportedinterface = componentsupportedinterface
@@ -3590,7 +3590,7 @@ class connectinterface(GeneratedsSuper):
     def set_findby(self, findby): self.findby = findby
     findbyProp = property(get_findby, set_findby)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id_
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def hasContent_(self):
         if (
@@ -4553,7 +4553,7 @@ class usesdevice(GeneratedsSuper):
     superclass = None
     def __init__(self, id_=None, type_=None, propertyref=None, simpleref=None, simplesequenceref=None, structref=None, structsequenceref=None):
         self.original_tagname_ = None
-        self.id_ = _cast(None, id)
+        self.id_ = _cast(None, id_)
         self.type_ = _cast(None, type_)
         if propertyref is None:
             self.propertyref = []
@@ -4617,7 +4617,7 @@ class usesdevice(GeneratedsSuper):
     def replace_structsequenceref_at(self, index, value): self.structsequenceref[index] = value
     structsequencerefProp = property(get_structsequenceref, set_structsequenceref)
     def get_id(self): return self.id_
-    def set_id(self, id): self.id_ = id_
+    def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
     def get_type(self): return self.type_
     def set_type(self, type_): self.type_ = type_
