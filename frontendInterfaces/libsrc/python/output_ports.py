@@ -104,7 +104,7 @@ class OutFrontendTunerPort(OutPort):
                         pass
         finally:
             self.port_lock.release()
-            
+
         return retVal
 
     def getTunerDeviceControl(self, id, __connection_id__=""):
