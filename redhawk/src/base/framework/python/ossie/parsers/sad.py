@@ -3302,7 +3302,7 @@ class domainfinder(GeneratedsSuper):
 class hostcollocation(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, id=None, name=None, componentplacement=None):
+    def __init__(self, id_=None, name=None, componentplacement=None):
         self.original_tagname_ = None
         self.id_ = _cast(None, id_)
         self.name = _cast(None, name)
