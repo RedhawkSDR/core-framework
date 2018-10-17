@@ -17,26 +17,25 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with 
 this program.  If not, see http://www.gnu.org/licenses/.
 -->
-
-<!DOCTYPE softpkg PUBLIC '-//JTRS//DTD SCA V2.2.2 SPD//EN' 'softpkg.dtd'>
-<softpkg id="DCE:0256c459-3f8f-45ff-b263-fee4752088b1" name="py_dep2" type="sca_compliant">
-    <title/>
-    <author>
-        <name></name>
-        <company></company>
-        <webpage></webpage>
-    </author>
-    <description>HelloWorld Example
-    </description> 
-    <implementation id="firstImplementation">
-        <description>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:0256c459-3f8f-45ff-b263-fee4752088b2" name="py_dep3" type="sca_compliant">
+  <title></title>
+  <author>
+    <name></name>
+    <company></company>
+    <webpage></webpage>
+  </author>
+  <description>HelloWorld Example
+    </description>
+  <implementation id="firstImplementation">
+    <description>
         </description>
-        <code type="SharedLibrary">
-            <localfile name="lib/python/helloworld2"/>
-        </code>
-        <programminglanguage name="python"/>
-        <os name="Linux"/>
-        <processor name="x86"/>
-        <processor name="x86_64"/>
-    </implementation>
+    <code type="SharedLibrary">
+      <localfile name="helloworld3"/>
+    </code>
+    <programminglanguage name="python"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+  </implementation>
 </softpkg>
