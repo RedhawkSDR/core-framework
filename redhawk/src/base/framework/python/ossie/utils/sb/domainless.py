@@ -402,6 +402,7 @@ def generateSADXML(waveform_name):
     #for connection in _currentState['Component Connections'].values():
     _connection_map = ConnectionManager.instance().getConnections()
     for _tmp_connection in _connection_map:
+        connection_id = _connection_map[_tmp_connection][0]
         uses_side = _connection_map[_tmp_connection][1]
         uses_name = uses_side.getName()
         if len(uses_name.split('/')) != 2:
@@ -439,7 +440,7 @@ def generateSADXML(waveform_name):
             providesport = providesport.replace('@__COMPONENTINSTANCE__@',provides_inst_id)
         connectinterface += Sad_template.connectinterface.replace('@__USESPORT__@',usesport)
         connectinterface = connectinterface.replace('@__PROVIDESPORT__@',providesport)
-        connectinterface = connectinterface.replace('@__CONNECTID__@',str(uuid4()))
+        connectinterface = connectinterface.replace('@__CONNECTID__@',connection_id)
     with_connections = with_ac.replace('@__CONNECTINTERFACE__@',connectinterface)
     # External ports are ignored
     with_connections = with_connections.replace('@__EXTERNALPORTS__@',"")
@@ -831,7 +832,7 @@ def loadSADFile(filename, props={}):
             for connection in sad.connections.get_connectinterface():
                 if connection != None:
                     connectionID = None
-                    if connection.get_id() != "":
+                    if connection.get_id():
                         connectionID = connection.get_id()
                     log.debug("CONNECTION INTERFACE: connection ID '%s'", connection.get_id())
                     usesPortComponent = None

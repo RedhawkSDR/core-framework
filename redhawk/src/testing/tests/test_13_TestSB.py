@@ -561,6 +561,24 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertNotEqual(sad.find(provides_string), -1)
         self.assertEquals(sad.find('DCE:DCE'), -1)
 
+    def test_connectSandbox(self):
+        src=sb.launch('PortTest')
+        snk=sb.launch('PortTest')
+        src.connect(snk, usesPortName='resource_out')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', src._id)
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', snk._id)
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
     def test_loadSADFile_startorder(self):
         maxpid=32768
         try:
