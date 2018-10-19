@@ -911,7 +911,7 @@ void createHelper::_removeUnmatchedImplementations(std::vector<ossie::Implementa
     return;
 }
 
-void createHelper::_consolidateAllocations(const PlacementList &placingComponents, const ossie::ImplementationInfo::List& impls, CF::Properties& allocs)
+void createHelper::_consolidateAllocations(const PlacementList &placingComponents, const ossie::ImplementationInfo::List& impls, redhawk::PropertyMap& allocs, std::map<std::string,std::string>& nicAllocs)
 {
     allocs.length(0);
     for (ossie::ImplementationInfo::List::const_iterator impl= impls.begin(); impl != impls.end(); ++impl) {
@@ -926,35 +926,27 @@ void createHelper::_consolidateAllocations(const PlacementList &placingComponent
                 }
             }
         }
-        CF::Properties configureProperties = component->getConfigureProperties();
-        const CF::Properties &construct_props = component->getConstructProperties();
-        unsigned int configlen = configureProperties.length();
-        configureProperties.length(configureProperties.length()+construct_props.length());
-        for (unsigned int i=0; i<construct_props.length(); i++) {
-            configureProperties[i+configlen] = construct_props[i];
-        }
-        const std::vector<SPD::PropertyRef>& deps = (*impl)->getDependencyProperties();
 
-        for (std::vector<SPD::PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
-          ossie::ComponentProperty *prop = dep->property.get();
-          CF::Properties _tmp_allocs;
-          _tmp_allocs.length(1);
-          if (dynamic_cast<const SimplePropertyRef*>( prop ) != NULL) {
-                const SimplePropertyRef* dependency = dynamic_cast<const SimplePropertyRef*>(prop);
-                _tmp_allocs[0] = convertPropertyToDataType(dependency);
-            } else if (dynamic_cast<const SimpleSequencePropertyRef*>(prop) != NULL) {
-                const SimpleSequencePropertyRef* dependency = dynamic_cast<const SimpleSequencePropertyRef*>(prop);
-                _tmp_allocs[0] = convertPropertyToDataType(dependency);
-            } else if (dynamic_cast<const ossie::StructPropertyRef*>(prop) != NULL) {
-                const ossie::StructPropertyRef* dependency = dynamic_cast<const ossie::StructPropertyRef*>(prop);
-                _tmp_allocs[0] = convertPropertyToDataType(dependency);
-            } else if (dynamic_cast<const ossie::StructSequencePropertyRef*>(prop) != NULL) {
-                const ossie::StructSequencePropertyRef* dependency = dynamic_cast<const ossie::StructSequencePropertyRef*>(prop);
-                _tmp_allocs[0] = convertPropertyToDataType(dependency);
+        const std::vector<SPD::PropertyRef>& deps = (*impl)->getDependencyProperties();
+        redhawk::PropertyMap allocationProperties;
+        this->_castRequestProperties(allocationProperties, deps);
+
+        CF::Properties configure_props = component->getConfigureProperties();
+        ossie::corba::extend(configure_props, component->getConstructProperties());
+        this->_evaluateMATHinRequest(allocationProperties, configure_props);
+
+        redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
+        if (nic_alloc != allocationProperties.end()) {
+            redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
+            std::string alloc_id = substr["nic_allocation::identifier"].toString();
+            if (alloc_id.empty()) {
+                alloc_id = ossie::generateUUID();
+                substr["nic_allocation::identifier"] = alloc_id;
             }
-          this->_evaluateMATHinRequest(_tmp_allocs, configureProperties);
-          ossie::corba::push_back(allocs, _tmp_allocs[0]);
+            nicAllocs[component->getIdentifier()] = alloc_id;
         }
+
+        ossie::corba::extend(allocs, allocationProperties);
     }
 }
 
@@ -1021,8 +1013,9 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
         std::vector<ossie::SPD::NameVersionPair> osDeps = mergeOsDeps(res_vec[index]);
 
         // Consolidate the allocation properties into a single list
-        CF::Properties allocationProperties;
-        this->_consolidateAllocations(placingComponents, res_vec[index], allocationProperties);
+        redhawk::PropertyMap allocationProperties;
+        std::map<std::string,std::string> nicAllocations;
+        this->_consolidateAllocations(placingComponents, res_vec[index], allocationProperties, nicAllocations);
 
         const std::string requestid = ossie::generateUUID();
         ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appIdentifier, processorDeps, osDeps);
@@ -1055,8 +1048,14 @@ void createHelper::_placeHostCollocation(const SoftwareAssembly::HostCollocation
                 }
                 (*comp)->setAssignedDevice(node);
                 collocAssignedDevs[i].deviceAssignment.componentId = CORBA::string_dup((*comp)->getIdentifier());
+
+                const std::string component_id = (*comp)->getIdentifier();
+                if (nicAllocations.count(component_id)) {
+                    const std::string& alloc_id = nicAllocations[component_id];
+                    _applyNicAllocation((*comp), alloc_id, node->device);
+                }
             }
-            
+
             // Move the device to the front of the list
             rotateDeviceList(_executableDevices, deviceId);
 
@@ -2098,31 +2097,40 @@ ossie::AllocationResult createHelper::allocateComponentToDevice( ossie::Componen
     ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, devices, appIdentifier, implementation->getProcessorDeps(), implementation->getOsDeps());
     if (allocationProperties.contains("nic_allocation")) {
         if (!response.first.empty()) {
-            redhawk::PropertyMap query_props;
-            query_props["nic_allocation_status"] = redhawk::Value();
-            response.second->device->query(query_props);
-            redhawk::ValueSequence& retstruct = query_props["nic_allocation_status"].asSequence();
-            for (redhawk::ValueSequence::iterator it = retstruct.begin(); it!=retstruct.end(); it++) {
-                redhawk::PropertyMap& struct_prop = it->asProperties();
-                std::string identifier = struct_prop["nic_allocation_status::identifier"].toString();
-                if (identifier == alloc_id) {
-                    const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
-                    LOG_DEBUG(ApplicationFactory_impl, "Allocation NIC assignment: " << interface );
-                    component->setNicAssignment(interface);
-                    redhawk::PropertyType nic_execparam;
-                    nic_execparam.id = "NIC";
-                    nic_execparam.setValue(interface);
-                    component->addExecParameter(nic_execparam);
-
-                    // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
-                    // for now add nic assignment as application affinity to all components deployed by this device
-                    _app_affinity = component->getAffinityOptionsWithAssignment();
-                }
-            }
+            _applyNicAllocation(component, alloc_id, response.second->device);
         }
     }
     TRACE_EXIT(ApplicationFactory_impl);
     return response;
+}
+
+void createHelper::_applyNicAllocation(ossie::ComponentInfo* component,
+                                       const std::string& allocId,
+                                       CF::Device_ptr device)
+{
+    redhawk::PropertyMap query_props;
+    query_props["nic_allocation_status"] = redhawk::Value();
+    device->query(query_props);
+
+    redhawk::ValueSequence& retstruct = query_props["nic_allocation_status"].asSequence();
+    for (redhawk::ValueSequence::iterator it = retstruct.begin(); it!=retstruct.end(); it++) {
+        redhawk::PropertyMap& struct_prop = it->asProperties();
+        std::string identifier = struct_prop["nic_allocation_status::identifier"].toString();
+        if (identifier == allocId) {
+            const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
+            LOG_DEBUG(ApplicationFactory_impl, "Assigning NIC '" << interface << "' to component '"
+                      << component->getIdentifier() << "'");
+            component->setNicAssignment(interface);
+            redhawk::PropertyType nic_execparam;
+            nic_execparam.id = "NIC";
+            nic_execparam.setValue(interface);
+            component->addExecParameter(nic_execparam);
+
+            // RESOLVE - need SAD file directive to control this behavior.. i.e if promote_nic_to_affinity==true...
+            // for now add nic assignment as application affinity to all components deployed by this device
+            _app_affinity = component->getAffinityOptionsWithAssignment();
+        }
+    }
 }
 
 void createHelper::_castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::SPD::PropertyRef> &prop_refs, unsigned int offset)
