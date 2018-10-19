@@ -1260,6 +1260,19 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
             System.exit(-1);
         }
 
+        try {
+            if (applicationRegistrar != null) {
+                String name = applicationRegistrar.app().name();
+                String tpath = dom_path;
+                String[] t = dom_path.split("/");
+                if ( dom_path.charAt(0) == '/') {
+                    tpath=dom_path.substring(1, dom_path.length()-1);
+                }
+                dom_path = t[0]+"/"+name;
+            }
+        } catch (Exception e) {
+        }
+
 	logging.ComponentCtx ctx = new	logging.ComponentCtx( nameBinding, identifier, dom_path );
 	logging.Configure( logcfg_uri, debugLevel, ctx );
 

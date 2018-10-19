@@ -275,12 +275,30 @@ int main(int argc, char* argv[])
     }
 
 
-    pid_t pid = getpid();
+    fs::path dcdPath = devRootPath / dcdFile;
+    std::ifstream dcdStream(dcdPath.string().c_str());
+    if (!dcdStream) {
+        std::cerr << "Could not read DCD file " << dcdFile << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    ossie::DeviceManagerConfiguration dcd;
+    try {
+        dcd.load(dcdStream);
+    } catch (const ossie::parser_error& ex) {
+        std::cerr << "Failed to parse DCD file " << dcdFile << ". The XML parser returned the following error: " << ex.what() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    dcdStream.close();
+    
+    node_name = dcd.getName();
+
+    /*pid_t pid = getpid();
     std::ostringstream os;
     os << boost::asio::ip::host_name() << ":" << node_name << "_" << pid;
-    node_name = os.str();
+    node_name = os.str();*/
 
-    os.str("");
+    std::ostringstream os;
+    //os.str("");
     os << domainName << "/" << node_name;
     dpath= os.str();
     

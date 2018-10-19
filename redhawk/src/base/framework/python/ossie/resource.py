@@ -1294,6 +1294,17 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
             except:
                 pass 
 
+            try:
+                obj = orb.string_to_object(execparams['NAMING_CONTEXT_IOR'])
+                applicationRegistrar = obj._narrow(CF.ApplicationRegistrar)
+                _app = containers.ApplicationContainer(applicationRegistrar._get_app())
+                name = applicationRegistrar._get_app()._get_name()
+                tpath = dpath
+                if dpath[0] == '/':
+                    tpath=dpath[1:]
+                dpath = tpath.split('/')[0]+"/"+name
+            except:
+                pass
             ## sets up logging during component startup
             ctx = ossie.logger.ComponentCtx(
                 name = name_binding,

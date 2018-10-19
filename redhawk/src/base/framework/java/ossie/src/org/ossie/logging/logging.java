@@ -33,6 +33,8 @@ import java.lang.management.*;
 import java.lang.Exception;
 import java.util.Properties;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.BufferedReader;
@@ -161,7 +163,7 @@ public class logging {
 		    device_mgr = seg[n];
 		}
 	    }
-	    
+
         };
 
 	public void apply( MacroTable tbl ){
@@ -188,6 +190,29 @@ public class logging {
 		    device_mgr = seg[n];
 		}
 	    }
+            
+            try {
+                String pid = GetPid();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/" + pid + "/stat")));
+                String stat = reader.readLine();
+                int openParen = stat.indexOf("(");
+                int closeParen = stat.lastIndexOf(")");
+                String[] statElements = stat.substring(closeParen + 2).split(" ");
+                String script_pid = statElements[1];
+
+                reader = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/" + pid + "/stat")));
+                stat = reader.readLine();
+                openParen = stat.indexOf("(");
+                closeParen = stat.lastIndexOf(")");
+                statElements = stat.substring(closeParen + 2).split(" ");
+                String ppid = statElements[1];
+                InetAddress addr = InetAddress.getLocalHost();
+                String hname = addr.getHostName();
+
+                device_mgr_id = domain_name + ":" + hname + ":" + device_mgr + "_" + ppid;
+            } catch (FileNotFoundException ex) {
+            } catch (IOException ex) {
+            }
 
         };
 
@@ -319,7 +344,8 @@ public class logging {
     public static void SetComponentInfo( MacroTable tbl, ComponentCtx ctx ) {
 	SetResourceInfo( tbl, ctx );
 	tbl.put("@@@WAVEFORM.NAME@@@", ctx.waveform.replaceAll(":", "-" ) );
-	tbl.put("@@@WAVEFORM.ID@@@", ctx.waveform_id.replaceAll(":", "-" ) );
+        tbl.put("@@@WAVEFORM.INSTANCE@@@", ctx.waveform_id.replaceAll(":", "-" ) );
+        tbl.put("@@@WAVEFORM.ID@@@", ctx.waveform_id.replaceAll(":", "-" ) );
 	tbl.put("@@@COMPONENT.NAME@@@", ctx.name.replaceAll(":", "-" ) );
 	tbl.put("@@@COMPONENT.INSTANCE@@@", ctx.instance_id.replaceAll(":", "-" ) );
 	tbl.put("@@@COMPONENT.PID@@@", GetPid());
