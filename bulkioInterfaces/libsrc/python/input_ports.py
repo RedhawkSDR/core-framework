@@ -238,24 +238,27 @@ class InPort:
                     if self.logger:
                         self.logger.debug("bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE=%d)", len(self.queue))
 
-                    foundSRIChanged = False
-                    for data, T, EOS, streamID, sri, sriChangeHappened, inputQueueFlushed in self.queue:
-                        if foundSRIChanged and flagEOS:
-                            break
-                        if sriChangeHappened:
-                            sriChanged = True
-                            foundSRIChanged = True
-                        if EOS:
-                            flagEOS = True
-                    self.queue.clear()
+                    self._flushQueue()
 
-            if flagEOS:
-                EOS = True
-            packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, queueFlushed)
+                    # Update the SRI change flag for this stream, which may
+                    # have been modified during the queue flush
+                    sri, sriChanged = self.sriDict[streamID]
+                    self.sriDict[streamID] = (sri, False)
+
+            packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
             self.stats.update(self._packetSize(data), float(len(self.queue))/float(self._maxSize), EOS, streamID, queueFlushed)
             if self.logger:
                 self.logger.trace("bulkio::InPort pushPacket NEW Packet (QUEUE=%d)", len(self.queue))
             self.queue.append(packet)
+
+            # If a flush occurred, always set the flag on the first packet;
+            # this may not be the packet that was just inserted if there were
+            # any EOS packets on the queue
+            if queueFlushed:
+                # Replace the (immutable) tuple at the front to change the
+                # queue flush flag
+                data, T, EOS, streamID, sri, sriChanged, _ = self.queue[0]
+                self.queue[0] = (data, T, EOS, streamID, sri, sriChanged, True)
 
             # Let one waiting getPacket call know there is a packet available
             self._not_empty.notify()
@@ -264,6 +267,35 @@ class InPort:
 
         if self.logger:
             self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
+
+    def _flushQueue(self):
+        sri_changed = set()
+        saved_packets = collections.deque()
+        for data, T, EOS, streamID, sri, sriChanged, _ in self.queue:
+            if EOS:
+                # Remove the SRI change flag for this stream, as further SRI
+                # changes apply to a different stream; set the SRI change flag
+                # for the EOS packet if there was one for this stream earlier
+                # in the queue
+                if streamID in sri_changed:
+                    sriChanged = True
+                sri_changed.discard(streamID)
+
+                # Discard data (using a 0-length slice works with any sequence)
+                # and preserve the EOS packet
+                data = data[:0]
+                saved_packets.append((data, T, EOS, streamID, sri, sriChanged, False))
+            elif sriChanged:
+                sri_changed.add(streamID)
+
+        self.queue = saved_packets
+
+        for stream_id in sri_changed:
+            # It should be safe to assume that an entry exists for the stream
+            # ID, but just in case, use get instead of operator[]
+            sri, _ = self.sriDict.get(stream_id, (None, None))
+            if sri is not None:
+                self.sriDict[stream_id] = (sri, True)
 
     def getPacket(self, timeout=const.NON_BLOCKING):
 

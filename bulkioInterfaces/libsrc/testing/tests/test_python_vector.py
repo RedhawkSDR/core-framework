@@ -200,6 +200,86 @@ class TestPythonAPI(BaseVectorPort):
         port.getPacket()
         self.failIf(deadlock)
 
+    def test_queue_flush_flags(self):
+        """
+        Tests that EOS and sriChanged flags are preserved on a per-stream basis
+        when a queue flush occurs.
+        """
+        port = self.bio_in_module('test')
+        port.startPort()
+
+        # Push 1 packet for the normal data stream
+        sri_data = sri.create('stream_data')
+        sri_data.blocking = False
+        port.pushSRI(sri_data)
+        port.pushPacket([0], timestamp.now(), False, sri_data.streamID)
+
+        # Push 1 packet for the EOS test stream
+        sri_eos = sri.create('stream_eos')
+        sri_eos.blocking = False
+        port.pushSRI(sri_eos)
+        port.pushPacket([0], timestamp.now(), False, sri_eos.streamID)
+
+        # Push 1 packet for the SRI change stream
+        sri_change = sri.create('stream_sri')
+        sri_change.blocking = False
+        port.pushSRI(sri_change)
+        port.pushPacket([0], timestamp.now(), False, sri_change.streamID)
+
+        # Grab the packets to ensure the initial conditions are correct
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_data.streamID, packet.streamID)
+
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_eos.streamID, packet.streamID)
+
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_change.streamID, packet.streamID)
+
+        # Push an EOS packet for the EOS stream
+        port.pushPacket([], timestamp.notSet(), True, sri_eos.streamID)
+
+        # Modify the SRI for the SRI change stream and push another packet
+        sri_change.mode = 1
+        port.pushSRI(sri_change)
+        port.pushPacket([0, 0], timestamp.now(), False, sri_change.streamID)
+
+        # Cause a queue flush by lowering the ceiling and pushing packets
+        port.setMaxQueueDepth(3)
+        port.pushPacket([0], timestamp.now(), False, sri_data.streamID)
+        port.pushPacket([0], timestamp.now(), False, sri_data.streamID)
+
+        # Push another packet for the SRI change stream
+        port.pushPacket([0, 0], timestamp.now(), False, sri_change.streamID)
+
+        # 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_eos.streamID, packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertFalse(packet.sriChanged)
+        self.assertEqual(0, len(packet.dataBuffer))
+
+        # 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_data.streamID, packet.streamID)
+        self.assertFalse(packet.inputQueueFlushed)
+        self.assertFalse(packet.EOS)
+        self.assertFalse(packet.sriChanged)
+
+        # 3rd packet should contain the "lost" SRI change flag
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_change.streamID, packet.streamID)
+        self.assertFalse(packet.inputQueueFlushed)
+        self.assertFalse(packet.EOS)
+        self.assertTrue(packet.sriChanged)
+
 
 class Test_Python_Int8(TestPythonAPI):
     def __init__(self, methodName='runTest', ptype='Int8', cname='Python_Ports' ):
