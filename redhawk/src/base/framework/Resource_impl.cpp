@@ -22,6 +22,7 @@
 
 #include "ossie/Resource_impl.h"
 #include "ossie/Events.h"
+#include <boost/algorithm/string.hpp>
 
 PREPARE_CF_LOGGING(Resource_impl)
 
@@ -262,6 +263,23 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
 
     // check if logging config URL was specified...
     if ( logging_config_uri ) logcfg_uri=logging_config_uri;
+
+    try {
+        if (!application_registrar_ior.empty()) {
+            LOG_TRACE(Resource_impl, "Binding component to application context with name '" << name_binding << "'");
+            CORBA::Object_var applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
+            CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
+            std::string name = ossie::corba::returnString(applicationRegistrar->app()->name());
+            std::string tpath=dpath;
+            if ( dpath[0] == '/' ) 
+                tpath=dpath.substr(1);
+            std::vector< std::string > t;
+            // path should be   /domain/<dev_mgr or waveform>
+            boost::algorithm::split( t, tpath, boost::is_any_of("/") );
+            dpath = t[0]+"/"+name;
+        }
+    } catch ( ... ) {
+    }
 
     // setup logging context for a component resource
     ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, component_identifier, dpath ) );
