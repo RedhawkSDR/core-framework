@@ -35,6 +35,11 @@ class _envContainer(object):
         self.stdout = stdout
 
 def _cleanup_domain():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+
     try:
         _os.kill(globals()['currentdomain'].domain,2)
     except:
@@ -198,4 +203,9 @@ def attach(domain=None, location=None, connectDomainEvents=True):
     
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
     
+    if not globals().has_key('attached_domains'):
+        globals()['attached_domains'] = []
+
+    globals()['attached_domains'].append(dom_entry)
+
     return dom_entry
