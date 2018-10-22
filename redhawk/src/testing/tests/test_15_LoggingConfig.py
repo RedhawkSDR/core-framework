@@ -577,13 +577,13 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         found_line = None
         for line in logfile_content:
             if logstr in line:
-                if not 'DeviceManager_impl' in line:
+                if not 'DeviceManager.parsers' in line:
                     continue
                 found_line = line
                 break
         self.assertNotEquals(found_line, None)
         self.assertNotEquals(found_line.find(logstr), -1)
-        self.assertNotEquals(found_line.find('DeviceManager_impl'), -1)
+        self.assertNotEquals(found_line.find('DeviceManager.parsers'), -1)
 
     def test_token_config_dev_cpp(self):
         found_devmgr = None

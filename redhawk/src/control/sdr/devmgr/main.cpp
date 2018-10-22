@@ -480,6 +480,8 @@ int main(int argc, char* argv[])
                                                        spdFile,
                                                        initialDebugLevel
                                                        );
+        DeviceManager_servant->saveLoggingContext(logfile_uri, initialDebugLevel, ctx);
+
         DeviceManager_servant->setExecparamProperties(execparams);
         pstage=0;
 

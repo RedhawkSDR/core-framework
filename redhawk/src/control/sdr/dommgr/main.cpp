@@ -367,7 +367,7 @@ int old_main(int argc, char* argv[])
 
         // set logging level for the DomainManager's logger
         if ( DomainManager_servant ) {
-          DomainManager_servant->saveLoggingContext( logfile_uri, debugLevel, ctx );
+          DomainManager_servant->saveLoggingContext( logfile_uri, initialDebugLevel, ctx );
         }
 
     } catch (const CORBA::Exception& ex) {
