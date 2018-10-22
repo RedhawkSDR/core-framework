@@ -524,6 +524,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         # cycle period is 10 milliseconds
         time.sleep(0.1)
 
+    @scatest.requireLog4cxx
     def test_token_devmgr(self):
         found_devmgr = None
         for devmgr in self._rhDom.devMgrs:
@@ -549,6 +550,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         self.assertNotEquals(found_line.find(logstr), -1)
         self.assertNotEquals(found_line.find('DeviceManager_impl'), -1)
 
+    @scatest.requireLog4cxx
     def test_token_config_dev_cpp(self):
         found_devmgr = None
         for devmgr in self._rhDom.devMgrs:
@@ -584,6 +586,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
         self.assertNotEquals(logcfg.find(logstr), -1)
 
+    @scatest.requireJava
     def test_token_config_dev_java(self):
         self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/java_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
         found_devmgr = None
@@ -606,6 +609,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
         self.assertNotEquals(logcfg.find(logstr), -1)
 
+    @scatest.requireLog4cxx
     def test_token_config_comp_cpp(self):
         app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
         found_comp = None
@@ -630,6 +634,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
         logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
         self.assertNotEquals(logcfg.find(logstr), -1)
 
+    @scatest.requireJava
     def test_token_config_comp_java(self):
         app = self._rhDom.createApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
         found_comp = None
