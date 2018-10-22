@@ -58,6 +58,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/BasicAC/BasicAC_cpp_impl1 \
           sdr/dom/components/BasicShared/cpp \
           sdr/dom/components/logger/cpp \
+          sdr/dom/components/alloc_shm/cpp \
           sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1 \
           sdr/dom/components/MessageReceiverCpp \
           sdr/dom/components/MessageSenderCpp \
