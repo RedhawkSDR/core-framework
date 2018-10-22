@@ -425,4 +425,38 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         Assert.assertFalse("EOS should not be reported", packet.EOS);
         Assert.assertTrue("SRI change should be reported", packet.sriChanged);
     }
+
+    @Test
+    public void testQueueSize()
+    {
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        corbaPort.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        }
+        Assert.assertEquals(10, port.getCurrentQueueDepth());
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        Assert.assertEquals(1, port.getCurrentQueueDepth());
+
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri.streamID);
+        }
+        Assert.assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            Assert.assertNotNull(packet);
+            Assert.assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
 }

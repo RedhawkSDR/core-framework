@@ -431,6 +431,41 @@ void InPortTest<Port>::testQueueFlushFlags()
     CPPUNIT_ASSERT(packet->sriChanged);
 }
 
+template <class Port>
+void InPortTest<Port>::testQueueSize()
+{
+    BULKIO::StreamSRI sri = bulkio::sri::create("queue_size");
+    port->pushSRI(sri);
+
+    // Start with a reasonably small queue depth and check that a flush occurs at
+    // the expected time
+    port->setMaxQueueDepth(10);
+    for (int ii = 0; ii < 10; ++ii) {
+        this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    }
+    CPPUNIT_ASSERT_EQUAL(10, port->getCurrentQueueDepth());
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
+
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+
+    // Set queue depth to unlimited and push a lot of packets
+    port->setMaxQueueDepth(-1);
+    const int QUEUE_SIZE = 250;
+    for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+        this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    }
+    CPPUNIT_ASSERT_EQUAL(QUEUE_SIZE, port->getCurrentQueueDepth());
+    for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+        packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+        CPPUNIT_ASSERT(packet);
+        CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    }
+}
+
 #define CREATE_TEST(x,BITS)                                             \
     class In##x##PortTest : public InPortTest<bulkio::In##x##Port>      \
     {                                                                   \
