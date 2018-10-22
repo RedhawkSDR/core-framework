@@ -269,14 +269,19 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
             LOG_TRACE(Resource_impl, "Binding component to application context with name '" << name_binding << "'");
             CORBA::Object_var applicationRegistrarObject = orb->string_to_object(application_registrar_ior.c_str());
             CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
-            std::string name = ossie::corba::returnString(applicationRegistrar->app()->name());
-            std::string tpath=dpath;
-            if ( dpath[0] == '/' ) 
-                tpath=dpath.substr(1);
-            std::vector< std::string > t;
-            // path should be   /domain/<dev_mgr or waveform>
-            boost::algorithm::split( t, tpath, boost::is_any_of("/") );
-            dpath = t[0]+"/"+name;
+            if (not CORBA::is_nil(applicationRegistrar)) {
+                CF::Application_var app = applicationRegistrar->app();
+                if (not CORBA::is_nil(app)) {
+                    std::string name = ossie::corba::returnString(app->name());
+                    std::string tpath=dpath;
+                    if ( dpath[0] == '/' )
+                        tpath=dpath.substr(1);
+                    std::vector< std::string > t;
+                    // path should be   /domain/<dev_mgr or waveform>
+                    boost::algorithm::split( t, tpath, boost::is_any_of("/") );
+                    dpath = t[0]+"/"+name;
+                }
+            }
         }
     } catch ( ... ) {
     }
