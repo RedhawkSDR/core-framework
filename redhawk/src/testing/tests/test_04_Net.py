@@ -194,5 +194,5 @@ class NicAllocTest(scatest.CorbaTestCase):
         self._testNicAlloc('NicAllocWaveJavaIdentifier')
 
     @scatest.requireJava
-    def test_JavaNicAllocIdentifier(self):
+    def test_JavaNicAllocCollocated(self):
         self._testNicAlloc('NicAllocWaveJavaCollocated')
