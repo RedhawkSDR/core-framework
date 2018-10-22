@@ -292,13 +292,7 @@ int main(int argc, char* argv[])
     
     node_name = dcd.getName();
 
-    /*pid_t pid = getpid();
     std::ostringstream os;
-    os << boost::asio::ip::host_name() << ":" << node_name << "_" << pid;
-    node_name = os.str();*/
-
-    std::ostringstream os;
-    //os.str("");
     os << domainName << "/" << node_name;
     dpath= os.str();
     
