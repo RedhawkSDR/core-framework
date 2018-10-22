@@ -389,6 +389,36 @@ class BlueFileHelpers(unittest.TestCase):
         time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
         self.assertAlmostEqual(time_in, time_out,5)
 
+    def _test_FileSinkOctet(self, format):
+        filename = self._tempfileName('sink_octet_' + format.lower())
+
+        source = sb.DataSource(dataFormat='octet')
+        sink = sb.FileSink(filename, midasFile=True)
+        source.connect(sink)
+        sb.start()
+
+        # Push a 256-element ramp (the maximum range of octet)
+        indata = range(256)
+        isComplex = bool(format[0] == 'C')
+        source.push(indata, complexData=isComplex, EOS=True)
+        sink.waitForEOS()
+
+        # Check the BLUE file format matches
+        hdr, data = bluefile.read(filename)
+        self.assertEqual(format, hdr['format'])
+
+        # Have to "cast" the data to unsigned 8-bit, since 'B' is a signed type
+        # (as are all BLUE formats), and flattening the array re-interleaves
+        # complex data
+        outdata = data.view(numpy.uint8).reshape(-1)
+        self.assertTrue(numpy.array_equal(indata, outdata), msg="Format '%s' %s != %s" % (format, indata, outdata))
+
+    def test_FileSinkOctet(self):
+        self._test_FileSinkOctet('SB')
+
+    def test_FileSinkOctetComplex(self):
+        self._test_FileSinkOctet('CB')
+
     def test_keywords_retrieval_int(self):
         filename='bf-kw-test.out'
         self._tempfiles.append(filename)

@@ -314,6 +314,117 @@ class InPortTest(object):
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failUnless(not packet.dataBuffer)
 
+    def testQueueFlushFlags(self):
+        """
+        Tests that EOS and sriChanged flags are preserved on a per-stream basis
+        when a queue flush occurs.
+        """
+        # Push 1 packet for the normal data stream
+        sri_data = bulkio.sri.create('stream_data')
+        sri_data.blocking = False
+        self.port.pushSRI(sri_data)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_data.streamID)
+
+        # Push 1 packet for the EOS test stream
+        sri_eos = bulkio.sri.create('stream_eos')
+        sri_eos.blocking = False
+        self.port.pushSRI(sri_eos)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_eos.streamID)
+
+        # Push 1 packet for the SRI change stream
+        sri_change = bulkio.sri.create('stream_sri')
+        sri_change.blocking = False
+        self.port.pushSRI(sri_change)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_change.streamID)
+
+        # Grab the packets to ensure the initial conditions are correct
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_data.streamID, packet.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_eos.streamID, packet.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_change.streamID, packet.streamID)
+
+        # Push an EOS packet for the EOS stream
+        self._pushTestPacket(0, bulkio.timestamp.notSet(), True, sri_eos.streamID)
+
+        # Modify the SRI for the SRI change stream and push another packet
+        sri_change.mode = 1
+        self.port.pushSRI(sri_change)
+        self._pushTestPacket(2, bulkio.timestamp.now(), False, sri_change.streamID)
+
+        # Cause a queue flush by lowering the ceiling and pushing packets
+        self.port.setMaxQueueDepth(3)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_data.streamID)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_data.streamID)
+
+        # Push another packet for the SRI change stream
+        self._pushTestPacket(2, bulkio.timestamp.now(), False, sri_change.streamID)
+
+        # 1st packet should be for EOS stream, with no data or SRI change flag
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_eos.streamID, packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertFalse(packet.sriChanged)
+        self.assertEqual(0, len(packet.dataBuffer))
+
+        # 2nd packet should be for data stream, with no EOS or SRI change flag
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_data.streamID, packet.streamID)
+        self.assertFalse(packet.inputQueueFlushed)
+        self.assertFalse(packet.EOS)
+        self.assertFalse(packet.sriChanged)
+
+        # 3rd packet should contain the "lost" SRI change flag
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_change.streamID, packet.streamID)
+        self.assertFalse(packet.inputQueueFlushed)
+        self.assertFalse(packet.EOS)
+        self.assertTrue(packet.sriChanged)
+
+    def testQueueSize(self):
+        """
+        Tests that the max queue size can be set to a non-default value or
+        unlimited (negative)
+        """
+        sri = bulkio.sri.create('queue_size')
+        sri.blocking = False
+        self.port.pushSRI(sri)
+
+        # Start with a reasonably small queue depth and check that a flush
+        # occurs at the expected time
+        self.port.setMaxQueueDepth(10)
+        for _ in xrange(10):
+            self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(10, self.port.getCurrentQueueDepth())
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(1, self.port.getCurrentQueueDepth())
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet.dataBuffer is None)
+        self.assertTrue(packet.inputQueueFlushed)
+
+        # Set queue depth to unlimited and push a lot of packets
+        self.port.setMaxQueueDepth(-1)
+        QUEUE_SIZE = 250
+        for _ in xrange(QUEUE_SIZE):
+            self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
+        for _ in xrange(QUEUE_SIZE):
+            packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.inputQueueFlushed)
+
+
     def _pushTestPacket(self, length, time, eos, streamID):
         data = self.helper.createData(length)
         self.helper.pushPacket(self.port, data, time, eos, streamID)

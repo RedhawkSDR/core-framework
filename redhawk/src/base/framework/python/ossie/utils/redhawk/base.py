@@ -59,6 +59,11 @@ def __terminate_process( process, signals=(_signal.SIGINT, _signal.SIGTERM, _sig
             pass
 
 def _cleanup_domain():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+
     try:
         if globals().has_key('currentdomain'):
             __terminate_process( globals()['currentdomain'].process)
@@ -291,4 +296,9 @@ def attach(domain=None, location=None, connectDomainEvents=True):
     
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
     
+    if not globals().has_key('attached_domains'):
+        globals()['attached_domains'] = []
+
+    globals()['attached_domains'].append(dom_entry)
+
     return dom_entry

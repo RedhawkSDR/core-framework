@@ -353,6 +353,118 @@ void InPortTest<Port>::testDiscardEmptyPacket()
     CPPUNIT_ASSERT(!packet);
 }    
     
+template <class Port>
+void InPortTest<Port>::testQueueFlushFlags()
+{
+    // Push 1 packet for the normal data stream
+    BULKIO::StreamSRI sri_data = bulkio::sri::create("stream_data");
+    sri_data.blocking = false;
+    port->pushSRI(sri_data);
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
+
+    // Push 1 packet for the EOS test stream
+    BULKIO::StreamSRI sri_eos = bulkio::sri::create("stream_eos");
+    sri_eos.blocking = false;
+    port->pushSRI(sri_eos);
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_eos.streamID);
+
+    // Push 1 packet for the SRI change stream
+    BULKIO::StreamSRI sri_change = bulkio::sri::create("stream_sri");
+    sri_change.blocking = false;
+    sri_change.mode = 0;
+    port->pushSRI(sri_change);
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_change.streamID);
+
+    // Grab the packets to ensure the initial conditions are correct
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_data.streamID), packet->streamID);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_eos.streamID), packet->streamID);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
+
+    // Push an EOS packet for the EOS stream
+    this->_pushTestPacket(0, bulkio::time::utils::notSet(), true, sri_eos.streamID);
+
+    // Modify the SRI for the SRI change stream and push another packet
+    sri_change.mode = 1;
+    port->pushSRI(sri_change);
+    this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri_change.streamID);
+
+    // Cause a queue flush by lowering the ceiling and pushing packets
+    port->setMaxQueueDepth(3);
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
+
+    // Push another packet for the SRI change stream
+    this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri_change.streamID);
+
+    // 1st packet should be for EOS stream, with no data or SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_eos.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(!packet->sriChanged);
+    CPPUNIT_ASSERT(packet->dataBuffer.empty());
+
+    // 2nd packet should be for data stream, with no EOS or SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_data.streamID), packet->streamID);
+    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(!packet->sriChanged);
+
+    // 3rd packet should contain the "lost" SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
+    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+}
+
+template <class Port>
+void InPortTest<Port>::testQueueSize()
+{
+    BULKIO::StreamSRI sri = bulkio::sri::create("queue_size");
+    port->pushSRI(sri);
+
+    // Start with a reasonably small queue depth and check that a flush occurs at
+    // the expected time
+    port->setMaxQueueDepth(10);
+    for (int ii = 0; ii < 10; ++ii) {
+        this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    }
+    CPPUNIT_ASSERT_EQUAL(10, port->getCurrentQueueDepth());
+    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
+
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+
+    // Set queue depth to unlimited and push a lot of packets
+    port->setMaxQueueDepth(-1);
+    const int QUEUE_SIZE = 250;
+    for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+        this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    }
+    CPPUNIT_ASSERT_EQUAL(QUEUE_SIZE, port->getCurrentQueueDepth());
+    for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+        packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+        CPPUNIT_ASSERT(packet);
+        CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    }
+}
 
 #define CREATE_TEST(x,BITS)                                             \
     class In##x##PortTest : public InPortTest<bulkio::In##x##Port>      \
