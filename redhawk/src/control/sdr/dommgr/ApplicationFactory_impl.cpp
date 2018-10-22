@@ -927,14 +927,7 @@ void createHelper::_consolidateAllocations(const PlacementList &placingComponent
             }
         }
 
-        const std::vector<SPD::PropertyRef>& deps = (*impl)->getDependencyProperties();
-        redhawk::PropertyMap allocationProperties;
-        this->_castRequestProperties(allocationProperties, deps);
-
-        CF::Properties configure_props = component->getConfigureProperties();
-        ossie::corba::extend(configure_props, component->getConstructProperties());
-        this->_evaluateMATHinRequest(allocationProperties, configure_props);
-
+        redhawk::PropertyMap allocationProperties = _getComponentAllocations(component, *impl);
         std::string nic_alloc_id = _getNicAllocationId(allocationProperties);
         if (!nic_alloc_id.empty()) {
             nicAllocs[component->getIdentifier()] = nic_alloc_id;
