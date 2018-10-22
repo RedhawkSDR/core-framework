@@ -400,7 +400,7 @@ public class InInt8Port extends BULKIO.jni.dataCharPOA implements org.ossie.comp
         } else {
             synchronized (this.dataBufferLock) {
                 boolean flushToReport = false;
-                if (this.workQueue.size() >= this.maxQueueDepth) {
+                if ((this.maxQueueDepth >= 0) && (this.workQueue.size() >= this.maxQueueDepth)) {
 		    if ( logger != null ) {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }

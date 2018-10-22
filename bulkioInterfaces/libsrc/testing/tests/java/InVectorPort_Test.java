@@ -2170,4 +2170,364 @@ public class InVectorPort_Test {
         assertFalse("EOS should not be reported", packet.EOS);
         assertTrue("SRI change should be reported", packet.sriChanged);
     }
+
+    @Test
+    public void test_InFloat_queue_size()
+    {
+	bulkio.InFloatPort port = new bulkio.InFloatPort("dataFloat_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InFloatPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new float[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InDouble_queue_size()
+    {
+	bulkio.InDoublePort port = new bulkio.InDoublePort("dataDouble_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InDoublePort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new double[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InOctet_queue_size()
+    {
+	bulkio.InOctetPort port = new bulkio.InOctetPort("dataOctet_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InOctetPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new byte[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InChar_queue_size()
+    {
+	bulkio.InCharPort port = new bulkio.InCharPort("dataChar_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InCharPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new char[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InShort_queue_size()
+    {
+	bulkio.InShortPort port = new bulkio.InShortPort("dataShort_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InShortPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InUShort_queue_size()
+    {
+	bulkio.InUShortPort port = new bulkio.InUShortPort("dataUShort_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InUShortPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new short[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InLong_queue_size()
+    {
+	bulkio.InLongPort port = new bulkio.InLongPort("dataLong_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InULong_queue_size()
+    {
+	bulkio.InULongPort port = new bulkio.InULongPort("dataULong_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InULongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new int[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InLongLong_queue_size()
+    {
+	bulkio.InLongLongPort port = new bulkio.InLongLongPort("dataLongLong_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InLongLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
+
+    @Test
+    public void test_InULongLong_queue_size()
+    {
+	bulkio.InULongLongPort port = new bulkio.InULongLongPort("dataULongLong_in");
+
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("queue_size", 1.0, BULKIO.UNITS_TIME.value, false);
+        port.pushSRI(sri);
+
+        // Start with a reasonably small queue depth and check that a flush
+        // occurs at the expected time
+        port.setMaxQueueDepth(10);
+        for (int ii = 0; ii < 10; ++ii) {
+            port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(10, port.getCurrentQueueDepth());
+        port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        assertEquals(1, port.getCurrentQueueDepth());
+
+        bulkio.InULongLongPort.Packet packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        assertNotNull(packet);
+        assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+
+        // Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1);       
+        final int QUEUE_SIZE = 250;
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            port.pushPacket(new long[1], bulkio.time.utils.now(), false, sri.streamID);
+        }
+        assertEquals(QUEUE_SIZE, port.getCurrentQueueDepth());
+        for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+            packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+            assertNotNull(packet);
+            assertFalse("Input queue flush reported with unlimited queue size", packet.inputQueueFlushed);
+        }
+    }
 }

@@ -728,6 +728,46 @@ void Bulkio_InPort_Fixture::test_queue_flush_flags(bulkio::InXMLPort*)
   CPPUNIT_ASSERT(packet->sriChanged);
 }
 
+template <typename T>
+void Bulkio_InPort_Fixture::test_queue_size(T* inport)
+{
+  // Create a new port instance to avoid interference from other parts of the
+  // test, due to the way testing is structured in 2.0
+  T instance(inport->getName() + "2", logger);
+  T* port = &instance;
+
+  BULKIO::StreamSRI sri = bulkio::sri::create("queue_size");
+  port->pushSRI(sri);
+
+  // Start with a reasonably small queue depth and check that a flush occurs at
+  // the expected time
+  port->setMaxQueueDepth(10);
+  for (int ii = 0; ii < 10; ++ii) {
+    _pushTestPacket(port, 1, bulkio::time::utils::now(), false, sri.streamID);
+  }
+  CPPUNIT_ASSERT_EQUAL(10, port->getCurrentQueueDepth());
+  _pushTestPacket(port, 1, bulkio::time::utils::now(), false, sri.streamID);
+  CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
+
+  boost::scoped_ptr<typename T::dataTransfer> packet;
+  packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+  CPPUNIT_ASSERT(packet);
+  CPPUNIT_ASSERT(packet->inputQueueFlushed);
+
+  // Set queue depth to unlimited and push a lot of packets
+  port->setMaxQueueDepth(-1);
+  const int QUEUE_SIZE = 250;
+  for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+      _pushTestPacket(port, 1, bulkio::time::utils::now(), false, sri.streamID);
+  }
+  CPPUNIT_ASSERT_EQUAL(QUEUE_SIZE, port->getCurrentQueueDepth());
+  for (int ii = 0; ii < QUEUE_SIZE; ++ii) {
+      packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+      CPPUNIT_ASSERT(packet);
+      CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+  }
+}
+
 template<>
 void  Bulkio_InPort_Fixture::test_port_api( bulkio::InSDDSPort *port  ) {
 
@@ -813,6 +853,7 @@ Bulkio_InPort_Fixture::test_int8()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -839,6 +880,7 @@ Bulkio_InPort_Fixture::test_int16()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -862,6 +904,7 @@ Bulkio_InPort_Fixture::test_int32()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -887,6 +930,7 @@ Bulkio_InPort_Fixture::test_int64()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -911,6 +955,7 @@ Bulkio_InPort_Fixture::test_uint8()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -934,6 +979,7 @@ Bulkio_InPort_Fixture::test_uint16()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -958,6 +1004,7 @@ Bulkio_InPort_Fixture::test_uint32()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -982,6 +1029,7 @@ Bulkio_InPort_Fixture::test_uint64()
   test_stream_sri_changed( port );
   test_get_packet_stream_removed( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -996,6 +1044,18 @@ Bulkio_InPort_Fixture::test_create_float()
   CPPUNIT_ASSERT( port != NULL );
 }
 
+void Bulkio_InPort_Fixture::test_float()
+{
+  bulkio::InFloatPort *port = new bulkio::InFloatPort("test_api_float");
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_api( port );
+  test_stream_disable( port );
+  test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
+  test_queue_flush_flags( port );
+  test_queue_size( port );
+}
 
 void 
 Bulkio_InPort_Fixture::test_create_double()
@@ -1004,6 +1064,18 @@ Bulkio_InPort_Fixture::test_create_double()
   CPPUNIT_ASSERT( port != NULL );
 }
 
+void Bulkio_InPort_Fixture::test_double()
+{
+  bulkio::InDoublePort *port = new bulkio::InDoublePort("test_api_double");
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_api( port );
+  test_stream_disable( port );
+  test_stream_sri_changed( port );
+  test_get_packet_stream_removed( port );
+  test_queue_flush_flags( port );
+  test_queue_size( port );
+}
 
 
 void 
@@ -1022,6 +1094,7 @@ Bulkio_InPort_Fixture::test_file()
 
   test_port_api( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -1045,6 +1118,7 @@ Bulkio_InPort_Fixture::test_xml()
 
   test_port_api( port );
   test_queue_flush_flags( port );
+  test_queue_size( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
@@ -1085,3 +1159,31 @@ Bulkio_InPort_Fixture::test_subclass()
   CPPUNIT_ASSERT_NO_THROW( port );
 }
 
+// Backported from 2.2 unit tests
+template <typename T>
+void Bulkio_InPort_Fixture::_pushTestPacket(T* port, size_t length,
+                                            const BULKIO::PrecisionUTCTime& time,
+                                            bool eos, const char* streamID)
+{
+    typename T::PortSequenceType data;
+    data.length(length);
+    port->pushPacket(data, time, eos, streamID);
+}
+
+template <>
+void Bulkio_InPort_Fixture::_pushTestPacket(bulkio::InXMLPort* port, size_t length,
+                                            const BULKIO::PrecisionUTCTime&,
+                                            bool eos, const char* streamID)
+{
+    std::string data(length, ' ');
+    port->pushPacket(data.c_str(), eos, streamID);
+}
+
+template <>
+void Bulkio_InPort_Fixture::_pushTestPacket(bulkio::InFilePort* port, size_t length,
+                                            const BULKIO::PrecisionUTCTime& time,
+                                            bool eos, const char* streamID)
+{
+    std::string data(length, ' ');
+    port->pushPacket(data.c_str(), time, eos, streamID);
+}

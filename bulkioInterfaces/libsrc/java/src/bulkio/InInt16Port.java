@@ -394,7 +394,7 @@ public class InInt16Port extends BULKIO.jni.dataShortPOA implements org.ossie.co
         } else {
             synchronized (this.dataBufferLock) {
                 boolean flushToReport = false;
-                if (this.workQueue.size() >= this.maxQueueDepth) {
+                if ((this.maxQueueDepth >= 0) && (this.workQueue.size() >= this.maxQueueDepth)) {
 		    if ( logger != null ) {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }

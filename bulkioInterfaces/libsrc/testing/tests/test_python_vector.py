@@ -280,6 +280,42 @@ class TestPythonAPI(BaseVectorPort):
         self.assertFalse(packet.EOS)
         self.assertTrue(packet.sriChanged)
 
+    def test_queue_size(self):
+        """
+        Tests that the max queue size can be set to a non-default value or
+        unlimited (negative)
+        """
+        port = self.bio_in_module('test')
+        port.startPort()
+
+        stream_sri = sri.create('queue_size')
+        stream_sri.blocking = False
+        port.pushSRI(stream_sri)
+
+        # Start with a reasonably small queue depth and check that a flush
+        # occurs at the expected time
+        port.setMaxQueueDepth(10)
+        for _ in xrange(10):
+            port.pushPacket([0], timestamp.now(), False, stream_sri.streamID)
+        self.assertEqual(10, port.getCurrentQueueDepth())
+        port.pushPacket([0], timestamp.now(), False, stream_sri.streamID)
+        self.assertEqual(1, port.getCurrentQueueDepth())
+
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.failIf(packet.dataBuffer is None)
+        self.assertTrue(packet.inputQueueFlushed)
+
+        # Set queue depth to unlimited and push a lot of packets
+        port.setMaxQueueDepth(-1)
+        QUEUE_SIZE = 250
+        for _ in xrange(QUEUE_SIZE):
+            port.pushPacket([0], timestamp.now(), False, stream_sri.streamID)
+        self.assertEqual(QUEUE_SIZE, port.getCurrentQueueDepth())
+        for _ in xrange(QUEUE_SIZE):
+            packet = port.getPacket(const.NON_BLOCKING)
+            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.inputQueueFlushed)
+
 
 class Test_Python_Int8(TestPythonAPI):
     def __init__(self, methodName='runTest', ptype='Int8', cname='Python_Ports' ):

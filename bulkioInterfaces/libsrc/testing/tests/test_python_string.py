@@ -107,6 +107,42 @@ class Test_Python_File(unittest.TestCase):
         self.assertFalse(packet.EOS)
         self.assertTrue(packet.sriChanged)
 
+    def test_queue_size(self):
+        """
+        Tests that the max queue size can be set to a non-default value or
+        unlimited (negative)
+        """
+        self.port.startPort()
+
+        sri = bulkio.sri.create('queue_size')
+        sri.blocking = False
+        self.port.pushSRI(sri)
+
+        # Start with a reasonably small queue depth and check that a flush
+        # occurs at the expected time
+        self.port.setMaxQueueDepth(10)
+        for _ in xrange(10):
+            self.port.pushPacket('file:///var/tmp/test', bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(10, self.port.getCurrentQueueDepth())
+        self.port.pushPacket('file:///var/tmp/test', bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(1, self.port.getCurrentQueueDepth())
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet.dataBuffer is None)
+        self.assertTrue(packet.inputQueueFlushed)
+
+        # Set queue depth to unlimited and push a lot of packets
+        self.port.setMaxQueueDepth(-1)
+        QUEUE_SIZE = 250
+        for _ in xrange(QUEUE_SIZE):
+            self.port.pushPacket('file:///var/tmp/test', bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
+        for _ in xrange(QUEUE_SIZE):
+            packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.inputQueueFlushed)
+
+
 class Test_Python_XML(unittest.TestCase):
     def setUp(self):
         self.port = bulkio.InXMLPort('dataXML_in')
@@ -189,6 +225,42 @@ class Test_Python_XML(unittest.TestCase):
         self.assertFalse(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
         self.assertTrue(packet.sriChanged)
+
+    def test_queue_size(self):
+        """
+        Tests that the max queue size can be set to a non-default value or
+        unlimited (negative)
+        """
+        self.port.startPort()
+
+        sri = bulkio.sri.create('queue_size')
+        sri.blocking = False
+        self.port.pushSRI(sri)
+
+        # Start with a reasonably small queue depth and check that a flush
+        # occurs at the expected time
+        self.port.setMaxQueueDepth(10)
+        for _ in xrange(10):
+            self.port.pushPacket('<document/>', False, sri.streamID)
+        self.assertEqual(10, self.port.getCurrentQueueDepth())
+        self.port.pushPacket('<document/>', False, sri.streamID)
+        self.assertEqual(1, self.port.getCurrentQueueDepth())
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet.dataBuffer is None)
+        self.assertTrue(packet.inputQueueFlushed)
+
+        # Set queue depth to unlimited and push a lot of packets
+        self.port.setMaxQueueDepth(-1)
+        QUEUE_SIZE = 250
+        for _ in xrange(QUEUE_SIZE):
+            self.port.pushPacket('<document/>', False, sri.streamID)
+        self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
+        for _ in xrange(QUEUE_SIZE):
+            packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.inputQueueFlushed)
+
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
