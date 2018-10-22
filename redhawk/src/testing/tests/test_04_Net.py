@@ -143,3 +143,56 @@ class AwarenessTest(scatest.CorbaTestCase):
         self.assertTrue(nic_name in nic_names)
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
+
+class NicAllocTest(scatest.CorbaTestCase):
+    def setUp(self):
+        nodebooter, self.domMgr = self.launchDomainManager()
+        self.assertNotEqual(self.domMgr, None)
+        nodebooter, self.devMgr = self.launchDeviceManager("/nodes/test_NicAllocation_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(self.devMgr, None)
+        self.dev = self.devMgr._get_registeredDevices()[0]
+        props = self.dev.query([CF.DataType('nic_list', any.to_any(None))])
+        self.nicNames = any.from_any(props[0].value)
+
+    def _testNicAlloc(self, waveform):
+        sad_file = '/waveforms/NicAllocWave/%s.sad.xml' % waveform
+        app = self.domMgr.createApplication(sad_file, waveform, [], [])
+        for comp in app._get_componentProcessIds():
+            with open('/proc/%d/cmdline' % comp.processId, 'r') as fp:
+                args = fp.read().split('\0')
+                self.failUnless('NIC' in args, "%s did not get NIC command line argument" % comp.componentId)
+
+        for comp in app._get_registeredComponents():
+            props = comp.componentObject.query([CF.DataType(id='nic_name',value=any.to_any(None))])
+            nic_name = any.from_any(props[0].value)
+            self.assertTrue(nic_name in self.nicNames, "%s has invalid nic '%s'" % (comp.identifier, nic_name))
+
+    def test_CppNicAlloc(self):
+        self._testNicAlloc('NicAllocWaveCpp')
+
+    def test_CppNicAllocIdentifier(self):
+        self._testNicAlloc('NicAllocWaveCppIdentifier')
+
+    def test_CppNicAllocCollocated(self):
+        self._testNicAlloc('NicAllocWaveCppCollocated')
+
+    def test_PyNicAlloc(self):
+        self._testNicAlloc('NicAllocWavePy')
+
+    def test_PyNicAllocIdentifier(self):
+        self._testNicAlloc('NicAllocWavePyIdentifier')
+
+    def test_PyNicAllocCollocated(self):
+        self._testNicAlloc('NicAllocWavePyCollocated')
+
+    @scatest.requireJava
+    def test_JavaNicAlloc(self):
+        self._testNicAlloc('NicAllocWaveJava')
+
+    @scatest.requireJava
+    def test_JavaNicAllocIdentifier(self):
+        self._testNicAlloc('NicAllocWaveJavaIdentifier')
+
+    @scatest.requireJava
+    def test_JavaNicAllocCollocated(self):
+        self._testNicAlloc('NicAllocWaveJavaCollocated')
