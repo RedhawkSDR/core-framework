@@ -258,6 +258,8 @@ private:
             unsigned int offset=0);
     CF::DataType castProperty(const ossie::ComponentProperty* property);
 
+    redhawk::PropertyMap _getComponentAllocations(ossie::ComponentInfo* component, const ossie::ImplementationInfo* impl);
+    std::string _getNicAllocationId(redhawk::PropertyMap& allocationProperties);
     void _applyNicAllocation(ossie::ComponentInfo* component, const std::string& allocId, CF::Device_ptr device);
 
     // Populate _requiredComponents vector

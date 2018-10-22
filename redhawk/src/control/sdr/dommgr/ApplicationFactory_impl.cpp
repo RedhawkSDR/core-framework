@@ -935,19 +935,45 @@ void createHelper::_consolidateAllocations(const PlacementList &placingComponent
         ossie::corba::extend(configure_props, component->getConstructProperties());
         this->_evaluateMATHinRequest(allocationProperties, configure_props);
 
-        redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
-        if (nic_alloc != allocationProperties.end()) {
-            redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
-            std::string alloc_id = substr["nic_allocation::identifier"].toString();
-            if (alloc_id.empty()) {
-                alloc_id = ossie::generateUUID();
-                substr["nic_allocation::identifier"] = alloc_id;
-            }
-            nicAllocs[component->getIdentifier()] = alloc_id;
+        std::string nic_alloc_id = _getNicAllocationId(allocationProperties);
+        if (!nic_alloc_id.empty()) {
+            nicAllocs[component->getIdentifier()] = nic_alloc_id;
         }
 
         ossie::corba::extend(allocs, allocationProperties);
     }
+}
+
+redhawk::PropertyMap createHelper::_getComponentAllocations(ossie::ComponentInfo* component,
+                                                            const ossie::ImplementationInfo* impl)
+{
+    const std::vector<SPD::PropertyRef>& deps = impl->getDependencyProperties();
+    redhawk::PropertyMap allocationProperties;
+    this->_castRequestProperties(allocationProperties, deps);
+
+    // Get the combined set of properties that are available at start time for
+    // the component (i.e., those that are passed to initializeProperties() or
+    // the first configure() call) to use as context for MATH statements
+    CF::Properties configure_props = component->getConfigureProperties();
+    ossie::corba::extend(configure_props, component->getConstructProperties());
+    this->_evaluateMATHinRequest(allocationProperties, configure_props);
+
+    return allocationProperties;
+}
+
+std::string createHelper::_getNicAllocationId(redhawk::PropertyMap& allocationProperties)
+{
+    redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
+    if (nic_alloc != allocationProperties.end()) {
+        redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
+        std::string alloc_id = substr["nic_allocation::identifier"].toString();
+        if (alloc_id.empty()) {
+            alloc_id = ossie::generateUUID();
+            substr["nic_allocation::identifier"] = alloc_id;
+        }
+        return alloc_id;
+    }
+    return std::string();
 }
 
 void createHelper::_handleHostCollocation(const std::string &appIdentifier)
@@ -2064,18 +2090,8 @@ ossie::AllocationResult createHelper::allocateComponentToDevice( ossie::Componen
     }
 
     const std::string requestid = ossie::generateUUID();
-    std::vector<SPD::PropertyRef> prop_refs = implementation->getDependencyProperties();
-    redhawk::PropertyMap allocationProperties;
-    this->_castRequestProperties(allocationProperties, prop_refs);
 
-    CF::Properties configure_props = component->getConfigureProperties();
-    CF::Properties construct_props = component->getConstructProperties();
-    unsigned int initial_length = configure_props.length();
-    configure_props.length(configure_props.length()+construct_props.length());
-    for (unsigned int i=0; i<construct_props.length(); i++) {
-        configure_props[i+initial_length] = construct_props[i];
-    }
-    this->_evaluateMATHinRequest(allocationProperties, configure_props);
+    redhawk::PropertyMap allocationProperties = _getComponentAllocations(component, implementation);
     
     LOG_TRACE(ApplicationFactory_impl, "alloc prop size " << allocationProperties.size() );
     redhawk::PropertyMap::iterator iter=allocationProperties.begin();
@@ -2083,21 +2099,12 @@ ossie::AllocationResult createHelper::allocateComponentToDevice( ossie::Componen
       LOG_TRACE(ApplicationFactory_impl, "alloc prop: " << iter->id  <<" value:" <<  ossie::any_to_string(iter->value) );
     }
     
-    redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
-    std::string alloc_id;
-    if (nic_alloc != allocationProperties.end()) {
-        redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
-        alloc_id = substr["nic_allocation::identifier"].toString();
-        if (alloc_id.empty()) {
-          alloc_id = ossie::generateUUID();
-          substr["nic_allocation::identifier"] = alloc_id;
-        }
-    }
+    std::string nic_alloc_id = _getNicAllocationId(allocationProperties);
     
     ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid, allocationProperties, devices, appIdentifier, implementation->getProcessorDeps(), implementation->getOsDeps());
-    if (allocationProperties.contains("nic_allocation")) {
+    if (!nic_alloc_id.empty()) {
         if (!response.first.empty()) {
-            _applyNicAllocation(component, alloc_id, response.second->device);
+            _applyNicAllocation(component, nic_alloc_id, response.second->device);
         }
     }
     TRACE_EXIT(ApplicationFactory_impl);
