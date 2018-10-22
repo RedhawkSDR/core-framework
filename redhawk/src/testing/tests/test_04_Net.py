@@ -154,13 +154,15 @@ class NicAllocTest(scatest.CorbaTestCase):
         props = self.dev.query([CF.DataType('nic_list', any.to_any(None))])
         self.nicNames = any.from_any(props[0].value)
 
-    def _testNicAlloc(self, waveform):
+    def _testNicAlloc(self, waveform, cmdline=True):
         sad_file = '/waveforms/NicAllocWave/%s.sad.xml' % waveform
         app = self.domMgr.createApplication(sad_file, waveform, [], [])
-        for comp in app._get_componentProcessIds():
-            with open('/proc/%d/cmdline' % comp.processId, 'r') as fp:
-                args = fp.read().split('\0')
-                self.failUnless('NIC' in args, "%s did not get NIC command line argument" % comp.componentId)
+
+        if cmdline:
+            for comp in app._get_componentProcessIds():
+                with open('/proc/%d/cmdline' % comp.processId, 'r') as fp:
+                    args = fp.read().split('\0')
+                    self.failUnless('NIC' in args, "%s did not get NIC command line argument" % comp.componentId)
 
         for comp in app._get_registeredComponents():
             props = comp.componentObject.query([CF.DataType(id='nic_name',value=any.to_any(None))])
@@ -175,6 +177,15 @@ class NicAllocTest(scatest.CorbaTestCase):
 
     def test_CppNicAllocCollocated(self):
         self._testNicAlloc('NicAllocWaveCppCollocated')
+
+    def test_CppSharedNicAlloc(self):
+        self._testNicAlloc('NicAllocWaveCppShared', cmdline=False)
+
+    def test_CppSharedNicAllocIdentifier(self):
+        self._testNicAlloc('NicAllocWaveCppSharedIdentifier', cmdline=False)
+
+    def test_CppSharedNicAllocCollocated(self):
+        self._testNicAlloc('NicAllocWaveCppSharedCollocated', cmdline=False)
 
     def test_PyNicAlloc(self):
         self._testNicAlloc('NicAllocWavePy')
