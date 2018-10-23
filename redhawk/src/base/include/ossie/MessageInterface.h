@@ -252,7 +252,26 @@ public:
         }
         CORBA::Any data;
         data <<= properties;
-        push(data);
+        try {
+            _push(data);
+        } catch ( const CORBA::MARSHAL& ex ) {
+            // Sending them all at once failed, try send the messages individually
+            if (properties.length() == 1) {
+                RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded.");
+            } else {
+                RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded, trying individually.");
+
+                CF::Properties prop;
+                prop.length(1);
+                for (CORBA::ULong ii = 0; ii < properties.length(); ++ii) {
+                    prop[0] = properties[ii];
+                    CORBA::Any d;
+                    d <<= prop;
+                    push(d);
+                }
+            }
+        } catch ( ... ) {
+        }
     }
 
 	std::string getRepid() const;
@@ -261,6 +280,7 @@ protected:
     boost::mutex portInterfaceAccess;
     std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var> consumers;
     std::map<std::string, CosEventChannelAdmin::EventChannel_ptr> _connections;
+    void _push(const CORBA::Any& data);
 
 };
 
