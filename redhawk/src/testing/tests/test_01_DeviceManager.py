@@ -88,7 +88,6 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
             devmgr_nb.poll()
             time.sleep(0.1)
         self.assertEquals(255, devmgr_nb.returncode)
-        self.assertEquals(devMgr, None)
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
