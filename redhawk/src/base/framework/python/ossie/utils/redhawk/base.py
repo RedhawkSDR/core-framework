@@ -59,11 +59,6 @@ def __terminate_process( process, signals=(_signal.SIGINT, _signal.SIGTERM, _sig
             pass
 
 def _cleanup_domain():
-    if globals().has_key('attached_domains'):
-        doms = globals()['attached_domains']
-        if len(doms) > 0:
-            doms[0].orb.shutdown(True)
-
     try:
         if globals().has_key('currentdomain'):
             __terminate_process( globals()['currentdomain'].process)
@@ -82,7 +77,15 @@ def _cleanup_domain():
         x = globals().pop('currentdevmgrs')
         if x : del x
 
-atexit.register(_cleanup_domain)
+def _shutdown_session():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+            globals()['attached_domains'] = []
+    _cleanup_domain()
+
+atexit.register(_shutdown_session)
 
 def _getDCDFile(sdrroot, dcdFile):
     """
