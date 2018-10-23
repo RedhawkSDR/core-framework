@@ -136,13 +136,16 @@ namespace bulkio {
             boost::this_thread::interruption_point();
             size_t todo = std::min(remain, _blockSize);
             ssize_t pass = ::read(_fd, ptr, todo);
-            if (pass < 0) {
-                throw std::runtime_error("read failed: " + getErrorMessage());
+            if (pass <= 0) {
+                if (pass < 0) {
+                    throw std::runtime_error("read failed: " + getErrorMessage());
+                }
+                break;
             }
             remain -= pass;
             ptr += pass;
         }
-        return bytes;
+        return (bytes - remain);
     }
 
     void Pipe::write(const void* data, size_t bytes)
@@ -158,9 +161,6 @@ namespace bulkio {
                     throw std::runtime_error("write failed: " + getErrorMessage());
                 }
                 return;
-            }
-            if (((size_t) pass) < todo) {
-                std::cerr << "only wrote " << pass << std::endl;
             }
             ptr += pass;
             remain -= pass;
