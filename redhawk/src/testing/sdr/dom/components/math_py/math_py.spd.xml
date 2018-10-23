@@ -22,7 +22,7 @@
     <runtime name="python" version="2.6.6"/>
     <os name="Linux"/>
     <dependency type="allocation">
-      <propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" value="__MATH__(0.2,prop1,*)"/>
+      <propertyref refid="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb" value="__MATH__(0.002,prop1,*)"/>
     </dependency>
   </implementation>
 </softpkg>
