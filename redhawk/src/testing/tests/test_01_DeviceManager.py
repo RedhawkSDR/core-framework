@@ -82,11 +82,12 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
         try:
             devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         except Exception, e:
-            print e
-
-        time.sleep(0.1)
+            pass
+        begin_time = time.time()
+        while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
+            devmgr_nb.poll()
+            time.sleep(0.1)
         self.assertEquals(255, devmgr_nb.returncode)
-        self.assertEquals(devMgr, None)
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
