@@ -72,6 +72,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/cpp_comp/cpp \
           sdr/dom/components/TestLoggingAPI/cpp \
           sdr/dom/components/ECM_CPP/cpp \
+          sdr/dom/components/EmptyString/cpp \
           sdr/dom/components/C1/cpp \
           sdr/dom/components/C2/cpp \
           sdr/dom/components/PropertyChange_C1/cpp \
@@ -125,7 +126,8 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/Property_JAVA/java \
            sdr/dom/components/foo/bar/jv/java \
            sdr/dom/components/TestJavaOptionalProps/java \
-           sdr/dom/components/svc_fn_error_java/java
+           sdr/dom/components/svc_fn_error_java/java \
+           sdr/dom/components/EmptyString/java
 endif
 
 SUBDIRS += cpp
