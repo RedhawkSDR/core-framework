@@ -137,7 +137,16 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         this.removeConnection(connectionId, true);
     }
     
-    public void push(final Any data) 
+    public void push(final Any data)
+    {
+        try {
+            this._push(data);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
+    }
+
+    public void _push(final Any data)
     {
         synchronized(this.updatingPortsLock) {
             if (!this.active) {
@@ -157,8 +166,7 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
                     removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.MARSHAL ex ) {
-                    this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-                    continue;
+                    throw ex;
                 } catch (final Exception e) {
                     continue;
                 }
@@ -179,7 +187,22 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }
         final Any any = ORB.init().create_any();
         CF.PropertiesHelper.insert(any, properties);
-        this.push(any);
+        try {
+            this._push(any);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            // Sending them all at once failed, try send the messages individually
+            if (messages.size() == 1) {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+            } else {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded, trying individually.");
+
+                for (CF.DataType prop : properties) {
+                    final Any a = ORB.init().create_any();
+                    CF.PropertiesHelper.insert(a, new CF.DataType[]{prop});
+                    this.push(a);
+                }
+            }
+        }
     }
 
     protected EventChannelOperations narrow(org.omg.CORBA.Object connection) 

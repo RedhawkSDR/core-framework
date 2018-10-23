@@ -217,15 +217,20 @@ void MessageSupplierPort::disconnectPort(const char* connectionId)
 
 void MessageSupplierPort::push(const CORBA::Any& data)
 {
+    try {
+        _push(data);
+    } catch ( const CORBA::MARSHAL& ex ) {
+         RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded");
+    } catch ( ... ) {
+    }
+}
+
+void MessageSupplierPort::_push(const CORBA::Any& data)
+{
     boost::mutex::scoped_lock lock(portInterfaceAccess);
     std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
     while (connection != consumers.end()) {
-        try {
-            (connection->second)->push(data);
-        } catch ( const CORBA::MARSHAL& ex ) {
-            RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded");
-        } catch ( ... ) {
-        }
+        (connection->second)->push(data);
         connection++;
     }
 }
