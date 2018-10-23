@@ -123,6 +123,7 @@ protected:
 
     bool _isConnectionSelected(const std::string& connectionId, const std::string& targetId);
     void _checkConnectionId(const std::string& connectionId);
+    void _push(const CORBA::Any& data, const std::string& connectionId=std::string());
 
     class MessageTransport;
     class CorbaTransport;
