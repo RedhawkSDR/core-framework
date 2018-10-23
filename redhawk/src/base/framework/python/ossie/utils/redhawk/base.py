@@ -35,17 +35,20 @@ class _envContainer(object):
         self.stdout = stdout
 
 def _cleanup_domain():
-    if globals().has_key('attached_domains'):
-        doms = globals()['attached_domains']
-        if len(doms) > 0:
-            doms[0].orb.shutdown(True)
-
     try:
         _os.kill(globals()['currentdomain'].domain,2)
     except:
         pass
 
-atexit.register(_cleanup_domain)
+def _shutdown_session():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+            globals()['attached_domains'] = []
+    _cleanup_domain()
+
+atexit.register(_shutdown_session)
 
 def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None):
     """Kick-start a REDHAWK domain.
