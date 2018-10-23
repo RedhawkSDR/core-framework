@@ -52,7 +52,9 @@ cd -
 #
 # Run Python unit tests with XML output
 #
-(cd python && ./runtests.py -x)
+# NOTE: virtualenv aliases python in the shell, so it's necessary to explicitly
+# run runtests.py via python
+(cd python && python ./runtests.py -x)
 
 #
 #  Run Large Packet Size Test
