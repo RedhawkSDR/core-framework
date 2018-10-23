@@ -82,6 +82,7 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
             print e
         begin_time = time.time()
         while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
+            devmgr_nb.poll()
             time.sleep(0.1)
         self.assertEquals(255, devmgr_nb.returncode)
         self.assertEquals(devMgr, None)
