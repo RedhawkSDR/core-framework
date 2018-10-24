@@ -241,13 +241,22 @@ public class huge_msg_java extends huge_msg_java_base {
         String payload = "1234567890";
         StringBuilder str_msg = new StringBuilder();
         for (int i=0; i<250001; i++) {
-        	str_msg.append(payload);
+            str_msg.append(payload);
         }
-    	msg.string_payload.setValue(str_msg.toString());
+        msg.string_payload.setValue(str_msg.toString());
         this.port_output.sendMessage(msg);
         List<my_msg_struct> msgs = new ArrayList<my_msg_struct>();
         msgs.add(msg);
         this.port_output.sendMessages(msgs);
+
+        msgs.clear();
+        str_msg.setLength(200000);
+        msg.string_payload.setValue(str_msg.toString());
+        for (int i = 0; i < 101; ++i) {
+            msgs.add(msg);
+        }
+        this.port_output.sendMessages(msgs);
+
         return FINISH;
     }
 

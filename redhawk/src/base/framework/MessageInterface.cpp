@@ -203,7 +203,26 @@ MessageConsumerPort::MessageCallback* MessageConsumerPort::getMessageCallback(co
 
 bool MessageConsumerPort::hasGenericCallbacks()
 {
+<<<<<<< HEAD
     return !generic_callbacks_.empty();
+=======
+    try {
+        _push(data);
+    } catch ( const CORBA::MARSHAL& ex ) {
+         RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded");
+    } catch ( ... ) {
+    }
+}
+
+void MessageSupplierPort::_push(const CORBA::Any& data)
+{
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
+    while (connection != consumers.end()) {
+        (connection->second)->push(data);
+        connection++;
+    }
+>>>>>>> origin/features/ccb-433-oversized_messages-2.0
 }
 
 void MessageConsumerPort::dispatchGeneric(const std::string& id, const CORBA::Any& data)
