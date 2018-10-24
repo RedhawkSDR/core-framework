@@ -360,7 +360,6 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_pid(self):
         a = sb.launch('comp_src')
-        #status,output = commands.getstatusoutput('ps -ef | grep comp_src | grep -v grep ')
         status,output = commands.getstatusoutput('ps -ww -f | grep comp_src ')
         lines = output.split('\n')
         for line in lines:
@@ -368,6 +367,16 @@ class SBTestTest(scatest.CorbaTestCase):
             break
         _pid = line.split()[1]
         self.assertEquals(int(_pid), a._pid)
+
+    def test_cleanHeap(self):
+        a = sb.launch('alloc_shm')
+        ch_pid = a._sandbox._getComponentHost()._pid
+        self.assertTrue(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
+        os.kill(ch_pid, 9)
+        begin = time.time()
+        while time.time()-begin < 1 and os.path.isfile('/dev/shm/heap-'+str(ch_pid)):
+            time.sleep(0.1)
+        self.assertFalse(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
 
     def test_doubleNamedConnection(self):
         a = sb.launch('comp_src')

@@ -99,12 +99,14 @@ class NumericOutStreamTest : public BufferedOutStreamTest<Port>
 {
     typedef BufferedOutStreamTest<Port> TestBase;
     CPPUNIT_TEST_SUB_SUITE(NumericOutStreamTest, TestBase);
+    CPPUNIT_TEST(testStreamWriteCheck);
     CPPUNIT_TEST(testWriteTimestampsReal);
     CPPUNIT_TEST(testWriteTimestampsComplex);
     CPPUNIT_TEST(testWriteTimestampsMixed);
     CPPUNIT_TEST_SUITE_END();
 
 public:
+    void testStreamWriteCheck();
     void testWriteTimestampsReal();
     void testWriteTimestampsComplex();
     void testWriteTimestampsMixed();

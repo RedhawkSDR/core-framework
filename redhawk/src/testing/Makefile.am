@@ -58,6 +58,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/BasicAC/BasicAC_cpp_impl1 \
           sdr/dom/components/BasicShared/cpp \
           sdr/dom/components/logger/cpp \
+          sdr/dom/components/alloc_shm/cpp \
           sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1 \
           sdr/dom/components/MessageReceiverCpp \
           sdr/dom/components/MessageSenderCpp \
@@ -81,6 +82,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/foo/bar/comp/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
+          sdr/dom/components/slow_stop_cpp/cpp \
           sdr/dom/components/huge_msg_cpp/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/timeprop_cpp/cpp \

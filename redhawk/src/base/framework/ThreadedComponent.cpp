@@ -53,6 +53,7 @@ void ProcessThread::run()
         pthread_setname_np(pthread_self(), name.c_str());
     }
 
+    boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec*1e6 + _delay.tv_nsec*1e-3);
     while (_running) {
         int state;
         try {
@@ -64,6 +65,8 @@ void ProcessThread::run()
             LOG_FATAL(ProcessThread, "Unhandled exception in service function: "
                       << ossie::corba::describeException(exc));
             exit(-1);
+        } catch (boost::thread_interrupted &) {
+            break;
         } catch (...) {
             LOG_FATAL(ProcessThread, "Unhandled exception in service function");
             exit(-1);
@@ -71,7 +74,13 @@ void ProcessThread::run()
         if (state == FINISH) {
             return;
         } else if (state == NOOP) {
-            nanosleep(&_delay, NULL);
+            try {
+                boost::this_thread::sleep(boost_delay);
+            } catch (boost::thread_interrupted &) {
+                break;
+            } catch (...) {
+                throw;
+            }
         }
         else {
             boost::this_thread::yield();
@@ -82,6 +91,7 @@ void ProcessThread::run()
 bool ProcessThread::release(unsigned long secs, unsigned long usecs)
 {
     _running = false;
+    this->stop();
     if (_thread)  {
         if ((secs == 0) && (usecs == 0)){
             _thread->join();

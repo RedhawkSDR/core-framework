@@ -69,7 +69,7 @@ class RH_LogEventAppender : public AppenderSkeleton
 
   std::vector< std::string >                                ArgList;
 
-  //
+  //saveLoggingContext
   // perform connect operation to establish a corba context 
   //
   int                                      connect_();
