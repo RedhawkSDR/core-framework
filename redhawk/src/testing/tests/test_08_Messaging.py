@@ -481,9 +481,3 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         self.assertEquals(6, len(recval))
         for val in recval:
             self.assertEquals('test_message' in val, True)
-
-        recval = any.from_any(props[1].value)
-        self.assertEquals(202, len(recval))
-        for val in recval:
-            self.assertEquals('test_message' in val, True)
-        app.releaseObject()
