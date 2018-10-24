@@ -81,19 +81,32 @@ class ApplicationMetrics(scatest.CorbaTestCase):
                 break
         time.sleep(2)
 
-        bc=self._app.metrics(['busycomp_1'], [])[0].value._v
-        value = -1
-        for _val in bc:
-            if _val.id == 'cores':
-                value = _val.value._v
+        begin_time = time.time()
+        diff_ok = False
+        while time.time()-begin_time < 5 and not diff_ok:
+            bc=self._app.metrics(['busycomp_1'], [])[0].value._v
+            value = -1
+            for _val in bc:
+                if _val.id == 'cores':
+                    value = _val.value._v
+                    if abs(value-2) < 0.05:
+                        diff_ok = True
+                        break
         self.assertAlmostEquals(value, 2, places=1)
 
-        bc=self._app.metrics(['busycomp_2'], [])[0].value._v
-        value = -1
-        for _val in bc:
-            if _val.id == 'cores':
-                value = _val.value._v
+        begin_time = time.time()
+        diff_ok = False
+        while time.time()-begin_time < 5 and not diff_ok:
+            bc=self._app.metrics(['busycomp_2'], [])[0].value._v
+            value = -1
+            for _val in bc:
+                if _val.id == 'cores':
+                    value = _val.value._v
+                    if abs(value-2) < 0.05:
+                        diff_ok = True
+                        break
         self.assertAlmostEquals(value, 2, places=1)
+
         bc=self._app.metrics(['msg_through_1'], [])[0].value._v
         value = -1
         for _val in bc:
