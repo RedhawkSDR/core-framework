@@ -126,8 +126,8 @@ AC_CHECK_PROG([XMLCATALOG], [xmlcatalog], [xmlcatalog], [no])
 AM_CONDITIONAL(HAVE_XMLCATALOG, test $XMLCATALOG != "no")
 
 # add numa support to affinity module
-AC_ARG_ENABLE([affinity], AS_HELP_STRING([--enable-affinity], [Enable numa affinity processing]))
-   AC_MSG_CHECKING([Adding support for numa affinity processing])
+AC_ARG_ENABLE([affinity], [AS_HELP_STRING([--disable-affinity], [Disable numa affinity processing])],,[enable_affinity=yes])
+   AC_MSG_CHECKING([Enabling support for numa affinity processing])
 if test "x$enable_affinity" = "xyes"; then
    dnl  determine if numa library support is available
    AC_SUBST(OSSIE_AFFINITY, "yes")
