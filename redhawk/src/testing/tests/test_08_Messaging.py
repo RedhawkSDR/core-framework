@@ -123,10 +123,8 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually.')
-        self.assertEquals(number_warnings, 1)
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
-        self.assertEquals(number_warnings, 3)
+        number_warnings = log_contents.count('Maximum message size exceeded')
+        self.assertEquals(number_warnings, 2)
 
     @scatest.requireJava
     def test_MessageMarshalJava(self):
@@ -187,9 +185,9 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         except:
             pass
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually')
-        self.assertEquals(number_warnings, 2)
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
-        self.assertEquals(number_warnings, 4)
+        self.assertEquals(number_warnings, 1)
+        number_warnings = log_contents.count('Maximum message size exceeded')
+        self.assertEquals(number_warnings, 3)
 
 class MessagingCompatibilityTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -476,17 +474,11 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         for component in components:
             print component.componentObject._get_identifier()
             if 'MessageReceiverPy_1' in component.componentObject._get_identifier():
-                props = component.componentObject.query([])
-        recval = any.from_any(props[0].value)
+                stuff = component.componentObject.query([])
+        recval = any.from_any(stuff[0].value)
         self.assertEquals(6, len(recval))
         for val in recval:
             self.assertEquals('test_message' in val, True)
-
-        recval = any.from_any(props[1].value)
-        self.assertEquals(202, len(recval))
-        for val in recval:
-            self.assertEquals('test_message' in val, True)
-        app.releaseObject()
 
     def test_QueryablePortPython(self):
         self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)

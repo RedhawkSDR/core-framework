@@ -159,7 +159,11 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
      */
     public void push(final Any data)
     {
-        this.push(data, "");
+        try {
+            this._push(data,"");
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
     }
 
     /**
