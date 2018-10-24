@@ -136,7 +136,7 @@ class ApplicationMetrics(scatest.CorbaTestCase):
                 else:
                     moving_total[v.id] = v.value._v
         for key in util_total:
-            self.assertEquals(util_total[key],moving_total[key])
+            self.assertAlmostEquals(util_total[key],moving_total[key], places=1)
 
     def test_AppIndividualMetrics(self):
         domBooter, self._domMgr = self.launchDomainManager()
