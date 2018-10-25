@@ -333,7 +333,7 @@ class PortSupplier(object):
                     valid_tuners.append(tuner_idx)
 
         if not connectionId:
-            connectionId = 'DCE:'+str(_uuidgen())
+            connectionId = 'DCE_'+str(_uuidgen())
 
         if isinstance(providesComponent, PortSupplier):
             log.trace('Provides side is PortSupplier')
