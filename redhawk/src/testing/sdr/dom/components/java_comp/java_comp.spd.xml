@@ -44,7 +44,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <dependency type="allocation">
       <structref refid="nic_allocation">
         <simpleref refid="nic_allocation::identifier" value="foo"/>
-        <simpleref refid="nic_allocation::data_rate" value="1000000"/>
+        <simpleref refid="nic_allocation::data_rate" value="10"/>
         <simpleref refid="nic_allocation::data_size" value="8"/>
         <simpleref refid="nic_allocation::multicast_support" value=""/>
         <simpleref refid="nic_allocation::ip_addressable" value=""/>
