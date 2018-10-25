@@ -575,8 +575,11 @@ class SBTestTest(scatest.CorbaTestCase):
         provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
         provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', snk._id)
 
+        non_colon_connectionid = '<connectinterface id="DCE_'
+
         self.assertNotEqual(sad.find(uses_string), -1)
         self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertNotEqual(sad.find(non_colon_connectionid), -1)
         self.assertEquals(sad.find('DCE:DCE'), -1)
 
     def test_loadSADFile_startorder(self):
