@@ -285,7 +285,7 @@ class PortSupplier(object):
         a uses-side or provides-side port name may be necessary to resolve the ambiguity
         """
         if not connectionId:
-            connectionId = str(_uuidgen())
+            connectionId = 'DCE_'+str(_uuidgen())
             
         if isinstance(providesComponent, PortSupplier):
             log.trace('Provides side is PortSupplier')
