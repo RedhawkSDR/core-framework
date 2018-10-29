@@ -25,20 +25,20 @@ class sad:
 
         self.componentfile='\n    <componentfile id="@__SPDFILEID__@" type="SPD">\n      <localfile name="@__SPDFILE__@"/>\n    </componentfile>\n'
 
-        self.componentplacement='\n    <componentplacement>\n        <componentfileref refid="@__SPDFILEID__@"/>\n        <componentinstantiation id="DCE:@__COMPONENTINSTANCE__@">\n            <usagename>@__COMPONENTNAME__@</usagename>\n            <findcomponent>\n                <namingservice name="@__COMPONENTNAME__@"/>\n            </findcomponent>\n      </componentinstantiation>\n    </componentplacement>\n'
+        self.componentplacement='\n    <componentplacement>\n        <componentfileref refid="@__SPDFILEID__@"/>\n        <componentinstantiation id="@__COMPONENTINSTANCE__@">\n            <usagename>@__COMPONENTNAME__@</usagename>\n            <findcomponent>\n                <namingservice name="@__COMPONENTNAME__@"/>\n            </findcomponent>\n      </componentinstantiation>\n    </componentplacement>\n'
 
-        self.assemblycontroller='\n  <assemblycontroller>\n      <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n  </assemblycontroller>\n'
+        self.assemblycontroller='\n  <assemblycontroller>\n      <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n  </assemblycontroller>\n'
 
         self.externalport='\n  <externalports>\n@__USESPORT__@\n@__PROVIDESPORT__@\n  </externalports>\n'
 
-        self.usesport='\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        self.usesport='\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
 
-        self.providesport='\n      <providesport>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n      </providesport>\n'
+        self.providesport='\n      <providesport>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </providesport>\n'
 
-        self.componentsupportedinterface='\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        self.componentsupportedinterface='\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
 
-        self.externalusesport='\n      <port>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n      </port>\n'
+        self.externalusesport='\n      <port>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </port>\n'
 
-        self.externalprovidesport='\n      <port>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="DCE:@__COMPONENTINSTANCE__@"/>\n      </port>\n'
+        self.externalprovidesport='\n      <port>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </port>\n'
 
-        self.connectinterface='\n    <connectinterface id="DCE:@__CONNECTID__@">\n@__USESPORT__@\n@__PROVIDESPORT__@\n    </connectinterface>\n'
+        self.connectinterface='\n    <connectinterface id="@__CONNECTID__@">\n@__USESPORT__@\n@__PROVIDESPORT__@\n    </connectinterface>\n'
