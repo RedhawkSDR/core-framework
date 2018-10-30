@@ -108,6 +108,7 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/EventReceive/EventReceive_java_impl1 \
            sdr/dom/components/javaDep/javaDep \
            sdr/dom/components/java_comp/java \
+           sdr/dom/components/javaSoftpkgJarDep/java \
            sdr/dom/components/huge_msg_java/java \
            sdr/dom/components/msg_through_java/java \
            sdr/dom/components/timeprop_java/java \

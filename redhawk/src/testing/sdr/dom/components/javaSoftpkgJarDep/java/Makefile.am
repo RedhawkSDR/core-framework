@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 AUTOMAKE_OPTIONS = subdir-objects
 
-javaSoftpkgJarDep_jar_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):
+javaSoftpkgJarDep_jar_CLASSPATH = ../../../deps/java_dep1/java/java_dep1.jar:$(OSSIE_CLASSPATH):
 
 javaSoftpkgJarDep.jar$(EXEEXT): $(javaSoftpkgJarDep_jar_SOURCES)
 	mkdir -p bin
