@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os
+import unittest, os, commands
 from _unitTestHelpers import scatest
 from omniORB import CORBA, URI, any
 from ossie.cf import CF
@@ -151,7 +151,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
     def test_cpp_DirectoryLoad(self):
         self.assertNotEqual(self._domMgr, None)
 
-        # Verify in the devices cache is emtpy
+        # Verify in the devices cache is empty
         componentDir = os.path.join(scatest.getSdrPath(), "dom", "components", "CommandWrapperWithDirectoryLoad")
         deviceCacheDir = os.path.join(scatest.getSdrCache(), ".ExecutableDevice_node", "ExecutableDevice1", "components", "CommandWrapperWithDirectoryLoad")
         if os.path.exists(deviceCacheDir):
@@ -258,7 +258,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(self._domMgr._get_applications()), 0)
 
-        # Verify in the devices cache is emtpy
+        # Verify in the devices cache is empty
         componentDir = os.path.join(scatest.getSdrPath(), "dom", "components", "CommandWrapperWithDirectoryLoad")
         deviceCacheDir = os.path.join(scatest.getSdrCache(), ".BasicTestDevice_node", "BasicTestDevice1", "components", "CommandWrapperWithDirectoryLoad")
         if os.path.exists(deviceCacheDir):
@@ -582,6 +582,162 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
             device.load(self._domMgr._get_fileMgr(), "/mgr", CF.LoadableDevice.SHARED_LIBRARY)
         except CORBA.COMM_FAILURE:
             self.fail('Device died loading shared library with short path')
+
+    @scatest.requireJava
+    def test_java_SharedLibraryLoad(self):
+        fp = open('sdr/dev/nodes/test_GPP_node/DeviceManager.dcd.xml.cache_working_dir','r')
+        dcd_contents = fp.read()
+        fp.close()
+        dcd_contents = dcd_contents.replace('@@DIR1@@', os.getcwd() + "/tmp_cache")
+        dcd_contents = dcd_contents.replace('@@DIR2@@', os.getcwd() + "/tmp_working")
+        fp = open('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml','w')
+        fp.write(dcd_contents)
+        fp.close()
+        
+        self.assertNotEqual(self._domMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 0)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        # Verify in the devices cache is empty
+        componentDir = os.path.join(scatest.getSdrPath(), "dom", "components", "javaSoftpkgJarDep")
+        deviceCacheDir = os.path.join(os.getcwd(), "/tmp_cache")
+        if os.path.exists(deviceCacheDir):
+            os.system("rm -rf %s" % deviceCacheDir)
+
+        # self._domMgr.installApplication("/waveforms/CommandWrapperWithDirectoryLoad/CommandWrapper.sad.xml")
+        self._domMgr.installApplication("/waveforms/java_softpkg_deps/java_softpkg_deps.sad.xml")
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        # Ensure the expected device is available
+        devBooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/tmp.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+
+        appFact = self._domMgr._get_applicationFactories()[0]
+
+        app = appFact.create(appFact._get_name(), [], []) # LOOK MA, NO DAS!
+
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 1)
+
+        # Verify that properties have been changed from their defaults
+        self.assertEqual(len(app._get_componentNamingContexts()), 1)
+        compName = app._get_componentNamingContexts()[0]
+        comp = self._root.resolve(URI.stringToName(compName.elementId))._narrow(CF.Resource)
+        self.assertNotEqual(comp, None)
+
+        cmd = comp.query([CF.DataType(id="hello", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "world")
+
+        comp.start()
+        
+        cmd = comp.query([CF.DataType(id="hello", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "Java is so cool")
+
+        app.stop()
+        app.releaseObject()
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        self._domMgr.uninstallApplication(appFact._get_identifier())
+
+        (status,output) = commands.getstatusoutput('rm -rf tmp_cache')
+        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
+
+    def _test_py_SharedLibraryLoad(self, node):
+        self.assertNotEqual(self._domMgr, None)
+
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 0)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        # Verify in the devices cache is empty
+        componentDir = os.path.join(scatest.getSdrPath(), "dom", "components", "pythonSoftpkgDep")
+        deviceCacheDir = os.path.join(scatest.getSdrCache(), ".test_GPP_node", "GPP_1", "components", "pythonSoftpkgDep")
+        if os.path.exists(deviceCacheDir):
+            os.system("rm -rf %s" % deviceCacheDir)
+
+        self._domMgr.installApplication("/waveforms/python_softpkg_deps/python_softpkg_deps.sad.xml")
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        # Ensure the expected device is available
+        devBooter, devMgr = self.launchDeviceManager(node)
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+
+        appFact = self._domMgr._get_applicationFactories()[0]
+
+        app = appFact.create(appFact._get_name(), [], []) # LOOK MA, NO DAS!
+
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 1)
+
+        # Verify that properties have been changed from their defaults
+        self.assertEqual(len(app._get_componentNamingContexts()), 1)
+        compName = app._get_componentNamingContexts()[0]
+        comp = self._root.resolve(URI.stringToName(compName.elementId))._narrow(CF.Resource)
+        self.assertNotEqual(comp, None)
+
+        cmd = comp.query([CF.DataType(id="prop1", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "hello")
+        cmd = comp.query([CF.DataType(id="prop2", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "world")
+        cmd = comp.query([CF.DataType(id="prop3", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "helloworld")
+
+        comp.start()
+        
+        cmd = comp.query([CF.DataType(id="prop1", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "jones")
+        cmd = comp.query([CF.DataType(id="prop2", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "goober")
+        cmd = comp.query([CF.DataType(id="prop3", value=any.to_any(None))])[0]
+        self.assertEqual(cmd.value._v, "testing")
+
+        app.stop()
+        app.releaseObject()
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 0)
+
+        self._domMgr.uninstallApplication(appFact._get_identifier())
+
+    def test_py_SharedLibraryLoad1(self):
+        self._test_py_SharedLibraryLoad("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+    def test_py_SharedLibraryLoad2(self):
+        fp = open('sdr/dev/nodes/test_GPP_node/DeviceManager.dcd.xml.working_dir','r')
+        dcd_contents = fp.read()
+        fp.close()
+        dcd_contents = dcd_contents.replace('@@DIR1@@', os.getcwd() + "/tmp_working")
+        fp = open('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml','w')
+        fp.write(dcd_contents)
+        fp.close()
+
+        self._test_py_SharedLibraryLoad("/nodes/test_GPP_node/tmp.dcd.xml")
+        
+        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
+
+    def test_py_SharedLibraryLoad3(self):
+        fp = open('sdr/dev/nodes/test_GPP_node/DeviceManager.dcd.xml.cache_working_dir','r')
+        dcd_contents = fp.read()
+        fp.close()
+        dcd_contents = dcd_contents.replace('@@DIR1@@', os.getcwd() + "/tmp_cache")
+        dcd_contents = dcd_contents.replace('@@DIR2@@', os.getcwd() + "/tmp_working")
+        fp = open('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml','w')
+        fp.write(dcd_contents)
+        fp.close()
+        
+        self._test_py_SharedLibraryLoad("/nodes/test_GPP_node/tmp.dcd.xml")
+        
+        (status,output) = commands.getstatusoutput('rm -rf tmp_cache')
+        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
 
     def _failIfOpen(self, fileSys, path):
         for info in fileSys.list(path):

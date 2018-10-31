@@ -266,7 +266,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
        CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName,
        CF::LoadableDevice::LoadFail,  CF::FileException )
 {
-    RH_DEBUG(_loadabledeviceLog, "load " << fileName)
+    RH_DEBUG(_loadabledeviceLog, "load " << fileName << " kind:" << loadKind)
 
 // verify that the device is in a valid state for loading
     if (!isUnlocked () || isDisabled ()) {
@@ -484,14 +484,23 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                 FILE *fileCheck = popen(command.c_str(), "r");
                 int status = pclose(fileCheck);
                 if (!status) {
+                    RH_DEBUG(_loadabledeviceLog, "cmd= " << command <<
+                            " relativeFileName: " << relativeFileName <<
+                            " relativePath: " << relativePath);
+
                     // The import worked
                     std::string additionalPath = "";
+                    // Prepend the current path if the cache is empty, then check the filename
+                    if (cacheDirectory.empty()) {
+                    	additionalPath = currentPath + std::string("/");
+                    }
                     if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
-                        additionalPath = currentPath+std::string("/")+relativeFileName;
+                    	additionalPath = additionalPath + relativeFileName;
                     } else {
-                        additionalPath = currentPath+std::string("/")+relativePath;
+                        additionalPath = additionalPath + relativePath;
                     }
                     env_changes.addModification("PYTHONPATH", additionalPath);
+                    RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to PYTHONPATH");
                     PythonPackage = true;
                 }
                 chdir(currentPath.c_str());
@@ -506,8 +515,15 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                     if ((extension == ".py") || (extension == ".pyc")) {
                         fileOrDirectoryName.erase(iext);
                     }
+                    relativePath.assign(relativeFileName, 0, lastSlash);
+                } else {
+                	relativePath = relativeFileName;
+                	if (true) { // if __init__.py exists
+                		relativePath.assign(relativeFileName, 0, lastSlash);
+                	}
+                	relativePath = prependCacheIfAvailable(relativePath);
                 }
-                relativePath.assign(relativeFileName, 0, lastSlash);
+
                 if (chdir(relativePath.c_str())) {
                         // this is an invalid path
                 } else {
@@ -522,11 +538,13 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                                 " relativePath: " << relativePath);
 
                         // The import worked
-                        std::string additionalPath = "";
-                        if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
-                            additionalPath = currentPath+std::string("/")+relativePath;
-                        } else {
-                            additionalPath = currentPath+std::string("/")+relativePath;
+                        std::string additionalPath = relativePath;
+                        if (cacheDirectory.empty()) {
+                            if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
+                                additionalPath = currentPath+std::string("/")+relativePath;
+                            } else {
+                                additionalPath = currentPath+std::string("/")+relativePath;
+                            }
                         }
                         env_changes.addModification("PYTHONPATH", additionalPath);
                         RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to PYTHONPATH");
@@ -542,8 +560,12 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
           int retval = ossie::helpers::is_jarfile( relativeFileName );
           if ( retval == 0 ) {
             currentPath = ossie::getCurrentDirName();
-            std::string additionalPath = currentPath+std::string("/")+relativeFileName;
+            std::string additionalPath = relativeFileName;
+            if (cacheDirectory.empty()) {
+              additionalPath = currentPath+std::string("/")+relativeFileName;
+            }
             env_changes.addModification("CLASSPATH", additionalPath);
+            RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to CLASSPATH");
             JavaJar = true;
           }
         }
