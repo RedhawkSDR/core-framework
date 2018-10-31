@@ -369,6 +369,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/linkedLibraryTest/Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
+                testing/sdr/dom/components/javaSoftpkgJarDep/java/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/huge_msg_java/java/Makefile \
