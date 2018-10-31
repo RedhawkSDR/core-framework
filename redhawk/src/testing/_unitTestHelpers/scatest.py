@@ -237,9 +237,7 @@ def spawnNodeBooter(dmdFile=None,
     else:
         args.extend(["--domainname", domainname])
 
-    if endpoint == None:
-        args.append("--nopersist")
-    else:
+    if endpoint is not None:
         args.extend(["-ORBendPoint", endpoint])
 
     if dbURI:

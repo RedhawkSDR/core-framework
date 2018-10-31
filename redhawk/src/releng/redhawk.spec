@@ -57,6 +57,7 @@ Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
 Requires:       binutils
 Requires:       numactl
+Requires:       sqlite
 
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
@@ -72,6 +73,7 @@ BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
 BuildRequires:  numactl-devel
+BuildRequires:  sqlite-devel
 
 %description
 REDHAWK is a Software Defined Radio framework.
