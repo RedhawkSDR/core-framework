@@ -247,7 +247,7 @@ class Sandbox(object):
 
         # Generate/check identifier.
         if not refid:
-            refid = str(uuid4())
+            refid = 'DCE:'+str(uuid4())
         elif not self._checkInstanceId(refid, comptype):
             raise ValueError, "User-specified identifier '%s' already in use" % (refid,)
 

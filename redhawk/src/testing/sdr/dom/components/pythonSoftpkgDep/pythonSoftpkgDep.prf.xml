@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="prop1" mode="readwrite" name="prop1" type="string">
+    <value>hello</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="prop2" mode="readwrite" name="prop2" type="string">
+    <value>world</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="prop3" mode="readwrite" name="prop3" type="string">
+    <value>helloworld</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+</properties>

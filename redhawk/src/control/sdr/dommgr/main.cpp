@@ -242,7 +242,20 @@ int old_main(int argc, char* argv[])
       RH_NL_INFO(logname, "Loading log configuration from uri:" << logfile_uri);
     }
 
-#if ! defined ENABLE_PERSISTENCE
+#ifdef ENABLE_PERSISTENCE
+    if (!db_uri.empty()) {
+        // Validate the path by trying to open the database file; it will be
+        // automatically closed when it goes out of scope, and catches path or
+        // permissions errors without complicated checks
+        ossie::PersistenceStore db;
+        try {
+            db.open(db_uri);
+        } catch (const ossie::PersistenceException& exc) {
+            RH_NL_FATAL(logname, "Cannot open persistence store " << db_uri << ": " << exc.what());
+            return EXIT_FAILURE;
+        }
+    }
+#else
     if  (!db_uri.empty()) {
         // reset db_uri to empty... to force ignore of restore operations
         db_uri.clear();
