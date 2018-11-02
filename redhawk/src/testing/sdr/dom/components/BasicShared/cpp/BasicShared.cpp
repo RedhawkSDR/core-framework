@@ -47,6 +47,7 @@ void BasicShared_i::constructor()
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
     setPropertyQueryImpl(pid, this, &BasicShared_i::get_pid);
+    nic_name = getNetwork()->getNic();
 }
 
 pid_t BasicShared_i::get_pid()
