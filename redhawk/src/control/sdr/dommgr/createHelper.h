@@ -134,9 +134,13 @@ private:
                                                    redhawk::UsesDeviceDeployment& assignedDevices);
     bool _allDevicesBusy(ossie::DeviceList& devices);
 
-    CF::Properties _consolidateAllocations(redhawk::ApplicationDeployment& appDeployment, const DeploymentList& implementations);
+    redhawk::PropertyMap _consolidateAllocations(const DeploymentList& implementations, std::map<std::string,std::string>& nicAllocs);
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset=0);
+
+    redhawk::PropertyMap _getComponentAllocations(const redhawk::ComponentDeployment* deployment);
+    std::string _getNicAllocationId(redhawk::PropertyMap& allocationProperties);
+    void _applyNicAllocation(redhawk::ComponentDeployment* deployment, const std::string& allocId, CF::Device_ptr device);
 
     // Supports allocation
     bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
