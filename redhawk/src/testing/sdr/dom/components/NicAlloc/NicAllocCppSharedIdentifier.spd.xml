@@ -19,28 +19,34 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
-<softpkg id="DCE:5042665c-5d33-40fe-a30f-f72d24dd56ba" name="BasicShared" type="sca_compliant">
+<softpkg id="DCE:ccdd6437-2720-415d-a576-18bb3e168fc2" name="NicAllocCppSharedIdentifier" type="sca_compliant">
   <title></title>
   <author>
-    <name>null</name>
+    <name></name>
   </author>
   <propertyfile type="PRF">
-    <localfile name="BasicShared.prf.xml"/>
+    <localfile name="../BasicShared/BasicShared.prf.xml"/>
   </propertyfile>
   <descriptor>
-    <localfile name="BasicShared.scd.xml"/>
+    <localfile name="../BasicShared/BasicShared.scd.xml"/>
   </descriptor>
   <implementation id="cpp">
-    <description>The implementation contains descriptive information about the template for a software resource.</description>
+    <description>The implementation contains descriptive information about the template for a software component.</description>
     <code type="SharedLibrary">
-      <localfile name="cpp/BasicShared.so"/>
-      <entrypoint>cpp/BasicShared.so</entrypoint>
+      <localfile name="../BasicShared/cpp/BasicShared.so"/>
+      <entrypoint>../BasicShared/cpp/BasicShared.so</entrypoint>
     </code>
-    <compiler name="/usr/bin/gcc" version="4.4.7"/>
+    <compiler name="/usr/bin/gcc" version="4.1.2"/>
     <programminglanguage name="C++"/>
     <humanlanguage name="EN"/>
     <os name="Linux"/>
     <processor name="x86"/>
     <processor name="x86_64"/>
+    <dependency type="allocation">
+      <structref refid="nic_allocation">
+        <simpleref refid="nic_allocation::identifier" value="cppsonic"/>
+        <simpleref refid="nic_allocation::interface" value=""/>
+      </structref>
+    </dependency>
   </implementation>
 </softpkg>
