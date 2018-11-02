@@ -70,7 +70,18 @@ public abstract class QueryableUsesPort< E > extends QueryablePortPOA { // SUPPR
             }
         }
         if (outPorts.isEmpty()) {
-            throw new PortCallError("No connections available.", new ArrayList<String>());
+            if (out || inOut || returnValue) {
+                throw new PortCallError("No connections available.", this.getConnectionIds());
+            } else {
+                if (!__connection_id__.isEmpty()) {
+                    throw new PortCallError("The requested connection id ("+__connection_id__+") does not exist.", this.getConnectionIds());
+                }
+            }
+        }
+        if ((!__connection_id__.isEmpty()) && (!outPorts.isEmpty())) {
+            if (!outPorts.containsKey(__connection_id__)) {
+                throw new PortCallError("The requested connection id ("+__connection_id__+") does not exist.", this.getConnectionIds());
+            }
         }
     }
 
