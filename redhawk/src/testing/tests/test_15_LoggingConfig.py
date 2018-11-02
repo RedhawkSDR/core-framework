@@ -496,6 +496,156 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             pass
         self.assertNotEquals(fp, None)
 
+class TokenLoggingConfig(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager(loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        self.devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        try:
+            os.remove('sdr/foo/bar/test.log')
+            pass
+        except:
+            pass
+        try:
+            os.rmdir('sdr/foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('sdr/foo')
+        except:
+            pass
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    @scatest.requireLog4cxx
+    def test_token_devmgr(self):
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'ExecutableDevice_node':
+                found_devmgr = devmgr
+                break
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter.pid)
+        fp = None
+        try:
+            fp = open('sdr/foo/bar/test.log','r')
+        except:
+            pass
+        self.assertNotEquals(fp, None)
+        logfile_content = fp.readlines()
+        found_line = None
+        for line in logfile_content:
+            if logstr in line:
+                if not 'DeviceManager_impl' in line:
+                    continue
+                found_line = line
+                break
+        self.assertNotEquals(found_line, None)
+        self.assertNotEquals(found_line.find(logstr), -1)
+        self.assertNotEquals(found_line.find('DeviceManager_impl'), -1)
+
+    @scatest.requireLog4cxx
+    def test_token_config_dev_cpp(self):
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'ExecutableDevice_node':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'ExecutableDevice':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        logcfg = found_dev.getLogConfig()
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    def test_token_config_dev_py(self):
+        self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/py_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'py_dev_n':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'py_dev':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        logcfg = found_dev.getLogConfig()
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireJava
+    def test_token_config_dev_java(self):
+        self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/java_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'java_dev_n':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'java_dev':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        begin = time.time()
+        logcfg = None
+        while time.time()-begin < 1 or not logcfg:
+            logcfg = found_dev.getLogConfig()
+        self.assertNotEquals(logcfg, None)
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireLog4cxx
+    def test_token_config_comp_cpp(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_C1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    def test_token_config_comp_py(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_P1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireJava
+    def test_token_config_comp_java(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_J1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
 
 class PythonLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
