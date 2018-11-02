@@ -134,4 +134,4 @@ from helpers import *
 from ossie.utils.sandbox.plugin import plugins
 for name, plugin in plugins():
     globals()[name] = plugin
-del name, plugin
+    del name, plugin

@@ -57,6 +57,8 @@ namespace fs = boost::filesystem;
 using namespace std;
 
 
+#define ENABLE_PERSISTENCE (ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE)
+
 CREATE_LOGGER(nodebooter);
 
 // Track the DomainManager and DeviceManager pids, if using fork-and-exec.
@@ -469,7 +471,6 @@ void usage()
     std::cerr << "    --useloglib                Use libossielogcfg.so to generate LOGGING_CONFIG_URI " << std::endl;
     std::cerr << "    --bindapps                 Bind application and component registrations to the Domain and not the NamingService (DomainManager only)" << std::endl;
     std::cerr << "    --dburl                    Store domain state in the following URL" << std::endl;
-    std::cerr << "    --nopersist                Disable DomainManager IOR persistence" << std::endl;
     std::cerr << "    --force-rebind             Overwrite any existing name binding for the DomainManager" << std::endl;
     std::cerr << "    --daemon                   Run as UNIX daemon" << std::endl;
     std::cerr << "    --pidfile <filename>       Save PID in the specified file" << std::endl;
@@ -528,7 +529,6 @@ void startDomainManager(
     string&                                    domainName,
     const fs::path&                            sdrRootPath,
     const int&                                 debugLevel,
-    const bool&                                noPersist,
     const bool &                               bind_apps,
     const string&                              logfile_uri,
     const bool&                                use_loglib,
@@ -584,14 +584,14 @@ void startDomainManager(
         debugLevel_str << debugLevel;
         execParams["DEBUG_LEVEL"] = debugLevel_str.str();
     }
-    if (noPersist) {
-        execParams["PERSISTENCE"] = "false";
-    }
     if (!logfile_uri.empty()) {
         execParams["LOGGING_CONFIG_URI"] = logfile_uri;
     }
     if (!db_uri.empty()) {
+        execParams["PERSISTENCE"] = "true";
         execParams["DB_URL"] = db_uri;
+    } else {
+        execParams["PERSISTENCE"] = "false";
     }
     if (!endPoint.empty()) {
         execParams["-ORBendPoint"] = endPoint;
@@ -823,9 +823,6 @@ int main(int argc, char* argv[])
     std::string user;
     std::string group;
 
-    // If "--nopersist" is asserted, turn off persistent IORs.
-    bool noPersist = false;
-
     // enable/disable use of libossielogcfg.so to resolve LOGGING_CONFIG_URI values
     bool use_loglib = false;
 
@@ -978,7 +975,7 @@ int main(int argc, char* argv[])
             std::cout<<"REDHAWK version: "<<VERSION<<std::endl;
             exit(EXIT_SUCCESS);
         } else if (strcmp(argv[i], "--nopersist") == 0) {
-            noPersist = true;
+            std::cerr << "[nodeBooter] WARNING: --nopersist is deprecated and will be ignored" << std::endl;
         } else if (strcmp(argv[i], "--force-rebind") == 0) {
             forceRebind = true;
         } else if (strcmp(argv[i], "--daemon") == 0) {
@@ -1124,6 +1121,24 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+
+    // Check persistence flags; only presence is tested here, not validity
+    // (i.e., can the DB file be read/written) because in daemonized mode the
+    // user and group are not applied until after fork()
+    if (!db_uri.empty()) {
+        if (startDomainManagerRequested) {
+#if !ENABLE_PERSISTENCE
+            // Cannot supply persistence flags unless support is compiled in
+            std::cerr << "[nodeBooter] ERROR: --dburl provided, but REDHAWK was compiled without persistence support" << std::endl;
+            exit(EXIT_FAILURE);
+#endif
+        } else {
+            // Cannot supply persistence flags on DeviceManager-only runs
+            std::cerr << "[nodeBooter] ERROR: DeviceManager does not support --dburl" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Create signal handler to catch system interrupts SIGINT and SIGQUIT
     struct sigaction sa;
     sa.sa_handler = signal_catcher;
@@ -1209,7 +1224,6 @@ int main(int argc, char* argv[])
                                domainName,
                                sdrRootPath,
                                debugLevel,
-                               noPersist,
                                bind_apps,
                                logfile_uri,
                                use_loglib,

@@ -26,6 +26,9 @@ xmldir = $(prefix)/dev/devices/GPP/
 dist_xml_DATA = ../GPP.scd.xml ../GPP.prf.xml ../GPP.spd.xml
 ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 
+screendir = $(bindir)
+screen_DATA = $(srcdir)/gpp.screenrc
+
 all-local: GPP
 	mkdir -p ../tests/sdr/dev/devices/GPP/cpp
 	cp GPP ../tests/sdr/dev/devices/GPP/cpp/

@@ -46,6 +46,7 @@ Requires:       java >= 1:1.8.0
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 Requires:       python-matplotlib-qt4
 Requires:       gstreamer-python
+Requires:       numactl-libs
 %else
 Requires:       python-matplotlib
 %endif
@@ -55,6 +56,8 @@ Requires:       numpy
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
 Requires:       binutils
+Requires:       numactl
+Requires:       sqlite
 
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
@@ -69,6 +72,8 @@ BuildRequires:  omniORBpy-devel >= 3.0
 BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
+BuildRequires:  numactl-devel
+BuildRequires:  sqlite-devel
 
 %description
 REDHAWK is a Software Defined Radio framework.
@@ -122,6 +127,7 @@ Requires:       libuuid-devel
 Requires:       boost-devel >= 1.41
 Requires:       autoconf automake libtool
 Requires:       log4cxx-devel >= 0.10
+Requires:       numactl-devel
 
 # omniORB / omniORBpy
 Requires:       omniORB-devel >= 4.1.0

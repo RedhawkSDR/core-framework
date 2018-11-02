@@ -80,7 +80,7 @@ class CppDomainEventLoggingConfig(scatest.CorbaTestCase):
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 1)
+        self.assertEquals(reg_count, 2) # both the instance and static root loggers
         self.app.releaseObject()
         clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
         reg_count = -1

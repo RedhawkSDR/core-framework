@@ -1,0 +1,6 @@
+4898e1897ae4acef17e0c2445de401f4  src/javaSoftpkgDepComp/java/javaSoftpkgJarDep.java
+65c00ae5ec6e4e27fc27101fc988efa4  startJava.sh
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+b7d3f3e2bb055197ea853c28b72118ad  src/javaSoftpkgDepComp/java/javaSoftpkgJarDep_base.java
+7208e6d9b547ef444e39b7256365e8ac  configure.ac
+1966984521431b53916a812153ce8d75  Makefile.am

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:199864c2-0a48-4fce-8c73-92f70f1a87c8" name="java_softpkg_deps">
+  <componentfiles>
+    <componentfile id="javaSoftpkgJarDep_67d483c1-5257-41ed-b50c-aeb74491ca54" type="SPD">
+      <localfile name="/components/javaSoftpkgJarDep/javaSoftpkgJarDep.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="javaSoftpkgJarDep_67d483c1-5257-41ed-b50c-aeb74491ca54"/>
+      <componentinstantiation id="javaSoftpkgJarDep_1">
+        <usagename>javaSoftpkgJarDep_1</usagename>
+        <findcomponent>
+          <namingservice name="javaSoftpkgJarDep_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="javaSoftpkgJarDep_1"/>
+  </assemblycontroller>
+</softwareassembly>

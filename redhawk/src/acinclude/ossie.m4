@@ -180,21 +180,41 @@ ossie_cv_pyscheme,
 AC_SUBST(PYTHON_INSTALL_SCHEME, $ossie_cv_pyscheme)
 ])
   
-AC_DEFUN([OSSIE_ENABLE_PERSISTENCE],
-[AC_MSG_CHECKING([to see if domain persistence should be enabled])
- AC_ARG_ENABLE(persistence, 
-               AS_HELP_STRING([--enable-persistence=[persist_type]], [Enable persistence support.  Supported types: bdb, gdbm, sqlite, none)]),
-  [ 
-    AC_MSG_RESULT([$enableval])
-    AX_BOOST_SERIALIZATION
-    if test "x$enableval" == "x" -o "x$enableval" == "xnone" ; then
-        AC_SUBST(PERSISTENCE_CFLAGS, "")
-        AC_SUBST(PERSISTENCE_LIBS, "")
+AC_DEFUN([OSSIE_ENABLE_PERSISTENCE], [
+  AC_MSG_CHECKING([to see if domain persistence should be enabled])
+  AC_ARG_ENABLE(persistence, [
+AS_HELP_STRING([--enable-persistence@<:@=persist_type@:>@], [Enable persistence support.  Supported types: bdb, gdbm, sqlite @<:@default=sqlite@:>@])
+AS_HELP_STRING([--disable-persistence], [Disable persistence support])],
+                [],
+                [
+                dnl Default behavior is implicit yes
+                enable_persistence="yes"
+                ])
+
+  dnl Default backend is sqlite
+  AS_IF([test "x$enable_persistence" = "xyes"], [
+    enable_persistence="sqlite"
+  ])
+
+  AS_IF([test "x$enable_persistence" = "xno" -o "x$enable_persistence" = "xnone"], [
+    AC_MSG_RESULT([no])
+  ], [
+    AC_MSG_RESULT([$enable_persistence])
+    if test "x$enable_persistence" = "xsqlite"; then
+        CHECK_SQLITE3_LIB
+        if test x"$ac_sqlite3_header" == "xyes" -a  x"$ac_sqlite3_lib" == "xyes"; then
+          PERSISTENCE_CFLAGS=""
+          PERSISTENCE_LIBS="-lsqlite3"
+          AC_DEFINE(HAVE_SQLITE, 1, [Define if sqlite is available])
+	  AC_DEFINE(ENABLE_SQLITE_PERSISTENCE, 1, [enable SQLite-based persistence])
+        else
+	  AC_MSG_ERROR([System cannot support sqlite persistence])
+        fi
     elif test "x$enableval" == "xbdb"; then
 	CHECK_BDB_LIB
         if test x"$ac_bdb_header" == "xyes" -a  x"$ac_bdb_lib" == "xyes"; then
-          AC_SUBST(PERSISTENCE_CFLAGS, "")
-          AC_SUBST(PERSISTENCE_LIBS, "-ldb_cxx")
+          PERSISTENCE_CFLAGS=""
+          PERSISTENCE_LIBS="-ldb_cxx"
           AC_DEFINE(HAVE_BDB, 1, [Define if bdb is available])
 	  AC_DEFINE(ENABLE_BDB_PERSISTENCE, 1, [enable BDB-based persistence])
         else
@@ -203,30 +223,19 @@ AC_DEFUN([OSSIE_ENABLE_PERSISTENCE],
     elif test "x$enableval" == "xgdbm"; then
 	CHECK_GDBM_LIB
         if test x"$ac_gdbm_header" == "xyes" -a  x"$ac_gdbm_lib" == "xyes"; then
-          AC_SUBST(PERSISTENCE_CFLAGS, "")
-          AC_SUBST(PERSISTENCE_LIBS, "-lgdbm")
+          PERSISTENCE_CFLAGS=""
+          PERSISTENCE_LIBS="-lgdbm"
           AC_DEFINE(HAVE_GDBM, 1, [Define if gdbm is available])
 	  AC_DEFINE(ENABLE_GDBM_PERSISTENCE, 1, [enable gdbm-based persistence])
         else
 	  AC_MSG_ERROR([System cannot support gdbm persistence])
         fi
-    elif test "x$enableval" == "xsqlite"; then
-        CHECK_SQLITE3_LIB
-        if test x"$ac_sqlite3_header" == "xyes" -a  x"$ac_sqlite3_lib" == "xyes"; then
-          AC_SUBST(PERSISTENCE_CFLAGS, "")
-          AC_SUBST(PERSISTENCE_LIBS, "-lsqlite3")
-          AC_DEFINE(HAVE_SQLITE, 1, [Define if sqlite is available])
-	  AC_DEFINE(ENABLE_SQLITE_PERSISTENCE, 1, [enable SQLite-based persistence])
-        else
-	  AC_MSG_ERROR([System cannot support sqlite persistence])
-        fi
     else
 	AC_MSG_ERROR([Invalid persistence type specified])
     fi
-  ],
-  [
-    AC_MSG_RESULT([no])
-  ]) 
+    AC_SUBST(PERSISTENCE_CFLAGS)
+    AC_SUBST(PERSISTENCE_LIBS)
+  ])
 ])
 
 AC_DEFUN([CHECK_BDB_LIB],
