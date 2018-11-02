@@ -2,7 +2,7 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK bulkioInterfaces.
+ * This file is part of REDHAWK core.
  *
  * REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
@@ -17,15 +17,27 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+package utils;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+/**
+ * Extended JUnit assertion class that adds an assert for checking that an
+ * exception is thrown by an expression.
+ */
+public class Assert extends org.junit.Assert {
+    private Assert()
+    {
+    }
 
-@RunWith(Suite.class)
-@SuiteClasses({
-        ValidateRequestTest.class, 
-        PortsTest.class
-})
-public class AllTests {
-}
+    public static void assertThrows(Class<? extends Exception> exception, RunnableWithException runnable)
+    {
+        try {
+            runnable.run();
+        } catch (Exception exc) {
+            assertTrue("expected exception:<"+ exception.getName() +
+                        "> but got:<" + exc.getClass().getName() + ">",
+                        exception.isInstance(exc));
+            return;
+        }
+        fail("exception not raised");
+    }
+};

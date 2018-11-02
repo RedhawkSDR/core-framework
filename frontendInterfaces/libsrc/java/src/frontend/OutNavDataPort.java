@@ -26,8 +26,9 @@ import FRONTEND.NavDataOperations;
 import FRONTEND.NavDataHelper;
 import FRONTEND.NavigationPacket;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
-public class OutNavDataPort extends QueryableUsesPort<NavDataOperations> implements NavDataOperations, PortBase {
+public class OutNavDataPort extends QueryableUsesPort<NavDataOperations> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -68,38 +69,65 @@ public class OutNavDataPort extends QueryableUsesPort<NavDataOperations> impleme
         }
     }
 
-    public NavigationPacket nav_packet()
+    public NavigationPacket nav_packet() throws PortCallError
+    {
+        return this._get_nav_packet("");
+    }
+    public NavigationPacket _get_nav_packet(String __connection_id__) throws PortCallError
     {
         NavigationPacket retval = null;
 
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (NavDataOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.nav_packet();
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).nav_packet();
+                    } else {
+                        for (NavDataOperations p : this.outConnections.values()) {
+                            retval = p.nav_packet();
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
 
-    public void nav_packet(NavigationPacket data)
+    public void nav_packet(NavigationPacket data) throws PortCallError
+    {
+        this.nav_packet(data, "");
+    }
+
+    public void nav_packet(NavigationPacket data, String __connection_id__) throws PortCallError
     {
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (NavDataOperations p : this.outConnections.values()) {
-                    try {
-                        p.nav_packet(data);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).nav_packet(data);
+                    } else {
+                        for (NavDataOperations p : this.outConnections.values()) {
+                            p.nav_packet(data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

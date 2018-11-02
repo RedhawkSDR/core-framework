@@ -28,8 +28,9 @@ import FRONTEND.FrontendException;
 import FRONTEND.BadParameterException;
 import FRONTEND.NotSupportedException;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
-public class OutDigitalTunerPort extends QueryableUsesPort<DigitalTunerOperations> implements DigitalTunerOperations, PortBase {
+public class OutDigitalTunerPort extends QueryableUsesPort<DigitalTunerOperations> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -68,339 +69,613 @@ public class OutDigitalTunerPort extends QueryableUsesPort<DigitalTunerOperation
         }
     }
 
-    public String getTunerType(String id) {
+    public String getTunerType(String id) throws PortCallError
+    {
+        return this.getTunerType(id, "");
+    }
+    public String getTunerType(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerType(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerType(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerType(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public boolean getTunerDeviceControl(String id) {
+    public boolean getTunerDeviceControl(String id) throws PortCallError
+    {
+        return this.getTunerDeviceControl(id, "");
+    }
+    public boolean getTunerDeviceControl(String id, String __connection_id__) throws PortCallError
+    {
         boolean retval = false;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerDeviceControl(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerDeviceControl(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerDeviceControl(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public String getTunerGroupId(String id) {
+    public String getTunerGroupId(String id) throws PortCallError
+    {
+        return this.getTunerGroupId(id, "");
+    }
+    public String getTunerGroupId(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerGroupId(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerGroupId(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerGroupId(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public String getTunerRfFlowId(String id) {
+    public String getTunerRfFlowId(String id) throws PortCallError
+    {
+        return this.getTunerRfFlowId(id, "");
+    }
+    public String getTunerRfFlowId(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerRfFlowId(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerRfFlowId(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerRfFlowId(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public CF.DataType[] getTunerStatus(String id) {
+    public CF.DataType[] getTunerStatus(String id) throws PortCallError
+    {
+        return this.getTunerStatus(id, "");
+    }
+    public CF.DataType[] getTunerStatus(String id, String __connection_id__) throws PortCallError
+    {
         CF.DataType[] retval = null;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerStatus(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerStatus(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerStatus(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerCenterFrequency(String id, double freq) {
-        synchronized(this.updatingPortsLock) {
+    public void setTunerCenterFrequency(String id, double data) throws PortCallError
+    {
+        this.setTunerCenterFrequency(id, data, "");
+    }
+
+    public void setTunerCenterFrequency(String id, double data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerCenterFrequency(id, freq);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerCenterFrequency(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerCenterFrequency(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
  
-    public double getTunerCenterFrequency(String id) {
-        double retval = 0.0;
-        synchronized(this.updatingPortsLock) {
-            if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerCenterFrequency(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
-        return retval;
+    public double getTunerCenterFrequency(String id) throws PortCallError
+    {
+        return this.getTunerCenterFrequency(id, "");
     }
- 
-    public void setTunerBandwidth(String id, double bw) {
-        synchronized(this.updatingPortsLock) {
-            if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerBandwidth(id, bw);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
-    }
- 
-    public double getTunerBandwidth(String id) {
+    public double getTunerCenterFrequency(String id, String __connection_id__) throws PortCallError
+    {
         double retval = 0.0;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerBandwidth(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerCenterFrequency(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerCenterFrequency(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerAgcEnable(String id, boolean enable) {
-        synchronized(this.updatingPortsLock) {
+    public void setTunerBandwidth(String id, double data) throws PortCallError
+    {
+        this.setTunerBandwidth(id, data, "");
+    }
+
+    public void setTunerBandwidth(String id, double data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerAgcEnable(id, enable);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerBandwidth(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerBandwidth(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
  
-    public boolean getTunerAgcEnable(String id) {
+    public double getTunerBandwidth(String id) throws PortCallError
+    {
+        return this.getTunerBandwidth(id, "");
+    }
+    public double getTunerBandwidth(String id, String __connection_id__) throws PortCallError
+    {
+        double retval = 0.0;
+
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
+            if (this.active) {
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerBandwidth(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerBandwidth(id);
+                        }
+                    }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return retval;
+    }
+ 
+    public void setTunerAgcEnable(String id, boolean data) throws PortCallError
+    {
+        this.setTunerAgcEnable(id, data, "");
+    }
+
+    public void setTunerAgcEnable(String id, boolean data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
+            if (this.active) {
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerAgcEnable(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerAgcEnable(id, data);
+                        }
+                    }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+ 
+    public boolean getTunerAgcEnable(String id) throws PortCallError
+    {
+        return this.getTunerAgcEnable(id, "");
+    }
+    public boolean getTunerAgcEnable(String id, String __connection_id__) throws PortCallError
+    {
         boolean retval = false;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerAgcEnable(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerAgcEnable(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerAgcEnable(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerGain(String id, float gain) {
-        synchronized(this.updatingPortsLock) {
-            if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerGain(id, gain);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
+    public void setTunerGain(String id, float data) throws PortCallError
+    {
+        this.setTunerGain(id, data, "");
     }
- 
-    public float getTunerGain(String id) {
-        float retval = 0.0F;
 
-        synchronized(this.updatingPortsLock) {
+    public void setTunerGain(String id, float data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerGain(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerGain(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerGain(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+ 
+    public float getTunerGain(String id) throws PortCallError
+    {
+        return this.getTunerGain(id, "");
+    }
+    public float getTunerGain(String id, String __connection_id__) throws PortCallError
+    {
+        float retval = (float)0.0;
+
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
+            if (this.active) {
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerGain(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerGain(id);
+                        }
+                    }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerReferenceSource(String id, int source) {
-        synchronized(this.updatingPortsLock) {
+    public void setTunerReferenceSource(String id, int data) throws PortCallError
+    {
+        this.setTunerReferenceSource(id, data, "");
+    }
+
+    public void setTunerReferenceSource(String id, int data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerReferenceSource(id, source);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerReferenceSource(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerReferenceSource(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
  
-    public int getTunerReferenceSource(String id) {
+    public int getTunerReferenceSource(String id) throws PortCallError
+    {
+        return this.getTunerReferenceSource(id, "");
+    }
+    public int getTunerReferenceSource(String id, String __connection_id__) throws PortCallError
+    {
         int retval = 0;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerReferenceSource(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerReferenceSource(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerReferenceSource(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerEnable(String id, boolean enable) {
-        synchronized(this.updatingPortsLock) {
+    public void setTunerEnable(String id, boolean data) throws PortCallError
+    {
+        this.setTunerEnable(id, data, "");
+    }
+
+    public void setTunerEnable(String id, boolean data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerEnable(id, enable);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerEnable(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerEnable(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
  
-    public boolean getTunerEnable(String id) {
+    public boolean getTunerEnable(String id) throws PortCallError
+    {
+        return this.getTunerEnable(id, "");
+    }
+    public boolean getTunerEnable(String id, String __connection_id__) throws PortCallError
+    {
         boolean retval = false;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerEnable(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerEnable(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerEnable(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public void setTunerOutputSampleRate(String id, double sr) {
-        synchronized(this.updatingPortsLock) {
+    public void setTunerOutputSampleRate(String id, double data) throws PortCallError
+    {
+        this.setTunerOutputSampleRate(id, data, "");
+    }
+
+    public void setTunerOutputSampleRate(String id, double data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        p.setTunerOutputSampleRate(id, sr);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).setTunerOutputSampleRate(id, data);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            p.setTunerOutputSampleRate(id, data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
  
-    public double getTunerOutputSampleRate(String id) {
+    public double getTunerOutputSampleRate(String id) throws PortCallError
+    {
+        return this.getTunerOutputSampleRate(id, "");
+    }
+    public double getTunerOutputSampleRate(String id, String __connection_id__) throws PortCallError
+    {
         double retval = 0.0;
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (DigitalTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerOutputSampleRate(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerOutputSampleRate(id);
+                    } else {
+                        for (DigitalTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerOutputSampleRate(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

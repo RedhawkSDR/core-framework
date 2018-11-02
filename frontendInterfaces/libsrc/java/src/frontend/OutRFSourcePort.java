@@ -26,8 +26,9 @@ import FRONTEND.RFSourceOperations;
 import FRONTEND.RFSourceHelper;
 import FRONTEND.RFInfoPkt;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
-public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> implements RFSourceOperations, PortBase {
+public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -66,71 +67,129 @@ public class OutRFSourcePort extends QueryableUsesPort<RFSourceOperations> imple
         }
     }
 
-    public RFInfoPkt[] available_rf_inputs() {
+    public RFInfoPkt[] available_rf_inputs() throws PortCallError
+    {
+        return this._get_available_rf_inputs("");
+    }
+    public RFInfoPkt[] _get_available_rf_inputs(String __connection_id__) throws PortCallError
+    {
         RFInfoPkt[] retval = null;
 
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (RFSourceOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.available_rf_inputs();
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).available_rf_inputs();
+                    } else {
+                        for (RFSourceOperations p : this.outConnections.values()) {
+                            retval = p.available_rf_inputs();
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
 
-    public void available_rf_inputs(RFInfoPkt[] data) {
+    public void available_rf_inputs(RFInfoPkt[] data) throws PortCallError
+    {
+        this.available_rf_inputs(data, "");
+    }
+
+    public void available_rf_inputs(RFInfoPkt[] data, String __connection_id__) throws PortCallError
+    {
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (RFSourceOperations p : this.outConnections.values()) {
-                    try {
-                        p.available_rf_inputs(data);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).available_rf_inputs(data);
+                    } else {
+                        for (RFSourceOperations p : this.outConnections.values()) {
+                            p.available_rf_inputs(data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
 
-    public RFInfoPkt current_rf_input() {
+    public RFInfoPkt current_rf_input() throws PortCallError
+    {
+        return this._get_current_rf_input("");
+    }
+    public RFInfoPkt _get_current_rf_input(String __connection_id__) throws PortCallError
+    {
         RFInfoPkt retval = null;
 
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (RFSourceOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.current_rf_input();
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).current_rf_input();
+                    } else {
+                        for (RFSourceOperations p : this.outConnections.values()) {
+                            retval = p.current_rf_input();
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
 
-    public void current_rf_input(RFInfoPkt data) {
+    public void current_rf_input(RFInfoPkt data) throws PortCallError
+    {
+        this.current_rf_input(data, "");
+    }
+
+    public void current_rf_input(RFInfoPkt data, String __connection_id__) throws PortCallError
+    {
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (RFSourceOperations p : this.outConnections.values()) {
-                    try {
-                        p.current_rf_input(data);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).current_rf_input(data);
+                    } else {
+                        for (RFSourceOperations p : this.outConnections.values()) {
+                            p.current_rf_input(data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
