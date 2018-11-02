@@ -28,8 +28,9 @@ import FRONTEND.FrontendException;
 import FRONTEND.BadParameterException;
 import FRONTEND.NotSupportedException;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
-public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperations> implements FrontendTunerOperations, PortBase {
+public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperations> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -68,97 +69,165 @@ public class OutFrontendTunerPort extends QueryableUsesPort<FrontendTunerOperati
         }
     }
 
-    public String getTunerType(String id) {
+    public String getTunerType(String id) throws PortCallError
+    {
+        return this.getTunerType(id, "");
+    }
+    public String getTunerType(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (FrontendTunerOperations p : this.outConnections.values()) {
-                        try {
-                    retval = p.getTunerType(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerType(id);
+                    } else {
+                        for (FrontendTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerType(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public boolean getTunerDeviceControl(String id) {
+    public boolean getTunerDeviceControl(String id) throws PortCallError
+    {
+        return this.getTunerDeviceControl(id, "");
+    }
+    public boolean getTunerDeviceControl(String id, String __connection_id__) throws PortCallError
+    {
         boolean retval = false;
 
-        synchronized(this.updatingPortsLock) { 
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (FrontendTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerDeviceControl(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerDeviceControl(id);
+                    } else {
+                        for (FrontendTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerDeviceControl(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
  
-    public String getTunerGroupId(String id) {
+    public String getTunerGroupId(String id) throws PortCallError
+    {
+        return this.getTunerGroupId(id, "");
+    }
+    public String getTunerGroupId(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (FrontendTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerGroupId(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerGroupId(id);
+                    } else {
+                        for (FrontendTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerGroupId(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
-        } 
+        }
         return retval;
     }
  
-    public String getTunerRfFlowId(String id) {
+    public String getTunerRfFlowId(String id) throws PortCallError
+    {
+        return this.getTunerRfFlowId(id, "");
+    }
+    public String getTunerRfFlowId(String id, String __connection_id__) throws PortCallError
+    {
         String retval = "";
 
-        synchronized(this.updatingPortsLock) {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                
-                for (FrontendTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerRfFlowId(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerRfFlowId(id);
+                    } else {
+                        for (FrontendTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerRfFlowId(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
-        } 
-        
+        }
         return retval;
     }
  
-    public CF.DataType[] getTunerStatus(String id) {
+    public CF.DataType[] getTunerStatus(String id) throws PortCallError
+    {
+        return this.getTunerStatus(id, "");
+    }
+    public CF.DataType[] getTunerStatus(String id, String __connection_id__) throws PortCallError
+    {
         CF.DataType[] retval = null;
 
-        synchronized(this.updatingPortsLock) { 
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (FrontendTunerOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.getTunerStatus(id);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).getTunerStatus(id);
+                    } else {
+                        for (FrontendTunerOperations p : this.outConnections.values()) {
+                            retval = p.getTunerStatus(id);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

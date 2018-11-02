@@ -44,7 +44,7 @@ class analog_tuner_delegation(tuner_delegation):
         raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
     def getTunerCenterFrequency(self, id):
         raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
-    def setTunerBandwidth(self, bw):
+    def setTunerBandwidth(self, id, bw):
         raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
     def getTunerBandwidth(self, id):
         raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
@@ -52,7 +52,7 @@ class analog_tuner_delegation(tuner_delegation):
         raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
     def getTunerAgcEnable(self, id):
         raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
-    def setTunerGain(self, id,gain):
+    def setTunerGain(self, id, gain):
         raise FRONTEND.NotSupportedException("setTunerGain not supported")
     def getTunerGain(self, id):
         raise FRONTEND.NotSupportedException("getTunerGain not supported")
