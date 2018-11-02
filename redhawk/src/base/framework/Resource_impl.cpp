@@ -23,6 +23,7 @@
 #include "ossie/Resource_impl.h"
 #include "ossie/Events.h"
 #include "ossie/Component.h"
+#include <boost/algorithm/string.hpp>
 
 Resource_impl::Resource_impl (const char* _uuid) :
     Logging_impl(_uuid),
@@ -263,6 +264,27 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
         } else {
             cmdlineProps.push_back(*prop);
         }
+    }
+
+    try {
+        if (!application_registrar_ior.empty()) {
+            CORBA::Object_var applicationRegistrarObject = ossie::corba::stringToObject(application_registrar_ior);
+            CF::ApplicationRegistrar_var applicationRegistrar = ossie::corba::_narrowSafe<CF::ApplicationRegistrar>(applicationRegistrarObject);
+            if (not CORBA::is_nil(applicationRegistrar)) {
+                CF::Application_var app = applicationRegistrar->app();
+                if (not CORBA::is_nil(app)) {
+                    std::string name = ossie::corba::returnString(app->name());
+                    std::string tpath=dpath;
+                    if ( dpath[0] == '/' )
+                        tpath=dpath.substr(1);
+                    std::vector< std::string > t;
+                    // path should be   /domain/<dev_mgr or waveform>
+                    boost::algorithm::split( t, tpath, boost::is_any_of("/") );
+                    dpath = t[0]+"/"+name;
+                }
+            }
+        }
+    } catch ( ... ) {
     }
 
     ossie::logging::ResourceCtxPtr ctx( new ossie::logging::ComponentCtx(name_binding, identifier, dpath ) );
