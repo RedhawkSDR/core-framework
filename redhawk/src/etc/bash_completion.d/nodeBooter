@@ -58,7 +58,7 @@ _nodeBooter()
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  opts="--help -D -d -sdrroot -sdrcache -debug -logcfgfile --dburl --nopersist --force-rebind --daemon --pidfile --user --group --ORBport --ORBInitRef --domainname --version"
+  opts="--help -D -d -sdrroot -sdrcache -debug -logcfgfile --dburl --force-rebind --daemon --pidfile --user --group --ORBport --ORBInitRef --domainname --version"
 
   # Determine the SDRROOT to use, if any
   sdrroot=`_nodeBooter_get_sdrroot`
@@ -92,7 +92,7 @@ _nodeBooter()
       COMPREPLY=( $(compgen -W "0 1 2 3 4 5" -- "$cur") )
       return 0
       ;;
-    --nopersist|--force-rebind|--daemon|--version)
+    --force-rebind|--daemon|--version)
       # These are no-arg; suggest a new option
       COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
       return 0
