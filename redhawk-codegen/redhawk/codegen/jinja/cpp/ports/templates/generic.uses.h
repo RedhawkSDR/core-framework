@@ -68,7 +68,7 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
             }
             if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
                 bool foundConnection = false;
-                typename std::vector < std::pair < ${vartype}, std::string > >::iterator i;
+                std::vector < std::pair < ${vartype}, std::string > >::iterator i;
                 for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                     if ((*i).second == __connection_id__) {
                         foundConnection = true;
