@@ -144,10 +144,6 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
         args.append('-debug')
         args.append(str(ConvertLevelNameToDebugLevel(debug_level)))
 
-    # Unconditionally turn off persistence; if persistence support is desired,
-    # a "dburi" argument can be added
-    args.append('--nopersist')
-
     if domain_name != None:
         args.append('--domainname')
         args.append(domain_name)
