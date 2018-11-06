@@ -1946,8 +1946,6 @@ DeviceManager_impl::registerService (CORBA::Object_ptr registeringService,
                                      const char* name)
 throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
-  bool allregistered = false;
-  {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
     RH_INFO(this->_baseLog, "Registering service " << name)
 
@@ -1959,32 +1957,15 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 
     // Register the service with the Device manager, unless it is already
     // registered
-    if (serviceIsRegistered(name) == true ) {
-        RH_WARN(this->_baseLog, "Service: " << name << ", is already registered")
+    if (serviceIsRegistered(name)) {
+        RH_WARN(this->_baseLog, "Service " << name << " is already registered")
         return;
-    }
-    // Per the specification, service usagenames are not optional and *MUST* be
-    // unique per each service type.  Therefore, a domain cannot have two
-    // services of the same usagename.
-    RH_TRACE(this->_baseLog, "Binding service to name " << name);
-    CosNaming::Name_var service_name = ossie::corba::stringToName(name);
-    try {
-        rootContext->rebind(service_name, registeringService);
-    } catch ( ... ) {
-        // there is already something bound to that name
-        // from the perspective of this framework implementation, the multiple names are not acceptable
-        // consider this a registered device
-        RH_WARN(this->_baseLog, "Service is already registered")
-            return;
     }
 
     //
     // If the service support's any of the redhawk resource startup interfaces.
     //
     tryResourceStartup( registeringService, name );
-
-    increment_registeredServices(registeringService, name);
-
 
     //The registerService operation shall register the registeringService with the DomainManager
     //when the DeviceManager has already registered to the DomainManager and the
@@ -1993,19 +1974,33 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     if (_adminState == DEVMGR_REGISTERED) {
         try {
             _dmnMgr->registerService(registeringService, myObj, name);
+        } catch (const CF::DomainManager::RegisterError& error) {
+            RH_ERROR(this->_baseLog, "Unable to register service '" << name << "' with domain manager: "
+                      << error.msg);
+            // If we know the PID, try to terminate the service
+            ServiceNode* service = _getPendingService(name);
+            if (service && (service->pid != 0)) {
+                _terminateProcessThreaded(service->pid);
+            }
+            return;
         } catch ( ... ) {
-            CosNaming::Name_var service_name = ossie::corba::stringToName(name);
-            rootContext->unbind(service_name);
-            _registeredServices.pop_back();
             RH_ERROR(this->_baseLog, "Failed to register service to the domain manager; unregistering the service from the device manager")
             throw;
         }
     }
-    allregistered = verifyAllRegistered();
-  }
-  if (allregistered) {
-      startOrder();
-  }
+
+    // If we've made it this far, move the service to from the pending list to
+    // the registered list
+    increment_registeredServices(registeringService, name);
+
+    bool allregistered = verifyAllRegistered();
+
+    // Release the lock, and if all devices and services are registered, start
+    // them
+    lock.unlock();
+    if (allregistered) {
+        startOrder();
+    }
 
 //The registerService operation shall write a FAILURE_ALARM log record, upon unsuccessful
 //registration of a Service to the DeviceManagers registeredServices.
@@ -2030,6 +2025,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     if (serviceFound)
         return;
 
+    // Ignore potential unregistration from a service on the pending list,
+    // which usually indicates that registering with the domain failed and we
+    // sent it a termination signal
+    ServiceNode* service = _getPendingService(name);
+    if (service) {
+        return;
+    }
 
 //If it didn't find registeredDevice, then throw an exception
     /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.);*/
@@ -2282,17 +2284,6 @@ bool DeviceManager_impl::decrement_registeredServices(CORBA::Object_ptr register
 
 void DeviceManager_impl::local_unregisterService(CORBA::Object_ptr service, const std::string& name)
 {
-    // Unbind service from the naming service
-
-    // Per the specification, service usagenames are not optional and *MUST* be
-    // unique per each service type.  Therefore, a domain cannot have two
-    // services of the same usagename.
-    CosNaming::Name_var tmpServiceName = ossie::corba::stringToName(name);
-    try {
-        rootContext->unbind(tmpServiceName);
-    } catch ( ... ){
-    }
-
     // Ddon't unregisterService from the domain manager if we are SHUTTING_DOWN
     if (_adminState == DEVMGR_REGISTERED){
         try {
@@ -2438,7 +2429,7 @@ void DeviceManager_impl::increment_registeredServices(CORBA::Object_ptr register
 
     ServiceNode* serviceNode = 0;
     for (ServiceList::iterator serviceIter = _pendingServices.begin(); serviceIter != _pendingServices.end(); ++serviceIter) {
-        if (strcmp((*serviceIter)->label.c_str(), name) == 0){
+        if ((*serviceIter)->label == name) {
             serviceNode = *serviceIter;
             _pendingServices.erase(serviceIter);
             break;
@@ -2940,3 +2931,35 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
 
 }
 
+DeviceManager_impl::ServiceNode* DeviceManager_impl::_getPendingService(const std::string& name)
+{
+    boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+    for (ServiceList::iterator svc = _pendingServices.begin(); svc != _pendingServices.end(); ++svc) {
+        if ((*svc)->label == name) {
+            return *svc;
+        }
+    }
+    return 0;
+}
+
+void DeviceManager_impl::_terminateProcess(pid_t pid)
+{
+    kill(pid, SIGTERM);
+
+    boost::system_time end = boost::get_system_time() + boost::posix_time::milliseconds(500);
+    while (boost::get_system_time() < end) {
+        if (kill(pid, 0) != 0) {
+            return;
+        }
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+    }
+
+    kill(pid, SIGKILL);
+}
+
+void DeviceManager_impl::_terminateProcessThreaded(pid_t pid)
+{
+    // Send termination signals and wait in a daemon thread to avoid blocking
+    // the calling thread
+    boost::thread thread(&DeviceManager_impl::_terminateProcess, this, pid);
+}
