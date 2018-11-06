@@ -333,6 +333,11 @@ private:
     void deleteFileSystems();
     bool makeDirectory(std::string path);
     std::string getIORfromID(const char* instanceid);
+
+    ServiceNode* _getPendingService(const std::string& name);
+    void _terminateProcess(pid_t pid);
+    void _terminateProcessThreaded(pid_t pid);
+
     std::string deviceMgrIOR;
     std::string fileSysIOR;
     bool *_internalShutdown;

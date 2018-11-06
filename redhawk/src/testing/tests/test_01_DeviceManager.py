@@ -1617,6 +1617,62 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(p, None)
 
 
+    def test_DuplicateService(self):
+        # The first node provides the service
+        nb1, devMgr1 = self.launchDeviceManager('/nodes/test_BasicService_node/DeviceManager.dcd.xml')
+
+        # Check that the same service is reported via the DeviceManager and the
+        # naming service
+        services = devMgr1._get_registeredServices()
+        self.assertEqual(1, len(services))
+        service_name = URI.stringToName(scatest.getTestDomainName() + '/BasicService1')
+        service = self._root.resolve(service_name)
+        self.assertTrue(service._is_equivalent(services[0].serviceObject))
+
+        # Launching the second node, it should time out after about 5 seconds
+        # waiting for its service to show up in the registered services, which
+        # should never happen because the DomainManager should reject it
+        nb2, devMgr2 = self.launchDeviceManager('/nodes/DuplicateService_node/DeviceManager.dcd.xml')
+
+        # The first node's service was registered first, so it should be the
+        # only one we find, fetching it again to be sure
+        services = devMgr1._get_registeredServices()
+        self.assertEqual(1, len(services))
+        self.assertEqual('BasicService1', services[0].serviceName)
+        self.assertEqual(0, len(devMgr2._get_registeredServices()))
+        service = self._root.resolve(service_name)
+        self.assertTrue(service._is_equivalent(services[0].serviceObject))
+
+        # The duplicate service should have been terminated
+        self.assertEqual(0, len(getChildren(nb2.pid)))
+
+        # Launch an executable device for the test application
+        nb3, devMgr3 = self.launchDeviceManager("/nodes/test_PortTestDevice2_node/DeviceManager.dcd.xml")
+
+        # Use the service name connection test waveform to make sure that the
+        # DomainManager is connecting it correctly to the first service
+        sad_file = '/waveforms/PortConnectServiceName/PortConnectServiceName.sad.xml'
+        app = self._domMgr.createApplication(sad_file, 'good', [], [])
+        components = app._get_registeredComponents()
+        comp = components[0].componentObject
+        self.assertEqual(1, len(components))
+        port = comp.getPort('propset_out')
+        connections = port._get_connections()
+        self.assertEqual(1, len(connections))
+        service = connections[0].port
+        props = service.query([CF.DataType('PARAM1', any.to_any(None))])
+        value = any.from_any(props[0].value)
+        self.assertEqual('ABCD', value)
+        app.releaseObject()
+
+        # Terminate the BasicService node, which should prevent the waveform
+        # from launching (one more way to verify that it's the first node's
+        # service that's being used)
+        devMgr1.shutdown()
+        self.assertTrue(self.waitTermination(nb1), "Nodebooter did not die after shutdown")
+
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sad_file, 'fail', [], [])
+
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):
     def setUp(self):
