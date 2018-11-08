@@ -80,6 +80,34 @@ class Foo(object):
     def getMembers(self):
         return [("a",self.a),("b",self.b),("c",self.c)]
 
+class MyMsg(object):
+    string_payload = simple_property(id_="string_payload",type_="string")
+
+    def __init__(self, **kw):
+        """Construct an initialized instance of this struct definition"""
+        for classattr in type(self).__dict__.itervalues():
+            if isinstance(classattr, (simple_property, simpleseq_property)):
+                classattr.initialize(self)
+        for k,v in kw.items():
+            setattr(self,k,v)
+
+    def __str__(self):
+        """Return a string representation of this structure"""
+        d = {}
+        d["string_payload"] = self.string_payload
+        return str(d)
+
+    @classmethod
+    def getId(cls):
+        return "my_msg"
+
+    @classmethod
+    def isStruct(cls):
+        return True
+
+    def getMembers(self):
+        return [("string_payload",self.string_payload)]
+
 class MessagMarshalErrorTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)
@@ -90,6 +118,13 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             sb.domainless._sandbox.shutdown()
             sb.domainless._sandbox = None
         self.rcv_msg = None
+        self.valid_string = ''.join(["1234567890"]*20000)
+        self.messages_passed = 0
+
+    def filtering_callback(self, _id, _data):
+        msg_val = _data.string_payload
+        if msg_val == self.valid_string:
+            self.messages_passed += 1
 
     def tearDown(self):
         sb.domainless._getSandbox().shutdown()
@@ -98,11 +133,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
 
     @scatest.requireLog4cxx
     def test_MessageMarshalCpp(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_cpp', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(3)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
@@ -125,10 +160,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             pass
         number_warnings = log_contents.count('Maximum message size exceeded')
         self.assertEquals(number_warnings, 2)
+        self.assertEqual(self.messages_passed, 101)
 
     @scatest.requireJava
     def test_MessageMarshalJava(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
@@ -157,13 +193,14 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         self.assertEquals(number_warnings, 1)
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
         self.assertEquals(number_warnings, 3)
+        self.assertEqual(self.messages_passed, 101)
 
     def test_MessageMarshalPython(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_python', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(3)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
@@ -188,6 +225,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         self.assertEquals(number_warnings, 1)
         number_warnings = log_contents.count('Maximum message size exceeded')
         self.assertEquals(number_warnings, 3)
+        self.assertEqual(self.messages_passed, 101)
 
 class MessagingCompatibilityTest(scatest.CorbaTestCase):
     def setUp(self):
