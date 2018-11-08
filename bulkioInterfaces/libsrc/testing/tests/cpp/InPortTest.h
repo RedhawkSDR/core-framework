@@ -30,6 +30,7 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST_SUITE(InPortTest);
     CPPUNIT_TEST(testLegacyAPI);
     CPPUNIT_TEST(testGetPacket);
+    CPPUNIT_TEST(testGetPacketStreamRemoved);
     CPPUNIT_TEST(testActiveSRIs);
     CPPUNIT_TEST(testQueueDepth);
     CPPUNIT_TEST(testState);
@@ -38,11 +39,14 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testSriChangedInvalidStream);
     CPPUNIT_TEST(testStatistics);
     CPPUNIT_TEST(testDiscardEmptyPacket);
+    CPPUNIT_TEST(testQueueFlushFlags);
+    CPPUNIT_TEST(testQueueSize);
     CPPUNIT_TEST_SUITE_END();
 
 public:
     void testLegacyAPI();
     void testGetPacket();
+    void testGetPacketStreamRemoved();
     void testActiveSRIs();
     void testQueueDepth();
     void testState();
@@ -51,6 +55,8 @@ public:
     void testSriChangedInvalidStream();
     void testStatistics();
     void testDiscardEmptyPacket();
+    void testQueueFlushFlags();
+    void testQueueSize();
 
 protected:
     typedef typename Port::dataTransfer PacketType;

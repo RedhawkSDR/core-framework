@@ -27,8 +27,9 @@ import FRONTEND.GPSHelper;
 import FRONTEND.GPSInfo;
 import FRONTEND.GpsTimePos;
 import org.ossie.component.PortBase;
+import org.ossie.redhawk.PortCallError;
 
-public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSOperations, PortBase {
+public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements PortBase {
 
     /**
      * Map of connection Ids to port objects
@@ -69,75 +70,131 @@ public class OutGPSPort extends QueryableUsesPort<GPSOperations> implements GPSO
         }
     }
 
-    public GPSInfo gps_info()
+    public GPSInfo gps_info() throws PortCallError
+    {
+        return this._get_gps_info("");
+    }
+
+    public GPSInfo _get_gps_info(String __connection_id__) throws PortCallError
     {
         GPSInfo retval = null;
 
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (GPSOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.gps_info();
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).gps_info();
+                    } else {
+                        for (GPSOperations p : this.outConnections.values()) {
+                            retval = p.gps_info();
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
 
-    public void gps_info(GPSInfo data)
+    public void gps_info(GPSInfo data) throws PortCallError
+    {
+        this.gps_info(data, "");
+    }
+
+    public void gps_info(GPSInfo data, String __connection_id__) throws PortCallError
     {
         synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (GPSOperations p : this.outConnections.values()) {
-                    try {
-                        p.gps_info(data);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).gps_info(data);
+                    } else {
+                        for (GPSOperations p : this.outConnections.values()) {
+                            p.gps_info(data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
     }
 
-    public GpsTimePos gps_time_pos()
+    public GpsTimePos gps_time_pos() throws PortCallError
+    {
+        return this._get_gps_time_pos("");
+    }
+
+    public GpsTimePos _get_gps_time_pos(String __connection_id__) throws PortCallError
     {
         GpsTimePos retval = null;
 
-        synchronized(this.updatingPortsLock) { 
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (GPSOperations p : this.outConnections.values()) {
-                    try {
-                        retval = p.gps_time_pos();
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        retval = this.outPorts.get(__connection_id__).gps_time_pos();
+                    } else {
+                        for (GPSOperations p : this.outConnections.values()) {
+                            retval = p.gps_time_pos();
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
         return retval;
     }
 
-    public void gps_time_pos(GpsTimePos data)
+    public void gps_time_pos(GpsTimePos data) throws PortCallError
     {
-        synchronized(this.updatingPortsLock) {
+        this.gps_time_pos(data, "");
+    }
+
+    public void gps_time_pos(GpsTimePos data, String __connection_id__) throws PortCallError
+    {
+        synchronized(updatingPortsLock){
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
-                for (GPSOperations p : this.outConnections.values()) {
-                    try {
-                        p.gps_time_pos(data);
-                    } catch(org.omg.CORBA.SystemException e) {
-                        throw e;
-                    } catch(Throwable e) {
-                        throw new RuntimeException(e);
+                try {
+                    if (!__connection_id__.isEmpty()) {
+                        this.outPorts.get(__connection_id__).gps_time_pos(data);
+                    } else {
+                        for (GPSOperations p : this.outConnections.values()) {
+                            p.gps_time_pos(data);
+                        }
                     }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

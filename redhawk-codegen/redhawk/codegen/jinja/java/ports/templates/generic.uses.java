@@ -107,21 +107,26 @@ public class ${classname} extends QueryableUsesPort<${interface}> implements Por
 
 /*{% endif %}*/
         synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
-            __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
+            try {
+                __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
+            } catch (PortCallError e) {
+                throw e;
+            }
             if (this.active) {
                 //begin-user-code
                 //end-user-code
-                
-                if (!__connection_id__.isEmpty()) {
-                    if (this.outPorts.containsKey(__connection_id__)) {
+                try {
+                    if (!__connection_id__.isEmpty()) {
                         ${'retval = ' if hasreturn}this.outPorts.get(__connection_id__).${operation.name}(${operation.argnames|join(', ')});
                     } else {
-                        throw new PortCallError("Connection id "+__connection_id__+" not found.", this.getConnectionIds());
+                        for (${interface} p : this.outPorts.values()) {
+                            ${'retval = ' if hasreturn}p.${operation.name}(${operation.argnames|join(', ')});
+                        }
                     }
-                } else {
-                    for (${interface} p : this.outPorts.values()) {
-                        ${'retval = ' if hasreturn}p.${operation.name}(${operation.argnames|join(', ')});
-                    }
+                } catch(org.omg.CORBA.SystemException e) {
+                    throw e;
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
                 }
             }
         }    // don't want to process while command information is coming in

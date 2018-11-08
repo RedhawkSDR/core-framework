@@ -424,36 +424,6 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
 
-    def test_EventAppPortConnectionSIGTERMNoPersist(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml")
-
-        domainName = scatest.getTestDomainName()
-        domMgr.installApplication("/waveforms/PortConnectFindByDomainFinderEvent/PortConnectFindByDomainFinderEvent.sad.xml")
-        appFact = domMgr._get_applicationFactories()[0]
-        app = appFact.create(appFact._get_name(), [], [])
-        app.start()
-
-        # Kill the domainMgr
-        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
-        if not self.waitTermination(self._nb_domMgr, 5.0):
-            self.fail("Domain Manager Failed to Die")
-
-        # Restart the Domain Manager (which should restore the old channel)
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-
-        newappFact = domMgr._get_applicationFactories()
-        self.assertEqual(len(newappFact), 0)
-
-        apps = domMgr._get_applications()
-        self.assertEqual(len(apps), 0)
-
-        devMgrs = domMgr._get_deviceManagers()
-        self.assertEqual(len(devMgrs), 0)
-
     def test_EventAppPortConnectionSIGQUIT(self):
         self.localEvent = threading.Event()
         self.eventFlag = False
@@ -526,36 +496,6 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
-
-    def test_EventAppPortConnectionSIGQUITNoPersist(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml")
-
-        domainName = scatest.getTestDomainName()
-        domMgr.installApplication("/waveforms/PortConnectFindByDomainFinderEvent/PortConnectFindByDomainFinderEvent.sad.xml")
-        appFact = domMgr._get_applicationFactories()[0]
-        app = appFact.create(appFact._get_name(), [], [])
-        app.start()
-
-        # Kill the domainMgr
-        os.kill(self._nb_domMgr.pid, signal.SIGQUIT)
-        if not self.waitTermination(self._nb_domMgr, 5.0):
-            self.fail("Domain Manager Failed to Die")
-
-        # Restart the Domain Manager (which should restore the old channel)
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-
-        newappFact = domMgr._get_applicationFactories()
-        self.assertEqual(len(newappFact), 0)
-
-        apps = domMgr._get_applications()
-        self.assertEqual(len(apps), 0)
-
-        devMgrs = domMgr._get_deviceManagers()
-        self.assertEqual(len(devMgrs), 0)
 
     def test_EventAppPortConnectionSIGINT(self):
         self.localEvent = threading.Event()

@@ -38,6 +38,7 @@ test_libossiecf_SOURCES += CallbackTest.cpp CallbackTest.h
 test_libossiecf_SOURCES += PortManager.cpp PortManager.h
 test_libossiecf_SOURCES += BitopsTest.cpp BitopsTest.h
 test_libossiecf_SOURCES += BitBufferTest.cpp BitBufferTest.h
+test_libossiecf_SOURCES += ServiceInterruptTest.cpp ServiceInterruptTest.h
 test_libossiecf_CXXFLAGS = -Wall $(CPPUNIT_CFLAGS)
 test_libossiecf_LDFLAGS = $(CPPUNIT_LIBS) $(AM_LDFLAGS)
 

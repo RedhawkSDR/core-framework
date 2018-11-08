@@ -77,7 +77,15 @@ def _cleanup_domain():
         x = globals().pop('currentdevmgrs')
         if x : del x
 
-atexit.register(_cleanup_domain)
+def _shutdown_session():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+            globals()['attached_domains'] = []
+    _cleanup_domain()
+
+atexit.register(_shutdown_session)
 
 def _getDCDFile(sdrroot, dcdFile):
     """
@@ -135,10 +143,6 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
     if debug_level:
         args.append('-debug')
         args.append(str(ConvertLevelNameToDebugLevel(debug_level)))
-
-    # Unconditionally turn off persistence; if persistence support is desired,
-    # a "dburi" argument can be added
-    args.append('--nopersist')
 
     if domain_name != None:
         args.append('--domainname')
@@ -291,4 +295,9 @@ def attach(domain=None, location=None, connectDomainEvents=True):
     
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
     
+    if not globals().has_key('attached_domains'):
+        globals()['attached_domains'] = []
+
+    globals()['attached_domains'].append(dom_entry)
+
     return dom_entry

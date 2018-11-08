@@ -26,8 +26,8 @@ from ossie.cf import CF
 from omniORB import URI
 import CosNaming
 import CosEventChannelAdmin
-from ossie.utils import sb
-import os
+from ossie.utils import sb, redhawk
+import os, time
 import contextlib
 from ossie.utils import redhawk
 
@@ -38,6 +38,155 @@ def stdout_redirect(where):
         yield where
     finally:
         sys.stdout = sys.__stdout__
+
+@scatest.requireLog4cxx
+class CppDomainEventLoggingConfig(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    def test_cpp_event_appender_create_channel(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT,pse\n" + \
+            "# Direct log messages to STDOUT \n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=@@@COMPONENT.NAME@@@\n" + \
+            "# Direct log messages to event channel\n" + \
+            "log4j.appender.pse=org.ossie.logging.RH_LogEventAppender\n" + \
+            "log4j.appender.pse.name_context="+scatest.getTestDomainName()+"\n" + \
+            "log4j.appender.pse.event_channel=TEST_EVT_CH1\n" + \
+            "log4j.appender.pse.producer_id=PRODUCER1\n" + \
+            "log4j.appender.pse.producer_name=THE BIG CHEESE\n" + \
+            "log4j.appender.pse.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.pse.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
+
+        comp = self.app.comps[0]
+        comp.ref.setLogConfig(cfg)
+        comp.ref.start()
+        comp.ref.stop()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 2) # both the instance and static root loggers
+        self.app.releaseObject()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 0)
+
+class PyDomainEventLoggingConfig(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.app = self._rhDom.createApplication("/waveforms/TestPythonProps/TestPythonProps.sad.xml")
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    def test_py_event_appender_create_channel(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT,pse\n" + \
+            "# Direct log messages to STDOUT \n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=@@@COMPONENT.NAME@@@\n" + \
+            "# Direct log messages to event channel\n" + \
+            "log4j.appender.pse=org.ossie.logging.RH_LogEventAppender\n" + \
+            "log4j.appender.pse.name_context="+scatest.getTestDomainName()+"\n" + \
+            "log4j.appender.pse.event_channel=TEST_EVT_CH1\n" + \
+            "log4j.appender.pse.producer_id=PRODUCER1\n" + \
+            "log4j.appender.pse.producer_name=THE BIG CHEESE\n" + \
+            "log4j.appender.pse.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.pse.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
+
+        comp = self.app.comps[0]
+        comp.ref.setLogConfig(cfg)
+        comp.ref.start()
+        comp.ref.stop()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 1)
+        self.app.releaseObject()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 0)
+
+@scatest.requireJava
+class JavaDomainEventLoggingConfig(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.app = self._rhDom.createApplication("/waveforms/TestJavaProps/TestJavaProps.sad.xml")
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    def test_java_event_appender_create_channel(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT,pse\n" + \
+            "# Direct log messages to STDOUT \n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=@@@COMPONENT.NAME@@@\n" + \
+            "# Direct log messages to event channel\n" + \
+            "log4j.appender.pse=org.ossie.logging.RH_LogEventAppender\n" + \
+            "log4j.appender.pse.name_context="+scatest.getTestDomainName()+"\n" + \
+            "log4j.appender.pse.event_channel=TEST_EVT_CH1\n" + \
+            "log4j.appender.pse.producer_id=PRODUCER1\n" + \
+            "log4j.appender.pse.producer_name=THE BIG CHEESE\n" + \
+            "log4j.appender.pse.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.pse.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
+
+        comp = self.app.comps[0]
+        comp.ref.setLogConfig(cfg)
+        comp.ref.start()
+        comp.ref.stop()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 1)
+        self.app.releaseObject()
+        clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
+        reg_count = -1
+        for _c in clist:
+            if _c.channel_name == 'TEST_EVT_CH1':
+                reg_count = _c.reg_count
+        self.assertEquals(reg_count, 0)
 
 @scatest.requireLog4cxx
 class CppLoggingConfig(scatest.CorbaTestCase):
@@ -383,6 +532,156 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             pass
         self.assertNotEquals(fp, None)
 
+class TokenLoggingConfig(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager(loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        self.devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        try:
+            os.remove('sdr/foo/bar/test.log')
+            pass
+        except:
+            pass
+        try:
+            os.rmdir('sdr/foo/bar')
+        except:
+            pass
+        try:
+            os.rmdir('sdr/foo')
+        except:
+            pass
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+
+    @scatest.requireLog4cxx
+    def test_token_devmgr(self):
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'ExecutableDevice_node':
+                found_devmgr = devmgr
+                break
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter.pid)
+        fp = None
+        try:
+            fp = open('sdr/foo/bar/test.log','r')
+        except:
+            pass
+        self.assertNotEquals(fp, None)
+        logfile_content = fp.readlines()
+        found_line = None
+        for line in logfile_content:
+            if logstr in line:
+                if not 'DeviceManager.parsers' in line:
+                    continue
+                found_line = line
+                break
+        self.assertNotEquals(found_line, None)
+        self.assertNotEquals(found_line.find(logstr), -1)
+        self.assertNotEquals(found_line.find('DeviceManager.parsers'), -1)
+
+    @scatest.requireLog4cxx
+    def test_token_config_dev_cpp(self):
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'ExecutableDevice_node':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'ExecutableDevice':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        logcfg = found_dev.getLogConfig()
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    def test_token_config_dev_py(self):
+        self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/py_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'py_dev_n':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'py_dev':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        logcfg = found_dev.getLogConfig()
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireJava
+    def test_token_config_dev_java(self):
+        self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/java_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
+        found_devmgr = None
+        for devmgr in self._rhDom.devMgrs:
+            if devmgr._instanceName == 'java_dev_n':
+                found_devmgr = devmgr
+                break
+        self.assertNotEquals(found_devmgr, None)
+        found_dev = None
+        for dev in found_devmgr.devs:
+            if dev.name == 'java_dev':
+                found_dev = dev
+                break
+        self.assertNotEquals(found_dev, None)
+        begin = time.time()
+        logcfg = None
+        while time.time()-begin < 1 or not logcfg:
+            logcfg = found_dev.getLogConfig()
+        self.assertNotEquals(logcfg, None)
+        logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireLog4cxx
+    def test_token_config_comp_cpp(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_C1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    def test_token_config_comp_py(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_P1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
+
+    @scatest.requireJava
+    def test_token_config_comp_java(self):
+        app = self._rhDom.createApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
+        found_comp = None
+        for comp in app.comps:
+            if comp.name == 'PropertyChange_J1':
+                found_comp = comp
+                break
+        self.assertNotEquals(found_comp, None)
+        logcfg = found_comp.getLogConfig()
+        logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
+        self.assertNotEquals(logcfg.find(logstr), -1)
 
 class PythonLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):

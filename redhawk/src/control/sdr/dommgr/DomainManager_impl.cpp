@@ -1416,7 +1416,9 @@ DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringServic
     // If a service is already registered with that name, do nothing.
     if (serviceIsRegistered(name)) {
         RH_INFO(this->_baseLog, "Ignoring duplicate registration of service " << name);
-        return;
+        TRACE_EXIT(DomainManager_impl);
+        std::string message = "A service is already registered with the name '" + std::string(name) + "'";
+        throw CF::DomainManager::RegisterError(CF::CF_EEXIST, message.c_str());
     }
 
     // The service needs to be added to the list.
@@ -2012,6 +2014,17 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
         throw;
     }
 
+    // Per the specification, service usagenames are not optional and *MUST* be
+    // unique per each service type. The uniqueness is checked when storing the
+    // service internally, so the name binding should be a formality.
+    LOG_TRACE(DomainManager_impl, "Binding service to name " << name);
+    try {
+        CosNaming::Name_var service_name = ossie::corba::stringToName(name);
+        rootContext->rebind(service_name, registeringService);
+    } catch (...) {
+        LOG_WARN(DomainManager_impl, "Unable to bind service to name " << name);
+    }
+
 //The registerService operation shall, upon successful service registration, establish any pending
 //connection requests for the registeringService. The registerService operation shall, upon
 //successful service registration, write an ADMINISTRATIVE_EVENT log record to a
@@ -2199,6 +2212,14 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
     
     std::string serviceName(service->name);
     std::string serviceId(service->serviceId);
+
+    // Remove the naming service binding, ignoring exceptions
+    try {
+        CosNaming::Name_var service_name = ossie::corba::stringToName(serviceName);
+        rootContext->unbind(service_name);
+    } catch (...) {
+        LOG_WARN(DomainManager_impl, "Unable to remove name binding for service " << serviceName);
+    }
 
     // Remove the service from the internal list.
     service = _registeredServices.erase(service);

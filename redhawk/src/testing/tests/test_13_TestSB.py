@@ -360,7 +360,6 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_pid(self):
         a = sb.launch('comp_src')
-        #status,output = commands.getstatusoutput('ps -ef | grep comp_src | grep -v grep ')
         status,output = commands.getstatusoutput('ps -ww -f | grep comp_src ')
         lines = output.split('\n')
         for line in lines:
@@ -368,6 +367,16 @@ class SBTestTest(scatest.CorbaTestCase):
             break
         _pid = line.split()[1]
         self.assertEquals(int(_pid), a._pid)
+
+    def test_cleanHeap(self):
+        a = sb.launch('alloc_shm')
+        ch_pid = a._sandbox._getComponentHost()._pid
+        self.assertTrue(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
+        os.kill(ch_pid, 9)
+        begin = time.time()
+        while time.time()-begin < 1 and os.path.isfile('/dev/shm/heap-'+str(ch_pid)):
+            time.sleep(0.1)
+        self.assertFalse(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
 
     def test_doubleNamedConnection(self):
         a = sb.launch('comp_src')
@@ -801,6 +810,58 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+    def test_connectPortSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectProvidesPort/PortConnectProvidesPort.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <providesport>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </providesport>\n'
+        provides_string = provides_string.replace('@__PORTNAME__@', 'resource_in')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
+    def test_connectSupportedInterfaceSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectComponentSupportedInterface/PortConnectComponentSupportedInterface.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
+    def test_connectSandbox(self):
+        src=sb.launch('PortTest')
+        snk=sb.launch('PortTest')
+        src.connect(snk, usesPortName='resource_out')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', src._id)
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', snk._id)
+
+        non_colon_connectionid = '<connectinterface id="DCE_'
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertNotEqual(sad.find(non_colon_connectionid), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
 
     def test_loadSADFile_startorder(self):
         maxpid=32768

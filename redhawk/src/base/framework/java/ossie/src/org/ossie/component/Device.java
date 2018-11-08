@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -455,6 +456,7 @@ public abstract class Device extends Resource implements DeviceOperations {
         Thread shutdownWatcher = new Thread(new Runnable() {
             public void run() {
                 device_i.waitDisposed();
+                LogManager.shutdown();
                 shutdownORB(orb);
             }
         });

@@ -43,6 +43,8 @@ class BasicShared_base : public Component, protected ThreadedComponent
         // Member variables exposed as properties
         /// Property: pid
         CORBA::ULong pid;
+        /// Property: nic_name
+        std::string nic_name;
 
     private:
 };

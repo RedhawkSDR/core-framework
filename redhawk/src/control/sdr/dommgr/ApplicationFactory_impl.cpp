@@ -403,8 +403,8 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                                            const ReservationList& reservations )
 {
     // Consolidate the allocation properties into a single list
-    CF::Properties allocationProperties = _consolidateAllocations(appDeployment, components);
-    redhawk::PropertyMap &_allocationProperties = redhawk::PropertyMap::cast(allocationProperties);
+    std::map<std::string,std::string> nicAllocations;
+    redhawk::PropertyMap allocationProperties = _consolidateAllocations(components, nicAllocations);
     if (reservations.size() != 0) {
         redhawk::PropertyMap _struct;
         std::vector<std::string> _kinds, _values;
@@ -415,7 +415,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
         _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
         _struct["redhawk::reservation_request::values"].setValue(_values);
         _struct["redhawk::reservation_request::obj_id"].setValue(appDeployment.getIdentifier());
-        _allocationProperties["redhawk::reservation_request"].setValue(_struct);
+        allocationProperties["redhawk::reservation_request"].setValue(_struct);
     }
 
     RH_TRACE(_createHelperLog, "Allocating deployment for " << components.size()
@@ -430,7 +430,7 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     }
 
     const std::string requestid = ossie::generateUUID();
-    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, _allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps, deviceRequires);
+    ossie::AllocationResult response = _allocationMgr->allocateDeployment(requestid, allocationProperties, deploymentDevices, appDeployment.getIdentifier(), processorDeps, osDeps, deviceRequires);
     if (!response.first.empty()) {
         // Ensure that all capacities get cleaned up, keeping ownership local
         // to this scope until it's clear that the device can support all of
@@ -452,6 +452,12 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
                 return false;
             }
             (*depl)->setAssignedDevice(node);
+
+            const std::string component_id = (*depl)->getIdentifier();
+            if (nicAllocations.count(component_id)) {
+                const std::string& alloc_id = nicAllocations[component_id];
+                _applyNicAllocation((*depl), alloc_id, node->device);
+            }
         }
 
         // Once all the dependencies have been resolved, take ownership of the
@@ -468,28 +474,51 @@ bool createHelper::allocateHostCollocation(redhawk::ApplicationDeployment& appDe
     return false;
  }
 
-CF::Properties createHelper::_consolidateAllocations(redhawk::ApplicationDeployment& appDeployment, const DeploymentList& deployments)
+redhawk::PropertyMap createHelper::_consolidateAllocations(const DeploymentList& deployments, std::map<std::string,std::string>& nicAllocs)
 {
-    CF::Properties allocs;
+    redhawk::PropertyMap allocs;
     for (DeploymentList::const_iterator depl = deployments.begin(); depl != deployments.end(); ++depl) {
-        redhawk::PropertyMap _init;
-        for (redhawk::ApplicationDeployment::ComponentList::const_iterator _comp = appDeployment.getComponentDeployments().begin(); _comp!=appDeployment.getComponentDeployments().end(); _comp++) {
-            redhawk::SoftPkgDeployment * _tmp_comp = static_cast<redhawk::SoftPkgDeployment* const>(*_comp);
-            if (_tmp_comp == (*depl)) {
-                _init = (*_comp)->getAllInitialProperties();
-            }
+        redhawk::PropertyMap allocationProperties = _getComponentAllocations(*depl);
+
+        std::string nic_alloc_id = _getNicAllocationId(allocationProperties);
+        if (!nic_alloc_id.empty()) {
+            nicAllocs[(*depl)->getIdentifier()] = nic_alloc_id;
         }
-        const std::vector<PropertyRef>& deps = (*depl)->getImplementation()->getDependencies();
-        for (std::vector<PropertyRef>::const_iterator dep = deps.begin(); dep != deps.end(); ++dep) {
-          CF::Properties _tmp_allocs;
-          _tmp_allocs.length(1);
-          ossie::ComponentProperty *prop = dep->property.get();
-          _tmp_allocs[0] = ossie::convertPropertyRefToDataType(prop);
-          this->_evaluateMATHinRequest(_tmp_allocs, _init);
-          ossie::corba::push_back(allocs, _tmp_allocs[0]);
-        }
+
+        ossie::corba::extend(allocs, allocationProperties);
     }
     return allocs;
+}
+
+redhawk::PropertyMap createHelper::_getComponentAllocations(const redhawk::ComponentDeployment* deployment)
+{
+    const ossie::SPD::Implementation* implementation = deployment->getImplementation();
+    const std::vector<PropertyRef>& prop_refs = implementation->getDependencies();
+    redhawk::PropertyMap allocationProperties;
+    this->_castRequestProperties(allocationProperties, prop_refs);
+
+    // Get the combined set of properties that are available at start time for
+    // the component (i.e., those that are passed to initializeProperties() or
+    // the first configure() call) to use as context for MATH statements
+    redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
+    this->_evaluateMATHinRequest(allocationProperties, alloc_context);
+
+    return allocationProperties;
+}
+
+std::string createHelper::_getNicAllocationId(redhawk::PropertyMap& allocationProperties)
+{
+    redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
+    if (nic_alloc != allocationProperties.end()) {
+        redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
+        std::string alloc_id = substr["nic_allocation::identifier"].toString();
+        if (alloc_id.empty()) {
+            alloc_id = ossie::generateUUID();
+            substr["nic_allocation::identifier"] = alloc_id;
+        }
+        return alloc_id;
+    }
+    return std::string();
 }
 
 void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDeployment,
@@ -1621,12 +1650,8 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
     }
 
     const std::string requestid = ossie::generateUUID();
-    const std::vector<PropertyRef>& prop_refs = implementation->getDependencies();
-    redhawk::PropertyMap allocationProperties;
-    this->_castRequestProperties(allocationProperties, prop_refs);
 
-    redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
-    this->_evaluateMATHinRequest(allocationProperties, alloc_context);
+    redhawk::PropertyMap allocationProperties = _getComponentAllocations(deployment);
     
     RH_TRACE(_createHelperLog, "alloc prop size " << allocationProperties.size() );
     redhawk::PropertyMap::iterator iter=allocationProperties.begin();
@@ -1634,18 +1659,8 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
       RH_TRACE(_createHelperLog, "alloc prop: " << iter->id  <<" value:" <<  ossie::any_to_string(iter->value) );
     }
     
-    redhawk::PropertyMap::iterator nic_alloc = allocationProperties.find("nic_allocation");
-    std::string alloc_id;
-    if (nic_alloc != allocationProperties.end()) {
-        redhawk::PropertyMap& substr = nic_alloc->getValue().asProperties();
-        alloc_id = substr["nic_allocation::identifier"].toString();
-        if (alloc_id.empty()) {
-          alloc_id = ossie::generateUUID();
-          substr["nic_allocation::identifier"] = alloc_id;
-        }
-    }
+    std::string nic_alloc_id = _getNicAllocationId(allocationProperties);
 
-    redhawk::PropertyMap &_allocationProperties = redhawk::PropertyMap::cast(allocationProperties);
     if ( specialized_reservations.size() > 0 ) {
         redhawk::PropertyMap _struct;
         std::string instantiationId = deployment->getInstantiation()->instantiationId;
@@ -1661,34 +1676,44 @@ ossie::AllocationResult createHelper::allocateComponentToDevice(redhawk::Compone
         _struct["redhawk::reservation_request::kinds"].setValue(_kinds);
         _struct["redhawk::reservation_request::values"].setValue(_values);
         _struct["redhawk::reservation_request::obj_id"].setValue(deployment->getIdentifier());
-        _allocationProperties["redhawk::reservation_request"].setValue(_struct);
+        allocationProperties["redhawk::reservation_request"].setValue(_struct);
     }
 
     ossie::AllocationResult response = this->_allocationMgr->allocateDeployment(requestid,
-                                                                                _allocationProperties,
+                                                                                allocationProperties,
                                                                                 devices,
                                                                                 appIdentifier,
                                                                                 implementation->getProcessors(),
                                                                                 implementation->getOsDeps(),
                                                                                 deviceRequires );
-    if (_allocationProperties.contains("nic_allocation")) {
+    if (!nic_alloc_id.empty()) {
         if (!response.first.empty()) {
-            redhawk::PropertyMap query_props;
-            query_props["nic_allocation_status"] = redhawk::Value();
-            response.second->device->query(query_props);
-            redhawk::ValueSequence& retstruct = query_props["nic_allocation_status"].asSequence();
-            for (redhawk::ValueSequence::iterator it = retstruct.begin(); it!=retstruct.end(); it++) {
-                redhawk::PropertyMap& struct_prop = it->asProperties();
-                std::string identifier = struct_prop["nic_allocation_status::identifier"].toString();
-                if (identifier == alloc_id) {
-                    const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
-                    RH_DEBUG(_createHelperLog, "Allocation NIC assignment: " << interface );
-                    deployment->setNicAssignment(interface);
-                }
-            }
+            _applyNicAllocation(deployment, nic_alloc_id, response.second->device);
         }
     }
+
     return response;
+}
+
+void createHelper::_applyNicAllocation(redhawk::ComponentDeployment* deployment,
+                                       const std::string& allocId,
+                                       CF::Device_ptr device)
+{
+    redhawk::PropertyMap query_props;
+    query_props["nic_allocation_status"] = redhawk::Value();
+    device->query(query_props);
+
+    redhawk::ValueSequence& retstruct = query_props["nic_allocation_status"].asSequence();
+    for (redhawk::ValueSequence::iterator it = retstruct.begin(); it!=retstruct.end(); it++) {
+        redhawk::PropertyMap& struct_prop = it->asProperties();
+        std::string identifier = struct_prop["nic_allocation_status::identifier"].toString();
+        if (identifier == allocId) {
+            const std::string interface = struct_prop["nic_allocation_status::interface"].toString();
+            RH_DEBUG(_createHelperLog, "Assigning NIC '" << interface << "' to component '"
+                     << deployment->getIdentifier() << "'");
+            deployment->setNicAssignment(interface);
+        }
+    }
 }
 
 

@@ -72,31 +72,15 @@ ${operation.returns} ${classname}::${operation.name}(const std::string __connect
     boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
     __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
-    if (active) {
-        if (not __connection_id__.empty()) {
-            bool found_connection = false;
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                if ((*i).second == __connection_id__) {
-                    found_connection = true;
-                    try {
-                        ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
-                    } catch(...) {
-                        LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
-                        throw;
-                    }
-                }
-            }
-            if (not found_connection) {
-                throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
-            }
-        } else {
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                try {
-                    ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
-                } catch(...) {
-                    LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
-                    throw;
-                }
+    if (this->active) {
+        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+            if (not __connection_id__.empty() and __connection_id__ != (*i).second)
+                continue;
+            try {
+                ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
+            } catch (...) {
+                LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+                throw;
             }
         }
     }
