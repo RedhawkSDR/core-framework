@@ -53,10 +53,14 @@ Requires:       python-matplotlib
 Requires:       python
 %if 0%{?fedora} == 16 || 0%{?rhel} == 6
 Requires:       python-lxml
-%endif
-Requires:       numpy
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
+%endif
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       python-omniORB > 4.2.2
+Requires:       omniORB-devel > 4.2.2
+%endif
+Requires:       numpy
 Requires:       binutils
 
 BuildRequires:  libuuid-devel
@@ -67,8 +71,14 @@ BuildRequires:  java-1.8.0-openjdk-devel
 BuildRequires:  python-setuptools
 BuildRequires:  python-devel >= 2.4
 BuildRequires:  log4cxx-devel >= 0.10
+%if 0%{?fedora} == 16 || 0%{?rhel} == 6
 BuildRequires:  omniORB-devel >= 4.1.0
 BuildRequires:  omniORBpy-devel >= 3.0
+%endif
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+BuildRequires:  omniORB-devel > 4.2.2
+BuildRequires:  omniORBpy-devel > 4.2.2
+%endif
 BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
@@ -127,10 +137,16 @@ Requires:       autoconf automake libtool
 Requires:       log4cxx-devel >= 0.10
 
 # omniORB / omniORBpy
-Requires:       omniORB-devel >= 4.1.0
-Requires:       omniORB-doc
-Requires:       omniORBpy-devel >= 3.0
 
+%if 0%{?fedora} == 16 || 0%{?rhel} == 6
+Requires:       omniORB-devel >= 4.1.0
+Requires:       omniORBpy-devel >= 3.0
+%endif
+%if 0%{?fedora} == 17 || 0%{?rhel} == 7
+Requires:       omniORB-devel > 4.2.2
+Requires:       omniORBpy-devel > 4.2.2
+%endif
+Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
 Requires:       python-devel >= 2.4
