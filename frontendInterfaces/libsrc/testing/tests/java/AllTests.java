@@ -24,7 +24,8 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        ValidateRequestTest.class
+        ValidateRequestTest.class, 
+        PortsTest.class
 })
 public class AllTests {
 }

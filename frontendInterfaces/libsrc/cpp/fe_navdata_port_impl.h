@@ -95,7 +95,30 @@ namespace frontend {
                     }
                 }
                 if (this->outConnections.empty()) {
-                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("No connections available.", std::vector<std::string>());
+                    } else {
+                        if (not __connection_id__.empty()) {
+                            std::ostringstream eout;
+                            eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                            throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                        }
+                    }
+                }
+                if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
+                    bool foundConnection = false;
+                    typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (i->second == __connection_id__) {
+                            foundConnection = true;
+                            break;
+                        }
+                    }
+                    if (not foundConnection) {
+                        std::ostringstream eout;
+                        eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                        throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                    }
                 }
             };
             frontend::NavigationPacket nav_packet() {
@@ -108,6 +131,8 @@ namespace frontend {
                 __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         const FRONTEND::NavigationPacket_var tmp = ((*i).first)->nav_packet();
                         retval = frontend::returnNavigationPacket(tmp);
                     }
@@ -120,6 +145,8 @@ namespace frontend {
                 __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         const FRONTEND::NavigationPacket_var tmp = frontend::returnNavigationPacket(nav);
                         ((*i).first)->nav_packet(tmp);
                     }

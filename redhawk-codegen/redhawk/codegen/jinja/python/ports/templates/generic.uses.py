@@ -28,12 +28,25 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
     def getConnectionIds(self):
         return self.outConnections.keys()
 
-    def __evaluateRequestBasedOnConnections(self, __connection_id__, returnValue, inOut, out):
-        if __connection_id__=='' and len(self.outConnections) > 1:
+    def _evaluateRequestBasedOnConnections(self, __connection_id__, returnValue, inOut, out):
+        if not __connection_id__ and len(self.outConnections) > 1:
             if (out or inOut or returnValue):
                 raise PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.", self.getConnectionIds())
+
         if len(self.outConnections) == 0:
-            raise PortCallError("No connections available.",[])
+            if (out or inOut or returnValue):
+                raise PortCallError("No connections available.", self.getConnectionIds())
+            else:
+                if __connection_id__:
+                    raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
+        if __connection_id__ and len(self.outConnections) > 0:
+            foundConnection = False
+            for connId, port in self.outConnections.items():
+                if __connection_id__ == connId:
+                    foundConnection = True
+                    break
+            if not foundConnection:
+                raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
 
     def connectPort(self, connection, connectionId):
         self.port_lock.acquire()
@@ -111,22 +124,11 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
 #{% endif %}
 
         try:
-            self.__evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout})
-            if __connection_id__:
-                found_connection = False
-                for connId, port in self.outConnections.items():
-                    if __connection_id__ != connId:
-                        continue
-                    found_connection = True
-                    try:
-                        ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
-                    except Exception:
-                        self.parent._baseLog.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
-                        raise
-                if not found_connection:
-                    raise PortCallError("Connection id "+__connection_id__+" not found.", self.getConnectionIds())
-            else:
-                for connId, port in self.outConnections.items():
+            self._evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout})
+            for connId, port in self.outConnections.items():
+                if (__connection_id__ and __connection_id__ != connId):
+                    continue
+                if port != None:
                     try:
                         ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
                     except Exception:

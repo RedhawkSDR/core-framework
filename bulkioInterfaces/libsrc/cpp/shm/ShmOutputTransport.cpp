@@ -249,8 +249,15 @@ namespace bulkio {
                 throw redhawk::FatalTransportError(exc.what());
             }
 
-            size_t status;
-            if (_fifo.read(&status, sizeof(size_t)) != sizeof(size_t)) {
+            size_t status = 0;
+            size_t count = 0;
+            try {
+                count = _fifo.read(&status, sizeof(size_t));
+            } catch (const std::exception& exc) {
+                throw redhawk::FatalTransportError(exc.what());
+            }
+
+            if (count != sizeof(size_t)) {
                 throw redhawk::FatalTransportError("failed to read response");
             } else if (status != 0) {
                 throw redhawk::TransportError("call failed");
