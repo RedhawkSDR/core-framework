@@ -560,7 +560,7 @@ class MessageSupplierPort(CF__POA.Port):
             except:
                 print "WARNING: Unable to send data to",connection
         self.portInterfaceAccess.release()
-    
+
     def sendMessages(self, data_structs):
         self.portInterfaceAccess.acquire()
         try:
@@ -572,13 +572,30 @@ class MessageSupplierPort(CF__POA.Port):
             self.portInterfaceAccess.release()
             raise
 
+        resend_individually = False
         for connection in self._connections:
             try:
                 self._connections[connection]['proxy_consumer'].push(outmsg)
             except CORBA.MARSHAL:
-                self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
+                self._port_log.warn("Could not deliver the message. Maximum message size exceeded, trying individually")
+                resend_individually = True
             except:
                 print "WARNING: Unable to send data to",connection
+
+        if resend_individually:
+            # Sending them all at once failed, try send the messages individually
+            for msg in data_structs:
+                outm = props_to_any([CF.DataType(id=msg.getId(),value=struct_to_any(msg))])
+
+                for connection in self._connections:
+                    try:
+                        self._connections[connection]['proxy_consumer'].push(outm)
+                    except CORBA.MARSHAL:
+                        self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
+                        break
+                    except:
+                        print "WARNING: Unable to send data to",connection
+
         self.portInterfaceAccess.release()
 
     def disconnect_push_supplier(self):

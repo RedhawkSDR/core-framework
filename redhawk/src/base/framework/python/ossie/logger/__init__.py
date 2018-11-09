@@ -129,16 +129,19 @@ class ServiceCtx(ResourceCtx):
 
 class DeviceCtx(ResourceCtx):
     def __init__(self, name, id, dpath):
-       ResourceCtx.__init__(self, name, id, dpath)
-       self.device_mgr=""
-       self.device_mgr_id=""
-       n=0
-       seg=self._split_path(dpath)
-       if len(seg) > 1 :
+        ResourceCtx.__init__(self, name, id, dpath)
+        self.device_mgr=""
+        self.device_mgr_id=""
+        n=0
+        seg=self._split_path(dpath)
+        if len(seg) > 1 :
             self.domain_name=seg[n]
             n = n + 1
-       if len(seg) > 0 :
+        if len(seg) > 0 :
             self.device_mgr=seg[n]
+
+        ppid = str(os.getppid())
+        self.device_mgr_id = self.domain_name+':'+os.uname()[1]+':'+self.device_mgr+'_'+ppid
 
     def apply(self, tbl):
         SetDeviceInfo(tbl,self)
@@ -159,6 +162,7 @@ def SetComponentInfo( tbl, ctx ):
     SetResourceInfo( tbl, ctx )
     tbl["@@@WAVEFORM.NAME@@@"] = ctx.waveform.replace( ":", "-" )
     tbl["@@@WAVEFORM.ID@@@"] = ctx.waveform_id.replace( ":", "-" )
+    tbl["@@@WAVEFORM.INSTANCE@@@"] = ctx.waveform_id.replace( ":", "-" )
     tbl["@@@COMPONENT.NAME@@@"] = ctx.name.replace( ":", "-" )
     tbl["@@@COMPONENT.INSTANCE@@@"] = ctx.instance_id.replace( ":", "-" )
     tbl["@@@COMPONENT.PID@@@"] = str(os.getpid())

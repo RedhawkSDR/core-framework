@@ -25,9 +25,28 @@ from ossie.cf import CF
 import threading
 import time
 from ossie.utils import sb
-from ossie.properties import simple_property, simpleseq_property
+from ossie.properties import simple_property, simpleseq_property, props_to_dict
+import CosEventComm,CosEventComm__POA
+import CosEventChannelAdmin, CosEventChannelAdmin__POA
+from ossie.cf import StandardEvent
 import os
 globalsdrRoot = os.environ['SDRROOT']
+
+class Consumer_i(CosEventComm__POA.PushConsumer):
+    def __init__(self, parent):
+        self.parent = parent
+        self.parent.messages_passed = 0
+        self.valid_string = ''.join(["1234567890"]*20000)
+
+    def push(self, data):
+        props=any.from_any(data)[0]
+        if props['value'][0]['id'] == "string_payload":
+            msg_val = props['value'][0]['value']
+            if msg_val == self.valid_string:
+                self.parent.messages_passed += 1
+
+    def disconnect_push_consumer (self):
+        pass
 
 class Foo(object):
     a = simple_property(id_="a",type_="string")
@@ -61,6 +80,34 @@ class Foo(object):
     def getMembers(self):
         return [("a",self.a),("b",self.b),("c",self.c)]
 
+class MyMsg(object):
+    string_payload = simple_property(id_="string_payload",type_="string")
+
+    def __init__(self, **kw):
+        """Construct an initialized instance of this struct definition"""
+        for classattr in type(self).__dict__.itervalues():
+            if isinstance(classattr, (simple_property, simpleseq_property)):
+                classattr.initialize(self)
+        for k,v in kw.items():
+            setattr(self,k,v)
+
+    def __str__(self):
+        """Return a string representation of this structure"""
+        d = {}
+        d["string_payload"] = self.string_payload
+        return str(d)
+
+    @classmethod
+    def getId(cls):
+        return "my_msg"
+
+    @classmethod
+    def isStruct(cls):
+        return True
+
+    def getMembers(self):
+        return [("string_payload",self.string_payload)]
+
 class MessagMarshalErrorTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)
@@ -71,6 +118,13 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             sb.domainless._sandbox.shutdown()
             sb.domainless._sandbox = None
         self.rcv_msg = None
+        self.valid_string = ''.join(["1234567890"]*20000)
+        self.messages_passed = 0
+
+    def filtering_callback(self, _id, _data):
+        msg_val = _data.string_payload
+        if msg_val == self.valid_string:
+            self.messages_passed += 1
 
     def tearDown(self):
         sb.domainless._getSandbox().shutdown()
@@ -79,11 +133,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
 
     @scatest.requireLog4cxx
     def test_MessageMarshalCpp(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_cpp', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(5)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
@@ -104,16 +158,19 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually.')
+        self.assertEquals(number_warnings, 1)
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
-        self.assertEquals(number_warnings, 2)
+        self.assertEquals(number_warnings, 3)
+        self.assertEqual(self.messages_passed, 101)
 
     @scatest.requireJava
     def test_MessageMarshalJava(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(3)
+        time.sleep(5)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
@@ -134,15 +191,18 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually.')
+        self.assertEquals(number_warnings, 1)
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
-        self.assertEquals(number_warnings, 2)
+        self.assertEquals(number_warnings, 3)
+        self.assertEqual(self.messages_passed, 101)
 
     def test_MessageMarshalPython(self):
-        snk=sb.MessageSink('')
+        snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
         c=sb.launch('huge_msg_python', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(1)
+        time.sleep(5)
         fp = None
         try:
             fp = open('foo/bar/test.log','r')
@@ -163,8 +223,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually')
         self.assertEquals(number_warnings, 2)
+        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+        self.assertEquals(number_warnings, 4)
+        self.assertEqual(self.messages_passed, 101)
 
 class MessagingCompatibilityTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -386,6 +449,54 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         # class tearDown, or failures will occur.
         scatest.CorbaTestCase.tearDown(self)
 
+    @scatest.requireLog4cxx
+    def test_EventChannelConnectionCpp(self):
+        self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.cpp")
+
+    @scatest.requireJava
+    def test_EventChannelConnectionJava(self):
+        self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.java", 5)
+
+    def test_EventChannelConnectionPy(self):
+        self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.py")
+
+    def _test_EventChannelConnection(self, sad_file, sleep_time=2):
+        self.localEvent = threading.Event()
+        self.eventFlag = False
+
+        self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)
+        self.assertNotEqual(self._devBooter, None)
+
+        # rh 1.11 and forward event channels belong to the Domain...
+        req = CF.EventChannelManager.EventRegistration( 'message_events', '')
+        try:
+            ecm = self._domMgr._get_eventChannelMgr()
+            creg = ecm.registerResource( req )
+            appChannel = creg.channel
+        except:
+            self.assertEqual(False, True)
+        else:
+            self.assertEqual(True, True)
+
+        # resolve the consumer for the event
+        consumer_admin = appChannel.for_consumers()
+        _proxy_supplier = consumer_admin.obtain_push_supplier()
+        _consumer = Consumer_i(self)
+        _proxy_supplier.connect_push_consumer(_consumer._this())
+
+        self.assertEqual(self.messages_passed, 0)
+
+        self._domMgr.installApplication(sad_file)
+        appFact = self._domMgr._get_applicationFactories()[0]
+        self.assertNotEqual(appFact, None)
+        app = appFact.create(appFact._get_name(), [], [])
+        self.assertNotEqual(app, None)
+        app.start()
+        time.sleep(sleep_time)
+
+        self.assertEqual(self.messages_passed, 101)
+        app.releaseObject()
+
     def test_EventDevicePortConnection(self):
         self.localEvent = threading.Event()
         self.eventFlag = False
@@ -403,9 +514,8 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         for component in components:
             print component.componentObject._get_identifier()
             if 'DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8' in component.componentObject._get_identifier():
-                stuff = component.componentObject.query([])
-        recval = any.from_any(stuff[0].value)
+                props = component.componentObject.query([])
+        recval = any.from_any(props[0].value)
         self.assertEquals(6, len(recval))
         for val in recval:
             self.assertEquals('test_message' in val, True)
-        app.releaseObject()

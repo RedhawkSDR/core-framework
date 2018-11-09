@@ -354,6 +354,11 @@ namespace bulkio {
     friend class InputStream<PortTraits>;
     size_t samplesAvailable(const std::string& streamID, bool firstPacket);
 
+    // Purges the input queue, discarding existing packets while preserving
+    // end-of-stream and SRI change flags; must hold both dataBufferLock and
+    // sriUpdateLock
+    void _flushQueue();
+
     // Checks whether the packet should be queued or discarded; also handles
     // end-of-stream if the packet is being discarded
     bool _acceptPacket(const std::string& streamID, bool EOS);

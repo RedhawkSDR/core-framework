@@ -22,6 +22,7 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 #include<ossie/debug.h>
+#include <ossie/BULKIO/bulkioDataTypes.h>
 
 class Bulkio_InPort_Fixture : public CppUnit::TestFixture
 {
@@ -43,7 +44,9 @@ class Bulkio_InPort_Fixture : public CppUnit::TestFixture
   CPPUNIT_TEST( test_create_uint64);
   CPPUNIT_TEST( test_uint64 );
   CPPUNIT_TEST( test_create_float );
+  CPPUNIT_TEST( test_float );
   CPPUNIT_TEST( test_create_double );
+  CPPUNIT_TEST( test_double );
   CPPUNIT_TEST( test_create_file );
   CPPUNIT_TEST( test_file );
   CPPUNIT_TEST( test_create_xml );
@@ -74,7 +77,9 @@ public:
   void test_create_uint64();
   void test_uint64();
   void test_create_float();
+  void test_float();
   void test_create_double();
+  void test_double();
   void test_create_file();
   void test_file();
   void test_create_xml();
@@ -88,6 +93,11 @@ public:
   template < typename T > void test_stream_disable( T *port );
   template < typename T > void test_stream_sri_changed( T *port );
   template < typename T > void test_get_packet_stream_removed( T *port );
+  template < typename T > void test_queue_flush_flags( T *port );
+  template < typename T > void test_queue_size( T *port );
+
+  template <typename T>
+  void _pushTestPacket(T* port, size_t length, const BULKIO::PrecisionUTCTime& time, bool eos, const char* streamID);
 
   rh_logger::LoggerPtr logger;
 };

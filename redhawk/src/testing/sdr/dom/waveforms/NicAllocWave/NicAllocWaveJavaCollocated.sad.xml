@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:d9da1628-fcba-4992-8b51-cef46187b79c" name="NicAllocWaveJavaCollocated">
+  <componentfiles>
+    <componentfile id="NicAllocJava_3f76e925-d23a-43f5-8708-51a82e4a8f08" type="SPD">
+      <localfile name="/components/NicAlloc/NicAllocJava.spd.xml"/>
+    </componentfile>
+    <componentfile id="NicAllocJavaIdentifier_0a4e2150-4499-45ee-ba5b-af4fa4d8b546" type="SPD">
+      <localfile name="/components/NicAlloc/NicAllocJavaIdentifier.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation>
+      <componentplacement>
+        <componentfileref refid="NicAllocJava_3f76e925-d23a-43f5-8708-51a82e4a8f08"/>
+        <componentinstantiation id="NicAllocJava_1" startorder="0">
+          <usagename>NicAllocJava_1</usagename>
+          <findcomponent>
+            <namingservice name="NicAllocJava_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <componentplacement>
+        <componentfileref refid="NicAllocJavaIdentifier_0a4e2150-4499-45ee-ba5b-af4fa4d8b546"/>
+        <componentinstantiation id="NicAllocJavaIdentifier_1" startorder="1">
+          <usagename>NicAllocJavaIdentifier_1</usagename>
+          <findcomponent>
+            <namingservice name="NicAllocJavaIdentifier_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="NicAllocJava_1"/>
+  </assemblycontroller>
+</softwareassembly>

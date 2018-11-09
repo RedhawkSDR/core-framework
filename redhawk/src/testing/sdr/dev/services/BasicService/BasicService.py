@@ -53,7 +53,7 @@ class BasicService(CF__POA.PropertySet):
         else:
             result = []
             for p in configProperties:
-                result.append(CF.DataType(id=p.id, value=any.to_any(self.parms[p.id])))
+                result.append(CF.DataType(id=p.id, value=any.to_any(self.params[p.id])))
             return result
 
 if __name__ == "__main__":

@@ -40,7 +40,15 @@ def _cleanup_domain():
     except:
         pass
 
-atexit.register(_cleanup_domain)
+def _shutdown_session():
+    if globals().has_key('attached_domains'):
+        doms = globals()['attached_domains']
+        if len(doms) > 0:
+            doms[0].orb.shutdown(True)
+            globals()['attached_domains'] = []
+    _cleanup_domain()
+
+atexit.register(_shutdown_session)
 
 def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None):
     """Kick-start a REDHAWK domain.
@@ -198,4 +206,9 @@ def attach(domain=None, location=None, connectDomainEvents=True):
     
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
     
+    if not globals().has_key('attached_domains'):
+        globals()['attached_domains'] = []
+
+    globals()['attached_domains'].append(dom_entry)
+
     return dom_entry
