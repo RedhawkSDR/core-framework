@@ -159,7 +159,11 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
      */
     public void push(final Any data)
     {
-        this.push(data, "");
+        try {
+            this._push(data,"");
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
     }
 
     /**
@@ -172,6 +176,15 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
      * @since 2.2
      */
     public void push(final Any data, String connectionId)
+    {
+        try {
+            this._push(data, connectionId);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
+    }
+
+    public void _push(final Any data, String connectionId)
     {
         synchronized(this.updatingPortsLock) {
             if (!this.active) {
@@ -202,8 +215,7 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
                     removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.MARSHAL ex ) {
-                    this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-                    continue;
+                    throw ex;
                 } catch (final Exception e) {
                     continue;
                 }
@@ -261,7 +273,22 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         }
         final Any any = ORB.init().create_any();
         CF.PropertiesHelper.insert(any, properties);
-        this.push(any, connectionId);
+        try {
+            this._push(any, connectionId);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            // Sending them all at once failed, try send the messages individually
+            if (messages.size() == 1) {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+            } else {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded, trying individually.");
+
+                for (CF.DataType prop : properties) {
+                    final Any a = ORB.init().create_any();
+                    CF.PropertiesHelper.insert(a, new CF.DataType[]{prop});
+                    this.push(a, connectionId);
+                }
+            }
+        }
     }
 
     protected EventChannelOperations narrow(org.omg.CORBA.Object connection) 
