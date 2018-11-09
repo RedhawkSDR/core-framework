@@ -154,9 +154,18 @@ class huge_msg_python_i(huge_msg_python_base):
         msg.string_payload = str_msg
         self.port_output.sendMessage(msg)
         self.port_output.sendMessages([msg])
+
+        msgs = []
+        str_msg = payload
+        for i in range(19999):
+            str_msg += payload
+        msg.string_payload = str_msg
+        for i in range(101):
+            msgs.append(msg)
+        self._log.debug("Sending %d messages" % len(msgs))
+        self.port_output.sendMessages(msgs)
         return FINISH
 
-  
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.debug("Starting Component")

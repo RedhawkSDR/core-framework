@@ -94,9 +94,33 @@ public:
 
     void sendMessages()
     {
-        CORBA::Any data;
-        data <<= _queue;
-        push(data);
+        try {
+            CORBA::Any data;
+            data <<= _queue;
+            push(data);
+        }
+        catch(const redhawk::TransportError &ex ){
+            if ( _queue.length() == 1 ){
+                throw;
+            }
+
+            CF::Properties _smsg;
+            _smsg.length(1);
+            int mcnt=0;
+            for (CORBA::ULong ii = 0; ii < _queue.length(); ++ii) {
+                _smsg[0] = _queue[ii];
+                CORBA::Any d;
+                d <<= _smsg;
+                try {
+                    push(d);
+                }
+                catch( const redhawk::TransportError &ex ){
+                    std::ostringstream os;
+                    os << "Maximum message size exceeded, sent " << mcnt << " of " << _queue.length() <<".";
+                    throw redhawk::TransportError(os.str());
+                }
+            }
+        }
     }
 
     void disconnect()
