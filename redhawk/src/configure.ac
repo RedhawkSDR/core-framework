@@ -403,6 +403,8 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/C2/cpp/Makefile \
                 testing/sdr/dom/components/ECM_CPP/cpp/Makefile \
                 testing/sdr/dom/components/ECM_JAVA/java/Makefile \
+                testing/sdr/dom/components/EmptyString/cpp/Makefile \
+                testing/sdr/dom/components/EmptyString/java/Makefile \
                 testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
