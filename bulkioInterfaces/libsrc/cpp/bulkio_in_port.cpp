@@ -184,9 +184,9 @@ namespace bulkio {
 
     SCOPED_LOCK lock(sriUpdateLock);
     SriTable::iterator currH = currentHs.find(streamID);
+    StreamDescriptor sri(H);
     if (currH == currentHs.end()) {
       LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      StreamDescriptor sri(H);
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
         newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
@@ -196,10 +196,21 @@ namespace bulkio {
       
       createStream(streamID, sri);
     } else {
-      if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
-        LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currH->second.first = StreamDescriptor(H);
-        currH->second.second = true;
+      int eos_count = 0;
+      for (typename PacketQueue::iterator ii = this->packetQueue.begin(); ii != this->packetQueue.end(); ++ii) {
+          if (((*ii)->streamID == streamID) and ((*ii)->EOS)) {
+              eos_count++;
+          }
+      }
+      int additional_streams = 1+pendingStreams.count(streamID); // count current and pending streams
+      if (additional_streams == eos_count) { // current and pending streams are all eos
+        createStream(streamID, sri);
+      } else {
+        if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
+            LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
+            currH->second.first = StreamDescriptor(H);
+            currH->second.second = true;
+        }
       }
     }
     TRACE_EXIT( _portLog, "InPort::pushSRI"  );
@@ -314,28 +325,19 @@ namespace bulkio {
           queueAvailable.wait(lock);
         }
       } else {
-        bool sriChangedHappened = false;
-        bool flagEOS = false;
         if (packetQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
           LOG_DEBUG( _portLog, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
           flushToReport = true;
-          while (packetQueue.size() != 0) {
-            Packet *tmp = packetQueue.front();
-            if (tmp->sriChanged == true) {
-              sriChangedHappened = true;
-            }
-            if (tmp->EOS == true) {
-              flagEOS = true;
-            }
-            packetQueue.pop_front();
-            delete tmp;
-          }
-        }
-        if (sriChangedHappened) {
-          sriChanged = true;
-        }
-        if (flagEOS) {
-          EOS = true;
+
+          // Need to hold the SRI mutex while flushing the queue because it may
+          // update SRI change state
+          SCOPED_LOCK lock(sriUpdateLock);
+          _flushQueue();
+
+          // Update the SRI change flag for this stream, which may have been
+          // modified during the queue flush
+          sriChanged = currentHs[streamID].second;
+          currentHs[streamID].second = false;
         }
       }
 
@@ -343,17 +345,64 @@ namespace bulkio {
       stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
       Packet *tmpIn;
       if (is_copy_required(data)) {
-          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, flushToReport);
+          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, false);
       } else {
-          tmpIn = new Packet(data, T, EOS, sri, sriChanged, flushToReport);
+          tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
       }
       packetQueue.push_back(tmpIn);
+      // If a flush occurred, always set the flag on the first packet; this may
+      // not be the packet that was just inserted if there were any EOS packets
+      // on the queue
+      if (flushToReport) {
+        packetQueue.front()->inputQueueFlushed = true;
+      }
       dataAvailable.notify_all();
     }
 
     packetWaiters.notify(streamID);
 
     TRACE_EXIT( _portLog, "InPort::pushPacket"  );
+  }
+
+
+  template <typename PortType>
+  void InPort<PortType>::_flushQueue()
+  {
+    std::set<std::string> sri_changed;
+    PacketQueue saved_packets;
+    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+      Packet* packet = *iter;
+      if (packet->EOS) {
+        // Remove the SRI change flag for this stream, as further SRI changes
+        // apply to a different stream; set the SRI change flag for the EOS
+        // packet if there was one for this stream earlier in the queue
+        if (sri_changed.erase(packet->streamID)) {
+          packet->sriChanged = true;
+        }
+
+        // Discard data and preserve the EOS packet
+        packet->buffer = BufferType();
+        saved_packets.push_back(packet);
+      } else {
+        if (packet->sriChanged) {
+          sri_changed.insert(packet->streamID);
+        }
+        delete packet;
+      }
+    }
+    packetQueue.swap(saved_packets);
+
+    // Save any SRI change flags that were collected and not applied to an EOS
+    // packet
+    for (std::set<std::string>::iterator stream_id = sri_changed.begin();
+         stream_id != sri_changed.end(); ++stream_id) {
+      // It should be safe to assume that an entry exists for the stream ID,
+      // but just in case, use find instead of operator[]
+      SriTable::iterator currH = currentHs.find(*stream_id);
+      if (currH != currentHs.end()) {
+        currH->second.second = true;
+      }
+    }
   }
 
 
@@ -493,6 +542,12 @@ namespace bulkio {
     boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
     if (packet) {
       transfer = new DataTransferType(packet->buffer, packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
+      if (packet->EOS) {
+        // When user code is calling getPacket(), it is safe to assume they are
+        // not using using the stream API, so remove the associated stream here
+        // to avoid leaking memory
+        removeStream(packet->streamID);
+      }
     }
     return transfer;
   }
@@ -711,7 +766,14 @@ namespace bulkio {
 
     // Remove the current stream, and if there's a pending stream with the same
     // stream ID, move it to the active list
-    streams.erase(streamID);
+    typename StreamMap::iterator current = streams.find(streamID);
+    if (current != streams.end()) {
+      // There should always be a stream with the expected streamID when this
+      // method is called, but just to be safe, only close and remove when we
+      // know it's a valid stream
+      current->second.close();
+      streams.erase(current);
+    }
     typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
     if (next != pendingStreams.end()) {
       LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");

@@ -244,16 +244,28 @@ int huge_msg_cpp_i::serviceFunction()
 {
     LOG_DEBUG(huge_msg_cpp_i, "serviceFunction() example log message");
     ::my_msg_struct msg;
-    std::string str_msg = "1234567890";
-    msg.string_payload = str_msg;
+    std::string payload = "1234567890";
+    msg.string_payload = payload;
     for (unsigned int i=0; i<250000; i++) {
-    	msg.string_payload += str_msg;
+        msg.string_payload += payload;
     }
     this->output->sendMessage(msg);
     std::vector<my_msg_struct> msgs;
     msgs.push_back(msg);
     this->output->sendMessages(msgs);
 
+    msgs.clear();
+    std::string str_msg = payload;
+    for (unsigned int i=0; i<19999; i++) {
+        str_msg += payload;
+    }
+    for (unsigned int i=0; i<101; i++) {
+        ::my_msg_struct message;
+        message.string_payload = str_msg;
+        msgs.push_back(message);
+    }
+    LOG_DEBUG(huge_msg_cpp_i, "Sending " << msgs.size() << " messages");
+    this->output->sendMessages(msgs);
     return FINISH;
 }
 

@@ -110,7 +110,30 @@ namespace frontend {
                     }
                 }
                 if (this->outConnections.empty()) {
-                    throw redhawk::PortCallError("No connections available.",std::vector<std::string>());
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("No connections available.", std::vector<std::string>());
+                    } else {
+                        if (not __connection_id__.empty()) {
+                            std::ostringstream eout;
+                            eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                            throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                        }
+                    }
+                }
+                if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
+                    bool foundConnection = false;
+                    typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (i->second == __connection_id__) {
+                            foundConnection = true;
+                            break;
+                        }
+                    }
+                    if (not foundConnection) {
+                        std::ostringstream eout;
+                        eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                        throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                    }
                 }
             }
             std::string rf_flow_id() {
@@ -122,21 +145,10 @@ namespace frontend {
                 __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 if (this->active) {
-                    if (not __connection_id__.empty()) {
-                        bool found_connection = false;
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            if ((*i).second == __connection_id__) {
-                                found_connection = true;
-                                retval = ((*i).first)->rf_flow_id();
-                            }
-                        }
-                        if (not found_connection) {
-                            throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
-                        }
-                    } else {
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            retval = ((*i).first)->rf_flow_id();
-                        }
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->rf_flow_id();
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
@@ -147,21 +159,10 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
-                    if (not __connection_id__.empty()) {
-                        bool found_connection = false;
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            if ((*i).second == __connection_id__) {
-                                found_connection = true;
-                                ((*i).first)->rf_flow_id(data.c_str());
-                            }
-                        }
-                        if (not found_connection) {
-                            throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
-                        }
-                    } else {
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            ((*i).first)->rf_flow_id(data.c_str());
-                        }
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->rf_flow_id(data.c_str());
                     }
                 }
                 return;
@@ -175,23 +176,11 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
-                    if (not __connection_id__.empty()) {
-                        bool found_connection = false;
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            if ((*i).second == __connection_id__) {
-                                found_connection = true;
-                                const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
-                                retval = frontend::returnRFInfoPkt(tmp);
-                            }
-                        }
-                        if (not found_connection) {
-                            throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
-                        }
-                    } else {
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
-                            retval = frontend::returnRFInfoPkt(tmp);
-                        }
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
+                        retval = frontend::returnRFInfoPkt(tmp);
                     }
                 }
                 return retval;
@@ -201,23 +190,11 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
                 __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
-                    if (not __connection_id__.empty()) {
-                        bool found_connection = false;
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            if ((*i).second == __connection_id__) {
-                                found_connection = true;
-                                const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
-                                ((*i).first)->rfinfo_pkt(tmp);
-                            }
-                        }
-                        if (not found_connection) {
-                            throw redhawk::PortCallError("Connection id "+__connection_id__+" not found.", this->getConnectionIds());
-                        }
-                    } else {
-                        for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
-                            const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
-                            ((*i).first)->rfinfo_pkt(tmp);
-                        }
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
+                        ((*i).first)->rfinfo_pkt(tmp);
                     }
                 }
                 return;

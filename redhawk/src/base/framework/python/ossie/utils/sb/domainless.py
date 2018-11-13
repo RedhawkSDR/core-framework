@@ -401,19 +401,56 @@ def generateSADXML(waveform_name):
     with_ac = with_partitioning.replace('@__ASSEMBLYCONTROLLER__@', assemblycontroller)
     # Loop over connections
     connectinterface = ''
-    for connection in _currentState['Component Connections'].values():
-        usesport = Sad_template.usesport.replace('@__PORTNAME__@',connection['Uses Port Name'])
-        usesport = usesport.replace('@__COMPONENTINSTANCE__@',connection['Uses Component']._refid)
-        if connection['Provides Port Name'] == "CF:Resource":
-            # component support interface
-            providesport = Sad_template.componentsupportedinterface.replace('@__PORTINTERFACE__@',connection['Provides Port Interface'])
-            providesport = providesport.replace('@__COMPONENTINSTANCE__@',connection['Provides Component']._refid)
+    #for connection in _currentState['Component Connections'].values():
+    _connection_map = ConnectionManager.instance().getConnections()
+    for _tmp_connection in _connection_map:
+        connection_id = _connection_map[_tmp_connection][0]
+        uses_side = _connection_map[_tmp_connection][1]
+        uses_name = uses_side.getName()
+        if len(uses_name.split('/')) != 2:
+            continue
+        uses_inst_name = uses_name.split('/')[0]
+        uses_inst_id = None
+        for component in sandbox.getComponents():
+            if component._instanceName == uses_inst_name:
+                if component._refid[:3] == 'DCE':
+                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                else:
+                    comprefid = component._refid.split(':')[0]
+                uses_inst_id = comprefid
+                break
+        if not uses_inst_id:
+            continue
+        usesport = Sad_template.usesport.replace('@__PORTNAME__@',uses_side.getPortName())
+        usesport = usesport.replace('@__COMPONENTINSTANCE__@',uses_inst_id)
+        provides_side = _connection_map[_tmp_connection][2]
+        supported_interface = False
+        provides_name = provides_side.getName()
+        if len(provides_name.split('/')) == 1:
+            supported_interface = True
         else:
-            providesport = Sad_template.providesport.replace('@__PORTNAME__@',connection['Provides Port Name'])
-            providesport = providesport.replace('@__COMPONENTINSTANCE__@',connection['Provides Component']._refid)
+            provides_name = provides_side.getName().split('/')[0]
+        provides_inst_id = None
+        for component in sandbox.getComponents():
+            if component._instanceName == provides_name:
+                if component._refid[:3] == 'DCE':
+                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                else:
+                    comprefid = component._refid.split(':')[0]
+                provides_inst_id = comprefid
+                break
+        if not provides_inst_id:
+            continue
+        if supported_interface:
+            # component support interface
+            providesport = Sad_template.componentsupportedinterface.replace('@__PORTINTERFACE__@','IDL:CF/Resource:1.0')
+            providesport = providesport.replace('@__COMPONENTINSTANCE__@',provides_inst_id)
+        else:
+            providesport = Sad_template.providesport.replace('@__PORTNAME__@',provides_side.getPortName())
+            providesport = providesport.replace('@__COMPONENTINSTANCE__@',provides_inst_id)
         connectinterface += Sad_template.connectinterface.replace('@__USESPORT__@',usesport)
         connectinterface = connectinterface.replace('@__PROVIDESPORT__@',providesport)
-        connectinterface = connectinterface.replace('@__CONNECTID__@',str(uuid4()))
+        connectinterface = connectinterface.replace('@__CONNECTID__@',connection_id)
     with_connections = with_ac.replace('@__CONNECTINTERFACE__@',connectinterface)
     # External ports are ignored
     with_connections = with_connections.replace('@__EXTERNALPORTS__@',"")
@@ -816,7 +853,7 @@ def loadSADFile(filename, props={}):
             for connection in sad.connections.get_connectinterface():
                 if connection != None:
                     connectionID = None
-                    if connection.get_id() != "":
+                    if connection.get_id():
                         connectionID = connection.get_id()
                     log.debug("CONNECTION INTERFACE: connection ID '%s'", connection.get_id())
                     usesPortComponent = None
@@ -835,7 +872,11 @@ def loadSADFile(filename, props={}):
                         log.debug("CONNECTION INTERFACE: uses port component ref '%s'", usesPortComponentRefid)
                         # Loop through launched components to find one containing the uses port to be connected
                         for component in launchedComponents:
-                            if component._refid == usesPortComponentRefid:
+                            if component._refid[:3] == 'DCE':
+                                comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                            else:
+                                comprefid = component._refid.split(':')[0]
+                            if comprefid == usesPortComponentRefid:
                                 usesPortComponent = component
                                 break
 
@@ -852,7 +893,11 @@ def loadSADFile(filename, props={}):
                             log.debug("CONNECTION INTERFACE: provides port component ref '%s'", providesPortComponentRefid)
                             # Loop through launched components to find one containing the provides port to be connected
                             for component in launchedComponents:
-                                if component._refid == providesPortComponentRefid:
+                                if component._refid[:3] == 'DCE':
+                                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                                else:
+                                    comprefid = component._refid.split(':')[0]
+                                if comprefid == providesPortComponentRefid:
                                     providesPortComponent = component
                                     break
                         elif connection.get_componentsupportedinterface() != None:
@@ -866,7 +911,11 @@ def loadSADFile(filename, props={}):
                                 print "loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port component ref " + str(connection.get_componentsupportedinterface().get_componentinstantiationref().get_refid())
                             # Loop through launched components to find one containing the provides port to be connected
                             for component in launchedComponents:
-                                if component._refid == providesPortComponentRefid:
+                                if component._refid[:3] == 'DCE':
+                                    comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
+                                else:
+                                    comprefid = component._refid.split(':')[0]
+                                if comprefid == providesPortComponentRefid:
                                     providesPortComponent = component
                                     break
                         elif connection.get_findby():

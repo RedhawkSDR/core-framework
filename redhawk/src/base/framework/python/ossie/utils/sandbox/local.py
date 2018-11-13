@@ -164,6 +164,11 @@ class LocalLauncher(SandboxLauncher):
 
         return dep_files
 
+    def _cleanHeap(self, pid):
+        filename = '/dev/shm/heap-'+str(pid)
+        if (os.path.isfile(filename)):
+            os.remove(filename)
+
     def launch(self, comp):
         # Build up the full set of command line arguments
         execparams = comp._getExecparams()
@@ -242,6 +247,7 @@ class LocalLauncher(SandboxLauncher):
             # Set up a callback to notify when the component exits abnormally.
             name = comp._instanceName
             def terminate_callback(pid, status):
+                self._cleanHeap(pid)
                 if status > 0:
                     print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
                 elif status < 0:

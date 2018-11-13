@@ -82,6 +82,14 @@ void BasicShared_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(nic_name,
+                "nic_name",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
 }
 
 

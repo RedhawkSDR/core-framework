@@ -506,6 +506,8 @@ class BlueFileWriter(object):
                     data_format = data_format + 'D'
                 elif self.port_type == BULKIO__POA.dataChar:
                     data_format = data_format + 'B'
+                elif self.port_type == BULKIO__POA.dataOctet:
+                    data_format = data_format + 'B'
                 elif self.port_type == BULKIO__POA.dataUlong:
                     data_format = data_format + 'L'
                 elif self.port_type == BULKIO__POA.dataLong:

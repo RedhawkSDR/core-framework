@@ -742,6 +742,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
 
     def __init__(self, name="", devMgr=None, dcd=None, domain=None, idmListener=None, odmListener=None):
         self.name = name
+        self._instanceName = name
         self.ref = devMgr
         self.id = self.ref._get_identifier()
         self._id = self.id

@@ -126,8 +126,8 @@ AC_CHECK_PROG([XMLCATALOG], [xmlcatalog], [xmlcatalog], [no])
 AM_CONDITIONAL(HAVE_XMLCATALOG, test $XMLCATALOG != "no")
 
 # add numa support to affinity module
-AC_ARG_ENABLE([affinity], AS_HELP_STRING([--enable-affinity], [Enable numa affinity processing]))
-   AC_MSG_CHECKING([Adding support for numa affinity processing])
+AC_ARG_ENABLE([affinity], [AS_HELP_STRING([--disable-affinity], [Disable numa affinity processing])],,[enable_affinity=yes])
+   AC_MSG_CHECKING([Enabling support for numa affinity processing])
 if test "x$enable_affinity" = "xyes"; then
    dnl  determine if numa library support is available
    AC_SUBST(OSSIE_AFFINITY, "yes")
@@ -369,6 +369,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/linkedLibraryTest/Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
+                testing/sdr/dom/components/javaSoftpkgJarDep/java/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/huge_msg_java/java/Makefile \
@@ -381,6 +382,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/BasicAC/BasicAC_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicShared/cpp/Makefile \
                 testing/sdr/dom/components/logger/cpp/Makefile \
+                testing/sdr/dom/components/alloc_shm/cpp/Makefile \
                 testing/sdr/dom/components/MessageReceiverCpp/Makefile \
                 testing/sdr/dom/components/MessageSenderCpp/Makefile \
                 testing/sdr/dom/components/EventSend/EventSend_java_impl1/Makefile \
@@ -401,6 +403,8 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/C2/cpp/Makefile \
                 testing/sdr/dom/components/ECM_CPP/cpp/Makefile \
                 testing/sdr/dom/components/ECM_JAVA/java/Makefile \
+                testing/sdr/dom/components/EmptyString/cpp/Makefile \
+                testing/sdr/dom/components/EmptyString/java/Makefile \
                 testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
