@@ -604,6 +604,9 @@ ComponentInfo* ComponentInfo::buildComponentInfoFromSPDFile(CF::FileManager_ptr 
             if (not cprop[i]->isNone()) {
                 newComponent->addExecParameter(convertPropertyToDataType(cprop[i]));
             }
+            if ( cprop[i]->isProperty() ) {
+                newComponent->addConstructProperty(convertPropertyToDataType(cprop[i]));
+            }
           } else {
             newComponent->addConstructProperty(convertPropertyToDataType(cprop[i]));
           }

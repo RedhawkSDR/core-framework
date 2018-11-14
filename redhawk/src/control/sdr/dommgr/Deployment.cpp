@@ -561,10 +561,21 @@ redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
     redhawk::PropertyMap properties;
     if (softpkg->getProperties()) {
         BOOST_FOREACH(const Property* property, softpkg->getProperties()->getProperties()) {
-            if (property->isProperty() && !property->isCommandLine()) {
+            if (property->isProperty() ) {
                 CF::DataType dt = getPropertyValue(property);
-                if (!ossie::any::isNull(dt.value)) {
+                if ( ossie::any::isNull(dt.value) ) {
+                    continue;
+                }
+                if (!property->isCommandLine()) {
                     properties.push_back(dt);
+                }
+                else {
+                    // allow cmd line params that can have empty values
+                    CORBA::TypeCode_var vtype=dt.value.type();
+                    if ( vtype->kind() == CORBA::tk_char ||
+                         vtype->kind() == CORBA::tk_string ) {
+                        properties.push_back(dt);
+                    }
                 }
             }
         }

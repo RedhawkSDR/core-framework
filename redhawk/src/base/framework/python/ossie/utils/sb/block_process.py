@@ -34,10 +34,7 @@ log = _logging.getLogger(__name__)
 __all__ = ('proc',)
 
 class ProcessingTimeout(Exception):
-    def __init__(self):
-        pass
-    def __str__(self):
-        return "Processing timed out before completion"
+    pass
 
 def findInDataCoverterPortName(dataFormat):
     portName = ''
