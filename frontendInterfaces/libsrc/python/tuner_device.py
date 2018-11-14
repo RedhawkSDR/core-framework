@@ -778,10 +778,10 @@ class FrontendTunerDevice(Device):
             
             except allocationException as e:
                 # if we made it here, we failed to find an available tuner
-                self._deviceLog.info(e.message)
+                self._deviceLog.info(e)
                 raise
             except Exception as e:
-                self._deviceLog.exception(e.message)
+                self._deviceLog.exception(e)
                 raise allocationException(e)
             finally:
                 self.allocation_id_mapping_lock.release()
@@ -903,7 +903,7 @@ class FrontendTunerDevice(Device):
         except AllocationAlreadyExists, e:
             # Don't call deallocateCapacity if the allocationId already exists
             #   - Would end up deallocating a valid tuner/listener
-            raise CF.Device.InvalidCapacity(e.message, struct_to_props(frontend_listener_allocation))
+            raise CF.Device.InvalidCapacity(str(e), struct_to_props(frontend_listener_allocation))
         
         except CF.Device.InvalidCapacity, e:
             raise e
