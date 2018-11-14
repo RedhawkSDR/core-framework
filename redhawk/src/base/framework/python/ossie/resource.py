@@ -159,8 +159,7 @@ class providesport(_port):
 # Support Classes for handling PropertyChange Listeners
 #
 class  _PCL_Except(Exception):
-    def __init__(self,msg=""):
-        self.message = msg
+    pass
 
 # Monitoring thread...
 class _PropertyChangeThread(ThreadedComponent):

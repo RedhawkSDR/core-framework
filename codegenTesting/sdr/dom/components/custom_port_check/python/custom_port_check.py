@@ -151,32 +151,32 @@ class custom_port_check_i(custom_port_check_base):
         try:
             self.port_testableobject_out.runTest(1, empty_prop)
         except PortCallError, e:
-            self.inout_state = e.message;
+            self.inout_state = str(e)
 
         empty_string_seq = []
         self.retval_state = "ok"
         try:
             self.port_propertyemitter_out.registerPropertyListener(self._this(), empty_string_seq, 0.1)
         except PortCallError, e:
-            self.retval_state = e.message;
+            self.retval_state = str(e)
 
         out_data = ''
         self.in_state = "ok"
         try:
             self.port_file_out.write(out_data)
         except PortCallError, e:
-            self.in_state = e.message;
+            self.in_state = str(e)
 
         self.out_state = "ok";
         try:
             self.port_file_out.read(10)
         except PortCallError, e:
-            self.out_state = e.message;
+            self.out_state = str(e)
         self.bad_connection = "ok";
         try:
             self.port_file_out.read(10, "invalid_connectionid");
         except PortCallError, e:
-            self.bad_connection = e.message
+            self.bad_connection = str(e)
 
         return FINISH
 

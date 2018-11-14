@@ -151,20 +151,20 @@ class rf_ctrl_i(rf_ctrl_base):
         try:
             self.port_rfinfo_out.rf_flow_id()
         except PortCallError, e:
-            self.get_rfinfo = e.message
+            self.get_rfinfo = str(e)
         
         self.set_rfinfo = "ok"
         try:
             rf_flow_id = "hello"
             self.port_rfinfo_out._set_rf_flow_id(rf_flow_id)
         except PortCallError, e:
-            self.set_rfinfo = e.message
+            self.set_rfinfo = str(e)
         
         self.get_current_rf = "ok"
         try:
             self.port_rfsource_out.current_rf_input()
         except PortCallError, e:
-            self.get_current_rf = e.message
+            self.get_current_rf = str(e)
         
         self.set_current_rf = "ok"
         try:
@@ -176,26 +176,26 @@ class rf_ctrl_i(rf_ctrl_base):
             foo = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
             self.port_rfsource_out._set_current_rf_input(foo)
         except PortCallError, e:
-            self.set_current_rf = e.message
+            self.set_current_rf = str(e)
         
         self.get_available_rf = "ok"
         try:
             self.port_rfsource_out.available_rf_inputs()
         except PortCallError, e:
-            self.get_available_rf = e.message
+            self.get_available_rf = str(e)
         
         self.set_available_rf = "ok"
         try:
             foo = []
             self.port_rfsource_out._set_available_rf_inputs(foo)
         except PortCallError, e:
-            self.set_available_rf = e.message
+            self.set_available_rf = str(e)
         
         self.bad_connection = "ok"
         try:
             self.port_rfsource_out._get_available_rf_inputs("invalid_connectionid")
         except PortCallError, e:
-            self.bad_connection = e.message
+            self.bad_connection = str(e)
         
     
         tmp = ''
@@ -203,135 +203,135 @@ class rf_ctrl_i(rf_ctrl_base):
         try:
             self.port_digitaltuner_out.getTunerType(tmp)
         except PortCallError, e:
-            self.get_tunertype = e.message
+            self.get_tunertype = str(e)
         
         self.get_tunerdevicecontrol = "ok"
         try:
             self.port_digitaltuner_out.getTunerDeviceControl(tmp)
         except PortCallError, e:
-            self.get_tunerdevicecontrol = e.message
+            self.get_tunerdevicecontrol = str(e)
         
         self.get_tunergroupid = "ok"
         try:
             self.port_digitaltuner_out.getTunerGroupId(tmp)
         except PortCallError, e:
-            self.get_tunergroupid = e.message
+            self.get_tunergroupid = str(e)
         
         self.get_tunerrfflowid = "ok"
         try:
             self.port_digitaltuner_out.getTunerRfFlowId(tmp)
         except PortCallError, e:
-            self.get_tunerrfflowid = e.message
+            self.get_tunerrfflowid = str(e)
         
         self.get_tunerstatus = "ok"
         try:
             self.port_digitaltuner_out.getTunerStatus(tmp)
         except PortCallError, e:
-            self.get_tunerstatus = e.message
+            self.get_tunerstatus = str(e)
         
         self.get_tunercenterfrequency = "ok"
         try:
             self.port_digitaltuner_out.getTunerCenterFrequency(tmp)
         except PortCallError, e:
-            self.get_tunercenterfrequency = e.message
+            self.get_tunercenterfrequency = str(e)
         
         self.set_tunercenterfrequency = "ok"
         try:
             self.port_digitaltuner_out.setTunerCenterFrequency(tmp, 1.0)
         except PortCallError, e:
-            self.set_tunercenterfrequency = e.message
+            self.set_tunercenterfrequency = str(e)
         
         self.get_tunerbandwidth = "ok"
         try:
             self.port_digitaltuner_out.getTunerBandwidth(tmp)
         except PortCallError, e:
-            self.get_tunerbandwidth = e.message
+            self.get_tunerbandwidth = str(e)
         
         self.set_tunerbandwidth = "ok"
         try:
             self.port_digitaltuner_out.setTunerBandwidth(tmp, 1.0)
         except PortCallError, e:
-            self.set_tunerbandwidth = e.message
+            self.set_tunerbandwidth = str(e)
         
         self.get_tuneragcenable = "ok"
         try:
             self.port_digitaltuner_out.getTunerAgcEnable(tmp)
         except PortCallError, e:
-            self.get_tuneragcenable = e.message
+            self.get_tuneragcenable = str(e)
         
         self.set_tuneragcenable = "ok"
         try:
             self.port_digitaltuner_out.setTunerAgcEnable(tmp, False)
         except PortCallError, e:
-            self.set_tuneragcenable = e.message
+            self.set_tuneragcenable = str(e)
         
         self.get_tunergain = "ok"
         try:
             self.port_digitaltuner_out.getTunerGain(tmp)
         except PortCallError, e:
-            self.get_tunergain = e.message
+            self.get_tunergain = str(e)
         
         self.set_tunergain = "ok"
         try:
             self.port_digitaltuner_out.setTunerGain(tmp, 1.0)
         except PortCallError, e:
-            self.set_tunergain = e.message
+            self.set_tunergain = str(e)
         
         self.get_tunerreferencesource = "ok"
         try:
             self.port_digitaltuner_out.getTunerReferenceSource(tmp)
         except PortCallError, e:
-            self.get_tunerreferencesource = e.message
+            self.get_tunerreferencesource = str(e)
         
         self.set_tunerreferencesource = "ok"
         try:
             self.port_digitaltuner_out.setTunerReferenceSource(tmp, 2)
         except PortCallError, e:
-            self.set_tunerreferencesource = e.message
+            self.set_tunerreferencesource = str(e)
         
         self.get_tunerenable = "ok"
         try:
             self.port_digitaltuner_out.getTunerEnable(tmp)
         except PortCallError, e:
-            self.get_tunerenable = e.message
+            self.get_tunerenable = str(e)
         
         self.set_tunerenable = "ok"
         try:
             self.port_digitaltuner_out.setTunerEnable(tmp, False)
         except PortCallError, e:
-            self.set_tunerenable = e.message
+            self.set_tunerenable = str(e)
         
         self.get_tuneroutputsamplerate = "ok"
         try:
             self.port_digitaltuner_out.getTunerOutputSampleRate(tmp)
         except PortCallError, e:
-            self.get_tuneroutputsamplerate = e.message
+            self.get_tuneroutputsamplerate = str(e)
         
         self.set_tuneroutputsamplerate = "ok"
         try:
             self.port_digitaltuner_out.setTunerOutputSampleRate(tmp, 1.0)
         except PortCallError, e:
-            self.set_tuneroutputsamplerate = e.message
+            self.set_tuneroutputsamplerate = str(e)
         
     
         self.get_gpsinfo = "ok"
         try:
             self.port_gps_out.gps_info()
         except PortCallError, e:
-            self.get_gpsinfo = e.message
+            self.get_gpsinfo = str(e)
         
         self.set_gpsinfo = "ok"
         try:
             _gps = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
             self.port_gps_out._set_gps_info(_gps)
         except PortCallError, e:
-            self.set_gpsinfo = e.message
+            self.set_gpsinfo = str(e)
         
         self.get_gps_timepos = "ok"
         try:
             self.port_gps_out.gps_time_pos()
         except PortCallError, e:
-            self.get_gps_timepos = e.message
+            self.get_gps_timepos = str(e)
         
         self.set_gps_timepos = "ok"
         try:
@@ -339,14 +339,14 @@ class rf_ctrl_i(rf_ctrl_base):
             _gps = FRONTEND.GpsTimePos(_positioninfo,BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0))
             self.port_gps_out._set_gps_time_pos(_gps)
         except PortCallError, e:
-            self.set_gps_timepos = e.message
+            self.set_gps_timepos = str(e)
         
     
         self.get_nav_packet = "ok"
         try:
             self.port_navdata_out.nav_packet()
         except PortCallError, e:
-            self.get_nav_packet = e.message
+            self.get_nav_packet = str(e)
         
         self.set_nav_packet = "ok"
         try:
@@ -359,7 +359,7 @@ class rf_ctrl_i(rf_ctrl_base):
             _nav = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
             self.port_navdata_out._set_nav_packet(_nav)
         except PortCallError, e:
-            self.set_nav_packet = e.message
+            self.set_nav_packet = str(e)
         
         return NOOP
 

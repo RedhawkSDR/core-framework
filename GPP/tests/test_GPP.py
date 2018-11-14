@@ -21,6 +21,7 @@
 
 import unittest
 import os
+import resource
 import socket
 import time
 import commands
@@ -219,15 +220,25 @@ class GPPTests(GPPSandboxTest):
         self.assertEqual(81, any.from_any(event.properties[0].value))
 
     def testLimits(self):
+        limits = resource.getrlimit(resource.RLIMIT_NPROC)
+
         # Check that the system limits are sane
         self.assertTrue(self.comp.sys_limits.current_threads > 0)
-        self.assertTrue(self.comp.sys_limits.max_threads > self.comp.sys_limits.current_threads)
+        if limits[1] == -1:
+            # system limit is set to unlimited, can only check that the component is reporting a positive value
+            self.assertTrue(self.comp.sys_limits.current_threads > 0)
+        else:
+            self.assertTrue(self.comp.sys_limits.max_threads > self.comp.sys_limits.current_threads)
         self.assertTrue(self.comp.sys_limits.current_open_files > 0)
         self.assertTrue(self.comp.sys_limits.max_open_files > self.comp.sys_limits.current_open_files)
 
         # Check that the GPP's process limits are also sane
         self.assertTrue(self.comp.gpp_limits.current_threads > 0)
-        self.assertTrue(self.comp.gpp_limits.max_threads > self.comp.gpp_limits.current_threads)
+        if limits[0] == -1:
+            # process limit is set to unlimited, can only check that the component is reporting a positive value
+            self.assertTrue(self.comp.gpp_limits.current_threads > 0)
+        else:
+            self.assertTrue(self.comp.gpp_limits.max_threads > self.comp.gpp_limits.current_threads)
         self.assertTrue(self.comp.gpp_limits.current_open_files > 0)
         self.assertTrue(self.comp.gpp_limits.max_open_files > self.comp.gpp_limits.current_open_files)
 
