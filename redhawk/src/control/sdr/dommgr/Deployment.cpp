@@ -574,7 +574,10 @@ redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
                     CORBA::TypeCode_var vtype=dt.value.type();
                     if ( vtype->kind() == CORBA::tk_char ||
                          vtype->kind() == CORBA::tk_string ) {
-                        properties.push_back(dt);
+                        std::string v=ossie::simpleAnyToString(dt.value);
+                        if ( v == "" ) {
+                            properties.push_back(dt);
+                        }
                     }
                 }
             }
