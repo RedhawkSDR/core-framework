@@ -28,7 +28,11 @@ public class BooleanProperty extends AbstractSimpleProperty<Boolean> {
 
     protected Boolean extract(org.omg.CORBA.Any any) {
         try {
-            return (Boolean)AnyUtils.convertAny(any);
+            Object t = AnyUtils.convertAny(any);
+            if ( t instanceof String ) {
+                return parseString((String)t);
+            }
+            return (Boolean)t;
         } catch (ClassCastException ex) {
             throw new IllegalArgumentException("Incorrect any type recevied");
         }
@@ -39,6 +43,6 @@ public class BooleanProperty extends AbstractSimpleProperty<Boolean> {
      }
 
     protected Boolean parseString(String str) {
-        return Boolean.valueOf(str);
+        return (Boolean)AnyUtils.convertString(str,"boolean");
     }
 }

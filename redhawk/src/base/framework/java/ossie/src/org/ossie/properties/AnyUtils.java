@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
-            import org.apache.log4j.Logger;
+import org.apache.log4j.Logger;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.omg.CORBA.Any;
@@ -104,6 +104,12 @@ public final class AnyUtils {
         } else if (type.equals("boolean")) {
             if ("true".equalsIgnoreCase(stringValue) || "false".equalsIgnoreCase(stringValue)) {
                 return Boolean.parseBoolean(stringValue);
+            }
+            else if ("0".equalsIgnoreCase(stringValue) ) {
+                return Boolean.FALSE;
+            }
+            else if ("1".equalsIgnoreCase(stringValue) ) {
+                return Boolean.TRUE;
             }
             throw new IllegalArgumentException(stringValue + " is not a valid boolean value");
         } else if (type.equals("char")) {
