@@ -44,20 +44,50 @@ CF::DomainManager_ptr ApplicationRegistrar_impl::domMgr()
 }
 
 void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resource_ptr obj) throw (CF::InvalidObjectReference, CF::DuplicateName, CORBA::SystemException) {
+
   if ( !CORBA::is_nil(_context) ) {
-      CosNaming::Name_var cosName = ossie::corba::stringToName(Name);
+      CosNaming::Name_var cosName;
       try {
-        _context->bind( cosName, obj );
+          cosName = ossie::corba::stringToName(Name);
+          _context->bind( cosName, obj );
       }
       catch(CosNaming::NamingContext::AlreadyBound&) {
         try {
             _context->rebind( cosName, obj );
         }
         catch(...){
+            if ( Name != NULL ) {
+                RH_NL_INFO("ApplicationRegistrar", "Unhandled exception from NamingContext, registering " << Name );
+            }
+            else{
+                RH_NL_INFO("ApplicationRegistrar", "Unhandled exception from NamingContext, Name is invalid" );
+            }
         }
       }
+      catch(...){
+      }
       if (!CORBA::is_nil(obj)) {
-        _application->registerComponent(obj);
+          try {
+              _application->registerComponent(obj);
+          }
+          catch( CF::InvalidObjectReference &ex ) {
+		throw;
+	  }
+          catch( CF::DuplicateName &ex ) {
+		throw;
+	  }
+          catch( CORBA::SystemException &ex) {
+		throw;
+	  }
+          catch(...) {
+            if ( Name != NULL ) {
+                RH_NL_INFO("ApplicationRegistrar", "Unhandled exception from application, registering " << Name );
+            }
+            else{
+                RH_NL_INFO("ApplicationRegistrar", "Unhandled exception from application, Name is invalid" );
+            }
+
+          }
       }
   }
 }

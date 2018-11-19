@@ -1782,6 +1782,36 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 0)
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapperWithDirectoryLoad")), 0)
 
+    def test_FailStartup2(self):
+        # Verify that if a component fails to start, any allocated resources are restored
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+
+        # Set the component name binding timeout to a more reasonable 2 seconds, since the
+        # failures are pretty quick.
+        id = "COMPONENT_BINDING_TIMEOUT"
+        value = CORBA.Any(CORBA.TC_ulong, 2)
+        domMgr.configure([CF.DataType(id, value)])
+
+        self.assertEqual(len(domMgr._get_applicationFactories()), 0)
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
+        domMgr.installApplication("/waveforms/FailStartup/FailStartup.sad.xml")
+        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
+        appFact = domMgr._get_applicationFactories()[0]
+        self.assertEqual(len(domMgr._get_applications()), 0)
+        
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+
+        failurePos="identifier"
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [CF.DataType(id="FAIL_AT", value=any.to_any(failurePos))], [])
+
+
+
     def test_FailStartup(self):
         # Verify that if a component fails to start, any allocated resources are restored
         nodebooter, domMgr = self.launchDomainManager()
@@ -1817,7 +1847,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(nicCapacity.value._v, 100.0)
         self.assertEqual(fakeCapacity.value._v, 3)
 
-        for failurePos in ("constructor", "initializeProperties", "initialize"):
+        for failurePos in ("constructor", "identifier", "initializeProperties", "initialize"):
             self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [CF.DataType(id="FAIL_AT", value=any.to_any(failurePos))], [])
             self.assertEqual(len(domMgr._get_applications()), 0)
             # Verify that capacity was not allocated

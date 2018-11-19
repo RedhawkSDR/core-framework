@@ -1,3 +1,4 @@
+
 /*
  * This file is protected by Copyright. Please refer to the COPYRIGHT file 
  * distributed with this source distribution.
@@ -816,44 +817,47 @@ throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
 CORBA::Object_ptr Application_impl::getPort (const char* _id)
 throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
 {
-
     SCOPED_LOCK( releaseObjectLock );
     if (_releaseAlreadyCalled) {
-        RH_DEBUG(_baseLog, "skipping getPort because release has already been called");
+        RH_DEBUG(_baseLog, "skipping getPort because release has already been called app_id :" << _identifier );
         return CORBA::Object::_nil();
     }
 
     const std::string identifier = _id;
     if (_ports.count(identifier)) {
-        return CORBA::Object::_duplicate(_ports[identifier]);
+        return CORBA::Object::_duplicate(_ports[identifier] );
     } else {
-        RH_ERROR(_baseLog, "Get port failed with unknown port " << _id)
+        RH_ERROR(_baseLog, "Get port failed with unknown port " << _id << " for application " << _appName << " application id " << _identifier );
         throw(CF::PortSupplier::UnknownPort());
     }
 }
 
 
-
 CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
 {
-    SCOPED_LOCK( releaseObjectLock );
     CF::PortSet::PortInfoSequence_var retval = new CF::PortSet::PortInfoSequence();
-    if (_releaseAlreadyCalled) {
+    {
+        SCOPED_LOCK( releaseObjectLock );
         RH_DEBUG(_baseLog, "skipping getPortSet because release has alraeady been called");
-        return retval._retn();
-    }
-
-    std::vector<CF::PortSet::PortInfoSequence_var> comp_portsets;
-    for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
-        try {
-            CF::Resource_var comp = _component_iter->getResourcePtr();
-            comp_portsets.push_back(comp->getPortSet());
-        } catch ( CORBA::COMM_FAILURE &ex ) {
-            RH_ERROR(_baseLog, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
-        } catch ( ... ) {
-            RH_ERROR(_baseLog, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );            
+        if (_releaseAlreadyCalled) {
+            return retval._retn();
         }
     }
+    std::vector<CF::PortSet::PortInfoSequence_var> comp_portsets;
+    {
+        boost::mutex::scoped_lock lock(_registrationMutex);
+        for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
+            try {
+                CF::Resource_var comp = _component_iter->getResourcePtr();
+                comp_portsets.push_back(comp->getPortSet());
+            } catch ( CORBA::COMM_FAILURE &ex ) {
+                RH_ERROR(_baseLog, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() ); 
+            } catch ( ... ) {
+                RH_ERROR(_baseLog, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );
+            }
+        }
+    }
+
     for (std::map<std::string, CORBA::Object_var>::iterator _port_val=_ports.begin(); _port_val!=_ports.end(); _port_val++) {
         for (std::vector<CF::PortSet::PortInfoSequence_var>::iterator comp_portset=comp_portsets.begin(); comp_portset!=comp_portsets.end(); comp_portset++) {
             for (unsigned int i=0; i<(*comp_portset)->length(); i++) {
@@ -873,6 +877,7 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
             }
         }
     }
+
     if (_ports.size() != retval->length()) {
         // some of the components are unreachable and the list is incomplete
         for (std::map<std::string, CORBA::Object_var>::iterator _port_val=_ports.begin(); _port_val!=_ports.end(); _port_val++) {
@@ -895,7 +900,8 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
             }
         }
     }
-	return retval._retn();
+
+    return retval._retn();
 }
 
 
@@ -1524,7 +1530,6 @@ void Application_impl::addExternalPort (const std::string& identifier, CORBA::Ob
     if (_ports.count(identifier)) {
         throw std::runtime_error("Port name " + identifier + " is already in use");
     }
-
     _ports[identifier] = CORBA::Object::_duplicate(port);
 }
 
@@ -1612,9 +1617,15 @@ redhawk::ApplicationComponent* Application_impl::getComponent(const std::string&
 
 void Application_impl::registerComponent (CF::Resource_ptr resource)
 {
-    const std::string componentId = ossie::corba::returnString(resource->identifier());
-    const std::string softwareProfile = ossie::corba::returnString(resource->softwareProfile());
-
+    std::string componentId;
+    std::string softwareProfile;
+    try{
+       componentId = ossie::corba::returnString(resource->identifier());
+       softwareProfile = ossie::corba::returnString(resource->softwareProfile());
+    }
+    catch(...) {
+      throw CF::InvalidObjectReference();
+    }
 
     boost::mutex::scoped_lock lock(_registrationMutex);
     redhawk::ApplicationComponent* comp = findComponent(componentId);
