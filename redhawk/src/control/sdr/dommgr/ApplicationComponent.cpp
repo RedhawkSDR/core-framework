@@ -183,7 +183,6 @@ void ApplicationComponent::setAssignedDevice(const boost::shared_ptr<ossie::Devi
     _assignedDeviceId = assignedDevice->identifier;
 }
 
-
 const std::string &  ApplicationComponent::getAssignedDeviceId() const
 {
     if ( _assignedDevice ) {

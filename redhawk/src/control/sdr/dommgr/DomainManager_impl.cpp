@@ -2704,10 +2704,9 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.loadedFiles = component.getLoadedFiles();
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
-        if ( component.getAssignedDevice() ) {
+        if (component.getAssignedDevice()) {
             compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
-        }
-        else {
+        } else {
             compNode.assignedDeviceId = component.getAssignedDeviceId();
         }
         if (component.getComponentHost()) {

@@ -998,6 +998,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         app=dom.createApplication("/waveforms/noop_waveform/noop_waveform.sad.xml")
         cpids=[ int(x._pid) for x in app.comps ]
+        cpids.sort()
         self.assertNotEqual(app,None)
         self.assertNotEqual(cpids, 4)
 
@@ -1023,6 +1024,10 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         self.assertNotEqual(dom, None)
         self.assertEqual(len(dom.apps),1)
+
+        newpids=[ int(x._pid) for x in app.comps ]
+        newpids.sort()
+        self.assertEqual(cpids == newpids, True)
 
         # terminate the app, make sure each component process is terminated
         dom.apps[0].releaseObject()
