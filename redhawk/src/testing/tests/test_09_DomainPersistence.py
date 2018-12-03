@@ -984,3 +984,49 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(lhsProps, rhsProps)
         self.assert_(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
         self.assert_(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
+
+
+    def test_DomainAndGPPDisappear(self):
+        # startup domain manager, dev manager and a GPP
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        # launch a waveform, save off pids for later
+        from ossie.utils import redhawk
+        dom=redhawk.attach(scatest.getTestDomainName())
+        self.assertNotEqual(dom, None)
+
+        app=dom.createApplication("/waveforms/noop_waveform/noop_waveform.sad.xml")
+        cpids=[ int(x._pid) for x in app.comps ]
+        self.assertNotEqual(app,None)
+        self.assertNotEqual(cpids, 4)
+
+        # Kill the domain manager, device manager, gpp
+        os.kill(self._nb_domMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        os.killpg(self._nb_devMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_devMgr):
+            self.fail("Device Manager Failed to Die")
+
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self.assertNotEqual( self._domMgr, None )
+        self._nb_devMgr, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual( self._devMgr, None )
+
+        from ossie.utils import redhawk
+        for i in xrange(5):
+            dom=redhawk.attach(scatest.getTestDomainName())
+            if dom == None:
+                time.sleep(.25)
+
+        self.assertNotEqual(dom, None)
+        self.assertEqual(len(dom.apps),1)
+
+        # terminate the app, make sure each component process is terminated
+        dom.apps[0].releaseObject()
+        cpids=[ int(x._pid) for x in app.comps ]
+        for p in cpids:
+            self.assertRaises(OSError, os.kill, p, 0 )
+

@@ -1106,10 +1106,23 @@ void Application_impl::releaseComponents()
     }
 }
 
+
 void Application_impl::terminateComponents()
 {
     // Terminate any components that were executed on devices
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        if ( !ii->getAssignedDevice() ) {
+            // no assigned device, try to resolve using device id
+            if ( _domainManager ) {
+                ossie::DeviceList _registeredDevices = _domainManager->getRegisteredDevices();
+                for (ossie::DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); _dev++) {
+                    if ( ii->getAssignedDeviceId() == (*_dev)->identifier) {
+                        ii->setAssignedDevice( *_dev );
+                        break;
+                    }
+                }
+            }
+        }
         ii->terminate();
     }
 }

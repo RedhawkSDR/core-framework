@@ -2643,6 +2643,7 @@ Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode
         }
         component->setProcessId(compNode.processId);
         component->setComponentObject(compNode.componentObject);
+        component->setAssignedDeviceId(compNode.assignedDeviceId);
         ossie::DeviceList::iterator device = findDeviceById(compNode.assignedDeviceId);
         if (device == _registeredDevices.end()) {
             RH_WARN(this->_baseLog, "Could not find assigned device '" << compNode.assignedDeviceId
@@ -2703,7 +2704,12 @@ void DomainManager_impl::_persistApplication(Application_impl* application)
         compNode.loadedFiles = component.getLoadedFiles();
         compNode.processId = component.getProcessId();
         compNode.componentObject = component.getComponentObject();
-        compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
+        if ( component.getAssignedDevice() ) {
+            compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
+        }
+        else {
+            compNode.assignedDeviceId = component.getAssignedDeviceId();
+        }
         if (component.getComponentHost()) {
             compNode.componentHostId = component.getComponentHost()->getIdentifier();
         }
