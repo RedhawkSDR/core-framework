@@ -371,6 +371,14 @@ class GPPTests(GPPSandboxTest):
         event_channel.eventReceived.addListener(queue_message)
         self.comp.connect(event_channel, usesPortName="MessageEvent_out")
 
+        time.sleep(1)
+        queue_empty = False
+        while not queue_empty:
+            try:
+                event = self.queue.get(timeout=2.0)
+            except Queue.Empty:
+                queue_empty = True
+
         # Test all thresholds except NIC, which is a little more complex
         self._testThresholdEventType('cpu_idle', 'cpu', 'CPU_IDLE', 100)
         self._testThresholdEventType('mem_free', 'physical_ram', 'MEMORY_FREE', self.comp.memFree + 100)
