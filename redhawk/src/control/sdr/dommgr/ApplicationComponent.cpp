@@ -180,6 +180,20 @@ const boost::shared_ptr<ossie::DeviceNode>& ApplicationComponent::getAssignedDev
 void ApplicationComponent::setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& assignedDevice)
 {
     _assignedDevice = assignedDevice;
+    _assignedDeviceId = assignedDevice->identifier;
+}
+
+const std::string &  ApplicationComponent::getAssignedDeviceId() const
+{
+    if ( _assignedDevice ) {
+        return _assignedDevice->identifier;
+    }
+    return _assignedDeviceId;
+}
+
+void ApplicationComponent::setAssignedDeviceId(const std::string &devId )
+{
+    _assignedDeviceId = devId;
 }
 
 void ApplicationComponent::start()

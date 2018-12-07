@@ -2299,7 +2299,7 @@ void createHelper::waitForContainerRegistration(redhawk::ApplicationDeployment& 
     BOOST_FOREACH(redhawk::ContainerDeployment* container, appDeployment.getContainerDeployments()) {
         // Check that the component host registered with the application; it
         // should have a valid CORBA reference
-        CORBA::Object_ptr objref = container->getApplicationComponent()->getComponentObject();
+        CORBA::Object_var objref = container->getApplicationComponent()->getComponentObject();
         if (CORBA::is_nil(objref)) {
             throw redhawk::ExecuteError(container, "container did not register with application");
         }
@@ -2364,7 +2364,7 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
         if (softpkg->isScaCompliant()) {
             // Check that the component registered with the application; it
             // should have a valid CORBA reference
-            CORBA::Object_ptr objref = deployment->getApplicationComponent()->getComponentObject();
+            CORBA::Object_var objref = deployment->getApplicationComponent()->getComponentObject();
             if (CORBA::is_nil(objref)) {
                 std::string message = "component did not register with application";
                 message += ::getVersionMismatchMessage(softpkg);
