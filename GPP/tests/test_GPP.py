@@ -545,7 +545,7 @@ class GPPTests(GPPSandboxTest):
         # threshold
         self.clearBusyTasks()
         print 'Waiting for load average to fall below threshold, may take a while'
-        self.waitUsageState(CF.Device.IDLE, 30.0)
+        self.waitUsageState(CF.Device.IDLE, 60.0)
         self.assertEqual(self.comp.busy_reason, "")
 
     def testBusySharedMemory(self):
