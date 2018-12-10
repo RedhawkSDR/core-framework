@@ -9,6 +9,7 @@ stages:
  - package-redhawk-codegen
  - package-bulkio-gpp
  - package-burstio-fei
+ - abi
  - deploy
 
 .rpmbuild: &rpmbuild
@@ -302,6 +303,64 @@ test-trigger:release:
   #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+.abi-common: &abi-common
+  image: ${docker_registry}${rpmbuild_repository}rpmbuild:el7-x86_64
+  stage: abi
+  script:
+    - yum install -y libabigail
+    # Note that the dist macro used to incorrectly evaluate to ".el7.centos". Older RPMs (including 2.0.8) are affected.
+    - curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-{,debuginfo-}${base_ver_release}.el7.centos.x86_64.rpm"
+    - if curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.centos.x86_64.rpm"; then
+        devel="--devel-pkg1 ${rpm_name}-devel-${base_ver_release}.el7.centos.x86_64.rpm";
+        devel="$devel --devel-pkg2 output/${rpm_name}-devel-*.el7.x86_64.rpm";
+      fi
+    - abipkgdiff ${rpm_name}-${base_ver_release}.el7.centos.x86_64.rpm
+                 output/${rpm_name}-[0-9]*.el7.x86_64.rpm
+                 --debug-info-pkg1 ${rpm_name}-debuginfo-${base_ver_release}.el7.centos.x86_64.rpm
+                 --debug-info-pkg2 output/${rpm_name}-debuginfo-*.el7.x86_64.rpm
+                 $devel
+      | tee ${rpm_name}-abi-results.txt || true
+  artifacts:
+    paths:
+      - $rpm_name-abi-results.txt
+    expire_in: 30 days
+
+redhawk:abi:
+  variables:
+    s3_yum_location: '2-0-8'
+    rpm_name: 'redhawk'
+    base_ver_release: '2.0.8-5'
+  dependencies:
+    - redhawk:el7
+  <<: *abi-common
+
+bulkio:abi:
+  variables:
+    s3_yum_location: '2-0-8'
+    rpm_name: 'bulkioInterfaces'
+    base_ver_release: '2.0.8-5'
+  dependencies:
+    - bulkio:el7
+  <<: *abi-common
+
+frontend:abi:
+  variables:
+    s3_yum_location: '2-0-8'
+    rpm_name: 'frontendInterfaces'
+    base_ver_release: '2.3.8-5'
+  dependencies:
+    - frontend:el7
+  <<: *abi-common
+
+burstio:abi:
+  variables:
+    s3_yum_location: '2-0-8'
+    rpm_name: 'burstioInterfaces'
+    base_ver_release: '2.0.8-5'
+  dependencies:
+    - burstio:el7
+  <<: *abi-common
 
 .s3: &s3
   image: ${docker_registry}utils/s3cmd:el6-createrepo
