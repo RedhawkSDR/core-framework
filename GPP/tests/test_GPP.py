@@ -1323,12 +1323,19 @@ class AffinityTests(GPPSandboxTest):
         cpu_list = []
         with open('/proc/interrupts', 'r') as fp:
             for line in fp:
-                # Remove final newline and make sure the line ends with the NIC
-                # name (in the unlikely event a machine goes up to "em11")
+                # Deselect lines that end with neither of these:
+                # <NIC name>         eg eth0
+                # <NIC name>-*rx*    eg eth0-rxtx-0
                 line = line.rstrip()
-                if not line.endswith(nic):
+                words = line.split()
+                word = words[-1]
+                if len(word) > len(nic):
+                    suffix = word[len(nic):]
+                    if not (suffix.startswith('-') and 'rx' in suffix):
+                        continue
+                elif word != nic:
                     continue
-                # Discard the first entry (the IRQ number) and the last two
+                # Discard the first column (the IRQ number) and the last two
                 # (type and name) to get the CPU IRQ service totals
                 ncpus+=1
                 cpu_irqs = line.split()[1:ncpus]
