@@ -244,6 +244,16 @@ class DeviceManagerTest(scatest.CorbaTestCase):
     def test_DeviceBadOverload(self):
         # This device manager fails to launch because of a bad overloaded value
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_props_bad_numbers_node/DeviceManager.dcd.xml")
+        if devMgr:
+            begin_time = time.time()
+            while time.time()-begin_time < 5 and devMgr:
+                poll = devmgr_nb.poll()
+                if poll == None:
+                    time.sleep(0.5)
+                    continue
+                else:
+                    devMgr = None
+                    break
         self.assertEquals(devMgr, None)
 
     def test_DeviceInitializeFail(self):
@@ -1811,6 +1821,10 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        begin_time = time.time()
+        # add a 15 second timeout to wait for the java dependency to load
+        while (len(devMgr._get_registeredDevices()) != 3) and (time.time() - begin_time) < 15:
+            time.sleep(1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 3)
 
         devMgr.shutdown()

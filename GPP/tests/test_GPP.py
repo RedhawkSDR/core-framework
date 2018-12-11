@@ -371,6 +371,14 @@ class GPPTests(GPPSandboxTest):
         event_channel.eventReceived.addListener(queue_message)
         self.comp.connect(event_channel, usesPortName="MessageEvent_out")
 
+        time.sleep(1)
+        queue_empty = False
+        while not queue_empty:
+            try:
+                event = self.queue.get(timeout=2.0)
+            except Queue.Empty:
+                queue_empty = True
+
         # Test all thresholds except NIC, which is a little more complex
         self._testThresholdEventType('cpu_idle', 'cpu', 'CPU_IDLE', 100)
         self._testThresholdEventType('mem_free', 'physical_ram', 'MEMORY_FREE', self.comp.memFree + 100)
@@ -537,7 +545,7 @@ class GPPTests(GPPSandboxTest):
         # threshold
         self.clearBusyTasks()
         print 'Waiting for load average to fall below threshold, may take a while'
-        self.waitUsageState(CF.Device.IDLE, 30.0)
+        self.waitUsageState(CF.Device.IDLE, 60.0)
         self.assertEqual(self.comp.busy_reason, "")
 
     def testBusySharedMemory(self):

@@ -13,7 +13,8 @@ class EmptyString_i(EmptyString_base):
     """<DESCRIPTION GOES HERE>"""
     def __init__(self, identifier, execparams):
         EmptyString_base.__init__(self,identifier,execparams)
-        self.estr="ctor-value"
+        if not self.estr:
+            self.estr="ctor-value"
 
     def constructor(self):
         """
