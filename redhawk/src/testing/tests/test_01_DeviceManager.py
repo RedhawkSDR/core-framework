@@ -1811,6 +1811,9 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
+        begin_time = time.time()
+        while (len(devMgr._get_registeredDevices()) != 3) or (time.time() - begin_time) < 15:
+            time.sleep(1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 3)
 
         devMgr.shutdown()
