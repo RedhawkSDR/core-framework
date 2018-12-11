@@ -1812,7 +1812,8 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         begin_time = time.time()
-        while (len(devMgr._get_registeredDevices()) != 3) or (time.time() - begin_time) < 15:
+        # add a 15 second timeout to wait for the java dependency to load
+        while (len(devMgr._get_registeredDevices()) != 3) and (time.time() - begin_time) < 15:
             time.sleep(1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 3)
 
