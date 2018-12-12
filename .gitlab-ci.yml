@@ -308,15 +308,14 @@ test-trigger:release:
   stage: abi
   script:
     - yum install -y libabigail
-    # Note that the dist macro used to incorrectly evaluate to ".el7.centos". Older RPMs (including 2.0.8) are affected.
-    - curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-{,debuginfo-}${base_ver_release}.el7.centos.x86_64.rpm"
-    - if curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.centos.x86_64.rpm"; then
-        devel="--devel-pkg1 ${rpm_name}-devel-${base_ver_release}.el7.centos.x86_64.rpm";
+    - curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-{,debuginfo-}${base_ver_release}.el7.x86_64.rpm"
+    - if curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm"; then
+        devel="--devel-pkg1 ${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm";
         devel="$devel --devel-pkg2 output/${rpm_name}-devel-*.el7.x86_64.rpm";
       fi
-    - abipkgdiff ${rpm_name}-${base_ver_release}.el7.centos.x86_64.rpm
+    - abipkgdiff ${rpm_name}-${base_ver_release}.el7.x86_64.rpm
                  output/${rpm_name}-[0-9]*.el7.x86_64.rpm
-                 --debug-info-pkg1 ${rpm_name}-debuginfo-${base_ver_release}.el7.centos.x86_64.rpm
+                 --debug-info-pkg1 ${rpm_name}-debuginfo-${base_ver_release}.el7.x86_64.rpm
                  --debug-info-pkg2 output/${rpm_name}-debuginfo-*.el7.x86_64.rpm
                  $devel
       | tee ${rpm_name}-abi-results.txt || true
