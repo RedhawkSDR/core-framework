@@ -327,36 +327,36 @@ test-trigger:release:
 
 redhawk:abi:
   variables:
-    s3_yum_location: '2-0-8'
+    s3_yum_location: '2-2-0-rc5'
     rpm_name: 'redhawk'
-    base_ver_release: '2.0.8-5'
+    base_ver_release: '2.2.0-5'
   dependencies:
     - redhawk:el7
   <<: *abi-common
 
 bulkio:abi:
   variables:
-    s3_yum_location: '2-0-8'
+    s3_yum_location: '2-2-0-rc5'
     rpm_name: 'bulkioInterfaces'
-    base_ver_release: '2.0.8-5'
+    base_ver_release: '2.2.0-5'
   dependencies:
     - bulkio:el7
   <<: *abi-common
 
 frontend:abi:
   variables:
-    s3_yum_location: '2-0-8'
+    s3_yum_location: '2-2-0-rc5'
     rpm_name: 'frontendInterfaces'
-    base_ver_release: '2.3.8-5'
+    base_ver_release: '2.4.3-5'
   dependencies:
     - frontend:el7
   <<: *abi-common
 
 burstio:abi:
   variables:
-    s3_yum_location: '2-0-8'
+    s3_yum_location: '2-2-0-rc5'
     rpm_name: 'burstioInterfaces'
-    base_ver_release: '2.0.8-5'
+    base_ver_release: '2.2.0-5'
   dependencies:
     - burstio:el7
   <<: *abi-common
