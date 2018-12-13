@@ -1299,6 +1299,10 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             del os.environ['VALGRIND']
 
         self.assertFalse(devMgr is None)
+        # add some more time for device registration to complete
+        begin_time = time.time()
+        while len(devMgr._get_registeredDevices()) != 1 and time.time()-begin_time < 10:
+            time.sleep(0.5)
         self.assertEquals(len(devMgr._get_registeredDevices()), 1, msg='device failed to launch with valgrind')
         children = getChildren(nb.pid)
         self.assertEqual(len(children), 1)
