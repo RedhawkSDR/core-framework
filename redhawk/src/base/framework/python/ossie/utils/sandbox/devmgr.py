@@ -65,7 +65,10 @@ class DeviceManagerStub(CF__POA.DeviceManager):
 
     def shutdown(self):
         log.debug('Shutting down virtual DeviceManager')
-        poa.deactivate_object(self._object_id)
+        try:
+            poa.deactivate_object(self._object_id)
+        except:
+            pass
 
     def _registerDevice(self, identifier, device):
         if identifier in self.__devices:
