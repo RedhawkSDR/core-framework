@@ -2975,6 +2975,9 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         finally:
             del os.environ['VALGRIND']
         self.assertNotEqual(devMgr, None)
+        begin_time = time.time()
+        while len(devMgr._get_registeredDevices()) != 1 and time.time()-begin_time < 10:
+            time.sleep(0.1)
 
         # Create the application and create a lookup table of component IDs to
         # PIDs, then check that there is a log file for that PID in the device
