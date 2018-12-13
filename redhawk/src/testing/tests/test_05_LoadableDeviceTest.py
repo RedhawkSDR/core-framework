@@ -633,8 +633,13 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(cmd.value._v, "world")
 
         comp.start()
-        
+
+        begin_time = time.time()
         cmd = comp.query([CF.DataType(id="hello", value=any.to_any(None))])[0]
+        while cmd.value._v != "Java is so cool" and time.time()-begin_time < 15:
+            time.sleep(0.5)
+            cmd = comp.query([CF.DataType(id="hello", value=any.to_any(None))])[0]
+
         self.assertEqual(cmd.value._v, "Java is so cool")
 
         app.stop()
