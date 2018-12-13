@@ -47,3 +47,5 @@ noinst_PROGRAMS = benchmark_bitops
 
 benchmark_bitops_SOURCES = benchmark_bitops.cpp
 benchmark_bitops_CXXFLAGS = -Wall
+
+CLEANFILES = libossiecf-cppunit-results.xml

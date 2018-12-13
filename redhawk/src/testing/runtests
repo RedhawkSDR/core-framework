@@ -17,29 +17,11 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+dirs="cpp java python"
+for x in $dirs
+do
+    pushd $x > /dev/null 2>&1
+    ./runtests "${@}"
+    popd  > /dev/null 2>&1
+done
 
-include $(top_srcdir)/aminclude/jarfile.am
-
-TESTS = test_ossie
-check_SCRIPTS = test_ossie
-
-noinst_java_JARFILES = ossie-tests.jar
-
-ossie_tests_jar_SOURCE = Main.java
-ossie_tests_jar_SOURCE += AllTests.java
-ossie_tests_jar_SOURCE += MessagingTest.java
-ossie_tests_jar_SOURCE += PortManager.java
-ossie_tests_jar_SOURCE += utils/Assert.java
-ossie_tests_jar_SOURCE += utils/ChainFilter.java
-ossie_tests_jar_SOURCE += utils/TestFilter.java
-ossie_tests_jar_SOURCE += utils/TextListener.java
-
-ossie_tests_jar_CLASSPATH=$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
-ossie_tests_jar_JAVACFLAGS = -g -Xlint
-
-test_ossie : ossie-tests.jar Makefile
-	@echo "#!/bin/bash" > $@
-	@echo "exec java -cp ossie-tests.jar:$(ossie_tests_jar_CLASSPATH) Main \$$*" >> $@
-	@chmod +x $@
-
-CLEANFILES = test_ossie libossiecf-junit-results.xml

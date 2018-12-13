@@ -1,0 +1,71 @@
+<project name="redhawk-libossiecf-java-tests" default="test" basedir=".">
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK bulkioInterfaces.
+
+REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+  <description>
+    Builds and runs the JUnit tests and produces XML output
+  </description>
+
+  <property environment="env" />
+  <property name="src.dir" location="${basedir}" />
+  <property name="reports.dir" location="${basedir}/reports" />
+  <property name="build.dir" location="${basedir}" />
+  <property name="top.dir" location="${basedir}/../.." />
+  <property name="lib.java.dir" location="${basedir}/../../base/framework/java" />
+
+  <path id="junit.class.path">
+    <pathelement path="${java.class.path}"/>
+    <pathelement location="${basedir}/ossie-tests.jar"/>
+    <pathelement location="${lib.java.dir}/CFInterfaces.jar"/>
+    <pathelement location="${lib.java.dir}/log4j-1.2.15.jar"/>
+    <pathelement location="${lib.java.dir}/apache-commons-lang-2.4.jar"/>
+    <pathelement location="${lib.java.dir}/ossie/ossie.jar"/>
+    <pathelement location="${lib.java.dir}/ossie/ossie-legacy.jar"/>
+    <pathelement location="/usr/share/java/junit4.jar"/>
+  </path>
+
+  <target name="compile">
+    <exec executable="/usr/bin/make">
+      <arg value="ossie-tests.jar"/>
+    </exec>
+  </target>
+
+  <target name="test" depends="compile">
+    <mkdir dir="${reports.dir}"/>
+    <junit fork="yes" printsummary="yes" haltonfailure="no" >
+      <classpath refid="junit.class.path"/>
+      <sysproperty key="java.library.path" value="${java.library.path}:${top.dir}/jni/.libs"/>
+      <formatter type="xml"/>
+
+      <test name="AllTests" todir="${basedir}/" outfile="libossiecf-junit-results"/> 
+
+<!-- batch mode
+      <batchtest fork="yes" todir="${reports.dir}">
+        <fileset dir="${src.dir}">
+          <include name="*Test*.java"/>
+          <exclude name="**/AllTests.java"/>
+        </fileset>
+      </batchtest>
+-->
+
+    </junit>
+  </target>
+
+</project>
