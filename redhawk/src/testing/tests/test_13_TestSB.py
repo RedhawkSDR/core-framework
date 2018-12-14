@@ -18,25 +18,34 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest
-from _unitTestHelpers import scatest
-from ossie.cf import CF
-from ossie.cf import StandardEvent
-from omniORB import CORBA, any
 import os
 import Queue
-from ossie.utils import sb
-from ossie.utils import type_helpers
-from ossie import properties as _properties
-import threading
-globalsdrRoot = os.environ['SDRROOT']
+import unittest
 import sys
 import commands
 import cStringIO
 import time
 import copy
+import threading
+import warnings
+import subprocess
+import commands
 import struct
-import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
+import tempfile
+
+from omniORB import CORBA, any, tcInternal
+
+from ossie import properties
+from ossie.cf import CF, StandardEvent
+from ossie.utils import sb, type_helpers
+from ossie.utils.bulkio import bulkio_helpers
+from ossie.events import ChannelManager, Subscriber, Publisher
+from ossie.utils.bulkio import bulkio_data_helpers
+
+from _unitTestHelpers import scatest, runtestHelpers
+import traceback
+
+globalsdrRoot = os.environ['SDRROOT']
 try:
     from bulkio.bulkioInterfaces import BULKIO
 except:
@@ -60,6 +69,234 @@ def _initSourceAndSink(dataFormat):
 
     return source, sink
 
+
+def compareKeywordLists( a, b ):
+    for keyA, keyB in zip(a, b):
+        if keyA.id  != keyB.id:
+            return False
+        if keyA.value._t != keyB.value._t:
+            if isinstance(keyA.value._t,tcInternal.TypeCode_sequence):
+                if keyA.value._t.content_type() != keyB.value._t.content_type():
+                    return False
+            else:
+                return False
+        if keyA.value._v != keyB.value._v:
+            return False
+    return True
+
+@scatest.requireJava
+class InteractiveTestJava(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractiveJavaService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/BasicService_java/java/startJava.sh -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractiveJavaDevice(self):
+        status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice_java/java/startJava.sh -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractiveJavaComponent(self):
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_JAVA/java/startJava.sh -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+class InteractiveTestPython(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractivePythonService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/S1/python/S1.py -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractivePythonDevice(self):
+        status, output=commands.getstatusoutput('sdr/dev/devices/BasicTestDevice/BasicTestDevice.py -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractivePythonComponent(self):
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_PY/python/ECM_PY.py -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+class InteractiveTestCpp(scatest.CorbaTestCase):
+    def setUp(self):
+        self.message = "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+
+    def tearDown(self):
+        pass
+
+    def test_NoInteractiveCppService(self):
+        status, output=commands.getstatusoutput('sdr/dev/services/BasicService_cpp/cpp/BasicService_cpp -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractiveCppDevice(self):
+        status, output=commands.getstatusoutput('sdr/dev/devices/cpp_dev/cpp/cpp_dev -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+    def test_NoInteractiveCppComponent(self):
+        status, output=commands.getstatusoutput('sdr/dom/components/ECM_CPP/cpp/ECM_CPP -i')
+        self.assertNotEquals(output.find(self.message),-1)
+
+def wait_on_data(sink, number_timestamps, timeout=1):
+    begin_time = time.time()
+    estimate = sink.getDataEstimate()
+    while estimate.num_timestamps != number_timestamps:
+        time.sleep(0.1)
+        estimate = sink.getDataEstimate()
+        if time.time() - begin_time > timeout:
+            break
+
+def wait_for_eos(sink, timeout=10):
+    begin_time = time.time()
+    while not sink.eos():
+        time.sleep(0.1)
+        if time.time() - begin_time > timeout:
+            break
+
+class SBEventChannelTest(scatest.CorbaTestCase):
+    def setUp(self):
+        orb = CORBA.ORB_init()
+        self.chanMgr = ChannelManager(orb)
+        # Force creation
+        self.channel = self.chanMgr.createEventChannel("TestChan", force=True)
+        sb.setDEBUG(False)
+
+    def tearDown(self):
+        try:
+            if self.channel:
+                self.chanMgr.destroyEventChannel("TestChan")                           
+        except:
+            pass
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+        
+    def _waitData(self, sub, timeout):
+        end = time.time() + timeout
+        while time.time() < end:
+            data = sub.getData()
+            if data:
+                return data._v
+        return None
+
+    def test_PublishSubscribePull(self):
+        sub = Subscriber( self.channel )
+        pub = Publisher( self.channel )
+        payload = 'hello'
+        data = any.to_any(payload)
+        pub.push(data)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
+        pub.terminate()
+        sub.terminate()
+        
+    def test_PublishSubscribeCB(self):
+        queue = Queue.Queue()
+        sub = Subscriber(self.channel, dataArrivedCB=queue.put)
+        pub = Publisher(self.channel)
+        payload = 'hello'
+        data = any.to_any(payload)
+        pub.push(data)
+        rec_data = queue.get(timeout=1.0)
+        self.assertEquals(rec_data._v, payload)
+        pub.terminate()
+        sub.terminate()
+
+@scatest.requireLog4cxx
+class SBStdOutTest(scatest.CorbaTestCase):
+    def setUp(self):
+        sb.setDEBUG(False)
+        self.test_comp = "Sandbox"
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.release()
+        sb.setDEBUG(False)
+        os.environ['SDRROOT'] = globalsdrRoot
+        try:
+            os.remove(self.tmpfile)
+        except:
+            pass
+
+    def test_debugCmdExec(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', execparams={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertTrue('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugDevCmdExec(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dev/devices/devcpp/devcpp.spd.xml', execparams={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example TRACE log message' in stdout_contents)
+        self.assertTrue('TRACE devcpp_1.system.Device' in stdout_contents)
+        self.assertTrue('serviceFunction() example DEBUG log message' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdProp(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', properties={'DEBUG_LEVEL':5}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertTrue('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertTrue('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdExecNoMsg(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', execparams={'DEBUG_LEVEL':4}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertFalse('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
+    def test_debugCmdPropNoMsg(self):
+        self.tmpfile=tempfile.mktemp()
+        fp_tmpfile=open(self.tmpfile, 'w')
+        comp = sb.launch('sdr/dom/components/C2/C2.spd.xml', properties={'DEBUG_LEVEL':4}, stdout=fp_tmpfile)
+        sb.start()
+        time.sleep(0.4)
+        fp_tmpfile.close()
+        new_stdout=open(self.tmpfile,'r')
+        stdout_contents=new_stdout.read()
+        self.assertFalse('serviceFunction() example log message - TRACE' in stdout_contents)
+        self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
+        self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
+        new_stdout.close()
+
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)
@@ -74,7 +311,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
 
     def tearDown(self):
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 
@@ -123,13 +360,23 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_pid(self):
         a = sb.launch('comp_src')
-        status,output = commands.getstatusoutput('ps -ww -f | grep comp_src')
+        status,output = commands.getstatusoutput('ps -ww -f | grep comp_src ')
         lines = output.split('\n')
         for line in lines:
           if 'IOR' in line:
             break
         _pid = line.split()[1]
         self.assertEquals(int(_pid), a._pid)
+
+    def test_cleanHeap(self):
+        a = sb.launch('alloc_shm')
+        ch_pid = a._sandbox._getComponentHost()._pid
+        self.assertTrue(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
+        os.kill(ch_pid, 9)
+        begin = time.time()
+        while time.time()-begin < 1 and os.path.isfile('/dev/shm/heap-'+str(ch_pid)):
+            time.sleep(0.1)
+        self.assertFalse(os.path.isfile('/dev/shm/heap-'+str(ch_pid)))
 
     def test_doubleNamedConnection(self):
         a = sb.launch('comp_src')
@@ -171,7 +418,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
         # Make sure only one instance name and refid can be used
         comp = sb.launch(self.test_comp, "comp")
-        comp.api()
+        comp.api(destfile=sys.stdout)
         refid = comp._refid
         self.assertRaises(ValueError, sb.launch, self.test_comp, "comp")
         self.assertRaises(ValueError, sb.launch, self.test_comp, "new_comp", refid)
@@ -210,7 +457,7 @@ class SBTestTest(scatest.CorbaTestCase):
         except:
             pass
             
-        self.assertTrue('ERROR:svc_fn_error' in log_contents)
+        self.assertTrue('test exception in process()' in log_contents)
 
     def test_propertyInitialization(self):
         """
@@ -223,16 +470,27 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertFalse('cmdline' in comp.initialize_props)
         comp.releaseObject()
 
-        # Test with (correct) overrides
+        # Test with overrides
         comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
-                         execparams={'cmdline':'override'}, configure={'initial':'override'})
+                         properties={'cmdline':'override', 'initial':'override'})
         self.assertFalse('initial' in comp.cmdline_args)
         self.assertFalse('cmdline' in comp.initialize_props)
         self.assertEquals('override', comp.cmdline)
         self.assertEquals('override', comp.initial)
         comp.releaseObject()
 
-        # Test with misplaced command line property
+        # Test with overrides in deprecated 'execparams' and 'configure' arguments
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
+                             execparams={'cmdline':'override'}, configure={'initial':'override'})
+        self.assertFalse('initial' in comp.cmdline_args)
+        self.assertFalse('cmdline' in comp.initialize_props)
+        self.assertEquals('override', comp.cmdline)
+        self.assertEquals('override', comp.initial)
+        comp.releaseObject()
+
+        # Test with misplaced command line property in deprecated 'configure' argument
         comp = sb.launch('sdr/dom/components/property_init/property_init.spd.xml',
                          configure={'cmdline':'override'})
         self.assertFalse('initial' in comp.cmdline_args)
@@ -240,18 +498,57 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals('override', comp.cmdline)
         comp.releaseObject()
 
-        # A non-command line property in the wrong override should throw an exception
-        self.assertRaises(ValueError, sb.launch, 'sdr/dom/components/property_init/property_init.spd.xml',
-                          execparams={'initial':'override'})
+    def test_writeOnly(self):
+        dev = sb.launch('writeonly_cpp')
+        try:
+            print dev.foo
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo" is a writeonly property')
+        try:
+            print dev.foo_seq
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_seq" is a writeonly property')
+        try:
+            print dev.foo_struct
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_struct" is a writeonly property')
+        try:
+            print dev.foo_struct_seq
+            self.assertTrue(False)
+        except Exception, e:
+            self.assertEquals(e.args[0], 'Could not perform query, "foo_struct_seq" is a writeonly property')
 
     def test_zeroLengthSeqStruct(self):
         """
         Tests for the correct initialization of 'property' kind properties
         based on whether command line is set, and overrides via launch().
         """
-        # First, test with defaults
-        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml')
+        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml', impl='cpp')
         self.assertNotEqual(comp, None)
+        prop = comp.query([CF.DataType('mystruct', any.to_any(None))])
+        found = False
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+        self.assertTrue(found)
+
+        comp = sb.launch('sdr/dom/components/zero_length/zero_length.spd.xml', impl='python')
+        self.assertNotEqual(comp, None)
+        prop = comp.query([CF.DataType('mystruct', any.to_any(None))])
+        found = False
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+        self.assertTrue(found)
 
     def test_nestedSoftPkgDeps(self):
         cwd = os.getcwd()
@@ -296,7 +593,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_simpleComp(self):
         comp = sb.launch(self.test_comp)
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Check the init values
         self.initValues(comp)
@@ -457,7 +754,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_illegalPropertyNames(self):
         comp = sb.launch(self.test_comp)
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         self.initValues(comp)
 
@@ -502,6 +799,10 @@ class SBTestTest(scatest.CorbaTestCase):
         comp_ac = sb.getComponent('ticket_462_ac_1')
         self.assertNotEquals(comp_ac, None)
         comp = sb.getComponent('ticket_462_1')
+        comp_id = comp._get_identifier()
+        self.assertEquals(len(comp_id.split(':')), 2)
+        self.assertEquals(comp_id.split(':')[0], 'ticket_462_1')
+        self.assertEquals(comp_id.split(':')[1], 'ticket_462_w')
         self.assertNotEquals(comp, None)
         self.assertEquals(comp_ac.my_simple, "foo")
         self.assertEquals(comp_ac.my_seq, ["initial value"])
@@ -509,6 +810,58 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.over_simple, "override")
         self.assertEquals(comp.over_struct_seq, [{'a_word': 'something', 'a_number': 1}])
 
+    def test_connectPortSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectProvidesPort/PortConnectProvidesPort.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <providesport>\n        <providesidentifier>@__PORTNAME__@</providesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </providesport>\n'
+        provides_string = provides_string.replace('@__PORTNAME__@', 'resource_in')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
+    def test_connectSupportedInterfaceSADFile(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/PortConnectComponentSupportedInterface/PortConnectComponentSupportedInterface.sad.xml')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', 'DCE:5faf296f-3193-49cc-8751-f8a64b315fdf')
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', 'DCE:12ab27fb-01bd-4189-8d1d-0043b87c4f74')
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
+
+    def test_connectSandbox(self):
+        src=sb.launch('PortTest')
+        snk=sb.launch('PortTest')
+        src.connect(snk, usesPortName='resource_out')
+        sad=sb.generateSADXML('hello')
+
+        uses_string = '\n      <usesport>\n        <usesidentifier>@__PORTNAME__@</usesidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </usesport>\n'
+        uses_string = uses_string.replace('@__PORTNAME__@', 'resource_out')
+        uses_string = uses_string.replace('@__COMPONENTINSTANCE__@', src._id)
+
+        provides_string = '\n      <componentsupportedinterface>\n        <supportedidentifier>@__PORTINTERFACE__@</supportedidentifier>\n        <componentinstantiationref refid="@__COMPONENTINSTANCE__@"/>\n      </componentsupportedinterface>\n'
+        provides_string = provides_string.replace('@__PORTINTERFACE__@', 'IDL:CF/Resource:1.0')
+        provides_string = provides_string.replace('@__COMPONENTINSTANCE__@', snk._id)
+
+        non_colon_connectionid = '<connectinterface id="DCE_'
+
+        self.assertNotEqual(sad.find(uses_string), -1)
+        self.assertNotEqual(sad.find(provides_string), -1)
+        self.assertNotEqual(sad.find(non_colon_connectionid), -1)
+        self.assertEquals(sad.find('DCE:DCE'), -1)
 
     def test_loadSADFile_startorder(self):
         maxpid=32768
@@ -660,7 +1013,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_simplePropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper range
         comp.my_octet_name = 255
@@ -715,7 +1068,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_structPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper range
         comp.my_struct_name.struct_octet_name = 255
@@ -820,7 +1173,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_seqPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper and lower bounds
         comp.seq_octet_name[0] = 0
@@ -883,7 +1236,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_structSeqPropertyRange(self):
         comp = sb.launch('TestPythonPropsRange')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Test upper and lower bounds
         comp.my_structseq_name[0].ss_octet_name = 255
@@ -1002,7 +1355,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def test_readOnlyProps(self):
         comp = sb.launch('Sandbox')
-        comp.api()
+        comp.api(destfile=sys.stdout)
 
         # Properties should be able to be read, but not set, and all should throw the saem exception
         exception = None
@@ -1242,7 +1595,7 @@ class SBTestTest(scatest.CorbaTestCase):
         sandbox.
         """
         try:
-            comp = sb.launch('SlowComponent', execparams={'CREATE_DELAY': 15}, timeout=20)
+            comp = sb.launch('SlowComponent', properties={'CREATE_DELAY': 15}, timeout=20)
         except RuntimeError:
             self.fail('Launch timeout was not honored')
 
@@ -1254,7 +1607,7 @@ class SBTestTest(scatest.CorbaTestCase):
         # NB: The default value for 'complexCharProp' raises a non-fatal
         #     exception during launch. Overriding it avoids the error message,
         #     though in general, complex char properties should be avoided.
-        comp = sb.launch('TestComplexProps', configure={'complexCharProp':('a','b')})
+        comp = sb.launch('TestComplexProps', properties={'complexCharProp':('a','b')})
         value = range(4)
         try:
             comp.complexFloatSequence = value
@@ -1340,7 +1693,7 @@ class SBTestTest(scatest.CorbaTestCase):
         service1_id = service1._refid
 
         # Launch second instance by ID (added in 1.10)
-        service2 = sb.launch('BasicService', execparams={'PARAM4':True,'PARAM5':'Message'})
+        service2 = sb.launch('BasicService', properties={'PARAM4':True,'PARAM5':'Message'})
         service2_name = service2._instanceName
         service2_id = service2._refid
 
@@ -1367,28 +1720,28 @@ class SBTestTest(scatest.CorbaTestCase):
     def test_ComplexListConversions(self):
         # Test interleaved-to-complex
         inData = range(4)
-        outData = _bulkio_helpers.bulkioComplexToPythonComplexList(inData)
+        outData = bulkio_helpers.bulkioComplexToPythonComplexList(inData)
         self.assertEqual(outData,[complex(0,1),complex(2,3)])
 
         # Test complex-to-interleaved
         cxData = [complex(x+0.5,0) for x in xrange(4)]
-        outData = _bulkio_helpers.pythonComplexListToBulkioComplex(cxData)
+        outData = bulkio_helpers.pythonComplexListToBulkioComplex(cxData)
         self.assertEqual(outData, [0.5,0.0,1.5,0.0,2.5,0.0,3.5,0.0])
 
         # Ensure that conversion does not modify the original list
         self.assertTrue(isinstance(cxData[0],complex))
 
         # Test inline type conversion (should truncate)
-        outDataInt = _bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
+        outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
         self.assertEqual(outDataInt[0], 0)
         self.assertEqual(outDataInt, [int(x) for x in outData])
     
     def test_apiBeforeLaunch(self):
         try:
-            sb.api("TestCppProps")
-            sb.api("SimpleDevice")
+            sb.api("TestCppProps", destfile=sys.stdout)
+            sb.api("SimpleDevice", destfile=sys.stdout)
             # Building Java support is not necessary to test sb.api()
-            sb.api("BasicService_java")
+            sb.api("BasicService_java", destfile=sys.stdout)
         except:
             self.fail("sb.api(<objectName>) failure")
 
@@ -1419,6 +1772,32 @@ class SBTestTest(scatest.CorbaTestCase):
 
         self.assertEqual(len(comp.received_messages), 1)
         self.assertEqual(comp.received_messages[0], "test_message,0.0,'first'")
+
+    def test_BasicSharedComponent(self):
+        """
+        Test that two shared library components launched from the sandbox have
+        the same process ID.
+        """
+        comp1 = sb.launch('BasicShared')
+        comp2 = sb.launch('BasicShared')
+        self.assertEqual(int(comp1.pid), int(comp2.pid))
+
+    def test_NotSharedComponent(self):
+        """
+        Test that forcing a shared library component to run in a non-shared
+        context reports a different process ID.
+        """
+        comp1 = sb.launch('BasicShared')
+        comp2 = sb.launch('BasicShared', shared=False)
+        self.assertNotEqual(int(comp1.pid), int(comp2.pid))
+
+
+class Test_DataSDDSSource(unittest.TestCase):
+
+    def test_CreateSDDSSource(self):
+        source = sb.DataSourceSDDS()
+        self.assertNotEquals(source, None)
+
 
 
 class BulkioTest(unittest.TestCase):
@@ -1511,7 +1890,7 @@ class BulkioTest(unittest.TestCase):
         if len(filter(isComplex, originalData)):
             # in this case, the DataSink will return bulkio complex data
             # convert the originalData to the bulkio data format.
-            originalData = _bulkio_helpers.pythonComplexListToBulkioComplex(originalData)
+            originalData = bulkio_helpers.pythonComplexListToBulkioComplex(originalData)
 
             # make sure the mode flag was automatically set
             self.assertEquals(sink.sri().mode, True)
@@ -1570,8 +1949,6 @@ class BulkioTest(unittest.TestCase):
                     dataFormat   = format)
 
     def test_DataSinkBadTimeStamp(self):
-        if 'bulkio.bulkioInterfaces.BULKIO' not in sys.modules:
-            return
         datasink = sb.DataSink()
         port=datasink.getPort('shortIn')
         sb.start()
@@ -1702,6 +2079,7 @@ class BulkioTest(unittest.TestCase):
                 break
         (_data, _tstamps) = sink.getData(tstamps=True)
         xdelta = sink.sri().xdelta
+        print _tstamps
         self.assertEquals(_tstamps[0][1].twsec, _startTime)
         self.assertEquals(_tstamps[1][1].twsec, _tstamps[1][0]*sink.sri().xdelta+_startTime)
         self.assertEquals(_tstamps[2][1].twsec, _tstamps[2][0]*sink.sri().xdelta+_startTime)
@@ -1743,7 +2121,7 @@ class BulkioTest(unittest.TestCase):
         sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
-        
+
         # test default sample rate
         _srcData = [1,2,3,4]
         source.push(_srcData)
@@ -1831,6 +2209,312 @@ class BulkioTest(unittest.TestCase):
         _round_time = int(round(_orig_time*10))/10.0
         self.assertEquals(_round_time, toffset+len(_srcData)/_sampleRate)
 
+
+    def test_DataSourceTimeStampParam(self):
+        """
+        Verify that the time stamp param is honored
+        """
+        _timeout = 1
+        _startTime = 10
+        _sampleRate = 1.0
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+
+        # test default sample rate
+        _srcData = [1,2,3,4]
+        source.push(_srcData)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        begin_time = time.time()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1)
+        self.assertEquals(_tstamps[0][1].twsec, _startTime)
+        self.assertEquals(_tstamps[1][1].twsec, _startTime+len(_srcData))
+        
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+
+        # test modified sample rate
+        _sampleRate = 10.0
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData,sampleRate=_sampleRate, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+
+        # test modified sample rate
+        _sampleRate=5.0
+        _sri=source.sri()
+        _sri.xdelta = 1.0/_sampleRate
+        _ts = sb.createTimeStamp()
+        begin_time = _ts.twsec+_ts.tfsec
+        _toffset =begin_time
+        source.push(_srcData,sri=_sri, ts=_ts)
+        source.push(_srcData)
+        estimate = sink.getDataEstimate()
+        while estimate.num_timestamps != 2:
+            time.sleep(0.1)
+            estimate = sink.getDataEstimate()
+            if time.time() - begin_time > _timeout:
+                break
+        (_data, _tstamps) = sink.getData(tstamps=True)
+        self.assertEquals(len(_data), len(_srcData)*2)
+        self.assertEquals(sink.sri().xdelta, 1/_sampleRate)
+        _pkt_time = _tstamps[0][1].twsec+_tstamps[0][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round(_toffset*10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+        _pkt_time = _tstamps[1][1].twsec+_tstamps[1][1].tfsec
+        _rnd_pkt_time = int(round(_pkt_time*10))/10.0
+        _rnd_toffset = int(round( (_toffset+len(_srcData)/_sampleRate) *10))/10.0
+        self.assertEquals(_rnd_pkt_time,_rnd_toffset )
+
+    def _fileSourceThrottle(self, _file, rate):
+        fp=open(_file, 'r')
+        contents = fp.read()
+        fp.close()
+        source = sb.FileSource(_file, dataFormat='octet', sampleRate=rate, throttle=True)
+        sink = sb.DataSink()
+        source.connect(sink)
+        time_estimate = len(contents)/float(rate)
+        sb.start()
+        begin_time = time.time()
+        wait_for_eos(sink)
+        time_diff = time.time()-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+        sb.stop()
+
+    def test_FileSourceThrottle(self):
+        infile = os.path.join(sb.getSDRROOT(), 'dom/mgr/DomainManager.spd.xml')
+        self._fileSourceThrottle(infile, 1000)
+        self._fileSourceThrottle(infile, 1500)
+
+    def test_DataSourceThrottle(self):
+        src = sb.DataSource(dataFormat='float', throttle=True)
+        snk = sb.DataSink()
+        src.connect(snk)
+        sb.start()
+        _sampleRate = 500
+        _dataLength = 100
+        time_estimate = (3.0*_dataLength)/(_sampleRate)
+        begin_time = time.time()
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        wait_on_data(snk, 3, 5)
+        end_time = time.time()
+        time_diff = end_time-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+
+        data=snk.getData()
+        self.assertEquals(len(data), 3.0*_dataLength)
+
+        _sampleRate = 300
+        _dataLength = 100
+        time_estimate = (3.0*_dataLength)/(_sampleRate)
+        begin_time = time.time()
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        src.push([float(x) for x in range(100)],sampleRate=_sampleRate)
+        wait_on_data(snk, 3, 5)
+        end_time = time.time()
+        time_diff = end_time-begin_time
+        self.assertTrue(time_diff<time_estimate*1.1)
+        self.assertTrue(time_diff>time_estimate*0.9)
+
+        data=snk.getData()
+        self.assertEquals(len(data), 3.0*_dataLength)
+
+    class customSink(bulkio_data_helpers.ArraySink):
+        def __init__(self, porttype):
+            bulkio_data_helpers.ArraySink.__init__(self, porttype)
+
+        def pushSRI(self, H):
+            _H = H
+            _H.xdelta = H.xdelta * 2
+            self.sri = _H
+
+    def test_CustomDataSink(self):
+        src = sb.DataSource(dataFormat='float')
+        snk = sb.DataSink(sinkClass=self.customSink)
+        src.connect(snk)
+        sb.start()
+        src.push([1,2,3,4,5],sampleRate=100)
+        src.push([1,2,3,4,5],sampleRate=1000)
+        src.push([1,2,3,4,5],sampleRate=10000)
+        wait_on_data(snk, 3)
+        data=snk.getData(tstamps=True)
+        self.assertEquals(snk._sink.sri.xdelta, 0.0002)
+
+    def test_DataSourceSRI(self):
+        _timeout = 1
+        _startTime = 10
+        source = sb.DataSource(startTime=_startTime)
+        sink = sb.DataSink()
+        source.connect(sink, usesPortName='floatOut')
+        sb.start()
+
+        # get an sri
+        _sri = source.sri()
+        
+        sid = 'test-sri-1'
+        _sri.streamID=sid
+        _sri.xdelta = 0.1234
+
+        # push samples down stream, with custom sri
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+
+        # add keywords as a param
+        kws=[]
+        kws.append(sb.SRIKeyword('kw1',1000,'long'))
+        kws.append(sb.SRIKeyword('kw2',12456.0,'float'))
+        kws.append(sb.SRIKeyword('kw3',16,'short'))
+        kws.append(sb.SRIKeyword('kw4', 200,'octet'))
+        kws.append(sb.SRIKeyword('kw5','this is a test','string'))
+        kws.append(sb.SRIKeyword('kw6',[1,2],'[short]'))
+
+        expectedType = properties.getTypeCode('short')
+        expectedTypeCode = tcInternal.createTypeCode((tcInternal.tv_sequence, expectedType._d, 0))
+        kw6 = CORBA.Any(expectedTypeCode, [1,2])
+
+        matchkws=[ CF.DataType(id='kw1', value=CORBA.Any(CORBA.TC_long, 1000)), 
+                   CF.DataType(id='kw2', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
+                   CF.DataType(id='kw3', value=CORBA.Any(CORBA.TC_short, 16)), 
+                   CF.DataType(id='kw4', value=CORBA.Any(CORBA.TC_octet, 200)), 
+                   CF.DataType(id='kw5', value=CORBA.Any(CORBA.TC_string, 'this is a test')),
+                   CF.DataType(id='kw6', value=kw6)
+                   ]
+        _srcData = [1,2,3,4]
+        source.push(_srcData, SRIKeywords=kws )
+        begin_time = time.time()
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+        self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
+
+        # Repeat, making sure that a second push with keywords does not fail
+        source.push(_srcData, SRIKeywords=kws)
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        self.assertTrue(data)
+
+        # add new keywords to sri
+        matchkws=[ CF.DataType(id='kw1-1', value=CORBA.Any(CORBA.TC_long, 1000)), 
+                   CF.DataType(id='kw2-1', value=CORBA.Any(CORBA.TC_float, 12456.0)), 
+                   CF.DataType(id='kw3-1', value=CORBA.Any(CORBA.TC_short, 16)), 
+                   CF.DataType(id='kw4-1', value=CORBA.Any(CORBA.TC_octet, 200)), 
+                   CF.DataType(id='kw5-1', value=CORBA.Any(CORBA.TC_string, 'this is a test'))
+                   ]
+        _sri.keywords=copy.copy(matchkws)
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+        self.assertAlmostEquals(rsri.xdelta, 0.1234)
+        self.assertEqual(True, compareKeywordLists( rsri.keywords, matchkws) )
+
+        # try pushing using the same sri object with changing attributes
+        _sri = sb.createSRI()
+        _sri.streamID=sid
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, sid )
+
+        _sri.streamID='anewsri'
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.streamID, 'anewsri' )
+
+        _sri.mode=1
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.mode, 1 )
+
+        _sri.mode=0
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.mode, 0 )
+
+        _sri.hversion=100
+        _srcData = [1,2,3,4]
+        source.push(_srcData, sri=_sri )
+        wait_on_data(sink, 1)
+        data=sink.getData()
+        rsri=sink.sri()
+        self.assertEquals(rsri.hversion, 100 )
+
+
     def test_DataSinkSubsize(self):
         src=sb.DataSource(dataFormat='short',subsize=5)
         snk=sb.DataSink()
@@ -1857,6 +2541,23 @@ class BulkioTest(unittest.TestCase):
         src.connect(snk)
         src.push(inData,EOS=True,complexData=True)
         recData = snk.getData(eos_block=True)
+        self.assertEqual(len(recData),_frames/2)
+        self.assertEqual(len(recData[0]),_subsize*2)
+
+    def test_SubsizeComplexNoEOS(self):
+        # Test interleaved-to-complex
+        _subsize = 10
+        _frames = 4
+        inData = range(_subsize * _frames)
+        src=sb.DataSource(dataFormat='short',subsize=_subsize)
+        snk=sb.DataSink()
+        sb.start()
+        src.connect(snk)
+        src.push(inData,complexData=True)
+
+        wait_on_data(snk, 1)
+        recData = snk.getData()
+
         self.assertEqual(len(recData),_frames/2)
         self.assertEqual(len(recData[0]),_subsize*2)
 
@@ -1999,15 +2700,9 @@ class BulkioTest(unittest.TestCase):
 class MessagePortTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(True)
-        self.test_comp = "Sandbox"
-        # Flagrant violation of sandbox API: if the sandbox singleton exists,
-        # clean up previous state and dispose of it.
-        if sb.domainless._sandbox:
-            sb.domainless._sandbox.shutdown()
-            sb.domainless._sandbox = None
 
     def tearDown(self):
-        sb.domainless._getSandbox().shutdown()
+        sb.release()
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
 
@@ -2020,7 +2715,7 @@ class MessagePortTest(scatest.CorbaTestCase):
                self.count=0
 
            def msgCallback(self, id, msg):
-               self.msg = _properties.prop_to_dict(msg)
+               self.msg = properties.prop_to_dict(msg)
                self.count = self.count + 1
                self.cond.acquire()
                self.cond.notify()
@@ -2038,11 +2733,10 @@ class MessagePortTest(scatest.CorbaTestCase):
         msrc = sb.MessageSource()
         cond = threading.Condition()
         mcb = MCB(cond)
-        msink = sb.MessageSink( messageCallback=mcb.msgCallback )
+        msink = sb.MessageSink(messageCallback=mcb.msgCallback, storeMessages = True)
         msrc.connect(msink)
         # Simple messages come across properties list which translates into the following
         # {'sb_struct': {'sb': 'testing 1'}}
- 
 
         msrc.sendMessage("testing 1")
         wait_for_msg(cond)
@@ -2052,6 +2746,10 @@ class MessagePortTest(scatest.CorbaTestCase):
         wait_for_msg(cond)
         msg = mcb.msg['sb_struct']['sb']
         self.assertEquals( msg, "testing 2")
+        rcv_msg = msink.getMessages()
+        self.assertEquals(len(rcv_msg), 1)
+        self.assertEquals(rcv_msg[0], mcb.msg)
+        self.assertEquals(len(msink.getMessages()), 0)
         sb.stop()
 
         # terminate this sink object
@@ -2077,6 +2775,20 @@ class MessagePortTest(scatest.CorbaTestCase):
         wait_for_msg(cond)
         msg = mcb.msg['sb_struct']['sb']
         self.assertEquals( msg, "testing 5")
+        self.assertEquals(len(msink.getMessages()), 0)
+        sb.stop()
+
+        # terminate this sink object
+        msink.releaseObject()
+
+        # create new sink and connect to source 
+        msink = sb.MessageSink(messageCallback=None, storeMessages = True)
+        msrc.connect(msink)
+        sb.start()
+        msrc.sendMessage("testing 4")
+        msrc.sendMessage("testing 5")
+        time.sleep(2)
+        self.assertEquals(len(msink.getMessages()), 2)
         sb.stop()
 
         #  reset receiver and cycle sandbox state
@@ -2097,7 +2809,7 @@ class MessagePortTest(scatest.CorbaTestCase):
 
 
            def msgCallback(self, id, msg):
-               self.msg = _properties.prop_to_dict(msg)
+               self.msg = properties.prop_to_dict(msg)
                self.count = self.count + 1
                self.cond.acquire()
                self.cond.notify()

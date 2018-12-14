@@ -79,6 +79,7 @@ class ProcStat : public State
 
     };
 
+    static int GetTicks( int64_t &sys, int64_t &user );
     
     // init file and read in baseline stats
     ProcStat();

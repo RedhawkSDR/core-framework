@@ -19,14 +19,10 @@
 #}
 #{% extends "base/configure.ac" %}
 
-#{% block acChecks %}
-AC_HEADER_M_FUNCTION()
-AC_LIB_M_FUNCTION()
-{{ super() -}}
-#{% endblock %}
 #{% block coreDeps %}
 {{ super() -}}
 AX_BOOST_FILESYSTEM
+RH_OCTAVE([{{versions.octave}}])
 #{% endblock %}
 #{% block softpkgDeps %}
 #{% endblock %}

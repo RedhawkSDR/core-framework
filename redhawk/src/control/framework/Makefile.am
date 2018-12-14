@@ -30,14 +30,14 @@ libossiedomain_la_SOURCES = CorbaGC.cpp \
                             POACreator.cpp \
                             prop_utils.cpp
 
-libossiedomain_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
+libossiedomain_la_CXXFLAGS = -Wall -I$(OMNIORB_INCLUDEDIR)/omniORB4/internal $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
 libossiedomain_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS)
 libossiedomain_la_LDFLAGS = -Wall
 
 bin_PROGRAMS = nodeBooter
 nodeBooter_SOURCES = nodebooter.cpp
 nodeBooter_CXXFLAGS = $(BOOST_CPPFLAGS) 
-nodeBooter_LDADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la  $(OMNICOS_LIBS) $(OMNIORB_LIBS)
+nodeBooter_LDADD = ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
 nodeBooter_LDFLAGS = -static
 bin_SCRIPTS = nodeCleanup.py
 

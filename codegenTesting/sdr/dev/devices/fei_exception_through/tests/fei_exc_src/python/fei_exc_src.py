@@ -53,6 +53,8 @@ class fei_exc_src_i(fei_exc_src_base):
         """
         # TODO add customization here.
         self.setNumChannels(1, "RX_DIGITIZER");
+        self.rf_info_list=None
+        self.rf_idx=0
         
     def process(self):
         """
@@ -375,6 +377,44 @@ class fei_exc_src_i(fei_exc_src_base):
 
     def set_current_rf_input(self, port_name, pkt):
         pass
+
+    '''
+    *************************************************************
+    Functions servicing the RFInfo port(s)
+    - port_name is the port over which the call was received
+    *************************************************************
+    '''
+    def make_rfinfo(self,freq):
+        _antennainfo = FRONTEND.AntennaInfo('','','','')
+        _freqrange = FRONTEND.FreqRange(0,0,[])
+        _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _rfinfopkt.rf_center_freq=freq;
+        _rfinfopkt.rf_bandwidth=freq/2.0;
+        return _rfinfopkt
+
+    def get_available_rf_inputs(self,port_name):
+        if not self.rf_info_list:
+            self.rf_info_list=[]
+            for x in range(10):
+                rf=self.make_rfinfo(( (x+1)*100.0))
+                self.rf_info_list.append( rf )
+
+        return self.rf_info_list
+
+    def set_available_rf_inputs(self,port_name, inputs):
+        pass
+
+    def get_current_rf_input(self,port_name):
+        _ret=self.rf_info_list[ self.rf_idx ]
+        self.rf_idx  = ( self.rf_idx + 1) % size(self.rf_info_list)
+        return _ret
+
+    def set_current_rf_input(self, port_name, pkt):
+        pass
+
   
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)

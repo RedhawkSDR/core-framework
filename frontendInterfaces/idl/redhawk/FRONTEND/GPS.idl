@@ -43,37 +43,70 @@ module FRONTEND {
     
     /** Device Kind */
     const string FE_GPS_DEVICE_KIND = "FRONTEND::GPS";
-    const string GPS_MODE_LOCKED = "Locked";
-    const string GPS_MODE_UNLOCKED = "Unlocked";    
-    const string GPS_MODE_TRACKING = "Tracking";
-
+    const string GPS_MODE_LOCKED = "Locked";     /** GPS Receiver has locked on to the signal */
+    const string GPS_MODE_UNLOCKED = "Unlocked"; /** GPS Receiver has not locked on to the signal */
+    const string GPS_MODE_TRACKING = "Tracking"; /** GPS Receiver has found but not locked on to the signal (optional) */
 
     /************************/
     /**     STRUCTURES      */
     /************************/      
     struct GPSInfo {
-        string source_id;  /** NAV source identifier */
-        string rf_flow_id; /** identifier of rf_flow (ie - antenna) feeding into this GPS hardware */
-        string mode;
-             
-        long fom; 		/** Figure of merit (for position) */
-        long tfom; 		/** Figure of merit (for time) */
-        long datumID;  	/** Should be 47, WGS 1984 */
-        
-        double time_offset; 	/** Characterization of the Reference Source - should be mostly 0 */
-        double freq_offset; 	/** Frequency offset of Reference Source */
-        double time_variance; 	/** Timing Stability/Variance of Reference Source */
-        double freq_variance; 	/** Frequency Stability/Variance of Reference Source */
-       
-        short satellite_count;
-        float snr;
-        string status_message;
-        BULKIO::PrecisionUTCTime timestamp;
-        
-        /** Allows for keyword expansion*/
-        CF::Properties additional_info;
+        string source_id;  /** Device identifier for the device that generated the GPS location report.
+                               This device's id if accessing the hardware directly */
+        string rf_flow_id; /** Identifier of rf_flow (ie - antenna) feeding into this GPS hardware */
+        string mode;       /** "Locked" for signal locked and "Unlocked" for no signal lock. 
+                               Use "Tracking" if the signal has been found but has not locked (if available) */
+
+        long fom;       /** Position figure-of-merit (see fom table below) */
+        long tfom;      /** Time figure-of-merit (see tfom table below) */
+        long datumID;   /** Should be 47, WGS 1984 */
+
+        double time_offset;     /** Receiver oscillator's most recent time offset (seconds). Usually 0 */
+        double freq_offset;     /** Receiver's center frequency offset (Hz) */
+        double time_variance;   /** Receiver oscillator's time offset variance (seconds**2). Usually 0 */
+        double freq_variance;   /** Receiver's center frequency offset variance (Hz**2) */
+
+        short satellite_count; /** Number of satellites visible to the receiver */
+        float snr;             /** GPS receiver's reported signal to noise ratio. 
+                                   The definition of this value is not standardized varies by manufacturer */
+        string status_message; /** Device-specific status message */
+        BULKIO::PrecisionUTCTime timestamp; /** Timestamp for the GPS information */
+
+        CF::Properties additional_info; /** Allows for keyword expansion*/
     };
-    
+
+    /* The figure of merit (fom) provides the expected position error (EPE)
+
+    |---------|-----------------|
+    |  Value  |  Error (meters) |
+    |---------|-----------------|
+    |    1    |    < 25         |
+    |    2    |    < 50         |
+    |    3    |    < 75         |
+    |    4    |    < 100        |
+    |    5    |    < 200        |
+    |    6    |    < 500        |
+    |    7    |    < 1000       |
+    |    8    |    < 5000       |
+    |    9    |    >= 5000      |
+    |---------|-----------------|
+
+    The time figure of merit (fom) provides the expected time error (ETE)
+
+    |---------|----------------------|
+    |  Value  |  Error (nanoseconds) |
+    |---------|----------------------|
+    |    1    |         < 1          |
+    |    2    |         < 10         |
+    |    3    |         < 100        |
+    |    4    |         < 1e3        |
+    |    5    |         < 1e4        |
+    |    6    |         < 1e5        |
+    |    7    |         < 1e6        |
+    |    8    |         < 1e7        |
+    |    9    |         >= 1e7       |
+    |---------|---------------------*/
+
     /** Provides the correlation between a timestamp and position */
     struct GpsTimePos {
 	    PositionInfo position;

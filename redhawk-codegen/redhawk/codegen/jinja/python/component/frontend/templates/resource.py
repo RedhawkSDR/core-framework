@@ -51,9 +51,37 @@
         fts.enabled = False
         return
 
+#{% if 'ScanningTuner' in component.implements %}
+    def deviceSetTuningScan(self,request, scan_request, fts, tuner_id):
+        '''
+        ************************************************************
+
+        This function is called when the allocation request contains a scanner allocation
+
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth = request.bandwidth
+        fts.center_frequency = request.center_frequency
+        fts.sample_rate = request.sample_rate
+        
+        return True if the tuning succeeded, and False if it failed
+        ************************************************************'''
+        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        return True
+#{% endif %}
+
     def deviceSetTuning(self,request, fts, tuner_id):
         '''
         ************************************************************
+#{% if 'ScanningTuner' in component.implements %}
+
+        This function is called when the allocation request does not contain a scanner allocation
+
+#{% endif %}
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         
         The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
@@ -112,7 +140,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if freq<0: raise FRONTEND.BadParameterException()
+        if freq<0: raise FRONTEND.BadParameterException("Center frequency cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].center_frequency = freq
 
@@ -126,7 +154,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if bw<0: raise FRONTEND.BadParameterException()
+        if bw<0: raise FRONTEND.BadParameterException("Bandwidth cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].bandwidth = bw
 
@@ -174,7 +202,7 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         if allocation_id != self.getControlAllocationId(idx):
             raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if sr<0: raise FRONTEND.BadParameterException()
+        if sr<0: raise FRONTEND.BadParameterException("Sample rate cannot be less than 0")
         # set hardware to new value. Raise an exception if it's not possible
         self.frontend_tuner_status[idx].sample_rate = sr
 
@@ -182,6 +210,36 @@
         idx = self.getTunerMapping(allocation_id)
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         return self.frontend_tuner_status[idx].sample_rate
+
+#{% endif %}
+#{% if 'ScanningTuner' in component.implements %}
+
+    def getScanStatus(self, allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        # set hardware to new value. Raise an exception if it's not possible
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(
+            FRONTEND.ScanningTuner.MANUAL_SCAN, 
+            FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
+            FRONTEND.ScanningTuner.TIME_BASED, 
+            0.0)
+        _scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
+                                           start_time=bulkio.timestamp.now(),
+                                           center_tune_frequencies=[],
+                                           started=False)
+        return _scan_status
+
+    def setScanStartTime(self, allocation_id, start_time):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+
+    def setScanStrategy(self, allocation_id, scan_strategy):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
 
 #{% endif %}
 #{% if 'GPS' in component.implements %}
@@ -228,7 +286,7 @@
     def get_rf_flow_id(self,port_name):
         return ""
 
-    def set_rf_flow_id(self,port_name, id):
+    def set_rf_flow_id(self,port_name, _id):
         pass
 
     def get_rfinfo_pkt(self,port_name):

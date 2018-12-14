@@ -18,6 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie
+
 ###############################################################################
 # CONFIGURE YOUR INTERFACES LIBRARY HERE
 #
@@ -53,8 +55,13 @@ bio_dataUshort.idl \
 bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
+bio_dataBit.idl \
 bio_dataSDDS.idl \
 bio_dataVITA49.idl
+
+# IDL files that are marked as "internal" are installed to a separate directory
+# to discourage external use
+IDL_INTERNAL_FILES := internal/bio_dataExt.idl
 
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
@@ -62,10 +69,7 @@ IDL_EXTERNS := CF
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
-
-# Relative path to the location of the IDL files
-IDL_SOURCE_PATH := .
+PYTHON_EXTERNS := PortTypes:ossie.cf DataType:ossie.cf Port:ossie.cf QueryablePort:ossie.cf NegotiablePort:ossie.cf bulkioDataTypes:bulkio.bulkioInterfaces
 
 # A Qualifier to append to the version, by default this is a timestamp of the build
 BUNDLE_QUALIFIER := v$(shell date +%Y%m%d%H%M%S)
@@ -95,25 +99,73 @@ lib_LTLIBRARIES = libbulkioInterfaces.la
 libbulkioInterfaces_la_LDFLAGS = -version-info $(LIBBULKIOINTERFACES_VERSION_INFO)
 libbulkioInterfaces_la_LIBADD = $(OSSIE_LIBS)
 
-# Again, we don't use the auto variable because order is important to us
 libbulkioInterfaces_la_SOURCES = \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bulkioDataTypesSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bulkioDataTypesDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bulkioDataTypes.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStatsSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStatsDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStats.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRISK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRIDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRI.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFloatSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFloatDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFloat.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFileSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFileDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataFile.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataXMLSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataXMLDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataXML.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataShortSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataShortDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataShort.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataDoubleSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataDoubleDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataDouble.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataCharSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataCharDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataChar.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataOctetSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataOctetDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataOctet.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUshortSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUshortDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUshort.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDS.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49.h
+	src/cpp/ossie/BULKIO/bulkioDataTypesSK.cpp \
+	src/cpp/ossie/BULKIO/bulkioDataTypesDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_runtimeStatsSK.cpp \
+	src/cpp/ossie/BULKIO/bio_runtimeStatsDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_updateSRISK.cpp \
+	src/cpp/ossie/BULKIO/bio_updateSRIDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataFloatSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataFloatDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataFileSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataFileDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataXMLSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataXMLDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataShortSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataShortDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataDoubleSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataDoubleDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataCharSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataCharDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataOctetSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataOctetDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUlongSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUlongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUshortSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUshortDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataLongSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataLongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataLongLongSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataLongLongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUlongLongSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataUlongLongDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataBitDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataSDDSSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataSDDSDynSK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataVITA49SK.cpp \
+	src/cpp/ossie/BULKIO/bio_dataVITA49DynSK.cpp \
+	src/cpp/ossie/BULKIO/internal/bio_dataExtSK.cpp \
+	src/cpp/ossie/BULKIO/internal/bio_dataExtDynSK.cpp 
+
+pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
+pkginclude_HEADERS = \
+	src/cpp/ossie/BULKIO/bulkioDataTypes.h \
+	src/cpp/ossie/BULKIO/bio_runtimeStats.h \
+	src/cpp/ossie/BULKIO/bio_updateSRI.h \
+	src/cpp/ossie/BULKIO/bio_dataFloat.h \
+	src/cpp/ossie/BULKIO/bio_dataFile.h \
+	src/cpp/ossie/BULKIO/bio_dataXML.h \
+	src/cpp/ossie/BULKIO/bio_dataShort.h \
+	src/cpp/ossie/BULKIO/bio_dataDouble.h \
+	src/cpp/ossie/BULKIO/bio_dataChar.h \
+	src/cpp/ossie/BULKIO/bio_dataOctet.h \
+	src/cpp/ossie/BULKIO/bio_dataUlong.h \
+	src/cpp/ossie/BULKIO/bio_dataUshort.h \
+	src/cpp/ossie/BULKIO/bio_dataLong.h \
+	src/cpp/ossie/BULKIO/bio_dataLongLong.h \
+	src/cpp/ossie/BULKIO/bio_dataUlongLong.h \
+	src/cpp/ossie/BULKIO/bio_dataBit.h \
+	src/cpp/ossie/BULKIO/bio_dataSDDS.h \
+	src/cpp/ossie/BULKIO/bio_dataVITA49.h
+
+pkginternalincludedir = $(pkgincludedir)/internal
+pkginternalinclude_HEADERS = \
+	src/cpp/ossie/BULKIO/internal/bio_dataExt.h
+
+BUILT_SOURCES = $(libbulkioInterfaces_la_SOURCES) $(pkginclude_HEADERS)
+CLEANFILES = $(BUILT_SOURCES)
 
 ###############################################################################
 # DO NOT MODIFY ANY LINES BELOW HERE
@@ -124,38 +176,36 @@ LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
 idldir = $(datadir)/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
 dist_idl_DATA =  $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
 
+idlinternaldir = $(idldir)/internal
+dist_idlinternal_DATA = $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_INTERNAL_FILES))
+
 all-local: all-python
 
 install-exec-hook: install-python
 
-clean-local: clean-python clean-java clean-cpp
+clean-local: clean-python clean-java
 	rm -rf build
+
+distclean-local:
+	rm -rf src
 
 # Always build the current directory first (this is hack-ish, but the
 # alternative is to combine the Makefile.am's)
-SUBDIRS = .
-
-if BUILD_BASE_CLASSES
-SUBDIRS += libsrc
-endif
+SUBDIRS = . libsrc
 
 ###############################################################################
 # C++ (via automake and libtool)
 pkgconfigdir = $(libdir)/pkgconfig
 dist_pkgconfig_DATA = $(PACKAGE_NAME).pc
 
-pkgincludedir = $(includedir)/$(LIBRARY_NAME)/$(IDL_MODULE)
-pkginclude_HEADERS = $(filter %.h, $(lib$(LOWER_CASE_IDL_MODULE)Interfaces_la_SOURCES))
+bulkio_builddir = src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)
 
-AM_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
-AM_LIBS = $(OSSIE_LIBS)
+libbulkioInterfaces_la_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libbulkioInterfaces_la_LIBS = $(OSSIE_LIBS)
 
-src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%.h: idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
-	$(AM_V_at)mkdir -p "src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)"
-	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
-
-clean-cpp:
-	rm -rf src/cpp
+$(bulkio_builddir)/%DynSK.cpp $(bulkio_builddir)/%SK.cpp $(bulkio_builddir)/%.h: idl/ossie/BULKIO/%.idl
+	$(AM_V_at)mkdir -p $(dir $@)
+	$(AM_V_GEN)$(IDL) -I idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C $(dir $@) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 ###############################################################################
 # Python
@@ -169,9 +219,7 @@ PYTHON_MODULE_NAME := $(LOWER_CASE_IDL_MODULE)Interfaces
 PYTHON_PACKAGE := $(LOWER_CASE_IDL_MODULE).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
-PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_BUILT_SRCS := $(addprefix $(PY_BUILD_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
+PY_IDL_SRCS := $(addprefix idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES) $(IDL_INTERNAL_FILES))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
 PY_IDL_INCLUDES := -I idl
@@ -179,6 +227,7 @@ PY_IDL_INCLUDES := -I idl
 $(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
 	$(AM_V_at)mkdir -p $(PY_SRC_OUT_DIR)
 	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
+	$(AM_V_at)touch $@
 
 # Mimic automake silent rules
 OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
@@ -186,13 +235,9 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-$(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py
-	python setup.py $(OSSIE_V_pysetup) build --build-lib build/lib
-	$(AM_V_at)touch $(PY_BUILD_OUT_DIR)
+all-python: $(PY_SRC_OUT_DIR)/__init__.py
 
-all-python: $(PY_BUILD_OUT_DIR)
-
-install-python: $(PY_BUILT_SRCS)
+install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
 	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python:
@@ -240,7 +285,6 @@ build/java/META-INF/MANIFEST.MF: Makefile.am BULKIOInterfaces.filelist
 	@find $(IDLJ_SRC_DEST) -mindepth 1 -type d | sed 's/src\/java\///' | sed 's/\//./g' | sed 's/^/ /' | sed -e '$$ ! s/$$/,/' >> $@
 
 java_JARFILES = BULKIOInterfaces.jar
-java_DATA = BULKIOInterfaces.src.jar
 
 IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR)
 IDLJNIFLAGS = -I idl -I $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR) -Wblibname=bulkiojni
@@ -250,27 +294,18 @@ IDLJNI_BUILDDIR = $(IDLJ_BUILDDIR)
 # For IDLJ/IDLJNI rules, set VPATH for .idl files so that pattern rules can
 # find them.
 vpath %.idl idl/ossie/BULKIO
-idlj_IDLSRC = $(IDL_FILES)
+# Only include internal interfaces in pure Java; do not build them for Java-
+# side JNI, because we will not be generating the C++-side
+idlj_IDLSRC = $(IDL_FILES) $(IDL_INTERNAL_FILES)
 idljni_IDLSRC = $(IDL_FILES)
 
 BULKIOInterfaces_jar_SOURCE = $(idlj_SOURCE) $(idljni_SOURCE)
 BULKIOInterfaces_jar_CLASSPATH = $(OSSIE_CLASSPATH)
 BULKIOInterfaces_jar_MANIFEST = build/java/META-INF/MANIFEST.MF
+BULKIOInterfaces_jar_JAVACFLAGS = -g
+BULKIOInterfaces_jar_JARADD = -C $(IDLJ_SRC_DEST) .
 
-src/java/META-INF/MANIFEST.MF: Makefile
-	@mkdir -p src/java/META-INF
-	@rm -f $@
-	@echo "Bundle-ManifestVersion: 2" >> $@
-	@echo "Bundle-Name: $(BUNDLE_NAME) Source" >> $@
-	@echo "Bundle-SymbolicName: $(BUNDLE_SYMBOLIC_NAME).src" >> $@
-	@echo "Bundle-Version: $(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-	@echo "Bundle-Vendor: $(BUNDLE_VENDOR)" >> $@
-	@echo "Eclipse-SourceBundle: $(BUNDLE_SYMBOLIC_NAME);version=$(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
-
-CLEANFILES =  BULKIOInterfaces.src.jar src/java/META-INF/MANIFEST.MF $(BULKIOInterfaces_jar_MANIFEST)
-
-BULKIOInterfaces.src.jar: src/java/META-INF/MANIFEST.MF $(BULKIOInterfaces_jar_SOURCE)
-	$(RH_V_JAR)$(JAR) cMf $@ -C $(IDLJ_SRC_DEST) .
+CLEANFILES += $(BULKIOInterfaces_jar_MANIFEST)
 
 # JNI library must be built after the current directory (see SUBDIRS above)
 SUBDIRS += jni

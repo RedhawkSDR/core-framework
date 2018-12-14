@@ -33,36 +33,40 @@ GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
     ExecutableDevice_impl(devMgr_ior, id, lbl, sftwrPrfl),
     ThreadedComponent()
 {
-    construct();
+      construct();
 }
 
 GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev) :
     ExecutableDevice_impl(devMgr_ior, id, lbl, sftwrPrfl, compDev),
     ThreadedComponent()
 {
-    construct();
+      construct();
 }
 
 GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities) :
     ExecutableDevice_impl(devMgr_ior, id, lbl, sftwrPrfl, capacities),
     ThreadedComponent()
 {
-    construct();
+      construct();
 }
 
 GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev) :
     ExecutableDevice_impl(devMgr_ior, id, lbl, sftwrPrfl, capacities, compDev),
     ThreadedComponent()
 {
-    construct();
+      construct();
 }
 
 GPP_base::~GPP_base()
 {
-  delete propEvent;
-  propEvent = 0;
-  delete MessageEvent_out;
-  MessageEvent_out = 0;
+  if (propEvent) {
+    delete propEvent;
+    propEvent = 0;
+  }
+  if ( MessageEvent_out ) {
+    delete MessageEvent_out;
+    MessageEvent_out = 0;
+  }
 }
 
 void GPP_base::construct()
@@ -118,15 +122,15 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(device_model,
                 "DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb",
                 "device_model",
                 "readonly",
-                "",
+                "REDHAWK GPP",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(processor_name,
                 "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
@@ -134,7 +138,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(os_name,
                 "DCE:4a23ad60-0b25-4121-a630-68803a498f75",
@@ -142,7 +146,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(os_version,
                 "DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192",
@@ -150,7 +154,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "eq",
-                "allocation,configure");
+                "property,allocation,configure");
 
     addProperty(hostName,
                 "DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39",
@@ -158,7 +162,7 @@ void GPP_base::loadProperties()
                 "readonly",
                 "",
                 "external",
-                "configure,event");
+                "property,configure,event");
 
     addProperty(useScreen,
                 false,
@@ -169,64 +173,93 @@ void GPP_base::loadProperties()
                 "external",
                 "execparam");
 
-    addProperty(loadCapacity,
-                "DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056",
-                "loadCapacity",
+    addProperty(componentOutputLog,
+                "DCE:c80f6c5a-e3ea-4f57-b0aa-46b7efac3176",
+                "componentOutputLog",
                 "readwrite",
                 "",
                 "external",
-                "allocation");
+                "property");
+
+    addProperty(mcastnicInterface,
+                "",
+                "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700",
+                "mcastnicInterface",
+                "readwrite",
+                "",
+                "external",
+                "execparam");
+
+    addProperty(mcastnicIngressTotal,
+                0,
+                "DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec",
+                "mcastnicIngressTotal",
+                "readwrite",
+                "Mb/s",
+                "external",
+                "execparam");
+
+    addProperty(mcastnicEgressTotal,
+                0,
+                "DCE:442d5014-2284-4f46-86ae-ce17e0749da0",
+                "mcastnicEgressTotal",
+                "readwrite",
+                "Mb/s",
+                "external",
+                "execparam");
 
     addProperty(mcastnicIngressCapacity,
+                0,
                 "DCE:506102d6-04a9-4532-9420-a323d818ddec",
                 "mcastnicIngressCapacity",
                 "readwrite",
                 "Mb/s",
                 "external",
-                "allocation");
+                "allocation,event");
 
-    addProperty(memCapacity,
-                "DCE:8dcef419-b440-4bcf-b893-cab79b6024fb",
-                "memCapacity",
+    addProperty(mcastnicEgressCapacity,
+                0,
+                "DCE:eb08e43f-11c7-45a0-8750-edff439c8b24",
+                "mcastnicEgressCapacity",
                 "readwrite",
-                "MiB",
+                "Mb/s",
                 "external",
-                "allocation");
+                "allocation,event");
 
-    addProperty(loadCapacityPerCore,
-                1.0,
-                "DCE:3bf07b37-0c00-4e2a-8275-52bd4e391f07",
-                "loadCapacityPerCore",
-                "readwrite",
-                "",
-                "gt",
-                "allocation,execparam");
-
-    addProperty(reserved_capacity_per_component,
-                0.25,
-                "reserved_capacity_per_component",
-                "",
-                "readwrite",
-                "",
-                "external",
-                "configure");
-
-    addProperty(processor_cores,
-                "processor_cores",
-                "",
+    addProperty(mcastnicIngressFree,
+                0,
+                "DCE:0b57a27a-8fa2-412b-b0ae-010618b8f40e",
+                "mcastnicIngressFree",
                 "readonly",
-                "",
+                "Mb/s",
                 "external",
-                "configure");
+                "configure,event");
 
-    addProperty(loadThreshold,
+    addProperty(mcastnicEgressFree,
+                0,
+                "DCE:9b5bbdcb-1894-4b95-847c-787f121c05ae",
+                "mcastnicEgressFree",
+                "readonly",
+                "Mb/s",
+                "external",
+                "configure,event");
+
+    addProperty(mcastnicThreshold,
                 80,
-                "DCE:22a60339-b66e-4309-91ae-e9bfed6f0490",
-                "loadThreshold",
+                "DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1",
+                "mcastnicThreshold",
                 "readwrite",
                 "%",
                 "external",
                 "configure,event");
+
+    addProperty(mcastnicVLANs,
+                "DCE:65544aad-4c73-451f-93de-d4d76984025a",
+                "mcastnicVLANs",
+                "readwrite",
+                "",
+                "external",
+                "allocation");
 
     // Set the sequence with its initial values
     nic_interfaces.push_back("e.*");
@@ -237,7 +270,7 @@ void GPP_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "configure,property");
 
     addProperty(available_nic_interfaces,
                 "available_nic_interfaces",
@@ -265,24 +298,6 @@ void GPP_base::loadProperties()
                 "external",
                 "configure");
 
-    addProperty(threshold_event,
-                threshold_event_struct(),
-                "threshold_event",
-                "",
-                "readonly",
-                "",
-                "external",
-                "message");
-
-    addProperty(thresholds,
-                thresholds_struct(),
-                "thresholds",
-                "",
-                "readwrite",
-                "",
-                "external",
-                "property,configure");
-
     addProperty(nic_allocation_status,
                 "nic_allocation_status",
                 "",
@@ -307,13 +322,13 @@ void GPP_base::loadProperties()
                 "external",
                 "configure");
 
-    addProperty(processor_monitor_list,
-                "processor_monitor_list",
+    addProperty(component_monitor,
+                "component_monitor",
                 "",
                 "readonly",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(affinity,
                 affinity_struct(),
@@ -322,8 +337,49 @@ void GPP_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure,property");
+                "property");
 
+    addProperty(threshold_event,
+                threshold_event_struct(),
+                "threshold_event",
+                "",
+                "readonly",
+                "",
+                "external",
+                "message");
+
+    addProperty(busy_reason,
+                "busy_reason",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(cacheDirectory,
+                "cacheDirectory",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(workingDirectory,
+                "workingDirectory",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(thresholds,
+                thresholds_struct(),
+                "thresholds",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
 
     addProperty(threshold_cycle_time,
                 500,
@@ -332,7 +388,134 @@ void GPP_base::loadProperties()
                 "readwrite",
                 "milliseconds",
                 "external",
-                "property,configure");
+                "property");
+    
+    addProperty(gpp_limits,
+                ulimit_struct(),
+                "gpp_limits",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(sys_limits,
+                sys_limits_struct(),
+                "sys_limits",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(utilization,
+                "utilization",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(processor_cores,
+                "processor_cores",
+                "",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
+    addProperty(processor_monitor_list,
+                "processor_monitor_list",
+                "",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
+    addProperty(memFree,
+                "DCE:6565bffd-cb09-4927-9385-2ecac68035c7",
+                "memFree",
+                "readonly",
+                "MiB",
+                "external",
+                "configure,event");
+
+    addProperty(memCapacity,
+                "DCE:8dcef419-b440-4bcf-b893-cab79b6024fb",
+                "memCapacity",
+                "readwrite",
+                "MiB",
+                "external",
+                "allocation,event");
+
+    addProperty(reserved_capacity_per_component,
+                0.1,
+                "reserved_capacity_per_component",
+                "reserved_capacity_per_component",
+                "readwrite",
+                "",
+                "external",
+                "configure");
+
+    addProperty(loadTotal,
+                "DCE:28b23bc8-e4c0-421b-9c52-415a24715209",
+                "loadTotal",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
+    addProperty(loadThreshold,
+                80,
+                "DCE:22a60339-b66e-4309-91ae-e9bfed6f0490",
+                "loadThreshold",
+                "readwrite",
+                "%",
+                "external",
+                "configure,event");
+
+    addProperty(loadCapacityPerCore,
+                1.0,
+                "DCE:3bf07b37-0c00-4e2a-8275-52bd4e391f07",
+                "loadCapacityPerCore",
+                "readwrite",
+                "",
+                "gt",
+                "allocation,execparam");
+
+    addProperty(loadFree,
+                "DCE:6c000787-6fea-4765-8686-2e051e6c24b0",
+                "loadFree",
+                "readonly",
+                "",
+                "external",
+                "configure,event");
+
+    addProperty(loadCapacity,
+                "DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056",
+                "loadCapacity",
+                "readwrite",
+                "",
+                "external",
+                "allocation,event");
+
+    addProperty(loadAverage,
+                loadAverage_struct(),
+                "DCE:9da85ebc-6503-48e7-af36-b77c7ad0c2b4",
+                "loadAverage",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(redhawk__reservation_request,
+                redhawk__reservation_request_struct(),
+                "redhawk::reservation_request",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "allocation");
 
 }
 

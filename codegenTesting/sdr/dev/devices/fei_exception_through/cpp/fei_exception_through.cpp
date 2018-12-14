@@ -313,6 +313,23 @@ void fei_exception_through_i::constructor()
 int fei_exception_through_i::serviceFunction()
 {
     LOG_DEBUG(fei_exception_through_i, "serviceFunction() example log message");
+
+    // test out RFSource output port...
+    if ( RFSource_out ) {
+        frontend::RFInfoPktSequence ret =get_available_rf_inputs("");
+        if ( ret.size() == 10 ) {
+            frontend::RFInfoPktSequence::iterator i = ret.begin();
+            int cnt=0;
+            // check freqs.. 0 == 100, 1 == 200 ... 
+            for (; i != ret.end(); i++, cnt++ ) {
+                double freq=(cnt+1)*100.0;
+                if ( freq != i->rf_center_freq ) {
+                    LOG_ERROR(fei_exception_through_i, "Match was bad, index = " << cnt);
+                }
+            }
+
+        }
+    }
     
     return NOOP;
 }
@@ -517,35 +534,26 @@ void fei_exception_through_i::set_rfinfo_pkt(const std::string& port_name, const
 
 std::vector<frontend::RFInfoPkt> fei_exception_through_i::get_available_rf_inputs(const std::string& port_name)
 {
-	std::vector<frontend::RFInfoPkt> inputs;
-	FRONTEND::RFInfoPktSequence_var _inputs = this->RFSource_out->available_rf_inputs();
-	for (unsigned int i=0; i<_inputs->length(); i++) {
-		inputs.push_back(frontend::returnRFInfoPkt(_inputs[i]));
-	}
-    return inputs;
+    return this->RFSource_out->available_rf_inputs();
+
 }
 
 void fei_exception_through_i::set_available_rf_inputs(const std::string& port_name, const std::vector<frontend::RFInfoPkt> &inputs)
 {
-	FRONTEND::RFInfoPktSequence_var _inputs = new FRONTEND::RFInfoPktSequence();
-	_inputs->length(inputs.size());
-	for (unsigned int i=0; i<inputs.size(); i++) {
-		FRONTEND::RFInfoPkt_var _tmp = frontend::returnRFInfoPkt(inputs[i]);
-		_inputs[i] = _tmp;
-	}
-	this->RFSource_out->available_rf_inputs(_inputs);
+    this->RFSource_out->available_rf_inputs(inputs);
 }
 
 frontend::RFInfoPkt fei_exception_through_i::get_current_rf_input(const std::string& port_name)
 {
 	frontend::RFInfoPkt pkt;
-	pkt = frontend::returnRFInfoPkt(*this->RFSource_out->current_rf_input());
+	frontend::RFInfoPkt *_ret=0;
+	_ret = this->RFSource_out->current_rf_input();
+        if ( _ret ) { pkt = *_ret; delete _ret; }
 	return pkt;
 }
 
 void fei_exception_through_i::set_current_rf_input(const std::string& port_name, const frontend::RFInfoPkt &pkt)
 {
-	FRONTEND::RFInfoPkt_var _pkt = frontend::returnRFInfoPkt(pkt);
-	this->RFSource_out->current_rf_input(_pkt);
+    this->RFSource_out->current_rf_input(pkt);
 }
 

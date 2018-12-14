@@ -59,7 +59,7 @@ class OctaveComponentGenerator(PullComponentGenerator):
     def templates(self, component):
         templates = [
             CppTemplate('mFunction/main.cpp'),
-            AutomakeTemplate('base/Makefile.am'),
+            AutomakeTemplate('Makefile.am'),
             AutomakeTemplate('base/Makefile.am.ide',
                              userfile=True),
             AutoconfTemplate('configure.ac'),

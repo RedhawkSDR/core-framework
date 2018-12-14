@@ -1,5 +1,12 @@
+*.csv
+*.la
+*.lo
 *.m4
+*.o
+*.pyc
+*.so
 .deps/
+.libs/
 autom4te.cache/
 Makefile
 Makefile.in
@@ -7,6 +14,7 @@ config.*
 configure
 depcomp
 install-sh
+libtool
 ltmain.sh
 missing
 streams/bulkio/reader/cpp/reader
@@ -20,5 +28,3 @@ streams/corba/reader
 streams/corba/writer
 streams/raw/reader
 streams/raw/writer
-*.o
-*.csv

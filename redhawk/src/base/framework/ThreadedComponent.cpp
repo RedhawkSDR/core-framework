@@ -19,13 +19,17 @@
  */
 
 #include <ossie/ThreadedComponent.h>
+#include <ossie/CorbaUtils.h>
 
 namespace ossie {
 
-ProcessThread::ProcessThread(ThreadedComponent *target, float delay) :
+PREPARE_CF_LOGGING(ProcessThread);
+
+ProcessThread::ProcessThread(ThreadedComponent *target, float delay, const std::string& name) :
     _thread(0),
     _running(false),
     _target(target),
+    _name(name),
     _mythread(_thread)
 {
     updateDelay(delay);
@@ -41,12 +45,42 @@ void ProcessThread::start()
 
 void ProcessThread::run()
 {
+    // If a name was given, set it on the current thread
+    // NB: On RHEL/CentOS 6, the name is limited to 15 characters, and the call
+    //     fails if the name exceeds that limit
+    if (!_name.empty()) {
+        std::string name = _name.substr(0, 15);
+        pthread_setname_np(pthread_self(), name.c_str());
+    }
+
+    boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec*1e6 + _delay.tv_nsec*1e-3);
     while (_running) {
-        int state = _target->serviceFunction();
+        int state;
+        try {
+            state = _target->serviceFunction();
+        } catch (const std::exception& exc) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function: " << exc.what());
+            exit(-1);
+        } catch (const CORBA::Exception& exc) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function: "
+                      << ossie::corba::describeException(exc));
+            exit(-1);
+        } catch (boost::thread_interrupted &) {
+            break;
+        } catch (...) {
+            LOG_FATAL(ProcessThread, "Unhandled exception in service function");
+            exit(-1);
+        }
         if (state == FINISH) {
             return;
         } else if (state == NOOP) {
-            nanosleep(&_delay, NULL);
+            try {
+                boost::this_thread::sleep(boost_delay);
+            } catch (boost::thread_interrupted &) {
+                break;
+            } catch (...) {
+                throw;
+            }
         }
         else {
             boost::this_thread::yield();
@@ -57,6 +91,7 @@ void ProcessThread::run()
 bool ProcessThread::release(unsigned long secs, unsigned long usecs)
 {
     _running = false;
+    this->stop();
     if (_thread)  {
         if ((secs == 0) && (usecs == 0)){
             _thread->join();
@@ -102,6 +137,7 @@ bool ProcessThread::threadRunning()
 ThreadedComponent::ThreadedComponent() :
     serviceThread(0),
     serviceThreadLock(),
+    _threadName(),
     _defaultDelay(0.1)
 {
 }
@@ -114,8 +150,8 @@ void ThreadedComponent::startThread ()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (!serviceThread) {
-      serviceThread = new ossie::ProcessThread(this, _defaultDelay);
-      serviceThread->start();
+        serviceThread = new ossie::ProcessThread(this, _defaultDelay, _threadName);
+        serviceThread->start();
     }
 }
 
@@ -144,4 +180,10 @@ void ThreadedComponent::setThreadDelay (float delay)
     if (serviceThread) {
         serviceThread->updateDelay(delay);
     }
+}
+
+void ThreadedComponent::setThreadName (const std::string& name)
+{
+    boost::mutex::scoped_lock lock(serviceThreadLock);
+    _threadName = name;
 }

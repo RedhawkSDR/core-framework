@@ -57,7 +57,11 @@ class ResourceTests(ossie.utils.testing.RHComponentTestCase):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.connect(self.comp_snk)
-        self.assertTrue(self.comp.ports[0]._get_connections()[0].port._is_equivalent(self.comp_snk.ports[0].ref))
+        # Explicitly get the CORBA port references for comparison because the
+        # IDL may not be installed, throwing exceptions on comp.ports
+        src = self.comp.getPort('dataFloat_out')
+        sink = self.comp_snk.getPort('dataFloat_in')
+        self.assertTrue(src._get_connections()[0].port._is_equivalent(sink))
 
 if __name__ == "__main__":
     ossie.utils.testing.main("../dev_src.spd.xml") # By default tests all implementations

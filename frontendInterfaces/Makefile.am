@@ -92,9 +92,7 @@ clean-local: clean-python clean-java clean-cpp
 
 # Always build the current directory first (this is hack-ish, but the
 # # alternative is to combine the Makefile.am's)
-SUBDIRS = .
-
-SUBDIRS += libsrc
+SUBDIRS = . libsrc
 
 ###############################################################################
 # C++ (via automake and libtool)

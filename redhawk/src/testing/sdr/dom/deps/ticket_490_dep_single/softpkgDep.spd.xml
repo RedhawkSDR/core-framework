@@ -29,6 +29,16 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </author>
     <description>An empty SPD to test softpkg dependencies
     </description> 
+    <implementation id="badImplementation">
+        <description>
+          This implementation should never be matchable.
+        </description>
+        <code type="SharedLibrary">
+            <localfile name="ticket_490_dep_single_6502"/>
+        </code>
+        <os name="Linux"/>
+        <processor name="6502"/>
+    </implementation>
     <implementation id="secondImplementation">
         <description>
         </description>

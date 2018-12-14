@@ -22,6 +22,7 @@
 
 #include <omniORB4/CORBA.h>
 
+#include <timing.h>
 #include <threaded_deleter.h>
 
 #include "rawdata.h"
@@ -29,14 +30,21 @@
 class Reader : public virtual POA_rawdata::reader {
 public:
     Reader() :
-        _received(0)
+        _received(0),
+        _lastPacketSize(0),
+        _packetCount(0),
+        _totalTime(0.0),
+        _averageTime(0.0)
     {
     }
 
     void push_octet(const rawdata::octet_sequence& data)
     {
+        double start = get_time();
         _received += data.length();
         _deleter.deallocate_array(const_cast<rawdata::octet_sequence&>(data).get_buffer(1));
+        double end = get_time();
+        record_time(end-start, data.length());
     }
 
     void push_short(const rawdata::short_sequence& data)
@@ -56,9 +64,32 @@ public:
         return _received;
     }
 
+    double average_time()
+    {
+        return _averageTime;
+    }
+
+    void record_time(double elapsed, size_t length) {
+        if (_lastPacketSize != length) {
+            _lastPacketSize = length;
+            _packetCount = 1;
+            _totalTime = elapsed;
+            _averageTime = _totalTime;
+        } else {
+            _packetCount++;
+            _totalTime += elapsed;
+            _averageTime = _totalTime / _packetCount;
+        }
+    }
+
 private:
     threaded_deleter _deleter;
     size_t _received;
+
+    size_t _lastPacketSize;
+    size_t _packetCount;
+    double _totalTime;
+    double _averageTime;
 };
 
 int main (int argc, char* argv[])

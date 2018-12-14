@@ -79,6 +79,12 @@ class test_collocation_device_i(test_collocation_device_base):
             self._log.exception("Error sending properties event")
             
             
+    def allocate_redhawk__reservation_request(self, value):
+        return True
+
+    def deallocate_redhawk__reservation_request(self, value):
+        pass
+
     def allocate_additional_supported_components(self, value):
         return True
             

@@ -1,0 +1,88 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file 
+ * distributed with this source distribution.
+ * 
+ * This file is part of REDHAWK core.
+ * 
+ * REDHAWK core is free software: you can redistribute it and/or modify it 
+ * under the terms of the GNU Lesser General Public License as published by the 
+ * Free Software Foundation, either version 3 of the License, or (at your 
+ * option) any later version.
+ * 
+ * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef _DATAEXT_IDL_
+#define _DATAEXT_IDL_
+
+#include "ossie/CF/NegotiablePort.idl"
+#include "ossie/BULKIO/bio_dataChar.idl"
+#include "ossie/BULKIO/bio_dataDouble.idl"
+#include "ossie/BULKIO/bio_dataFloat.idl"
+#include "ossie/BULKIO/bio_dataLong.idl"
+#include "ossie/BULKIO/bio_dataLongLong.idl"
+#include "ossie/BULKIO/bio_dataOctet.idl"
+#include "ossie/BULKIO/bio_dataShort.idl"
+#include "ossie/BULKIO/bio_dataUlong.idl"
+#include "ossie/BULKIO/bio_dataUlongLong.idl"
+#include "ossie/BULKIO/bio_dataUshort.idl"
+#include "ossie/BULKIO/bio_dataBit.idl"
+#include "ossie/BULKIO/bio_dataXML.idl"
+#include "ossie/BULKIO/bio_dataFile.idl"
+
+module BULKIO {
+
+    module internal {
+
+        interface UsesPortStatisticsProviderExt : UsesPortStatisticsProvider, ExtendedCF::NegotiableUsesPort {
+        };
+
+        interface dataCharExt : dataChar, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataDoubleExt : dataDouble, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataFloatExt : dataFloat, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataLongExt : dataLong, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataLongLongExt : dataLongLong, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataOctetExt : dataOctet, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataShortExt : dataShort, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataUlongExt : dataUlong, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataUlongLongExt : dataUlongLong, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataUshortExt : dataUshort, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataBitExt : dataBit, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataXMLExt : dataXML, ExtendedCF::NegotiableProvidesPort {
+        };
+
+        interface dataFileExt : dataFile, ExtendedCF::NegotiableProvidesPort {
+        };
+
+    };
+};
+
+#endif

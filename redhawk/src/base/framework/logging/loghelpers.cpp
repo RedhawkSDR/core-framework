@@ -73,11 +73,6 @@ namespace ossie {
 
   namespace logging {
 
-    // resolve logging config uri from command line
-    std::string  ResolveLocalUri( const std::string &logfile_uri,
-                                  const std::string &rootPath,
-                                  std::string &validated_uri );
-
     static const std::string DomPrefix("dom");
     static const std::string DevMgrPrefix("devmgr");
     static const std::string DevicePrefix("dev");
@@ -349,6 +344,11 @@ namespace ossie {
       if ( t.size() > 0 ) {
         device_mgr = t[n];
       }
+
+      pid_t ppid = getppid();
+      std::ostringstream os;
+      os << domain_name << ":" << boost::asio::ip::host_name() << ":" << device_mgr << "_" << ppid;
+      device_mgr_id = os.str();
     }
 
     void DeviceCtx::apply( MacroTable &tbl ) {
@@ -368,6 +368,10 @@ namespace ossie {
         domain_name = t[n];
         n++;
       }
+      pid_t pid = getpid();
+      std::ostringstream os;
+      os << domain_name << ":" << boost::asio::ip::host_name() << ":" << nodeName << "_" << pid;
+      instance_id = os.str();
     }
 
     void DeviceMgrCtx::apply( MacroTable &tbl ) {
@@ -425,6 +429,7 @@ namespace ossie {
       SetResourceInfo( tbl, ctx );
       tbl["@@@WAVEFORM.NAME@@@"] = boost::replace_all_copy( ctx.waveform, ":", "-" );
       tbl["@@@WAVEFORM.ID@@@"] = boost::replace_all_copy( ctx.waveform_id, ":", "-" );
+      tbl["@@@WAVEFORM.INSTANCE@@@"] = boost::replace_all_copy( ctx.waveform_id, ":", "-" );
       tbl["@@@COMPONENT.NAME@@@"] = boost::replace_all_copy( ctx.name, ":", "-" );
       tbl["@@@COMPONENT.INSTANCE@@@"] = boost::replace_all_copy( ctx.instance_id, ":", "-" );
       pid_t pid = getpid();
@@ -749,7 +754,7 @@ namespace ossie {
 "# Direct log messages to STDOUT\n"
 "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n"
 "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n"
-"log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n";
+"log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{3}:%L - %m%n\n";
 
       return cfg;
     }
@@ -1110,19 +1115,19 @@ namespace ossie {
         }
 
         if ( ptype == XML_PROPS ) {
-          STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
-          log4cxx::xml::DOMConfigurator::configure(fname);
-        }
-        else {
-          STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
-          log4cxx::helpers::Properties  props;
-          // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
-          log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
-          props.load(is);
-          STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
-          log4cxx::PropertyConfigurator::configure(props);
-
-          if (saveTemp)  boost::filesystem::remove(fname);
+            STDOUT_DEBUG("Setting Logging Configuration, XML Properties: " << fname );
+            log4cxx::xml::DOMConfigurator::configure(fname);
+        } else {
+            STDOUT_DEBUG( "Setting Logging Configuration, Java Properties: " );
+            log4cxx::helpers::Properties  props;
+            // need to allocate heap object...   log4cxx::helpers::Properties  props takes care of deleting the memory...
+            log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( fileContents ) );
+            props.load(is);
+            STDOUT_DEBUG("Setting Logging Configuration,  Properties using StringStream: " );
+            log4cxx::PropertyConfigurator::configure(props);
+            if (saveTemp) {
+                boost::filesystem::remove(fname);
+            }
         }
 
         cfgContents = fileContents;

@@ -21,6 +21,7 @@
 
 import ossie.utils.testing
 from ossie.utils import sb
+from ossie.cf import CF
 
 class ComponentTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -67,20 +68,20 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
             if port.get_usesname() == name:
                 port_def = { 'repid': port.get_repid(),
                              'description': port.get_description(),
-                             'direction': 'Uses' }
+                             'direction': CF.PortSet.DIRECTION_USES }
                 break
 
         for port in scd.get_componentfeatures().get_ports().get_provides():
             if port.get_providesname() == name:
                 if port_def is not None:
                     # Port was already found in uses ports, so it must be bi-directional
-                    port_def['direction'] = 'Bidir'
+                    port_def['direction'] = CF.PortSet.DIRECTION_BIDIR
                     if not port_def['description']:
                         port_def['description'] = port.get_description()
                 else:
                     port_def = { 'repid': port.get_repid(),
                                  'description': port.get_description(),
-                                 'direction': 'Provides' }
+                                 'direction': CF.PortSet.DIRECTION_PROVIDES }
                 break
 
         return port_def

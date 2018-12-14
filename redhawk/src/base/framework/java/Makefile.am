@@ -47,7 +47,7 @@ vpath Cos%.idl $(OMNICOS_IDLDIR)
 idlj_IDLSRC = CosEventComm.idl CosEventChannelAdmin.idl \
 	      LogInterfaces.idl EventChannelManager.idl \
 	      cf.idl DataType.idl Port.idl PortTypes.idl StandardEvent.idl AggregateDevices.idl \
-	      ExtendedEvent.idl QueryablePort.idl WellKnownProperties.idl sandbox.idl
+	      ExtendedEvent.idl QueryablePort.idl NegotiablePort.idl WellKnownProperties.idl sandbox.idl
 
 # CosNaming is included with the JRE, so only build JNI bindings.
 idljni_IDLSRC = CosNaming.idl $(idlj_IDLSRC)

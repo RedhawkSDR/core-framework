@@ -334,7 +334,7 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         
         #fill the queue
         for x in range(numPackets-1):
-            self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's1')
+            self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's1')
 
         #send the last one and the rest of the packets in a separate thread
         t2 = threading.Thread(None, self.pushOnePlusPacketsThread, 't2', ('s1','s2',numPackets), {})
@@ -362,9 +362,9 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         #send 2 packets, the second one with an EOS which should lift the block
         #since s1 was calling for the block and s2 wasn't
         self.comp.start()
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's1')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), True, 's1')
-        
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's1')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), True, 's1')
+
         #wait to see that the EOS has passed through the component
         #which should reset the block to false
         while not self.EOSReceived:
@@ -373,10 +373,10 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.stop()
 
         #push enough packets in to cause a flush
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
         
         self.comp.start()
         t1.join()
@@ -400,17 +400,17 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushSRI(s2_sri)
         
         #fill the queue half way
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
         
         #now set the port the be blocking
         s1_sri = BULKIO.StreamSRI(1, 0.0, 0.001, 1, 300, 0.0, 0.001, 1, 1, 's1', True, [])
         self.dataShortInput.pushSRI(s1_sri)
         
         #should still be able to push 2 more before the queue is full
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
+        self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, 's2')
         
         #send the last packet in a separate thread
         #this call should block, not flush
@@ -473,12 +473,12 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
             self.packetsReceived = numPacketsReceived
     
     def pushOnePacketThread(self, streamID):
-            self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, streamID)
+            self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, streamID)
     
     def pushOnePlusPacketsThread(self, firstStreamID, restStreamID, numPacketsToSend):
-            self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, firstStreamID)
+            self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, firstStreamID)
             for x in range(numPacketsToSend):
-                self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, restStreamID)
+                self.dataShortInput.pushPacket([1], bulkio_helpers.createCPUTimestamp(), False, restStreamID)
     
         
     # TODO Add additional tests here

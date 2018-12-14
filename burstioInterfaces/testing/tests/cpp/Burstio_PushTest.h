@@ -21,9 +21,9 @@
 #define BURSTIO_PUSHTEST_FIXTURE_H
 
 #include <cppunit/extensions/HelperMacros.h>
-#include<omniORB4/CORBA.h>
-#include<bulkio.h>
-#include<burstio.h>
+#include <omniORB4/CORBA.h>
+#include <bulkio/bulkio.h>
+#include <burstio.h>
 
 template< typename OUT_PORT, typename IN_PORT >
 class Burstio_PushBursts: public CppUnit::TestFixture

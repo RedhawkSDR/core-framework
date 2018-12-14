@@ -35,7 +35,8 @@ class Logging_impl
 {
  public:
 
-  Logging_impl ();
+  Logging_impl (std::string logger_name);
+  Logging_impl (rh_logger::LoggerPtr parent_logger);
     
   virtual ~Logging_impl() {};
 
@@ -57,6 +58,15 @@ class Logging_impl
 
   // override this method to accept logging configuration information as a string
   void         setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+
+  // override this method to accept logging configuration information as a string
+  CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+
+  // retrieves the list of named loggers associated with the logger
+  CF::StringSequence* getNamedLoggers();
+
+  // reset the logger
+  void resetLog();
 
   // returns the current logger assigned to the resource, by default it is the root logger
   LOGGER       getLogger();
@@ -111,6 +121,12 @@ class Logging_impl
    */
   void    saveLoggingContext( const std::string &url, int loglevel, ossie::logging::ResourceCtxPtr ctx );
 
+  /*
+   *  getExpandedLogConfig
+   * Apply the macros to the log configuration
+   *
+   */
+  std::string getExpandedLogConfig(const std::string &logcfg_url);
 
   //
   // RESOLVE: refactor to use boost::function and boost::bind 
@@ -287,12 +303,24 @@ class Logging_impl
   // current logging level set for this component via execparams, or  LogConfiguration API
   CF::LogLevel                   _logLevel;
 
-  // current logging object
+  // static logging object (deprecated)
   LOGGER                         _logger;
 
   // logging macro defintion table;
   ossie::logging::MacroTable     _loggingMacros;
-  
+
+  // logger instance
+  rh_logger::LoggerPtr           _baseLog;
+
+  bool haveLogger(const std::string &name);
+  bool haveLoggerHierarchy(const std::string &name);
+
+ public:
+
+  rh_logger::LoggerPtr getBaseLogger() {
+      return this->_baseLog;
+  }
+
  private:
 
   // logging configuration data, 
@@ -300,7 +328,13 @@ class Logging_impl
 
   std::string                    _logCfgURL;
 
+  std::string                    _origLogCfgURL;
+  int                            _origLogLevel;
+  ossie::logging::ResourceCtxPtr _origCtx;
+
   ossie::logging::ResourceCtxPtr _loggingCtx;
+
+  bool _origLevelSet;
 
   // Event channel to listen for configuration and log level changes
   boost::shared_ptr< ossie::events::PushEventConsumer > logConfigChannel;

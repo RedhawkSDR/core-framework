@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(frontendInterfaces, 2.3.9)
+AC_INIT(frontendInterfaces, 2.4.4)
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
@@ -41,16 +41,16 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.0.0])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.1])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 # If you depend on other IDL modules, such as CF or BULKIO add them here
-PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.0])
+PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.2])
 AC_CHECK_PYMODULE(bulkio.bulkioInterfaces, [], [AC_MSG_ERROR([the python bulkio.bulkioInterfaces module is required])])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
 AC_SUBST([FRONTEND_SO_VERSION],[0:0:0])
-AC_SUBST([FRONTEND_API_VERSION],[2.3])
+AC_SUBST([FRONTEND_API_VERSION],[2.4])
 
 AX_BOOST_BASE([1.41])
 AX_BOOST_THREAD
@@ -68,7 +68,7 @@ HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # Ensure JAVA_HOME is set
   RH_JAVA_HOME
-  RH_PROG_JAVAC([1.6])
+  RH_PROG_JAVAC([1.8])
   RH_PROG_JAR
   RH_PROG_IDLJ
 
@@ -87,11 +87,19 @@ if test "x$enable_java" != "xno"; then
 fi
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AC_CONFIG_FILES([Makefile frontendInterfaces.pc])
-if test "$enable_base_classes" != "no"; then
-  if test "$HAVE_JAVASUPPORT = yes"; then
-    AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF])
-  fi
-  AC_CONFIG_FILES([libsrc/Makefile libsrc/frontend.pc])
+AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
+
+AC_CONFIG_FILES([Makefile \
+                 frontendInterfaces.pc \
+                 libsrc/Makefile \
+                 libsrc/testing/tests/cpp/Makefile \
+                 libsrc/frontend.pc])
+if test "$HAVE_JAVASUPPORT = yes"; then
+  AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF \
+                 libsrc/testing/tests/java/Makefile])
 fi
 AC_OUTPUT

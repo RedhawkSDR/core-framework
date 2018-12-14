@@ -58,6 +58,7 @@ module StandardEvent {
         DEVICE_MANAGER,
         DEVICE,
         APPLICATION_FACTORY,
+        EVENT_CHANNEL,
         APPLICATION,
         SERVICE
     };

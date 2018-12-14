@@ -21,14 +21,87 @@
 import unittest
 from _unitTestHelpers import scatest
 import time
+import contextlib
+import cStringIO
+import tempfile
+import re
+import sys as _sys
 from omniORB import CORBA
+from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
+import Queue
+import StringIO
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
+from ossie.utils import rhconnection
+from ossie.utils import allocations
 from ossie.utils import sb
 from ossie.utils.model import NoMatchingPorts
+from ossie.events import Subscriber, Publisher
+from ossie.cf import CF
+import traceback
+
+class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        self.ecm = self._domMgr._get_eventChannelMgr()
+        self.channelName = 'TestChan'
+        try:
+            self.channel = self.ecm.create(self.channelName)
+        except CF.EventChannelManager.ChannelAlreadyExists:
+            pass
+        self.channel = self.ecm.get(self.channelName)
+
+    def tearDown(self):
+        try:
+            self.ecm.release(self.channelName)
+        except CF.EventChannelManager.ChannelDoesNotExist:
+            pass
+        scatest.CorbaTestCase.tearDown(self)
+
+    def _waitData(self, sub, timeout):
+        end = time.time() + timeout
+        while time.time() < end:
+            data = sub.getData()
+            if data:
+                return data._v
+        return None
+
+    def test_eventChannelPull(self):
+        sub = Subscriber(self._domMgr, self.channelName)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
+        pub.terminate()
+        sub.terminate()
+
+    def test_eventChannelForceDelete(self):
+        sub = Subscriber(self._domMgr, self.channelName)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        rec_data = self._waitData(sub, 1.0)
+        self.assertEquals(rec_data, payload)
+        self.ecm.forceRelease(self.channelName)
+        self.assertRaises(CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, self.channelName)
+        
+    def test_eventChannelCB(self):
+        queue = Queue.Queue()
+        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=queue.put)
+        pub = Publisher(self._domMgr, self.channelName)
+        payload = 'hello'
+        data = _any.to_any(payload)
+        pub.push(data)
+        rec_data = queue.get(timeout=1.0)
+        self.assertEquals(rec_data._v, payload)
+        pub.terminate()
+        sub.terminate()
 
 class RedhawkModuleTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -52,11 +125,15 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
 
     def test_API_remap(self):
+        import _omnipy
+        v=int(_omnipy.__version__[0])
         orig_api = dir(self._rhDom.ref)
         remap_api = dir(self._rhDom)
         not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
                      '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent']
+                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent',
+                     'retrieve_records', 'retrieve_records_by_date', 'retrieve_records_from_date'  ]
+        if  v > 3 :  not_remap += ['log_level']
         for entry in orig_api:
             if entry in not_remap:
                 continue
@@ -99,7 +176,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Automatically clean up
         redhawk.setTrackApps(True)
         # Create Application from $SDRROOT path
-        app = self._rhDom.createApplication("/waveforms/svc_error_cpp_w/svc_error_cpp_w.sad.xml")
+        app = self._rhDom.createApplication("/waveforms/svc_fn_error_cpp_w/svc_fn_error_cpp_w.sad.xml")
         app_2 = self._rhDom.createApplication("/waveforms/svc_one_error_w/svc_one_error_w.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
         self.assertEquals(len(self._rhDom._get_applications()), 2)
@@ -123,8 +200,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
+        _destfile=StringIO.StringIO()
         try:
-            app.api()
+            app.api(destfile=_destfile)
         except:
             self.fail('App.api() raised an exception')
 
@@ -177,8 +255,9 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
+        _destfile=StringIO.StringIO()
         try:
-            app.api()
+            app.api(destfile=_destfile)
         except:
             self.fail('App.api() raised an exception')
 
@@ -243,7 +322,8 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEquals(provides_ports, {})
         uses_ports = object.__getattribute__(app,'_usesPortDict')
         self.assertEquals(uses_ports, {})
-        app.api()
+        _destfile=StringIO.StringIO()
+        app.api(destfile=_destfile)
         provides_ports = object.__getattribute__(app,'_providesPortDict')
         self.assertEquals(len(provides_ports), 1)
         self.assertEquals(provides_ports.keys()[0], 'input')
@@ -710,6 +790,142 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         self.assertTrue(len(post) > len(pre))
 
+    def test_connectionMgrApp(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
+
+        app1 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+        app2 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+
+        # Tally up the connections prior to making an app-to-app connection;
+        # the PortTest component's runTest method returns the identifiers of
+        # any connected Resources
+        pre = []
+        for comp in app1.comps + app2.comps:
+            pre.extend(comp.runTest(0, []))
+        
+        ep1=rhconnection.makeEndPoint(app1, 'resource_out')
+        ep2=rhconnection.makeEndPoint(app2, '')
+        cMgr = self._rhDom._get_connectionMgr()
+        cMgr.connect(ep1,ep2)
+
+        # Tally up the connections to check that a new one has been made
+        post = []
+        for comp in app1.comps + app2.comps:
+            post.extend(comp.runTest(0, []))
+
+        self.assertTrue(len(post) > len(pre))
+
+    def test_connectionMgrComp(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
+
+        app1 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+        app2 = self._rhDom.createApplication('/waveforms/PortConnectExternalPort/PortConnectExternalPort.sad.xml')
+
+        foundcomp=False
+        for _comp in app1.comps:
+            if _comp._id[:33] == 'PortTest1:PortConnectExternalPort':
+                self.assertEquals(_comp.instanceName, "PortTest1")
+                foundcomp = True
+                break
+        self.assertTrue(foundcomp)
+
+        for _port in _comp.ports:
+            if _port.name == 'resource_out':
+                break
+
+        self.assertEquals(len(_port._get_connections()), 0)
+
+        ep1=rhconnection.makeEndPoint(_comp, 'resource_out')
+        print ep1
+        ep2=rhconnection.makeEndPoint(app2, '')
+        print ep2
+        cMgr = self._rhDom._get_connectionMgr()
+        cMgr.connect(ep1,ep2)
+
+        self.assertEquals(len(_port._get_connections()), 1)
+
+class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/dev_alloc_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.am=self._rhDom._get_allocationMgr()
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+        redhawk.setTrackApps(False)
+
+    def test_allocMgrSimple(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'si_prop':3})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrSimSeq(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'se_prop':[1.0,2.0]})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.am.deallocate([resp[0].allocationID])
+        prop = allocations.createProps({'se_prop':[1.0,2.0]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrStruct(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.am.deallocate([resp[0].allocationID])
+        prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
+
+    def test_allocMgrStrSeq(self):
+        """
+        Tests that applications can make connections between their external ports
+        """
+        prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]})
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.am.deallocate([resp[0].allocationID])
+        prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
+        rq=self.am.createRequest('foo',prop)
+        resp = self.am.allocate([rq])
+        self.assertEquals(len(resp),1)
+        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.am.deallocate([resp[0].allocationID])
 
 class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -734,3 +950,322 @@ class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
 
         sink = sb.DataSink()
         self.assertRaises(NoMatchingPorts, app.connect, source)
+
+
+class DomainMgrLoggingAPI(scatest.CorbaTestCase):
+    def setUp(self):
+        self.lcfg=_os.environ['OSSIEUNITTESTSLOGCONFIG']
+        _os.environ['OSSIEUNITTESTSLOGCONFIG']=""
+        domBooter, self._domMgr = self.launchDomainManager()
+        self.dom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        time.sleep(0.1)
+        _os.environ['OSSIEUNITTESTSLOGCONFIG']=self.lcfg
+
+    def test123log_level(self):
+        """
+        Tests set debug level api is working
+        """
+        from ossie.cf import CF
+        self.assertNotEqual( self.dom, None )
+
+        self.dom.ref._set_log_level( CF.LogLevels.TRACE  )
+        ret=self.dom.ref._get_log_level( )
+        self.assertEqual( ret, CF.LogLevels.TRACE )
+
+        self.dom.ref._set_log_level( CF.LogLevels.DEBUG )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.DEBUG )
+
+        self.dom.ref._set_log_level( CF.LogLevels.INFO )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.INFO )
+
+        self.dom.ref._set_log_level( CF.LogLevels.WARN )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.WARN )
+
+        self.dom.ref._set_log_level( CF.LogLevels.ERROR )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.ERROR )
+
+        self.dom.ref._set_log_level( CF.LogLevels.FATAL )
+        ret=self.dom.ref._get_log_level()
+        self.assertEqual( ret, CF.LogLevels.FATAL )
+
+    def test_default_logconfig(self):
+        cfg = "log4j.rootLogger=INFO,STDOUT\n" + \
+              "# Direct log messages to STDOUT\n" + \
+              "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+              "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+              "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{3}:%L - %m%n\n"
+
+        c_cfg=self.dom.ref.getLogConfig()
+
+        ## remove extra white space
+        cfg=cfg.replace(" ","")
+        c_cfg=c_cfg.replace(" ","")
+        self.assertEquals( cfg, c_cfg)
+
+
+    def test_logconfig(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT\n" + \
+            "# Direct log messages to STDOUT\n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+
+        self.dom.ref.setLogConfig(cfg)
+
+        c_cfg=self.dom.ref.getLogConfig()
+        cfg=cfg.replace(" ","")
+        c_cfg=c_cfg.replace(" ","")
+        self.assertEquals( cfg, c_cfg)
+
+
+    def test_macro_config(self):
+        cfg = "log4j.rootLogger=ERROR,STDOUT\n " + \
+            "# Direct log messages to STDOUT\n" + \
+            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + \
+            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" + \
+            "log4j.appender.STDOUT.layout.ConversionPattern=@@@DOMAIN.NAME@@@\n"
+
+        self.dom.ref.setLogConfig(cfg)
+
+        c_cfg=self.dom.ref.getLogConfig()
+
+        res=c_cfg.find(scatest.getTestDomainName())
+
+        self.assertNotEquals( res, -1 )
+
+    def test_macro_config2(self):
+        cfg = "@@@DOMAIN.NAME@@@"
+        self.dom.ref.setLogConfig(cfg)
+        c_cfg=self.dom.ref.getLogConfig()
+        res=c_cfg.find(scatest.getTestDomainName())
+        self.assertNotEquals( res, -1 )
+
+
+
+
+class RedhawkStartup(scatest.CorbaTestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        redhawk.base._cleanup_domain()
+        scatest.CorbaTestCase.tearDown(self)
+        import commands
+        try:
+            s,o = commands.getstatusoutput('pkill -9 -f nodeBooter ')
+            s,o = commands.getstatusoutput('pkill -9 -f dev/devices ')
+            s,o = commands.getstatusoutput('pkill -9 -f DomainManager ')
+            s,o = commands.getstatusoutput('pkill -9 -f DeviceManager ')
+        except:
+            pass
+
+    def _try_kick_domain(self, logcfg, epatterns, debug_level=None,  kick_device_managers=False, dev_mgrs=[], dev_mgr_levels=[] ):
+
+        tmpfile=tempfile.mktemp()
+        self._rhDom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                         logfile=scatest.getSdrPath()+'/dom/logcfg/'+logcfg,
+                                         kick_device_managers=kick_device_managers,
+                                         device_managers = dev_mgrs,
+                                         stdout=tmpfile,
+                                         debug_level=debug_level,
+                                         device_managers_debug_levels = dev_mgr_levels )
+
+        if kick_device_managers and len(dev_mgrs)> 0 :
+            for devm in dev_mgrs:
+                try:
+                    self.waitForDeviceManager(devm)
+                except:
+                    traceback.print_exc()
+                    pass
+
+	time.sleep(2)
+        new_stdout=open(tmpfile,'r')
+        for k, epat in epatterns.iteritems():
+            epat.setdefault('results',[])
+
+        for x in new_stdout.readlines():
+            #print "Line -> ", x
+            for k, pat in epatterns.iteritems():
+                for epat in pat['patterns' ]:
+                    m=re.search( epat, x )
+                    if m :
+                        #print "MATCH  -> ", epat, " LINE ", x
+                        pat['results'].append(True)
+
+        for k,pat in epatterns.iteritems():
+            if type(pat['match']) == list:
+                lmatch = len(pat['results']) == len(pat['match']) and pat['results'] == pat['match']
+                self.assertEqual(lmatch, True )
+
+            if type(pat['match']) == tuple:
+                   reslen=len(pat['results'])
+                   c=pat['match']
+	           res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
+                   self.assertTrue(res)
+
+            if type(pat['match']) == int:
+                # ignore
+                if pat['match'] == -1 :
+                    pass
+                else:
+                   self.assertEqual( pat['match'] , len(pat['results']) )
+
+    @scatest.requireLog4cxx
+    def test_kick_trace(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={
+                                          "yes" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="TRACE")
+
+    @scatest.requireLog4cxx
+    def test_kick_trace_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={
+                                          "yes" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="TRACE",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node' ],
+                              dev_mgr_levels= [ "TRACE" ],
+                                )
+
+    @scatest.requireLog4cxx
+    def test_kick_debug(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [" DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="DEBUG")
+
+
+    @scatest.requireLog4cxx
+    def test_kick_debug_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " DEBUG ", " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="DEBUG",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "DEBUG", "DEBUG" ]
+                                )
+
+    @scatest.requireLog4cxx
+    def test_kick_info(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="INFO")
+
+    @scatest.requireLog4cxx
+    def test_kick_info_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " INFO ", " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="INFO",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "INFO", "INFO" ]
+                                )
+
+    @scatest.requireLog4cxx
+    def test_kick_warn(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ",   ], 'match': [] },
+                                          "yes" :  { 'patterns':  [" WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="WARN")
+
+    @scatest.requireLog4cxx
+    def test_kick_warn_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG "   ], 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ",   ], 'match': ("<=", 12 ) },
+                                          "yes" :  { 'patterns':  [ " WARN ", " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="WARN",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "WARN", "WARN" ]
+                                )
+
+    @scatest.requireLog4cxx
+    def test_kick_error(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN "  ], 'match': [] },
+                                          "yes" :  { 'patterns':  [ " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR")
+
+    @scatest.requireLog4cxx
+    def test_kick_error_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG " ] , 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': ('<=', 18) },
+                                          "yes" :  { 'patterns':  [ " ERROR ", " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "ERROR", "ERROR"  ]
+                                )
+
+    @scatest.requireLog4cxx
+    def test_kick_fatal(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " INFO ", " WARN ", " ERROR "  ], 'match': [] },
+                                          "yes" :  { 'patterns':  [" FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="ERROR")
+
+    @scatest.requireLog4cxx
+    def test_kick_fatal_both(self):
+        self._try_kick_domain('log4j.kickdomain.cfg',
+                              epatterns={ "no" :  { 'patterns':  [" TRACE ", " DEBUG ", " ERROR "  ], 'match': [] },
+                                          "no2" :  { 'patterns':  [ " INFO ", " WARN "  ], 'match': ('<=', 18 ) },
+                                          "yes" :  { 'patterns':  [ " FATAL " ], 'match': -1 },
+                                          },
+                              debug_level="FATAL",
+                              kick_device_managers=True,
+                              dev_mgrs = [ 'test_BasicTestDevice_node', "test_BasicTestDevice2_node" ],
+                              dev_mgr_levels= [ "FATAL", "FATAL"  ]
+                                )
+
+    def test_kick_devmgr_path(self):
+        """
+        Test $SDRROOT/dev relative paths for DeviceManagers in kickDomain()
+        """
+        dom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                 kick_device_managers=True,
+                                 device_managers=['/nodes/test_GPP_node/DeviceManager.dcd.xml'])
+
+        def check_devmgr():
+            return len(dom.devMgrs) == 1
+
+        self.assertPredicateWithWait(check_devmgr, 'test_GPP_node did not launch')
+        self.assertEqual(dom.devMgrs[0].label, 'test_GPP_node')
+
+    def test_kick_devmgr_name(self):
+        """
+        Test using node names for DeviceManagers in kickDomain()
+        """
+        dom = redhawk.kickDomain(domain_name=scatest.getTestDomainName(),
+                                 kick_device_managers=True,
+                                 device_managers=['test_GPP_node'])
+
+        def check_devmgr():
+            return len(dom.devMgrs) == 1
+
+        self.assertPredicateWithWait(check_devmgr, 'test_GPP_node did not launch')
+        self.assertEqual(dom.devMgrs[0].label, 'test_GPP_node')

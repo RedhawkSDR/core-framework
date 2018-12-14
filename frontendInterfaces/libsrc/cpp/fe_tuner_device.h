@@ -87,8 +87,9 @@ namespace frontend {
      * False is returned if min > max for either available for requested values
      */
     inline bool validateRequest(double available_min, double available_max, double requested_min, double requested_max){
-        if(floatingPointCompare(requested_min,available_min) < 0) return false;
-        if(floatingPointCompare(requested_max,available_max) > 0) return false;
+        double center_request = (requested_max+requested_min)/2.0;
+        if(floatingPointCompare(center_request,available_min) < 0) return false;
+        if(floatingPointCompare(center_request,available_max) > 0) return false;
         if(floatingPointCompare(available_min,available_max) > 0) return false;
         if(floatingPointCompare(requested_min,requested_max) > 0) return false;
         return true;
@@ -184,6 +185,9 @@ namespace frontend {
             frontend::frontend_listener_allocation_struct frontend_listener_allocation;
             std::vector<TunerStatusStructType> frontend_tuner_status;
 
+            virtual bool callDeviceSetTuning(size_t tuner_id);
+            virtual void checkValidIds(const CF::Properties & capacities);
+
             // tuner_allocation_ids is exclusively paired with property frontend_tuner_status.
             // tuner_allocation_ids tracks allocation ids while frontend_tuner_status provides tuner information.
             std::vector<frontend::tunerAllocationIdsStruct> tuner_allocation_ids;
@@ -213,7 +217,9 @@ namespace frontend {
             virtual void assignListener(const std::string& listen_alloc_id, const std::string& alloc_id);
             virtual void removeListener(const std::string& listen_alloc_id);
             virtual void removeAllocationIdRouting(const size_t tuner_id) = 0;
-            virtual void setNumChannels(size_t num) = 0;
+            virtual void setNumChannels(size_t num);
+            virtual void setNumChannels(size_t num, std::string tuner_type);
+            virtual void addChannels(size_t num, std::string tuner_type);
 
             // Configure tuner - gets called during allocation
             virtual bool enableTuner(size_t tuner_id, bool enable);
@@ -295,6 +301,36 @@ namespace frontend {
         private:
             // this will be overridden by the generated base class once all ports are known
             virtual void construct();
+    };
+
+    /*
+     *    Frontend scanning tuner class definition
+     */
+    template < typename TunerStatusStructType >
+    class FrontendScanningTunerDevice : public FrontendTunerDevice< TunerStatusStructType >
+    {
+        ENABLE_LOGGING
+
+        public:
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities);
+            FrontendScanningTunerDevice(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
+            ~FrontendScanningTunerDevice();
+
+        protected:
+            frontend::frontend_scanner_allocation_struct frontend_scanner_allocation;
+
+            virtual bool callDeviceSetTuning(size_t tuner_id);
+            virtual void checkValidIds(const CF::Properties & capacities);
+            virtual bool deviceSetTuningScan(const frontend_tuner_allocation_struct &request, const frontend_scanner_allocation_struct &scan_request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            virtual bool deviceSetTuning(const frontend_tuner_allocation_struct &request, TunerStatusStructType &fts, size_t tuner_id) = 0;
+            virtual void loadProperties();
+
+        private:
+            // this will be overridden by the generated base class once all ports are known
+            virtual void construct();
+            bool _has_scanner;
     };
 
 }; // end frontend namespace

@@ -231,11 +231,37 @@ class GenericPortGenerator(CppPortGenerator):
     def loader(self):
         return jinja2.PackageLoader(__package__)
 
+    def hasOut(self):
+        for op in self.idl.operations():
+            for p in op.params:
+                if p.direction == 'out':
+                    return True
+        return False
+
+    def hasInOut(self):
+        for op in self.idl.operations():
+            for p in op.params:
+                if p.direction == 'inout':
+                    return True
+        return False
+
     def operations(self):
         for op in self.idl.operations():
+            _out = False
+            for p in op.params:
+                if p.direction == 'out':
+                    _out = True
+                    break
+            _inout = False
+            for p in op.params:
+                if p.direction == 'inout':
+                    _inout = True
+                    break
             yield {'name': op.name,
                    'arglist': ', '.join('%s %s' % (argumentType(p.paramType,p.direction), p.name) for p in op.params),
                    'argnames': ', '.join(p.name for p in op.params),
+                   'hasout': _out,
+                   'hasinout': _inout,
                    'temporary': temporaryType(op.returnType),
                    'initializer': temporaryValue(op.returnType),
                    'returns': baseReturnType(op.returnType)}
@@ -243,9 +269,13 @@ class GenericPortGenerator(CppPortGenerator):
         # for attributes of an interface...provide manipulator methods
         # 
         for attr in self.idl.attributes():
+            readwrite_attr = False
+            if not attr.readonly:
+                readwrite_attr = True
             yield {'name': attr.name,
                    'arglist': '',
                    'argnames': '',
+                   'readwrite_attr': readwrite_attr,
                    'temporary': temporaryType(attr.attrType),
                    'initializer': temporaryValue(attr.attrType),
                    'returns': baseReturnType(attr.attrType)}

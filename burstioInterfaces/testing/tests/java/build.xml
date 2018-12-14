@@ -40,7 +40,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement location="${basedir}/../../../src/java/BURSTIOInterfaces.jar"/>
   </path>
 
-  <target name="compile" depends="clean">
+  <target name="generate">
+    <exec executable="/usr/bin/make"/>
+  </target>
+
+  <target name="compile" depends="clean, generate">
     <javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}">
       <classpath refid="junit.class.path" />
     </javac>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:21e0e060-304b-40c6-9fd2-a1bf20c3ef20" name="props_bad_numbers_w">
+  <componentfiles>
+    <componentfile id="props_bad_numbers_a8f300d9-f425-41ae-b76c-266c3bef1495" type="SPD">
+      <localfile name="/components/props_bad_numbers/props_bad_numbers.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="props_bad_numbers_a8f300d9-f425-41ae-b76c-266c3bef1495"/>
+      <componentinstantiation id="props_bad_numbers_1" startorder="0">
+        <usagename>props_bad_numbers_1</usagename>
+        <componentproperties>
+          <simpleref refid="some_short" value="6abc7"/>
+        </componentproperties>
+        <findcomponent>
+          <namingservice name="props_bad_numbers_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="props_bad_numbers_1"/>
+  </assemblycontroller>
+</softwareassembly>

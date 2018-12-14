@@ -18,22 +18,18 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
-import numpy
-from numpy import *
-import platform
-import bluefile  
-
-from ossie.cf import CF
-import ossie.properties
-from ossie.cf import CF, CF__POA
-from new import classobj
-import array
-import ossie.utils.bulkio.bulkio_helpers as bulkio_helpers
 import os
 import threading
 import time
-import logging
+import numpy
+from new import classobj
+
+from ossie.cf import CF, CF__POA
+import ossie.properties
+from ossie.utils.bulkio import bulkio_helpers
+from ossie.utils.log4py import logging
+
+import bluefile
 try:
     import bulkio
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -42,8 +38,6 @@ except:
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
-
-arch = platform.machine()
 
 # BLUE files use an epoch of Jan 1, 1950, while REDHAWK uses the Unix epoch
 # (Jan 1, 1970); REDHAWK_EPOCH_J1950 is the Unix epoch as a J1950 time
@@ -237,7 +231,7 @@ class BlueFileReader(object):
     Simple class used to send data to a port from an X-Midas file.  It uses 
     the header to generate a SRI.
     """
-    def __init__(self, porttype):
+    def __init__(self, porttype, throttle=False):
         """
         Instantiates a new object and generates a default StreamSRI.  The 
         porttype parameter corresponds to the type of data contained in the 
@@ -255,6 +249,7 @@ class BlueFileReader(object):
                                                  0.001, 1, 0, "sampleStream", 
                                                  True, [])
         self.port_lock = threading.Lock()
+        self._throttle=throttle
         self.done = False
 
     def connectPort(self, connection, connectionId):
@@ -290,8 +285,13 @@ class BlueFileReader(object):
     def pushPacket(self, data, T, EOS, streamID):        
         if self.refreshSRI:
             self.pushSRI(self.defaultStreamSRI)
+
         self.port_lock.acquire()
-        try:    
+
+        if self._throttle:
+            time.sleep(len(data)*self.defaultStreamSRI.xdelta/2.0)
+
+        try:
             try:
                 for connId, port in self.outPorts.items():
                     if port != None: port.pushPacket(data, T, EOS, streamID)
@@ -301,6 +301,9 @@ class BlueFileReader(object):
                 log.warn(msg)
         finally:
             self.port_lock.release()
+
+        if self._throttle:
+            time.sleep(len(data)*self.defaultStreamSRI.xdelta/2.0)
 
     def getPort(self):
         """
@@ -354,9 +357,9 @@ class BlueFileReader(object):
         # For complex float/double, get a view of the data as the scalar type
         # instead of the complex type
         if hdr['format'] == 'CF':
-            data = data.view(float32)
+            data = data.view(numpy.float32)
         elif hdr['format'] == 'CD':
-            data = data.view(float64)
+            data = data.view(numpy.float64)
 
         sz = len(data)      
         self.done = False
@@ -502,6 +505,8 @@ class BlueFileWriter(object):
                 elif self.port_type == BULKIO__POA.dataDouble:
                     data_format = data_format + 'D'
                 elif self.port_type == BULKIO__POA.dataChar:
+                    data_format = data_format + 'B'
+                elif self.port_type == BULKIO__POA.dataOctet:
                     data_format = data_format + 'B'
                 elif self.port_type == BULKIO__POA.dataUlong:
                     data_format = data_format + 'L'

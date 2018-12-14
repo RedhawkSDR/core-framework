@@ -22,6 +22,7 @@
 #include "Application_impl.h"
 
 FakeApplication::FakeApplication (Application_impl* app) :
+    Logging_impl(app->getName()),
     _app(app)
 {
 }
@@ -57,6 +58,12 @@ void FakeApplication::configure (const CF::Properties& configProperties)
 void FakeApplication::query (CF::Properties& configProperties)
 {
     throw CF::UnknownProperties();
+}
+
+CF::Properties* FakeApplication::metrics(const CF::StringSequence& components, const CF::StringSequence& attributes)
+  throw (CF::Application::InvalidMetric, CORBA::SystemException)
+{
+    throw CF::Application::InvalidMetric(components, attributes);
 }
 
 char * FakeApplication::registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval) 
@@ -114,6 +121,13 @@ char* FakeApplication::name ()
 bool FakeApplication::aware ()
 {
     return false;
+}
+
+CORBA::Float FakeApplication::stopTimeout () throw (CORBA::SystemException) {
+    return -1;
+}
+
+void FakeApplication::stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException) {
 }
 
 CF::DeviceAssignmentSequence * FakeApplication::componentDevices ()

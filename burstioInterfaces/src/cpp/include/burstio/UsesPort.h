@@ -33,14 +33,44 @@
 
 namespace burstio {
 
-    template <class PortType, class InfoType = void>
+    template <class PortType>
+    class BasicTransport {
+    public:
+        typedef PortType port_type;
+        typedef typename port_type::_ptr_type ptr_type;
+        typedef typename port_type::_var_type var_type;
+
+        BasicTransport(ptr_type port, const std::string& connectionId) :
+            port_(port_type::_duplicate(port)),
+            connectionId_(connectionId)
+        {
+        }
+
+        virtual ~BasicTransport() { }
+
+        const std::string& getConnectionId() const
+        {
+            return connectionId_;
+        }
+
+        ptr_type objref() const
+        {
+            return port_type::_duplicate(port_);
+        }
+
+    protected:
+        var_type port_;
+        const std::string connectionId_;
+    };
+
+    template <class PortType, class TransportType=BasicTransport<PortType> >
     class UsesPort : public Port_Uses_base_impl, public virtual POA_ExtendedCF::QueryablePort
     {
     public:
         typedef PortType port_type;
         typedef typename port_type::_ptr_type ptr_type;
         typedef typename port_type::_var_type var_type;
-        typedef InfoType info_type;
+        typedef TransportType transport_type;
 
         typedef std::pair<std::string,var_type> connection_type;
         typedef std::vector<connection_type> connection_list;
@@ -121,16 +151,10 @@ namespace burstio {
                 if (entry == connections_.end()) {
                     // Store the new connection and pass the new entry along to
                     // connectionAdded
-                    entry = insertPort_(connectionId, port._retn());
-
-                    // Allow subclasses to do additional bookkeeping
-                    connectionAdded(entry->first, entry->second);
+                    connections_[connectionId] = _createConnection(port, connectionId);
                 } else {
-                    // Replace the object reference
-                    entry->second.port = port._retn();
-
-                    // Allow subclasses to do additional bookkeeping
-                    connectionModified(entry->first, entry->second);
+                    // TODO: Replace the object reference
+                    //entry->second.port = port._retn();
                 }
             }
 
@@ -147,10 +171,7 @@ namespace burstio {
                     throw CF::Port::InvalidPort(2, message.c_str());
                 }
 
-                // Allow subclasses to do additional cleanup
-                connectionRemoved(existing->first, existing->second);
-                delete existing->second.info;
-
+                delete existing->second;
                 connections_.erase(existing);
             }
 
@@ -165,7 +186,7 @@ namespace burstio {
             CORBA::ULong index = 0;
             for (typename ConnectionMap::iterator ii = connections_.begin(); ii != connections_.end(); ++ii, ++index) {
                 retval[index].connectionId = ii->first.c_str();
-                retval[index].port = CORBA::Object::_duplicate(ii->second.port);
+                retval[index].port = CORBA::Object::_duplicate(ii->second->objref());
             }
             return retval._retn();
         }
@@ -177,7 +198,7 @@ namespace burstio {
             if (existing == connections_.end()) {
                 throw std::invalid_argument("No connection " + connectionId);
             }
-            return port_type::_duplicate(existing->second.port);
+            return existing->second->objref();
         }
 
         connection_list getConnections()
@@ -185,52 +206,23 @@ namespace burstio {
             boost::mutex::scoped_lock lock(updatingPortsLock);
             connection_list result;
             for (typename ConnectionMap::iterator ii = connections_.begin(); ii != connections_.end(); ++ii) {
-                result.push_back(std::make_pair(ii->first, port_type::_duplicate(ii->second.port)));
+                result.push_back(std::make_pair(ii->first, ii->second->objref()));
             }
             return result;
         }
 
     protected:
-        struct Connection {
-            Connection(ptr_type _port) :
-                port(_port),
-                info(0)
-            { }
-
-            var_type port;
-            info_type* info;
-        };
-
         UsesPort (std::string port_name) :
             Port_Uses_base_impl(port_name)
         {
         }
 
-        virtual void connectionAdded (const std::string&, Connection&)
-        {
-        }
+        virtual transport_type* _createConnection(ptr_type port, const std::string& connectionId) = 0;
 
-        virtual void connectionRemoved (const std::string&, Connection&)
-        {
-        }
-        
-        virtual void connectionModified (const std::string&, Connection&)
-        {
-        }
-
-        typedef std::map<std::string, Connection> ConnectionMap;
+        typedef std::map<std::string, transport_type*> ConnectionMap;
         ConnectionMap connections_;
 
     private:
-        inline typename ConnectionMap::iterator
-        insertPort_ (const std::string& connectionId, ptr_type port)
-        {
-            // Store the new connection (constructing in-place because there is
-            // no default constructor for Connection), returning an iterator to
-            // the new entry
-            return connections_.insert(std::make_pair(connectionId, Connection(port))).first;
-        }
-
         ossie::notification<void (const std::string&)> connectListeners_;
         ossie::notification<void (const std::string&)> disconnectListeners_;
     };

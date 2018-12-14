@@ -45,6 +45,8 @@ import org.ossie.properties.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
+import org.ossie.properties.PropertyListener;
+import org.ossie.redhawk.time.utils;
 
 /**
  * This is the component code. This file contains all the access points
@@ -124,6 +126,35 @@ public class TestJavaProps extends Resource implements Runnable {
            Action.EXTERNAL, // action
            new Kind[] {Kind.CONFIGURE,} // kind
            );
+
+    public final UTCTimeProperty simple_utctime =
+        new UTCTimeProperty(
+            "simple_utctime", //id
+            null, //name
+            "2017:2:1::14:01:00.123", //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+            
+    public final UTCTimeSequenceProperty seq_utctime =
+        new UTCTimeSequenceProperty(
+            "seq_utctime", //id
+            null, //name
+            UTCTimeSequenceProperty.asList("2010:2:1::12:01:00.123","2011:2:1::12:01:00.123"), //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    public final BooleanProperty reset_utctime =
+        new BooleanProperty(
+            "reset_utctime", //id
+            null, //name
+            false, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
 
     /**
      * The property readOnly
@@ -242,14 +273,27 @@ public class TestJavaProps extends Resource implements Runnable {
         addProperty(struct_prop);
         addProperty(structseq_prop);
         addProperty(readOnly);
+        addProperty(simple_utctime);
+        addProperty(reset_utctime);
+        addProperty(seq_utctime);
 
         // Project/input
 
         // Uses/outputs
        //begin-user-code
+        this.reset_utctime.addChangeListener(new PropertyListener<Boolean>() {
+            public void valueChanged(Boolean oldValue, Boolean newValue) {
+                reset_utctimeValueChanged(oldValue, newValue);
+            }
+        });
        //end-user-code
     }
-    
+
+    private void reset_utctimeValueChanged(Boolean oldValue, Boolean newValue)
+    {
+        this.simple_utctime.setValue(utils.now());
+    }
+     
     /**
      *
      * Main processing thread

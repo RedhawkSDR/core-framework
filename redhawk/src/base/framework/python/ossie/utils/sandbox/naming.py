@@ -18,13 +18,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import logging
 import threading
 
+from omniORB import CORBA, URI
 import CosNaming, CosNaming__POA
 
-from omniORB import CORBA, URI
-from ossie.utils import log4py
+from ossie.cf import CF, CF__POA
+from ossie.utils.log4py import logging
 
 log = logging.getLogger(__name__)
 
@@ -41,35 +41,35 @@ class NamingContextStub(CosNaming__POA.NamingContextExt):
      
     """
     def __init__(self):
-        self.__context = {}
-        self.__lock = threading.RLock()
+        self._context = {}
+        self._lock = threading.RLock()
 
     def bind(self, name, object):
         uri = URI.nameToString(name)
-        self.__lock.acquire()
+        self._lock.acquire()
         try:
-            if uri in self.__context:
+            if uri in self._context:
                 raise CosNaming.NamingContext.AlreadyBound()
             log.debug('Binding "%s" into virtual NamingContext', uri)
-            self.__context[uri] = object
+            self._context[uri] = object
         finally:
-            self.__lock.release()
+            self._lock.release()
 
     def rebind(self, name, object):
         uri = URI.nameToString(name)
         log.debug('Rebinding "%s" into virtual NamingContext', uri)
-        self.__lock.acquire()
+        self._lock.acquire()
         try:
-            self.__context[uri] = object
+            self._context[uri] = object
         finally:
-            self.__lock.release()
+            self._lock.release()
 
     def getObject(self, name):
-        self.__lock.acquire()
+        self._lock.acquire()
         try:
-            return self.__context.get(name, None)
+            return self._context.get(name, None)
         finally:
-            self.__lock.release()
+            self._lock.release()
 
     def to_name(self, name):
         """
@@ -127,3 +127,22 @@ class NamingContextStub(CosNaming__POA.NamingContextExt):
             raise ValueError("NamingContextStub:to_name() '%s' is an invalid name" % name)
 
         return []
+
+
+class ApplicationRegistrarStub(CF__POA.ApplicationRegistrar, NamingContextStub):
+    """
+    Class to extend virtual NamingContext to support ApplicationRegistrar
+    operations.
+    """
+    def _get_app(self):
+        return None
+
+    def _get_domMgr(self):
+        return None
+
+    def registerComponent(self, name, obj):
+        with self._lock:
+            if name in self._context:
+                raise CF.DuplicateName()
+            log.debug('Registering component "%s" into virtual ApplicationRegistrar', name)
+            self._context[name] = obj

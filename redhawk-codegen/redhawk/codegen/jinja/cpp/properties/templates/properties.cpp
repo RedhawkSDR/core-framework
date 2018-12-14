@@ -72,7 +72,19 @@ addProperty(${prop.cppname},
 /*{%- endmacro %}*/
 
 /*{% macro structdef(struct) %}*/
-/*{% from "properties/properties.cpp" import initsequence %}*/
+/*{%   for field in struct.fields if field.enums %}*/
+/*{%     if loop.first %}*/
+namespace enums {
+    // Enumerated values for ${struct.identifier}
+    namespace ${struct.cppname} {
+/*{%     endif %}*/
+        ${enumvalues(field)|indent(8)}
+/*{%     if loop.last %}*/
+    }
+}
+
+/*{%     endif %}*/
+/*{%   endfor %}*/
 struct ${struct.cpptype}${' : public '+struct.baseclass if struct.baseclass} {
     ${struct.cpptype} ()${' : '+struct.baseclass+'()' if struct.baseclass}
     {
@@ -87,11 +99,15 @@ struct ${struct.cpptype}${' : public '+struct.baseclass if struct.baseclass} {
 /*{%     endif %}*/
 /*{%   endif %}*/
 /*{% endfor %}*/
-    };
+    }
 
     static std::string getId() {
         return std::string("${struct.identifier}");
-    };
+    }
+
+    static const char* getFormat() {
+        return "${struct.format}";
+    }
 /*{% for field in struct.fields if not field.inherited %}*/
 /*{%   if loop.first %}*/
 
@@ -185,5 +201,14 @@ inline bool operator== (const ${struct.cpptype}& s1, const ${struct.cpptype}& s2
 
 inline bool operator!= (const ${struct.cpptype}& s1, const ${struct.cpptype}& s2) {
     return !(s1==s2);
+}
+/*{%- endmacro %}*/
+
+/*{% macro enumvalues(prop) %}*/
+// Enumerated values for ${prop.identifier}
+namespace ${prop.cppname} {
+/*{% for enum in prop.enums %}*/
+    static const ${prop.cpptype} ${enum.cpplabel} = ${enum.cppvalue};
+/*{% endfor %}*/
 }
 /*{%- endmacro %}*/

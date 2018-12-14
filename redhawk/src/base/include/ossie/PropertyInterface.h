@@ -31,6 +31,7 @@
 #include "ossie/AnyUtils.h"
 #include "ossie/CorbaUtils.h"
 #include "CF/cf.h"
+#include "CF/DataType.h"
 #include "ossie/Port_impl.h"
 
 #include "ossie/ComplexProperties.h"
@@ -42,6 +43,8 @@
 #include "CF/ExtendedEvent.h"
 #include <COS/CosEventChannelAdmin.hh>
 #include "PropertyMonitor.h"
+
+#include <iomanip>
 
 
 /*
@@ -279,10 +282,7 @@ public:
     template <class Target, class Func>
     void setQuery (Target target, Func func)
     {
-        if (!isQueryable()) {
-            throw std::logic_error("property '" + id + "' is not queryable");
-        }
-        ossie::bind(query_, target, func);
+        setQuery(QueryFunc(target, func));
     }
 
     template <class Func>
@@ -297,10 +297,7 @@ public:
     template <class Target, class Func>
     void setConfigure (Target target, Func func)
     {
-        if (!isConfigurable()) {
-            throw std::logic_error("property '" + id + "' is not configurable");
-        }
-        ossie::bind(configure_, target, func);
+        setConfigure(ConfigureFunc(target, func));
     }
 
     template <class R, class A1, class A2>
@@ -308,7 +305,6 @@ public:
     {
         pointerListeners_.add(func);
     }
-
 
     template <class Target, class Base, class R, class A1, class A2>
     void addChangeListener (Target target, R (Base::*func)(A1*, A2*))
@@ -352,10 +348,7 @@ public:
     template <class Target, class Func>
     void setAllocator (Target target, Func func)
     {
-        if (!isAllocatable()) {
-            throw std::logic_error("property '" + id + "' is not allocatable");
-        }
-        ossie::bind(allocator_, target, func);
+        setAllocator(AllocateFunc(target, func));
     }
 
     template <class Func>
@@ -370,10 +363,7 @@ public:
     template <class Target, class Func>
     void setDeallocator (Target target, Func func)
     {
-        if (!isAllocatable()) {
-            throw std::logic_error("property '" + id + "' is not allocatable");
-        }
-        ossie::bind(deallocator_, target, func);
+        setDeallocator(DeallocateFunc(target, func));
     }
 
     const std::string getNativeType () const
@@ -447,10 +437,10 @@ protected:
 
 private:
     // Delegate function types
-    typedef boost::function<value_type()> QueryFunc;
-    typedef boost::function<void (const value_type&)> ConfigureFunc;
-    typedef boost::function<bool (const value_type&)> AllocateFunc;
-    typedef boost::function<void (const value_type&)> DeallocateFunc;
+    typedef redhawk::callback<value_type()> QueryFunc;
+    typedef redhawk::callback<void (const value_type&)> ConfigureFunc;
+    typedef redhawk::callback<bool (const value_type&)> AllocateFunc;
+    typedef redhawk::callback<void (const value_type&)> DeallocateFunc;
 
     QueryFunc query_;
     ConfigureFunc configure_;
@@ -475,6 +465,7 @@ typedef PropertyWrapper<CORBA::ULongLong> ULongLongProperty;
 typedef PropertyWrapper<CORBA::LongLong> LongLongProperty;
 typedef PropertyWrapper<CORBA::Float> FloatProperty;
 typedef PropertyWrapper<CORBA::Double> DoubleProperty;
+typedef PropertyWrapper<CF::UTCTime> UTCTimeProperty;
 
 typedef PropertyWrapper<std::complex<float> >            ComplexFloatProperty;
 typedef PropertyWrapper<std::complex<bool> >             ComplexBooleanProperty;
@@ -521,6 +512,27 @@ protected:
     }
 };
 
+namespace CF {
+
+  CF::UTCTime operator+(const CF::UTCTime& lhs, double seconds);
+
+  CF::UTCTime& operator+=(CF::UTCTime& lhs, double seconds);
+
+  double operator-(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  CF::UTCTime operator-(const CF::UTCTime& lhs, double seconds);
+
+  CF::UTCTime& operator-=(CF::UTCTime& lhs, double seconds);
+
+  bool operator==(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator!=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator<(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator<=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator>(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+  bool operator>=(const CF::UTCTime& lhs, const CF::UTCTime& rhs);
+
+  std::ostream& operator<<(std::ostream&, const CF::UTCTime&);
+}
+
 typedef SequenceProperty<std::string>      StringSeqProperty;
 typedef SequenceProperty<char>             CharSeqProperty;
 typedef SequenceProperty<bool>             BooleanSeqProperty;
@@ -533,6 +545,7 @@ typedef SequenceProperty<CORBA::LongLong>  LongLongSeqProperty;
 typedef SequenceProperty<CORBA::ULongLong> ULongLongSeqProperty;
 typedef SequenceProperty<CORBA::Float>     FloatSeqProperty;
 typedef SequenceProperty<CORBA::Double>    DoubleSeqProperty;
+typedef SequenceProperty<CF::UTCTime>    UTCTimeSeqProperty;
 
 typedef SequenceProperty<std::complex<float> >            ComplexFloatSeqProperty;
 typedef SequenceProperty<std::complex<double> >           ComplexDoubleSeqProperty;
@@ -658,6 +671,7 @@ public:
     static ULongLongProperty* Create (CORBA::ULongLong&);
     static FloatProperty* Create (CORBA::Float&);
     static DoubleProperty* Create (CORBA::Double&);
+    static UTCTimeProperty* Create (CF::UTCTime&);
 
     static ComplexBooleanProperty* Create (std::complex<bool>&);
     static ComplexCharProperty* Create (std::complex<char>&);
@@ -683,6 +697,7 @@ public:
     static ULongLongSeqProperty* Create (std::vector<CORBA::ULongLong>&);
     static FloatSeqProperty* Create (std::vector<CORBA::Float>&);
     static DoubleSeqProperty* Create (std::vector<CORBA::Double>&);
+    static UTCTimeSeqProperty* Create (std::vector<CF::UTCTime>&);
 
     static ComplexBooleanSeqProperty* Create (std::vector<std::complex<bool> >&);
     static ComplexCharSeqProperty* Create (std::vector<std::complex<char> >&);

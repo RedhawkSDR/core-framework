@@ -31,6 +31,7 @@
 
 #include "CF/cf.h"
 #include "ossie/Autocomplete.h"
+#include "ossie/logging/rh_logger.h"
 
 namespace _seqVector {
 
@@ -112,6 +113,20 @@ template<typename _Tp>
     }
 } // namespace _seqVector
 
+namespace redhawk {
+
+    class PortCallError : public std::runtime_error {
+
+    public:
+        PortCallError( const std::string &msg, const std::vector<std::string> &connectionids );
+
+        ~PortCallError() throw ();
+
+    private:
+        static std::string makeMessage(const std::string& msg, const std::vector<std::string>& connectionids);
+    };
+
+}
 
 class Port_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
@@ -273,7 +288,7 @@ public:
 
     virtual void setDescription(const std::string& desc)
     {
-		description = desc;
+        description = desc;
     }
 
     virtual void startPort ()
@@ -281,6 +296,12 @@ public:
     }
 
     virtual void stopPort ()
+    {
+    }
+
+    // Called when the Port is first activated by a PortSupplier; subclasses
+    // may override to implement virtual constructor behavior
+    virtual void initializePort()
     {
     }
 
@@ -297,13 +318,13 @@ public:
     // Return the Port description
     virtual std::string getDescription ()
     {
-		return description;
+        return description;
     }
 
     // Return the interface that this Port supports
     virtual std::string getRepid () const
     {
-		return "IDL:CORBA/Object:1.0";
+        return "IDL:CORBA/Object:1.0";
     }
 
     // Return the direction (uses/provides) for this Port
@@ -312,9 +333,13 @@ public:
         return "Direction";
     }
 
+    LOGGER getLogger();
+    void setLogger(LOGGER newLogger);
+
 protected:
     std::string name;
     std::string description;
+    LOGGER _portLog;
 };
 
 class Port_Uses_base_impl : public PortBase
@@ -352,7 +377,7 @@ public:
     // Return the direction (uses/provides) for this Port
     virtual std::string getDirection () const 
     {
-        return "Uses";	
+        return CF::PortSet::DIRECTION_USES;
     }
 
 protected:
@@ -376,7 +401,7 @@ public:
     // Return the direction (uses/provides) for this Port
     virtual std::string getDirection () const 
     {
-        return "Provides";	
+        return CF::PortSet::DIRECTION_PROVIDES;
     }
 };
 

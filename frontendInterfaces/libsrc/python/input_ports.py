@@ -44,7 +44,7 @@ class analog_tuner_delegation(tuner_delegation):
         raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
     def getTunerCenterFrequency(self, id):
         raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
-    def setTunerBandwidth(self, bw):
+    def setTunerBandwidth(self, id, bw):
         raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
     def getTunerBandwidth(self, id):
         raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
@@ -52,7 +52,7 @@ class analog_tuner_delegation(tuner_delegation):
         raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
     def getTunerAgcEnable(self, id):
         raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
-    def setTunerGain(self, id,gain):
+    def setTunerGain(self, id, gain):
         raise FRONTEND.NotSupportedException("setTunerGain not supported")
     def getTunerGain(self, id):
         raise FRONTEND.NotSupportedException("getTunerGain not supported")
@@ -70,6 +70,22 @@ class digital_tuner_delegation(analog_tuner_delegation):
         raise FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported")
     def getTunerOutputSampleRate(self, id):
         raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
+
+class analog_scanning_tuner_delegation(analog_tuner_delegation):
+    def getScanStatus(self, id):
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+    def setScanStartTime(self, id, start_time):
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+    def setScanStrategy(self, id, scan_strategy):
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
+
+class digital_scanning_tuner_delegation(digital_tuner_delegation):
+    def getScanStatus(self, id):
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+    def setScanStartTime(self, id, start_time):
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+    def setScanStrategy(self, id, scan_strategy):
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
 
 class InFrontendTunerPort(FRONTEND__POA.FrontendTuner):
     def __init__(self, name, parent=tuner_delegation()):
@@ -219,6 +235,33 @@ class InDigitalTunerPort(FRONTEND__POA.DigitalTuner, InAnalogTunerPort):
         self.port_lock.acquire()
         try:
             return self.parent.getTunerOutputSampleRate(id)
+        finally:
+            self.port_lock.release()
+
+class InDigitalScanningTunerPort(FRONTEND__POA.DigitalScanningTuner, InDigitalTunerPort):
+    def __init__(self, name, parent=digital_scanning_tuner_delegation()):
+        self.name = name
+        self.port_lock = threading.Lock()
+        self.parent = parent
+        
+    def getScanStatus(self, id):
+        self.port_lock.acquire()
+        try:
+            return self.parent.getScanStatus(id)
+        finally:
+            self.port_lock.release()
+
+    def setScanStartTime(self, id, start_time):
+        self.port_lock.acquire()
+        try:
+            return self.parent.setScanStartTime(id, start_time)
+        finally:
+            self.port_lock.release()
+
+    def setScanStrategy(self, id, scan_strategy):
+        self.port_lock.acquire()
+        try:
+            return self.parent.setScanStrategy(id, scan_strategy)
         finally:
             self.port_lock.release()
 

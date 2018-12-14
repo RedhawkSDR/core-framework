@@ -21,7 +21,13 @@
 import unittest, os
 from _unitTestHelpers import scatest
 from test_01_DeviceManager import killChildProcesses
+from ossie.utils import redhawk
+from ossie.cf import CF
+from ossie.events import Subscriber
+from ossie import properties
+from omniORB import any as _any
 import time
+import Queue
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -46,7 +52,118 @@ class DeviceLifeCycleTest(scatest.CorbaTestCase):
 
     def test_DeviceLifeCycleNoKill(self):
         pass
-        
+
+class DeviceStartorder(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, domMgr = self.launchDomainManager()
+
+        # Create an event channel to receive the device and service start/stop
+        # messages (the name must match the findbys in the DCD), and connect a
+        # subscriber
+        eventMgr = domMgr._get_eventChannelMgr()
+        channel = eventMgr.createForRegistrations('test_events')
+        self._started = Queue.Queue()
+        self._stopped = Queue.Queue()
+        self._subscriber = Subscriber(channel, dataArrivedCB=self._messageReceived)
+
+    def tearDown(self):
+        self._subscriber.terminate()
+
+        scatest.CorbaTestCase.tearDown(self)
+
+    def _messageReceived(self, message):
+        payload = message.value(CF._tc_Properties)
+        if not payload:
+            return
+        for dt in payload:
+            if dt.id == 'state_change':
+                value = properties.props_to_dict(dt.value.value(CF._tc_Properties))
+                identifier = value['state_change::identifier']
+                if value['state_change::event'] == 'start':
+                    self._started.put(identifier)
+                elif value['state_change::event'] == 'stop':
+                    self._stopped.put(identifier)
+
+    def _verifyStartOrder(self, startorder):
+        for identifier in startorder:
+            try:
+                received = self._started.get(timeout=1.0)
+            except Queue.Empty:
+                self.fail('Did not receive start message for ' + identifier)
+            self.assertEqual(received, identifier)
+        self.failUnless(self._started.empty(), msg='Too many start messages received')
+
+    def _verifyStopOrder(self, startorder):
+        for identifier in startorder[::-1]:
+            try:
+                received = self._stopped.get(timeout=1.0)
+            except Queue.Empty:
+                self.fail('Did not receive stop message for ' + identifier)
+            self.assertEqual(received, identifier)
+        self.failUnless(self._stopped.empty(), msg='Too many stop messages received')
+
+    def test_StartOrder(self):
+        """
+        Test that device/service start order runs correctly
+        """
+        devBooter, devMgr = self.launchDeviceManager("/nodes/startorder_events/DeviceManager.dcd.xml")
+
+        startorder = ('startorder_events:start_event_device_3',
+                      'start_event_service_1',
+                      'startorder_events:start_event_device_1')
+
+        # Verify that start calls were received in the right order
+        self._verifyStartOrder(startorder)
+
+        # Check that the devices are started as expected
+        for dev in devMgr._get_registeredDevices():
+            dev_id = dev._get_identifier()
+            expected = dev_id in startorder
+            self.assertEqual(expected, dev._get_started(), msg='Device '+dev_id+' started state is incorrect')
+
+        # Also services, if supported
+        for svc in devMgr._get_registeredServices():
+            expected = svc.serviceName in startorder
+            if svc.serviceObject._is_a(CF.Resource._NP_RepositoryId):
+                started = svc.serviceObject._narrow(CF.Resource)._get_started()
+            else:
+                started = False
+            self.assertEqual(expected, started, msg='Service '+svc.serviceName+' started state is incorrect')
+
+        # Shut down the node so that it stops all of the devices and services
+        devMgr.shutdown()
+
+        # Check that stop was called in the reverse order of start
+        self._verifyStopOrder(startorder)
+
+    def test_StartOrderException(self):
+        """
+        Test that the node continues along the device/service start order even
+        if one of them throws an exception
+        """
+        devBooter, devMgr = self.launchDeviceManager("/nodes/startorder_fail/DeviceManager.dcd.xml")
+
+        startorder = ('startorder_fail:start_event_device_1',
+                      'startorder_fail:fail_device_1',
+                      'startorder_fail:start_event_device_2')
+
+        # Verify that start calls were received in the right order, and that
+        # the device manager continued after the failing device
+        self._verifyStartOrder(startorder)
+
+        # Check that the devices are started as expected, with the device that
+        # was configured to fail not started
+        for dev in devMgr._get_registeredDevices():
+            label = dev._get_label()
+            expected = not label.startswith('fail_')
+            self.assertEqual(expected, dev._get_started(), msg='Device '+label+' started state is incorrect')
+
+        # Shut down the node so that it stops all of the devices and services
+        devMgr.shutdown()
+
+        # Check that stop was called in the reverse order of start
+        self._verifyStopOrder(startorder)
+
 class DeviceDeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
     

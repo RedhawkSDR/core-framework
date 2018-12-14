@@ -33,16 +33,23 @@
 
 #include <ossie/CF/cf.h>
 #include <ossie/PropertySet_impl.h>
+#include <ossie/Logging_impl.h>
 #include <ossie/Runnable.h>
 #include <ossie/Events.h>
 #include <ossie/logging/loghelpers.h>
 #include <ossie/FileManager_impl.h>
+#include <ossie/File_impl.h>
+#include <ossie/ParserLogs.h>
+#include <ossie/logging/loghelpers.h>
 
 #include "PersistenceStore.h"
 #include "connectionSupport.h"
 #include "DomainManager_EventSupport.h"
 #include "EventChannelManager.h"
 #include "struct_props.h"
+#include "struct_props.h"
+
+#include "../../parser/internal/dcd-pimpl.h"
 
 
 class Application_impl;
@@ -51,7 +58,7 @@ class AllocationManager_impl;
 class ConnectionManager_impl;
 
 
-class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertySet_impl, public ossie::ComponentLookup, public ossie::DomainLookup, public ossie::Runnable
+class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertySet_impl, public Logging_impl, public ossie::ComponentLookup, public ossie::DomainLookup, public ossie::Runnable
 {
     ENABLE_LOGGING
 
@@ -60,7 +67,7 @@ class DomainManager_impl: public virtual POA_CF::DomainManager, public PropertyS
 ///////////////////////////
 public:
 
-      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool );
+      DomainManager_impl (const char*, const char*, const char*, const char *, const char*, bool, bool, bool, int);
     ~DomainManager_impl ();
 
     friend class ODM_Channel_Supplier_i;
@@ -118,7 +125,7 @@ public:
 
     void installApplication (const char* profileFileName)
         throw (CF::DomainManager::ApplicationInstallationError, CF::InvalidFileName, CF::InvalidProfile, CORBA::SystemException, CF::DomainManager::ApplicationAlreadyInstalled);
-    void _local_installApplication (const char* profileFileName);
+    void _local_installApplication (const std::string& profileFileName);
            
     void uninstallApplication (const char* applicationId)
         throw (CF::DomainManager::ApplicationUninstallationError, CF::DomainManager::InvalidIdentifier, CORBA::SystemException);
@@ -133,11 +140,9 @@ public:
            
     void registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName)
         throw (CF::DomainManager::AlreadyConnected, CF::DomainManager::InvalidEventChannelName, CF::InvalidObjectReference, CORBA::SystemException);
-    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, std::string &registeringId, std::string &eventChannelName);
            
     void unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName)
         throw (CF::DomainManager::NotConnected, CF::DomainManager::InvalidEventChannelName, CORBA::SystemException);
-    void _local_unregisterFromEventChannel (std::string &unregisteringId, std::string &eventChannelName);
 
     void registerRemoteDomainManager (CF::DomainManager_ptr registeringRemoteDomainManager)
         throw (CF::DomainManager::RegisterError, CF::InvalidObjectReference, CORBA::SystemException);
@@ -156,6 +161,10 @@ public:
     void restoreEventChannels(const std::string& _db_uri);
 
     void addApplication(Application_impl* new_app);
+
+    void addPendingApplication(Application_impl* application);
+    void cancelPendingApplication(Application_impl* application);
+    void completePendingApplication(Application_impl* application);
     
     void releaseAllApplications();
     
@@ -232,6 +241,15 @@ public:
 
     rh_logger::LoggerPtr  getLogger() const { return __logger; };
 
+    rh_logger::LoggerPtr  getInstanceLogger(const char *name) {
+        std::string n(name);
+        return getInstanceLogger(n);
+    };
+
+    rh_logger::LoggerPtr  getInstanceLogger(std::string &name) {
+        return this->_baseLog->getChildLogger(name, "");
+    };
+
     bool   bindToDomain() { return _bindToDomain; };
     
     std::string getRedhawkVersion() { return redhawk_version; };
@@ -241,6 +259,10 @@ public:
     uint32_t  getManagerWaitTime();
     uint32_t  getDeviceWaitTime();
     uint32_t  getServiceWaitTime();
+    CF::LogLevel log_level();
+    int getInitialLogLevel() {
+        return _initialLogLevel;
+    };
 
 /////////////////////////////
 // Internal Helper Functions
@@ -251,13 +273,16 @@ protected:
     ossie::DeviceList::iterator _local_unregisterDevice (ossie::DeviceList::iterator device);
     ossie::ServiceList::iterator _local_unregisterService (ossie::ServiceList::iterator service);
 
+    void _local_registerWithEventChannel (CORBA::Object_ptr registeringObject, const std::string& registeringId, const std::string& eventChannelName);
+    void _local_unregisterFromEventChannel (const std::string& unregisteringId, const std::string& eventChannelName);
+
     void parseDMDProfile();
     void storeDeviceInDomainMgr (CF::Device_ptr, CF::DeviceManager_ptr);
-    void storeServiceInDomainMgr (CORBA::Object_ptr, CF::DeviceManager_ptr, const char*, const char*);
+    void storeServiceInDomainMgr (CORBA::Object_ptr, CF::DeviceManager_ptr, const std::string&, const std::string&);
     bool deviceMgrIsRegistered (CF::DeviceManager_ptr);
     bool domainMgrIsRegistered (CF::DomainManager_ptr);
     bool deviceIsRegistered (CF::Device_ptr);
-    bool serviceIsRegistered (const char*);
+    bool serviceIsRegistered (const std::string&);
     void addDeviceMgr (CF::DeviceManager_ptr deviceMgr);
     void mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr);
     void addDomainMgr (CF::DomainManager_ptr domainMgr);
@@ -287,9 +312,14 @@ protected:
     //
     void establishDomainManagementChannels( const std::string &db_uri );
     void disconnectDomainManagementChannels();
-    void handleIDMChannelMessages( const CORBA::Any &msg );
     void idmTerminationMessages( const redhawk::events::ComponentTerminationEvent &msg );
     void destroyEventChannels (void);
+    void storePubProxies();
+    void storeSubProxies();
+    void storeEventChannelRegistrations();
+    void restorePubProxies(const std::string& _db_uri);
+    void restoreSubProxies(const std::string& _db_uri);
+    void restoreEventChannelRegistrations(const std::string& _db_uri);
 
     bool applicationDependsOnDevice (Application_impl* application, const std::string& deviceId);
 
@@ -312,11 +342,13 @@ protected:
     ossie::ServiceList _registeredServices;
     std::vector < ossie::EventChannelNode > _eventChannels;
 
-
+    Application_impl* _restoreApplication(ossie::ApplicationNode& node);
+    void _persistApplication(Application_impl* application);
 
     //
     // Handle to EventChannelManager for the Domain
     //
+    friend class EventChannelManager;
     EventChannelManager*                 _eventChannelMgr;
 
 
@@ -325,6 +357,7 @@ protected:
 
     DOM_Publisher_ptr                    _odm_publisher;
     redhawk::events::DomainEventReader   _idm_reader;
+    bool PERSISTENCE;
 
 ///////////////////////
 // Private Domain State
@@ -348,6 +381,7 @@ private:
     
     typedef std::map<std::string,Application_impl*> ApplicationTable;
     ApplicationTable _applications;
+    ApplicationTable _pendingApplications;
 
     typedef std::map<std::string,ApplicationFactory_impl*> ApplicationFactoryTable;
     ApplicationFactoryTable _applicationFactories;
@@ -362,6 +396,9 @@ private:
     bool             _useLogConfigUriResolver;
     bool             _strict_spd_validation;
 
+    // orb context
+    ossie::corba::OrbContext                         _orbCtx;
+
     void _exit(int __status) {
         ossie::logging::Terminate();            //no more logging....
         exit(__status);
@@ -369,6 +406,7 @@ private:
     FileManager_impl* fileMgr_servant;
     client_wait_times_struct   client_wait_times;
 
+    int _initialLogLevel;
     bool             _bindToDomain;
 };                                            /* END CLASS DEFINITION DomainManager */
 

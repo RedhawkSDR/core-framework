@@ -216,6 +216,14 @@ void TestAllPropTypes_base::loadProperties()
                "external",
                "configure");
 
+    addProperty(simple_utctime,
+               "simple_utctime",
+               "",
+               "readwrite",
+               "",
+               "external",
+               "property");
+
     addProperty(simple_sequence_string,
                "simple_sequence_string",
                "",
@@ -319,6 +327,14 @@ void TestAllPropTypes_base::loadProperties()
                "",
                "external",
                "configure");
+
+    addProperty(simple_sequence_utctime,
+               "simple_sequence_utctime",
+               "",
+               "readwrite",
+               "",
+               "external",
+               "property");
 
     addProperty(struct_vars,
                 struct_vars_struct(), 

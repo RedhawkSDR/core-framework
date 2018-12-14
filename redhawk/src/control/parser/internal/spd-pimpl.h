@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_SPD_PIMPL_H
 
 #include "spd-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace spd
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class softPkg_pimpl: public softPkg_pskel
   {
     public:
@@ -56,7 +59,7 @@ namespace spd
     implementation (const ossie::SPD::Implementation&);
 
     virtual void
-    usesdevice (const ossie::SPD::UsesDevice&);
+    usesdevice (const ossie::UsesDevice&);
 
     virtual void
     id (const ::std::string&);
@@ -187,10 +190,10 @@ namespace spd
     processor (const ::std::string&);
 
     virtual void
-    dependency (ossie::SPD::DependencyRef*);
+    dependency (ossie::DependencyRef*);
 
     virtual void
-    usesdevice (const ossie::SPD::UsesDevice&);
+    usesdevice (const ossie::UsesDevice&);
 
     virtual void
     id (const ::std::string&);
@@ -224,7 +227,7 @@ namespace spd
     priority (unsigned long long);
 
     virtual void
-    type (const ::std::string&);
+    type (ossie::SPD::Code::CodeType);
 
     virtual ossie::SPD::Code
     post_code ();
@@ -326,7 +329,7 @@ namespace spd
     softpkgref (const ossie::SPD::SoftPkgRef& ref);
  
     virtual void
-    propertyref (const ossie::SPD::PropertyRef&);
+    propertyref (const ossie::PropertyRef&);
 
     virtual void
     simpleref (const ossie::SimplePropertyRef&);
@@ -343,11 +346,11 @@ namespace spd
     virtual void
     type (const ::std::string&);
 
-    virtual ossie::SPD::DependencyRef*
+    virtual ossie::DependencyRef*
     post_dependency ();
 
     private:
-    std::auto_ptr<ossie::SPD::DependencyRef> _ref;
+    std::auto_ptr<ossie::DependencyRef> _ref;
   };
 
   class runtime_pimpl: public virtual runtime_pskel
@@ -381,7 +384,7 @@ namespace spd
     virtual void
     value (const ::std::string&);
 
-    virtual ossie::SPD::PropertyRef
+    virtual ossie::PropertyRef
     post_propertyRef ();
 
     private:
@@ -432,7 +435,7 @@ namespace spd
     pre ();
 
     virtual void
-    propertyref (const ossie::SPD::PropertyRef&);
+    propertyref (const ossie::PropertyRef&);
 
     virtual void
     simpleref (const ossie::SimplePropertyRef&);
@@ -452,11 +455,11 @@ namespace spd
     virtual void
     type (const ::std::string&);
 
-    virtual ossie::SPD::UsesDevice
+    virtual ossie::UsesDevice
     post_usesDevice ();
 
     private:
-    std::auto_ptr<ossie::SPD::UsesDevice> _uses;
+    std::auto_ptr<ossie::UsesDevice> _uses;
   };
 
   class aepcompliance_pimpl: public virtual aepcompliance_pskel,
@@ -477,7 +480,7 @@ namespace spd
     virtual void
     pre ();
 
-    virtual ::std::string
+    virtual ossie::SPD::Code::CodeType
     post_codeFileType ();
   };
 

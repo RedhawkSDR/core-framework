@@ -300,7 +300,7 @@ public class SDDSStream {
                     String existingConnectionId = nextAttachment.getConnectionId();
 
                     boolean detachConnection = true;
-                    Iterator expectedConnIdIter = expectedConnectionIds.iterator();
+                    Iterator<String> expectedConnIdIter = expectedConnectionIds.iterator();
                     while (expectedConnIdIter.hasNext()){
                         if (existingConnectionId.equals(expectedConnIdIter.next())){
                             detachConnection = false;

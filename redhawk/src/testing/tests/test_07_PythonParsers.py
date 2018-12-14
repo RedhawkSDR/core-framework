@@ -171,6 +171,236 @@ class PythonParserTestCase(scatest.OssieTestCase):
             except OSError:
                 pass
 
+    def test_SADParser_usesdeviceref(self):
+        sad = parsers.SADParser.parse("sdr/parser_tests/usesdeviceref.sad.xml")
+        self.assertEqual(sad.get_id(), "colloc_usesdev_1")
+        self.assertEqual(sad.get_name(), "colloc_usesdev")
+        self.assertEqual(len(sad.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(sad.partitioning.get_hostcollocation()), 1)
+        colloc=sad.partitioning.get_hostcollocation()[0]
+        self.assertEqual(len(colloc.get_componentplacement()),1)
+        comp_place =colloc.get_componentplacement()[0]
+        self.assertEqual(len(comp_place.get_componentinstantiation()),1)
+        comp_ci=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_ci.id_, "P1_1")
+        self.assertEqual(comp_ci.get_usagename(), "P1_1")
+        self.assertEqual(len(colloc.get_usesdeviceref()),1)
+        udev_ref =colloc.get_usesdeviceref()[0]
+        self.assertEqual(udev_ref.refid, "FrontEndTuner_1")
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            sad.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "SAD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+    def test_SADParser_devicerequires(self):
+        sad = parsers.SADParser.parse("sdr/parser_tests/devicerequires.sad.xml")
+        self.assertEqual(sad.get_id(), "device_requires_multicolor")
+        self.assertEqual(sad.get_name(), "device_requires_multicolor")
+        self.assertEqual(len(sad.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(sad.partitioning.get_componentplacement()), 2)
+        comp_place=sad.partitioning.get_componentplacement()[0]
+        comp_in=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_place.componentfileref.refid, "SimpleComponent_SPD_1")
+        self.assertEqual(comp_in.id_, "SimpleComponent_Red")
+        self.assertEqual(comp_in.get_usagename(), "SimpleComponent_Red")
+        self.assertEqual(len(comp_in.devicerequires.get_requires()),2)
+        self.assertEqual(comp_in.devicerequires.get_requires()[0].id, "color")
+        self.assertEqual(comp_in.devicerequires.get_requires()[0].value, "RED")
+        self.assertEqual(comp_in.devicerequires.get_requires()[1].id, "rank")
+        self.assertEqual(comp_in.devicerequires.get_requires()[1].value, "15")
+        comp_place=sad.partitioning.get_componentplacement()[1]
+        comp_in=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_place.componentfileref.refid, "SimpleComponent_SPD_1")
+        self.assertEqual(comp_in.id_, "SimpleComponent_Green")
+        self.assertEqual(comp_in.get_usagename(), "SimpleComponent_Green")
+        self.assertEqual(len(comp_in.devicerequires.get_requires()),1)
+        self.assertEqual(comp_in.devicerequires.get_requires()[0].id, "color")
+        self.assertEqual(comp_in.devicerequires.get_requires()[0].value, "GREEN")
+
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            sad.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "SAD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+    def test_SADParser_loggingconfig(self):
+        sad = parsers.SADParser.parse("sdr/parser_tests/loggingconfig.sad.xml")
+        self.assertEqual(sad.get_id(), "device_requires_multicolor")
+        self.assertEqual(sad.get_name(), "device_requires_multicolor")
+        self.assertEqual(len(sad.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(sad.partitioning.get_componentplacement()), 2)
+        comp_place=sad.partitioning.get_componentplacement()[0]
+        comp_in=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_place.componentfileref.refid, "SimpleComponent_SPD_1")
+        self.assertEqual(comp_in.id_, "SimpleComponent_Red")
+        self.assertEqual(comp_in.get_usagename(), "SimpleComponent_Red")
+        self.assertEqual(comp_in.loggingconfig.level, "ERROR")
+        self.assertEqual(comp_in.loggingconfig.value, "path/to/my/log/file")
+        comp_place=sad.partitioning.get_componentplacement()[1]
+        comp_in=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_place.componentfileref.refid, "SimpleComponent_SPD_1")
+        self.assertEqual(comp_in.id_, "SimpleComponent_Green")
+        self.assertEqual(comp_in.get_usagename(), "SimpleComponent_Green")
+        self.assertEqual(comp_in.loggingconfig.value, "path/to/my/log/file2")
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            sad.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "SAD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+    def test_SADParser_affinityconfig(self):
+        sad = parsers.SADParser.parse("sdr/parser_tests/affinity.sad.xml")
+        self.assertEqual(sad.get_id(), "device_requires_multicolor")
+        self.assertEqual(sad.get_name(), "device_requires_multicolor")
+        self.assertEqual(len(sad.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(sad.partitioning.get_componentplacement()), 1)
+        comp_place=sad.partitioning.get_componentplacement()[0]
+        comp_in=comp_place.get_componentinstantiation()[0]
+        self.assertEqual(comp_place.componentfileref.refid, "SimpleComponent_SPD_1")
+        self.assertEqual(comp_in.id_, "SimpleComponent_Red")
+        self.assertEqual(comp_in.get_usagename(), "SimpleComponent_Red")
+        self.assertEqual(comp_in.loggingconfig.level, "ERROR")
+        self.assertEqual(comp_in.loggingconfig.value, "path/to/my/log/file")
+        self.assertEqual(len(comp_in.affinity.get_simpleref()),2)
+        self.assertEqual(comp_in.affinity.get_simpleref()[0].refid, "affinity::exec_directive_class")
+        self.assertEqual(comp_in.affinity.get_simpleref()[0].value, "socket")
+        self.assertEqual(comp_in.affinity.get_simpleref()[1].refid, "affinity::exec_directive_value")
+        self.assertEqual(comp_in.affinity.get_simpleref()[1].value, "0")
+
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            sad.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "SAD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+    def test_DCDParser_deployerrequires(self):
+        dcd = parsers.DCDParser.parse("sdr/parser_tests/deployerrequires.dcd.xml")
+        self.assertEqual(dcd.get_id(), "test_GPP_green")
+        self.assertEqual(dcd.get_name(), "test_GPP_green")
+        self.assertEqual(len(dcd.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(dcd.partitioning.get_componentplacement()), 1)
+        gpp=dcd.partitioning.get_componentplacement()[0]
+        gpp_ci=gpp.get_componentinstantiation()[0]
+        self.assertEqual(gpp.get_componentfileref().get_refid(), "GPP1_file_1")
+        self.assertEqual(gpp_ci.get_id(), "test_GPP_green::GPP_1")
+        self.assertEqual(gpp_ci.get_usagename(),  "test_GPP_green::GPP_1")
+        self.assertEqual(len(gpp_ci.deployerrequires.get_requires()), 1)
+        self.assertEqual(gpp_ci.deployerrequires.get_requires()[0].id, "color")
+        self.assertEqual(gpp_ci.deployerrequires.get_requires()[0].value, "GREEN")
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            dcd.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "DCD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+
+    def test_DCDParser_loggingconfig(self):
+        dcd = parsers.DCDParser.parse("sdr/parser_tests/loggingconfig.dcd.xml")
+        self.assertEqual(dcd.get_id(), "test_GPP_green")
+        self.assertEqual(dcd.get_name(), "test_GPP_green")
+        self.assertEqual(len(dcd.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(dcd.partitioning.get_componentplacement()), 1)
+        gpp=dcd.partitioning.get_componentplacement()[0]
+        gpp_ci=gpp.get_componentinstantiation()[0]
+        self.assertEqual(gpp.get_componentfileref().get_refid(), "GPP1_file_1")
+        self.assertEqual(gpp_ci.get_id(), "test_GPP_green::GPP_1")
+        self.assertEqual(gpp_ci.get_usagename(),  "test_GPP_green::GPP_1")
+        self.assertEqual(gpp_ci.loggingconfig.level, "ERROR")
+        self.assertEqual(gpp_ci.loggingconfig.value, "path/to/my/log/file")
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            dcd.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "DCD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+    def test_DCDParser_affinity(self):
+        dcd = parsers.DCDParser.parse("sdr/parser_tests/affinity.dcd.xml")
+        self.assertEqual(dcd.get_id(), "affinity_parse_1")
+        self.assertEqual(dcd.get_name(), "test_affinity_node_socket")
+        self.assertEqual(len(dcd.componentfiles.get_componentfile()), 1)
+        self.assertEqual(len(dcd.partitioning.get_componentplacement()), 1)
+        gpp=dcd.partitioning.get_componentplacement()[0]
+        gpp_ci=gpp.get_componentinstantiation()[0]
+        self.assertEqual(gpp.get_componentfileref().get_refid(), "GPP_File_1")
+        self.assertEqual(gpp_ci.get_id(), "test_affinity_node:GPP_1")
+        self.assertEqual(gpp_ci.get_usagename(),  "GPP_1")
+        self.assertEqual(len(gpp_ci.affinity.get_simpleref()),2)
+        self.assertEqual(gpp_ci.affinity.get_simpleref()[0].refid, "affinity::exec_directive_class")
+        self.assertEqual(gpp_ci.affinity.get_simpleref()[0].value, "socket")
+        self.assertEqual(gpp_ci.affinity.get_simpleref()[1].refid, "affinity::exec_directive_value")
+        self.assertEqual(gpp_ci.affinity.get_simpleref()[1].value, "0")
+
+        # Verify that we can write the output and still be DTD valid
+        tmpfile = tempfile.mktemp()
+        try:
+            tmp = open(tmpfile, "w")
+            dcd.export(tmp, 0)
+            tmp.close()
+            status = self._xmllint(tmpfile, "DCD")
+            self.assertEqual(status, 0, "Python parser did not emit DTD compliant XML")
+        finally:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+
+
     def test_startorder(self):
         sad = parsers.SADParser.parse("sdr/dom/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithOrder.sad.xml")
         self.assertEqual(sad.get_id(), "DCE:e6b136d5-6bf2-48ee-b2ec-52ceb9b80194")

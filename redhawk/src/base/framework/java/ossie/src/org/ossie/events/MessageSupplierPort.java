@@ -39,11 +39,12 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 
 import org.apache.log4j.Logger;
 
-import org.ossie.component.UsesPort;
+import org.ossie.component.QueryableUsesPort;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 import org.ossie.properties.StructDef;
 
-public class MessageSupplierPort extends UsesPort<EventChannelOperations> implements EventChannelOperations, PortBase {
+public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperations> implements EventChannelOperations, PortBase {
 
     /**
      * Internal class to adapt PushSupplier CORBA interface for disconnection
@@ -63,6 +64,7 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         final String connectionId;
     }
 
+    public RHLogger _portLog;
     private Logger logger = Logger.getLogger(MessageSupplierPort.class.getName());
     private Map<String,PushConsumer> consumers = new HashMap<String,PushConsumer>();
     private Map<String,SupplierAdapter> suppliers = new HashMap<String,SupplierAdapter>();
@@ -71,18 +73,29 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
     {
         super(portName);
     }
-    
+
     public MessageSupplierPort(String portName, Logger logger)
     {
         this(portName);
         this.logger = logger;
     }
 
+    public MessageSupplierPort(String portName, RHLogger logger)
+    {
+        this(portName);
+        this._portLog = logger;
+    }
+
     public void setLogger(Logger logger)
     {
         this.logger = logger;
     }
-    
+
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
+
     public void connectPort(final org.omg.CORBA.Object connection, final String connectionId) throws CF.PortPackage.InvalidPort, CF.PortPackage.OccupiedPort {
         // Give a specific exception message for nil
         if (connection == null) {
@@ -126,6 +139,8 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }
 
         synchronized (this.updatingPortsLock) { 
+            // Store the original channel in the parent object's container
+            this.outPorts.put(connectionId, channel);
             this.suppliers.put(connectionId, supplier);
             this.consumers.put(connectionId, proxy_consumer);
             this.active = true;
@@ -136,15 +151,58 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
     {
         this.removeConnection(connectionId, true);
     }
-    
-    public void push(final Any data) 
+
+    /**
+     * Sends pre-serialized messages to all connections.
+     *
+     * @param data  messages serialized to a CORBA Any
+     */
+    public void push(final Any data)
+    {
+        try {
+            this._push(data,"");
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
+    }
+
+    /**
+     * Sends pre-serialized messages to a specific connection.
+     *
+     * @param data          messages serialized to a CORBA Any
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     * @since 2.2
+     */
+    public void push(final Any data, String connectionId)
+    {
+        try {
+            this._push(data, connectionId);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+        }
+    }
+
+    public void _push(final Any data, String connectionId)
     {
         synchronized(this.updatingPortsLock) {
             if (!this.active) {
                 return;
             }
 
-            for (PushConsumer consumer : this.consumers.values()) {
+            if (!connectionId.isEmpty()) {
+                if (!_hasConnection(connectionId)) {
+                    throw new IllegalArgumentException("invalid connection: '"+connectionId+"'");
+                }
+            }
+
+            for (Map.Entry<String,PushConsumer> entry : consumers.entrySet()) {
+                if (!_isConnectionSelected(entry.getKey(), connectionId)) {
+                    continue;
+                }
+
+                PushConsumer consumer = entry.getValue();
                 try {
                     consumer.push(data);
                 } catch (final org.omg.CosEventComm.Disconnected ex) {
@@ -157,21 +215,57 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
                     removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.MARSHAL ex ) {
-                    this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-                    continue;
+                    throw ex;
                 } catch (final Exception e) {
                     continue;
                 }
             }
         }
     }
-
+    
+    /**
+     * Sends a single message to all connections.
+     *
+     * @param message  message structure to send
+     */
     public void sendMessage(final StructDef message)
     {
-        this.sendMessages(Arrays.asList(message));
+        this.sendMessage(message, "");
     }
 
-    public void sendMessages(final Collection<? extends StructDef> messages) {
+    /**
+     * Sends a single message to a specific connection.
+     *
+     * @param message       message structure to send
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     */
+    public void sendMessage(StructDef message, String connectionId)
+    {
+        this.sendMessages(Arrays.asList(message), connectionId);
+    }
+
+    /**
+     * Sends a collection of messages to all connections.
+     *
+     * @param messages  collection of message structures to send
+     */
+    public void sendMessages(final Collection<? extends StructDef> messages)
+    {
+        this.sendMessages(messages, "");
+    }
+
+    /**
+     * Sends a collection of messages to a specific connection.
+     *
+     * @param messages      collection of message structures to send
+     * @param connectionId  target connection
+     * @throws IllegalArgumentException  If connectionId does not match any
+     *                                   connection
+     */
+    public void sendMessages(Collection<? extends StructDef> messages, String connectionId)
+    {
         final CF.DataType[] properties = new CF.DataType[messages.size()];
         int index = 0;
         for (StructDef message : messages) {
@@ -179,7 +273,22 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }
         final Any any = ORB.init().create_any();
         CF.PropertiesHelper.insert(any, properties);
-        this.push(any);
+        try {
+            this._push(any, connectionId);
+        } catch( final org.omg.CORBA.MARSHAL ex ) {
+            // Sending them all at once failed, try send the messages individually
+            if (messages.size() == 1) {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded");
+            } else {
+                this.logger.warn("Could not deliver the message. Maximum message size exceeded, trying individually.");
+
+                for (CF.DataType prop : properties) {
+                    final Any a = ORB.init().create_any();
+                    CF.PropertiesHelper.insert(a, new CF.DataType[]{prop});
+                    this.push(a, connectionId);
+                }
+            }
+        }
     }
 
     protected EventChannelOperations narrow(org.omg.CORBA.Object connection) 
@@ -210,6 +319,10 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         SupplierAdapter supplier = null;
         PushConsumer proxy_consumer = null;
         synchronized (this.updatingPortsLock) {
+            // Remove the original EventChannel object from the parent class'
+            // container
+            this.outPorts.remove(connectionId);
+
             proxy_consumer = this.consumers.get(connectionId);
             if (proxy_consumer == null) {
                 return;
@@ -264,6 +377,19 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         }
     }
 
+    private boolean _hasConnection(String connectionId)
+    {
+        return consumers.containsKey(connectionId);
+    }
+
+    private boolean _isConnectionSelected(String connectionId, String targetId)
+    {
+        if (targetId.isEmpty()) {
+            return true;
+        }
+        return connectionId.equals(targetId);
+    }
+
     @Deprecated
     public org.omg.CosEventChannelAdmin.ConsumerAdmin for_consumers() 
     {
@@ -281,13 +407,13 @@ public class MessageSupplierPort extends UsesPort<EventChannelOperations> implem
         return null;
     }
 
-	public String getRepid()
-	{
-		return "IDL:ExtendedEvent/MessageEvent:1.0";
-	}
+    public String getRepid()
+    {
+        return ExtendedEvent.MessageEventHelper.id();
+    }
 
-	public String getDirection()
-	{
-		return "Uses";
-	}
+    public String getDirection()
+    {
+        return CF.PortSet.DIRECTION_USES;
+    }
 }

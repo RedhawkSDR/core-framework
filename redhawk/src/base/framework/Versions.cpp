@@ -21,22 +21,20 @@
 #include <ossie/Versions.h>
 
 namespace redhawk {
-    int compareVersions(std::string &a, std::string &b) {
+    int compareVersions(const std::string& a, const std::string& b) {
     
-        std::string token;
-    
-        if (!a.compare("sca_compliant") and !b.compare("sca_compliant"))
+        if (a == b) {
             return 0;
-    
-        if (!a.compare("sca_compliant"))
+        } else if (a == "sca_compliant") {
             return 1;
-    
-        if (!b.compare("sca_compliant"))
+        } else if (b == "sca_compliant") {
             return -1;
+        }
     
         std::vector<int> first_tokens;
         std::vector<int> second_tokens;
         try {
+            std::string token;
             std::istringstream first(a);
             while (std::getline(first, token, '.')) {
                 if (!token.empty())

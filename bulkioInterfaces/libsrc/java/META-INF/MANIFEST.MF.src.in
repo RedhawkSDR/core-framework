@@ -1,7 +1,0 @@
-Bundle-ManifestVersion: 2
-Bundle-Name: BULKIO Base Class Library Source
-Bundle-SymbolicName: bulkio.src
-Bundle-Version: @BULKIO_API_VERSION@
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Bundle-Vendor: REDHAWK
-Eclipse-SourceBundle: bulkio;version=@BULKIO_API_VERSION@

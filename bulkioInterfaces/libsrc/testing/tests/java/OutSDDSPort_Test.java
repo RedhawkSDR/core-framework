@@ -20,33 +20,12 @@
 
 import static org.junit.Assert.*;
 
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.After;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.apache.log4j.BasicConfigurator;
+
 import org.apache.log4j.Logger;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.Layout;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
-import org.apache.log4j.xml.DOMConfigurator;
-import org.omg.CORBA.Object;
-import BULKIO.StreamSRI;
-import BULKIO.PrecisionUTCTime;
-import BULKIO.PortStatistics;
-import BULKIO.PortUsageType;
-import BULKIO.dataSDDSPackage.AttachError;
-import BULKIO.dataSDDSPackage.DetachError;
-import BULKIO.dataSDDSPackage.StreamInputError;
+
 import bulkio.ConnectionEventListener;
 
 /**
@@ -105,33 +84,10 @@ public class OutSDDSPort_Test {
 
 
 
-    @BeforeClass
-	public static void oneTimeSetUp() {
-	// Set up a simple configuration that logs on the console.
-	BasicConfigurator.configure();
-    }
-
-    @AfterClass
-	public static void oneTimeTearDown() {
-
-    }
-
-    @Before
-	public void setUp() {
-
-    }
-
-    @After
-	public void tearDown() {
-	
-    }
-
     @Test
-	public void test_OutSDDS( ) {
+    public void test_OutSDDS( ) {
 
 	test_fact ctx = new test_fact( "OutSDDS" );
-
-	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutSDDSPort port = new bulkio.OutSDDSPort(ctx.port_name);
 
@@ -175,7 +131,7 @@ public class OutSDDSPort_Test {
 	sri.streamID = ctx.sid;
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushSRI( sri, TS );
-	StreamSRI []sris= port.activeSRIs();
+	BULKIO.StreamSRI[] sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
         // Pushing an SRI with a null streamID should trigger an NPE

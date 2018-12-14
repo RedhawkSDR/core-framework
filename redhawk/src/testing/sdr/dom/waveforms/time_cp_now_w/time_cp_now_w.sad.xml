@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:c63d2f14-2546-47de-b051-2336ec1ca89a" name="time_cp_now_w">
+  <componentfiles>
+    <componentfile id="time_cp_now_351b5a8e-c526-402f-9423-387f7fb8ea34" type="SPD">
+      <localfile name="/components/time_cp_now/time_cp_now.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="time_cp_now_351b5a8e-c526-402f-9423-387f7fb8ea34"/>
+      <componentinstantiation id="time_cp_now_1" startorder="0">
+        <usagename>time_cp_now_1</usagename>
+        <findcomponent>
+          <namingservice name="time_cp_now_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="time_cp_now_1"/>
+  </assemblycontroller>
+</softwareassembly>

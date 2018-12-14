@@ -23,6 +23,10 @@ import redhawk.codegen.lang.cpp
 from redhawk.codegen.jinja.template import TemplateFile
 
 class CppTemplate(TemplateFile):
+    COMMENT_START = '/*'
+    COMMENT_LINE  = ' *'
+    COMMENT_END   = ' */'
+
     def options(self):
         return {
             'trim_blocks':           True,

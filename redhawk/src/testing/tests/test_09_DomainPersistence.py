@@ -32,6 +32,7 @@ import CosEventChannelAdmin
 from ossie import properties
 from ossie.cf import StandardEvent
 from ossie.utils import uuid
+from ossie.events import Publisher
 
 
 class Supplier_i(CosEventComm__POA.PushSupplier):
@@ -291,6 +292,20 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGKILL)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -299,40 +314,40 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
 
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
+
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
+        appChannel = eventChannelMgr.get('anotherChannel')
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
@@ -350,6 +365,20 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -358,73 +387,42 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
 
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
+
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
-
-    def test_EventAppPortConnectionSIGTERMNoPersist(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml")
-
-        domainName = scatest.getTestDomainName()
-        domMgr.installApplication("/waveforms/PortConnectFindByDomainFinderEvent/PortConnectFindByDomainFinderEvent.sad.xml")
-        appFact = domMgr._get_applicationFactories()[0]
-        app = appFact.create(appFact._get_name(), [], [])
-        app.start()
-
-        # Kill the domainMgr
-        os.kill(self._nb_domMgr.pid, signal.SIGTERM)
-        if not self.waitTermination(self._nb_domMgr, 5.0):
-            self.fail("Domain Manager Failed to Die")
-
-        # Restart the Domain Manager (which should restore the old channel)
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-
-        newappFact = domMgr._get_applicationFactories()
-        self.assertEqual(len(newappFact), 0)
-
-        apps = domMgr._get_applications()
-        self.assertEqual(len(apps), 0)
-
-        devMgrs = domMgr._get_deviceManagers()
-        self.assertEqual(len(devMgrs), 0)
 
     def test_EventAppPortConnectionSIGQUIT(self):
         self.localEvent = threading.Event()
@@ -439,6 +437,20 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app = appFact.create(appFact._get_name(), [], [])
         app.start()
 
+        eventChannelMgr = domMgr._get_eventChannelMgr()
+        connMgr = domMgr._get_connectionMgr()
+        initial_connections = connMgr.listConnections(100)[0]
+
+        _consumer = Consumer_i(self)
+        evt_reg = CF.EventChannelManager.EventRegistration(channel_name = 'anotherChannel', reg_id = 'my_reg_id')
+        reg = eventChannelMgr.registerConsumer(_consumer._this(), evt_reg)
+        pub = Publisher(domMgr, 'anotherChannel')
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+        _channel_registrations = {}
+        for _channel in _channels:
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
+
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGQUIT)
         if not self.waitTermination(self._nb_domMgr, 5.0):
@@ -447,73 +459,43 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Restart the Domain Manager (which should restore the old channel)
         self._nb_domMgr, domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
 
+        current_connections = connMgr.listConnections(100)[0]
+        current_connection_ids = []
+        for _cc in current_connections:
+            current_connection_ids.append(_cc.connectionRecordId)
+        initial_connection_ids = []
+        for _cc in initial_connections:
+            initial_connection_ids.append(_cc.connectionRecordId)
+        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        for _cc in initial_connection_ids:
+            self.assertTrue(_cc in current_connection_ids)
+
         newappFact = domMgr._get_applicationFactories()[0]
         app2 = newappFact.create(appFact._get_name(), [], [])
         app2.start()
-        channelName = URI.stringToName("%s/%s" % (domainName, 'anotherChannel'))
-        try:
-            appChannel = self._root.resolve(channelName)._narrow(CosEventChannelAdmin.EventChannel)
-        except:
-            self.assertEqual(False, True)
-        else:
-            self.assertEqual(True, True)
-
-        # resolve the producer for the event
-        supplier_admin = appChannel.for_suppliers()
-        _proxy_consumer = supplier_admin.obtain_push_consumer()
-        _supplier = Supplier_i()
-        _proxy_consumer.connect_push_supplier(_supplier._this())
-
-        # resolve the consumer for the event
-        consumer_admin = appChannel.for_consumers()
-        _proxy_supplier = consumer_admin.obtain_push_supplier()
-        _consumer = Consumer_i(self)
-        _proxy_supplier.connect_push_consumer(_consumer._this())
 
         # a flag is raised only when two responses come back (one for each running app)
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
+
+        _channels = eventChannelMgr.listChannels(100)[0]
+
+        self.assertEquals(len(_channel_registrations), len(_channels))
+        for _channel in _channels:
+            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
+            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
         # this step tests whether the number of subscribers to the channel is restored
         app2.releaseObject()
 
         self.localEvent.clear()
-        _proxy_consumer.push(any.to_any("message"))
+        pub.push(any.to_any("message"))
         self.localEvent.wait(5.0)
         self.assertEqual(self.eventFlag, True)
         app.releaseObject()
-
-    def test_EventAppPortConnectionSIGQUITNoPersist(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-        self._nb_devMgr, devMgr = self.launchDeviceManager("/nodes/test_EventPortTestDevice_node/DeviceManager.dcd.xml")
-
-        domainName = scatest.getTestDomainName()
-        domMgr.installApplication("/waveforms/PortConnectFindByDomainFinderEvent/PortConnectFindByDomainFinderEvent.sad.xml")
-        appFact = domMgr._get_applicationFactories()[0]
-        app = appFact.create(appFact._get_name(), [], [])
-        app.start()
-
-        # Kill the domainMgr
-        os.kill(self._nb_domMgr.pid, signal.SIGQUIT)
-        if not self.waitTermination(self._nb_domMgr, 5.0):
-            self.fail("Domain Manager Failed to Die")
-
-        # Restart the Domain Manager (which should restore the old channel)
-        self._nb_domMgr, domMgr = self.launchDomainManager("--nopersist", endpoint="giop:tcp::5679", dbURI=self._dbfile)
-
-        newappFact = domMgr._get_applicationFactories()
-        self.assertEqual(len(newappFact), 0)
-
-        apps = domMgr._get_applications()
-        self.assertEqual(len(apps), 0)
-
-        devMgrs = domMgr._get_deviceManagers()
-        self.assertEqual(len(devMgrs), 0)
 
     def test_EventAppPortConnectionSIGINT(self):
         self.localEvent = threading.Event()
@@ -1002,3 +984,54 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(lhsProps, rhsProps)
         self.assert_(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
         self.assert_(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
+
+
+    def test_DomainAndGPPDisappear(self):
+        # startup domain manager, dev manager and a GPP
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self._nb_devMgr, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+
+        # launch a waveform, save off pids for later
+        from ossie.utils import redhawk
+        dom=redhawk.attach(scatest.getTestDomainName())
+        self.assertNotEqual(dom, None)
+
+        app=dom.createApplication("/waveforms/noop_waveform/noop_waveform.sad.xml")
+        cpids=[ int(x._pid) for x in app.comps ]
+        cpids.sort()
+        self.assertNotEqual(app,None)
+        self.assertNotEqual(cpids, 4)
+
+        # Kill the domain manager, device manager, gpp
+        os.kill(self._nb_domMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_domMgr):
+            self.fail("Domain Manager Failed to Die")
+
+        os.killpg(self._nb_devMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_devMgr):
+            self.fail("Device Manager Failed to Die")
+
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        self.assertNotEqual( self._domMgr, None )
+        self._nb_devMgr, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual( self._devMgr, None )
+
+        from ossie.utils import redhawk
+        for i in xrange(5):
+            dom=redhawk.attach(scatest.getTestDomainName())
+            if dom == None:
+                time.sleep(.25)
+
+        self.assertNotEqual(dom, None)
+        self.assertEqual(len(dom.apps),1)
+
+        newpids=[ int(x._pid) for x in app.comps ]
+        newpids.sort()
+        self.assertEqual(cpids == newpids, True)
+
+        # terminate the app, make sure each component process is terminated
+        dom.apps[0].releaseObject()
+        cpids=[ int(x._pid) for x in app.comps ]
+        for p in cpids:
+            self.assertRaises(OSError, os.kill, p, 0 )
+

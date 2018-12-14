@@ -22,14 +22,11 @@
 
 #include "bulkio.h"
 
-template <class PortTraits>
-class InPortStub : public virtual PortTraits::POAPortType
+template <class PortType>
+class InPortStubBase : public virtual bulkio::CorbaTraits<PortType>::POAType
 {
 public:
-    typedef typename PortTraits::SequenceType SequenceType;
-    typedef typename PortTraits::PushType PushType;
-
-    InPortStub()
+    InPortStubBase()
     {
     }
 
@@ -53,18 +50,32 @@ public:
         return new BULKIO::StreamSRISequence();
     }
 
-    virtual void pushPacket(PushType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+    std::vector<BULKIO::StreamSRI> H;
+};
+
+template <class PortType>
+class InPortStub : public InPortStubBase<PortType>
+{
+public:
+    typedef typename bulkio::CorbaTraits<PortType>::SequenceType SequenceType;
+
+    virtual void pushPacket(const SequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
     {
         packets.push_back(Packet(data, T, EOS, streamID));
     }
 
     struct Packet {
-        Packet(PushType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) :
+        Packet(const SequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) :
             data(data),
             T(T),
             EOS(EOS),
             streamID(streamID)
         {
+        }
+
+        size_t size() const
+        {
+            return data.length();
         }
 
         SequenceType data;
@@ -73,7 +84,74 @@ public:
         std::string streamID;
     };
 
-    std::vector<BULKIO::StreamSRI> H;
+    std::vector<Packet> packets;
+};
+
+template <>
+inline size_t InPortStub<BULKIO::dataBit>::Packet::size() const
+{
+    return data.bits;
+}
+
+template <>
+class InPortStub<BULKIO::dataXML> : public InPortStubBase<BULKIO::dataXML>
+{
+public:
+    virtual void pushPacket(const char* data, CORBA::Boolean EOS, const char* streamID)
+    {
+        this->packets.push_back(Packet(data, EOS, streamID));
+    }
+
+    struct Packet {
+        Packet(const char* data, CORBA::Boolean EOS, const char* streamID) :
+            data(data),
+            EOS(EOS),
+            streamID(streamID)
+        {
+        }
+
+        size_t size() const
+        {
+            return data.size();
+        }
+
+        std::string data;
+        bool EOS;
+        std::string streamID;
+    };
+
+    std::vector<Packet> packets;
+};
+
+template <>
+class InPortStub<BULKIO::dataFile> : public InPortStubBase<BULKIO::dataFile>
+{
+public:
+    virtual void pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+    {
+        packets.push_back(Packet(data, T, EOS, streamID));
+    }
+
+    struct Packet {
+        Packet(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) :
+            data(data),
+            T(T),
+            EOS(EOS),
+            streamID(streamID)
+        {
+        }
+
+        size_t size() const
+        {
+            return data.size();
+        }
+
+        std::string data;
+        BULKIO::PrecisionUTCTime T;
+        bool EOS;
+        std::string streamID;
+    };
+
     std::vector<Packet> packets;
 };
 

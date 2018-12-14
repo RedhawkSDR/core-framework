@@ -51,10 +51,16 @@ class CorbaStream(object):
         return self.writer_proc.pid
 
     def transfer_size(self, size):
-        self.writer.transfer_length(size)
+        self.writer.transfer_length(int(size))
 
     def received(self):
         return self.reader.received()
+
+    def send_time(self):
+        return self.writer._get_average_time()
+
+    def recv_time(self):
+        return self.reader._get_average_time()
 
     def terminate(self):
         self.reader_proc.terminate()

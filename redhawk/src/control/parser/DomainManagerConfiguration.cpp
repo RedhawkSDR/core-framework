@@ -23,7 +23,6 @@
 #include"internal/dmd-parser.h"
 
 using namespace ossie;
-using namespace dmd;
 
 // The implementation of these functions should come from the XSD produced drivers
 // When the XSD changes you will need to update these functions.

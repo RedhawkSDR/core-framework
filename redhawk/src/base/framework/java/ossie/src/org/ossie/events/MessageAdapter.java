@@ -27,7 +27,7 @@ import org.ossie.properties.StructDef;
  * dispatch to a listener
  */
 class MessageAdapter<E extends StructDef> implements EventCallback<E> {
-    public MessageAdapter(Class<E> structDef, MessageListener<E> listener)
+    public MessageAdapter(Class<E> structDef, MessageListener<? super E> listener)
     {
         this.structDef = structDef;
         this.listener = listener;
@@ -52,5 +52,5 @@ class MessageAdapter<E extends StructDef> implements EventCallback<E> {
     }
 
     private Class<E> structDef;
-    private MessageListener<E> listener;
+    private MessageListener<? super E> listener;
 }

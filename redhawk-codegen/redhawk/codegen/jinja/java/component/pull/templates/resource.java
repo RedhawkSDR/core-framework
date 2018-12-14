@@ -26,6 +26,7 @@
 package ${component.package};
 
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 /*{% block mainadditionalimports %}*/
 /*# Allow for child class imports #*/
 /*{% endblock %}*/
@@ -69,7 +70,7 @@ public class ${classname} extends ${baseclass} {
      *       //Add the following method to the class:
      *       private void scaleValueChanged(Float oldValue, Float newValue)
      *       {
-     *          logger.debug("Changed scaleValue " + oldValue + " to " + newValue);
+     *          _baseLog.debug("Changed scaleValue " + oldValue + " to " + newValue);
      *       }
      *
      * The recommended practice is for the implementation of valueChanged() to
@@ -191,22 +192,24 @@ public class ${classname} extends ${baseclass} {
     public void constructor()
     {
 /*{% if 'FrontendTuner' in component.implements %}*/
-    /**************************************************************************
+        /**************************************************************************
     
-     For a tuner device, the structure frontend_tuner_status needs to match the number
-     of tuners that this device controls and what kind of device it is.
-     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+         For a tuner device, the structure frontend_tuner_status needs to match the number
+         of tuners that this device controls and what kind of device it is.
+         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
      
-     For example, if this device has 5 physical
-     tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
+         For example, if this device has 5 physical
+         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
+         should look like this:
 
-     this.setNumChannels(5, "RX_DIGITIZER");
+         this.addChannels(3, "RX_DIGITIZER");
+         this.addChannels(2, "CHANNELIZER");
      
-     The incoming request for tuning contains a string describing the requested tuner
-     type. The string for the request must match the string in the tuner status.
+         The incoming request for tuning contains a string describing the requested tuner
+         type. The string for the request must match the string in the tuner status.
      
-    **************************************************************************/
-    this.setNumChannels(1, "RX_DIGITIZER");
+        **************************************************************************/
+        this.addChannels(1, "RX_DIGITIZER");
 /*{% endif %}*/
     }
 
@@ -313,6 +316,17 @@ public class ${classname} extends ${baseclass} {
      *    type. The standard Java type coercion rules apply (e.g., truncation
      *    of floating point values when converting to integer types).
      *
+     * Logging:
+     *
+     *    The member _baseLog is a logger whose base name is the component (or device) instance name.
+     *    New logs should be created based on this logger name.
+     *
+     *    To create a new logger,
+     *        RHLogger my_logger = this._baseLog.getChildLogger("foo");
+     *
+     *    Assuming component instance name abc_1, my_logger will then be created with the 
+     *    name "abc_1.user.foo".
+     *
      * Example:
      *
      *    This example assumes that the ${artifactType} has two ports:
@@ -345,7 +359,7 @@ public class ${classname} extends ${baseclass} {
      *
      */
     protected int serviceFunction() {
-        logger.debug("serviceFunction() example log message");
+        _baseLog.debug("serviceFunction() example log message");
 
         return NOOP;
     }

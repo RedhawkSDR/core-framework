@@ -20,6 +20,7 @@
 
 package org.ossie.events;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.apache.log4j.Logger;
 
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 import org.ossie.properties.StructDef;
 
 /**
@@ -45,8 +47,11 @@ import org.ossie.properties.StructDef;
 @SuppressWarnings("deprecation")
 public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implements PortBase {
     public Object updatingPortsLock = new Object();
+    public RHLogger _portLog;
 
     protected HashMap<String, EventCallback> callbacks = new HashMap<String, EventCallback>();
+    private List<MessageListener<org.omg.CORBA.Any>> genericCallbacks = new ArrayList<>();
+
     protected boolean active = false;
     protected String name;
 
@@ -131,6 +136,12 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         this.logger = logger;
     }
     
+   public MessageConsumerPort(String portName, RHLogger logger) 
+    {
+        this(portName);
+        this._portLog = logger;
+    }
+    
     public boolean isActive() {
         return this.active;
     }
@@ -148,15 +159,20 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
         this.logger = logger;
     }
 
-	public String getRepid()
-	{
-		return "IDL:ExtendedEvent/MessageEvent:1.0";
-	}
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
 
-	public String getDirection()
-	{
-		return "Bidir";
-	}
+    public String getRepid()
+    {
+        return ExtendedEvent.MessageEventHelper.id();
+    }
+
+    public String getDirection()
+    {
+        return CF.PortSet.DIRECTION_BIDIR;
+    }
 
     /**
      * Register a listener for a message.
@@ -168,10 +184,17 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
      *
      * @since 2.0
      */
-    public <E extends StructDef> void registerMessage(String messageId, Class<E> clazz, MessageListener<E> listener)
+    public <E extends StructDef> void registerMessage(String messageId, Class<E> clazz, MessageListener<? super E> listener)
     {
         synchronized (this.callbacks) {
             this.callbacks.put(messageId, new MessageAdapter<E>(clazz, listener));
+        }
+    }
+
+    public void registerMessage(MessageListener<org.omg.CORBA.Any> listener)
+    {
+        synchronized (this.callbacks) {
+            this.genericCallbacks.add(listener);
         }
     }
 
@@ -361,7 +384,7 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
             message_callback = this.callbacks.get(messageId);
 
             // If no callback is registered, present a meaningful warning
-            if (message_callback == null) {
+            if ((message_callback == null) && this.genericCallbacks.isEmpty()) {
                 String warning = "No callbacks registered for messages with id '"+messageId+"'.";
                 if (this.callbacks.isEmpty()) {
                     warning += " No callbacks are registered";
@@ -378,7 +401,13 @@ public class MessageConsumerPort extends ExtendedEvent.MessageEventPOA implement
             }
         }
 
-        message_callback.message(messageId, messageData);       
+        if (message_callback != null) {
+            message_callback.message(messageId, messageData);
+        }
+
+        for (MessageListener<org.omg.CORBA.Any> listener : this.genericCallbacks) {
+            listener.messageReceived(messageId, messageData);
+        }
     }
 
     /**

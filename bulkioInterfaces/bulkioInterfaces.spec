@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        2.0.9
-Release:        1%{?dist}
+Version:        2.2.1
+Release:        2%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -38,10 +38,9 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-BuildRoot: 	    %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-
-Requires: 	    redhawk >= 2.0
-BuildRequires: 	redhawk-devel >= 2.0
+Requires: 	redhawk = %{version}
+BuildRequires: 	redhawk-devel = %{version}
+BuildRequires: 	cppunit-devel
 
 %description
 Libraries and interface definitions for bulkio interfaces.
@@ -83,9 +82,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %endif
 %if %{with java}
 %{_prefix}/lib/BULKIOInterfaces.jar
-%{_prefix}/lib/BULKIOInterfaces.src.jar
 %{_prefix}/lib/bulkio.jar
-%{_prefix}/lib/bulkio.src.jar
 %{_prefix}/%{_lib}/libbulkiojni.*
 %endif
 
@@ -98,6 +95,12 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Bump for 2.1.2-rc2
+
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
+- Bump for 2.1.1-rc2
+
 * Fri Mar 21 2014 1.10.0-1
 - Improve OS version detection for RHEL/CentOS/Fedora
 

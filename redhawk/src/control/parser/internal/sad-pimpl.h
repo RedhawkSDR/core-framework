@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_SAD_PIMPL_H
 
 #include "sad-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace sad
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class softwareassembly_pimpl: public softwareassembly_pskel
   {
     public:
@@ -41,7 +44,7 @@ namespace sad
     description (const ::std::string&);
 
     virtual void
-    componentfiles (const ::std::vector<ossie::ComponentFile>&);
+    componentfiles (::std::vector<ossie::ComponentFile>&);
 
     virtual void
     partitioning (const ossie::SoftwareAssembly::Partitioning&);
@@ -50,16 +53,19 @@ namespace sad
     assemblycontroller (const ::std::string&);
 
     virtual void
-    connections (const ::std::vector<ossie::Connection>&);
+    connections (::std::vector<ossie::Connection>&);
 
     virtual void
-    externalports (const ::std::vector<ossie::SoftwareAssembly::Port>&);
+    externalports (::std::vector<ossie::SoftwareAssembly::Port>&);
 
     virtual void
-    externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>&);
+    externalproperties (::std::vector<ossie::SoftwareAssembly::Property>&);
 
     virtual void
-    usesdevicedependencies (const ::std::vector<ossie::SoftwareAssembly::UsesDevice>&);
+    options (::std::vector<ossie::SoftwareAssembly::Option>&);
+
+    virtual void
+    usesdevicedependencies (::std::vector<ossie::UsesDevice>&);
 
     virtual void
     id (const ::std::string&);
@@ -83,7 +89,7 @@ namespace sad
     virtual void
     componentfile (const ::ossie::ComponentFile&);
 
-    virtual ::std::vector<ossie::ComponentFile>
+    virtual ::std::vector<ossie::ComponentFile>&
     post_componentfiles ();
     
     private:
@@ -192,7 +198,7 @@ namespace sad
     usagename (const ::std::string&);
 
     virtual void
-      componentproperties ( const ossie::ComponentPropertyList&);
+    componentproperties (ossie::ComponentPropertyList&);
 
     virtual void
     findcomponent (const ::std::string&);
@@ -204,10 +210,13 @@ namespace sad
     startorder (const ::std::string&);
 
     virtual void
-    affinity (const  ossie::ComponentInstantiation::AffinityProperties&);
+    affinity (ossie::ComponentInstantiation::AffinityProperties&);
 
     virtual void
       loggingconfig (const ossie::ComponentInstantiation::LoggingConfig&);
+
+    virtual void
+    devicerequires (ossie::ComponentPropertyList&);
 
     virtual const ::ossie::ComponentInstantiation&
     post_componentinstantiation ();
@@ -234,7 +243,7 @@ namespace sad
     virtual void
     structsequenceref (const ossie::StructSequencePropertyRef&);
 
-    const ossie::ComponentInstantiation::AffinityProperties&
+    ossie::ComponentInstantiation::AffinityProperties&
     post_affinity ();
 
     private:
@@ -257,6 +266,24 @@ namespace sad
     ossie::ComponentInstantiation::LoggingConfig  info;
   };
 
+  class devicerequires_pimpl: public virtual devicerequires_pskel
+  {
+    public:
+
+    virtual void
+    pre ();
+
+    virtual void
+    requires (const ossie::IdValue&);
+
+    virtual ossie::ComponentPropertyList&
+    post_devicerequires ();
+
+    private:
+    ossie::ComponentPropertyList  devicerequires;
+  };
+
+
 
   class componentproperties_pimpl: public virtual componentproperties_pskel
   {
@@ -277,7 +304,7 @@ namespace sad
     virtual void
     structsequenceref (const ossie::StructSequencePropertyRef&);
 
-    virtual const ossie::ComponentPropertyList&
+    virtual ossie::ComponentPropertyList&
     post_componentproperties ();
     
     private:
@@ -393,6 +420,26 @@ namespace sad
     virtual void
     post_resourcefactoryproperties ();
   };
+
+  class idvalue_pimpl: public virtual idvalue_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    id (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::IdValue&
+    post_idvalue ();
+
+    private:
+    ossie::IdValue simple;
+  };
+
 
   class simpleref_pimpl: public virtual simpleref_pskel
   {
@@ -591,6 +638,12 @@ namespace sad
     componentplacement (const ::ossie::ComponentPlacement&);
 
     virtual void
+    usesdeviceref (const ::ossie::UsesDeviceRef&);
+
+    virtual void
+    reservation (const ::ossie::Reservation&);
+
+    virtual void
     id (const ::std::string&);
 
     virtual void
@@ -601,6 +654,43 @@ namespace sad
 
     private:
     std::auto_ptr<ossie::SoftwareAssembly::HostCollocation> hostcollocation; 
+  };
+
+  class usesdeviceref_pimpl: public virtual usesdeviceref_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    refid (const ::std::string&);
+
+    virtual const ossie::UsesDeviceRef&
+    post_usesdeviceref ();
+
+    private:
+    ossie::UsesDeviceRef udevref;
+  };
+
+  class reservation_pimpl: public virtual reservation_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    kind (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::Reservation&
+    post_reservation ();
+
+    virtual std::string post_string ();
+
+    private:
+    ossie::Reservation resrv;
   };
 
   class assemblycontroller_pimpl: public virtual assemblycontroller_pskel
@@ -628,7 +718,7 @@ namespace sad
     virtual void
     connectinterface (const ::ossie::Connection&);
 
-    virtual ::std::vector<ossie::Connection>
+    virtual ::std::vector<ossie::Connection>&
     post_connections ();
 
     private:
@@ -765,7 +855,7 @@ namespace sad
     virtual void
     port (const ossie::SoftwareAssembly::Port&);
 
-    virtual ::std::vector<ossie::SoftwareAssembly::Port>
+    virtual ::std::vector<ossie::SoftwareAssembly::Port>&
     post_externalports ();
 
     private:
@@ -812,7 +902,7 @@ namespace sad
       virtual void
       property (const ossie::SoftwareAssembly::Property&);
 
-      virtual ::std::vector<ossie::SoftwareAssembly::Property>
+      virtual ::std::vector<ossie::SoftwareAssembly::Property>&
       post_externalproperties ();
 
   private:
@@ -841,6 +931,41 @@ namespace sad
       std::auto_ptr<ossie::SoftwareAssembly::Property> property;
   };
 
+  class options_pimpl: public virtual options_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    option (const ossie::SoftwareAssembly::Option&);
+
+    virtual ::std::vector<ossie::SoftwareAssembly::Option>&
+    post_options ();
+
+    private:
+    std::vector<ossie::SoftwareAssembly::Option> extOptions;
+  };
+
+  class option_pimpl: public virtual option_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    name (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual ::ossie::SoftwareAssembly::Option
+    post_option ();
+
+    private:
+    std::auto_ptr<ossie::SoftwareAssembly::Option> option;
+  };
+
   class usesdevicedependencies_pimpl: public virtual usesdevicedependencies_pskel
   {
   public:
@@ -848,13 +973,13 @@ namespace sad
       pre ();
 
       virtual void
-      usesdevice (const ossie::SoftwareAssembly::UsesDevice&);
+      usesdevice (const ossie::UsesDevice&);
 
-      virtual ::std::vector<ossie::SoftwareAssembly::UsesDevice>
+      virtual ::std::vector<ossie::UsesDevice>&
       post_usesdevicedependencies ();
 
   private:
-      std::vector<ossie::SoftwareAssembly::UsesDevice> usesDevices;
+      std::vector<ossie::UsesDevice> usesDevices;
   };
 
   class usesdevice_pimpl: public virtual usesdevice_pskel
@@ -864,7 +989,7 @@ namespace sad
       pre ();
 
       virtual void
-      propertyref (const ossie::SoftwareAssembly::PropertyRef&);
+      propertyref (const ossie::PropertyRef&);
 
       virtual void
       simpleref (const ossie::SimplePropertyRef&);
@@ -884,11 +1009,11 @@ namespace sad
       virtual void
       type (const ::std::string&);
 
-      virtual ossie::SoftwareAssembly::UsesDevice
+      virtual ossie::UsesDevice
       post_usesdevice ();
 
   private:
-      std::auto_ptr<ossie::SoftwareAssembly::UsesDevice> uses;
+      std::auto_ptr<ossie::UsesDevice> uses;
   };
 
   class propertyref_pimpl: public virtual propertyref_pskel
@@ -903,7 +1028,7 @@ namespace sad
       virtual void
       value (const ::std::string&);
 
-      virtual ::ossie::SoftwareAssembly::PropertyRef
+      virtual ::ossie::PropertyRef
       post_propertyref ();
 
   private:

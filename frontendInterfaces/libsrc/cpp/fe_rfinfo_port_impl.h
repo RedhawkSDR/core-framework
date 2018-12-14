@@ -93,46 +93,106 @@ namespace frontend {
             OutRFInfoPortT(std::string port_name) : OutFrontendPort<PortType_var, PortType>(port_name)
             {};
             ~OutRFInfoPortT(){};
-            
+
+            std::vector<std::string> getConnectionIds()
+            {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+                    retval.push_back(this->outConnections[i].second);
+                }
+                return retval;
+            };
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (this->outConnections.empty()) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("No connections available.", std::vector<std::string>());
+                    } else {
+                        if (not __connection_id__.empty()) {
+                            std::ostringstream eout;
+                            eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                            throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                        }
+                    }
+                }
+                if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
+                    bool foundConnection = false;
+                    typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (i->second == __connection_id__) {
+                            foundConnection = true;
+                            break;
+                        }
+                    }
+                    if (not foundConnection) {
+                        std::ostringstream eout;
+                        eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                        throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                    }
+                }
+            }
             std::string rf_flow_id() {
+                return _get_rf_flow_id("");
+            };
+            std::string _get_rf_flow_id(const std::string __connection_id__) {
                 CORBA::String_var retval;
-                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         retval = ((*i).first)->rf_flow_id();
                     }
                 }
                 std::string str_retval = ossie::corba::returnString(retval);
                 return str_retval;
             };
-            void rf_flow_id(std::string &data) {
+            void rf_flow_id(std::string &data, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         ((*i).first)->rf_flow_id(data.c_str());
                     }
                 }
                 return;
             };
             frontend::RFInfoPkt rfinfo_pkt() {
+                return _get_rfinfo_pkt("");
+            };
+            frontend::RFInfoPkt _get_rfinfo_pkt(const std::string __connection_id__ = "") {
                 frontend::RFInfoPkt retval;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         const FRONTEND::RFInfoPkt_var tmp = ((*i).first)->rfinfo_pkt();
                         retval = frontend::returnRFInfoPkt(tmp);
                     }
                 }
                 return retval;
             };
-            void rfinfo_pkt(frontend::RFInfoPkt data) {
+            void rfinfo_pkt(frontend::RFInfoPkt data, const std::string __connection_id__ = "") {
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
                 if (this->active) {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
                         const FRONTEND::RFInfoPkt_var tmp = frontend::returnRFInfoPkt(data);
                         ((*i).first)->rfinfo_pkt(tmp);
                     }

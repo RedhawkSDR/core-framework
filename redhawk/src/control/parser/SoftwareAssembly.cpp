@@ -18,28 +18,97 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
+
 #include "ossie/SoftwareAssembly.h"
 #include "internal/sad-parser.h"
 
 using namespace ossie;
 
-SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) {
+const ComponentInstantiation* SoftwareAssembly::HostCollocation::getInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(const ComponentPlacement& placement, placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    return 0;
+}
+
+SoftwareAssembly::SoftwareAssembly() :
+    _sad(0)
+{
+}
+
+SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) :
+    _sad(0)
+{
     this->load(input);
 }
 
 void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error) 
 {
     _sad = ossie::internalparser::parseSAD(input);
+
+    // Validate that all componentplacement elements, both in hostcollocation
+    // elements and in partitioning, have componentfileref values referencing
+    // valid componentfile elements
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        validateComponentPlacements(collocation.placements);
+    }
+    validateComponentPlacements(_sad->partitioning.placements);
+
+    // Make sure assemblycontroller is set, and references a real component
+    if (_sad->assemblycontroller.empty()) {
+        throw ossie::parser_error("assemblycontroller is not set");
+    }
+    if (!getComponentInstantiation(_sad->assemblycontroller)) {
+        throw ossie::parser_error("assemblycontroller has invalid componentinstantiationref '" + _sad->assemblycontroller + "'");
+    }
+
+    validateExternalPorts(_sad->externalports);
+    validateExternalProperties(_sad->externalproperties);
 }
 
-const char* SoftwareAssembly::getID() const {
-    assert(_sad.get() != 0);
-    return _sad->id.c_str();
+void SoftwareAssembly::validateComponentPlacements(std::vector<ComponentPlacement>& placements)
+{
+    BOOST_FOREACH(ComponentPlacement& placement, placements) {
+        const std::string& file_ref = placement.getFileRefId();
+        const ComponentFile* file = getComponentFile(file_ref);
+        if (!file) {
+            throw ossie::parser_error("componentplacement has invalid componentfileref '" + file_ref + "'");
+        }
+        placement.filename = file->filename;
+    }
 }
 
-const char* SoftwareAssembly::getName() const {
+void SoftwareAssembly::validateExternalPorts(std::vector<SoftwareAssembly::Port>& ports)
+{
+    BOOST_FOREACH(SoftwareAssembly::Port& port, ports) {
+        if (!getComponentInstantiation(port.componentrefid)) {
+            throw ossie::parser_error("external port '" + port.getExternalName() + "' has invalid componentrefid '" + port.componentrefid + "'");
+        }
+    }
+}
+
+void SoftwareAssembly::validateExternalProperties(std::vector<SoftwareAssembly::Property>& properties)
+{
+    BOOST_FOREACH(SoftwareAssembly::Property& property, properties) {
+        if (!getComponentInstantiation(property.comprefid)) {
+            throw ossie::parser_error("external property '" + property.getExternalID() + "' has invalid comprefid '" + property.comprefid + "'");
+        }
+    }
+}
+
+const std::string& SoftwareAssembly::getID() const {
     assert(_sad.get() != 0);
-    return _sad->name.c_str();
+    return _sad->id;
+}
+
+const std::string& SoftwareAssembly::getName() const {
+    assert(_sad.get() != 0);
+    return _sad->name;
 }
 
 const std::vector<ComponentFile>& SoftwareAssembly::getComponentFiles() const {
@@ -66,6 +135,12 @@ std::vector<ComponentPlacement> SoftwareAssembly::getAllComponents() const {
     return result;
 }
 
+const std::vector<ComponentPlacement>& SoftwareAssembly::getComponentPlacements() const
+{
+    assert(_sad.get() != 0);
+    return _sad->partitioning.placements; 
+}
+
 const std::vector<SoftwareAssembly::HostCollocation>& SoftwareAssembly::getHostCollocations() const {
     assert(_sad.get() != 0);
     return _sad->partitioning.collocations; 
@@ -76,22 +151,22 @@ const std::vector<Connection>& SoftwareAssembly::getConnections() const {
     return _sad->connections; 
 }
 
-const char* SoftwareAssembly::getSPDById(const char* refid) const {
+const ComponentFile* SoftwareAssembly::getComponentFile(const std::string& refid) const {
     assert(_sad.get() != 0);
     const std::vector<ComponentFile>& componentFiles = getComponentFiles();
     std::vector<ComponentFile>::const_iterator i;
     for (i = componentFiles.begin(); i != componentFiles.end(); ++i) {
-        if (strcmp(i->getID(), refid) == 0) {
-            return i->getFileName();
+        if (i->getID() == refid) {
+            return &(*i);
         }
     }
 
     return 0;
 }
 
-const char* SoftwareAssembly::getAssemblyControllerRefId() const {
+const std::string& SoftwareAssembly::getAssemblyControllerRefId() const {
     assert(_sad.get() != 0);
-    return _sad->assemblycontroller.c_str();
+    return _sad->assemblycontroller;
 }
 
 const std::vector<SoftwareAssembly::Port>& SoftwareAssembly::getExternalPorts() const {
@@ -104,7 +179,45 @@ const std::vector<SoftwareAssembly::Property>& SoftwareAssembly::getExternalProp
     return _sad->externalproperties;
 }
 
-const std::vector<SoftwareAssembly::UsesDevice>& SoftwareAssembly::getUsesDevices() const {
+const std::vector<SoftwareAssembly::Option>& SoftwareAssembly::getOptions() const {
+    assert(_sad.get() != 0);
+    return _sad->options;
+}
+
+const std::vector<UsesDevice>& SoftwareAssembly::getUsesDevices() const {
     assert(_sad.get() != 0);
     return _sad->usesdevice;
+}
+
+const ComponentPlacement * SoftwareAssembly::getAssemblyControllerPlacement() const
+{
+   BOOST_FOREACH(const ComponentPlacement& placement, _sad->partitioning.placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(_sad->assemblycontroller);
+        if (instantiation) return &(placement);
+    }
+
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        BOOST_FOREACH(const ComponentPlacement& placement, collocation.getComponents()) {
+            const ComponentInstantiation* instantiation = placement.getInstantiation(_sad->assemblycontroller);
+            if (instantiation) return &(placement);
+        }
+    }
+   return NULL;
+}
+
+const ComponentInstantiation* SoftwareAssembly::getComponentInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(HostCollocation& collocation, _sad->partitioning.collocations) {
+        const ComponentInstantiation* instantiation = collocation.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    BOOST_FOREACH(const ComponentPlacement& placement, _sad->partitioning.placements) {
+        const ComponentInstantiation* instantiation = placement.getInstantiation(refid);
+        if (instantiation) {
+            return instantiation;
+        }
+    }
+    return 0;
 }

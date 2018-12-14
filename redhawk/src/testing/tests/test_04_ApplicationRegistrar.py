@@ -350,6 +350,28 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    def test_cppCompWaveformOverride(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        domMgr.installApplication("/waveforms/cpp_comp_aware_w/cpp_comp_aware_w.sad.xml")
+        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
+        appFact = domMgr._get_applicationFactories()[0]
+
+        app = appFact.create(appFact._get_name(), [], [])
+        self.assertEqual(len(domMgr._get_applications()), 1)
+        app_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
+        number_components = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
+        dom_id = app._get_registeredComponents()[0].componentObject.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
+        self.assertEqual(app_id, app._get_identifier())
+        self.assertEqual(number_components, 0)
+        self.assertEqual(dom_id, "")
+        self.assertEqual(app._get_aware(), False)
+        app.releaseObject()
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
     def test_pyCompUnaware(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)

@@ -23,6 +23,7 @@
 #define ORBSUPPORT_H
 
 #include <string>
+#include <omniORB4/CORBA.h>
 
 /*
 The ossieSupport namespace contains useful functions used throughout the
@@ -39,6 +40,8 @@ namespace ossie
     void configureLogging(const char* logcfgUri, int defaultLevel);
 
     std::string generateUUID();
+
+    bool sameHost( CORBA::Object_ptr aobj, CORBA::Object_ptr bobj );
 
     std::string getCurrentDirName();
 

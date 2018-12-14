@@ -1,4 +1,5 @@
 .deps
+.dirstamp
 .idlj/
 .idljni/
 .jars/
@@ -28,7 +29,6 @@ build
 /setup.py
 /jni/ossie/
 /libsrc/java/bin/
-/libsrc/cpp/.dirstamp
 /libsrc/java/META-INF/MANIFEST.MF
 /libsrc/java/META-INF/MANIFEST.MF.src
 /src/

@@ -28,7 +28,8 @@ module ExtendedCF {
         const string OS_NAME             = "DCE:4a23ad60-0b25-4121-a630-68803a498f75";
         const string OS_VERSION          = "DCE:0f3a9a37-a342-43d8-9b7f-78dc6da74192";
         const string PROCESSOR_NAME      = "DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b";
-        const string AWARE_APPLICATION = "AWARE_APPLICATION";
+        const string AWARE_APPLICATION   = "RH::AWARE_APPLICATION";
+        const string STOP_TIMEOUT        = "RH::STOP_TIMEOUT";
     };
 };
 #endif

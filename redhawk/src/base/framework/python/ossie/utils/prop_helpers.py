@@ -32,6 +32,7 @@ from omniORB import any as _any
 from omniORB import CORBA as _CORBA
 from omniORB import tcInternal as _tcInternal
 import copy as _copy
+import cStringIO, pydoc
 import struct as _struct
 import string as _string
 import operator as _operator
@@ -40,6 +41,8 @@ from ossie.utils.type_helpers import OutOfRangeException, EnumValueError
 from ossie.utils.formatting import TablePrinter
 from ossie.parsers.prf import configurationKind as _configurationKind
 SCA_TYPES = globals()['_SCA_TYPES']
+
+_warnings.filterwarnings('once',category=DeprecationWarning)
 
 # Map the type of the complex number (e.g., complexFloat) to the 
 # type of the real and imaginary members (e.g., float).
@@ -241,18 +244,23 @@ def getPropNameDict(prf):
 -Prevents duplicate entries within a component
 -Allows for get/set on components with invalid chars in ID
 '''
-def addCleanName(cleanName, id, _displayNames, _duplicateNames):
+def addCleanName(cleanName, id, _displayNames, _duplicateNames, namesp=None):
+    retval=cleanName
     if not _displayNames.has_key(cleanName):
         _displayNames[cleanName] = id
-        _duplicateNames[cleanName] = 0
-        return cleanName
-    elif _displayNames[cleanName] == id:
-        return cleanName
-    else:
-        count = _duplicateNames[cleanName] + 1
-        _displayNames[cleanName + str(count)] = id
-        _duplicateNames[cleanName] = count
-        return cleanName + str(count)
+        # maintain a count of clean name for each namespace context
+        _duplicateNames[cleanName] = { namesp : 0 }
+        return retval
+    elif _displayNames[cleanName] != id:
+        if namesp in _duplicateNames[cleanName]:
+            count = _duplicateNames[cleanName][namespace] + 1
+            _displayNames[cleanName + str(count)] = id
+            _duplicateNames[cleanName][namespace] = count
+            retval=cleanName + str(count)
+        else:
+            _duplicateNames[cleanName][namesp] = 0
+            retval = cleanName
+    return retval
     
 def _cleanId(prop):
     translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
@@ -366,11 +374,14 @@ class Property(object):
             if i.clean_name == prop.id_:
                 for k in prop.get_configurationkind():
                     kinds.append(k.get_kindtype())
-                if i.members[_cleanId(simple)]._enums != None:
-                    enums = i.members[_cleanId(simple)]._enums
+                mname = _cleanId(simple)
+                if mname in i._memberNames:
+                     mname = i._memberNames[mname]
+                if i.members[mname]._enums != None:
+                    enums = i.members[mname]._enums
                 if self.mode != "writeonly":
-                    value = str(i.members[_cleanId(simple)])
-                defVal = str(i.members[_cleanId(simple)].defValue)
+                    value = str(i.members[mname])
+                defVal = str(i.members[mname].defValue)
         type = str(self.compRef._getPropType(simple))
         return defVal, value, type, kinds, enums
 
@@ -383,34 +394,42 @@ class Property(object):
             if i.clean_name == prop.id_:
                 for k in prop.get_configurationkind():
                     kinds.append(k.get_kindtype())
-                if i.members[_cleanId(sprop)].__dict__.has_key("_enums"):
-                  if i.members[_cleanId(sprop)]._enums != None:
-                    enums = i.members[_cleanId(sprop)]._enums
+                cname = _cleanId(sprop)
+                if cname in i._memberNames:
+                     cname = i._memberNames[cname]
+                if i.members[cname].__dict__.has_key("_enums"):
+                  if i.members[cname]._enums != None:
+                    enums = i.members[cname]._enums
                 if self.mode != "writeonly":
-                    values = i.members[_cleanId(sprop)]
-                defVal = i.members[_cleanId(sprop)].defValue
+                    values = i.members[cname]
+                defVal = i.members[cname].defValue
         type = str(self.compRef._getPropType(sprop))
         return defVal, values, type, kinds, enums
 
-    def api(self):
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         kinds = []
-        print "\nProperty\n--------"
-        print "% -*s %s" % (17,"ID:",self.id)
-        print "% -*s %s" % (17,"Type:",self.type)
+        print >>destfile, "\nProperty\n--------"
+        print >>destfile, "% -*s %s" % (17,"ID:",self.id)
+        print >>destfile, "% -*s %s" % (17,"Type:",self.type)
         simpleOrSequence = False
         if self.type != "structSeq" and self.type != "struct":
             simpleOrSequence = True
-            print "% -*s %s" % (17,"Default Value:", self.defValue)
+            print >>destfile, "% -*s %s" % (17,"Default Value:", self.defValue)
             if self.mode != "writeonly":
-                print "% -*s %s" % (17,"Value: ", self.queryValue())
+                print >>destfile, "% -*s %s" % (17,"Value: ", self.queryValue())
             try:
                 if self._enums != None:
-                    print "% -*s %s" % (17,"Enumumerations:", self._enums)
+                    print >>destfile, "% -*s %s" % (17,"Enumumerations:", self._enums)
             except:
                 simpleOrSequence = True
         if self.type != "struct":
-            print "% -*s %s" % (17,"Action:", self.action) 
-        print "% -*s %s" % (17,"Mode: ", self.mode)
+            print >>destfile, "% -*s %s" % (17,"Action:", self.action) 
+        print >>destfile, "% -*s %s" % (17,"Mode: ", self.mode)
 
         if self.type == "struct":
             structTable = TablePrinter('Name','Data Type','Default Value', 'Current Value','Enumerations')
@@ -425,17 +444,17 @@ class Property(object):
                         defVal,value, type, kinds,enums = self._getStructsSimpleProps(sprop,prop)
                         structTable.append(sprop.get_id(),type,str(defVal),str(value),enums)
                         if first:
-                            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+                            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
                             first = False
                     for sprop in prop.get_simplesequence():
                         defVal,values,type,kinds,enums = self._getStructsSimpleSeqProps(sprop, prop)
                         structTable.append(sprop.get_id(),type,defVal,values,enums)
                         if first:
-                            print "% -*s %s" % (17,"Kinds: ",', '.join(kinds))
+                            print >>destfile, "% -*s %s" % (17,"Kinds: ",', '.join(kinds))
                             first = False
             structTable.write()
         elif self.type == "sequence":
-            print "sequence: ",type(self)
+            print >>destfile, "sequence: ",type(self)
 
         elif self.type == "structSeq":
             structNum = -1
@@ -449,8 +468,8 @@ class Property(object):
                         structTable.append(prop.id_, prop.get_type())
                     for prop in prop.get_struct().get_simplesequence():
                         structTable.append(prop.id_, prop.get_type())
-            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-            print "\nStruct\n======"
+            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+            print >>destfile, "\nStruct\n======"
             structTable.write()
 
             simpleTable = TablePrinter('Index','Name','Value')
@@ -463,7 +482,7 @@ class Property(object):
                         for key in s.keys():
                             simpleTable.append(str(structNum),key,str(s[key]))
             if self.mode != "writeonly":
-                print "\nSimple Properties\n================="
+                print >>destfile, "\nSimple Properties\n================="
                 simpleTable.write()
 
         elif simpleOrSequence:
@@ -471,8 +490,11 @@ class Property(object):
                 if prop.id_ == self.id:
                     for kind in prop.get_kind():
                         kinds.append(kind.get_kindtype())
-            print "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-          
+            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _isNested(self):
         return self._parent is not None
@@ -719,7 +741,7 @@ class simpleProperty(Property):
           structRef, structSeqRef, structSeqIdx
         """
         if valueType not in SCA_TYPES:
-            raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
+            raise(Exception('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES)))
         
         # Initialize the parent
         Property.__init__(self, id, type=valueType, kinds=kinds,compRef=compRef, mode=mode, action=action, parent=parent,
@@ -834,6 +856,8 @@ class simpleProperty(Property):
             value = self.queryValue()
             if value != None:
                 ret=str(value)
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
         return ret
         
     def __str__(self, *args):
@@ -904,6 +928,8 @@ class sequenceProperty(Property):
                 # to determine complexity, as in the case of a struct sequence,
                 # the value of self.valueType may not be a string.
                 self.complex = True
+            elif self.valueType == 'utctime':
+                self.typecode = getCFSeqType(self.valueType)
 
     def _getItemKey(self):
         return self.id
@@ -1002,7 +1028,8 @@ class sequenceProperty(Property):
     def __repr__(self):
         if self.mode != "writeonly":
             return repr(self.queryValue())
-        return ''
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
     
     def __str__(self):
         return self.__repr__()
@@ -1204,6 +1231,8 @@ class structProperty(Property):
         currValue = ""
         if self.mode != "writeonly":
             currValue = self.queryValue()
+        else:
+            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
         structView = "ID: " + self.id
         for key in currValue:
             try:

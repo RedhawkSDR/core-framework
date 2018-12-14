@@ -26,6 +26,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	, connections?
 	, externalports?
 	, externalproperties?
+	, options?
 	, usesdevicedependencies?
 	)>
 <!ATTLIST softwareassembly
@@ -70,6 +71,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         , affinity?
         , loggingconfig?
 	, findcomponent?
+	, devicerequires?
 	)>
 <!ATTLIST componentinstantiation
 	id		ID 	#REQUIRED
@@ -86,6 +88,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	| simplesequenceref
 	| structref
 	| structsequenceref
+	)+ >
+
+<!ELEMENT devicerequires
+	( requires
 	)+ >
 
 <!ELEMENT componentproperties 
@@ -125,6 +131,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	| structref
 	| structsequenceref
 	)+ >
+
+<!ELEMENT requires EMPTY>
+<!ATTLIST requires
+	id		CDATA	#REQUIRED
+	value		CDATA	#REQUIRED>
 
 <!ELEMENT simpleref EMPTY>
 <!ATTLIST simpleref
@@ -181,11 +192,23 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	name		CDATA	#IMPLIED>
 
 <!ELEMENT hostcollocation
-	( componentplacement
-	)+>
+	( componentplacement+
+        , usesdeviceref*
+        , reservation*
+	)>
+
 <!ATTLIST hostcollocation
 	id		ID	#IMPLIED
 	name		CDATA	#IMPLIED>
+
+<!ELEMENT usesdeviceref EMPTY>
+<!ATTLIST usesdeviceref
+	refid		CDATA	#REQUIRED>
+
+<!ELEMENT reservation EMPTY>
+<!ATTLIST reservation
+    kind        CDATA   #REQUIRED
+    value       CDATA   #REQUIRED>
 
 <!ELEMENT assemblycontroller
 	( componentinstantiationref
@@ -262,6 +285,13 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	comprefid			CDATA	#REQUIRED
 	propid				CDATA	#REQUIRED
 	externalpropid		CDATA	#IMPLIED>
+
+<!ELEMENT options
+    (option+
+    )>
+<!ATTLIST option
+    name                CDATA   #REQUIRED
+    value               CDATA   #REQUIRED>
 
 <!ELEMENT usesdevicedependencies
 	(usesdevice+

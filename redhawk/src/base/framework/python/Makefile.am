@@ -50,6 +50,7 @@ BUILT_SOURCES = \
  ossie/cf/ExtendedEvent_idl.py \
  ossie/cf/AggregateDevices_idl.py \
  ossie/cf/QueryablePort_idl.py \
+ ossie/cf/NegotiablePort_idl.py \
  ossie/cf/WellKnownProperties_idl.py \
  ossie/cf/sandbox_idl.py \
  ossie/cf/LogInterfaces_idl.py \
@@ -57,10 +58,5 @@ BUILT_SOURCES = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-PYTHON_INSTALL_FILES=".pythonInstallFiles"
-
 install-exec-hook:
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
-
-uninstall:
-	rm `cat $(PYTHON_INSTALL_FILES)`
+	$(PYTHON) setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --old-and-unmanageable

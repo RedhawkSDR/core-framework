@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include <istream>
+#include <memory>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -30,8 +31,28 @@
 #include "ossie/exceptions.h"
 #include "ossie/ossieparser.h"
 #include "ossie/componentProfile.h"
+#include <boost/shared_ptr.hpp>
 
 namespace ossie {
+
+    class DevicePlacement : public ComponentPlacement
+    {
+    public:
+        ossie::optional_value<std::string> deployOnDeviceID;
+        ossie::optional_value<std::string> compositePartOfDeviceID;
+        ossie::optional_value<std::string> DPDFile;
+
+        const char* getDeployOnDeviceID() const;
+
+        const char* getCompositePartOfDeviceID() const;
+
+        const std::string getDPDFile() const;
+        
+        bool isDeployOn() const;
+
+        bool isCompositePartOf() const;
+    };
+
     class DeviceManagerConfiguration {
 
     ENABLE_LOGGING
@@ -47,7 +68,7 @@ namespace ossie {
             std::string deviceManagerSoftPkg;
             std::string domainManagerName;
             std::vector<ComponentFile> componentFiles;
-            std::vector<ComponentPlacement> componentPlacements;
+            std::vector<DevicePlacement> componentPlacements;
             std::vector<Connection> connections;
         };
 
@@ -57,7 +78,7 @@ namespace ossie {
          * information from a DCD file.  You must call load() before calling any
          * other functions on this class.
          */
-        DeviceManagerConfiguration() : _dcd(0) {}
+        DeviceManagerConfiguration() : _dcd() {}
 
         /*
          * Create a DeviceManagerConfiguration, parsing the DCD information provided by input.
@@ -76,6 +97,8 @@ namespace ossie {
     public:
         void load(std::istream& input) throw (ossie::parser_error);
 
+        const bool isLoaded() const;
+
         const char* getID() const;
 
         const char* getName() const;
@@ -83,10 +106,10 @@ namespace ossie {
         const char* getDeviceManagerSoftPkg() const;
 
         const char* getDomainManagerName() const;
-        
+
         const std::vector<ComponentFile>& getComponentFiles();
 
-        const std::vector<ComponentPlacement>& getComponentPlacements();
+        const std::vector<DevicePlacement>& getComponentPlacements();
 
         const std::vector<Connection>& getConnections();
 
@@ -95,7 +118,7 @@ namespace ossie {
         const ComponentInstantiation& getComponentInstantiationById(std::string id) throw(std::out_of_range);
 
     private:
-        std::auto_ptr<DCD> _dcd;
+        boost::shared_ptr<DCD > _dcd;
 
     };
 }

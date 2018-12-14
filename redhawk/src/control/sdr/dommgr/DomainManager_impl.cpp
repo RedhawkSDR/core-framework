@@ -26,6 +26,9 @@
 #include <string>
 #include <vector>
 #include <signal.h>
+
+#include <boost/foreach.hpp>
+
 #include <omniORB4/CORBA.h>
 #include <omniORB4/internal/orbParameters.h>
 #include <ossie/debug.h>
@@ -40,6 +43,7 @@
 #include <ossie/DomainManagerConfiguration.h>
 #include <ossie/GCThread.h>
 #include <ossie/EventTypes.h>
+#include <ossie/prop_utils.h>
 
 #include "Application_impl.h"
 #include "ApplicationFactory_impl.h"
@@ -52,10 +56,10 @@
 using namespace ossie;
 using namespace std;
 
-static const ComponentInstantiation* findComponentInstantiation (const std::vector<ComponentPlacement>& placements,
+static const ComponentInstantiation* findComponentInstantiation (const std::vector<DevicePlacement>& placements,
                                                                  const std::string& identifier)
 {
-    for (std::vector<ComponentPlacement>::const_iterator iter = placements.begin(); iter != placements.end(); ++iter) {
+    for (std::vector<DevicePlacement>::const_iterator iter = placements.begin(); iter != placements.end(); ++iter) {
         const std::vector<ComponentInstantiation>& instantiations = iter->getInstantiations();
         for (std::vector<ComponentInstantiation>::const_iterator ii = instantiations.begin(); ii != instantiations.end(); ++ii) {
             if (identifier == ii->getID()) {
@@ -66,28 +70,43 @@ static const ComponentInstantiation* findComponentInstantiation (const std::vect
     return 0;
 }
 
-PREPARE_CF_LOGGING(DomainManager_impl)
+rh_logger::LoggerPtr DomainManager_impl::__logger;
 
 // If _overrideDomainName == NULL read the domain name from the DMD file
 DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpath, const char* domainName, 
 					const char *db_uri,
-					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain ) :
+					const char* _logconfig_uri, bool useLogCfgResolver, bool bindToDomain, bool _persistence, int initialLogLevel) :
+  Logging_impl("DomainManager"),
   _eventChannelMgr(NULL),
   _domainName(domainName),
   _domainManagerProfile(dmdFile),
   _connectionManager(this, this, domainName),
   _useLogConfigUriResolver(useLogCfgResolver),
   _strict_spd_validation(false),
+  _initialLogLevel(initialLogLevel),
   _bindToDomain(bindToDomain)
 {
-    TRACE_ENTER(DomainManager_impl)
 
-    LOG_TRACE(DomainManager_impl, "Looking for DomainManager POA");
+    std::string std_logconfig_uri;
+    if (_logconfig_uri) {
+        std::string _lu(_logconfig_uri);
+        std::string _rp(_rootpath);
+        std_logconfig_uri = ossie::logging::ResolveLocalUri(_lu, _rp, _lu);
+    }
+    std::string expanded_config = getExpandedLogConfig(std_logconfig_uri);
+    this->_baseLog->configureLogger(expanded_config, true);
+
+    redhawk::setupParserLoggers(this->_baseLog);
+    PropertySet_impl::setLogger(this->_baseLog->getChildLogger("PropertySet", ""));
+
+    RH_TRACE(this->_baseLog, "Looking for DomainManager POA");
+    _connectionManager.setLogger(this->_baseLog->getChildLogger("ConnectionManager", ""));
     poa = ossie::corba::RootPOA()->find_POA("DomainManager", 1);
 
     // Initialize properties
     logging_config_prop = (StringProperty*)addProperty(logging_config_uri, "LOGGING_CONFIG_URI", "LOGGING_CONFIG_URI",
                                                        "readonly", "", "external", "configure");
+
     if (_logconfig_uri) {
         logging_config_prop->setValue(_logconfig_uri);
     }
@@ -97,6 +116,16 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
 
     addProperty(redhawk_version, VERSION, "REDHAWK_VERSION", "redhawk_version",
                 "readonly", "", "external", "configure");
+    
+    addProperty(PERSISTENCE,
+                "PERSISTENCE",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+    
+    PERSISTENCE = _persistence;
 
     addProperty(client_wait_times,
                 client_wait_times_struct(),
@@ -114,44 +143,52 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     PortableServer::ObjectId_var oid = ossie::corba::activatePersistentObject(poa, fileMgr_servant, fileManagerId);
     fileMgr_servant->_remove_ref();
     _fileMgr = fileMgr_servant->_this();
-    
+    fileMgr_servant->setLogger(_baseLog->getChildLogger("FileManager", ""));
+
     // Create allocation manager and register with the parent POA
     _allocationMgr = new AllocationManager_impl (this);
     std::string allocationManagerId = _domainName + "/AllocationManager";
     oid = ossie::corba::activatePersistentObject(poa, _allocationMgr, allocationManagerId);
     _allocationMgr->_remove_ref();
+    _allocationMgr->setLogger(_baseLog->getChildLogger("AllocationManager", ""));
+
+    ossie::proputilsLog = _baseLog->getChildLogger("proputils","");
+    fileLog = _baseLog->getChildLogger("File","");
+    redhawk::deploymentLog = _baseLog->getChildLogger("Deployment","");
+    ossie::connectionSupportLog = _baseLog->getChildLogger("ConnectionSupport","");
 
     // Likewise, create the domain-level connection manager
     _connectionMgr = new ConnectionManager_impl(this);
     std::string connectionManagerId = _domainName + "/ConnectionManager";
     oid = ossie::corba::activatePersistentObject(poa, _connectionMgr, connectionManagerId);
+    _connectionMgr->setLogger(_baseLog->getChildLogger("ConnectionManager", ""));
 
     // Parse the DMD profile
     parseDMDProfile();
 
-    LOG_TRACE(DomainManager_impl, "Establishing domain manager naming context")
+    RH_TRACE(this->_baseLog, "Establishing domain manager naming context")
     base_context = ossie::corba::stringToName(_domainName);
     CosNaming::NamingContext_ptr inc = CosNaming::NamingContext::_nil();
     try {
         inc = ossie::corba::InitialNamingContext();
     } catch ( ... ) {
-        LOG_FATAL(DomainManager_impl, "Unable to find Naming Service; make sure that it is configured correctly and running.");
+        RH_FATAL(this->_baseLog, "Unable to find Naming Service; make sure that it is configured correctly and running.");
         _exit(EXIT_FAILURE);
     }
     try {
         rootContext = inc->bind_new_context (base_context);
     } catch (CosNaming::NamingContext::AlreadyBound&) {
-        LOG_TRACE(DomainManager_impl, "Naming context already exists");
+        RH_TRACE(this->_baseLog, "Naming context already exists");
         CORBA::Object_var obj = inc->resolve(base_context);
         rootContext = CosNaming::NamingContext::_narrow(obj);
         try {
             cleanupDomainNamingContext(rootContext);
         } catch (CORBA::Exception& e) {
-            LOG_FATAL(DomainManager_impl, "Stopping domain manager; error cleaning up context for domain due to: " << e._name());
+            RH_FATAL(this->_baseLog, "Stopping domain manager; error cleaning up context for domain due to: " << e._name());
             _exit(EXIT_FAILURE);
         }
     } catch ( ... ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error creating new context for domain " << this->_domainName.c_str())
+        RH_FATAL(this->_baseLog, "Stopping domain manager; error creating new context for domain " << this->_domainName);
         _exit(EXIT_FAILURE);
     }
 
@@ -164,26 +201,33 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
       _eventChannelMgr = new EventChannelManager(this, true, true, true);
       std::string id = _domainName + "/EventChannelManager";
       oid = ossie::corba::activatePersistentObject(poa, _eventChannelMgr, id );
+      _allocationMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
       _eventChannelMgr->_remove_ref();
-      LOG_DEBUG(DomainManager_impl, "Started EventChannelManager for the domain.");
+      RH_DEBUG(this->_baseLog, "Started EventChannelManager for the domain.");
       // setup IDM and ODM Channels for this domain
       std::string dburi = (db_uri) ? db_uri : "";
       establishDomainManagementChannels( dburi );
 
     } catch ( ... ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; EventChannelManager - EventChannelFactory unavailable" )
+        RH_FATAL(this->_baseLog, "Stopping domain manager; EventChannelManager - EventChannelFactory unavailable" )
         _exit(EXIT_FAILURE);
     }
 
-
-
 // \todo lookup and install any services specified in the DMD
 
-    LOG_TRACE(DomainManager_impl, "Looking for ApplicationFactories POA");
+    RH_TRACE(this->_baseLog, "Looking for ApplicationFactories POA");
     appFact_poa = poa->find_POA("ApplicationFactories", 1);
 
-    LOG_TRACE(DomainManager_impl, "Done instantiating Domain Manager")
-    TRACE_EXIT(DomainManager_impl)
+    RH_TRACE(this->_baseLog, "Done instantiating Domain Manager")
+}
+
+CF::LogLevel DomainManager_impl::log_level() {
+    int _level = this->_baseLog->getLevel()->toInt();
+    if (_level == rh_logger::Level::OFF_INT)
+        _level = CF::LogLevels::OFF;
+    else if (_level == rh_logger::Level::ALL_INT)
+        _level = CF::LogLevels::ALL;
+    return _level;
 }
 
 void DomainManager_impl::parseDMDProfile()
@@ -195,26 +239,26 @@ void DomainManager_impl::parseDMDProfile()
         dmdStream.close();
     } catch (const parser_error& e) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; error parsing domain manager configuration DMD: " <<  _domainManagerProfile << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
+        RH_FATAL(this->_baseLog, "Stopping domain manager; error parsing domain manager configuration DMD: " <<  _domainManagerProfile << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
         _exit(EXIT_FAILURE);
     } catch (const std::ios_base::failure& e) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " IO failure exception: " << e.what())
+        RH_FATAL(this->_baseLog, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " IO failure exception: " << e.what())
         _exit(EXIT_FAILURE);
     } catch( CF::InvalidFileName& _ex ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " Invalid file name exception: " << _ex.msg)
+        RH_FATAL(this->_baseLog, "Stopping domain manager;  domain manager configuration DMD: " <<  _domainManagerProfile << " Invalid file name exception: " << _ex.msg)
         _exit(EXIT_FAILURE);
     } catch( CF::FileException& _ex ) {
-        LOG_FATAL(DomainManager_impl, "Stopping domain manager; domain manager configuration DMD: " <<  _domainManagerProfile << " File exception: " << _ex.msg)
+        RH_FATAL(this->_baseLog, "Stopping domain manager; domain manager configuration DMD: " <<  _domainManagerProfile << " File exception: " << _ex.msg)
         _exit(EXIT_FAILURE);
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while loading domain manager configuration DMD: " << _domainManagerProfile;
-        LOG_FATAL(DomainManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         _exit(EXIT_FAILURE);
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while loading domain manager configuration DMD: " << _domainManagerProfile;
-        LOG_FATAL(DomainManager_impl, eout.str())
+        RH_FATAL(this->_baseLog, eout.str())
         _exit(EXIT_FAILURE);
     }
 
@@ -225,50 +269,50 @@ void DomainManager_impl::parseDMDProfile()
 void DomainManager_impl::restoreEventChannels(const std::string& _db_uri) {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
-    LOG_INFO(DomainManager_impl, "Restoring state from URL " << _db_uri);
+    RH_INFO(this->_baseLog, "Restoring state from URL " << _db_uri);
     try {
         db.open(_db_uri);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading persistent state: " << e.what());
         return;
     }
 
-    LOG_TRACE(DomainManager_impl, "Recovering event channels");
+    RH_TRACE(this->_baseLog, "Recovering event channels");
     // Recover the event channels
     std::vector<EventChannelNode> _restoredEventChannels;
     try {
         db.fetch("EVENT_CHANNELS", _restoredEventChannels, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading event channels persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading event channels persistent state: " << e.what());
         _restoredEventChannels.clear();
     }
 
     for (std::vector<EventChannelNode>::iterator i = _restoredEventChannels.begin();
          i != _restoredEventChannels.end();
          ++i) {
-        LOG_TRACE(DomainManager_impl, "Attempting to recover connection to Event Channel " << i->boundName);
+        RH_TRACE(this->_baseLog, "Attempting to recover connection to Event Channel " << i->boundName);
         try {
             if (ossie::corba::objectExists(i->channel)) {
-                LOG_INFO(DomainManager_impl, "Recovered connection to Event Channel: " << i->boundName);
+                RH_INFO(this->_baseLog, "Recovered connection to Event Channel: " << i->boundName);
                 
                 // try to restore channel with event channel manager..
                 try {
                   if ( _eventChannelMgr ) _eventChannelMgr->restore( i->channel, i->name, i->boundName);
                 }
                 catch( CF::EventChannelManager::ChannelAlreadyExists){
-                  LOG_INFO(DomainManager_impl, "EventChannelManager::restore, Channel already exists: " << i->boundName);
+                  RH_INFO(this->_baseLog, "EventChannelManager::restore, Channel already exists: " << i->boundName);
                 }
                 catch( CF::EventChannelManager::InvalidChannelName){
-                  LOG_WARN(DomainManager_impl, "EventChannelManager::restore, Invalid Channel Name, " << i->boundName);
+                  RH_WARN(this->_baseLog, "EventChannelManager::restore, Invalid Channel Name, " << i->boundName);
                 }
                 catch( CF::EventChannelManager::ServiceUnavailable){
-                  LOG_WARN(DomainManager_impl, "EventChannelManager::restore, Event Service seems to be down. ");
+                  RH_WARN(this->_baseLog, "EventChannelManager::restore, Event Service seems to be down. ");
                 }
                 catch( CF::EventChannelManager::OperationFailed){
-                  LOG_WARN(DomainManager_impl, "EventChannelManager::restore, Failed to recover Event Channel: " << i->boundName);
+                  RH_WARN(this->_baseLog, "EventChannelManager::restore, Failed to recover Event Channel: " << i->boundName);
                 }
                 catch( ... ){
-                  LOG_WARN(DomainManager_impl, "EventChannelManager, Failed to recover Event Channel: " << i->boundName);
+                  RH_WARN(this->_baseLog, "EventChannelManager, Failed to recover Event Channel: " << i->boundName);
                 }
                 CosEventChannelAdmin::EventChannel_var channel = i->channel;
                 CosNaming::Name_var cosName = ossie::corba::stringToName(i->boundName);
@@ -290,239 +334,197 @@ void DomainManager_impl::restoreEventChannels(const std::string& _db_uri) {
                     _eventChannels.push_back(*i);
                 }
             } else {
-                LOG_WARN(DomainManager_impl, "Failed to recover Event Channel: " << i->boundName);
+                RH_WARN(this->_baseLog, "Failed to recover Event Channel: " << i->boundName);
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Unable to restore connection to Event Channel: " << i->boundName);
+        } CATCH_RH_WARN(this->_baseLog, "Unable to restore connection to Event Channel: " << i->boundName);
     }
 
     try {
         db.store("EVENT_CHANNELS", _restoredEventChannels);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error restoring event channels from persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error restoring event channels from persistent state: " << e.what());
     }
 }
 
 void DomainManager_impl::restoreState(const std::string& _db_uri) {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
-    LOG_INFO(DomainManager_impl, "Restoring state from URL " << _db_uri);
+    RH_INFO(this->_baseLog, "Restoring state from URL " << _db_uri);
     try {
         db.open(_db_uri);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading persistent state: " << e.what());
         return;
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering device manager connections");
+    RH_DEBUG(this->_baseLog, "Recovering device manager connections");
     // Recover device manager connections and consume the value so that
     // the persistence store no longer has any device manager stored
     DeviceManagerList _restoredDeviceManagers;
     try {
         db.fetch("DEVICE_MANAGERS", _restoredDeviceManagers, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading device managers persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading device managers persistent state: " << e.what());
         _restoredDeviceManagers.clear();
     }
 
     for (DeviceManagerList::iterator ii = _restoredDeviceManagers.begin(); ii != _restoredDeviceManagers.end(); ++ii) {
-        LOG_TRACE(DomainManager_impl, "Attempting to recover connection to Device Manager " << ii->identifier << " " << ii->label);
+        RH_TRACE(this->_baseLog, "Attempting to recover connection to Device Manager " << ii->identifier << " " << ii->label);
         try {
             if (ossie::corba::objectExists(ii->deviceManager)) {
-                LOG_INFO(DomainManager_impl, "Recovered connection to Device Manager: " << ii->identifier << " " << ii->label);
+                RH_INFO(this->_baseLog, "Recovered connection to Device Manager: " << ii->identifier << " " << ii->label);
                 addDeviceMgr(ii->deviceManager);
                 mountDeviceMgrFileSys(ii->deviceManager);
             } else {
-                LOG_WARN(DomainManager_impl, "Failed to recover connection to Device Manager: " << ii->label << ": device manager servant no longer exists");
+                RH_WARN(this->_baseLog, "Failed to recover connection to Device Manager: " << ii->label << ": device manager servant no longer exists");
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Unable to restore connection to DeviceManager: " << ii->label);
+        } CATCH_RH_WARN(this->_baseLog, "Unable to restore connection to DeviceManager: " << ii->label);
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering device connections");
+    RH_DEBUG(this->_baseLog, "Recovering device connections");
     DeviceList _restoredDevices;
     try {
         db.fetch("DEVICES", _restoredDevices, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading devices persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading devices persistent state: " << e.what());
         _restoredDevices.clear();
     }
 
     for (DeviceList::iterator iter = _restoredDevices.begin(); iter != _restoredDevices.end(); ++iter) {
         boost::shared_ptr<DeviceNode> i = *iter;
-        LOG_TRACE(DomainManager_impl, "Attempting to recover connection to Device " << i->identifier << " " << i->label);
+        RH_TRACE(this->_baseLog, "Attempting to recover connection to Device " << i->identifier << " " << i->label);
         try {
             if (ossie::corba::objectExists(i->device)) {
-                LOG_INFO(DomainManager_impl, "Recovered connection to Device: " << i->identifier << " " << i->label);
+                RH_INFO(this->_baseLog, "Recovered connection to Device: " << i->identifier << " " << i->label);
                 if (ossie::corba::objectExists(i->devMgr.deviceManager)) {
                     storeDeviceInDomainMgr(i->device, i->devMgr.deviceManager);
                 } else {
-                    LOG_WARN(DomainManager_impl, "Failed to recover connection to Device: " << i->identifier << ": device manager no longer exists");
+                    RH_WARN(this->_baseLog, "Failed to recover connection to Device: " << i->identifier << ": device manager no longer exists");
                 }
             } else {
-                LOG_WARN(DomainManager_impl, "Failed to recover connection to Device: " << i->identifier << ": device servant no longer exists");
+                RH_WARN(this->_baseLog, "Failed to recover connection to Device: " << i->identifier << ": device servant no longer exists");
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Unable to restore connection to Device: " << i->identifier);
+        } CATCH_RH_WARN(this->_baseLog, "Unable to restore connection to Device: " << i->identifier);
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering registered services");
+    RH_DEBUG(this->_baseLog, "Recovering registered services");
     ServiceList _restoredServices;
     try {
         db.fetch("SERVICES", _restoredServices, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading services persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading services persistent state: " << e.what());
         _restoredServices.clear();
     }
 
     for (ServiceList::iterator ii = _restoredServices.begin(); ii != _restoredServices.end(); ++ii) {
-        LOG_TRACE(DomainManager_impl, "Attempting to recover connection to Service " << ii->name);
+        RH_TRACE(this->_baseLog, "Attempting to recover connection to Service " << ii->name);
         try {
             if (ossie::corba::objectExists(ii->service)) {
-                LOG_INFO(DomainManager_impl, "Recovered connection to Service: " << ii->name);
+                RH_INFO(this->_baseLog, "Recovered connection to Service: " << ii->name);
                 ossie::DeviceManagerList::iterator deviceManager = findDeviceManagerById(ii->deviceManagerId);
                 if (deviceManager != _registeredDeviceManagers.end()) {
-                    storeServiceInDomainMgr(ii->service, deviceManager->deviceManager, ii->name.c_str(), ii->serviceId.c_str());
+                    storeServiceInDomainMgr(ii->service, deviceManager->deviceManager, ii->name, ii->serviceId);
                 } else {
-                    LOG_WARN(DomainManager_impl, "Failed to recover connection to Service: " << ii->name << ": DeviceManager "
+                    RH_WARN(this->_baseLog, "Failed to recover connection to Service: " << ii->name << ": DeviceManager "
                              << ii->deviceManagerId << " no longer exists");
                 }
             } else {
-                LOG_WARN(DomainManager_impl, "Failed to recover connection to Service: " << ii->name << ": servant no longer exists");
+                RH_WARN(this->_baseLog, "Failed to recover connection to Service: " << ii->name << ": servant no longer exists");
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Unable to restore connection to Service: " << ii->name);
+        } CATCH_RH_WARN(this->_baseLog, "Unable to restore connection to Service: " << ii->name);
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering DCD connections");
+    RH_DEBUG(this->_baseLog, "Recovering DCD connections");
     ConnectionTable _restoredConnections;
     try {
         db.fetch("CONNECTIONS", _restoredConnections, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading services persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading services persistent state: " << e.what());
         _restoredConnections.clear();
     }
 
     for (ConnectionTable::iterator ii = _restoredConnections.begin(); ii != _restoredConnections.end(); ++ii) {
         const std::string& deviceManagerId = ii->first;
         const ConnectionList& connections = ii->second;
-        LOG_TRACE(DomainManager_impl, "Restoring port connections for DeviceManager " << deviceManagerId);
+        RH_TRACE(this->_baseLog, "Restoring port connections for DeviceManager " << deviceManagerId);
         for (ConnectionList::const_iterator jj = connections.begin(); jj != connections.end(); ++jj) {
-            LOG_TRACE(DomainManager_impl, "Restoring port connection " << jj->identifier);
+            RH_TRACE(this->_baseLog, "Restoring port connection " << jj->identifier);
             _connectionManager.restoreConnection(deviceManagerId, *jj);
         }
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering application factories");
+    RH_DEBUG(this->_baseLog, "Recovering application factories");
     std::set<std::string> restoredSADs;
     try {
         db.fetch("APP_FACTORIES", restoredSADs, true);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error loading application factory persistent state: " << ex.what());
+        RH_ERROR(this->_baseLog, "Error loading application factory persistent state: " << ex.what());
         restoredSADs.clear();
     }
 
     for (std::set<std::string>::iterator profile = restoredSADs.begin(); profile != restoredSADs.end(); ++profile) {
-        LOG_TRACE(DomainManager_impl, "Attempting to restore application factory " << *profile);
+        RH_TRACE(this->_baseLog, "Attempting to restore application factory " << *profile);
         try {
-            _local_installApplication(profile->c_str());
-            LOG_INFO(DomainManager_impl, "Restored application factory " << *profile);
-        } CATCH_LOG_WARN(DomainManager_impl, "Failed to restore application factory " << *profile);
+            _local_installApplication(*profile);
+            RH_INFO(this->_baseLog, "Restored application factory " << *profile);
+        } CATCH_RH_WARN(this->_baseLog, "Failed to restore application factory " << *profile);
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering applications");
+    RH_DEBUG(this->_baseLog, "Recovering applications");
     std::vector<ApplicationNode> _restoredApplications;
     try {
         db.fetch("APPLICATIONS", _restoredApplications, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading application persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading application persistent state: " << e.what());
         _restoredApplications.clear();
     }
 
     for (std::vector<ApplicationNode>::iterator i = _restoredApplications.begin();
          i != _restoredApplications.end();
          ++i) {
-        LOG_TRACE(DomainManager_impl, "Attempting to restore application  " << i->name << " " << i->identifier << " " << i->profile);
+        RH_TRACE(this->_baseLog, "Attempting to restore application  " << i->name << " " << i->identifier << " " << i->profile);
         try {
             if (ossie::corba::objectExists(i->context)) {
-                LOG_TRACE(DomainManager_impl, "Creating application " << i->identifier << " " << _domainName << " " << i->contextName);
-                Application_impl* _application = new Application_impl (i->identifier.c_str(), 
-                                       i->name.c_str(), i->profile.c_str(), 
-                                       this, 
-                                       i->contextName, 
-                                       i->context,
-                                       i->aware_application,
-                                       CosNaming::NamingContext::_nil() );
-                LOG_TRACE(DomainManager_impl, "Restored " << i->connections.size() << " connections");
+                RH_TRACE(this->_baseLog, "Creating application " << i->identifier << " " << _domainName << " " << i->contextName);
+                Application_impl* application = _restoreApplication(*i);
+                Application_impl::Activate(application);
+                addApplication(application);
+                application->_remove_ref();
 
-                _application->populateApplication(i->assemblyController,
-                                                  i->componentDevices,
-                                                  i->componentRefs,
-                                                  i->connections,
-                                                  i->allocationIDs);
-
-                // Restore various state about the components in the waveform
-                _application->_components = i->components;
-
-                // Add external ports
-                for (std::map<std::string, CORBA::Object_var>::const_iterator it = i->ports.begin();
-                        it != i->ports.end();
-                        ++it) {
-                    _application->addExternalPort(it->first, it->second);
-                }
-
-                // Add external properties
-                for (std::map<std::string, externalPropertyType>::const_iterator it = i->properties.begin();
-                        it != i->properties.end();
-                        ++it) {
-                    std::string extId = it->first;
-                    std::string propId = it->second.property_id;
-                    std::string access = it->second.access;
-                    std::string compId = it->second.component_id;
-                    std::vector<CF::Resource_var> comps = i->componentRefs;
-                    comps.push_back(i->assemblyController);
-                    for (unsigned int ii = 0; ii < comps.size(); ++ii) {
-                        if (compId == ossie::corba::returnString(comps[ii]->identifier())) {
-                            _application->addExternalProperty(propId, extId, access, comps[ii]);
-                            break;
-                        }
-                    }
-                }
-
-                Application_impl::Activate(_application);
-                addApplication(_application);
-                _application->_remove_ref();
-
-                LOG_INFO(DomainManager_impl, "Restored application " << i->identifier);
+                RH_INFO(this->_baseLog, "Restored application " << application->getIdentifier());
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Failed to restore application" << i->identifier);
+        } CATCH_RH_WARN(this->_baseLog, "Failed to restore application" << i->identifier);
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering remote domains");
+    RH_DEBUG(this->_baseLog, "Recovering remote domains");
     // Recover domain manager connections and consume the value so that
     // the persistence store no longer has any domain manager stored
     DomainManagerList _restoredDomainManagers;
     try {
         db.fetch("DOMAIN_MANAGERS", _restoredDomainManagers, true);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading domain managers persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading domain managers persistent state: " << e.what());
         _restoredDomainManagers.clear();
     }
 
     for (DomainManagerList::iterator ii = _restoredDomainManagers.begin(); ii != _restoredDomainManagers.end(); ++ii) {
-        LOG_TRACE(DomainManager_impl, "Attempting to recover connection to domain '" << ii->name << "'");
+        RH_TRACE(this->_baseLog, "Attempting to recover connection to domain '" << ii->name << "'");
         try {
             if (ossie::corba::objectExists(ii->domainManager)) {
-                LOG_INFO(DomainManager_impl, "Recovered connection to domain '" << ii->name << "'");
+                RH_INFO(this->_baseLog, "Recovered connection to domain '" << ii->name << "'");
                 addDomainMgr(ii->domainManager);
             } else {
-                LOG_WARN(DomainManager_impl, "Failed to recover connection to domain '" << ii->name << "': domain manager object no longer exists");
+                RH_WARN(this->_baseLog, "Failed to recover connection to domain '" << ii->name << "': domain manager object no longer exists");
             }
-        } CATCH_LOG_WARN(DomainManager_impl, "Unable to restore connection to domain '" << ii->name << "'");
+        } CATCH_RH_WARN(this->_baseLog, "Unable to restore connection to domain '" << ii->name << "'");
     }
 
-    LOG_DEBUG(DomainManager_impl, "Recovering allocation manager");
+    RH_DEBUG(this->_baseLog, "Recovering allocation manager");
     ossie::AllocationTable _restoredLocalAllocations;
     try {
         db.fetch("LOCAL_ALLOCATIONS", _restoredLocalAllocations);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading local allocation persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading local allocation persistent state: " << e.what());
     }
     _allocationMgr->restoreLocalAllocations(_restoredLocalAllocations);
 
@@ -530,11 +532,11 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
     try {
         db.fetch("REMOTE_ALLOCATIONS", _restoredRemoteAllocations);
     } catch (const ossie::PersistenceException& e) {
-        LOG_ERROR(DomainManager_impl, "Error loading remote allocations persistent state: " << e.what());
+        RH_ERROR(this->_baseLog, "Error loading remote allocations persistent state: " << e.what());
     }
     _allocationMgr->restoreRemoteAllocations(_restoredRemoteAllocations);
 
-    LOG_DEBUG(DomainManager_impl, "Done restoring state from URL " << _db_uri);
+    RH_DEBUG(this->_baseLog, "Done restoring state from URL " << _db_uri);
 }
 
 void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_ptr nc)
@@ -552,7 +554,7 @@ void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_pt
             ossie::corba::overrideBlockingCall(obj);
             if (obj->_non_existent()) {
                 // If it no longer exists, unbind it
-                LOG_TRACE(DomainManager_impl, "Unbinding naming context which no longer exists; this is probably due to an omniNames bug")
+                RH_TRACE(this->_baseLog, "Unbinding naming context which no longer exists; this is probably due to an omniNames bug")
                 nc->unbind(bl[ii].binding_name);
             } else {
                 cleanupDomainNamingContext(new_context);
@@ -594,7 +596,7 @@ void DomainManager_impl::releaseAllApplications()
     try {
         db.store("APP_FACTORIES", _installedApplications);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to installed applications");
+        RH_ERROR(this->_baseLog, "Error persisting change to installed applications");
     }
 
     std::vector<Application_impl*> releasedApps;
@@ -608,7 +610,7 @@ void DomainManager_impl::releaseAllApplications()
         try {
             (*app)->releaseObject();
         } catch ( ... ) {
-            LOG_TRACE(DomainManager_impl, "Error releasing application " << ossie::corba::returnString((*app)->name()));
+            RH_TRACE(this->_baseLog, "Error releasing application " << (*app)->getName());
         }
         (*app)->_remove_ref();
     }
@@ -626,15 +628,15 @@ void DomainManager_impl::shutdownAllDeviceManagers()
                 devMgr->shutdown();
             }
             else {
-                LOG_WARN(DomainManager_impl, "A DeviceManager: " << dm_label << ",  reference is empty, possible lingering process after shutdown completes.");
+                RH_WARN(this->_baseLog, "A DeviceManager: " << dm_label << ",  reference is empty, possible lingering process after shutdown completes.");
             }
         } catch ( std::exception& ex ) {
-            LOG_ERROR(DomainManager_impl, "The following standard exception occurred: "<<ex.what()<<" while attempting to shutdown a DeviceManager : " << dm_label << ", continuing shutdown process.");
+            RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to shutdown a DeviceManager : " << dm_label << ", continuing shutdown process.");
             if (lenRegDevMgr == _registeredDeviceManagers.size()) {
                 _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
             }
         } catch( const CORBA::Exception& e ) {
-            LOG_ERROR(DomainManager_impl, "DeviceManager: " << dm_label << " failed shutdown, continuing shutdown process. Exception: " << e._name());
+            RH_ERROR(this->_baseLog, "DeviceManager: " << dm_label << " failed shutdown, continuing shutdown process. Exception: " << e._name());
             if (lenRegDevMgr == _registeredDeviceManagers.size()) {
                 _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
             }
@@ -642,7 +644,7 @@ void DomainManager_impl::shutdownAllDeviceManagers()
             if (lenRegDevMgr == _registeredDeviceManagers.size()) {
                 _registeredDeviceManagers.erase(_registeredDeviceManagers.begin());
             }
-            LOG_ERROR(DomainManager_impl, "Error shutting down Device Manager: " << dm_label << ", an unknown exception occurred." );
+            RH_ERROR(this->_baseLog, "Error shutting down Device Manager: " << dm_label << ", an unknown exception occurred." );
         }
     }
 }
@@ -650,9 +652,7 @@ void DomainManager_impl::shutdownAllDeviceManagers()
 
 void DomainManager_impl::shutdown (int signal)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-      RH_NL_DEBUG("DomainManager", "Shutdown: signal=" << signal);
+    RH_DEBUG(this->_baseLog, "Shutdown: signal=" << signal);
 
     if (!ossie::corba::isPersistenceEnabled() || (ossie::corba::isPersistenceEnabled()and (signal == SIGINT)) ) {
         releaseAllApplications();
@@ -724,14 +724,11 @@ DomainManager_impl::~DomainManager_impl ()
     // the servant is being deleted after the ORB
     // has shutdown in the nodebooter
 
-    TRACE_ENTER(DomainManager_impl)
 
     /**************************************************
      *    Save current state for configuration recall   *
      *    this is not supported by this version          *
      **************************************************/
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 uint32_t  DomainManager_impl::getManagerWaitTime() {
@@ -748,9 +745,6 @@ char *
 DomainManager_impl::identifier (void)
 throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-    TRACE_EXIT(DomainManager_impl)
     return CORBA::string_dup(_identifier.c_str());
 }
 
@@ -758,9 +752,6 @@ char *
 DomainManager_impl::name (void)
 throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-    TRACE_EXIT(DomainManager_impl)
     return CORBA::string_dup(this->_domainName.c_str());
 }
 
@@ -769,9 +760,6 @@ char *
 DomainManager_impl::domainManagerProfile (void)
 throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-    TRACE_EXIT(DomainManager_impl)
     return CORBA::string_dup(_domainManagerProfile.c_str());
 }
 
@@ -779,9 +767,6 @@ throw (CORBA::SystemException)
 CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void) throw (CORBA::
                                                               SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-    TRACE_EXIT(DomainManager_impl)
     return _allocationMgr->_this();
 }
 
@@ -789,10 +774,7 @@ CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void) throw (CORBA:
 CF::EventChannelManager_ptr DomainManager_impl::eventChannelMgr (void) throw (CORBA::
                                                               SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-
-    TRACE_EXIT(DomainManager_impl)
-      return _eventChannelMgr->_this();
+    return _eventChannelMgr->_this();
 }
 
 namespace {
@@ -815,17 +797,12 @@ namespace {
 CF::FileManager_ptr DomainManager_impl::fileMgr (void) throw (CORBA::
 SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
-    
-    TRACE_EXIT(DomainManager_impl)
     return CF::FileManager::_duplicate(_fileMgr);
 }
 
 
 CF::ConnectionManager_ptr DomainManager_impl::connectionMgr (void) throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl);
-    TRACE_EXIT(DomainManager_impl);
     return _connectionMgr->_this();
 }
 
@@ -834,13 +811,11 @@ CF::DomainManager::ApplicationFactorySequence *
 DomainManager_impl::applicationFactories (void) throw (CORBA::
                                                        SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     CF::DomainManager::ApplicationFactorySequence_var result = new CF::DomainManager::ApplicationFactorySequence();
     map_to_sequence(result, _applicationFactories);
 
-    TRACE_EXIT(DomainManager_impl)
     return result._retn();
 }
 
@@ -848,13 +823,11 @@ DomainManager_impl::applicationFactories (void) throw (CORBA::
 CF::DomainManager::ApplicationSequence *
 DomainManager_impl::applications (void) throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl);
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     CF::DomainManager::ApplicationSequence_var result = new CF::DomainManager::ApplicationSequence();
     map_to_sequence(result, _applications);
 
-    TRACE_EXIT(DomainManager_impl)
     return result._retn();
 }
 
@@ -862,7 +835,6 @@ DomainManager_impl::applications (void) throw (CORBA::SystemException)
 CF::DomainManager::DeviceManagerSequence *
 DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     CF::DomainManager::DeviceManagerSequence_var result = new CF::DomainManager::DeviceManagerSequence();
@@ -872,7 +844,6 @@ DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
         result[ii] = CF::DeviceManager::_duplicate(deviceManager->deviceManager);
     }
 
-    TRACE_EXIT(DomainManager_impl)
     return result._retn();
 }
 
@@ -880,7 +851,6 @@ DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
 CF::DomainManager::DomainManagerSequence *
 DomainManager_impl::remoteDomainManagers (void) throw (CORBA::SystemException)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     CF::DomainManager::DomainManagerSequence_var result = new CF::DomainManager::DomainManagerSequence();
@@ -890,7 +860,6 @@ DomainManager_impl::remoteDomainManagers (void) throw (CORBA::SystemException)
         result[ii] = CF::DomainManager::_duplicate(dmnMgr->domainManager);
     }
 
-    TRACE_EXIT(DomainManager_impl)
     return result._retn();
 }
 
@@ -941,23 +910,23 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
         DomainManagerList::iterator node = findDomainManagerById(identifier);
         if (node != _registeredDomainManagers.end()) {
             if (!ossie::corba::objectExists(node->domainManager)) {
-                LOG_WARN(DomainManager_impl, "Cleaning up registration of dead device manager: " << identifier);
+                RH_WARN(this->_baseLog, "Cleaning up registration of dead device manager: " << identifier);
                 //catastrophicUnregisterDeviceManager(node);
-                LOG_TRACE(DomainManager_impl, "Continuing with registration of new device manager: " << identifier);
+                RH_TRACE(this->_baseLog, "Continuing with registration of new device manager: " << identifier);
             } else {
                 bool DomMgr_alive = false;
                 try {
                     CORBA::String_var identifier = domainMgr->identifier();
                     DomMgr_alive = true;
                 } catch ( ... ) {
-                    LOG_WARN(DomainManager_impl, "Cleaning up registration of dead device manager: " << identifier);
+                    RH_WARN(this->_baseLog, "Cleaning up registration of dead device manager: " << identifier);
                     //catastrophicUnregisterDeviceManager(node);
-                    LOG_TRACE(DomainManager_impl, "Continuing with registration of new device manager: " << identifier);
+                    RH_TRACE(this->_baseLog, "Continuing with registration of new device manager: " << identifier);
                 }
                 if (DomMgr_alive) {
                     ostringstream eout;
                     eout << "Attempt re-register existing domain manager: " << identifier;
-                    LOG_ERROR(DomainManager_impl, eout.str());
+                    RH_ERROR(this->_baseLog, eout.str());
                     throw CF::DomainManager::RegisterError(CF::CF_NOTSET, eout.str().c_str());
                 }
             }
@@ -976,18 +945,18 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     if (CORBA::is_nil(domainMgr)) {
-        LOG_ERROR(DomainManager_impl, "Cannot unregister nil DomainManager");
+        RH_ERROR(this->_baseLog, "Cannot unregister nil DomainManager");
         throw CF::InvalidObjectReference("Cannot unregister nil DomainManager");
     }
 
     DomainManagerList::iterator domMgrIter = findDomainManagerByObject(domainMgr);
     if (domMgrIter == _registeredDomainManagers.end()) {
-        LOG_WARN(DomainManager_impl, "Ignoring attempt to unregister domain manager that was not registered with this domain");
+        RH_WARN(this->_baseLog, "Ignoring attempt to unregister domain manager that was not registered with this domain");
         return;
     }
 
     if (!domMgrIter->domainManager->_is_equivalent(domainMgr)) {
-        LOG_TRACE(DomainManager_impl, "Ignoring attempt to unregister domain manager with same identifier but different object");
+        RH_TRACE(this->_baseLog, "Ignoring attempt to unregister domain manager with same identifier but different object");
         return;
     }
 
@@ -995,7 +964,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
     try {
         db.store("DOMAIN_MANAGERS", _registeredDomainManagers);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to domain managers");
+        RH_ERROR(this->_baseLog, "Error persisting change to domain managers");
     }
 }
 
@@ -1011,12 +980,11 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
 
     std::string identifier = ossie::corba::returnString(deviceMgr->identifier());
     std::string label = ossie::corba::returnString(deviceMgr->label());
-    sendAddEvent( _identifier.c_str(), identifier, label, deviceMgr, StandardEvent::DEVICE_MANAGER );
+    sendAddEvent(_identifier, identifier, label, deviceMgr, StandardEvent::DEVICE_MANAGER);
 }
 
 void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     if (CORBA::is_nil (deviceMgr)) {
@@ -1033,72 +1001,84 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
     DeviceManagerList::iterator node = findDeviceManagerById(identifier);
     if (node != _registeredDeviceManagers.end()) {
         if (!ossie::corba::objectExists(node->deviceManager)) {
-            LOG_WARN(DomainManager_impl, "Cleaning up registration of dead device manager: " << identifier);
+            RH_WARN(this->_baseLog, "Cleaning up registration of dead device manager: " << identifier);
             catastrophicUnregisterDeviceManager(node);
-            LOG_TRACE(DomainManager_impl, "Continuing with registration of new device manager: " << identifier);
+            RH_TRACE(this->_baseLog, "Continuing with registration of new device manager: " << identifier);
         } else {
             bool DevMgr_alive = false;
             try {
                 CORBA::String_var identifier = deviceMgr->identifier();
                 DevMgr_alive = true;
             } catch ( ... ) {
-                LOG_WARN(DomainManager_impl, "Cleaning up registration of dead device manager: " << identifier);
+                RH_WARN(this->_baseLog, "Cleaning up registration of dead device manager: " << identifier);
                 catastrophicUnregisterDeviceManager(node);
-                LOG_TRACE(DomainManager_impl, "Continuing with registration of new device manager: " << identifier);
+                RH_TRACE(this->_baseLog, "Continuing with registration of new device manager: " << identifier);
             }
             if (DevMgr_alive) {
                 ostringstream eout;
                 eout << "Attempt re-register existing device manager: " << identifier;
-                LOG_ERROR(DomainManager_impl, eout.str());
+                RH_ERROR(this->_baseLog, eout.str());
                 throw CF::DomainManager::RegisterError(CF::CF_NOTSET, eout.str().c_str());
             }
         }
     }
 
     addDeviceMgr (deviceMgr);
-
+    node = findDeviceManagerById(identifier);
     CORBA::String_var devMgrLabel;
     try {
         mountDeviceMgrFileSys(deviceMgr);
 
-        LOG_TRACE(DomainManager_impl, "Getting connections from DeviceManager DCD");
-        DeviceManagerConfiguration dcdParser;
+        RH_TRACE(this->_baseLog, "Getting connections from DeviceManager DCD");
+        DeviceManagerConfiguration *dcdParser;
+        DeviceManagerConfiguration _dcdParser;
         try {
             CF::FileSystem_var devMgrFileSys = deviceMgr->fileSys();
             CORBA::String_var profile = deviceMgr->deviceConfigurationProfile();
-            File_stream dcd(devMgrFileSys, profile);
-            dcdParser.load(dcd);
-            dcd.close();
+            if ( node != _registeredDeviceManagers.end() ) {
+                if ( node->dcd.isLoaded() == false ) {
+                    File_stream dcd(devMgrFileSys, profile);
+                    node->dcd.load(dcd);
+                    dcd.close();            
+                }
+                dcdParser = &(node->dcd);
+            }
+            else {
+                File_stream dcd(devMgrFileSys, profile);
+                _dcdParser.load(dcd);
+                dcdParser = &_dcdParser;
+                dcd.close();
+            }
         } catch ( ossie::parser_error& e ) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
-            LOG_ERROR(DomainManager_impl, "Failed device manager registration; error parsing device manager DCD: " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
+            RH_ERROR(this->_baseLog, "Failed device manager registration; error parsing device manager DCD: " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
             throw(CF::DomainManager::RegisterError());
         }
 
-        const std::vector<Connection>& connections = dcdParser.getConnections();
+        const std::vector<Connection>& connections = dcdParser->getConnections();
 
         for (size_t ii = 0; ii < connections.size(); ++ii) {
             try {
-                _connectionManager.addConnection(dcdParser.getName(), connections[ii]);
+                _connectionManager.addConnection(dcdParser->getName(), connections[ii]);
             } catch (const ossie::InvalidConnection& ex) {
-                LOG_ERROR(DomainManager_impl, "Ignoring unresolvable connection: " << ex.what());
+                RH_ERROR(this->_baseLog, "Ignoring unresolvable connection: " << ex.what());
             }
         }
         try {
             db.store("CONNECTIONS", _connectionManager.getConnections());
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+            RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
         }
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while recovering the change to device manager connections";
-        LOG_ERROR(DomainManager_impl, eout.str())
+        RH_ERROR(this->_baseLog, eout.str())
         removeDeviceManager(findDeviceManagerById(identifier));
         throw CF::DomainManager::RegisterError(CF::CF_NOTSET, eout.str().c_str());
     } catch ( CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while recovering the change to device manager connections";
-        LOG_ERROR(DomainManager_impl, eout.str())
+        RH_ERROR(this->_baseLog, eout.str())
         removeDeviceManager(findDeviceManagerById(identifier));
         throw CF::DomainManager::RegisterError(CF::CF_NOTSET, eout.str().c_str());
     } catch ( ... ) {
@@ -1107,42 +1087,49 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
         throw CF::DomainManager::RegisterError(CF::CF_NOTSET, "Unexpected error registering device manager");
     }
 
-    LOG_TRACE(DomainManager_impl, "Leaving DomainManager::registerDeviceManager");
+    RH_TRACE(this->_baseLog, "Leaving DomainManager::registerDeviceManager");
 }
 
 
 void
 DomainManager_impl::addDeviceMgr (CF::DeviceManager_ptr deviceMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     if (!deviceMgrIsRegistered (deviceMgr)) {
-        LOG_TRACE(DomainManager_impl, "Adding DeviceManager ref to list")
+        RH_TRACE(this->_baseLog, "Adding DeviceManager ref to list")
         DeviceManagerNode tmp_devMgr;
         CORBA::String_var identifier = deviceMgr->identifier();
         CORBA::String_var label = deviceMgr->label();
         tmp_devMgr.deviceManager = CF::DeviceManager::_duplicate(deviceMgr);
         tmp_devMgr.identifier = static_cast<char*>(identifier);
         tmp_devMgr.label = static_cast<char*>(label);
+        try{
+            // preload DCD
+            CF::FileSystem_var devMgrFileSys = tmp_devMgr.deviceManager->fileSys();
+            CORBA::String_var profile = tmp_devMgr.deviceManager->deviceConfigurationProfile();
+            File_stream dcd(devMgrFileSys, profile);
+            tmp_devMgr.dcd.load(dcd);
+            dcd.close();            
+        }
+        catch(...){
+        }
         _registeredDeviceManagers.push_back(tmp_devMgr);
 
         try {
             db.store("DEVICE_MANAGERS", _registeredDeviceManagers);
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
+            RH_ERROR(this->_baseLog, "Error persisting change to device managers");
         }
     }
-    TRACE_EXIT(DomainManager_impl)
 }
 
 void DomainManager_impl::addDomainMgr (CF::DomainManager_ptr domainMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     if (!domainMgrIsRegistered (domainMgr)) {
-        LOG_TRACE(DomainManager_impl, "Adding DomainManager ref to list")
+        RH_TRACE(this->_baseLog, "Adding DomainManager ref to list")
         DomainManagerNode node;
         node.domainManager = CF::DomainManager::_duplicate(domainMgr);
         node.identifier = ossie::corba::returnString(domainMgr->identifier());
@@ -1152,10 +1139,9 @@ void DomainManager_impl::addDomainMgr (CF::DomainManager_ptr domainMgr)
         try {
             db.store("DOMAIN_MANAGERS", _registeredDomainManagers);
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to domain managers");
+            RH_ERROR(this->_baseLog, "Error persisting change to domain managers");
         }
     }
-    TRACE_EXIT(DomainManager_impl)
 }
 
 void DomainManager_impl::mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr) {
@@ -1164,7 +1150,7 @@ void DomainManager_impl::mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr)
     // mount filesystem under "/<DomainName>/<deviceMgr.label>"
     devMgrLabel = deviceMgr->label();
     mountPoint += devMgrLabel;
-    LOG_TRACE(DomainManager_impl, "Mounting DeviceManager FileSystem at " << mountPoint)
+    RH_TRACE(this->_baseLog, "Mounting DeviceManager FileSystem at " << mountPoint)
 
     CF::FileSystem_var devMgrFileSys = deviceMgr->fileSys();
     _fileMgr->mount(mountPoint.c_str(), devMgrFileSys);
@@ -1178,18 +1164,18 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     if (CORBA::is_nil(deviceMgr)) {
-        LOG_ERROR(DomainManager_impl, "Cannot unregister nil DeviceManager");
+        RH_ERROR(this->_baseLog, "Cannot unregister nil DeviceManager");
         throw CF::InvalidObjectReference("Cannot unregister nil DeviceManager");
     }
 
     DeviceManagerList::iterator devMgrIter = findDeviceManagerByObject(deviceMgr);
     if (devMgrIter == _registeredDeviceManagers.end()) {
-        LOG_WARN(DomainManager_impl, "Ignoring attempt to unregister device manager that was not registered with this domain");
+        RH_WARN(this->_baseLog, "Ignoring attempt to unregister device manager that was not registered with this domain");
         return;
     }
 
     if (!devMgrIter->deviceManager->_is_equivalent(deviceMgr)) {
-        LOG_TRACE(DomainManager_impl, "Ignoring attempt to unregister device manager with same identifier but different object");
+        RH_TRACE(this->_baseLog, "Ignoring attempt to unregister device manager with same identifier but different object");
         return;
     }
 
@@ -1199,14 +1185,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
     try {
         _local_unregisterDeviceManager(devMgrIter);
-    } CATCH_LOG_ERROR(DomainManager_impl, "Exception unregistering device manager");
+    } CATCH_RH_ERROR(this->_baseLog, "Exception unregistering device manager");
 
-    sendRemoveEvent( _identifier.c_str(), identifier.c_str(), label.c_str(), StandardEvent::DEVICE_MANAGER );
+    sendRemoveEvent(_identifier, identifier, label, StandardEvent::DEVICE_MANAGER);
 }
 
 ossie::DeviceManagerList::iterator DomainManager_impl::_local_unregisterDeviceManager (ossie::DeviceManagerList::iterator deviceManager)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     //  For this function, an exception will be raised only when the Device Manager cannot be found
@@ -1218,7 +1203,7 @@ ossie::DeviceManagerList::iterator DomainManager_impl::_local_unregisterDeviceMa
     try {
         db.store("CONNECTIONS", _connectionManager.getConnections());
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+        RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
     }
 
     // Release all devices and services, which may break connections from other
@@ -1229,10 +1214,10 @@ ossie::DeviceManagerList::iterator DomainManager_impl::_local_unregisterDeviceMa
     // Unmount all DeviceManager FileSystems from the FileManager; currently just
     // the DeviceManager's root file system.
     string mountPoint = "/" + deviceManager->label;
-    LOG_TRACE(DomainManager_impl, "Unmounting DeviceManager FileSystem at " << mountPoint)
+    RH_TRACE(this->_baseLog, "Unmounting DeviceManager FileSystem at " << mountPoint)
     try {
         _fileMgr->unmount(mountPoint.c_str());
-    } CATCH_LOG_ERROR(DomainManager_impl, "Unmounting DeviceManager FileSystem failed during unregistration");
+    } CATCH_RH_ERROR(this->_baseLog, "Unmounting DeviceManager FileSystem failed during unregistration");
 
     // Remove the DeviceManager from the domain.
     deviceManager = removeDeviceManager(deviceManager);
@@ -1245,45 +1230,38 @@ ossie::DeviceManagerList::iterator DomainManager_impl::_local_unregisterDeviceMa
     //      3. The sourceName shall be the label attribute of the unregistered DeviceManager.
     //      4. The sourceCategory shall be DEVICE_MANAGER.
 
-    TRACE_EXIT(DomainManager_impl);
     return deviceManager;
 }
 
 
 void DomainManager_impl::removeDeviceManagerDevices (const std::string& deviceManagerId)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // Unregister all devices for the DeviceManager
     for (DeviceList::iterator device = _registeredDevices.begin(); device != _registeredDevices.end(); ) {
         if ((*device)->devMgr.identifier == deviceManagerId) {
-            LOG_TRACE(DomainManager_impl, "Unregistering device " << (*device)->label << " " << (*device)->identifier);
+            RH_TRACE(this->_baseLog, "Unregistering device " << (*device)->label << " " << (*device)->identifier);
             device = _local_unregisterDevice(device);
         } else {
             ++device;
         }
     }
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 
 void DomainManager_impl::removeDeviceManagerServices (const std::string& deviceManagerId)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     for (ServiceList::iterator service = _registeredServices.begin(); service != _registeredServices.end(); ) {
         if (service->deviceManagerId == deviceManagerId) {
-            LOG_TRACE(DomainManager_impl, "Unregistering service " << service->name);
+            RH_TRACE(this->_baseLog, "Unregistering service " << service->name);
             service = _local_unregisterService(service);
         } else {
             ++service;
         }
     }
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 
@@ -1291,18 +1269,16 @@ ossie::DeviceManagerList::iterator DomainManager_impl::removeDeviceManager (ossi
 {
     // This function must work regardless of whether the DeviceManager object
     // is reachable or not. Therefore, no CORBA calls can be made.
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     deviceManager = _registeredDeviceManagers.erase(deviceManager);
     try {
         db.store("DEVICE_MANAGERS", _registeredDeviceManagers);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
+        RH_ERROR(this->_baseLog, "Error persisting change to device managers");
     }
 
     return deviceManager;
-    TRACE_EXIT(DomainManager_impl)
 }
 
 void
@@ -1319,13 +1295,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
 
     std::string identifier = ossie::corba::returnString(registeringDevice->identifier());
     std::string label = ossie::corba::returnString(registeringDevice->label());
-    sendAddEvent( _identifier.c_str(), identifier, label, registeringDevice, StandardEvent::DEVICE );
+    sendAddEvent(_identifier, identifier, label, registeringDevice, StandardEvent::DEVICE);
 }
 
 void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice,
                                                 CF::DeviceManager_ptr registeredDeviceMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     //Verify they are not a nil reference
@@ -1341,20 +1316,20 @@ void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice
     }
 
     std::string devId = ossie::corba::returnString(registeringDevice->identifier());
-    LOG_TRACE(DomainManager_impl, "Registering Device " << devId);
+    RH_TRACE(this->_baseLog, "Registering Device " << devId);
 
     DeviceList::iterator deviceNode = findDeviceById(devId);
     if (deviceNode != _registeredDevices.end()) {
-        LOG_TRACE(DomainManager_impl, "Device <" << devId << "> already registered; checking existence");
+        RH_TRACE(this->_baseLog, "Device <" << devId << "> already registered; checking existence");
         if (!ossie::corba::objectExists((*deviceNode)->device)) {
-            LOG_WARN(DomainManager_impl, "Cleaning up registration; device <" << devId << "> is registered and no longer exists");
+            RH_WARN(this->_baseLog, "Cleaning up registration; device <" << devId << "> is registered and no longer exists");
             try {
                 _local_unregisterDevice(deviceNode);
-            } CATCH_LOG_WARN(DomainManager_impl, "_local_unregisterDevice failed");
+            } CATCH_RH_WARN(this->_baseLog, "_local_unregisterDevice failed");
         } else {
             ostringstream eout;
             eout << "Attempt re-register existing device : " << devId;
-            LOG_ERROR(DomainManager_impl, eout.str());
+            RH_ERROR(this->_baseLog, eout.str());
             throw CF::DomainManager::RegisterError(CF::CF_NOTSET, eout.str().c_str());
         }
     }
@@ -1364,15 +1339,15 @@ void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice
 
     //Check the DCD for connections and establish them
     try {
-        LOG_TRACE(DomainManager_impl, "Establishing Service Connections");
+        RH_TRACE(this->_baseLog, "Establishing Service Connections");
         _connectionManager.deviceRegistered(devId.c_str());
         try {
             db.store("CONNECTIONS", _connectionManager.getConnections());
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+            RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
         }
     } catch ( ... ) {
-        LOG_ERROR(DomainManager_impl, "Service connections could not be established")
+        RH_ERROR(this->_baseLog, "Service connections could not be established")
     }
 
 //NOTE: This function only checks that the input references are valid and the device manager is registered.
@@ -1386,27 +1361,25 @@ void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice
 void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevice,
                                                  CF::DeviceManager_ptr registeredDeviceMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
 //check if device is already registered
     if (deviceIsRegistered (registeringDevice)) {
-        LOG_TRACE(DomainManager_impl, "Device already registered, refusing to store into domain manager")
-        TRACE_EXIT(DomainManager_impl)
+        RH_TRACE(this->_baseLog, "Device already registered, refusing to store into domain manager")
         return;
     }
 
     std::string devMgrId;
     try {
         devMgrId = ossie::corba::returnString(registeredDeviceMgr->identifier());
-    } CATCH_LOG_ERROR(DomainManager_impl, "DeviceManager is unreachable during device registrations")
+    } CATCH_RH_ERROR(this->_baseLog, "DeviceManager is unreachable during device registrations")
     if (devMgrId.empty()){
         return;
     }
 
     DeviceManagerList::iterator pDevMgr = findDeviceManagerById(devMgrId);
     if (pDevMgr ==  _registeredDeviceManagers.end()) {
-        LOG_ERROR(DomainManager_impl, "Device Manager for Device is not registered")
+        RH_ERROR(this->_baseLog, "Device Manager for Device is not registered")
         return;
     }
 
@@ -1419,8 +1392,8 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
     newDeviceNode->softwareProfile = ossie::corba::returnString(registeringDevice->softwareProfile());
     newDeviceNode->identifier = ossie::corba::returnString(registeringDevice->identifier());
     newDeviceNode->implementationId = ossie::corba::returnString(registeredDeviceMgr->getComponentImplementationId(newDeviceNode->identifier.c_str()));
-    newDeviceNode->isLoadable = registeringDevice->_is_a(CF::LoadableDevice::_PD_repoId);
-    newDeviceNode->isExecutable = registeringDevice->_is_a(CF::ExecutableDevice::_PD_repoId);
+    newDeviceNode->loadableDevice = ossie::corba::_narrowSafe<CF::LoadableDevice>(registeringDevice);
+    newDeviceNode->executableDevice = ossie::corba::_narrowSafe<CF::ExecutableDevice>(registeringDevice);
 
     parseDeviceProfile(*newDeviceNode);
 
@@ -1429,32 +1402,30 @@ void DomainManager_impl::storeDeviceInDomainMgr (CF::Device_ptr registeringDevic
     try {
         db.store("DEVICES", _registeredDevices);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
+        RH_ERROR(this->_baseLog, "Error persisting change to device managers");
     }
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 //This function adds the registeringService and its name to the DomainMgr.
 //if the service already exists it does nothing
 void
-DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name, const char * serviceId)
+DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const std::string& name, const std::string& serviceId)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // If a service is already registered with that name, do nothing.
     if (serviceIsRegistered(name)) {
-        LOG_INFO(DomainManager_impl, "Ignoring duplicate registration of service " << name);
-        TRACE_EXIT(DomainManager_impl)
-        return;
+        RH_INFO(this->_baseLog, "Ignoring duplicate registration of service " << name);
+        TRACE_EXIT(DomainManager_impl);
+        std::string message = "A service is already registered with the name '" + std::string(name) + "'";
+        throw CF::DomainManager::RegisterError(CF::CF_EEXIST, message.c_str());
     }
 
     // The service needs to be added to the list.
     std::string devMgrId;
     try {
         devMgrId = ossie::corba::returnString(registeredDeviceMgr->identifier());
-    } CATCH_LOG_ERROR(DomainManager_impl, "DeviceManager is unreachable during service registration")
+    } CATCH_RH_ERROR(this->_baseLog, "DeviceManager is unreachable during service registration")
 
     ServiceNode node;
     node.service = CORBA::Object::_duplicate(registeringService);
@@ -1467,7 +1438,7 @@ DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringServic
     try {
         db.store("SERVICES", _registeredServices);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to services");
+        RH_ERROR(this->_baseLog, "Error persisting change to services");
     }
 }
 
@@ -1486,12 +1457,11 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
     try {
         _local_unregisterDevice(deviceNode);
-    } CATCH_RETHROW_LOG_ERROR(DomainManager_impl, "Error unregistering a Device")  // rethrow for calling object's benefit
+    } CATCH_RETHROW_RH_ERROR(this->_baseLog, "Error unregistering a Device")  // rethrow for calling object's benefit
 }
 
 ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::DeviceList::iterator deviceNode)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // Reset the last successful device pointer for deployments
@@ -1504,7 +1474,7 @@ ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::
     try {
         db.store("CONNECTIONS", _connectionManager.getConnections());
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+        RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
     }
 
     try {
@@ -1520,17 +1490,16 @@ ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::
         }
 
         for (std::vector<Application_impl*>::iterator iter = releasedApps.begin(); iter != releasedApps.end(); ++iter) {
-            LOG_WARN(DomainManager_impl, "Releasing application that depends on registered device " << (*deviceNode)->identifier);
+            RH_WARN(this->_baseLog, "Releasing application that depends on registered device " << (*deviceNode)->identifier);
             Application_impl* app = *iter;
             app->releaseObject();
             app->_remove_ref();
         }
-    } CATCH_LOG_ERROR(DomainManager_impl, "Releasing stale applications from stale device failed");
+    } CATCH_RH_ERROR(this->_baseLog, "Releasing stale applications from stale device failed");
 
     // Sent event here (as opposed to unregisterDevice), so we see the event on regular
     // unregisterDevice calls, and on cleanup (deviceManager shutdown, catastropic cleanup, etc.)
-    sendRemoveEvent( _identifier.c_str(), (*deviceNode)->identifier.c_str(), (*deviceNode)->label.c_str(),
-                     StandardEvent::DEVICE );
+    sendRemoveEvent(_identifier, (*deviceNode)->identifier, (*deviceNode)->label, StandardEvent::DEVICE);
 
     // Remove the device from the internal list.
     deviceNode = _registeredDevices.erase(deviceNode);
@@ -1539,9 +1508,8 @@ ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::
     try {
         db.store("DEVICES", _registeredDevices);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to devices");
+        RH_ERROR(this->_baseLog, "Error persisting change to devices");
     }
-    TRACE_EXIT(DomainManager_impl);
     return deviceNode;
 }
 
@@ -1549,30 +1517,26 @@ ossie::DeviceList::iterator DomainManager_impl::_local_unregisterDevice (ossie::
 //This function returns TRUE if the input registeredDevice is contained in the _registeredDevices
 bool DomainManager_impl::deviceIsRegistered (CF::Device_ptr registeredDevice)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     DeviceList::iterator device = findDeviceByObject(registeredDevice);
 
-    TRACE_EXIT(DomainManager_impl);
     return (device !=_registeredDevices.end());
 }
 
 
-bool DomainManager_impl::serviceIsRegistered (const char* serviceName)
+bool DomainManager_impl::serviceIsRegistered (const std::string& serviceName)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     ossie::ServiceList::iterator service = findServiceByName(serviceName);
 
-    TRACE_EXIT(DomainManager_impl);
     return (service != _registeredServices.end());
 }
 
 void DomainManager_impl::closeAllOpenFileHandles()
 {
-    LOG_INFO(DomainManager_impl, "Received SIGUSR1. Closing all open file handles");
+    RH_INFO(this->_baseLog, "Received SIGUSR1. Closing all open file handles");
     this->fileMgr_servant->closeAllFiles();
 }
 
@@ -1580,24 +1544,20 @@ void DomainManager_impl::closeAllOpenFileHandles()
 //This function returns TRUE if the input registeredDeviceMgr is contained in the _deviceManagers list attribute
 bool DomainManager_impl::deviceMgrIsRegistered (CF::DeviceManager_ptr registeredDeviceMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     DeviceManagerList::iterator node = findDeviceManagerByObject(registeredDeviceMgr);
 
-    TRACE_EXIT(DomainManager_impl);
     return (node != _registeredDeviceManagers.end());;
 }
 
 //This function returns TRUE if the input registeredDomainMgr is contained in the _domainManagers list attribute
 bool DomainManager_impl::domainMgrIsRegistered (CF::DomainManager_ptr registeredDomainMgr)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     DomainManagerList::iterator node = findDomainManagerByObject(registeredDomainMgr);
 
-    TRACE_EXIT(DomainManager_impl);
     return (node != _registeredDomainManagers.end());;
 }
 
@@ -1607,21 +1567,11 @@ CF::Application_ptr DomainManager_impl::createApplication(const char* profileFil
                                                           const CF::Properties& initConfiguration,
                                                           const CF::DeviceAssignmentSequence& deviceAssignments)
 {
-    TRACE_ENTER(DomainManager_impl);
+    ApplicationFactory_impl factory(profileFileName, _domainName, this);
+    factory.setLogger(_baseLog->getChildLogger("ApplicationFactory", ""));
+    CF::Application_var application = factory.create(name, initConfiguration, deviceAssignments);
 
-    try {
-       ApplicationFactory_impl factory(profileFileName, _domainName, this);
-       CF::Application_var application = factory.create(name, initConfiguration, deviceAssignments);
-       TRACE_EXIT(DomainManager_impl);
-       return application._retn();
-    }
-    catch( CF::DomainManager::ApplicationInstallationError& ex ) {
-      LOG_ERROR(DomainManager_impl, "Create application FAILED, reason: " << ex.msg );
-      // rethrow as invalid profile... 
-      throw CF::InvalidProfile();
-    }
-
-    TRACE_EXIT(DomainManager_impl);
+    return application._retn();
 }
 
 
@@ -1640,40 +1590,41 @@ throw (CORBA::SystemException,
        CF::DomainManager::ApplicationInstallationError, 
        CF::DomainManager::ApplicationAlreadyInstalled)
 {
-  boost::mutex::scoped_lock lock(interfaceAccess);
-  _local_installApplication(profileFileName);
+    boost::mutex::scoped_lock lock(interfaceAccess);
+    _local_installApplication(profileFileName);
 
-  ApplicationFactoryTable::iterator appFact = _applicationFactories.find(profileFileName);
-  if (appFact != _applicationFactories.end()) {
-    std::string identifier = ossie::corba::returnString(appFact->first.c_str());
-    std::string name = ossie::corba::returnString(appFact->second->name());
-    CF::ApplicationFactory_var appFactRef = appFact->second->_this();
-    sendAddEvent( _identifier.c_str(), identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY );
-  }
+    ApplicationFactoryTable::iterator appFact = _applicationFactories.find(profileFileName);
+    if (appFact != _applicationFactories.end()) {
+        const std::string& identifier = appFact->first;
+        const std::string& name = appFact->second->getName();
+        CF::ApplicationFactory_var appFactRef = appFact->second->_this();
+        sendAddEvent(_identifier, identifier, name, appFactRef, StandardEvent::APPLICATION_FACTORY);
+    }
 }
 
-void DomainManager_impl::_local_installApplication (const char* profileFileName)
+void DomainManager_impl::_local_installApplication (const std::string& profileFileName)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
 // NOTE: the <softwareassembly> name attribute is the name of the App Factory
 //               that is currently installed because it is the installed factory that
 //               provides the value of profileFileName
 
-    try {
-        // check the profile ends with .sad.xml, warn if it doesn't
-        if ((strstr (profileFileName, ".sad.xml")) == NULL)
-            { LOG_WARN(DomainManager_impl, "File " << profileFileName << " should end with .sad.xml."); }
+    // check the profile ends with .sad.xml, warn if it doesn't
+    if (profileFileName.find(".sad.xml") == std::string::npos) {
+        RH_WARN(this->_baseLog, "File " << profileFileName << " should end with .sad.xml.");
+    }
 
-        LOG_TRACE(DomainManager_impl, "installApplication: Createing new AppFac");
+    try {
+        RH_TRACE(this->_baseLog, "installApplication: Createing new AppFac");
         ApplicationFactory_impl* appFact = new ApplicationFactory_impl(profileFileName, this->_domainName, this);
-        const std::string appFactoryId = appFact->getID();
+        appFact->setLogger(_baseLog->getChildLogger("ApplicationFactory", ""));
+        const std::string& appFactoryId = appFact->getIdentifier();
 
         // Check if application factory already exists for this profile
-        LOG_TRACE(DomainManager_impl, "Installing application ID " << appFactoryId);
+        RH_TRACE(this->_baseLog, "Installing application ID " << appFactoryId);
         if (_applicationFactories.count(appFactoryId)) {
-            LOG_INFO(DomainManager_impl, "Application " << appFact->getName() << " with id " << appFact->getID()
+            RH_INFO(this->_baseLog, "Application " << appFact->getName() << " with id " << appFactoryId
                      << " already installed (Application Factory already exists)");
             delete appFact;
             appFact=NULL;
@@ -1688,35 +1639,33 @@ void DomainManager_impl::_local_installApplication (const char* profileFileName)
         try {
             db.store("APP_FACTORIES", _installedApplications);
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
+            RH_ERROR(this->_baseLog, "Error persisting change to device managers");
         }
     } catch (CF::FileException& ex) {
-        LOG_ERROR(DomainManager_impl, "installApplication: While validating the SAD profile: " << ex.msg);
+        RH_ERROR(this->_baseLog, "installApplication: While validating the SAD profile: " << ex.msg);
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, ex.msg);
     } catch( CF::InvalidFileName& ex ) {
-        LOG_ERROR(DomainManager_impl, "installApplication: Invalid file name: " << profileFileName);
+        RH_ERROR(this->_baseLog, "installApplication: Invalid file name: " << profileFileName);
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_EBADF, "Invalid file name");
     } catch (CF::DomainManager::ApplicationInstallationError& e) {
-        LOG_TRACE(DomainManager_impl, "rethrowing ApplicationInstallationError" << e.msg);
+        RH_TRACE(this->_baseLog, "rethrowing ApplicationInstallationError" << e.msg);
         throw;
     } catch (CF::DomainManager::ApplicationAlreadyInstalled &) {
         throw;
     } catch ( std::exception& ex ) {
         std::ostringstream eout;
         eout << "The following standard exception occurred: "<<ex.what()<<" while restoring the application factories";
-        LOG_ERROR(DomainManager_impl, eout.str())
+        RH_ERROR(this->_baseLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_NOTSET, eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
         std::ostringstream eout;
         eout << "The following CORBA exception occurred: "<<ex._name()<<" while restoring the application factories";
-        LOG_ERROR(DomainManager_impl, eout.str())
+        RH_ERROR(this->_baseLog, eout.str())
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_NOTSET, eout.str().c_str());
     } catch (...) {
-        LOG_ERROR(DomainManager_impl, "unexpected exception occurred while installing application");
+        RH_ERROR(this->_baseLog, "unexpected exception occurred while installing application");
         throw CF::DomainManager::ApplicationInstallationError (CF::CF_NOTSET, "unknown exception");
     }
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 
@@ -1725,7 +1674,7 @@ DomainManager_impl::uninstallApplication (const char* applicationId)
 throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
        CF::DomainManager::ApplicationUninstallationError)
 {
-    LOG_INFO(DomainManager_impl, "Uninstalling application " << applicationId);
+    RH_INFO(this->_baseLog, "Uninstalling application " << applicationId);
     boost::mutex::scoped_lock lock(interfaceAccess);
 
     std::string appFactory_id;
@@ -1734,7 +1683,7 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
     ApplicationFactoryTable::iterator appFact = _applicationFactories.find(applicationId);
     if (appFact != _applicationFactories.end()) {
         appFactory_id = appFact->first;
-        appFactory_name = ossie::corba::returnString(appFact->second->name());
+        appFactory_name = appFact->second->getName();
     }
 
     _local_uninstallApplication(applicationId);
@@ -1752,28 +1701,26 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
         // sourceCategory = APPLICATION_FACTORY
         // StandardEvent enumeration
 
-    sendRemoveEvent(_identifier.c_str(), appFactory_id.c_str(), appFactory_name.c_str(),StandardEvent::APPLICATION_FACTORY);
+    sendRemoveEvent(_identifier, appFactory_id, appFactory_name, StandardEvent::APPLICATION_FACTORY);
 }
 
 void DomainManager_impl::_local_uninstallApplication (const char* applicationId)
 {
-    TRACE_ENTER(DomainManager_impl);
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // Find the factory in the table, which also validates the identifier
     ApplicationFactoryTable::iterator appFact = _applicationFactories.find(applicationId);
     if (appFact == _applicationFactories.end()) {
-        TRACE_EXIT(DomainManager_impl);
         throw CF::DomainManager::InvalidIdentifier();
     }
 
     // Update the persistence database
-    const std::string sad_file = ossie::corba::returnString(appFact->second->softwareProfile());
+    const std::string sad_file = appFact->second->getSoftwareProfile();
     _installedApplications.erase(sad_file);
     try {
         db.store("APP_FACTORIES", _installedApplications);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to installed applications");
+        RH_ERROR(this->_baseLog, "Error persisting change to installed applications");
     }
 
     // Deactivate the servant
@@ -1783,105 +1730,90 @@ void DomainManager_impl::_local_uninstallApplication (const char* applicationId)
     // Remove the servant from the list and clean up the reference
     _applicationFactories.erase(appFact);
     appFact->second->_remove_ref();
-
-    TRACE_EXIT(DomainManager_impl);
 }
 
 void DomainManager_impl::updateLocalAllocations(const ossie::AllocationTable& localAllocations)
 {
-    TRACE_ENTER(DomainManager_impl)
     try {
         db.store("LOCAL_ALLOCATIONS", localAllocations);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting local allocations");
+        RH_ERROR(this->_baseLog, "Error persisting local allocations");
     }
-    TRACE_EXIT(DomainManager_impl)
 }
 
 void DomainManager_impl::updateRemoteAllocations(const ossie::RemoteAllocationTable& remoteAllocations)
 {
-    TRACE_ENTER(DomainManager_impl)
     try {
         db.store("REMOTE_ALLOCATIONS", remoteAllocations);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting remote allocation");
+        RH_ERROR(this->_baseLog, "Error persisting remote allocation");
     }
-    TRACE_EXIT(DomainManager_impl)
 }
 
 void
 DomainManager_impl::addApplication(Application_impl* new_app)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
-    LOG_TRACE(DomainManager_impl, "Attempting to add application to AppSeq with id: " << ossie::corba::returnString(new_app->identifier()));
-
+    const std::string& identifier = new_app->getIdentifier();
+    RH_TRACE(this->_baseLog, "Attempting to add application to AppSeq with id: " << identifier);
     try {
-        const std::string identifier = ossie::corba::returnString(new_app->identifier());
         _applications[identifier] = new_app;
         new_app->_add_ref();
-
-        ApplicationNode appNode;
-        appNode.name = ossie::corba::returnString(new_app->name());
-        appNode.identifier = ossie::corba::returnString(new_app->identifier());
-        appNode.profile = ossie::corba::returnString(new_app->profile());
-        appNode.contextName = new_app->_waveformContextName;
-        appNode.context = CosNaming::NamingContext::_duplicate(new_app->_waveformContext);
-        appNode.componentDevices = new_app->_componentDevices;
-        appNode.components = new_app->_components;
-        appNode.assemblyController = CF::Resource::_duplicate(new_app->assemblyController);
-        appNode.componentRefs.clear();
-        for (unsigned int i = 0; i < new_app->_appStartSeq.size(); ++i) {
-            appNode.componentRefs.push_back(CF::Resource::_duplicate(new_app->_appStartSeq[i]));
-        }
-        appNode.allocationIDs = new_app->_allocationIDs;
-        appNode.connections = new_app->_connections;
-        appNode.aware_application = new_app->_isAware;
-        appNode.ports = new_app->_ports;
-        // Adds external properties
-        for (std::map<std::string, Application_impl::externalPropertyRecord>::const_iterator it = new_app->_properties.begin();
-                it != new_app->_properties.end();
-                ++it) {
-            std::string extId = it->first;
-            externalPropertyType extProp;
-            extProp.property_id = it->second.id;
-            extProp.component_id = ossie::corba::returnString(it->second.component->identifier());
-            extProp.access = it->second.access;
-            appNode.properties.insert(std::pair<std::string, externalPropertyType>(extId, extProp));
-        }
-
-        _runningApplications.push_back(appNode);
 
         // Make any deferred connections dependent on this application
         _connectionManager.applicationRegistered(identifier);
 
-        try {
-            db.store("APPLICATIONS", _runningApplications);
-        } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
-        }
-
+        _persistApplication(new_app);
     } catch (...) {
-        const std::string identifier = ossie::corba::returnString(new_app->identifier());        
         ostringstream eout;
         eout << "Could not add new application to AppSeq; ";
         eout << " application id: " << identifier << "; ";
         eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
-        LOG_ERROR(DomainManager_impl, eout.str());
+        RH_ERROR(this->_baseLog, eout.str());
         throw CF::DomainManager::ApplicationInstallationError(CF::CF_EFAULT, eout.str().c_str());
     }
+}
 
-    TRACE_EXIT(DomainManager_impl)
+void DomainManager_impl::addPendingApplication(Application_impl* application)
+{
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    application->_add_ref();
+    _pendingApplications[application->getIdentifier()] = application;
+}
+
+void DomainManager_impl::cancelPendingApplication(Application_impl* application)
+{
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    ApplicationTable::iterator iter = _pendingApplications.find(application->getIdentifier());
+    if (iter == _pendingApplications.end()) {
+        RH_ERROR(this->_baseLog, "No pending application '" << application->getIdentifier() << "' to cancel");
+    } else {
+        _pendingApplications.erase(iter);
+        application->_remove_ref();
+    }
+}
+
+void DomainManager_impl::completePendingApplication(Application_impl* application)
+{
+    boost::recursive_mutex::scoped_lock lock(stateAccess);
+    ApplicationTable::iterator iter = _pendingApplications.find(application->getIdentifier());
+    if (iter == _pendingApplications.end()) {
+        RH_ERROR(this->_baseLog, "No pending application '" << application->getIdentifier()
+                  << "' to move to active state");
+    } else {
+        addApplication(application);
+        application->_remove_ref();
+        _pendingApplications.erase(iter);
+    }
 }
 
 void
 DomainManager_impl::removeApplication(std::string app_id)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
-    LOG_TRACE(DomainManager_impl, "Attempting to remove application from AppSeq with id: " << app_id)
+    RH_TRACE(this->_baseLog, "Attempting to remove application from AppSeq with id: " << app_id)
 
     ApplicationTable::iterator app = _applications.find(app_id);
     // remove the application from the sequence
@@ -1903,7 +1835,7 @@ DomainManager_impl::removeApplication(std::string app_id)
         try {
             db.store("APPLICATIONS", _runningApplications);
         } catch (const ossie::PersistenceException& ex) {
-            LOG_ERROR(DomainManager_impl, "Error persisting change to device managers");
+            RH_ERROR(this->_baseLog, "Error persisting change to device managers");
         }
     } else {
         ostringstream eout;
@@ -1912,8 +1844,6 @@ DomainManager_impl::removeApplication(std::string app_id)
         eout << " error occurred near line:" <<__LINE__ << " in file:" <<  __FILE__ << ";";
         throw CF::DomainManager::ApplicationUninstallationError(CF::CF_EFAULT, eout.str().c_str());
     }
-
-    TRACE_EXIT(DomainManager_impl)
 }
 
 
@@ -1929,17 +1859,13 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
        CF::DomainManager::AlreadyConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    std::string tmp_id = ossie::corba::returnString(registeringId);
-    std::string eventchannel_name = ossie::corba::returnString(eventChannelName);
-    _local_registerWithEventChannel(registeringObject, tmp_id, eventchannel_name);
+    _local_registerWithEventChannel(registeringObject, registeringId, eventChannelName);
 }
 
 void DomainManager_impl::_local_registerWithEventChannel (CORBA::Object_ptr registeringObject,
-                                                          std::string &registeringId,
-                                                          std::string &eventChannelName)
+                                                          const std::string& registeringId,
+                                                          const std::string& eventChannelName)
 {
-    TRACE_ENTER(DomainManager_impl)
-    
     if (registeredConsumers.find(registeringId) != registeredConsumers.end()) {
         throw CF::DomainManager::AlreadyConnected ();
     }
@@ -1977,16 +1903,12 @@ throw (CORBA::SystemException, CF::DomainManager::InvalidEventChannelName,
        CF::DomainManager::NotConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
-    std::string tmp_id = ossie::corba::returnString(unregisteringId);
-    std::string eventchannel_name = ossie::corba::returnString(eventChannelName);
-    _local_unregisterFromEventChannel(tmp_id, eventchannel_name);
+    _local_unregisterFromEventChannel(unregisteringId, eventChannelName);
 }
 
-void DomainManager_impl::_local_unregisterFromEventChannel (std::string &unregisteringId,
-                                                            std::string &eventChannelName)
+void DomainManager_impl::_local_unregisterFromEventChannel (const std::string& unregisteringId,
+                                                            const std::string& eventChannelName)
 {
-    TRACE_ENTER(DomainManager_impl)
-    
     if (!eventChannelExists(eventChannelName)) {
         throw CF::DomainManager::InvalidEventChannelName ();
     }
@@ -2014,40 +1936,52 @@ void DomainManager_impl::registerService (CORBA::Object_ptr registeringService, 
 
 void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
 
     // Verify that the service and DeviceManager are not nil references
     if (CORBA::is_nil(registeringService)) {
-        LOG_ERROR(DomainManager_impl, "Ignoring registration of nil Service");
+        RH_ERROR(this->_baseLog, "Ignoring registration of nil Service");
         throw CF::InvalidObjectReference("Registering Service is nil");
     } else if (CORBA::is_nil(registeredDeviceMgr)) {
-        LOG_ERROR(DomainManager_impl, "Ignoring registration of Service with nil DeviceManager");
+        RH_ERROR(this->_baseLog, "Ignoring registration of Service with nil DeviceManager");
         throw CF::InvalidObjectReference("Registered DeviceManager is nil");
     }
 
     // Verify that DeviceManager is registered
     if (!deviceMgrIsRegistered(registeredDeviceMgr)) {
-        LOG_WARN(DomainManager_impl, "Ignoring attempt to register a Service from an unregistered DeviceManager");
+        RH_WARN(this->_baseLog, "Ignoring attempt to register a Service from an unregistered DeviceManager");
         throw CF::DomainManager::DeviceManagerNotRegistered();
     }
     
-    DeviceManagerConfiguration _DCDParser;
+    DeviceManagerConfiguration *_DCDParser=0;
+    DeviceManagerConfiguration _dcdParser;
     bool readDCD = true;
     std::string serviceId("");
     std::string inputUsageName(name);
     try {
         CF::FileSystem_var devMgrFileSys = registeredDeviceMgr->fileSys();
         CORBA::String_var profile = registeredDeviceMgr->deviceConfigurationProfile();
-        File_stream _dcd(devMgrFileSys, profile);
-        _DCDParser.load(_dcd);
-        _dcd.close();
+         DeviceManagerList::iterator node = findDeviceManagerByObject(registeredDeviceMgr);
+          if ( node != _registeredDeviceManagers.end() ) {
+                if ( node->dcd.isLoaded() == false ) {
+                    File_stream dcd(devMgrFileSys, profile);
+                    node->dcd.load(dcd);
+                    dcd.close();            
+                }
+                _DCDParser = &(node->dcd);
+          }
+          else {
+              File_stream dcd(devMgrFileSys, profile);
+              _dcdParser.load(dcd);
+              _DCDParser = &_dcdParser;
+              dcd.close();
+          }
     } catch ( ... ) {
         readDCD = false;
     }
     if (readDCD) {
-        const std::vector<ossie::ComponentPlacement>& componentPlacements = _DCDParser.getComponentPlacements();
+        const std::vector<ossie::DevicePlacement>& componentPlacements = _DCDParser->getComponentPlacements();
         bool foundId = false;
         for (unsigned int i = 0; i < componentPlacements.size(); i++) {
             for (unsigned int j=0; j<componentPlacements[i].getInstantiations().size(); j++) {
@@ -2075,9 +2009,20 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
 
 //Add registeringService and its name to domain manager
     try {
-        storeServiceInDomainMgr(registeringService, registeredDeviceMgr, name, serviceId.c_str());
+        storeServiceInDomainMgr(registeringService, registeredDeviceMgr, name, serviceId);
     } catch ( ... ) {
         throw;
+    }
+
+    // Per the specification, service usagenames are not optional and *MUST* be
+    // unique per each service type. The uniqueness is checked when storing the
+    // service internally, so the name binding should be a formality.
+    LOG_TRACE(DomainManager_impl, "Binding service to name " << name);
+    try {
+        CosNaming::Name_var service_name = ossie::corba::stringToName(name);
+        rootContext->rebind(service_name, registeringService);
+    } catch (...) {
+        LOG_WARN(DomainManager_impl, "Unable to bind service to name " << name);
     }
 
 //The registerService operation shall, upon successful service registration, establish any pending
@@ -2090,7 +2035,7 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
     try {
         db.store("CONNECTIONS", _connectionManager.getConnections());
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+        RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
     }
 
 //The registerService operation shall, upon unsuccessful service registration, write a
@@ -2105,12 +2050,130 @@ void DomainManager_impl::_local_registerService (CORBA::Object_ptr registeringSe
 //3. The sourceName shall be the input name parameter for the registering service.
 //4. The sourceIOR shall be the registered service object reference.
 //5. The sourceCategory shall be SERVICE.
-    sendAddEvent( _identifier.c_str(), serviceId.c_str(), name, registeringService, StandardEvent::SERVICE );
+    sendAddEvent(_identifier, serviceId, name, registeringService, StandardEvent::SERVICE);
 
 //The registerService operation shall raise the RegisterError exception when an internal error
 //exists which causes an unsuccessful registration.
 }
 
+void DomainManager_impl::storePubProxies()
+{
+    EventProxies _proxies;
+    EventChannelManager::PubProxyMap _retVal = _eventChannelMgr->getPubProxies();
+    for (EventChannelManager::PubProxyMap::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        _proxies[it->first] = _orbCtx.orb->object_to_string(it->second);
+    }
+    try {
+        db.store("EVTCHMGR_PUBPROXIES", _proxies);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager publisher proxies");
+    }
+}
+
+void DomainManager_impl::storeSubProxies()
+{
+    EventProxies _proxies;
+    EventChannelManager::SubProxyMap _retVal = _eventChannelMgr->getSubProxies();
+    for (EventChannelManager::SubProxyMap::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        _proxies[it->first] = _orbCtx.orb->object_to_string(it->second);
+    }
+    try {
+        db.store("EVTCHMGR_SUBPROXIES", _proxies);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager subscriber proxies");
+    }
+}
+
+void DomainManager_impl::storeEventChannelRegistrations()
+{
+    ChannelRegistrationNodes _nodes;
+    EventChannelManager::ChannelRegistrationTable _retVal = _eventChannelMgr->getChannelRegistrations();
+    for (EventChannelManager::ChannelRegistrationTable::iterator it = _retVal.begin(); it != _retVal.end(); it++) {
+        ChannelRegistrationNode _tmp;
+        _tmp.channel_name = it->second.channel_name;
+        _tmp.fqn = it->second.fqn;
+        _tmp.channel = _orbCtx.orb->object_to_string(it->second.channel);
+        _tmp.autoRelease = it->second.autoRelease;
+        _tmp.release = it->second.release;
+        _tmp.registrants = it->second.registrants;
+        _nodes[it->first] = _tmp;
+    }
+    try {
+        db.store("EVTCHMGR_CHANNELREGISTRATIONS", _nodes);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager event channel registrations");
+    }
+}
+
+void DomainManager_impl::restorePubProxies(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        RH_ERROR(this->_baseLog, "Error loading persistent state: " << e.what());
+        return;
+    }
+    EventProxies _proxies;
+    try {
+        db.fetch("EVTCHMGR_PUBPROXIES", _proxies, true);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager publisher proxies");
+    }
+    EventChannelManager::PubProxyMap _newVal;
+    for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
+        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushConsumer>(_orbCtx.orb->string_to_object(it->second.c_str()));
+    }
+    _eventChannelMgr->setPubProxies(_newVal);
+}
+
+void DomainManager_impl::restoreSubProxies(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        RH_ERROR(this->_baseLog, "Error loading persistent state: " << e.what());
+        return;
+    }
+    EventProxies _proxies;
+    try {
+        db.fetch("EVTCHMGR_SUBPROXIES", _proxies, true);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager subscriber proxies");
+    }
+    EventChannelManager::SubProxyMap _newVal;
+    for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
+        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushSupplier>(_orbCtx.orb->string_to_object(it->second.c_str()));
+    }
+    _eventChannelMgr->setSubProxies(_newVal);
+}
+
+void DomainManager_impl::restoreEventChannelRegistrations(const std::string& _db_uri)
+{
+    try {
+        db.open(_db_uri);
+    } catch (const ossie::PersistenceException& e) {
+        RH_ERROR(this->_baseLog, "Error loading persistent state: " << e.what());
+        return;
+    }
+    ChannelRegistrationNodes _nodes;
+    try {
+        db.fetch("EVTCHMGR_CHANNELREGISTRATIONS", _nodes, true);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to event channel manager event channel registrations");
+    }
+    EventChannelManager::ChannelRegistrationTable _newVal;// = _eventChannelMgr->getChannelRegistrations();
+    for (ChannelRegistrationNodes::iterator it = _nodes.begin(); it != _nodes.end(); it++) {
+        EventChannelManager::ChannelRegistration _tmp;
+        _tmp.channel_name = it->second.channel_name;
+        _tmp.fqn = it->second.fqn;
+        _tmp.channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(_orbCtx.orb->string_to_object(it->second.channel.c_str()));
+        _tmp.autoRelease = it->second.autoRelease;
+        _tmp.release = it->second.release;
+        _tmp.registrants = it->second.registrants;
+        _newVal[it->first] = _tmp;
+    }
+    _eventChannelMgr->setChannelRegistrations(_newVal);
+}
 
 void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringService, const char* name)
     throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException)
@@ -2120,14 +2183,14 @@ void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringServic
     // Try to find a service registered with the given name.
     ossie::ServiceList::iterator service = findServiceByName(name);
     if (service == _registeredServices.end()) {
-        LOG_ERROR(DomainManager_impl, "Cannot unregister service '" << name << "' not registered with domain");
+        RH_ERROR(this->_baseLog, "Cannot unregister service '" << name << "' not registered with domain");
         throw CF::InvalidObjectReference("Service is not registered with domain");
     }
 
     // Refuse to unregister if the unregistering object is not the same as the
     // registered one.
     if (!service->service->_is_equivalent(unregisteringService)) {
-        LOG_ERROR(DomainManager_impl, "Not unregistering service '" << name << "' because object does not match prior registration");
+        RH_ERROR(this->_baseLog, "Not unregistering service '" << name << "' because object does not match prior registration");
         throw CF::InvalidObjectReference("Unregistering service is not the same as registered object");
     }
     
@@ -2137,7 +2200,6 @@ void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringServic
 
 ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie::ServiceList::iterator service)
 {
-    TRACE_ENTER(DomainManager_impl)
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // Disconnect any connections involving this service.
@@ -2145,21 +2207,25 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
     try {
         db.store("CONNECTIONS", _connectionManager.getConnections());
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to device manager connections");
+        RH_ERROR(this->_baseLog, "Error persisting change to device manager connections");
     }
     
     std::string serviceName(service->name);
     std::string serviceId(service->serviceId);
+
+    // Remove the naming service binding, ignoring exceptions
+    try {
+        CosNaming::Name_var service_name = ossie::corba::stringToName(serviceName);
+        rootContext->unbind(service_name);
+    } catch (...) {
+        LOG_WARN(DomainManager_impl, "Unable to remove name binding for service " << serviceName);
+    }
 
     // Remove the service from the internal list.
     service = _registeredServices.erase(service);
 
     if (!_applications.empty()) {
         std::vector<Application_impl*> appsToRelease;
-
-        PortableServer::POA_var dm_poa = ossie::corba::RootPOA()->find_POA("DomainManager", 0);
-        PortableServer::POA_var poa = dm_poa->find_POA("Applications", 1);
-
         for (ApplicationTable::iterator app = _applications.begin(); app != _applications.end(); ++app) {
             if (app->second->checkConnectionDependency(ossie::Endpoint::SERVICENAME, serviceName)) {
                 app->second->_add_ref();
@@ -2167,10 +2233,10 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
             }
         }
 
-        LOG_DEBUG(DomainManager_impl, "Releasing " << appsToRelease.size() << " applications");
+        RH_DEBUG(this->_baseLog, "Releasing " << appsToRelease.size() << " applications");
         for (std::vector<Application_impl*>::iterator iter = appsToRelease.begin(); iter != appsToRelease.end(); ++iter) {
             Application_impl* app = *iter;
-            LOG_DEBUG(DomainManager_impl, "Releasing " << ossie::corba::returnString(app->identifier()));
+            RH_DEBUG(this->_baseLog, "Releasing " << app->getIdentifier());
             app->releaseObject();
             app->_remove_ref();
         }
@@ -2180,7 +2246,7 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
     try {
         db.store("SERVICES", _registeredServices);
     } catch (const ossie::PersistenceException& ex) {
-        LOG_ERROR(DomainManager_impl, "Error persisting change to services");
+        RH_ERROR(this->_baseLog, "Error persisting change to services");
     }
 
     //The unregisterService operation shall, upon successful service unregistration, send an event to
@@ -2193,7 +2259,7 @@ ossie::ServiceList::iterator DomainManager_impl::_local_unregisterService(ossie:
     //4. The sourceCategory shall be SERVICE.
     // Sent event here (as opposed to unregisterDevice), so we see the event on regular
     // unregisterDevice calls, and on cleanup (deviceManager shutdown, catastropic cleanup, etc.)
-    sendRemoveEvent( _identifier.c_str(), serviceId.c_str(), serviceName.c_str(), StandardEvent::SERVICE );
+    sendRemoveEvent(_identifier, serviceId, serviceName, StandardEvent::SERVICE);
 
     return service;
 }
@@ -2209,16 +2275,32 @@ CF::Resource_ptr DomainManager_impl::lookupComponentByInstantiationId(const std:
     // Search for a Component matching this id
     //  This needs to reconcile the fact that the application id is <softwareassembly id>:<app name>, the component id is <componentinstantiation id>:<app name>
     //   and the unambiguous endpoint for a component is <componentinstantiation id>:<softwareassembly id>:<app name>
-    std::size_t pos = identifier.find(":");
+    std::size_t begin_pos = 0;
+    if (identifier.size() > 4) {
+        if (identifier.substr(0,3) == "DCE") {
+            begin_pos = 4;
+        }
+    }
+    std::size_t pos = identifier.find(":", begin_pos);
     if (pos != std::string::npos) {
         std::string appid = identifier.substr(pos+1);
         if (_applications.find(appid) == _applications.end()) {
-            return CF::Resource::_nil();
+            // search by id substr instead of id
+            ApplicationTable::iterator it = _applications.begin();
+            while (it != _applications.end()) {
+                if (appid == it->first.substr(it->first.size()-appid.size(),appid.size())) {
+                    appid = it->first;
+                    break;
+                }
+                it++;
+            }
+            if (it == _applications.end())
+                return CF::Resource::_nil();
         }
         std::string normalized_comp_id = identifier.substr(0,pos)+std::string(":")+appid.substr(appid.rfind(":")+1);
-        for (ossie::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\
-            if (normalized_comp_id == _comp->identifier) {
-                return CF::Resource::_duplicate(CF::Resource::_narrow(_comp->componentObject));
+        for (Application_impl::ComponentList::iterator _comp=_applications[appid]->_components.begin(); _comp!=_applications[appid]->_components.end(); _comp++) {\
+            if (normalized_comp_id == _comp->getIdentifier()) {
+                return _comp->getResourcePtr();
             }
         }
     }
@@ -2239,11 +2321,11 @@ CF::DeviceManager_ptr DomainManager_impl::lookupDeviceManagerByInstantiationId(c
 
 CORBA::Object_ptr DomainManager_impl::lookupDomainObject (const std::string& type, const std::string& name)
 {
-    LOG_TRACE(DomainManager_impl, "Resolving domainfinder type='" << type << "' name='" << name << "'");
+    RH_TRACE(this->_baseLog, "Resolving domainfinder type='" << type << "' name='" << name << "'");
     if (type == "filemanager") {
         return CF::FileManager::_duplicate(_fileMgr);
     } else if (type == "log") {
-        LOG_WARN(DomainManager_impl, "No support for log in domainfinder element");
+        RH_WARN(this->_baseLog, "No support for log in domainfinder element");
     } else if (type == "eventchannel") {
         // If no name is given, return the IDM channel.
         std::string channelName = name;
@@ -2264,28 +2346,31 @@ CORBA::Object_ptr DomainManager_impl::lookupDomainObject (const std::string& typ
         incrementEventChannelConnections(channelName);
         return channelObj._retn();
     } else if (type == "namingservice") {
-        LOG_WARN(DomainManager_impl, "No support for namingservice in domainfinder element");
+        RH_WARN(this->_baseLog, "No support for namingservice in domainfinder element");
     } else if (type == "servicename") {
         ServiceList::iterator serviceNode = findServiceByName(name);
         if (serviceNode != _registeredServices.end()) {
-            LOG_TRACE(DomainManager_impl, "Found service " << name);
+            RH_TRACE(this->_baseLog, "Found service " << name);
             return CORBA::Object::_duplicate(serviceNode->service);
         }
-        LOG_WARN(DomainManager_impl, "No service found for servicename '" << name << "'");
+        throw ossie::LookupError("no service '" + name + "' found");
     } else if (type == "servicetype") {
         ServiceList::iterator serviceNode = findServiceByType(name);
         if (serviceNode != _registeredServices.end()) {
-            LOG_TRACE(DomainManager_impl, "Found service " << serviceNode->name << " supporting '" << name << "'");
+            RH_TRACE(this->_baseLog, "Found service " << serviceNode->name << " supporting '" << name << "'");
             return CORBA::Object::_duplicate(serviceNode->service);
         }
-        LOG_WARN(DomainManager_impl, "No service found for servicetype '" << name << "'");
+        throw ossie::LookupError("no service found for type '" + name + "'");
     } else if (type == "domainmanager") {
         return _this();
     } else if (type == "application") {
         Application_impl* application = findApplicationById(name);
-        if (application) {
-            return application->_this();
+        if (!application) {
+            throw ossie::LookupError("no application '" + name + "' found");
         }
+        return application->_this();
+    } else {
+        throw ossie::LookupError("invalid domainfinder type '" + type + "'");
     }
     return CORBA::Object::_nil();
 }
@@ -2293,26 +2378,23 @@ CORBA::Object_ptr DomainManager_impl::lookupDomainObject (const std::string& typ
 
 void DomainManager_impl::catastrophicUnregisterDeviceManager (ossie::DeviceManagerList::iterator deviceManager)
 {
-    TRACE_ENTER(DomainManager_impl);
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     // NOTE: Assume that the DeviceManager doesn't exist, so make no CORBA calls to it.
 
     // Release all devices associated with the DeviceManager that is being unregistered.
-    LOG_TRACE(DomainManager_impl, "Finding devices for device manager " << deviceManager->identifier);
+    RH_TRACE(this->_baseLog, "Finding devices for device manager " << deviceManager->identifier);
     for (DeviceList::iterator device = _registeredDevices.begin(); device != _registeredDevices.end(); ++device) {
         if ((*device)->devMgr.identifier == deviceManager->identifier) {
-            LOG_TRACE(DomainManager_impl, "Releasing registered device " << (*device)->label);
+            RH_TRACE(this->_baseLog, "Releasing registered device " << (*device)->label);
             try {
                 (*device)->device->releaseObject();
-            } CATCH_LOG_WARN(DomainManager_impl, "Failed to release device " << (*device)->label);
+            } CATCH_RH_WARN(this->_baseLog, "Failed to release device " << (*device)->label);
         }
     }
 
     // Continue with the normal unregistration code path.
     _local_unregisterDeviceManager(deviceManager);
-
-    TRACE_EXIT(DomainManager_impl);
 }
 
 
@@ -2470,28 +2552,28 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
     CF::FileSystem_var devMgrFS = node.devMgr.deviceManager->fileSys();
 
     // Parse and cache the device's SPD
-    LOG_TRACE(DomainManager_impl, "Parsing SPD for device " << node.identifier);
+    RH_TRACE(this->_baseLog, "Parsing SPD for device " << node.identifier);
     try {
         File_stream spd(devMgrFS, node.softwareProfile.c_str());
         node.spd.load(spd, node.softwareProfile);
     } catch (const ossie::parser_error& error) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing SPD: " <<  node.softwareProfile << "  Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
+        RH_WARN(this->_baseLog, "Error parsing SPD: " <<  node.softwareProfile << "  Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
     } catch (...) {
-        LOG_WARN(DomainManager_impl, "Unable to cache SPD for device " << node.identifier);
+        RH_WARN(this->_baseLog, "Unable to cache SPD for device " << node.identifier);
     }
 
     // Parse and cache the device's PRF, if it has one
     if (node.spd.getPRFFile()) {
-        LOG_TRACE(DomainManager_impl, "Parsing PRF for device " << node.identifier);
+        RH_TRACE(this->_baseLog, "Parsing PRF for device " << node.identifier);
         try {
             File_stream prf(devMgrFS, node.spd.getPRFFile());
             node.prf.load(prf);
         } catch (const ossie::parser_error& error) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-            LOG_WARN(DomainManager_impl, "Error parsing PRF: " << node.spd.getPRFFile() << " Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
+            RH_WARN(this->_baseLog, "Error parsing PRF: " << node.spd.getPRFFile() << " Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
         } catch (...) {
-            LOG_WARN(DomainManager_impl, "Unable to cache PRF for device " << node.identifier);
+            RH_WARN(this->_baseLog, "Unable to cache PRF for device " << node.identifier);
         }
     }
 
@@ -2501,38 +2583,161 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
             continue;
         }
         if (impl->getPRFFile()) {
-            LOG_TRACE(DomainManager_impl, "Parsing implementation-specific PRF for device " << node.identifier);
+            RH_TRACE(this->_baseLog, "Parsing implementation-specific PRF for device " << node.identifier);
             try {
                 File_stream prf_file(devMgrFS, impl->getPRFFile());
                 node.prf.join(prf_file);
             } catch (const ossie::parser_error& error) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-                LOG_WARN(DomainManager_impl, "Error parsing implementation-specific PRF for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
+                RH_WARN(this->_baseLog, "Error parsing implementation-specific PRF for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
             } catch (...) {
-                LOG_WARN(DomainManager_impl, "Unable to cache implementation-specific PRF for Device: " << node.identifier);
+                RH_WARN(this->_baseLog, "Unable to cache implementation-specific PRF for Device: " << node.identifier);
             }
         }
     }
 
     // Override with values from the DCD
-    LOG_TRACE(DomainManager_impl, "Parsing DCD overrides for device " << node.identifier);
-    ossie::DeviceManagerConfiguration dcd;
+    RH_TRACE(this->_baseLog, "Parsing DCD overrides for device " << node.identifier);
     const std::string deviceManagerProfile = ossie::corba::returnString(node.devMgr.deviceManager->deviceConfigurationProfile());
-    try {
-        File_stream dcd_file(devMgrFS, deviceManagerProfile.c_str());
-        dcd.load(dcd_file);
-    } catch (const ossie::parser_error& error) {
-        std::string parser_error_line = ossie::retrieveParserErrorLineNumber(error.what());
-        LOG_WARN(DomainManager_impl, "Error parsing DCD: " << deviceManagerProfile.c_str() << " overrides for Device: " << node.identifier << ". " << parser_error_line << " The XML parser returned the following error: " << error.what());
-    } catch (...) {
-        LOG_WARN(DomainManager_impl, "Unable to cache DCD overrides for Device: " << node.identifier);
+    if ( node.devMgr.dcd.isLoaded() == false ) {
+        RH_WARN(this->_baseLog, "DCD file was not loaded for node: " << node.identifier  );
+    }
+    else {
+        const ComponentInstantiation* instantiation = findComponentInstantiation(node.devMgr.dcd.getComponentPlacements(), node.identifier); 
+        if (instantiation) {
+            node.prf.override(instantiation->properties);
+            ossie::convertComponentProperties( instantiation->getDeployerRequires(),
+                                               node.requiresProps );
+        } else {
+            RH_WARN(this->_baseLog, "Unable to find device " << node.identifier << " in DCD");
+        }
+    }
+}
+
+Application_impl* DomainManager_impl::_restoreApplication(ossie::ApplicationNode& node)
+{
+    Application_impl* application = new Application_impl(node.identifier, 
+                                                         node.name,
+                                                         node.profile, 
+                                                         this,
+                                                         node.contextName,
+                                                         node.context,
+                                                         node.aware_application,
+                                                         node.stop_timeout,
+                                                         CosNaming::NamingContext::_nil());
+    RH_TRACE(this->_baseLog, "Restored " << node.connections.size() << " connections");
+
+    application->populateApplication(node.componentDevices,
+                                     node.connections,
+                                     node.allocationIDs);
+
+    // Restore various state about the components in the waveform
+    BOOST_FOREACH(ossie::ComponentNode& compNode, node.components) {
+        redhawk::ApplicationComponent* component = application->addComponent(compNode.identifier, compNode.softwareProfile);
+        component->setName(compNode.name);
+        component->setNamingContext(compNode.namingContext);
+        component->setImplementationId(compNode.implementationId);
+        component->setVisible(compNode.isVisible);
+        BOOST_FOREACH(const std::string& filename, compNode.loadedFiles) {
+            component->addLoadedFile(filename);
+        }
+        component->setProcessId(compNode.processId);
+        component->setComponentObject(compNode.componentObject);
+        component->setAssignedDeviceId(compNode.assignedDeviceId);
+        ossie::DeviceList::iterator device = findDeviceById(compNode.assignedDeviceId);
+        if (device == _registeredDevices.end()) {
+            RH_WARN(this->_baseLog, "Could not find assigned device '" << compNode.assignedDeviceId
+                     << "' for application '" << node.name
+                     << "' component '" << compNode.identifier);
+        } else {
+            component->setAssignedDevice(*device);
+        }
+        if (!compNode.componentHostId.empty()) {
+            redhawk::ApplicationComponent* host = application->findComponent(compNode.componentHostId);
+            if (!host) {
+                RH_WARN(this->_baseLog, "Could not find component host " << compNode.componentHostId);
+            } else {
+                component->setComponentHost(host);
+            }
+        }
+    }
+    application->setAssemblyController(node.assemblyControllerId);
+    application->setStartOrder(node.startOrder);
+
+    // Add external ports
+    for (std::map<std::string, CORBA::Object_var>::const_iterator it = node.ports.begin();
+         it != node.ports.end();
+         ++it) {
+        application->addExternalPort(it->first, it->second);
     }
 
+    // Add external properties
+    for (std::map<std::string, externalPropertyType>::const_iterator it = node.properties.begin();
+         it != node.properties.end();
+         ++it) {
+        std::string extId = it->first;
+        std::string propId = it->second.property_id;
+        std::string access = it->second.access;
+        application->addExternalProperty(propId, extId, access, it->second.component);
+    }
 
-    const ComponentInstantiation* instantiation = findComponentInstantiation(dcd.getComponentPlacements(), node.identifier);
-    if (instantiation) {
-        node.prf.override(instantiation->properties);
-    } else {
-        LOG_WARN(DomainManager_impl, "Unable to find device " << node.identifier << " in DCD");
+    return application;
+}
+
+void DomainManager_impl::_persistApplication(Application_impl* application)
+{
+    ApplicationNode appNode;
+    appNode.name = application->getName();
+    appNode.identifier = application->getIdentifier();
+    appNode.profile = application->getProfile();
+    appNode.contextName = application->_waveformContextName;
+    appNode.context = CosNaming::NamingContext::_duplicate(application->_waveformContext);
+    appNode.componentDevices = application->_componentDevices;
+    BOOST_FOREACH(redhawk::ApplicationComponent& component, application->_components) {
+        ossie::ComponentNode compNode;
+        compNode.identifier = component.getIdentifier();
+        compNode.name = component.getName();
+        compNode.softwareProfile = component.getSoftwareProfile();
+        compNode.namingContext = component.getNamingContext();
+        compNode.implementationId = component.getImplementationId();
+        compNode.isVisible = component.isVisible();
+        compNode.loadedFiles = component.getLoadedFiles();
+        compNode.processId = component.getProcessId();
+        compNode.componentObject = component.getComponentObject();
+        if (component.getAssignedDevice()) {
+            compNode.assignedDeviceId = component.getAssignedDevice()->identifier;
+        } else {
+            compNode.assignedDeviceId = component.getAssignedDeviceId();
+        }
+        if (component.getComponentHost()) {
+            compNode.componentHostId = component.getComponentHost()->getIdentifier();
+        }
+        appNode.components.push_back(compNode);
+    }
+
+    // If an assembly controller is set, store it by identifier
+    redhawk::ApplicationComponent* assembly_controller = application->getAssemblyController();
+    if (assembly_controller) {
+        appNode.assemblyControllerId = assembly_controller->getIdentifier();
+    }
+
+    // Save the start order, storing just the component identifiers
+    BOOST_FOREACH(redhawk::ApplicationComponent* component, application->_startOrder) {
+        appNode.startOrder.push_back(component->getIdentifier());
+    }
+
+    appNode.allocationIDs = application->_allocationIDs;
+    appNode.connections = application->_connections;
+    appNode.aware_application = application->_isAware;
+    appNode.stop_timeout = application->_stopTimeout;
+    appNode.ports = application->_ports;
+    appNode.properties = application->_properties;
+
+    _runningApplications.push_back(appNode);
+
+    try {
+        db.store("APPLICATIONS", _runningApplications);
+    } catch (const ossie::PersistenceException& ex) {
+        RH_ERROR(this->_baseLog, "Error persisting change to device managers");
     }
 }

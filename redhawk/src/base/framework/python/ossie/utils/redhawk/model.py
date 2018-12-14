@@ -252,7 +252,7 @@ class DomainObjectList(object):
         self.lock()
         try:
             if not self.isCached:
-                self.sync()
+                self.sync(), self.__data
             return self.__data.values()
         finally:
             self.unlock()

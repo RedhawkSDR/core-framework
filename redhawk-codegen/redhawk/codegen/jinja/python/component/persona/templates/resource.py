@@ -103,6 +103,18 @@ class ${className}(${baseClass}):
             Properties are accessed directly as member variables. If the property name is baudRate,
             then accessing it (for reading or writing) is achieved in the following way: self.baudRate.
             
+
+        Logging:
+
+            The member _baseLog is a logger whose base name is the component (or device) instance name.
+            New logs should be created based on this logger name.
+
+            To create a new logger,
+                my_logger = self._baseLog.getChildLogger("foo")
+
+            Assuming component instance name abc_1, my_logger will then be created with the 
+            name "abc_1.user.foo".
+
         Example:
         
             # This example assumes that the ${artifactType} has two ports:
@@ -136,7 +148,7 @@ class ${className}(${baseClass}):
         """
 
         # TODO fill in your code here
-        self._log.debug("process() example log message")
+        self._baseLog.debug("process() example log message")
         return NOOP
 
     def hwLoadRequest(self):

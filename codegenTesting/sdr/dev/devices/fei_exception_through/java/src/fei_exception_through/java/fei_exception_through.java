@@ -31,6 +31,7 @@ import FRONTEND.FrontendException;
 import FRONTEND.NotSupportedException;
 import CF.DevicePackage.InvalidCapacity;
 import CF.InvalidObjectReference;
+import org.ossie.redhawk.PortCallError;
 
 /**
  * This is the device code. This file contains the derived class where custom
@@ -376,123 +377,218 @@ public class fei_exception_through extends fei_exception_through_base {
 
     public String getTunerType(final String allocation_id)
     {
-        return this.port_DigitalTuner_out.getTunerType(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerType(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public boolean getTunerDeviceControl(final String allocation_id)
     {
-        return this.port_DigitalTuner_out.getTunerDeviceControl(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerDeviceControl(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public String getTunerGroupId(final String allocation_id)
     {
-        return this.port_DigitalTuner_out.getTunerGroupId(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerGroupId(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public String getTunerRfFlowId(final String allocation_id) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        return this.port_DigitalTuner_out.getTunerRfFlowId(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerRfFlowId(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerCenterFrequency(final String allocation_id, double freq) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, NotSupportedException
     {
-    	this.port_DigitalTuner_out.setTunerCenterFrequency(allocation_id, freq);
+        try {
+            this.port_DigitalTuner_out.setTunerCenterFrequency(allocation_id, freq);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public double getTunerCenterFrequency(final String allocation_id) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        return this.port_DigitalTuner_out.getTunerCenterFrequency(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerCenterFrequency(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerBandwidth(final String allocation_id, double bw) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, NotSupportedException
     {
-        this.port_DigitalTuner_out.setTunerBandwidth(allocation_id, bw);
+        try {
+            this.port_DigitalTuner_out.setTunerBandwidth(allocation_id, bw);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public double getTunerBandwidth(final String allocation_id) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        return this.port_DigitalTuner_out.getTunerBandwidth(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerBandwidth(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerAgcEnable(final String allocation_id, boolean enable) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        this.port_DigitalTuner_out.setTunerAgcEnable(allocation_id, enable);
+        try {
+            this.port_DigitalTuner_out.setTunerAgcEnable(allocation_id, enable);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public boolean getTunerAgcEnable(final String allocation_id) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        return this.port_DigitalTuner_out.getTunerAgcEnable(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerAgcEnable(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerGain(final String allocation_id, float gain) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        this.port_DigitalTuner_out.setTunerGain(allocation_id, gain);
+        try {
+            this.port_DigitalTuner_out.setTunerGain(allocation_id, gain);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public float getTunerGain(final String allocation_id) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        return this.port_DigitalTuner_out.getTunerGain(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerGain(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerReferenceSource(final String allocation_id, int source) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        this.port_DigitalTuner_out.setTunerReferenceSource(allocation_id, source);
+        try {
+            this.port_DigitalTuner_out.setTunerReferenceSource(allocation_id, source);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public int getTunerReferenceSource(final String allocation_id) throws FRONTEND.NotSupportedException, FrontendException, BadParameterException
     {
-        return this.port_DigitalTuner_out.getTunerReferenceSource(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerReferenceSource(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerEnable(final String allocation_id, boolean enable) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        this.port_DigitalTuner_out.setTunerEnable(allocation_id, enable);
+        try {
+            this.port_DigitalTuner_out.setTunerEnable(allocation_id, enable);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public boolean getTunerEnable(final String allocation_id) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        return this.port_DigitalTuner_out.getTunerEnable(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerEnable(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void setTunerOutputSampleRate(final String allocation_id, double sr) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, NotSupportedException
     {
-        this.port_DigitalTuner_out.setTunerOutputSampleRate(allocation_id, sr);
+        try {
+            this.port_DigitalTuner_out.setTunerOutputSampleRate(allocation_id, sr);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public double getTunerOutputSampleRate(final String allocation_id) throws FRONTEND.FrontendException, BadParameterException, NotSupportedException
     {
-        return this.port_DigitalTuner_out.getTunerOutputSampleRate(allocation_id);
+        try {
+            return this.port_DigitalTuner_out.getTunerOutputSampleRate(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.GPSInfo get_gps_info(final String port_name)
     {
-        return this.port_GPS_out.gps_info();
+        try {
+            return this.port_GPS_out.gps_info();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_gps_info(final String port_name, final FRONTEND.GPSInfo gps_info)
     {
-    	
-    	this.port_GPS_out.gps_info(gps_info);
+        try {
+            this.port_GPS_out.gps_info(gps_info);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.GpsTimePos get_gps_time_pos(final String port_name)
     {
-        return this.port_GPS_out.gps_time_pos();
+        try {
+            return this.port_GPS_out.gps_time_pos();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_gps_time_pos(final String port_name, final FRONTEND.GpsTimePos gps_time_pos)
     {
-    	this.port_GPS_out.gps_time_pos(gps_time_pos);
+        try {
+            this.port_GPS_out.gps_time_pos(gps_time_pos);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.NavigationPacket get_nav_packet(final String port_name)
     {
-        return this.port_NavData_out.nav_packet();
+        try {
+            return this.port_NavData_out.nav_packet();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_nav_packet(final String port_name, final FRONTEND.NavigationPacket nav_info)
     {
-    	this.port_NavData_out.nav_packet(nav_info);
+        try {
+            this.port_NavData_out.nav_packet(nav_info);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     /*************************************************************
@@ -501,41 +597,73 @@ public class fei_exception_through extends fei_exception_through_base {
     *************************************************************/
     public String get_rf_flow_id(final String port_name)
     {
-        return this.port_RFInfo_out.rf_flow_id();
+        try {
+            return this.port_RFInfo_out.rf_flow_id();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_rf_flow_id(final String port_name, final String id)
     {
-    	this.port_RFInfo_out.rf_flow_id(id);
+        try {
+            this.port_RFInfo_out.rf_flow_id(id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.RFInfoPkt get_rfinfo_pkt(final String port_name)
     {
-        return this.port_RFInfo_out.rfinfo_pkt();
+        try {
+            return this.port_RFInfo_out.rfinfo_pkt();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_rfinfo_pkt(final String port_name, final FRONTEND.RFInfoPkt pkt)
     {
-    	this.port_RFInfo_out.rfinfo_pkt(pkt);
+        try {
+            this.port_RFInfo_out.rfinfo_pkt(pkt);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.RFInfoPkt[] get_available_rf_inputs(final String port_name)
     {
-        return this.port_RFSource_out.available_rf_inputs();
+        try {
+            return this.port_RFSource_out.available_rf_inputs();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_available_rf_inputs(final String port_name, final FRONTEND.RFInfoPkt[] inputs)
     {
-    	this.port_RFSource_out.available_rf_inputs(inputs);
+        try {
+            this.port_RFSource_out.available_rf_inputs(inputs);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public FRONTEND.RFInfoPkt get_current_rf_input(final String port_name)
     {
-        return this.port_RFSource_out.current_rf_input();
+        try {
+            return this.port_RFSource_out.current_rf_input();
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public void set_current_rf_input(final String port_name, final FRONTEND.RFInfoPkt pkt)
     {
-    	this.port_RFSource_out.current_rf_input(pkt);
+        try {
+            this.port_RFSource_out.current_rf_input(pkt);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 }

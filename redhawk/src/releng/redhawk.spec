@@ -17,17 +17,19 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-
-%{!?_ossiehome:  %define _ossiehome  /usr/local/redhawk/core}
-%{!?_sdrroot:    %define _sdrroot    /var/redhawk/sdr}
-%define _prefix %{_ossiehome}
+%if 0%{?fedora} >= 17 || 0%{?rhel} >=7
+%global with_systemd 1
+%endif
+%{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
+%{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
+%global _prefix %{_ossiehome}
 Prefix:         %{_ossiehome}
 Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
 
 Name:           redhawk
-Version:        2.0.9
-Release:        1%{?dist}
+Version:        2.2.1
+Release:        2%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
 Group:          Applications/Engineering
@@ -36,41 +38,55 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-%define __arch_install_post %{nil}
+%global __arch_install_post %{nil}
 
 Requires:       util-linux-ng
+Requires:       java >= 1:1.8.0
 
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       java >= 1.7
 Requires:       python-matplotlib-qt4
 Requires:       gstreamer-python
+Requires:       numactl-libs
 %else
-Requires:       java7 >= 1.7
 Requires:       python-matplotlib
 %endif
 
 Requires:       python
-Requires:       numpy
+%if 0%{?fedora} == 16 || 0%{?rhel} == 6
+Requires:       python-lxml
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
+%endif
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       python-omniORB > 4.2.2
+Requires:       omniORB-devel > 4.2.2
+%endif
+Requires:       numpy
 Requires:       binutils
+Requires:       numactl
+Requires:       sqlite
+
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
-
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-BuildRequires:  java-devel >= 1.7
-%else
-BuildRequires:  java7-devel >= 1.7
-%endif
-
+BuildRequires:  java-1.8.0-openjdk-devel
+BuildRequires:  python-setuptools
 BuildRequires:  python-devel >= 2.4
 BuildRequires:  log4cxx-devel >= 0.10
+%if 0%{?fedora} == 16 || 0%{?rhel} == 6
 BuildRequires:  omniORB-devel >= 4.1.0
 BuildRequires:  omniORBpy-devel >= 3.0
+%endif
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+BuildRequires:  omniORB-devel > 4.2.2
+BuildRequires:  omniORBpy-devel > 4.2.2
+%endif
 BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
+BuildRequires:  cppunit-devel
+BuildRequires:  numactl-devel
+BuildRequires:  sqlite-devel
 
 %description
 REDHAWK is a Software Defined Radio framework.
@@ -124,35 +140,41 @@ Requires:       libuuid-devel
 Requires:       boost-devel >= 1.41
 Requires:       autoconf automake libtool
 Requires:       log4cxx-devel >= 0.10
+Requires:       numactl-devel
 
 # omniORB / omniORBpy
-Requires:       omniORB-devel >= 4.1.0
-Requires:       omniORB-doc
-Requires:       omniORBpy-devel >= 3.0
 
+%if 0%{?fedora} == 16 || 0%{?rhel} == 6
+Requires:       omniORB-devel >= 4.1.0
+Requires:       omniORBpy-devel >= 3.0
+%endif
+%if 0%{?fedora} == 17 || 0%{?rhel} == 7
+Requires:       omniORB-devel > 4.2.2
+Requires:       omniORBpy-devel > 4.2.2
+%endif
+Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
 Requires:       python-devel >= 2.4
-
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       java-devel >= 1.7
-%else
-Requires:       java7-devel >= 1.7
-%endif
+Requires:       java-1.8.0-openjdk-devel
 
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.
 
-
 %prep
-%setup -q
 
+%if 0%{?_localbuild}
+%setup -q -n redhawk
+%else
+%setup -q
+%endif
 
 %build
 # build the core framework
 cd src
 ./reconf
-%configure --with-sdr=%{_sdrroot} --with-pyscheme=home
+%configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests
+
 make %{?_smp_mflags}
 
 
@@ -163,7 +185,6 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 cd src
 make install DESTDIR=$RPM_BUILD_ROOT
 
-
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
 
@@ -172,10 +193,18 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 # -r is system account, -f is force (ignore already exists)
 groupadd -r -f redhawk
 if ! id redhawk &> /dev/null; then
-  # -M is don't create home dir, -r is system account, -s is shell
-  # -c is comment, -n is don't create group, -g is group name/id
-  /usr/sbin/useradd -M -r -s /sbin/nologin \
+  # -r is system account, -s is shell, -M is don't create home dir, 
+  # -d is the home directory, -c is comment, -n is don't create group,
+  # -g is group name/id
+  /usr/sbin/useradd -r -s /sbin/nologin -M -d /var/redhawk \
     -c "REDHAWK System Account" -n -g redhawk redhawk > /dev/null
+elif [ `getent passwd redhawk | cut -d: -f6` == "/home/redhawk" ]; then
+  if [ `ps -u redhawk | wc -l` != '1' ]; then
+    echo "The redhawk user still has processes running, cannot update user account"
+    exit 1
+  fi
+  # Reassign the redhawk home directory to something that exists
+  /usr/sbin/usermod -d /var/redhawk redhawk
 fi
 
 
@@ -226,8 +255,11 @@ fi
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/deps
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/domain
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/mgr
+%attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/mgr/rh
 %attr(775,redhawk,redhawk) %{_sdrroot}/dom/mgr/DomainManager
+%attr(775,redhawk,redhawk) %{_sdrroot}/dom/mgr/rh/ComponentHost
 %{_sdrroot}/dom/mgr/*.xml
+%{_sdrroot}/dom/mgr/rh/ComponentHost/*
 %attr(2775,redhawk,redhawk) %dir %{_sdrroot}/dom/waveforms
 %attr(644,root,root) %{_sysconfdir}/profile.d/redhawk-sdrroot.csh
 %attr(644,root,root) %{_sysconfdir}/profile.d/redhawk-sdrroot.sh
@@ -273,19 +305,28 @@ fi
 %post
 /sbin/ldconfig
 
+
 %postun
 /sbin/ldconfig
 
-
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Update for 2.1.2-rc1
+
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
+- Bump for 2.1.1-rc2
+
 * Sat Nov 26 2016 - 2.0.4
 - Added service directory in redhawk-sdrroot-dev-mgr
+
+* Fri Sep 16 2016 - 2.0.3-1
+- Update for dependency on Java 8
 
 * Wed Sep 9 2015 - 2.0.0-2
 - Add qt-tools package
 - Remove el5 support
 
-* Wed Sep 15 2014 - 1.11.0-1
+* Mon Sep 15 2014 - 1.11.0-1
 - Update for dependency on java7
 
 * Wed May 21 2014 - 1.10.0-7

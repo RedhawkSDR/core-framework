@@ -25,6 +25,7 @@ import FRONTEND.NotSupportedException;
 import FRONTEND.FrontendTunerHelper;
 import frontend.FrontendTunerDelegate;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements PortBase {
 
@@ -45,6 +46,11 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         this.portAccess = new Object();
     }
 
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
 
     public String getTunerType(String id) {
         synchronized(this.portAccess){

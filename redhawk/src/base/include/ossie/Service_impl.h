@@ -52,6 +52,12 @@ public:
 	std::string dpath("");
 	std::string sname("");
         
+        for (int index = 1; index < argc; ++index) {
+            if (std::string(argv[index]) == std::string("-i")) {
+                std::cout<<"Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"<<std::endl;
+                exit(-1);
+            }
+        }
         std::map<std::string, char*> execparams;
                 
         for (int i = 0; i < argc; i++) {
@@ -237,11 +243,14 @@ public:
     redhawk::DomainManagerContainer* getDomainManager() {
         return this->_domMgr;
     }
+    rh_logger::LoggerPtr _baseLog;
 
 protected:
     std::string _devMgr_ior;
     omni_mutex component_running_mutex;
     omni_condition component_running;
+
+    rh_logger::LoggerPtr _serviceLog;
 
 private:
     void initResources(char*, char*);

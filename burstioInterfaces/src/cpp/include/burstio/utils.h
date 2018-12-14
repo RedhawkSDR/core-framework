@@ -144,9 +144,7 @@ namespace burstio {
 
         double elapsed (const BULKIO::PrecisionUTCTime& begin, const BULKIO::PrecisionUTCTime& end=now());
 
-        BURSTIO::BurstSRI createSRI ( const std::string &streamID, double xdelta);
-
-        BURSTIO::BurstSRI createSRI ( const std::string &streamID);
+        BURSTIO::BurstSRI createSRI (const std::string& streamID, double xdelta=1.0);
 
     }
 }

@@ -80,6 +80,7 @@ def configureTestPaths():
     from ossie.utils.idllib import IDLLibrary
     model._idllib = IDLLibrary()
     model._idllib.addSearchPath(os.path.join(topdir, 'idl'))
+    model._idllib.addSearchPath(os.path.join(topdir, '../../bulkioInterfaces/idl'))
 
 # Set up the system paths (LD_LIBRARY_PATH, PYTHONPATH, CLASSPATH), IDL paths
 # and SDRROOT to allow testing against an uninstalled framework.

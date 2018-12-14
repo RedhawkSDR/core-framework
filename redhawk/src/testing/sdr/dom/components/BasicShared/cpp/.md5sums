@@ -1,0 +1,10 @@
+ebab982ed6b7711d65ef5c4ed652f729  main.cpp
+d23f51d099f8c3b419d46aa7a2d953de  reconf
+8f558812db58086174799f58d769c6cf  BasicShared_base.cpp
+322b9b06a8a11aab55b091600bba67d2  configure.ac
+91b35020418b07c156987bace0f23823  BasicShared.cpp
+4e5b9b0356f5fb46ac9aefa910763516  Makefile.am.ide
+b640eb40dc780b01f8872f6a9bcc9372  BasicShared.h
+b1835160ba93e9e1248209acc174363d  build.sh
+03c8ef5a559ed7754644d158f5f8693c  Makefile.am
+68959d7d49f65106bf146314ed681aed  BasicShared_base.h

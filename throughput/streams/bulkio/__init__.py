@@ -18,12 +18,19 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 import os
+try:
+    from ossie.utils import sb
+    from ossie.utils.sandbox.debugger import Debugger
+except ImportError:
+    # Fallback for testing raw and CORBA without BulkIO
+    sb = None
+    Debugger = object
 
 __all__ = ('factory')
 
 PATH = os.path.dirname(__file__)
 
-class NumaLauncher(object):
+class NumaLauncher(Debugger):
     def __init__(self, policy):
         self.policy = policy
 
@@ -40,13 +47,18 @@ class NumaLauncher(object):
         command = self.policy([command] + arguments)
         return command[0], command[1:]
 
+    def name(self):
+        return 'numactl'
+
 
 class BulkioStream(object):
-    def __init__(self, format, numa_policy):
+    def __init__(self, format, numa_policy, shared):
         launcher = NumaLauncher(numa_policy)
-        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), debugger=launcher)
-        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), debugger=launcher)
+        self.shared = shared
+        self.writer = sb.launch(os.path.join(PATH, 'writer/writer.spd.xml'), debugger=launcher, shared=self.shared)
+        self.reader = sb.launch(os.path.join(PATH, 'reader/reader.spd.xml'), debugger=launcher, shared=self.shared)
         self.writer.connect(self.reader)
+        self.container = sb.domainless._getSandbox()._getComponentHost()
 
     def start(self):
         sb.start()
@@ -55,33 +67,51 @@ class BulkioStream(object):
         sb.stop()
 
     def get_reader(self):
-        return self.reader._process.pid()
+        if self.shared:
+            return self.container._process.pid()
+        else:
+            return self.reader._process.pid()
 
     def get_writer(self):
-        return self.writer._process.pid()
+        if self.shared:
+            return self.container._process.pid()
+        else:
+            return self.writer._process.pid()
 
     def transfer_size(self, size):
-        self.writer.transfer_length = size
+        self.writer.transfer_length = int(size)
 
     def received(self):
         return int(self.reader.received)
 
-    def terminate(self):
-        self.writer.releaseObject()
-        self.reader.releaseObject()
+    def send_time(self):
+        return float(self.writer.average_time)
 
-class BulkioStreamFactory(object):
+    def recv_time(self):
+        return float(self.reader.average_time)
+
+    def terminate(self):
+        sb.release()
+
+class BulkioCorbaFactory(object):
     def __init__(self, transport):
         configfile = 'config/omniORB-%s.cfg' % transport
         os.environ['OMNIORB_CONFIG'] = os.path.join(PATH, configfile)
-        from ossie.utils import sb
-        globals()['sb'] = sb
 
     def create(self, format, numa_policy):
-        return BulkioStream(format, numa_policy)
+        return BulkioStream(format, numa_policy, False)
 
     def cleanup(self):
         pass
 
-def factory(transport):
-    return BulkioStreamFactory(transport)
+class BulkioLocalFactory(object):
+    def create(self, format, numa_policy):
+        return BulkioStream(format, numa_policy, True)
+
+def factory(transport, local):
+    if sb is None:
+        raise ImportError('BulkIO is not available')
+    if local:
+        return BulkioLocalFactory()
+    else:
+        return BulkioCorbaFactory(transport)

@@ -19,41 +19,4 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
-rm -f config.cache
-
-# Setup the libtool stuff
-if [ -e /usr/local/share/aclocal/libtool.m4 ]; then
-    /bin/cp /usr/local/share/aclocal/libtool.m4 aclocal.d/acinclude.m4
-elif [ -e /usr/share/aclocal/libtool.m4 ]; then
-    /bin/cp /usr/share/aclocal/libtool.m4 acinclude.m4
-fi
-libtoolize --force --automake
-
-# Search in expected locations for the OSSIE acincludes
-# 1. Included with CF source
-# 2. Using installed CF
-if [ -d ../../common/acinclude ]; then
-        OSSIE_AC_INCLUDE=../../common/acinclude
-elif [ -n ${OSSIEHOME} ] && [ -d ${OSSIEHOME}/share/aclocal/ossie ]; then
-        OSSIE_AC_INCLUDE=${OSSIEHOME}/share/aclocal/ossie
-else
-    echo "Error: Cannot find the OSSIE aclocal files. This is not expected!"
-fi
-
-if [ -n ${OSSIE_AC_INCLUDE} ]; then
-        aclocal -I ${OSSIE_AC_INCLUDE}
-else
-        aclocal
-fi
-
-autoconf
-automake --foreign --add-missing
-
-# Due to strange autotools bootstrap issues,  
-# if ltmain.sh doesn't exists we have to run both again 
-if [ ! -f ltmain.sh ]; then 
-    libtoolize --force --automake 
-    automake --foreign --add-missing 
-fi 
-
+autoreconf -i

@@ -210,6 +210,93 @@ namespace frontend {
         std::string rf_flow_id;
         bool enabled;
     };
+
+    struct frontend_scanner_allocation_struct {
+        frontend_scanner_allocation_struct ()
+        {
+        }
+
+        static std::string getId() {
+            return std::string("FRONTEND::scanner_allocation");
+        }
+
+        static const char* getFormat() {
+            return "ddssd";
+        }
+
+        double min_freq;
+        double max_freq;
+        std::string mode;
+        std::string control_mode;
+        double control_limit;
+    };
+
+    typedef enum ScanMode { MANUAL_SCAN, SPAN_SCAN, DISCRETE_SCAN } ScanMode;
+    typedef enum OutputControlMode { TIME_BASED, SAMPLE_BASED } OutputControlMode;
+
+    struct ScanSpanRange {
+        double begin_frequency;
+        double end_frequency;
+        double step;
+    };
+    
+    typedef std::vector<ScanSpanRange> ScanSpanRanges;
+    typedef std::vector<double> Frequencies;
+
+    class ScanStrategy {
+    public:
+        ScanMode scan_mode;
+        OutputControlMode control_mode;
+        double control_value;
+        virtual ~ScanStrategy() {};
+        virtual ScanStrategy* clone() const = 0;
+    protected:
+        ScanStrategy(ScanMode _scan_mode) : scan_mode(_scan_mode), control_mode(TIME_BASED), control_value(0) { };
+        ScanStrategy(const ScanStrategy& source) {
+            scan_mode = source.scan_mode;
+            control_mode = source.control_mode;
+            control_value = source.control_value;
+        };
+    };
+
+    class ManualStrategy : public ScanStrategy {
+    public:
+        double center_frequency;
+        ManualStrategy* clone() const {return new ManualStrategy(*this);};
+        ManualStrategy(const ManualStrategy& source) : ScanStrategy(source) {
+            center_frequency = source.center_frequency;
+        };
+        ManualStrategy(const double _center_frequency) : ScanStrategy(MANUAL_SCAN), center_frequency(_center_frequency) { };
+    };
+
+    class SpanStrategy : public ScanStrategy {
+    public:
+        ScanSpanRanges freq_scan_list;
+        SpanStrategy* clone() const {return new SpanStrategy(*this);};
+        SpanStrategy(const SpanStrategy& source) : ScanStrategy(source) {
+            freq_scan_list = source.freq_scan_list;
+        };
+        SpanStrategy(const ScanSpanRanges& _freq_scan_list) : ScanStrategy(SPAN_SCAN), freq_scan_list(_freq_scan_list) { };
+    };
+
+    class DiscreteStrategy : public ScanStrategy {
+    public:
+        Frequencies discrete_freq_list;
+        DiscreteStrategy* clone() const {return new DiscreteStrategy(*this);};
+        DiscreteStrategy(const DiscreteStrategy& source) : ScanStrategy(source) {
+            discrete_freq_list = source.discrete_freq_list;
+        };
+        DiscreteStrategy(const Frequencies& _discrete_freq_list) : ScanStrategy(DISCRETE_SCAN), discrete_freq_list(_discrete_freq_list) { };
+    };
+
+    class ScanStatus {
+    public:
+        std::auto_ptr<ScanStrategy> strategy;
+        BULKIO::PrecisionUTCTime start_time;
+        Frequencies center_tune_frequencies;
+        bool started;
+        ScanStatus(ScanStrategy *strat) : strategy(strat) {};
+    };
 }
 
 #endif

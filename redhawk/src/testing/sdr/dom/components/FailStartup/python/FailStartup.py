@@ -25,6 +25,7 @@
 # Source: FailStartup.spd.xml
 from ossie.resource import start_component
 import logging
+import sys
 
 from FailStartup_base import *
 
@@ -33,6 +34,11 @@ class FailStartup_i(FailStartup_base):
         if execparams['FAIL_AT'] == 'constructor':
             raise StandardError
         FailStartup_base.__init__(self, identifier, execparams)
+
+    def _get_identifier(self):
+        if self.FAIL_AT == "identifier":
+            sys.exit(-1)
+        return FailStartup_base._get_identifier(self)
 
     def initializeProperties(self, initProperties):
         if self.FAIL_AT == "initializeProperties":

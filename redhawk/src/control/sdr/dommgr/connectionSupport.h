@@ -40,6 +40,8 @@
 
 namespace ossie
 {
+    extern rh_logger::LoggerPtr connectionSupportLog;
+
     // Exception type for connections that cannot be parsed into our internal
     // structures.
     class InvalidConnection : public std::runtime_error {
@@ -50,11 +52,24 @@ namespace ossie
         }
     };
 
+    // Exception type that may be thrown when an implementation of one of the
+    // lookup interfaces cannot find the requested object.
+    class LookupError : public std::runtime_error {
+    public:
+        LookupError(const std::string& message) :
+            std::runtime_error(message)
+        {
+        }
+    };
+
     // Interface to look up components by their identifier.
     class ComponentLookup
     {
     public:
         virtual ~ComponentLookup() {};
+
+        /* Given a component instantiation id, returns the associated CORBA Resource pointer
+         */
         virtual CF::Resource_ptr lookupComponentByInstantiationId(const std::string& identifier) = 0;
     };
 
@@ -74,8 +89,17 @@ namespace ossie
     {
     public:
         virtual ~DeviceLookup() {};
+
+        /* Given a component instantiation id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceThatLoadedComponentInstantiationId(const std::string& componentId) = 0;
+
+        /* Given a component instantiation id and uses id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceUsedByComponentInstantiationId(const std::string& componentId, const std::string& usesId) = 0;
+
+        /* Given a uses id, returns the associated CORBA Device pointer
+         */
         virtual CF::Device_ptr lookupDeviceUsedByApplication(const std::string& usesRefId) = 0;
     };
 
@@ -93,29 +117,38 @@ namespace ossie
             APPLICATION
         } DependencyType;
 
-        Endpoint() { }
+        Endpoint() :
+            terminated_(false)
+        {
+        }
+
         virtual ~Endpoint() { }
         CORBA::Object_ptr resolve(ConnectionManager& manager);
         CORBA::Object_ptr object();
         std::string getIdentifier();
         void setIdentifier(std::string identifier);
-        bool isResolved();
+
+        bool isResolved() const;
+        bool isTerminated() const;
 
         virtual CF::ConnectionManager::EndpointStatusType toEndpointStatusType() const;
 
         virtual bool allowDeferral() = 0;
         virtual bool checkDependency(DependencyType type, const std::string& identifier) const = 0;
 
+        void dependencyTerminated();
+
         void release();
 
-        // Virtual copy contstructor
+        virtual std::string description() const = 0;
+
+        // Virtual copy constructor
         virtual Endpoint* clone() const = 0;
 
         static Endpoint* ParsePortSupplier(const Port* port);
         static Endpoint* ParsePort(const Port* port);
         static Endpoint* ParseProvidesEndpoint(const ossie::Connection& connection);
         static Endpoint* ParseFindBy(const ossie::FindBy* findby);
-
     private:
         // Subclasses must implement their own resolution method.
         virtual CORBA::Object_ptr resolve_(ConnectionManager& manager) = 0;
@@ -130,10 +163,12 @@ namespace ossie
         void serialize(Archive& ar, const unsigned int version)
         {
             ar & object_;
+            ar & terminated_;
         }
 #endif
 
         CORBA::Object_var object_;
+        bool terminated_;
 
     protected:
         std::string identifier__;
@@ -155,6 +190,8 @@ namespace ossie
         bool allowDeferral();
         bool allowDeferral(Endpoint::DependencyType type, const std::string& identifier);
         bool checkDependency(Endpoint::DependencyType type, const std::string& identifier) const;
+
+        bool dependencyTerminated(Endpoint::DependencyType type, const std::string& identifier);
 
         // Default ctor and assignment exist only for deserialization support.
         ConnectionNode() { }
@@ -195,9 +232,6 @@ namespace ossie
         ENABLE_LOGGING;
 
     public:
-        ConnectionManager(DomainLookup* domainLookup,
-                          ComponentLookup* componentLookup,
-                          const std::string& namingContext);
         virtual ~ConnectionManager();
 
         static void disconnectAll(ConnectionList& connections, ossie::DomainLookup* domainLookup);
@@ -215,11 +249,24 @@ namespace ossie
         virtual CF::Device_ptr resolveDeviceUsedByThisComponentRef(const std::string& refid, const std::string& usesid) = 0;
         virtual CF::Device_ptr resolveDeviceUsedByApplication(const std::string& usesrefid) = 0;
 
+        bool exceptionsEnabled();
+
+        void setLogger(rh_logger::LoggerPtr logptr)
+        {
+            _connectionLog = logptr;
+        };
+
     protected:
+        ConnectionManager(DomainLookup* domainLookup,
+                          ComponentLookup* componentLookup,
+                          const std::string& namingContext,
+                          bool enableExceptions);
+
         ossie::DomainLookup* _domainLookup;
         ossie::ComponentLookup* _componentLookup;
         std::string _namingContext;
-
+        bool _enableExceptions;
+        rh_logger::LoggerPtr _connectionLog;
     };
 
     class AppConnectionManager : public ConnectionManager

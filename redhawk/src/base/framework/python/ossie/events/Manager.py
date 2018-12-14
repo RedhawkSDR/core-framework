@@ -48,7 +48,9 @@ class EM_Publisher(Publisher):
         self.terminate()
 
     def terminate(self):
-        if self._ecm:  self._ecm._unregister( self._creg )
+        if self._ecm:
+            self._ecm._unregister( self._creg )
+        Publisher.terminate(self)
 
 class EM_Subscriber(Subscriber):
     def __init__(self, ecm, creg ):
@@ -60,7 +62,9 @@ class EM_Subscriber(Subscriber):
         self.terminate()
 
     def terminate(self):
-        if self._ecm:  self._ecm._unregister( self._creg )
+        if self._ecm:
+            self._ecm._unregister( self._creg )
+        Subscriber.terminate(self)
 
 
 class Manager:
@@ -82,7 +86,7 @@ class Manager:
                 self._logger.debug("Acquired reference to EventChannelManager")
             except:
                 #print traceback.format_exc()
-                self._logger.warn("EventChannelManager - unable to resolve DomainManager's EventChannelManager ")
+                self._logger.debug("EventChannelManager - unable to resolve DomainManager's EventChannelManager ")
                 pass
 
 
@@ -114,16 +118,14 @@ class Manager:
             if self._ecm:
                 ereg = EventChannelManager.EventRegistration( channel_name = channel_name, reg_id = registrationId)
 
-            
                 self._logger.debug("Requesting Channel:" + str(channel_name) + " from Domain's EventChannelManager ")
                 registration = self._ecm.registerResource( ereg )
-                
+
                 pub = EM_Publisher( self, registration )
 
                 self._logger.debug("Channel:" + str(channel_name) + " Reg-Id:" + str(registration.reg.reg_id))
-                
+
                 self._registrations.append( registration )
-        
         except:
             #print traceback.format_exc()
             self._logger.error("Unable to create Publisher for Channel:" + str(channel_name ))
@@ -195,7 +197,7 @@ class Manager:
                         self._ecm.unregister( reg.reg );
                     except:
                         self._logger.error( "UNREGISTER FAILED, REG-ID:" + str(reg.reg.reg_id) +  " CHANNEL:"  + str(reg.reg.channel_name ) )
-                                    
+
                 self._registrations.remove(creg)
                 break
 

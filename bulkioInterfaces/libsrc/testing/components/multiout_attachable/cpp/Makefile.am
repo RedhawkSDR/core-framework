@@ -18,17 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 ossieName = multiout_attachable
-bindir = $(prefix)/dom/components/multiout_attachable/cpp/
+bindir = $(prefix)/dom/components/multiout_attachable/cpp
 bin_PROGRAMS = multiout_attachable
 
-xmldir = $(prefix)/dom/components/multiout_attachable/
+xmldir = $(prefix)/dom/components/multiout_attachable
 dist_xml_DATA = ../multiout_attachable.scd.xml ../multiout_attachable.prf.xml ../multiout_attachable.spd.xml
-
-# this is use to build against local bulkio interface and library and not installed version
-bulkio_top=../../../../../
-bulkio_libsrc_top=$(bulkio_top)/libsrc
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
 
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -47,8 +46,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 multiout_attachable_SOURCES = $(redhawk_SOURCES_auto)
-multiout_attachable_LDADD =  -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs $(BIO_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#multiout_attachable_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-multiout_attachable_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+multiout_attachable_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+multiout_attachable_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 multiout_attachable_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

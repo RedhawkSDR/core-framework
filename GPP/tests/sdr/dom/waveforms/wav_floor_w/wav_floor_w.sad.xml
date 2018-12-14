@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK GPP.
+
+REDHAWK GPP is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:0508d592-25a2-4b05-9e2a-abc08b31b600" name="wav_floor_w">
+  <componentfiles>
+    <componentfile id="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f" type="SPD">
+      <localfile name="/components/busy_comp/busy_comp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <hostcollocation id="ID_TEST_SET1" name="COLLOC_SET1">
+      <componentplacement>
+        <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
+        <componentinstantiation id="busy_comp_1" startorder="0">
+          <usagename>busy_comp_1</usagename>
+          <findcomponent>
+            <namingservice name="busy_comp_1"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <componentplacement>
+        <componentfileref refid="busy_comp_24f5c4f2-8d30-4906-beb6-af941498741f"/>
+        <componentinstantiation id="busy_comp_2" startorder="1">
+          <usagename>busy_comp_2</usagename>
+          <findcomponent>
+            <namingservice name="busy_comp_2"/>
+          </findcomponent>
+        </componentinstantiation>
+      </componentplacement>
+      <reservation kind="cpucores" value="3"/>
+    </hostcollocation>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="busy_comp_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -42,7 +42,7 @@ class ProcMeminfo : public State
 
   virtual ~ProcMeminfo();
 
-  // update content state by processing /proc/stat
+  // update content state by processing /proc/meminfo
   void              update_state();
 
   // return contents of file

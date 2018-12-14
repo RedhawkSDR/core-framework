@@ -2,26 +2,30 @@
 # Runs relative to burstio project
 #
 
-burstio_top=../../../
+burstio_top=../../..
 burstio_libsrc_top=$burstio_top/src/python
-#export LD_LIBRARY_PATH=$burstio_libsrc_top/.libs:$burstio_top/.libs:${LD_LIBRARY_PATH}
-export PYTHONPATH=$burstio_libsrc_top/build/lib:${PYTHONPATH}
+export PYTHONPATH=$burstio_libsrc_top:${PYTHONPATH}
 
-#
-#  Run Python based testing..
-#   test_xxx_vector.py -- uses sandbox to load components and test data flow
-#   test_python_helpers.py -- test sri and time helpers
-#
+# work around for import issues with redhawk bitbuffer
+bbuffer_link="../../../src/python/redhawk/bitbuffer.py"
 
-# RESOLVE
-# make sure there is link to burstioInterfaces in the build/burstio/ directory
-#
-#if [ ! -h $burstio_libsrc_top/build/lib/burstio/burstioInterfaces ];
-#then
-#	cd $burstio_libsrc_top/build/lib/burstio
-#	ln -s ../../../../build/lib/burstio/burstioInterfaces
-#	cd -
-#fi
+cleanup_redhawk_import() {
+  [ -L $bbuffer_link ] && rm "$bbuffer_link"
+  [ -f $bbuffer_link"c" ] && rm $bbuffer_link"c"
+}
+
+setup_redhawk_import() {
+
+  cleanup_redhawk_import
+
+  pushd $burstio_libsrc_top/redhawk
+  ln -s $OSSIEHOME/lib/python/redhawk/bitbuffer.py bitbuffer.py
+  popd
+}
+
+
+
+setup_redhawk_import
 
 if [ $# -gt 0 ]
 then
@@ -33,4 +37,4 @@ else
     done
 fi
 
-
+cleanup_redhawk_import

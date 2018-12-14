@@ -28,10 +28,8 @@
 
 #include <ossie/CF/cf.h>
 #include <ossie/debug.h>
-#include <ossie/FileStream.h>
-#include <ossie/prop_utils.h>
-#include <ossie/DeviceManagerConfiguration.h>
-#include "DomainManager_impl.h"
+
+class DomainManager_impl;
 
 class AllocationManager_impl: public virtual POA_CF::AllocationManager
 {
@@ -74,7 +72,13 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         CF::DomainManager_ptr domainMgr();
 
         /* Allocates a set of dependencies for deployment; not part of the CORBA API */
-        ossie::AllocationResult allocateDeployment(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
+        ossie::AllocationResult allocateDeployment(const std::string& requestID,
+                                                   const CF::Properties& allocationProperties,
+                                                   ossie::DeviceList& devices,
+                                                   const std::string& sourceID,
+                                                   const std::vector<std::string>& processorDeps,
+                                                   const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                   const CF::Properties& deviceRequires);
 
         /* Deallocates a set of allocations */
         template <class Iterator>
@@ -107,16 +111,37 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
 
         void restoreAllocations(ossie::AllocationTable& ref_allocations, std::map<std::string, CF::AllocationManager_var> &ref_remoteAllocations);
 
+        void setLogger(rh_logger::LoggerPtr logptr) {
+            _allocMgrLog = logptr;
+        };
+
     private:
         CF::AllocationManager::AllocationResponseSequence* allocateDevices(const CF::AllocationManager::AllocationRequestSequence &requests, ossie::DeviceList& devices, const std::string& domainName);
 
-        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> allocateRequest(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::string& domainName);
+        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> allocateRequest(const std::string& requestID,
+                                                                                      const CF::Properties& allocationProperties,
+                                                                                      ossie::DeviceList& devices,
+                                                                                      const std::string& sourceID,
+                                                                                      const std::vector<std::string>& processorDeps,
+                                                                                      const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                                                      const std::string& domainName,
+                                                                                      const CF::Properties& deviceRequires = CF::Properties() );
 
         bool checkDeviceMatching(ossie::Properties& _prf, CF::Properties& externalProps, const CF::Properties& dependencyPropertiesFromComponent, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
 
         bool checkMatchingProperty(const ossie::Property* property, const CF::DataType& dependency);
+        bool checkPartitionMatching( ossie::DeviceNode& node,
+                                     const redhawk::PropertyMap& devicerequires );
 
-        bool allocateDevice(const CF::Properties& requestedProperties, ossie::DeviceNode& device, CF::Properties& allocatedProperties, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps);
+        redhawk::PropertyMap getDeviceRequiredProperties( ossie::DeviceNode& node );
+
+
+        bool allocateDevice(const CF::Properties& requestedProperties,
+                            ossie::DeviceNode& device,
+                            CF::Properties& allocatedProperties,
+                            const std::vector<std::string>& processorDeps,
+                            const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                            const CF::Properties& deviceRequires = CF::Properties() );
         void partitionProperties(const CF::Properties& properties, std::vector<CF::Properties>& outProps);
 
         bool completeAllocations(CF::Device_ptr device, const std::vector<CF::Properties>& duplicates);
@@ -129,7 +154,8 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         ossie::AllocationTable _allocations;
         ossie::RemoteAllocationTable _remoteAllocations;
         void unfilledRequests(CF::AllocationManager::AllocationRequestSequence &requests, const CF::AllocationManager::AllocationResponseSequence &result);
-    
+        rh_logger::LoggerPtr _allocMgrLog;
+
     protected:
         boost::recursive_mutex allocationAccess;
         

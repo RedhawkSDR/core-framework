@@ -112,10 +112,6 @@ std::string EnvironmentPathParser::to_string() const
     return ret_str;
 }
 
-
-PREPARE_CF_LOGGING(LoadableDevice_impl)
-
-
 /* LoadableDevice_impl ****************************************************************************
     - constructor 1: no capacities defined
 ************************************************************************************************ */
@@ -174,9 +170,11 @@ void LoadableDevice_impl::_init () {
               "bytes",
               "external",
               "configure");
+
+  // Default to the current working directory
+  cacheDirectory = ossie::getCurrentDirName();
+  setLogger(this->_baseLog->getChildLogger("LoadableDevice", "system"));
 }
-
-
 
 /* LoadableDevice_impl ****************************************************************************
     - destructor
@@ -190,6 +188,11 @@ LoadableDevice_impl::~LoadableDevice_impl ()
   std::cout <<  " loadedFiles....size:" << loadedFiles.size()  << std::endl;                                                
   std::cout <<  "LoadableDevice, DTOR........ END " << std::endl;                                                           
 #endif
+}
+
+void LoadableDevice_impl::setLogger(rh_logger::LoggerPtr logptr)
+{
+    _loadabledeviceLog = logptr;
 }
 
 void LoadableDevice_impl::update_ld_library_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind) throw (CORBA::SystemException, CF::Device::InvalidState, CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName, CF::LoadableDevice::LoadFail)
@@ -215,7 +218,7 @@ void LoadableDevice_impl::merge_front_environment_path( const char* environment_
     EnvironmentPathParser parser( getenv(environment_variable) );
     parser.merge_front( path );
     setenv(environment_variable, parser.to_string().c_str(), 1);
-    LOG_DEBUG(LoadableDevice_impl, "Updated environment path " << environment_variable << ": " << parser.to_string() );
+    RH_DEBUG(_loadabledeviceLog, "Updated environment path " << environment_variable << ": " << parser.to_string() );
 }
 
 void
@@ -235,20 +238,20 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
     catch( CF::File::IOException & e ) {
         std::stringstream errstr;
         errstr << "IO Exception occurred, file: " << fileName;
-        LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_loadabledeviceLog, __FUNCTION__ << ": " << errstr.str() );
         throw CF::LoadableDevice::LoadFail(e.errorNumber, e.msg);
     }
     catch( CF::FileException & e ) {
         std::stringstream errstr;
         errstr << "File Exception occurred, file: " << fileName;
-        LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_loadabledeviceLog, __FUNCTION__ << ": " << errstr.str() );
         throw CF::LoadableDevice::LoadFail(e.errorNumber, e.msg);
     }
     catch( const boost::thread_resource_error& e )
     {
         std::stringstream errstr;
         errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-        LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_loadabledeviceLog, __FUNCTION__ << ": " << errstr.str() );
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
 }
@@ -263,23 +266,23 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
        CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName,
        CF::LoadableDevice::LoadFail,  CF::FileException )
 {
-    LOG_DEBUG(LoadableDevice_impl, "load " << fileName)
+    RH_DEBUG(_loadabledeviceLog, "load " << fileName << " kind:" << loadKind)
 
 // verify that the device is in a valid state for loading
     if (!isUnlocked () || isDisabled ()) {
-        LOG_ERROR(LoadableDevice_impl, "Cannot load. System is either LOCKED, SHUTTING DOWN or DISABLED.")
-        LOG_DEBUG(LoadableDevice_impl, "Unlocked: " << isUnlocked ())
-        LOG_DEBUG(LoadableDevice_impl, "isDisabled: " << isDisabled ())
+        RH_ERROR(_loadabledeviceLog, "Cannot load. System is either LOCKED, SHUTTING DOWN or DISABLED.")
+        RH_DEBUG(_loadabledeviceLog, "Unlocked: " << isUnlocked ())
+        RH_DEBUG(_loadabledeviceLog, "isDisabled: " << isDisabled ())
         throw (CF::Device::
                InvalidState
                ("Cannot load. System is either LOCKED, SHUTTING DOWN or DISABLED."));
     }
 
-    LOG_DEBUG(LoadableDevice_impl, "It's not locked and not disabled")
+    RH_DEBUG(_loadabledeviceLog, "It's not locked and not disabled")
 
 // verify that the loadKind is supported (only executable is supported by this version)
     if ((loadKind != CF::LoadableDevice::EXECUTABLE) && (loadKind != CF::LoadableDevice::SHARED_LIBRARY)) {
-        LOG_ERROR(LoadableDevice_impl, "It's not CF::LoadableDevice::EXECUTABLE or CF::LoadableDevice::SHARED_LIBRARY")
+        RH_ERROR(_loadabledeviceLog, "It's not CF::LoadableDevice::EXECUTABLE or CF::LoadableDevice::SHARED_LIBRARY")
         throw CF::LoadableDevice::InvalidLoadKind ();
     }
 
@@ -290,15 +293,15 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
 // already performs this existence check
     try {
         if (!fs->exists (workingFileName.c_str())) {
-            LOG_ERROR(LoadableDevice_impl, "File " << workingFileName << " does not exist")
+            RH_ERROR(_loadabledeviceLog, "File " << workingFileName << " does not exist")
             throw (CF::InvalidFileName (CF::CF_ENOENT, "Cannot load. File name is invalid."));
         }
     } catch ( ... ) {
-        LOG_ERROR(LoadableDevice_impl, "Exception raised when calling the file system: " << workingFileName  );
+        RH_ERROR(_loadabledeviceLog, "Exception raised when calling the file system: " << workingFileName  );
         throw;
     }
 
-    LOG_DEBUG(LoadableDevice_impl, "Cleaning name " << fileName)
+    RH_DEBUG(_loadabledeviceLog, "Cleaning name " << fileName)
     // Get rid of all the directories in the given name (if any)
     CF::FileSystem::FileInformationSequence_var contents = fs->list(workingFileName.c_str());
     std::string simpleName;
@@ -309,17 +312,17 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         simpleName = workingFileName.substr(pos + 1);
     }
 
-    LOG_DEBUG(LoadableDevice_impl, "Is " << fileName << " a directory?")
+    RH_DEBUG(_loadabledeviceLog, "Is " << fileName << " a directory?")
     CF::FileSystem::FileInformationType* fileInfo = 0;
     for (unsigned int i = 0; i < contents->length(); i++) {
-        LOG_DEBUG(LoadableDevice_impl, "comparing " << simpleName << " and " << contents[i].name)
+        RH_DEBUG(_loadabledeviceLog, "comparing " << simpleName << " and " << contents[i].name)
         if (!simpleName.compare(contents[i].name)) {
             fileInfo = &contents[i];
             break;
         }
     }
     if (!fileInfo) {
-        LOG_ERROR(LoadableDevice_impl, "The file system couldn't find " << fileName)
+        RH_ERROR(_loadabledeviceLog, "The file system couldn't find " << fileName)
         throw (CF::InvalidFileName (CF::CF_ENOENT, "Cannot load. File name is invalid."));
     }
 
@@ -346,11 +349,11 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                 // in the cache. No consideration is given to clock sync differences between systems.
                 time_t remoteModifiedTime = getModTime(fileInfo->fileProperties);
                 time_t cacheModifiedTime = cacheTimestamps[workingFileName];
-                LOG_TRACE(LoadableDevice_impl, "Remote modified: " << remoteModifiedTime << " Local modified: " << cacheModifiedTime);
+                RH_TRACE(_loadabledeviceLog, "Remote modified: " << remoteModifiedTime << " Local modified: " << cacheModifiedTime);
                 if (remoteModifiedTime > cacheModifiedTime) {
-                    LOG_DEBUG(LoadableDevice_impl, "Remote file is newer than local file");
+                    RH_DEBUG(_loadabledeviceLog, "Remote file is newer than local file");
                 } else {
-                    LOG_DEBUG(LoadableDevice_impl, "File exists in cache");
+                    RH_DEBUG(_loadabledeviceLog, "File exists in cache");
                     incrementFile(workingFileName);
                     return;
                 }
@@ -360,35 +363,42 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
 
     if (fileInfo->kind != CF::FileSystem::DIRECTORY) {
         // The target file is a file
-      LOG_DEBUG(LoadableDevice_impl, "Loading the file " << fileName);
+      RH_DEBUG(_loadabledeviceLog, "Loading the file " << fileName);
 
+        std::fstream fileStream;
+        std::ios_base::openmode mode;
+        mode = std::ios::out;
+        std::string _relativeFileName = workingFileName;
+        if (workingFileName[0] == '/') {
+            _relativeFileName = workingFileName.substr(1);
+        }
+        relativeFileName = prependCacheIfAvailable(_relativeFileName);
+        
         // Create a local directory to copy the file to
-        fs::path parentDir = fs::path(workingFileName).parent_path().relative_path();
+        fs::path parentDir;
+        if (relativeFileName == _relativeFileName) {
+            parentDir = fs::path(relativeFileName).parent_path().relative_path();
+        } else {
+            parentDir = fs::path(relativeFileName).parent_path();
+        }
         try {
           if ( !parentDir.string().empty() && fs::create_directories(parentDir)) {
-                LOG_DEBUG(LoadableDevice_impl, "Created parent directory " << parentDir.string());
+                RH_DEBUG(_loadabledeviceLog, "Created parent directory " << parentDir.string());
             }
         } catch (const fs::filesystem_error& ex) {
-            LOG_ERROR(LoadableDevice_impl, "Unable to create parent directory " << parentDir.string() << ": " << ex.what());
+            RH_ERROR(_loadabledeviceLog, "Unable to create parent directory " << parentDir.string() << ": " << ex.what());
             throw CF::LoadableDevice::LoadFail(CF::CF_NOTSET, "Device SDR cache write error");
         }
 
         // copy the file
-        LOG_DEBUG(LoadableDevice_impl, "Copying " << workingFileName << " to the device's cache")
-        std::fstream fileStream;
-        std::ios_base::openmode mode;
-        mode = std::ios::out;
-        relativeFileName = workingFileName;
-        if (workingFileName[0] == '/') {
-            relativeFileName = workingFileName.substr(1);
-        }
+        RH_DEBUG(_loadabledeviceLog, "Copying " << workingFileName << " to the device's cache")
         fileStream.open(relativeFileName.c_str(), mode);
         bool text_file_busy = false;
         if (!fileStream.is_open()) {
             if (errno == ETXTBSY) {
                 text_file_busy = true;
             } else {
-                LOG_ERROR(LoadableDevice_impl, "Could not create file " << relativeFileName.c_str());
+                RH_ERROR(_loadabledeviceLog, "Could not create file " << relativeFileName.c_str());
                 throw CF::LoadableDevice::LoadFail(CF::CF_NOTSET, "Device SDR cache write error");
             }
         }
@@ -400,7 +410,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
             cacheTimestamps[workingFileName] = getModTime(fileInfo->fileProperties);
             fileStream.open(relativeFileName.c_str(), mode);
             if (!fileStream.is_open()) {
-                LOG_ERROR(LoadableDevice_impl, "Could not create file " << relativeFileName.c_str());
+                RH_ERROR(_loadabledeviceLog, "Could not create file " << relativeFileName.c_str());
                 throw CF::LoadableDevice::LoadFail(CF::CF_NOTSET, "Device SDR cache write error");
             }
         }
@@ -410,7 +420,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         fileTypeTable[workingFileName] = CF::FileSystem::PLAIN;
     } else {
         // The target file is a directory
-        LOG_DEBUG(LoadableDevice_impl, "Copying the file " << fileName << " as a directory to the cache as " << workingFileName)
+        RH_DEBUG(_loadabledeviceLog, "Copying the file " << fileName << " as a directory to the cache as " << workingFileName)
         fileTypeTable[workingFileName] = CF::FileSystem::DIRECTORY;
         fs::path localPath = fs::path(workingFileName).branch_path().relative_path();
         copiedFiles.insert(copiedFiles_type::value_type(workingFileName, localPath.string()));
@@ -422,7 +432,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
     }
 
 // add filename to loadedfiles. If it's been already loaded, then increment its counter
-    LOG_DEBUG(LoadableDevice_impl, "Incrementing " << workingFileName << " vs " << fileName)
+    RH_DEBUG(_loadabledeviceLog, "Incrementing " << workingFileName << " vs " << fileName)
     incrementFile (workingFileName);
     if (cacheTimestamps.count(workingFileName) == 0) {
         cacheTimestamps[workingFileName] = getModTime(fileInfo->fileProperties);
@@ -474,14 +484,23 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                 FILE *fileCheck = popen(command.c_str(), "r");
                 int status = pclose(fileCheck);
                 if (!status) {
+                    RH_DEBUG(_loadabledeviceLog, "cmd= " << command <<
+                            " relativeFileName: " << relativeFileName <<
+                            " relativePath: " << relativePath);
+
                     // The import worked
                     std::string additionalPath = "";
+                    // Prepend the current path if the cache is empty, then check the filename
+                    if (cacheDirectory.empty()) {
+                    	additionalPath = currentPath + std::string("/");
+                    }
                     if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
-                        additionalPath = currentPath+std::string("/")+relativeFileName;
+                    	additionalPath = additionalPath + relativeFileName;
                     } else {
-                        additionalPath = currentPath+std::string("/")+relativePath;
+                        additionalPath = additionalPath + relativePath;
                     }
                     env_changes.addModification("PYTHONPATH", additionalPath);
+                    RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to PYTHONPATH");
                     PythonPackage = true;
                 }
                 chdir(currentPath.c_str());
@@ -496,8 +515,15 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                     if ((extension == ".py") || (extension == ".pyc")) {
                         fileOrDirectoryName.erase(iext);
                     }
+                    relativePath.assign(relativeFileName, 0, lastSlash);
+                } else {
+                	relativePath = relativeFileName;
+                	if (true) { // if __init__.py exists
+                		relativePath.assign(relativeFileName, 0, lastSlash);
+                	}
+                	relativePath = prependCacheIfAvailable(relativePath);
                 }
-                relativePath.assign(relativeFileName, 0, lastSlash);
+
                 if (chdir(relativePath.c_str())) {
                         // this is an invalid path
                 } else {
@@ -507,19 +533,21 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                     FILE *fileCheck = popen(command.c_str(), "r");
                     int status = pclose(fileCheck);
                     if (!status) {
-                        LOG_DEBUG(LoadableDevice_impl, "cmd= " << command << 
+                        RH_DEBUG(_loadabledeviceLog, "cmd= " << command << 
                                 " relativeFileName: " << relativeFileName <<
                                 " relativePath: " << relativePath);
 
                         // The import worked
-                        std::string additionalPath = "";
-                        if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
-                            additionalPath = currentPath+std::string("/")+relativePath;
-                        } else {
-                            additionalPath = currentPath+std::string("/")+relativePath;
+                        std::string additionalPath = relativePath;
+                        if (cacheDirectory.empty()) {
+                            if (fileInfo->kind == CF::FileSystem::DIRECTORY) {
+                                additionalPath = currentPath+std::string("/")+relativePath;
+                            } else {
+                                additionalPath = currentPath+std::string("/")+relativePath;
+                            }
                         }
                         env_changes.addModification("PYTHONPATH", additionalPath);
-                        LOG_DEBUG(LoadableDevice_impl, "Adding " << additionalPath << " to PYTHONPATH");
+                        RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to PYTHONPATH");
                         PythonPackage = true;
                     }
                 }
@@ -532,8 +560,12 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
           int retval = ossie::helpers::is_jarfile( relativeFileName );
           if ( retval == 0 ) {
             currentPath = ossie::getCurrentDirName();
-            std::string additionalPath = currentPath+std::string("/")+relativeFileName;
+            std::string additionalPath = relativeFileName;
+            if (cacheDirectory.empty()) {
+              additionalPath = currentPath+std::string("/")+relativeFileName;
+            }
             env_changes.addModification("CLASSPATH", additionalPath);
+            RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to CLASSPATH");
             JavaJar = true;
           }
         }
@@ -579,30 +611,29 @@ void LoadableDevice_impl::update_path(sharedLibraryStorage &packageDescription) 
 void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePath, fs::path& localPath, std::string fileKey)
 {
 
-    LOG_DEBUG(LoadableDevice_impl, "_loadTree " << remotePath << " " << localPath)
+    RH_DEBUG(_loadabledeviceLog, "_loadTree " << remotePath << " " << localPath)
+    fs::path mod_localPath = prependCacheIfAvailable(localPath.string());
 
     CF::FileSystem::FileInformationSequence_var fis = fs->list(remotePath.c_str());
     for (unsigned int i = 0; i < fis->length(); i++) {
       if (fis[i].kind == CF::FileSystem::PLAIN) {
             std::string fileName(fis[i].name);
-            fs::path localFile(localPath / fileName);
+            fs::path localFile(mod_localPath / fileName);
             if (*(remotePath.end() - 1) == '/') {
-                LOG_DEBUG(LoadableDevice_impl, "_copyFile " << remotePath + fileName << " " << localFile)
+                RH_DEBUG(_loadabledeviceLog, "_copyFile " << remotePath + fileName << " " << localFile)
                 _copyFile(fs, remotePath + fileName, localFile.string(), fileKey);
             } else {
-                LOG_DEBUG(LoadableDevice_impl, "_copyFile " << remotePath << " " << localFile)
+                RH_DEBUG(_loadabledeviceLog, "_copyFile " << remotePath << " " << localFile)
                 _copyFile(fs, remotePath, localFile.string(), fileKey);
             }
             const redhawk::PropertyMap& fileprops = redhawk::PropertyMap::cast(fis[i].fileProperties);
-            redhawk::PropertyMap::const_iterator iter_fileprops = fileprops.find("EXECUTABLE");
-            if (iter_fileprops != fileprops.end()) {
-                if (fileprops["EXECUTABLE"].toBoolean())
-                    chmod(localFile.string().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            if (fileprops.get("EXECUTABLE", false).toBoolean()) {
+                chmod(localFile.string().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
             }
         } else if (fis[i].kind == CF::FileSystem::DIRECTORY) {
             std::string directoryName(fis[i].name);
-            fs::path localDirectory(localPath / directoryName);
-            LOG_DEBUG(LoadableDevice_impl, "Making directory " << directoryName << " in " << localPath)
+            fs::path localDirectory(mod_localPath / directoryName);
+            RH_DEBUG(_loadabledeviceLog, "Making directory " << directoryName << " in " << mod_localPath)
             copiedFiles.insert(copiedFiles_type::value_type(fileKey, localDirectory.string()));
             bool dexists = false;
             try {
@@ -616,10 +647,10 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
                 fs::create_directories(localDirectory);
             }
             if (*(remotePath.end() - 1) == '/') {
-                LOG_DEBUG(LoadableDevice_impl, "There")
-                _loadTree(fs, remotePath + std::string("/") + directoryName, localPath, fileKey);
+                RH_DEBUG(_loadabledeviceLog, "There")
+                _loadTree(fs, remotePath + std::string("/") + directoryName, mod_localPath, fileKey);
             } else {
-                LOG_DEBUG(LoadableDevice_impl, "Here")
+                RH_DEBUG(_loadabledeviceLog, "Here")
                 _loadTree(fs, remotePath + std::string("/"), localDirectory, fileKey);
             }
         } else {
@@ -631,7 +662,7 @@ void LoadableDevice_impl::_loadTree(CF::FileSystem_ptr fs, std::string remotePat
 void LoadableDevice_impl::_deleteTree(const std::string &fileKey)
 {
 
-    LOG_DEBUG(LoadableDevice_impl, "_deleteTree " << fileKey)
+    RH_DEBUG(_loadabledeviceLog, "_deleteTree " << fileKey)
     std::pair<copiedFiles_type::iterator, copiedFiles_type::iterator> p = copiedFiles.equal_range(fileKey);
 
     // perform the search backwards (so that directories are emptied before they're deleted)
@@ -639,11 +670,11 @@ void LoadableDevice_impl::_deleteTree(const std::string &fileKey)
         --p.second;
         if (fs::is_directory(((*p.second).second).c_str())) {
             if (!fs::is_empty(((*p.second).second).c_str())) {
-                LOG_TRACE(LoadableDevice_impl, "Not removing " << ((*p.second).second).c_str() << " - not empty!")
+                RH_TRACE(_loadabledeviceLog, "Not removing " << ((*p.second).second).c_str() << " - not empty!")
                 continue;
             }
         }
-        LOG_TRACE(LoadableDevice_impl, "removing " << ((*p.second).second).c_str())
+        RH_TRACE(_loadabledeviceLog, "removing " << ((*p.second).second).c_str())
         fs::remove(((*p.second).second).c_str());
     }
 
@@ -653,7 +684,7 @@ void LoadableDevice_impl::_deleteTree(const std::string &fileKey)
 bool LoadableDevice_impl::_treeIntact(const std::string &fileKey)
 {
 
-    LOG_DEBUG(LoadableDevice_impl, "_treeIntact " << fileKey)
+    RH_DEBUG(_loadabledeviceLog, "_treeIntact " << fileKey)
     std::pair<copiedFiles_type::iterator, copiedFiles_type::iterator> p = copiedFiles.equal_range(fileKey);
 
     for ( ; p.first != p.second; ) {
@@ -670,15 +701,33 @@ bool LoadableDevice_impl::_treeIntact(const std::string &fileKey)
     return true;
 }
 
+std::string LoadableDevice_impl::prependCacheIfAvailable(const std::string &localPath) {
+    std::string mod_localPath = localPath;
+    if (this->getPropertyFromId("cacheDirectory")) {
+        std::string cache_dir = ((StringProperty*)this->getPropertyFromId("cacheDirectory"))->getValue();
+        if (!cache_dir.empty()) {
+            if (localPath.find(cache_dir) == std::string::npos) {
+                if (!cache_dir.compare(cache_dir.length()-1, 1, "/")) {
+                    mod_localPath = cache_dir + mod_localPath;
+                } else {
+                    mod_localPath = cache_dir + std::string("/") + mod_localPath;
+                }
+            }
+        }
+    }
+    return mod_localPath;
+}
+
 void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey)
 {
+    std::string mod_localPath(prependCacheIfAvailable(localPath));
     CF::File_var fileToLoad = CF::File::_nil();
     try {
        fileToLoad= fs->open(remotePath.c_str(), true);
        if ( CORBA::is_nil(fileToLoad) ) {
            std::string msg("Unable to open remote file: ");
            msg += remotePath;
-           LOG_ERROR(LoadableDevice_impl, msg);
+           RH_ERROR(_loadabledeviceLog, msg);
            throw CF::LoadableDevice::LoadFail( CF::CF_NOTSET, msg.c_str());
        }
     }
@@ -700,14 +749,14 @@ void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &re
     std::fstream fileStream;
     std::ios_base::openmode mode;
     mode = std::ios::out | std::ios::trunc;
-    fileStream.open(localPath.c_str(), mode);
+    fileStream.open(mod_localPath.c_str(), mode);
     if (!fileStream.is_open()) {
-        LOG_ERROR(LoadableDevice_impl, "Local file " << localPath << " did not open succesfully.")
+        RH_ERROR(_loadabledeviceLog, "Local file " << mod_localPath << " did not open succesfully.")
     } else {
-        LOG_DEBUG(LoadableDevice_impl, "Local file " << localPath << " opened succesfully.")
+        RH_DEBUG(_loadabledeviceLog, "Local file " << mod_localPath << " opened succesfully.")
     }
 
-    copiedFiles.insert(copiedFiles_type::value_type(fileKey, localPath));
+    copiedFiles.insert(copiedFiles_type::value_type(fileKey, mod_localPath));
 
     std::size_t fileSize = fileToLoad->sizeOf();
     bool fe=false;
@@ -717,13 +766,13 @@ void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &re
       toRead = std::min(fileSize, blockTransferSize);
       fileSize -= toRead;
 
-      //LOG_TRACE(LoadableDevice_impl, "READ Local file " << localPath << " length:" << toRead << " filesize/bts " << fileSize << "/" << blockTransferSize );
+      //RH_TRACE(_loadabledeviceLog, "READ Local file " << mod_localPath << " length:" << toRead << " filesize/bts " << fileSize << "/" << blockTransferSize );
       try {
         fileToLoad->read(data, toRead);
         fileStream.write((const char*)data->get_buffer(), data->length());
       }
       catch ( CF::File::IOException &e ) {
-        LOG_WARN(LoadableDevice_impl, "READ Local file exception, " << ossie::corba::returnString(e.msg) );
+        RH_WARN(_loadabledeviceLog, "READ Local file exception, " << ossie::corba::returnString(e.msg) );
         throw;
       }
         
@@ -737,7 +786,7 @@ void LoadableDevice_impl::_copyFile(CF::FileSystem_ptr fs, const std::string &re
       fileToLoad->close();
     }
     catch(...) {
-      LOG_ERROR(LoadableDevice_impl, "Closing remote file encountered exception, file:" << remotePath );
+      RH_ERROR(_loadabledeviceLog, "Closing remote file encountered exception, file:" << remotePath );
       fe=true;
     }
 
@@ -772,7 +821,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
     {
         std::stringstream errstr;
         errstr << "Error acquiring lock (errno=" << e.native_error() << " msg=\"" << e.what() << "\")";
-        LOG_ERROR(LoadableDevice_impl, __FUNCTION__ << ": " << errstr.str() );
+        RH_ERROR(_loadabledeviceLog, __FUNCTION__ << ": " << errstr.str() );
         throw CF::Device::InvalidState(errstr.str().c_str());
     }
 }
@@ -784,7 +833,7 @@ LoadableDevice_impl::do_unload (const char* fileName)
 throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
 {
 
-    LOG_DEBUG(LoadableDevice_impl, "Unload called for " << fileName)
+    RH_DEBUG(_loadabledeviceLog, "Unload called for " << fileName)
 
 // verify that the device is in a valid state for loading
     if (isLocked () || isDisabled ()) {
@@ -802,7 +851,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
         // delete the file
         if (fileTypeTable.count(workingFileName) == 0) {
             // no record as to what the file is (yet still clearly valid)
-            LOG_WARN(LoadableDevice_impl, "Unload called on a file that does not exist (" << fileName << ")")
+            RH_WARN(_loadabledeviceLog, "Unload called on a file that does not exist (" << fileName << ")")
             return;
         }
         if (fileTypeTable[workingFileName] == CF::FileSystem::PLAIN) {
@@ -812,7 +861,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
                 relativeFileName = workingFileName.substr(1);
             }
             remove(relativeFileName.c_str());
-            LOG_DEBUG(LoadableDevice_impl, "Unload ############## (" << fileName << ")")
+            RH_DEBUG(_loadabledeviceLog, "Unload ############## (" << fileName << ")")
         } else if (fileTypeTable[workingFileName] == CF::FileSystem::DIRECTORY) {
             _deleteTree(std::string(fileName));
         } else if (fileTypeTable[workingFileName] == CF::FileSystem::FILE_SYSTEM) {
@@ -881,9 +930,15 @@ bool LoadableDevice_impl::isFileLoaded (const char* fileName)
 }
 
 
-void LoadableDevice_impl ::configure (const CF::Properties& capacities)
-throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
-       InvalidConfiguration, CORBA::SystemException)
+const std::string& LoadableDevice_impl::getCacheDirectory()
 {
-    Device_impl::configure(capacities);
+    if (this->getPropertyFromId("cacheDirectory")) {
+        std::string cache_dir = ((StringProperty*)this->getPropertyFromId("cacheDirectory"))->getValue();
+        if (!cache_dir.empty()) {
+            if (cacheDirectory != cache_dir) {
+                cacheDirectory = cache_dir;
+            }
+        }
+    }
+    return cacheDirectory;
 }

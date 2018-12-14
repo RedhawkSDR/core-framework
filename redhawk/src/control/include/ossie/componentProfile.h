@@ -32,6 +32,9 @@
 #include "ossie/ossieparser.h"
 
 namespace ossie {
+
+    class SoftPkg;
+
     /*
      *
      */
@@ -42,9 +45,9 @@ namespace ossie {
         std::string type;
 
     public:
-        const char* getFileName() const;
+        const std::string& getFileName() const;
 
-        const char* getID() const;
+        const std::string& getID() const;
     };
 
     /*
@@ -58,7 +61,7 @@ namespace ossie {
 
         virtual ~ComponentProperty() {};
 
-        const char* getID() const;
+        const std::string& getID() const;
         
         ComponentProperty* clone() const {
           return _clone();
@@ -95,6 +98,7 @@ namespace ossie {
         return out;
     }
 
+
     /*
      *
      */
@@ -110,6 +114,12 @@ namespace ossie {
         
         const std::string _asString() const;
     };
+
+
+    class IdValue : public SimplePropertyRef {
+
+    };
+
 
     /*
      *
@@ -166,31 +176,32 @@ namespace ossie {
      */
     class ComponentInstantiation {
     public:
-      typedef std::pair<std::string,std::string>  LoggingConfig;
-      typedef ossie::ComponentPropertyList        AffinityProperties;
+        typedef std::pair<std::string,std::string>  LoggingConfig;
+        typedef ossie::ComponentPropertyList        AffinityProperties;
 
         std::string instantiationId;
-        ossie::optional_value<std::string> namingservicename;
-        ossie::optional_value<std::string> usageName;
+        std::string namingservicename;
+        std::string usageName;
         ossie::ComponentPropertyList       properties;
-        std::string _startOrder;
+        ossie::optional_value<int> startOrder;
         AffinityProperties affinityProperties;
         LoggingConfig loggingConfig;
+        ossie::ComponentPropertyList       deployerrequires;
+        ossie::ComponentPropertyList       devicerequires;
+
+
     public:
         ComponentInstantiation();
-
-        ComponentInstantiation(const ComponentInstantiation& other);
-
-        ComponentInstantiation& operator=(const ComponentInstantiation &other);
 
         virtual ~ComponentInstantiation();
 
     public:
-        const char* getID() const;
-        
-        const char* getStartOrder() const;
+        const std::string& getID() const;
 
-        const char* getUsageName() const;
+        bool hasStartOrder() const;
+        int getStartOrder() const;
+
+        const std::string& getUsageName() const;
 
         const ossie::ComponentPropertyList & getProperties() const;
 
@@ -198,9 +209,14 @@ namespace ossie {
 
         const AffinityProperties &getAffinity() const;
 
+        const ossie::ComponentPropertyList & getDeployerRequires() const;
+
+        const ossie::ComponentPropertyList & getDeviceRequires() const;
+
         bool isNamingService() const;
 
-        const char* getFindByNamingServiceName() const;
+        const std::string& getFindByNamingServiceName() const;
+
     };
 
     /*
@@ -208,30 +224,18 @@ namespace ossie {
      */
     class ComponentPlacement {
     public:
-        bool ifDomainManager;
         std::string _componentFileRef;
 
-        ossie::optional_value<std::string> deployOnDeviceID;
-        ossie::optional_value<std::string> compositePartOfDeviceID;
-        ossie::optional_value<std::string> DPDFile;
         std::vector<ComponentInstantiation> instantiations;
 
+        // Resolved after parsing is complete
+        std::string filename;
     public:
-        const char* getDeployOnDeviceID() const;
-
-        const char* getCompositePartOfDeviceID() const;
-
-        const std::string getDPDFile() const;
-        
         const std::vector<ComponentInstantiation>& getInstantiations() const;
         
-        const char* getFileRefId() const;
+        const std::string& getFileRefId() const;
 
-        bool isDeployOn() const;
-
-        bool isCompositePartOf() const;
-
-        bool isDomainManager() const;
+        const ComponentInstantiation* getInstantiation(const std::string& refid) const;
     };
 
     /*

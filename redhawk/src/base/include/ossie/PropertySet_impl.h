@@ -35,6 +35,9 @@
 #include "ossie/Autocomplete.h"
 #include "CF/cf.h"
 
+namespace redhawk {
+    class Value;
+}
 
 class PropertySet_impl
 #ifdef BEGIN_AUTOCOMPLETE_IGNORE
@@ -88,8 +91,26 @@ public:
    //
    void   startPropertyChangeMonitor( const std::string &rsc_id);
    void   stopPropertyChangeMonitor();
+   
+   static CF::UTCTime _makeTime(short status, double wsec, double fsec) {
+       CF::UTCTime _time;
+       struct timeval tv;
+       gettimeofday(&tv, NULL);
+       if (status == -1) {
+           _time.tcstatus = 1;
+           _time.twsec = tv.tv_sec;
+           _time.tfsec = tv.tv_usec/1e6;
+       } else {
+           _time.tcstatus = status;
+           _time.twsec = wsec;
+           _time.tfsec = fsec;
+       }
+       return _time;
+   };
 
 protected:
+
+    virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
 
     /*CF::Properties
             propertySet;*/
@@ -135,6 +156,22 @@ protected:
     {
         PropertyInterface* wrapper = addProperty(value, id, name, mode, units, action, kinds);
         value = initial_value;
+        wrapper->isNil(false);
+        return wrapper;
+    }
+    
+    template <typename T2>
+    PropertyInterface* addProperty (CF::UTCTime& value, 
+                                    const T2& initial_value, 
+                                    const std::string& id, 
+                                    const std::string& name,
+                                    const std::string& mode, 
+                                    const std::string& units, 
+                                    const std::string& action,
+                                    const std::string& kinds)
+    {
+        PropertyInterface* wrapper = addProperty(value, id, name, mode, units, action, kinds);
+        value = redhawk::time::utils::convert(initial_value);
         wrapper->isNil(false);
         return wrapper;
     }
@@ -319,6 +356,10 @@ protected:
     // Preferred new-style properties.
     typedef std::map<std::string, PropertyInterface*> PropertyMap;
     PropertyMap propTable;
+    
+    std::string _propertyQueryTimestamp;
+
+    void setLogger(rh_logger::LoggerPtr logptr);
 
 private:
     template <typename T>
@@ -334,8 +375,10 @@ private:
         return wrapper;
     }
 
-    typedef boost::function<void (const std::string&)> PropertyCallback;
+    typedef redhawk::callback<void (const std::string&)> PropertyCallback;
     void setPropertyCallback (const std::string& id, PropertyCallback callback);
+
+    rh_logger::LoggerPtr _propertysetLog;
 
     typedef std::map<std::string, PropertyCallback> PropertyCallbackMap;
     PropertyCallbackMap propCallbacks;

@@ -1,0 +1,26 @@
+
+
+
+#log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+log4j.rootLogger=ALL,stdout, mp
+
+# Direct log messages to stdout
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n
+ 
+# Direct log messages to stdout
+log4j.appender.mp=org.ossie.logging.RH_SyncRollingAppender
+log4j.appender.mp.Retries=2
+log4j.appender.mp.WaitOnLock=30
+log4j.appender.mp.MaxFileSize=5MB
+log4j.appender.mp.MaxBackupIndex=10
+log4j.appender.mp.File=MP_RedhawkTest
+log4j.appender.mp.Cleanup=False
+log4j.appender.mp.layout=org.apache.log4j.PatternLayout
+log4j.appender.mp.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} COMP2 %-5p %c:%L - %m%n
+
+ 
+

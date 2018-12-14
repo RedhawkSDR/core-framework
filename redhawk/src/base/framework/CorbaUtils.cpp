@@ -24,8 +24,16 @@
 #include <omniORB4/omniURI.h>
 #include <omniORB4/omniORB.h>
 #include <omniORB4/internal/orbParameters.h>
+#include <omniORB4/internal/omniIdentity.h>
+#include <omniORB4/internal/localIdentity.h>
 
 #include "ossie/CorbaUtils.h"
+
+#ifdef minor
+// Depending on g++ settings, the C stdlib defines a minor() macro that breaks
+// CORBA::SystemException's minor() methods
+#undef minor
+#endif
 
 static CORBA::ORB_var orb = CORBA::ORB::_nil();
 static PortableServer::POA_var root_poa = PortableServer::POA::_nil();
@@ -183,6 +191,15 @@ CosNaming::NamingContext_ptr InitialNamingContext ()
 bool isPersistenceEnabled ()
 {
     return persistenceEnabled;
+}
+
+CORBA::TypeCode_ptr unalias(CORBA::TypeCode_ptr type)
+{
+    if (type->kind() == CORBA::tk_alias) {
+        return type->content_type();
+    } else {
+        return CORBA::TypeCode::_duplicate(type);
+    }
 }
 
 bool isValidType (const CORBA::Any& lhs, const CORBA::Any& rhs)
@@ -392,6 +409,62 @@ void setCommFailureRetries (int numRetries)
 void setObjectCommFailureRetries (CORBA::Object_ptr obj, int numRetries)
 {
     omniORB::installCommFailureExceptionHandler(obj, reinterpret_cast<void*>(numRetries), handleCommFailure);
+}
+
+PortableServer::ServantBase* internal::getLocalServant(CORBA::Object_ptr object)
+{
+    // Find the identity using internal omniORB interfaces, and then check
+    // whether the object is local to this address space; reading through the
+    // omniORB library code, it does not appear that this operation requires
+    // holding the internal omniORB lock
+    omniIdentity* identity = object->_PR_getobj()->_identity();
+    if (identity->inThisAddressSpace()) {
+        // Given that it's in the same address space, one would assume that
+        // casting to omniLocalIdentity should always succeed, but since this
+        // is using undocumented internal omniORB interfaces, use dynamic_cast
+        // defensively just in case
+        omniLocalIdentity* local_identity = dynamic_cast<omniLocalIdentity*>(identity);
+        if (local_identity) {
+            omniServant* servant = local_identity->servant();
+            // Instead of returning omniServant, which is omniORB-specific,
+            // use its _downcast() method to get a pointer to the servant as
+            // the standard PortableServer::ServantBase class; while not
+            // strictly necessary in this case, multiple inheritance can make
+            // casts between related types tricky (note that it returns a void
+            // pointer, so it still requires a cast, just not dynamic_cast)
+            return reinterpret_cast<PortableServer::ServantBase*>(servant->_downcast());
+        }
+    }
+    return 0;
+}
+
+std::string describeException(const CORBA::SystemException& exc)
+{
+    std::ostringstream out;
+    out << "CORBA::" << exc._name() << " (minor: " << exc.minor() << " completed: ";
+    switch (exc.completed()) {
+    case CORBA::COMPLETED_YES:
+        out << "YES";
+        break;
+    case CORBA::COMPLETED_NO:
+        out << "NO";
+        break;
+    case CORBA::COMPLETED_MAYBE:
+        out << "MAYBE";
+        break;
+    }
+    out << ")";
+    return out.str();
+}
+
+std::string describeException(const CORBA::Exception& exc) {
+    const CORBA::SystemException* sys = dynamic_cast<const CORBA::SystemException*>(&exc);
+    if (sys) {
+        return describeException(*sys);
+    }
+    std::ostringstream out;
+    out << exc._name() << " (" << exc._rep_id() << ")";
+    return out.str();
 }
 
 #define LNTRACE( lname, expression ) RH_TRACE( rh_logger::Logger::getLogger(lname), expression )

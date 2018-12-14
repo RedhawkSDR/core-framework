@@ -56,13 +56,15 @@ Component and Device classes support additional functionality:
     - Ambiguities can be resolved with usesPortName and/or providesPortName.
 
 Helpers are provided to manage data
-  - DataSource(), DataSink():
-      Push vectors from Python to components and back.
-  - FileSource(), FileSink():
+  - StreamSource, StreamSink:
+      Push data from Python to components and back.
+  - FileSource, FileSink:
       Push data from a file into components and back.
-  - MessageSource(), MessageSink():
+  - MessageSource, MessageSink:
       Push messages from Python to components and back.
-  - SoundSink():
+  - PropertyChangeListener:
+      Container to receive asynchronous property change events
+  - SoundSink:
       Playback audio data from BULKIO streams
   - compareSRI():
       Compares the content of two SRI values
@@ -116,12 +118,20 @@ General usage examples:
 """
 from domainless import *
 from io_helpers import *
+from prop_change_helpers import *
 from block_process import *
+
 try:
     from bulkio.bulkioInterfaces import BULKIO
 except:
     # BULKIO is not installed
     pass
 
-from plots import *
-from audio import *
+import helpers
+from helpers import *
+
+# Add plug-in extensions
+from ossie.utils.sandbox.plugin import plugins
+for name, plugin in plugins():
+    globals()[name] = plugin
+    del name, plugin

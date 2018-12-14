@@ -42,14 +42,23 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dev/devices/base_programmable/cpp \
           sdr/dev/devices/base_persona/cpp \
           sdr/dev/devices/devcpp/cpp \
+          sdr/dev/devices/writeonly_cpp/cpp \
+          sdr/dev/devices/log_test_cpp/cpp \
           sdr/dev/devices/DevC/cpp \
           sdr/dev/devices/dev_kill_devmgr/cpp \
           sdr/dev/devices/GPP/cpp \
           sdr/dev/devices/LongDevice/cpp \
+          sdr/dev/devices/dev_alloc_cpp/cpp \
+          sdr/dev/services/BasicService_cpp/cpp \
+          sdr/dom/deps/cpp_dep1/cpp \
+          sdr/dom/deps/cpp_dep2/cpp \
           sdr/dom/components/TestCppProps \
           sdr/dom/components/linkedLibraryTest \
           sdr/dom/components/TestCppsoftpkgDeps \
           sdr/dom/components/BasicAC/BasicAC_cpp_impl1 \
+          sdr/dom/components/BasicShared/cpp \
+          sdr/dom/components/logger/cpp \
+          sdr/dom/components/alloc_shm/cpp \
           sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1 \
           sdr/dom/components/MessageReceiverCpp \
           sdr/dom/components/MessageSenderCpp \
@@ -64,6 +73,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/cpp_comp/cpp \
           sdr/dom/components/TestLoggingAPI/cpp \
           sdr/dom/components/ECM_CPP/cpp \
+          sdr/dom/components/EmptyString/cpp \
           sdr/dom/components/C1/cpp \
           sdr/dom/components/C2/cpp \
           sdr/dom/components/PropertyChange_C1/cpp \
@@ -73,10 +83,15 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/foo/bar/comp/cpp \
           sdr/dom/components/TestCppOptionalProps/cpp \
           sdr/dom/components/cpp_with_deps/cpp \
+          sdr/dom/components/slow_stop_cpp/cpp \
           sdr/dom/components/huge_msg_cpp/cpp \
+          sdr/dom/components/msg_through_cpp/cpp \
+          sdr/dom/components/timeprop_cpp/cpp \
+          sdr/dom/components/time_cp_now/cpp \
           sdr/dom/components/zero_length/cpp \
-          sdr/dom/components/svc_error_cpp/cpp \
-          sdr/dom/components/msg_through_cpp/cpp
+          sdr/dom/components/msg_through_cpp/cpp \
+          sdr/dom/components/busycomp/cpp \
+          sdr/dom/components/svc_fn_error_cpp/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dom/deps/java_dep1/java \
@@ -84,7 +99,9 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dev/devices/JavaTestDevice/java \
            sdr/dev/devices/issue_111_java/java \
            sdr/dev/devices/devj/java \
+           sdr/dev/devices/writeonly_java/java \
            sdr/dev/devices/DevC/java \
+           sdr/dev/devices/log_test_java/java \
            sdr/dev/devices/java_dev/java \
            sdr/dev/services/BasicService_java/java \
            sdr/dom/components/BasicAC/basicac_java_impl1 \
@@ -92,8 +109,12 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/EventReceive/EventReceive_java_impl1 \
            sdr/dom/components/javaDep/javaDep \
            sdr/dom/components/java_comp/java \
+           sdr/dom/components/javaSoftpkgJarDep/java \
            sdr/dom/components/huge_msg_java/java \
            sdr/dom/components/msg_through_java/java \
+           sdr/dom/components/timeprop_java/java \
+           sdr/dom/components/logger_java/java \
+           sdr/dom/components/time_ja_now/java \
            sdr/dom/components/HardLimit/HardLimit_java_impl1 \
            sdr/dom/components/PropertyChangeEventsJava/PropertyChangeEventsJava_java_impl1 \
            sdr/dom/components/TestJavaProps \
@@ -106,7 +127,14 @@ SUBDIRS += sdr/dom/deps/java_dep1/java \
            sdr/dom/components/PropertyChange_J1/java \
            sdr/dom/components/Property_JAVA/java \
            sdr/dom/components/foo/bar/jv/java \
-           sdr/dom/components/TestJavaOptionalProps/java
+           sdr/dom/components/TestJavaOptionalProps/java \
+           sdr/dom/components/svc_fn_error_java/java \
+           sdr/dom/components/EmptyString/java
+endif
+
+SUBDIRS += cpp
+if HAVE_JAVASUPPORT
+SUBDIRS += java
 endif
 
 all-local:

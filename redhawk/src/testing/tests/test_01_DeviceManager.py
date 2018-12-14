@@ -22,6 +22,7 @@ import unittest, os, signal, time, platform
 from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
+from ossie import properties
 import commands
 import CosNaming
 import tempfile
@@ -74,11 +75,19 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
         (status,output) = commands.getstatusoutput('rm -rf devmgr_runtest.props')
 
     def test_NoWriteCache(self):
-        (status,output) = commands.getstatusoutput('mkdir -p '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
-        (status,output) = commands.getstatusoutput('chmod 000 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
-        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        cachedir = os.getcwd()+'/sdr/cache/.BasicTestDevice_node'
+        (status,output) = commands.getstatusoutput('mkdir -p '+cachedir)
+        (status,output) = commands.getstatusoutput('chmod 000 '+cachedir)
+        self.assertFalse(os.access(cachedir, os.R_OK|os.W_OK|os.X_OK), 'Current user can still access directory')
+        try:
+            devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        except Exception, e:
+            pass
+        begin_time = time.time()
+        while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
+            devmgr_nb.poll()
+            time.sleep(0.1)
         self.assertEquals(255, devmgr_nb.returncode)
-        self.assertEquals(devMgr, None)
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -231,6 +240,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+
+    def test_DeviceBadOverload(self):
+        # This device manager fails to launch because of a bad overloaded value
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_props_bad_numbers_node/DeviceManager.dcd.xml")
+        self.assertEquals(devMgr, None)
 
     def test_DeviceInitializeFail(self):
         # These two nodes use the same identifier, but have different names to distinguish them
@@ -601,6 +615,17 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(devMgr._get_registeredDevices()), 1)
 
+        dev = devMgr._get_registeredDevices()[0]
+        prop = dev.query([])
+        for p in prop:
+            if p.id == 'mystruct':
+                val = p.value.value()
+                for v in val:
+                    if v.id == 'mystruct::mysimpleseq':
+                        found = len(v.value.value()) == 0
+
+        self.assertTrue(found)
+
     def test_ComponentPropertyOverride_cpp(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
@@ -622,7 +647,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 self._domMgr.installApplication(sadpath)
                 appFact = self._domMgr._get_applicationFactories()[0]
                 self._app = appFact.create(appFact._get_name(), [], [])
-            except Exception, e:
+            except:
                 pass
 
         propId = "DCE:c709f95e-6b05-439a-9db9-dba95e70888e"
@@ -1304,6 +1329,46 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             if ub_patch:
                 os.unlink(altpath+'.bin')
 
+    def test_Service_Startup(self):
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_service_startup_node/DeviceManager.dcd.xml")
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+
+        svc=None
+        svc_pre=None
+        for s in d.services:
+            if s._id == 'S2_1':
+                svc = s
+            if s._id == 'S2_pre_1':
+                svc_pre = s
+        self.assertNotEqual(svc, None)
+        self.assertNotEqual(svc_pre, None)
+
+        # get p1 from service
+        res=svc.query([CF.DataType(id='p1', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p1'],'p1 set by DCD file')
+
+        # get p2 from service
+        res=svc.query([CF.DataType(id='p2', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p2'],123456)
+
+
+        # get p1 from service
+        res=svc_pre.query([CF.DataType(id='p1', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p1'],'pre p1 set by DCD file')
+
+        # get p2 from service
+        res=svc_pre.query([CF.DataType(id='p2', value=any.to_any(None))])
+        p1=properties.props_to_dict(res)
+        self.assertEqual(p1['p2'],654321)
+
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, svc.configure, [CF.DataType(id='fake', value=any.to_any(None))] )
+
+        self.assertRaises(CF.PropertySet.InvalidConfiguration, svc_pre.configure, [CF.DataType(id='fake', value=any.to_any(None))] )
+
     def _test_DeviceExecParamReadonly_(self, dcdfile, true_or_false ):
         devmgr_nb, devMgr = self.launchDeviceManager(dcdfile)
         self.assertNotEqual(devMgr, None)
@@ -1599,6 +1664,62 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         p=self._find_exec_param(lines, "py_svc_exec_params", "exec_read_only_bool True")
         self.assertNotEqual(p, None)
 
+
+    def test_DuplicateService(self):
+        # The first node provides the service
+        nb1, devMgr1 = self.launchDeviceManager('/nodes/test_BasicService_node/DeviceManager.dcd.xml')
+
+        # Check that the same service is reported via the DeviceManager and the
+        # naming service
+        services = devMgr1._get_registeredServices()
+        self.assertEqual(1, len(services))
+        service_name = URI.stringToName(scatest.getTestDomainName() + '/BasicService1')
+        service = self._root.resolve(service_name)
+        self.assertTrue(service._is_equivalent(services[0].serviceObject))
+
+        # Launching the second node, it should time out after about 5 seconds
+        # waiting for its service to show up in the registered services, which
+        # should never happen because the DomainManager should reject it
+        nb2, devMgr2 = self.launchDeviceManager('/nodes/DuplicateService_node/DeviceManager.dcd.xml')
+
+        # The first node's service was registered first, so it should be the
+        # only one we find, fetching it again to be sure
+        services = devMgr1._get_registeredServices()
+        self.assertEqual(1, len(services))
+        self.assertEqual('BasicService1', services[0].serviceName)
+        self.assertEqual(0, len(devMgr2._get_registeredServices()))
+        service = self._root.resolve(service_name)
+        self.assertTrue(service._is_equivalent(services[0].serviceObject))
+
+        # The duplicate service should have been terminated
+        self.assertEqual(0, len(getChildren(nb2.pid)))
+
+        # Launch an executable device for the test application
+        nb3, devMgr3 = self.launchDeviceManager("/nodes/test_PortTestDevice2_node/DeviceManager.dcd.xml")
+
+        # Use the service name connection test waveform to make sure that the
+        # DomainManager is connecting it correctly to the first service
+        sad_file = '/waveforms/PortConnectServiceName/PortConnectServiceName.sad.xml'
+        app = self._domMgr.createApplication(sad_file, 'good', [], [])
+        components = app._get_registeredComponents()
+        comp = components[0].componentObject
+        self.assertEqual(1, len(components))
+        port = comp.getPort('propset_out')
+        connections = port._get_connections()
+        self.assertEqual(1, len(connections))
+        service = connections[0].port
+        props = service.query([CF.DataType('PARAM1', any.to_any(None))])
+        value = any.from_any(props[0].value)
+        self.assertEqual('ABCD', value)
+        app.releaseObject()
+
+        # Terminate the BasicService node, which should prevent the waveform
+        # from launching (one more way to verify that it's the first node's
+        # service that's being used)
+        devMgr1.shutdown()
+        self.assertTrue(self.waitTermination(nb1), "Nodebooter did not die after shutdown")
+
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sad_file, 'fail', [], [])
 
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):

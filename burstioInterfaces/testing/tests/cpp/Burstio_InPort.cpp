@@ -18,8 +18,9 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 #include "Burstio_InPort.h"
-#include "burstio.h"
-#include "bulkio.h"
+
+#include <bulkio/bulkio.h>
+#include <burstio.h>
 
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Burstio_InPort );

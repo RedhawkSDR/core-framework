@@ -19,6 +19,8 @@
 #
 AC_INIT([throughput], 1.0.0)
 AM_INIT_AUTOMAKE([foreign])
+AC_CONFIG_MACRO_DIR([m4])
+LT_INIT([dlopen disable-static])
 
 AC_PROG_CC
 AC_PROG_CXX
@@ -40,6 +42,8 @@ AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
 AX_BOOST_THREAD
 AX_BOOST_REGEX
+
+CPPFLAGS="$CPPFLAGS -I\$(top_srcdir)/common"
 
 AC_CONFIG_FILES([Makefile \
                  streams/corba/Makefile \

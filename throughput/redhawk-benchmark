@@ -277,6 +277,8 @@ class TransferSizeTest(BenchmarkTest):
                 sample = {'time': now-start,
                           'rate': current_rate,
                           'size': transfer_size,
+                          'send_time': stream.send_time(),
+                          'recv_time': stream.recv_time(),
                           'write_cpu': writer['cpu'] * sys_cpu,
                           'write_rss': writer['rss'],
                           'write_majflt': writer['majflt'],
@@ -317,6 +319,7 @@ if __name__ == '__main__':
     window_size = 5
     tolerance = 0.1
     nogui = False
+    interfaces = ['Raw', 'CORBA', 'BulkIO']
 
     opts, args = getopt.getopt(sys.argv[1:], 'hw:t:d:', ['help', 'transport=', 'numa-distance=', 'no-gui'])
     for key, value in opts:
@@ -335,13 +338,18 @@ if __name__ == '__main__':
         elif key == '--no-gui':
             nogui = True
 
-    interface_list = ('raw', 'corba', 'bulkio')
+    interface_list = ('raw', 'corba', 'bulkio-corba', 'bulkio-shm', 'bulkio-local')
     interfaces = []
     for arg in args:
-        if not arg.lower() in interface_list:
+        name = arg.lower()
+        if name == 'bulkio':
+            for name in interface_list:
+                if name.startswith('bulkio'):
+                    interfaces.append(name)
+        elif not name in interface_list:
             raise SystemExit("unknown interface '%s'" % arg)
         else:
-            interfaces.append(arg.lower())
+            interfaces.append(name)
     if not interfaces:
         interfaces = interface_list
 
@@ -361,6 +369,8 @@ if __name__ == '__main__':
     csv.add_field('time', 'time(s)')
     csv.add_field('rate', 'rate(Bps)')
     csv.add_field('size', 'transfer size(B)')
+    csv.add_field('send_time', 'average send call(s)')
+    csv.add_field('recv_time', 'average recv call(s)')
     csv.add_field('write_cpu', 'writer cpu(%)')
     csv.add_field('write_rss', 'writer rss')
     csv.add_field('write_majflt', 'writer major faults')
@@ -398,9 +408,18 @@ if __name__ == '__main__':
         elif interface == 'corba':
             name = 'CORBA'
             factory = corba.factory(transport)
-        elif interface == 'bulkio':
-            name = 'BulkIO'
-            factory = bulkio.factory(transport)
+        elif interface == 'bulkio-corba':
+            os.environ['BULKIO_SHM'] = 'disable'
+            name = 'BulkIO (CORBA)'
+            factory = bulkio.factory(transport, local=False)
+        elif interface == 'bulkio-shm':
+            if 'BULKIO_SHM' in os.environ:
+                del os.environ['BULKIO_SHM']
+            name = 'BulkIO (shm)'
+            factory = bulkio.factory(transport, local=False)
+        elif interface == 'bulkio-local':
+            name = 'BulkIO (local)'
+            factory = bulkio.factory(transport, local=True)
 
         numa_policy = numa.NumaPolicy(numa_distance)
 

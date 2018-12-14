@@ -60,6 +60,20 @@ class ODMListener(ChannelListener):
     CHANNEL_NAME = 'ODM_Channel'
 
     @notification
+    def eventChannelAdded(self, event):
+        """
+        A event channel was added.
+        """
+        log.trace('eventChannelAdded %s', event)
+
+    @notification
+    def eventChannelRemoved(self, event):
+        """
+        A event channel was removed.
+        """
+        log.trace('eventChannelRemoved %s', event)
+
+    @notification
     def deviceManagerAdded(self, event):
         """
         A device manager was added.
@@ -136,6 +150,7 @@ class ODMListener(ChannelListener):
                 StandardEvent.DEVICE: ODMListener.deviceAdded,
                 StandardEvent.APPLICATION_FACTORY: ODMListener.applicationFactoryAdded,
                 StandardEvent.APPLICATION: ODMListener.applicationAdded,
+                StandardEvent.EVENT_CHANNEL: ODMListener.eventChannelAdded,
                 StandardEvent.SERVICE: ODMListener.serviceAdded
             },
             StandardEvent._tc_DomainManagementObjectRemovedEventType: {
@@ -143,6 +158,7 @@ class ODMListener(ChannelListener):
                 StandardEvent.DEVICE: ODMListener.deviceRemoved,
                 StandardEvent.APPLICATION_FACTORY: ODMListener.applicationFactoryRemoved,
                 StandardEvent.APPLICATION: ODMListener.applicationRemoved,
+                StandardEvent.EVENT_CHANNEL: ODMListener.eventChannelRemoved,
                 StandardEvent.SERVICE: ODMListener.serviceRemoved
             },
         }

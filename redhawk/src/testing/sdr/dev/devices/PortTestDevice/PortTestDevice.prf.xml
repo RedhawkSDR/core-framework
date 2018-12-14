@@ -42,7 +42,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <description>
             SCA required property describing the CPU type
         </description>
-        <value>i686</value>
+        <value>x86</value>
         <kind kindtype="allocation"/>
         <action type="eq"/>
     </simple>

@@ -18,11 +18,19 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import cStringIO, pydoc
+
 from ossie.utils.model import ComponentBase, Resource, PropertySet, PortSupplier
 
 class DomainComponent(ComponentBase):
     def __init__(self, profile, spd, scd, prf, instanceName, refid, impl, pid=0, devs=[]):
-        super(DomainComponent,self).__init__(spd, scd, prf, instanceName, refid, impl, pid, devs)
+        # Remove waveform from the instance name for ComponentBase so that the
+        # short name is visible as 'instanceName'
+        baseName = instanceName.split('/')[-1]
+        super(DomainComponent,self).__init__(spd, scd, prf, baseName, refid, impl, pid, devs)
+        # Retain the "waveformId/instantiationId" in _instanceName for backward
+        # compatibility
+        self._instanceName = instanceName
         self._profile = profile
         self.ports = []
 
@@ -37,17 +45,26 @@ class DomainComponent(ComponentBase):
 
     #####################################
 
-    def api(self, showComponentName=True, showInterfaces=True, showProperties=True, externalPropInfo=None):
+    def api(self, showComponentName=True, showInterfaces=True, showProperties=True, externalPropInfo=None, destfile=None):
         '''
         Inspect interfaces and properties for the component
         '''
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         className = self.__class__.__name__
         if showComponentName == True:
-            print className+" [" + str(self.name) + "]:"
+            print >>destfile, className+" [" + str(self.name) + "]:"
         if showInterfaces == True:
-            PortSupplier.api(self)
+            PortSupplier.api(self, destfile=destfile)
         if showProperties == True and self._properties != None:
-            PropertySet.api(self, externalPropInfo)
+            PropertySet.api(self, externalPropInfo, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class Component(DomainComponent, Resource):

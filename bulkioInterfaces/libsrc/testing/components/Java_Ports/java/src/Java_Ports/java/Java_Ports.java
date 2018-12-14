@@ -321,22 +321,23 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
             //begin-user-code
             // Process data here
             try {
+                int serviced = 0;
+                serviced += SF(port_dataFloatIn,port_dataFloatOut, "FLOAT" );
+                serviced += SF(port_dataDoubleIn,port_dataDoubleOut, "DOUBLE");
+                serviced += SF(port_dataCharIn,port_dataCharOut, "CHAR");
+                serviced += SF(port_dataOctetIn,port_dataOctetOut, "OCTET");
+                serviced += SF(port_dataShortIn,port_dataShortOut, "SHORT");
+                serviced += SF(port_dataUShortIn,port_dataUShortOut, "USHORT");
+                serviced += SF(port_dataLongIn,port_dataLongOut, "LONG");
+                serviced += SF(port_dataULongIn,port_dataULongOut, "ULONG");
+                serviced += SF(port_dataLongLongIn,port_dataLongLongOut, "LONGLONG");
+                serviced += SF(port_dataULongLongIn,port_dataULongLongOut, "ULONGLONG");
+                serviced += SF(port_dataFileIn,port_dataFileOut, "FILE");
+                serviced += SF(port_dataXMLIn,port_dataXMLOut, "XML");
 
-                SF(port_dataFloatIn,port_dataFloatOut, "FLOAT" );
-                SF(port_dataDoubleIn,port_dataDoubleOut, "DOUBLE");
-                SF(port_dataCharIn,port_dataCharOut, "CHAR");
-                SF(port_dataOctetIn,port_dataOctetOut, "OCTET");
-                SF(port_dataShortIn,port_dataShortOut, "SHORT");
-                SF(port_dataUShortIn,port_dataUShortOut, "USHORT");
-                SF(port_dataLongIn,port_dataLongOut, "LONG");
-                SF(port_dataULongIn,port_dataULongOut, "ULONG");
-                SF(port_dataLongLongIn,port_dataLongLongOut, "LONGLONG");
-                SF(port_dataULongLongIn,port_dataULongLongOut, "ULONGLONG");
-                SF(port_dataFileIn,port_dataFileOut, "FILE");
-                SF(port_dataXMLIn,port_dataXMLOut, "XML");
-
-                logger.debug("run() example log message");
-                Thread.sleep(1000);
+                if (serviced == 0) {
+                    Thread.sleep(1000);
+                }
             } catch (InterruptedException e) {
                 break;
             }
@@ -349,7 +350,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
     }
 
 
-   void SF( bulkio.InFloatPort inPort, bulkio.OutFloatPort outPort, String portType ) {
+    int SF( bulkio.InFloatPort inPort, bulkio.OutFloatPort outPort, String portType ) {
 
        bulkio.InFloatPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
@@ -361,10 +362,12 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 
 	   logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 	   outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+           return 1;
        }
+       return 0;
    }
 
-   void SF( bulkio.InDoublePort inPort, bulkio.OutDoublePort outPort, String portType ) {
+   int SF( bulkio.InDoublePort inPort, bulkio.OutDoublePort outPort, String portType ) {
 
        bulkio.InDoublePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
@@ -376,29 +379,14 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 
 	   logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 	   outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+           return 1;
        }
-
+       return 0;
    }
 
-    public void SF( bulkio.InInt8Port inPort, bulkio.OutInt8Port outPort, String portType ) {
+    public int SF( bulkio.InCharPort inPort, bulkio.OutCharPort outPort, String portType ) {
 
-        bulkio.InInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-
-	if ( pkt != null ) {
-	    if (pkt.sriChanged ) {
-		outPort.pushSRI( pkt.SRI );
-	    }
-
-	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-
-	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
-    }
-
-    public void SF( bulkio.InInt16Port inPort, bulkio.OutInt16Port outPort, String portType ) {
-
-        bulkio.InInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InCharPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -408,14 +396,14 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
+    public int SF( bulkio.InShortPort inPort, bulkio.OutShortPort outPort, String portType ) {
 
-    public void SF( bulkio.InInt32Port inPort, bulkio.OutInt32Port outPort, String portType ) {
-
-        bulkio.InInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InShortPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -425,13 +413,15 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
-    public void SF( bulkio.InInt64Port inPort, bulkio.OutInt64Port outPort, String portType ) {
 
-        bulkio.InInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+    public int SF( bulkio.InLongPort inPort, bulkio.OutLongPort outPort, String portType ) {
+
+        bulkio.InLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -441,15 +431,14 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
+    public int SF( bulkio.InLongLongPort inPort, bulkio.OutLongLongPort outPort, String portType ) {
 
-
-    public void SF( bulkio.InUInt8Port inPort, bulkio.OutUInt8Port outPort, String portType ) {
-
-        bulkio.InUInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InLongLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -459,13 +448,16 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
-    public void SF( bulkio.InUInt16Port inPort, bulkio.OutUInt16Port outPort, String portType ) {
 
-        bulkio.InUInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+    public int SF( bulkio.InOctetPort inPort, bulkio.OutOctetPort outPort, String portType ) {
+
+        bulkio.InOctetPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -475,14 +467,14 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
+    public int SF( bulkio.InUShortPort inPort, bulkio.OutUShortPort outPort, String portType ) {
 
-    public void SF( bulkio.InUInt32Port inPort, bulkio.OutUInt32Port outPort, String portType ) {
-
-        bulkio.InUInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+        bulkio.InUShortPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -492,13 +484,15 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
-    public void SF( bulkio.InUInt64Port inPort, bulkio.OutUInt64Port outPort, String portType ) {
 
-        bulkio.InUInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+    public int SF( bulkio.InULongPort inPort, bulkio.OutULongPort outPort, String portType ) {
+
+        bulkio.InULongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
 	if ( pkt != null ) {
 	    if (pkt.sriChanged ) {
@@ -508,14 +502,32 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
+            return 1;
+       }
+       return 0;
+    }
 
+    public int SF( bulkio.InULongLongPort inPort, bulkio.OutULongLongPort outPort, String portType ) {
+
+        bulkio.InULongLongPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+	if ( pkt != null ) {
+	    if (pkt.sriChanged ) {
+		outPort.pushSRI( pkt.SRI );
+	    }
+
+	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            return 1;
+       }
+       return 0;
     }
 
 
 
 
-    public void SF( bulkio.InFilePort inPort, bulkio.OutFilePort outPort, String portType ) {
+    public int SF( bulkio.InFilePort inPort, bulkio.OutFilePort outPort, String portType ) {
 
         bulkio.InFilePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
@@ -527,11 +539,12 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
-    public void SF( bulkio.InXMLPort inPort, bulkio.OutXMLPort outPort, String portType ) {
+    public int SF( bulkio.InXMLPort inPort, bulkio.OutXMLPort outPort, String portType ) {
 
         bulkio.InXMLPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
@@ -543,12 +556,13 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 	    logger.debug( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
 
 	    outPort.pushPacket( pkt.dataBuffer, pkt.EOS, pkt.streamID );
-	}
-
+            return 1;
+       }
+       return 0;
     }
 
-    public void SF( bulkio.InSDDSPort inPort, bulkio.OutSDDSPort outPort, String portType ) {
-
+    public int SF( bulkio.InSDDSPort inPort, bulkio.OutSDDSPort outPort, String portType ) {
+        return 0;
     }
 
 

@@ -88,6 +88,8 @@ public:
     // Set admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
     void setAdminState (CF::Device::AdminType _adminType);
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     // Admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
     CF::Device::AdminType _adminState;
@@ -228,6 +230,8 @@ protected:
     redhawk::DeviceManagerContainer* getDeviceManager() {
         return this->_devMgr;
     }
+
+    rh_logger::LoggerPtr _deviceLog;
 
 private:
     // Adapter template function for device constructors. This is the only part of

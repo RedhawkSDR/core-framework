@@ -19,18 +19,15 @@
  */
 package bulkio;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
-import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
+
 import org.apache.log4j.Logger;
-import CF.DataType;
-import java.util.ArrayDeque;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+
+import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
+
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 import BULKIO.PortStatistics;
@@ -41,17 +38,10 @@ import BULKIO.dataVITA49Package.DetachError;
 import BULKIO.dataVITA49Package.InputUsageState;
 import BULKIO.dataVITA49Package.StreamInputError;
 
-import bulkio.sriState;
-import bulkio.linkStatistics;
-import bulkio.DataTransfer;
-import bulkio.Int16Size;
-
-import org.ossie.component.PortBase;
-
 /**
  * @generated
  */
-public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.component.PortBase {
+public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements PortBase {
 
     public interface Callback  {
 
@@ -107,6 +97,8 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
      */
     protected Logger   logger = null;
 
+    public RHLogger _portLog = null;
+
     // callback when VITA49 Stream Requests happen
     protected Callback                 attach_detach_callback;
 
@@ -142,7 +134,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
 		       bulkio.time.Comparator   timeCmp )
     {
 	this.name = portName;
-        this.stats = new linkStatistics(this.name, new Int8Size() );
+        this.stats = new linkStatistics(this.name, 1);
 	this.sriUpdateLock = new Object();
 	this.statUpdateLock = new Object();
 	this.attachedStreamMap = new HashMap<String, VITA49StreamDefinition>();
@@ -167,6 +159,13 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
         synchronized (this.sriUpdateLock) {
 	    logger = newlogger;
 	}
+    }
+
+    public void setLogger(RHLogger logger)
+    {
+        synchronized (this.sriUpdateLock) {
+            this._portLog = logger;
+        }
     }
 
     /**
@@ -280,8 +279,8 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
      */
     public void pushSRI(StreamSRI H, PrecisionUTCTime T) {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
 	}
 
         synchronized (this.sriUpdateLock) {
@@ -307,8 +306,8 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
             }
         }
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
 	}
 
     }
@@ -320,22 +319,22 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
      */
     public String attach(VITA49StreamDefinition stream, String userid) throws AttachError, StreamInputError {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort attach  ENTER (port=" + name +")" );
-	    logger.debug("VITA49 PORT: ATTACH REQUEST STREAM/USER:" + stream.id +"/" + userid );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort attach  ENTER (port=" + name +")" );
+	    _portLog.debug("VITA49 PORT: ATTACH REQUEST STREAM/USER:" + stream.id +"/" + userid );
 	}
 
 	String attachId = null;
 	if ( attach_detach_callback != null ) {
-	    if ( logger != null ) {
-		logger.debug("VITA49 PORT: CALLING ATTACH CALLBACK, STREAM/USER:" + stream.id +"/" + userid );
+	    if ( _portLog != null ) {
+		_portLog.debug("VITA49 PORT: CALLING ATTACH CALLBACK, STREAM/USER:" + stream.id +"/" + userid );
 	    }
 	    try {
 		attachId = attach_detach_callback.attach(stream, userid);
 	    }
 	    catch(Exception e) {
-		if ( logger != null ) {
-		    logger.error("VITA49 PORT: CALLING ATTACH EXCEPTION, STREAM/USER:" + stream.id +"/" + userid );
+		if ( _portLog != null ) {
+		    _portLog.error("VITA49 PORT: CALLING ATTACH EXCEPTION, STREAM/USER:" + stream.id +"/" + userid );
 		}
 		throw new AttachError("Callback Failed");		
 	    }
@@ -347,9 +346,9 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
         this.attachedUsers.put(attachId, userid);
 
 
-	if ( logger != null ) {
-	    logger.debug("VITA49 PORT: ATTACH COMPLETED, ID:" + attachId + " STREAM/USER:" + stream.id +"/" + userid );
-	    logger.trace("bulkio.InPort attach  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.debug("VITA49 PORT: ATTACH COMPLETED, ID:" + attachId + " STREAM/USER:" + stream.id +"/" + userid );
+	    _portLog.trace("bulkio.InPort attach  EXIT (port=" + name +")" );
 	}
 
         return attachId;
@@ -360,21 +359,21 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
      */
     public void detach(String attachId) throws DetachError, StreamInputError {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.InPort detach  ENTER (port=" + name +")" );
-	    logger.debug("VITA49 PORT: DETACH REQUEST ID:" + attachId  );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.InPort detach  ENTER (port=" + name +")" );
+	    _portLog.debug("VITA49 PORT: DETACH REQUEST ID:" + attachId  );
 	}
 
 	if ( attach_detach_callback != null ) {
 	    try {
-		if ( logger != null ) {
-		    logger.debug("VITA49 PORT: CALLING DETACH CALLBACK ID:" + attachId  );
+		if ( _portLog != null ) {
+		    _portLog.debug("VITA49 PORT: CALLING DETACH CALLBACK ID:" + attachId  );
 		}
 		attach_detach_callback.detach(attachId);
 	    }
 	    catch( Exception e ) {
-		if ( logger != null ) {
-		    logger.error("VITA49 PORT: DETACH CALLBACK EXCEPTION, ID:" + attachId  );
+		if ( _portLog != null ) {
+		    _portLog.error("VITA49 PORT: DETACH CALLBACK EXCEPTION, ID:" + attachId  );
 		}
 		throw new DetachError();
 	    }
@@ -382,9 +381,9 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
         this.attachedStreamMap.remove(attachId);
         this.attachedUsers.remove(attachId);
 
-	if ( logger != null ) {
-	    logger.debug("VITA49 PORT: DETACH SUCCESS, ID:" + attachId  );
-	    logger.trace("bulkio.InPort detach  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.debug("VITA49 PORT: DETACH SUCCESS, ID:" + attachId  );
+	    _portLog.trace("bulkio.InPort detach  EXIT (port=" + name +")" );
 	}
     }
 
@@ -453,7 +452,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA implements org.ossie.
 
 	public String getDirection()
 	{
-		return "Provides";
+		return CF.PortSet.DIRECTION_PROVIDES;
 	}
 
 }

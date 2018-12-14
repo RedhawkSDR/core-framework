@@ -38,6 +38,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
               <simpleref refid="item_string" value="Third"/>
             </structvalue>
           </structsequenceref>
+          <simpleref refid="simple_utctime" value = "2017:2:1::10:01:00.123"/>
         </componentproperties>
         <findcomponent>
           <namingservice name="TestCppProps1"/>

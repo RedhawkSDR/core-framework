@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+from ossie.utils import rhtime
 
 class OutOfRangeException(Exception): pass
 
@@ -99,6 +100,10 @@ def checkValidValue(value, dataType):
             raise TypeError, '%s is not valid for type %s' % (type(value), dataType)
         if dataType == 'char' and len(value) != 1:
             raise TypeError, 'expected a character, but string of length %d found' % len(value)
+        return value
+    elif dataType == 'utctime':
+        if type(value) == str:
+            return rhtime.convert(value)
         return value
     elif isinstance(value, basestring):
         raise TypeError, "Cannot convert string to type '%s'" % dataType

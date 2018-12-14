@@ -60,7 +60,16 @@ namespace redhawk {
         Value& operator[] (const std::string& id);
         const Value& operator[] (const std::string& id) const;
 
+        const Value& get(const std::string& id, const Value& def=Value()) const;
+
+        bool operator==( const redhawk::PropertyMap &other ) const;
+        bool operator!=( const redhawk::PropertyMap &other ) const;
+
+        void update(const CF::Properties& properties);
+
         void push_back (const CF::DataType& dt);
+
+        void extend(const CF::Properties& properties);
 
         iterator begin();
         iterator end();
@@ -74,8 +83,11 @@ namespace redhawk {
         void erase(const std::string& id);
         void erase(iterator pos);
         void erase(iterator first, iterator last);
+
+        std::string toString() const;
     };
 
+    std::ostream& operator<<(std::ostream& out, const PropertyMap& properties);
 }
 
 #endif // REDHAWK_PROPERTYMAP_H

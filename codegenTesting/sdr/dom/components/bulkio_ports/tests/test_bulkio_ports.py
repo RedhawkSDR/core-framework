@@ -274,60 +274,6 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         
         self.comp_obj.stop()
                 
-    #Additional test to push data into each of the input ports, and get data
-    #from each of the output ports.  The data is then examined for accuracy
-    def testEmptyDataPush(self):
-        self.comp_obj.start()
-                    
-        #####################################
-        # Send empty data on each input port
-        self.dataCharInput.pushPacket('', bulkio_helpers.createCPUTimestamp(), False, "s1")
-        self.dataDoubleInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s2")
-        self.dataFloatInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s3")
-        self.dataLongInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s4")
-        self.dataOctetInput.pushPacket('', bulkio_helpers.createCPUTimestamp(), False, "s5")
-        self.dataShortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s6")
-        self.dataUlongInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s7")
-        self.dataUshortInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s8")
-        self.dataXMLInput.pushPacket('', False, "s9")
-        self.dataFileInput.pushPacket('', bulkio_helpers.createCPUTimestamp(), False, 's10')
-        self.dataLongLongInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s11")
-        self.dataUlongLongInput.pushPacket([], bulkio_helpers.createCPUTimestamp(), False, "s12")
-        
-        ##########################################
-        # Receive data from each output port
-        # *** THESE GET PACKETS ARE BLOCKING! ***
-        _charData, T, EOS, streamID, sri, sriChanged, flushed = self.helperCharInput.getPacket(2)
-        _doubleData, T, EOS, streamID, sri, sriChanged, flushed = self.helperDoubleInput.getPacket(2)
-        _floatData, T, EOS, streamID, sri, sriChanged, flushed = self.helperFloatInput.getPacket(2)
-        _longData, T, EOS, streamID, sri, sriChanged, flushed = self.helperLongInput.getPacket(2)
-        _octetData, T, EOS, streamID, sri, sriChanged, flushed = self.helperOctetInput.getPacket(2)
-        _shortData, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(2)
-        _uLongData, T, EOS, streamID, sri, sriChanged, flushed = self.helperUlongInput.getPacket(2)
-        _uShortData, T, EOS, streamID, sri, sriChanged, flushed = self.helperUshortInput.getPacket(2)
-        _xmlData, T, EOS, streamID, sri, sriChanged, flushed = self.helperXMLInput.getPacket(2)
-        _fileData, T, EOS, streamID, sri, sriChanged, flushed = self.helperFileInput.getPacket(2)
-        _longLongData, T, EOS, streamID, sri, sriChanged, flushed = self.helperLongLongInput.getPacket(2)
-        _uLongLongData, T, EOS, streamID, sri, sriChanged, flushed = self.helperUlongLongInput.getPacket(2)
-        
-        sentData = ['', [], [], [], '', [], [], [], '', '', [], []]
-        types = ['char', 'double', 'float', 'long', 'octet', 'short', 'uLong', 'uLongLong', 'longLong', 'uShort', 'xml', 'file']
-            
-        sentData = {'char':'', 'double':[], 'float':[], 'long':[], 'octet':'', 'short':[], 'uLong':[], 'uShort':[], 'xml':'', 'file':'',
-                    'longLong':[], 'uLongLong':[]}
-        recData = {'char':_charData, 'double':_doubleData, 'float':_floatData, 'long':_longData, 'octet':_octetData, 'short':_shortData,\
-                       'uLong':_uLongData, 'uShort':_uShortData, 'xml':_xmlData, 'file':_fileData, 'longLong':_longLongData, 'uLongLong':_uLongLongData}
-        
-        for x in types:
-            self.assertNotEquals(None, recData[x], msg="No empty set was recieved for dataType (" + str(x) + ")")
-        
-        #############################################
-        # Check that data received matches data sent
-        for x in types:
-            self.assertEqual(recData[x], sentData[x])
-        
-        self.comp_obj.stop()
-    
     def testMaxQueueDepth(self):
         shortData = bulkio_helpers.genRandomDataSet(16, True, 100)
         oldFlushTime = None

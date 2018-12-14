@@ -34,6 +34,21 @@ from ossie.parsers import SPDParser
 
 __all__ = ('RHTestCase', 'RHTestLoader', 'RHTestProgram')
 
+def _getSpdFile(classdict, bases):
+    """
+    Looks up the 'SPD_FILE' attribute at class definition time, first checking
+    the new class' dictionary, then the base classes. This allows subclassing a
+    an RHTestCase class.
+    """
+    spd_file = classdict.get('SPD_FILE', None)
+    if spd_file:
+        return spd_file
+    for base in bases:
+        spd_file = getattr(base, 'SPD_FILE', None)
+        if spd_file:
+            return spd_file
+    return None
+
 
 class RHTestCaseMeta(type):
     """
@@ -59,7 +74,7 @@ class RHTestCaseMeta(type):
     """
     def __init__(self, name, bases, classdict):
         type.__init__(self, name, bases, classdict)
-        spd_file = classdict.get('SPD_FILE', None)
+        spd_file = _getSpdFile(classdict, bases)
         if spd_file:
             # Get the module that contains the test case class. This allows us
             # to find the SPD file relative to its location.

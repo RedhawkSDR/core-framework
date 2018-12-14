@@ -68,7 +68,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
-  <struct id="FRONTEND::listener_allocation" name="frontend_listener_allocation">
+  <struct id="FRONTEND::listener_allocation" mode="writeonly" name="frontend_listener_allocation">
     <description>Allocates a listener (subscriber) based off a previous allocation </description>
     <simple id="FRONTEND::listener_allocation::existing_allocation_id" name="existing_allocation_id" type="string">
       <description></description>
@@ -78,7 +78,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </simple>
     <configurationkind kindtype="allocation"/>
   </struct>
-  <struct id="FRONTEND::tuner_allocation" name="frontend_tuner_allocation">
+  <struct id="FRONTEND::tuner_allocation" mode="writeonly" name="frontend_tuner_allocation">
     <description>Frontend Interfaces v2 main allocation structure</description>
     <simple id="FRONTEND::tuner_allocation::tuner_type" name="tuner_type" type="string">
       <description>Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGTIZIER_CHANNELIZER</description>

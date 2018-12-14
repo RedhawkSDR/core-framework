@@ -43,10 +43,12 @@ PREPARE_CF_LOGGING(ConnectionManager);
 
 ConnectionManager::ConnectionManager(DomainLookup* domainLookup,
                                      ComponentLookup* componentLookup,
-                                     const std::string& namingContext) :
+                                     const std::string& namingContext,
+                                     bool enableExceptions) :
     _domainLookup(domainLookup),
     _componentLookup(componentLookup),
-    _namingContext(namingContext)
+    _namingContext(namingContext),
+    _enableExceptions(enableExceptions)
 {
     assert(_domainLookup != 0);
     assert(_componentLookup != 0);
@@ -59,14 +61,10 @@ ConnectionManager::~ConnectionManager()
 void ConnectionManager::disconnectAll(std::vector<ConnectionNode>& connections, ossie::DomainLookup* domainLookup)
 {
     // Disconnect all connections made for the application in the reverse order of their creation.
-    LOG_TRACE(ConnectionManager, "Disconnecting " << connections.size() << " ports");
     for (std::vector<ConnectionNode>::reverse_iterator connection = connections.rbegin(); connection != connections.rend(); ++connection) {
-        LOG_TRACE(ConnectionManager, "Disconnecting connection " << connection->identifier);
         connection->disconnect(domainLookup);
     }
     connections.clear();
-
-    LOG_TRACE(ConnectionManager, "All connected ports disconnected");
 }
 
 CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identifier)
@@ -76,14 +74,28 @@ CORBA::Object_ptr ConnectionManager::resolveComponent(const std::string& identif
         target = _domainLookup->lookupDeviceManagerByInstantiationId(identifier);
     }
     if (CORBA::is_nil(target)) {
-        LOG_DEBUG(ConnectionManager, "Could not locate component with instantiation id " << identifier);
+        if (exceptionsEnabled()) {
+            throw ossie::LookupError("component '" + identifier + "' not found");
+        } else {
+            RH_DEBUG(_connectionLog, "Could not locate component with instantiation id " << identifier);
+        }
     }
     return target._retn();
 }
 
 CORBA::Object_ptr ConnectionManager::resolveDomainObject(const std::string& type, const std::string& name)
 {
-    return _domainLookup->lookupDomainObject(type, name);
+    try {
+        return _domainLookup->lookupDomainObject(type, name);
+    } catch (const LookupError& error) {
+        if (exceptionsEnabled()) {
+            // Pass the exception on to the caller
+            throw;
+        } else {
+            RH_WARN(_connectionLog, "Failed to resolve domain object: " << error.what());
+        }
+    }
+    return CORBA::Object::_nil();
 }
 
 CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::string& name)
@@ -97,14 +109,19 @@ CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::strin
         findbyName = _namingContext + "/" + name;
     }
     
-    LOG_TRACE(ConnectionManager, "resolveFindByNamingService: The findname that I'm using is: " << findbyName);
+    RH_TRACE(_connectionLog, "resolveFindByNamingService: The findname that I'm using is: " << findbyName);
     try {
         return ossie::corba::objectFromName(findbyName);
     } catch (CosNaming::NamingContext::NotFound) {
         // The name was not found, continue on and return nil.
-    } CATCH_LOG_ERROR(ConnectionManager, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
+    } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
 
     return CORBA::Object::_nil();
+}
+
+bool ConnectionManager::exceptionsEnabled()
+{
+    return _enableExceptions;
 }
 
 PREPARE_CF_LOGGING(AppConnectionManager);
@@ -113,7 +130,7 @@ AppConnectionManager::AppConnectionManager(DomainLookup* domainLookup,
                                            ComponentLookup* componentLookup,
                                            DeviceLookup* deviceLookup,
                                            const std::string& namingContext) :
-    ConnectionManager(domainLookup, componentLookup, namingContext),
+    ConnectionManager(domainLookup, componentLookup, namingContext, true),
     _deviceLookup(deviceLookup),
     _connections()
 {
@@ -128,11 +145,11 @@ bool AppConnectionManager::resolveConnection(const Connection& connection)
 {
     std::auto_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
-        LOG_ERROR(AppConnectionManager, "Unable to parse connection");
+        RH_ERROR(_connectionLog, "Unable to parse connection");
         return false;
     }
 
-    LOG_TRACE(AppConnectionManager, "Attempting to resolve connection " << connectionNode->identifier);
+    RH_TRACE(_connectionLog, "Attempting to resolve connection " << connectionNode->identifier);
     if (connectionNode->connect(*this)) {
         addConnection_(*connectionNode);
         return true;
@@ -152,43 +169,31 @@ CORBA::Object_ptr AppConnectionManager::resolveFindByNamingService(const std::st
     std::string::size_type islash = _namingContext.find('/');
     if (islash != std::string::npos) {
         std::string findbyName = _namingContext.substr(0, islash + 1) + name;
-        LOG_TRACE(AppConnectionManager, "resolveFindBy: The findname that I'm using is: " << findbyName);
+        RH_TRACE(_connectionLog, "resolveFindBy: The findname that I'm using is: " << findbyName);
         
         try {
             return ossie::corba::objectFromName(findbyName);
         } catch (CosNaming::NamingContext::NotFound) {
             // The name was not found, continue on and return nil.
-        } CATCH_LOG_ERROR(AppConnectionManager, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
+        } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
     }
     return CORBA::Object::_nil();
 }
 
 CF::Device_ptr AppConnectionManager::resolveDeviceThatLoadedThisComponentRef(const std::string& refid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceThatLoadedComponentInstantiationId(refid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "devicethatloadedthiscomponentref not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceThatLoadedComponentInstantiationId(refid);
 }
 
 
 CF::Device_ptr AppConnectionManager::resolveDeviceUsedByThisComponentRef(const std::string& refid, const std::string& usesrefid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceUsedByComponentInstantiationId(refid, usesrefid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "deviceusedbythiscomponentref not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceUsedByComponentInstantiationId(refid, usesrefid);
 }
 
 CF::Device_ptr AppConnectionManager::resolveDeviceUsedByApplication(const std::string& usesrefid)
 {
-    CF::Device_ptr device = _deviceLookup->lookupDeviceUsedByApplication(usesrefid);
-    if (CORBA::is_nil(device)) {
-        LOG_ERROR(AppConnectionManager, "deviceusedbyapplication not found");
-    }
-    return device;
+    return _deviceLookup->lookupDeviceUsedByApplication(usesrefid);
 }
 
 const std::vector<ConnectionNode>& AppConnectionManager::getConnections() {
@@ -197,7 +202,7 @@ const std::vector<ConnectionNode>& AppConnectionManager::getConnections() {
 
 void AppConnectionManager::addConnection_(const ConnectionNode& connection)
 {
-    LOG_TRACE(AppConnectionManager, "Adding connection " << connection.identifier << " to connection list");
+    RH_TRACE(_connectionLog, "Adding connection " << connection.identifier << " to connection list");
     _connections.push_back(connection);
 }
 
@@ -207,7 +212,7 @@ PREPARE_CF_LOGGING(DomainConnectionManager);
 DomainConnectionManager::DomainConnectionManager(DomainLookup* domainLookup,
                                                  ComponentLookup* componentLookup,
                                                  const std::string& domainName) :
-    ConnectionManager(domainLookup, componentLookup, domainName),
+    ConnectionManager(domainLookup, componentLookup, domainName, false),
     _connectionsByRequester()
 {
 }
@@ -218,19 +223,19 @@ DomainConnectionManager::~DomainConnectionManager()
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceThatLoadedThisComponentRef(const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is devicethatloadedthiscomponentref");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is devicethatloadedthiscomponentref");
     return CF::Device::_nil();
 }
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByThisComponentRef(const std::string&, const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbythiscomponentref ");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is deviceusedbythiscomponentref ");
     return CF::Device::_nil();
 }
 
 CF::Device_ptr DomainConnectionManager::resolveDeviceUsedByApplication(const std::string&)
 {
-    LOG_ERROR(DomainConnectionManager, "Not supported in this context: Port is deviceusedbyapplication");
+    RH_ERROR(_connectionLog, "Not supported in this context: Port is deviceusedbyapplication");
     return CF::Device::_nil();
 }
 
@@ -238,19 +243,19 @@ std::string DomainConnectionManager::addConnection(const std::string& deviceMana
 {
     boost::scoped_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
-        LOG_ERROR(DomainConnectionManager, "Skipping invalid connection for DeviceManager " << deviceManagerId);
+        RH_ERROR(_connectionLog, "Skipping invalid connection for DeviceManager " << deviceManagerId);
         return "";
     }
 
     if (!connectionNode->connect(*this)) {
         if (!connectionNode->allowDeferral()) {
-            LOG_ERROR(DomainConnectionManager, "Connection " << connectionNode->identifier << " is not resolvable");
+            RH_ERROR(_connectionLog, "Connection " << connectionNode->identifier << " is not resolvable");
             return "";
         }
     }
     
     connectionNode.get()->setrequesterId(deviceManagerId);
-    LOG_DEBUG(DomainConnectionManager, "Connection " << connectionNode->identifier << " could not be resolved, marked as pending");
+    RH_DEBUG(_connectionLog, "Connection " << connectionNode->identifier << " could not be resolved, marked as pending");
     std::string connectionRecordId = addConnection_(deviceManagerId, *connectionNode);
     return connectionRecordId;
 }
@@ -302,7 +307,6 @@ void DomainConnectionManager::breakConnection(const std::string& connectionRecor
 
 void DomainConnectionManager::deviceManagerUnregistered(const std::string& deviceManagerName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     boost::mutex::scoped_lock lock(_connectionLock);
     ConnectionTable::iterator devMgr = _connectionsByRequester.find(deviceManagerName);
     if (devMgr == _connectionsByRequester.end()) {
@@ -310,7 +314,7 @@ void DomainConnectionManager::deviceManagerUnregistered(const std::string& devic
         return;
     }
     ConnectionList& connectionList = devMgr->second;
-    LOG_TRACE(DomainConnectionManager, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerName);
+    RH_TRACE(_connectionLog, "Deleting " << connectionList.size() << " connection(s) from DeviceManager " << deviceManagerName);
     for (ConnectionList::iterator connection = connectionList.begin(); connection != connectionList.end(); ++connection) {
         connection->disconnect(_domainLookup);
         try {
@@ -319,73 +323,60 @@ void DomainConnectionManager::deviceManagerUnregistered(const std::string& devic
         }
     }
     _connectionsByRequester.erase(devMgr);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::deviceRegistered(const std::string& deviceId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::COMPONENT, deviceId);
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::deviceUnregistered(const std::string& deviceId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::COMPONENT, deviceId);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::serviceRegistered(const std::string& serviceName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::SERVICENAME, serviceName);
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::serviceUnregistered(const std::string& serviceName)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::SERVICENAME, serviceName);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::applicationRegistered(const std::string& applicationId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     try {
         tryPendingConnections_(Endpoint::APPLICATION, applicationId);
     } catch ( ossie::InvalidConnection &e ) {
         std::ostringstream err;
         err << "Invalid connection: "<<e.what();
-        LOG_WARN(DomainConnectionManager, err.str())
+        RH_WARN(_connectionLog, err.str())
     } catch ( ... ) {
-        LOG_WARN(DomainConnectionManager, "An error happened while trying to resolve the pending connections");
+        RH_WARN(_connectionLog, "An error happened while trying to resolve the pending connections");
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::applicationUnregistered(const std::string& applicationId)
 {
-    TRACE_ENTER(DomainConnectionManager);
     breakConnections_(Endpoint::APPLICATION, applicationId);
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 const ConnectionTable& DomainConnectionManager::getConnections() const
@@ -417,8 +408,6 @@ std::string DomainConnectionManager::addConnection_(const std::string& requester
 
 void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType type, const std::string& identifier)
 {
-    TRACE_ENTER(DomainConnectionManager);
-
     boost::mutex::scoped_lock lock(_connectionLock);
     for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
@@ -430,29 +419,26 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
                 connection++;
                 continue;
             }
-            LOG_TRACE(DomainConnectionManager, "Resolving pending connection " << connection->identifier);
+            RH_TRACE(_connectionLog, "Resolving pending connection " << connection->identifier);
             if (!connection->connect(*this)) {
                 if (!connection->allowDeferral()) {
                     // This connection needs to be removed from the list
-                    LOG_ERROR(DomainConnectionManager, "Connection " << connection->identifier << " cannot be resolved");
+                    RH_ERROR(_connectionLog, "Connection " << connection->identifier << " cannot be resolved");
                     connection = connections.erase(connection);
                 } else {
-                    LOG_TRACE(DomainConnectionManager, "Connection " << connection->identifier << " still has pending dependencies");
+                    RH_TRACE(_connectionLog, "Connection " << connection->identifier << " still has pending dependencies");
                     connection++;
                 }
             } else {
-                LOG_DEBUG(DomainConnectionManager, "Connection " << connection->identifier << " resolved");
+                RH_DEBUG(_connectionLog, "Connection " << connection->identifier << " resolved");
                 connection++;
             }
         }
     }
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, const std::string& identifier)
 {
-    TRACE_ENTER(DomainConnectionManager);
-
     boost::mutex::scoped_lock lock(_connectionLock);
     for (ConnectionTable::iterator devMgr = _connectionsByRequester.begin(); devMgr != _connectionsByRequester.end(); ++devMgr) {
         // Go through the list of connections for each DeviceManager to check
@@ -468,20 +454,18 @@ void DomainConnectionManager::breakConnections_(Endpoint::DependencyType type, c
                 }
                 // If the connection is still connected, break it
                 if (connection->connected) {
-                    LOG_TRACE(DomainConnectionManager, "Breaking connection " << connection->identifier);
+                    RH_TRACE(_connectionLog, "Breaking connection " << connection->identifier);
                     connection->disconnect(_domainLookup);
                 }
             }
             if (remove) {
-                LOG_TRACE(DomainConnectionManager, "Removing connection " << connection->identifier << " that does not allow deferral");
+                RH_TRACE(_connectionLog, "Removing connection " << connection->identifier << " that does not allow deferral");
                 connection = connections.erase(connection);
             } else {
                 ++connection;
             }
         }
     }
-
-    TRACE_EXIT(DomainConnectionManager);
 }
 
 
@@ -502,6 +486,8 @@ EXPORT_CLASS_SERIALIZATION(PortEndpoint);
 PREPARE_CF_LOGGING(Endpoint);
 PREPARE_CF_LOGGING(PortEndpoint);
 
+rh_logger::LoggerPtr ossie::connectionSupportLog;
+
 Endpoint* Endpoint::ParsePortSupplier(const Port* port)
 {
     if (port->isFindBy()) {
@@ -509,21 +495,21 @@ Endpoint* Endpoint::ParsePortSupplier(const Port* port)
     } else if (port->isComponentInstantiationRef()) {
         assert(port->getComponentInstantiationRefID() != 0);
         std::string identifier = port->getComponentInstantiationRefID();
-        LOG_TRACE(Endpoint, "ComponentEndpoint refid=" << identifier);
+        RH_TRACE(connectionSupportLog, "ComponentEndpoint refid=" << identifier);
         return new ComponentEndpoint(identifier);
     } else if (port->isDeviceThatLoadedThisComponentRef()) {
         return new DeviceLoadedEndpoint(port->getDeviceThatLoadedThisComponentRef());
     } else if (port->isDeviceUsedByThisComponentRef()) {
         std::string refid = port->getDeviceUsedByThisComponentRefID();
         std::string usesrefid = port->getDeviceUsedByThisComponentRefUsesRefID();
-        LOG_TRACE(Endpoint, "DeviceUsedEndpoint refid=" << refid << " usesrefid=" << usesrefid);
+        RH_TRACE(connectionSupportLog, "DeviceUsedEndpoint refid=" << refid << " usesrefid=" << usesrefid);
         return new DeviceUsedEndpoint(refid, usesrefid);
     } else if (port->isDeviceUsedByApplication()) {
         std::string usesrefid = port->getDeviceUsedByApplicationUsesRefID();
-        LOG_TRACE(Endpoint, "ApplicationDeviceUsedEndpoint usesrefid=" << usesrefid);
+        RH_TRACE(connectionSupportLog, "ApplicationDeviceUsedEndpoint usesrefid=" << usesrefid);
         return new ApplicationUsesDeviceEndpoint(usesrefid);
     } else {
-        LOG_ERROR(Endpoint, "Unknown port location type");
+        RH_ERROR(connectionSupportLog, "Unknown port location type");
     }
 
     return 0;
@@ -540,7 +526,7 @@ Endpoint* Endpoint::ParseProvidesEndpoint(const Connection& connection)
     } else if (connection.isComponentSupportedInterface()) {
         return Endpoint::ParsePortSupplier(connection.getComponentSupportedInterface());
     } else {
-        LOG_ERROR(Endpoint, "Cannot find port information for provides port");
+        RH_ERROR(connectionSupportLog, "Cannot find port information for provides port");
     }
 
     return 0;
@@ -552,7 +538,7 @@ Endpoint* Endpoint::ParsePort(const Port* port)
     if (supplier) {
         assert(port->getID() != 0);
         std::string name = port->getID();
-        LOG_TRACE(Endpoint, "PortEndpoint name=" << name);
+        RH_TRACE(connectionSupportLog, "PortEndpoint name=" << name);
         return new PortEndpoint(supplier, name);
     }
     return 0;
@@ -563,7 +549,7 @@ Endpoint* Endpoint::ParseFindBy(const FindBy* findby)
     if (findby->isFindByNamingService()) {
         assert(findby->getFindByNamingServiceName() != 0);
         std::string name = findby->getFindByNamingServiceName();
-        LOG_TRACE(Endpoint, "FindByNamingServiceEndpoint name=" << name);
+        RH_TRACE(connectionSupportLog, "FindByNamingServiceEndpoint name=" << name);
         return new FindByNamingServiceEndpoint(name);
     } else if (findby->isFindByDomainFinder()) {
         assert(findby->getFindByDomainFinderType() != 0);
@@ -571,16 +557,16 @@ Endpoint* Endpoint::ParseFindBy(const FindBy* findby)
         std::string type = findby->getFindByDomainFinderType();
         std::string name = findby->getFindByDomainFinderName();
         if (type == "servicename") {
-            LOG_TRACE(Endpoint, "ServiceEndpoint name=" << name);
+            RH_TRACE(connectionSupportLog, "ServiceEndpoint name=" << name);
             return new ServiceEndpoint(name);
         } else if (type == "eventchannel") {
-            LOG_TRACE(Endpoint, "EventChannelEndpoint name=" << name);
+            RH_TRACE(connectionSupportLog, "EventChannelEndpoint name=" << name);
             return new EventChannelEndpoint(name);
         }
-        LOG_TRACE(Endpoint, "FindByDomainFinderEndpoint type=" << type << " name=" << name);
+        RH_TRACE(connectionSupportLog, "FindByDomainFinderEndpoint type=" << type << " name=" << name);
         return new FindByDomainFinderEndpoint(type, name);
     } else {
-        LOG_ERROR(Endpoint, "Unknown findby type");
+        RH_ERROR(connectionSupportLog, "Unknown findby type");
     }
     return 0;
 }
@@ -597,15 +583,20 @@ CF::ConnectionManager::EndpointStatusType Endpoint::toEndpointStatusType() const
     return status;
 }
 
-bool Endpoint::isResolved()
+bool Endpoint::isResolved() const
 {
     return !(CORBA::is_nil(object_));
+}
+
+bool Endpoint::isTerminated() const
+{
+    return terminated_;
 }
 
 CORBA::Object_ptr Endpoint::resolve(ConnectionManager& manager)
 {
     if (!isResolved()) {
-        LOG_TRACE(Endpoint, "Resolving endpoint");
+        RH_TRACE(connectionSupportLog, "Resolving endpoint");
         object_ = resolve_(manager);
     }
     return CORBA::Object::_duplicate(object_);
@@ -626,6 +617,11 @@ void Endpoint::setIdentifier(std::string identifier)
     identifier__ = identifier;
 }
 
+void Endpoint::dependencyTerminated()
+{
+    terminated_ = true;
+}
+
 void Endpoint::release()
 {
     // Call the subclass-specific release method.
@@ -642,14 +638,14 @@ ConnectionNode* ConnectionNode::ParseConnection(const Connection& connection)
     // Parse the uses port.
     std::auto_ptr<Endpoint> usesEndpoint(Endpoint::ParsePort(connection.getUsesPort()));
     if (!usesEndpoint.get()) {
-        LOG_ERROR(ConnectionNode, "Unable to parse uses endpoint");
+        RH_ERROR(connectionSupportLog, "Unable to parse uses endpoint");
         return 0;
     }
 
     // Parse the provides port.
     std::auto_ptr<Endpoint> providesEndpoint(Endpoint::ParseProvidesEndpoint(connection));
     if (!providesEndpoint.get()) {
-        LOG_ERROR(ConnectionNode, "Unable to parse provides endpoint");
+        RH_ERROR(connectionSupportLog, "Unable to parse provides endpoint");
         return 0;
     }
 
@@ -696,31 +692,39 @@ bool ConnectionNode::connect(ConnectionManager& manager)
     try {
         usesObject = uses->resolve(manager);
     } catch ( ... ) {
-        LOG_TRACE(ConnectionNode, "Unable to resolve the uses object");
+        if (manager.exceptionsEnabled()) {
+            throw;
+        } else {
+            RH_TRACE(connectionSupportLog, "Unable to resolve the uses object");
+        }
     }
     try {
         providesPort = provides->resolve(manager);
     } catch ( ... ) {
-        LOG_TRACE(ConnectionNode, "Unable to resolve the provides object");
+        if (manager.exceptionsEnabled()) {
+            throw;
+        } else {
+            RH_TRACE(connectionSupportLog, "Unable to resolve the provides object");
+        }
     }
 
     if (CORBA::is_nil(usesObject) || CORBA::is_nil(providesPort)) {
-        LOG_TRACE(ConnectionNode, "Unable to establish a connection because one or more objects cannot be resolved (i.e.: cannot create an event channel or device is not available)");
+        RH_TRACE(connectionSupportLog, "Unable to establish a connection because one or more objects cannot be resolved (i.e.: cannot create an event channel or device is not available)");
         if (allowDeferral()) {
-            LOG_DEBUG(ConnectionNode, "Connection is deferred to a later date");
+            RH_DEBUG(connectionSupportLog, "Connection is deferred to a later date");
             return false;
         } else {
             if (!uses->isResolved() && !uses->allowDeferral()) {
-                throw InvalidConnection("Uses endpoint for "+identifier+" cannot be resolved or deferred");
+                throw InvalidConnection(uses->description() + " cannot be resolved or deferred");
             } else {
-                throw InvalidConnection("Provides endpoint for "+identifier+" cannot be resolved or deferred");
+                throw InvalidConnection(provides->description() + " cannot be resolved or deferred");
             }
         }
     }
 
     CF::Port_var usesPort = ossie::corba::_narrowSafe<CF::Port>(usesObject);
     if (CORBA::is_nil(usesPort)) {
-        LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+        RH_ERROR(connectionSupportLog, "Uses port is not a CF::Port");
         throw InvalidConnection("Uses port is not a CF::Port");
     }
 
@@ -731,12 +735,12 @@ bool ConnectionNode::connect(ConnectionManager& manager)
     } catch (const CF::Port::InvalidPort& ip) {
         std::ostringstream err;
         err << "Invalid port: " << ip.msg;
-        LOG_ERROR(ConnectionNode, err.str());
+        RH_ERROR(connectionSupportLog, err.str());
         throw InvalidConnection(err.str());
     } catch (const CF::Port::OccupiedPort& op) {
-        LOG_ERROR(ConnectionNode, "Port is occupied");
+        RH_ERROR(connectionSupportLog, "Port is occupied");
         throw InvalidConnection("Port is occupied");
-    } CATCH_LOG_ERROR(ConnectionNode, "Port connection failed for connection " << identifier);
+    } CATCH_RH_ERROR(connectionSupportLog, "Port connection failed for connection " << identifier);
 
     throw InvalidConnection("Unknown error");
 }
@@ -757,7 +761,11 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
     uses->release();
     provides->release();
     if (CORBA::is_nil(usesPort)) {
-        LOG_ERROR(ConnectionNode, "Uses port is not a CF::Port");
+        if (uses->isTerminated()) {
+            RH_DEBUG(connectionSupportLog, "Uses port provider terminated");
+        } else {
+            RH_ERROR(connectionSupportLog, "Uses port is not a CF::Port");
+        }
         return;
     }
 
@@ -765,7 +773,15 @@ void ConnectionNode::disconnect(DomainLookup* domainLookup)
         unsigned long timeout = 500; // milliseconds
         omniORB::setClientCallTimeout(usesPort, timeout);
         usesPort->disconnectPort(identifier.c_str());
-    } CATCH_LOG_WARN(ConnectionNode, "Unable to disconnect port for connection " << identifier);
+    } catch (const CORBA::SystemException& exc) {
+        if (uses->isTerminated()) {
+            RH_DEBUG(connectionSupportLog, "Disconnecting port for connection " << identifier
+                      << " failed, but uses port provider terminated");
+        } else {
+            RH_WARN(connectionSupportLog, "Unable to disconnect port for connection " << identifier
+                     << ": " << ossie::corba::describeException(exc));
+        }
+    } CATCH_RH_WARN(connectionSupportLog, "Unable to disconnect port for connection " << identifier);
 
     FindByDomainFinderEndpoint* endpoint = dynamic_cast<FindByDomainFinderEndpoint*>(provides.get());
     if (endpoint && endpoint->type() == "eventchannel") {
@@ -810,6 +826,20 @@ bool ConnectionNode::checkDependency(Endpoint::DependencyType type, const std::s
     return (uses->checkDependency(type, identifier) || provides->checkDependency(type, identifier));
 }
 
+bool ConnectionNode::dependencyTerminated(Endpoint::DependencyType type, const std::string& identifier)
+{
+    bool terminated = false;
+    if (uses->checkDependency(type, identifier)) {
+        uses->dependencyTerminated();
+        terminated = true;
+    }
+    if (provides->checkDependency(type, identifier)) {
+        provides->dependencyTerminated();
+        terminated = true;
+    }
+    return terminated;
+}
+
 CREATE_LOGGER(connectionSupport);
 
 std::string ossie::eventChannelName(const FindBy* findby)
@@ -829,20 +859,20 @@ std::string ossie::eventChannelName(const FindBy* findby)
 
 CORBA::Object_ptr ossie::getPort(CORBA::Object_ptr obj, const std::string& portId)
 {
-    LOG_TRACE(connectionSupport, "Finding port");
+    RH_TRACE(connectionSupportLog, "Finding port");
     CF::PortSupplier_var portSupplier;
-    LOG_TRACE(connectionSupport, "Narrowing resource");
+    RH_TRACE(connectionSupportLog, "Narrowing resource");
     try {
         portSupplier = CF::PortSupplier::_narrow (obj);
     } catch( ... ) {
-        LOG_ERROR(connectionSupport, "Failed to narrow CF::Resource before obtaining Port with Unknown Exception");
+        RH_ERROR(connectionSupportLog, "Failed to narrow CF::Resource before obtaining Port with Unknown Exception");
         return CORBA::Object::_nil();
     }
-    LOG_TRACE(connectionSupport, "Getting port with id - " << portId);
+    RH_TRACE(connectionSupportLog, "Getting port with id - " << portId);
     try {
         return portSupplier->getPort(portId.c_str());
     } catch( ... ) {
-        LOG_ERROR(connectionSupport, "getPort failed with Unknown Exception");
+        RH_ERROR(connectionSupportLog, "getPort failed with Unknown Exception");
         return CORBA::Object::_nil();
     }
 }

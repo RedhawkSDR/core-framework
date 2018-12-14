@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="rightnow" mode="readwrite" type="utctime">
+    <value>now</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simple id="simple1970" mode="readwrite" type="utctime">
+    <value>1970:01:01::00:00:00</value>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
+  <simplesequence id="simpleSeqDefNow" mode="readwrite" type="utctime">
+    <values>
+      <value>now</value>
+    </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simpleSeqNoDef" mode="readwrite" type="utctime">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simpleSeq1970" mode="readwrite" type="utctime">
+    <values>
+      <value>1970:01:01::00:00:00</value>
+    </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+</properties>

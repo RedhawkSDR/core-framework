@@ -31,8 +31,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        2.0.9
-Release:        1%{?dist}
+Version:        2.2.1
+Release:        2%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering
@@ -41,10 +41,8 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-BuildRoot:      %{_tmppath}/%{name}-root
-
-Requires(post): redhawk >= 2.0
-BuildRequires:  redhawk-devel >= 2.0
+Requires(post): redhawk = %{version}
+BuildRequires:  redhawk-devel = %{version}
 BuildRequires:  numactl-devel >= 2.0
 Obsoletes:      %{name} < 2.0
 
@@ -126,6 +124,12 @@ find %{_prefix}/dev/nodes -type d -name 'DevMgr_*' -uid 0 -exec chown -R redhawk
 
 
 %changelog
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.2-1
+- Update for 2.1.2-rc1
+
+* Wed Jun 28 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.1-2
+- Bump for 2.1.1-rc2
+
 * Fri Jan 9 2015 1.11.0-1
 - Update for cpp GPP
 

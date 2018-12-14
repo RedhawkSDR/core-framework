@@ -46,6 +46,10 @@ void omnijni::ORB::Init (JNIEnv* env)
     // Initialize JNI references
     cls_ = omnijni::loadClass(env, "omnijni.ORB");
     object_to_string_ = env->GetStaticMethodID(cls_, "object_to_string", "(Lorg/omg/CORBA/Object;)Ljava/lang/String;");
+
+    // Set up for shutdown on JVM exit
+    jmethodID register_shutdown = env->GetStaticMethodID(cls_, "register_shutdown", "()V"); 
+    env->CallStaticVoidMethod(cls_, register_shutdown);
 }
 
 CORBA::Object_ptr omnijni::ORB::object_to_native (JNIEnv* env, jobject obj)
@@ -57,7 +61,7 @@ CORBA::Object_ptr omnijni::ORB::object_to_native (JNIEnv* env, jobject obj)
     return object;
 }
 
-extern "C" JNIEXPORT jlong JNICALL Java_omnijni_ORB_string_1to_1object_1ref (JNIEnv* env, jclass, jstring jior)
+extern "C" JNIEXPORT jlong JNICALL Java_omnijni_ORB_00024NativeORB_string_1to_1object_1ref (JNIEnv* env, jclass, jstring jior)
 {
     const char* ior = env->GetStringUTFChars(jior, NULL);
     CORBA::Object_ptr object = orb->string_to_object(ior);
@@ -65,14 +69,14 @@ extern "C" JNIEXPORT jlong JNICALL Java_omnijni_ORB_string_1to_1object_1ref (JNI
     return reinterpret_cast<jlong>(object);
 }
 
-extern "C" JNIEXPORT jstring JNICALL Java_omnijni_ORB_objectref_1to_1string (JNIEnv* env, jclass, jlong ref)
+extern "C" JNIEXPORT jstring JNICALL Java_omnijni_ORB_00024NativeORB_objectref_1to_1string (JNIEnv* env, jclass, jlong ref)
 {
     CORBA::Object_ptr object = reinterpret_cast<CORBA::Object_ptr>(ref);
     CORBA::String_var ior = orb->object_to_string(object);
     return env->NewStringUTF(ior);
 }
 
-extern "C" JNIEXPORT void JNICALL Java_omnijni_ORB_shutdown (JNIEnv* env, jclass)
+extern "C" JNIEXPORT void JNICALL Java_omnijni_ORB_00024NativeORB_shutdown (JNIEnv* env, jclass)
 {
     if (!CORBA::is_nil(orb)) {
         orb->shutdown(true);

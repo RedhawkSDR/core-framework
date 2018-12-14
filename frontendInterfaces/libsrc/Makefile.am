@@ -33,9 +33,10 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libfrontend-@FRONTEND_API_VERSION@.la
 libfrontend_@FRONTEND_API_VERSION@_la_LDFLAGS = -version-info $(FRONTEND_SO_VERSION)
-libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS)
+libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS) $(top_builddir)/libfrontendInterfaces.la
 
 libfrontend_@FRONTEND_API_VERSION@_la_SOURCES = \
+    cpp/fe_port_impl.cpp \
     cpp/fe_rfsource_port_impl.cpp \
     cpp/fe_tuner_device.cpp
 
@@ -69,6 +70,8 @@ library_include_HEADERS = \
 
 libfrontend_@FRONTEND_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
+SUBDIRS = . testing/tests/cpp
+
 ###############################################################################
 # Python
 
@@ -97,11 +100,15 @@ JAVA_BINDIR := $(JAVA_DIR)/bin
 
 JAVA_SRCS := \
 InAnalogTunerPort.java \
+InAnalogScanningTunerPort.java \
 OutAnalogTunerPort.java \
 AnalogTunerDelegate.java \
+AnalogScanningTunerDelegate.java \
 InDigitalTunerPort.java \
+InDigitalScanningTunerPort.java \
 OutDigitalTunerPort.java \
 DigitalTunerDelegate.java \
+DigitalScanningTunerDelegate.java \
 InFrontendTunerPort.java \
 OutFrontendTunerPort.java \
 FrontendTunerDelegate.java \
@@ -118,6 +125,7 @@ InRFSourcePort.java \
 OutRFSourcePort.java \
 RFSourceDelegate.java \
 FETypes.java \
+FrontendScanningTunerDevice.java \
 FrontendTunerDevice.java
 
 java_JARFILES = frontend.jar

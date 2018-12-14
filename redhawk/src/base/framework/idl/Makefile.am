@@ -50,6 +50,8 @@ BUILT_SOURCES =	cfSK.cpp \
 		ExtendedEventDynSK.cpp \
 		QueryablePortSK.cpp \
 		QueryablePortDynSK.cpp \
+		NegotiablePortSK.cpp \
+		NegotiablePortDynSK.cpp \
 		WellKnownPropertiesSK.cpp \
 		WellKnownPropertiesDynSK.cpp \
 		sandboxSK.cpp \
@@ -63,7 +65,7 @@ CLEANFILES = $(BUILT_SOURCES)
 
 
 cfheaderdir = $(pkgincludedir)/CF
-dist_cfheader_HEADERS = LogInterfaces.h EventChannelManager.h cf.h DataType.h Port.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h WellKnownProperties.h sandbox.h
+dist_cfheader_HEADERS = LogInterfaces.h EventChannelManager.h cf.h DataType.h Port.h PortTypes.h StandardEvent.h AggregateDevices.h ExtendedEvent.h QueryablePort.h NegotiablePort.h WellKnownProperties.h sandbox.h
 #nodist_pkginclude_HEADERS = cf.h PortTypes.h StandardEvent.h
 
 lib_LTLIBRARIES = libossieidl.la

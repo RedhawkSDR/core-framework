@@ -31,27 +31,37 @@
 #include <ossie/ComponentDescriptor.h>
 #include <ossie/ossieSupport.h>
 #include <ossie/DeviceManagerConfiguration.h>
+#include <ossie/Logging_impl.h>
 #include <ossie/PropertySet_impl.h>
 #include <ossie/PortSet_impl.h>
 #include <ossie/FileManager_impl.h>
+#include <ossie/File_impl.h>
+#include <ossie/ParserLogs.h>
 #include <ossie/Properties.h>
 #include <ossie/SoftPkg.h>
 #include <ossie/Events.h>
+#include "spdSupport.h"
 #include <ossie/affinity.h>
 #include "spdSupport.h"
 #include "process_utils.h"
 
 #include <dirent.h>
 
+class DomainCheckThread;
+
 class DeviceManager_impl: 
     public virtual POA_CF::DeviceManager,
+    public Logging_impl,
     public PropertySet_impl,
     public PortSet_impl
 {
     ENABLE_LOGGING
+    
+    friend class DomainCheckThread;
 
 public:
-  DeviceManager_impl (const char*, const char*, const char*, const char*, const struct utsname &uname, bool, const char *, bool *);
+  DeviceManager_impl (const char*, const char*, const char*, const char*, const struct utsname &uname, bool, 
+                      const char *, bool *, const std::string&, int);
 
     ~DeviceManager_impl ();
     char* deviceConfigurationProfile ()
@@ -77,6 +87,9 @@ public:
 
     // Run this after the constructor
     void postConstructor( const char*) throw (CORBA::SystemException, std::runtime_error);
+
+    // Re-start all devices and services, and re-associate with the Domain
+    void reset();
 
     void registerDevice (CF::Device_ptr registeringDevice)
         throw (CF::InvalidObjectReference, CORBA::SystemException);
@@ -108,13 +121,25 @@ public:
 
     uint32_t  getClientWaitTime( ) { return CLIENT_WAIT_TIME; }
 
+    // set the log level for one of the loggers on a component on the waveform
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+
+    // get the log level from one of the loggers on a component on the waveform
+    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+
+    // retrieves the list of named loggers from all the components associated with the waveform
+    CF::StringSequence* getNamedLoggers();
+
+    // reset the loggers on all components on the waveform
+    void resetLog();
+
 private:
     DeviceManager_impl ();   // No default constructor
     DeviceManager_impl(DeviceManager_impl&);  // No copying
 
     typedef   boost::shared_ptr<FileSystem_impl>                                  FileSystemPtr;
-    typedef   std::vector<  ossie::ComponentPlacement >                           ComponentPlacements;
-    typedef   std::pair< ossie::ComponentPlacement, local_spd::ProgramProfile* >  Deployment;
+    typedef   std::vector< ossie::DevicePlacement >                               DevicePlacements;
+    typedef   std::pair< ossie::DevicePlacement, local_spd::ProgramProfile* >     Deployment;
     typedef   std::vector< Deployment >                                           DeploymentList;
     typedef   std::list<std::pair<std::string,std::string> >                      ExecparamList;
     typedef   std::map<std::string, PackageMod  >                                 PackageMods;
@@ -135,6 +160,12 @@ private:
         CORBA::Object_var service;
         pid_t pid;
     };
+    
+    DomainCheckThread *DomainWatchThread;
+    void domainRefreshChanged(float oldValue, float newValue);
+    int checkDomain();
+    struct timeval startDomainWarn;
+    bool domain_persistence;
 
     typedef std::vector<DeviceNode*> DeviceList;
     typedef std::vector<ServiceNode*> ServiceList;
@@ -154,7 +185,8 @@ private:
     std::string     HOSTNAME;
     float           DEVICE_FORCE_QUIT_TIME;
     CORBA::ULong    CLIENT_WAIT_TIME;
-
+    float           DOMAIN_REFRESH;
+    
     // read only attributes
     struct utsname _uname;
     std::string processor_name;
@@ -162,6 +194,7 @@ private:
     std::string _identifier;
     std::string _label;
     std::string _deviceConfigurationProfile;
+    std::string _spdFile;
     std::string _fsroot;
     std::string _cacheroot;
     std::string _local_sdrroot;
@@ -176,7 +209,15 @@ private:
     CF::FileSystem_var _local_dom_filesys;
     CF::FileSystem_var _fileSys;
     CF::DeviceManager_var myObj;
+    ossie::DeviceManagerConfiguration  DCDParser;
+
     bool checkWriteAccess(std::string &path);
+    
+    //
+    // tryResourceStartup - try the following interfaces initializeproperties, initialize, configure
+    //
+    void   tryResourceStartup( CORBA::Object_ptr registeringService,
+                               const std::string &svc_name );
 
     enum DevMgrAdmnType {
         DEVMGR_REGISTERED,
@@ -211,9 +252,9 @@ private:
         CF::DeviceManager_var& my_object_var);
 
     void getCompositeDeviceIOR(
-        std::string&                                  compositeDeviceIOR, 
-        const std::vector<ossie::ComponentPlacement>& componentPlacements,
-        const ossie::ComponentPlacement&              componentPlacementInst);
+        std::string&                               compositeDeviceIOR, 
+        const std::vector<ossie::DevicePlacement>& componentPlacements,
+        const ossie::DevicePlacement&              componentPlacementInst);
 
     bool addDeviceImplProperties (
         local_spd::ProgramProfile *compProfile,
@@ -229,7 +270,7 @@ private:
 
     int  resolveDebugLevel( const std::string &level_in );
     void resolveLoggingConfiguration( const std::string &                      usageName,
-                                      std::vector< std::string >&              new_argv,
+                                      std::vector< std::string >&              new_argv, 
                                       const ossie::ComponentInstantiation&     instantiation,
                                       const std::string &logcfg_path );
     DeviceNode* getDeviceNode(const pid_t pid);
@@ -250,12 +291,14 @@ private:
 
     void createDeviceCacheLocation(
         std::string&                         devcache,
+        std::string&                         devcwd,
         std::string&                         usageName, 
+        local_spd::ProgramProfile            *compProfile,
         const ossie::ComponentInstantiation& instantiation);
 
     void createDeviceExecStatement(
         std::vector< std::string >&                   new_argv,
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -264,7 +307,7 @@ private:
         const std::string&                            compositeDeviceIOR );
 
     void createDeviceThreadAndHandleExceptions(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -272,17 +315,18 @@ private:
         const std::string&                            compositeDeviceIOR );
 
     void createDeviceThread(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
+        const std::string&                            devcwd,
         const std::string&                            usageName,
         const std::string&                            compositeDeviceIOR );
 
     ExecparamList createDeviceExecparams(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -301,6 +345,7 @@ private:
         const std::string &impl_id );
 
     local_spd::ProgramProfile *findProfile( const std::string &instantiationId );
+    local_spd::ProgramProfile *findProfile( const std::string &usageName, const std::string &instantiationId );
     bool deviceIsRegistered (CF::Device_ptr);
     bool serviceIsRegistered (const char*);
     void getDomainManagerReference(const std::string&);
@@ -318,6 +363,11 @@ private:
     void clean_registeredDevices();
     void clean_registeredServices();
     void clean_externalServices();
+    bool verifyAllRegistered();
+
+    std::vector<std::pair<std::string, int> > start_order;
+    void startOrder();
+    void stopOrder();
 
     void local_unregisterService(CORBA::Object_ptr service, const std::string& name);
     void local_unregisterDevice(CF::Device_ptr device, const std::string& name);
@@ -332,7 +382,12 @@ private:
                         
     void deleteFileSystems();
     bool makeDirectory(std::string path);
-    std::string getIORfromID(const char* instanceid);
+    std::string getIORfromID(const std::string& instanceid);
+
+    ServiceNode* _getPendingService(const std::string& name);
+    void _terminateProcess(pid_t pid);
+    void _terminateProcessThreaded(pid_t pid);
+
     std::string deviceMgrIOR;
     std::string fileSysIOR;
     bool *_internalShutdown;
@@ -354,8 +409,105 @@ private:
     // Registration record for Domain's IDM_Channel 
     ossie::events::EventChannelReg_var   idm_registration;
     std::string                          IDM_IOR;
+    int _initialDebugLevel;
 
 };
+
+class DomainCheckThread {
+
+public:
+
+  enum {
+    NOOP   = 0,
+    FINISH = -1,
+  };
+
+private:
+  boost::thread* _thread;
+  volatile bool _running;
+  DeviceManager_impl * _target;
+  struct timespec _delay;
+
+public: 
+  boost::thread*& _mythread;
+
+public:
+  DomainCheckThread( DeviceManager_impl *target, float delay=0.5) :
+    _thread(0),
+    _running(false),
+    _target(target),
+    _mythread(_thread)
+  {
+    updateDelay(delay);
+  }
+
+  void start() {
+    if (!_thread) {
+      _running = true;
+      _thread = new boost::thread(&DomainCheckThread::run, this);
+    }
+  }
+
+  void run()
+  {
+    while (_running) {
+      int state = _target->checkDomain();
+      if (state == FINISH) {
+        return;
+      } else if (state == NOOP) {
+        nanosleep(&_delay, NULL);
+      }
+      else {
+        boost::this_thread::yield();
+      }
+    }
+  }
+
+  bool release(unsigned long secs=0, unsigned long usecs=0) {
+
+    _running = false;
+    if (_thread)  {
+      if ((secs == 0) && (usecs == 0)){
+        _thread->join();
+      } else {
+        boost::system_time waitime = boost::get_system_time() + boost::posix_time::seconds(secs) +  boost::posix_time::microseconds(usecs);
+        if (!_thread->timed_join(waitime)) {
+          return false;
+        }
+      }
+      delete _thread;
+      _thread = 0;
+    }
+    
+    return true;
+  }
+
+  void stop() {
+    _running = false;
+    if ( _thread ) _thread->interrupt();
+  }
+
+  ~DomainCheckThread()
+  {
+    if (_thread) {
+      release(0);
+      _thread = 0;
+    }
+  }
+
+  void updateDelay(float delay)
+  {
+    _delay.tv_sec = (time_t)delay;
+    _delay.tv_nsec = (delay-_delay.tv_sec)*1e9;
+  }
+
+  bool threadRunning()
+  {
+    return _running;
+  }
+
+};
+
 
 #endif                                            /* __DEVICEMANAGER_IMPL__ */
 

@@ -20,8 +20,9 @@
 
 package org.ossie.component;
 
-public interface PortBase 
+public interface PortBase
 {
 	String getRepid();
 	String getDirection();
+    void setLogger(RHLogger logger);
 }

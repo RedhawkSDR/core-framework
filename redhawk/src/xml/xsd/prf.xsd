@@ -156,6 +156,7 @@ defined.</xs:documentation></xs:annotation></xs:element>
       <xs:enumeration value="long"/>
       <xs:enumeration value="longlong"/>
       <xs:enumeration value="ulonglong"/>
+      <xs:enumeration value="utctime"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:complexType name="range">

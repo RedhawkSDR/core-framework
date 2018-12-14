@@ -24,6 +24,7 @@ from omniORB import any as _any
 from ossie.cf import CF
 from ossie.cf import ExtendedCF
 from ossie import properties
+from ossie.utils import redhawk, rhconnection
 
 class ConnectionManagerTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -194,18 +195,21 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
         super(ConnectionManagerTestRedhawkUtils,self).setUp()
         nb, self._domMgr = self.launchDomainManager()
         nb, self._devMgr = self.launchDeviceManager('/nodes/test_PortTestDevice_node/DeviceManager.dcd.xml')
-        self._connMgr = self._domMgr._get_connectionMgr()
 
         # Device IDs taken from the DCD
         self.devId1 = 'DCE:322fb9b2-de57-42a2-ad03-217bcb244262'
         self.devId2 = 'DCE:47dc45d8-19b5-4b7e-bcd4-b165babe5b84'
 
-        from ossie.utils import redhawk
-        d=redhawk.Domain(self._domMgr._get_name() )
-        self.assertNotEqual(d,None)
-        
+        self.dom=redhawk.attach(self._domMgr._get_name() )
+        for dev in self.dom.devices:
+            if dev._get_identifier() == self.devId1:
+                self.dev1 = dev
+            if dev._get_identifier() == self.devId2:
+                self.dev2 = dev
+        self.assertNotEqual(self.dom,None)
+
         # The DCD has one connection, verify that it is listed
-        self.cm = d.getConnectionMgr()
+        self.cm = self.dom.getConnectionMgr()
         self.assertNotEqual(self.cm, None )
     
     def tearDown(self):
@@ -255,7 +259,56 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
 
         # get connnections list
         clist, citer = self.cm.listConnections()
-        self.assertEqual(clist, [] )        
+        self.assertEqual(clist, [] )
+
+        conn=citer.next_one()
+        self.assertEqual(conn.usesEndpoint.portName, 'resource_out')
+        conn=citer.next_one()
+        self.assertEqual(conn.usesEndpoint.portName, 'resource_out')
+        conn=citer.next_one()
+        self.assertEqual(conn, None)
+
+
+        # The connection should have been resolved immediately
+        self.assertTrue(connection.connected)
+        self.assertEqual(connection.usesEndpoint.portName, 'resource_out')
+        self.assertEqual(connection.providesEndpoint.portName, '')
+
+        # Verify that the connection was really made
+        connections = connection.usesEndpoint.endpointObject._get_connections()
+        self.assertTrue(len(connections) == 1)
+        self.assertEqual(connections[0].connectionId, 'test_connection')
+        self.assertEqual(connections[0].port._get_identifier(), self.devId1)
+
+        # Break the connection and make sure the connection went away
+        self.cm.disconnect(connectionReportId)
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 1)
+
+    def test_connect_DeviceConnections(self):
+
+        # The DCD has one connection, verify that it is listed
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 1)
+
+        # Use the first device's resource_out port as the uses endpoint
+        uses = rhconnection.makeEndPoint(self.dev2, 'resource_out')
+
+        # Use the device itself as the provides endpoint
+        provides = rhconnection.makeEndPoint( self.dev1, '' )
+
+        # Create a new connection with a known ID
+        connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
+
+        # Make sure the new connection is listed
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 2)
+        connection = self._findConnection(connections, 'test_connection')
+        self.assertFalse(connection is None)
+
+        # get connnections list
+        clist, citer = self.cm.listConnections()
+        self.assertEqual(clist, [] )
 
         conn=citer.next_one()
         self.assertEqual(conn.usesEndpoint.portName, 'resource_out')
@@ -285,21 +338,65 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
     def test_redhawkutils_ComponentConnections(self):
         app_src = self._domMgr.createApplication('/waveforms/comp_src_w/comp_src_w.sad.xml', 'src_app', [], [])
         app_snk = self._domMgr.createApplication('/waveforms/comp_snk_w/comp_snk_w.sad.xml', 'snk_app', [], [])
-        uses = self.cm.componentEndPoint( 'comp_src_1:'+app_src._get_identifier(), 'dataFloat_out')
-        provides = self.cm.componentEndPoint( 'comp_snk_1:'+app_snk._get_identifier(), 'dataFloat_in')
+        uses = self.cm.componentEndPoint( 'comp_src_1:'+app_src._get_identifier(), 'output')
+        provides = self.cm.componentEndPoint( 'comp_snk_1:'+app_snk._get_identifier(), 'input')
         connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
         connections = self.cm.connections
         self.assertEqual(len(connections), 2)
         connection = self._findConnection(connections,'test_connection')
         self.assertFalse(connection is None)
         self.assertTrue(connection.connected)
-        self.assertEqual(connection.usesEndpoint.portName, 'dataFloat_out')
-        self.assertEqual(connection.providesEndpoint.portName, 'dataFloat_in')
+        self.assertEqual(connection.usesEndpoint.portName, 'output')
+        self.assertEqual(connection.providesEndpoint.portName, 'input')
         connections = connection.usesEndpoint.endpointObject._narrow(ExtendedCF.QueryablePort)._get_connections()
         self.assertTrue(len(connections) == 1)
         self.assertEqual(connections[0].connectionId, 'test_connection')
-        
-    
+
+    def test_connect_ComponentConnections(self):
+        app_src = self.dom.createApplication('/waveforms/comp_src_w/comp_src_w.sad.xml', 'src_app', [], [])
+        app_snk = self.dom.createApplication('/waveforms/comp_snk_w/comp_snk_w.sad.xml', 'snk_app', [], [])
+        comp_src = app_src.comps[0]
+        comp_snk = app_snk.comps[0]
+
+        uses = rhconnection.makeEndPoint( comp_src, 'output')
+        provides = rhconnection.makeEndPoint( comp_snk, 'input')
+        connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 2)
+        connection = self._findConnection(connections,'test_connection')
+        self.assertFalse(connection is None)
+        self.assertTrue(connection.connected)
+        self.assertEqual(connection.usesEndpoint.portName, 'output')
+        self.assertEqual(connection.providesEndpoint.portName, 'input')
+        connections = connection.usesEndpoint.endpointObject._narrow(ExtendedCF.QueryablePort)._get_connections()
+        out_connections = comp_src.ports[0].ref._get_connections()
+        self.assertTrue(connections[0].port._is_equivalent(out_connections[0].port))
+        self.assertTrue(len(connections) == 1)
+        self.assertEqual(connections[0].connectionId, 'test_connection')
+
+    def test_connect_ServicesConnections(self):
+        app_src = self.dom.createApplication('/waveforms/svc_connect/svc_connect.sad.xml', 'svc_connect', [], [])
+        nb, self._devMgrSvc = self.launchDeviceManager('/nodes/test_BasicService_node/DeviceManager.dcd.xml')
+        comp_src = app_src.comps[0]
+        for svc in self.dom.services:
+            if svc.name == 'BasicService1':
+                break
+
+        uses = rhconnection.makeEndPoint( comp_src, 'output')
+        provides = rhconnection.makeEndPoint( svc, '')
+        connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 2)
+        connection = self._findConnection(connections,'test_connection')
+        self.assertFalse(connection is None)
+        self.assertTrue(connection.connected)
+        self.assertEqual(connection.usesEndpoint.portName, 'output')
+        connections = connection.usesEndpoint.endpointObject._narrow(ExtendedCF.QueryablePort)._get_connections()
+        out_connections = comp_src.ports[0].ref._get_connections()
+        self.assertTrue(connections[0].port._is_equivalent(out_connections[0].port))
+        self.assertTrue(len(connections) == 1)
+        self.assertEqual(connections[0].connectionId, 'test_connection')
+
     def test_redhawkutils_ApplicationConnections(self):
         app = self._createApp('/waveforms/PortConnectExternalPortRename/PortConnectExternalPortRename.sad.xml')
 
@@ -307,6 +404,39 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
         # provides port
         uses = self.cm.applicationEndPoint( app._get_identifier(), 'rename_resource_out')
         provides = self.cm.deviceEndPoint( self.devId1, 'resource_in')
+        connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
+
+        # Make sure the new connection is listed
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 2)
+        connection = self._findConnection(connections,'test_connection')
+        self.assertFalse(connection is None)
+
+        # The connection should have been resolved immediately
+        self.assertTrue(connection.connected)
+        self.assertEqual(connection.usesEndpoint.portName, 'rename_resource_out')
+        self.assertEqual(connection.providesEndpoint.portName, 'resource_in')
+
+        # Verify that the connection was really made
+        connections = connection.usesEndpoint.endpointObject._get_connections()
+        self.assertTrue(len(connections) == 1)
+        self.assertEqual(connections[0].connectionId, 'test_connection')
+        self.assertEqual(connections[0].port._get_identifier(), self.devId1+'/resource_in')
+
+        # Break the connection and make sure the connection went away
+        self.cm.disconnect(connectionReportId)
+        connections = self.cm.connections
+        self.assertEqual(len(connections), 1)
+
+        app.releaseObject()
+        
+    def test_connect_ApplicationConnections(self):
+        app = self.dom.createApplication('/waveforms/PortConnectExternalPortRename/PortConnectExternalPortRename.sad.xml')
+
+        # Connect the application's external uses port to the first device's
+        # provides port
+        uses = rhconnection.makeEndPoint( app, 'rename_resource_out')
+        provides = rhconnection.makeEndPoint( self.dev1, 'resource_in')
         connectionReportId = self.cm.connect(uses, provides, 'test_environment', 'test_connection')
 
         # Make sure the new connection is listed

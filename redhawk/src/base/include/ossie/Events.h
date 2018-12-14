@@ -390,7 +390,7 @@ namespace events {
 
     Manager(  Resource_impl *obj );
 
-    static ManagerPtr              _Manager;
+    //static ManagerPtr              _Manager;
 
     Registrations                  _registrations;
 
@@ -403,10 +403,14 @@ namespace events {
     Mutex                          _mgr_lock;
 
     bool                           _allow;
+    
+    static std::map<std::string, ManagerPtr> _managers;
 
     Resource_impl                  *_obj;
       
     std::string                    _obj_id;
+    rh_logger::LoggerPtr           _resourceLog;
+    rh_logger::LoggerPtr           _eventManagerLog;
   };
 
 
@@ -442,6 +446,10 @@ namespace events {
     // @param retries    number of retries to perform when trying to establish  publisher interface
     // @param retry_wait number of millisecs to wait between retries
     Publisher( ossie::events::EventChannel_ptr            channel);
+
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _publisherLog = logptr;
+    };
 
     //
     //
@@ -530,6 +538,7 @@ namespace events {
 
     // handle to object that responds to disconnect messages
     Receiver                                 *_disconnectReceiver;
+    rh_logger::LoggerPtr _publisherLog;
 
   };
 
@@ -571,6 +580,9 @@ namespace events {
 
     };
 
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _subscriberLog = logptr;
+    };
 
     typedef boost::shared_ptr< Subscriber::DataArrivedListener >    DataArrivedListenerPtr;
 
@@ -744,6 +756,7 @@ namespace events {
 
 
     void   _init(  ossie::events::EventChannel_ptr     inChannel );
+    rh_logger::LoggerPtr _subscriberLog;
 
 
   }; // end of Subscriber

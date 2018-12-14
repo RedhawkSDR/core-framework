@@ -129,6 +129,18 @@ def setupDeviceAndDomainMgrPackage():
     for xmlFile in glob.glob(os.path.join(domMgrSrc, '*.xml')):
         updateLink(xmlFile, os.path.join(domMgrDest, os.path.basename(xmlFile)))
 
+    # "Install" the ComponentHost softpkg
+    compHostSrc = os.path.join(sdrSrc, 'ComponentHost')
+    compHostDest = os.path.join(getSdrPath(), "dom/mgr/rh/ComponentHost")
+    try:
+        os.makedirs(compHostDest)
+    except OSError:
+        # Assume it failed because the directory already exists
+        pass
+    updateLink(os.path.join(compHostSrc, 'ComponentHost'), os.path.join(compHostDest, 'ComponentHost'))
+    for xmlFile in glob.glob(os.path.join(compHostSrc, '*.xml')):
+        updateLink(xmlFile, os.path.join(compHostDest, os.path.basename(xmlFile)))
+
     # "Install" the DeviceManager softpkg.
     devMgrSrc = os.path.join(sdrSrc, 'devmgr')
     devMgrDest = os.path.join(getSdrPath(), "dev", "mgr")
@@ -205,13 +217,14 @@ DEBUG_NODEBOOTER=False
 GDB_CMD_FILE=None
 def spawnNodeBooter(dmdFile=None, 
                     dcdFile=None, 
-                    debug=0, 
+                    debug=-1, 
                     domainname=None, 
                     loggingURI=None, 
                     endpoint=None, 
                     dbURI=None, 
                     execparams="", 
-                    nodeBooterPath="../../control/framework/nodeBooter"):
+                    nodeBooterPath="../../control/framework/nodeBooter",
+                    stderr=None):
     args = []
     if dmdFile != None:
         args.extend(["-D", dmdFile])
@@ -224,15 +237,15 @@ def spawnNodeBooter(dmdFile=None,
     else:
         args.extend(["--domainname", domainname])
 
-    if endpoint == None:
-        args.append("--nopersist")
-    else:
+    if endpoint is not None:
         args.extend(["-ORBendPoint", endpoint])
 
     if dbURI:
         args.extend(["--dburl", dbURI])
 
-    args.extend(["-debug", str(debug)])
+    if debug != -1:
+        args.extend(["-debug", str(debug)])
+
     if loggingURI is not None:
         if loggingURI:
             args.extend(["-log4cxx", loggingURI])
@@ -249,7 +262,7 @@ def spawnNodeBooter(dmdFile=None,
     print '\n-------------------------------------------------------------------'
     print 'Launching nodeBooter', " ".join(args)
     print '-------------------------------------------------------------------'
-    nb = ossie.utils.Popen(args, cwd=getSdrPath(), shell=False, preexec_fn=os.setpgrp)
+    nb = ossie.utils.Popen(args, cwd=getSdrPath(), shell=False, preexec_fn=os.setpgrp, stderr=stderr)
     if DEBUG_NODEBOOTER:
         absNodeBooterPath = os.path.abspath("../control/framework/nodeBooter")
         if GDB_CMD_FILE != None:
@@ -273,7 +286,7 @@ def  getProcessArgs( pname ):
          pass
 
      return args
-
+               
 
 class OssieTestCase(unittest.TestCase):
 
@@ -380,7 +393,7 @@ class CorbaTestCase(OssieTestCase):
     def __init__(self, methodName='runTest', orbArgs=[]):
         unittest.TestCase.__init__(self, methodName)
         args = sys.argv
-        self.debuglevel = 3
+        self.debuglevel = -1
         for arg in args:
             if '--debuglevel' in arg:
                 self.debuglevel = arg.split('=')[-1]
@@ -483,7 +496,8 @@ class CorbaTestCase(OssieTestCase):
             return (self._domainBooter, self._domainManager)
 
         # If debug level is not given, default to configured level
-        kwargs.setdefault('debug', self.debuglevel)
+        if self.debuglevel != -1:
+            kwargs.setdefault('debug', self.debuglevel)
 
         # Launch the nodebooter.
         self._domainBooter = spawnNodeBooter(dmdFile=dmdFile, execparams=self._execparams, *args, **kwargs)
@@ -506,7 +520,8 @@ class CorbaTestCase(OssieTestCase):
             return (None, None)
 
         # If debug level is not given, default to configured level
-        kwargs.setdefault('debug', self.debuglevel)
+        if self.debuglevel != -1:
+            kwargs.setdefault('debug', self.debuglevel)
 
         # Launch the nodebooter.
         if domainManager == None:
@@ -557,13 +572,40 @@ class CorbaTestCase(OssieTestCase):
             self._addDeviceManager(devMgr)
         return devMgr
 
+    def waitForDeviceManager(self, node_dir):
+        dcdPath = getSdrPath()+"/dev/nodes/"+node_dir+"/DeviceManager.dcd.xml"
+
+        dcd = DCDParser.parse(dcdPath)
+        if dcd.get_partitioning():
+            numDevices = len(dcd.get_partitioning().get_componentplacement())
+        else:
+            numDevices = 0
+
+        dm = self._getDomainManager()
+
+        devMgr = None
+        while devMgr == None:
+            devMgr = self._getDeviceManager(dm, dcd.get_id())
+            if devMgr:
+                break
+            time.sleep(0.1)
+
+        if devMgr:
+            self._waitRegisteredDevices(devMgr, numDevices)
+            self._addDeviceManager(devMgr)
+        return devMgr
+
+
     def _waitRegisteredDevices(self, devMgr, numDevices, timeout=5.0, pause=0.1):
         while timeout > 0.0:
-            if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
-                return True
-            else:
-                timeout -= pause
-                time.sleep(pause)
+            try: # when responding to error conditions during some tests, the Device Manager will trigger a TRANSIENT error
+                if (len(devMgr._get_registeredDevices())+len(devMgr._get_registeredServices())) == numDevices:
+                    return True
+                else:
+                    timeout -= pause
+                    time.sleep(pause)
+            except:
+                break
         return False
 
     def waitTermination(self, child, timeout=5.0, pause=0.1):

@@ -32,9 +32,11 @@
 #include <ossie/debug.h>
 #include <ossie/Logging_impl.h>
 
-#include "applicationSupport.h"
+#include "Deployment.h"
+#include "ApplicationDeployment.h"
+#include "PersistenceStore.h"
 #include "connectionSupport.h"
-
+#include "ApplicationComponent.h"
 
 class DomainManager_impl;
 class ApplicationRegistrar_impl;
@@ -45,20 +47,18 @@ class Application_impl : public virtual POA_CF::Application, public Logging_impl
     ENABLE_LOGGING
     friend class DomainManager_impl;
 
-protected:
-    CF::Resource_var assemblyController;
-
 public:
 
     Application_impl (const std::string& id, const std::string& name, const std::string& profile,
                       DomainManager_impl* domainManager, const std::string& waveformContextName,
-                      CosNaming::NamingContext_ptr waveformContext, bool aware, CosNaming::NamingContext_ptr DomainContext);
+                      CosNaming::NamingContext_ptr waveformContext, bool aware,
+                      float stopTimeout, CosNaming::NamingContext_ptr DomainContext);
     
-    void populateApplication (CF::Resource_ptr _assemblyController,
-                              std::vector<ossie::DeviceAssignmentInfo>& _devSequence,
-                              std::vector<CF::Resource_var> _startSeq,
+    void populateApplication (const CF::DeviceAssignmentSequence& deviceAssignments,
                               std::vector<ossie::ConnectionNode>& connections,
                               std::vector<std::string> allocationIDs);
+
+    void setStartOrder(const std::vector<std::string>& startOrder);
 
     ~Application_impl ();
 
@@ -72,7 +72,7 @@ public:
     void stop ()
         throw (CF::Resource::StopError, CORBA::SystemException);
 
-    void local_stop ()
+    void local_stop (float timeout)
         throw (CF::Resource::StopError, CORBA::SystemException);
 
     // The core framework provides an implementation for this method.
@@ -88,6 +88,10 @@ public:
     // The core framework provides an implementation for this method.
     void query (CF::Properties& configProperties)
         throw (CF::UnknownProperties, CORBA::SystemException);
+
+    // The core framework provides an implementation for this method.
+    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes)
+        throw (CF::Application::InvalidMetric, CORBA::SystemException);
 
     char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval)
       throw(CF::UnknownProperties, CF::InvalidObjectReference);
@@ -117,6 +121,10 @@ public:
     
     bool aware () throw (CORBA::SystemException);
     
+    CORBA::Float stopTimeout () throw (CORBA::SystemException);
+
+    void stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException);
+    
     CF::DeviceAssignmentSequence * componentDevices ()
         throw (CORBA::SystemException);
         
@@ -133,6 +141,13 @@ public:
     
     CF::ApplicationRegistrar_ptr appReg (void);
 
+    void setAssemblyController (const std::string& assemblyControllerRef);
+    redhawk::ApplicationComponent* getAssemblyController();
+
+    const std::string& getIdentifier() const;
+    const std::string& getName() const;
+    const std::string& getProfile() const;
+
     void addExternalPort (const std::string&, CORBA::Object_ptr);
     void addExternalProperty (const std::string&, const std::string&, const std::string &access, CF::Resource_ptr);
 
@@ -142,37 +157,34 @@ public:
     void _cleanupActivations();
 
     // Set component state
-    void addComponent(const std::string& identifier, const std::string& profile);
-    void setComponentPid(const std::string& identifier, unsigned long pid);
-    void setComponentNamingContext(const std::string& identifier, const std::string& name);
-    void setComponentImplementation(const std::string& identifier, const std::string& implementationId);
-    void setComponentDevice(const std::string& identifier, CF::Device_ptr device);
-    void addComponentLoadedFile(const std::string& identifier, const std::string& fileName);
+    redhawk::ApplicationComponent* addComponent(const std::string& componentId, const std::string& softwareProfile);
+    redhawk::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
+    redhawk::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
 
     void releaseComponents();
     void terminateComponents();
     void unloadComponents();
+
+    void componentTerminated(const std::string& componentId, const std::string& deviceId);
 
     bool waitForComponents(std::set<std::string>& identifiers, int timeout);
 
     CF::Application_ptr getComponentApplication();
     CF::DomainManager_ptr getComponentDomainManager();
 
-    struct externalPropertyRecord {
-    public:
+    redhawk::ApplicationComponent* getComponent(const std::string& identifier);
 
-        std::string id;
-        std::string access;
-        CF::Resource_var component;
+    // set the log level for one of the loggers on a component on the waveform
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
 
-        externalPropertyRecord() {};
+    // get the log level from one of the loggers on a component on the waveform
+    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
 
-        externalPropertyRecord(const std::string &_id, const std::string &_access, CF::Resource_ptr _component) {
-            id = _id;
-            access = _access;
-            component = CF::Resource::_duplicate(_component);
-        };
-    };
+    // retrieves the list of named loggers from all the components associated with the waveform
+    CF::StringSequence* getNamedLoggers();
+
+    // reset the loggers on all components on the waveform
+    void resetLog();
 
 private:
     Application_impl (); // No default constructor
@@ -190,48 +202,56 @@ private:
     typedef  std::vector< PropertyChangeRecord >                 PropertyChangeRecords;
     typedef  std::map< std::string, PropertyChangeRecords >      PropertyChangeRegistry;
 
-    void registerComponent(CF::Resource_ptr resource);
+    std::map<std::string, redhawk::PropertyMap> measuredDevices;
+    bool haveAttribute(std::vector<std::string> &atts, std::string att);
+    redhawk::PropertyMap measureComponent(redhawk::ApplicationComponent &component);
+    redhawk::PropertyMap filterAttributes(redhawk::PropertyMap &attributes, std::vector<std::string> &filter);
 
-    bool stopComponent(CF::Resource_ptr component);
+    void registerComponent(CF::Resource_ptr resource);
 
     bool _checkRegistrations(std::set<std::string>& identifiers);
 
+    void _checkComponentConnections(redhawk::ApplicationComponent* component);
+
+    redhawk::ApplicationComponent* _assemblyController;
     const std::string _identifier;
     const std::string _sadProfile;
     const std::string _appName;
-    std::vector<ossie::DeviceAssignmentInfo> _componentDevices;
+    CF::DeviceAssignmentSequence _componentDevices;
     std::vector<ossie::ConnectionNode> _connections;
-    std::vector<CF::Resource_var> _appStartSeq;
+    std::vector<redhawk::ApplicationComponent*> _startOrder;
     std::vector<std::string> _allocationIDs;
     DomainManager_impl* _domainManager;
     const std::string _waveformContextName;
     CosNaming::NamingContext_var _waveformContext;
     bool _started;
     const bool _isAware;
+    float _stopTimeout;
     FakeApplication* _fakeProxy;
     
     ApplicationRegistrar_impl* _registrar;
 
-    ossie::ComponentList _components;
+    typedef std::list<redhawk::ApplicationComponent> ComponentList;
+    ComponentList _components;
     CosNaming::NamingContext_var _domainContext;
 
     boost::mutex _registrationMutex;
     boost::condition_variable _registrationCondition;
 
     std::map<std::string, CORBA::Object_var> _ports;
-    std::map<std::string, externalPropertyRecord> _properties;
+    std::map<std::string, ossie::externalPropertyType> _properties;
 
     bool _releaseAlreadyCalled;
     boost::mutex releaseObjectLock;
+    boost::mutex metricsLock;
 
     PropertyChangeRegistry   _propertyChangeRegistrations;
 
-    ossie::ApplicationComponent* findComponent(const std::string& identifier);
+    redhawk::ApplicationComponent* findComponent(const std::string& identifier);
 
     // Returns externalpropid if one exists based off of compId and
     // internal propId, returns empty string if no external prop exists
     std::string getExternalPropertyId(std::string compId, std::string propId);
-
 
     friend class ApplicationRegistrar_impl;
 };

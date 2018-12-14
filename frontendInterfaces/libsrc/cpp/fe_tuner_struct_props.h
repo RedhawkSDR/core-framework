@@ -22,6 +22,7 @@
 
 #include <ossie/CorbaUtils.h>
 #include <ossie/PropertyInterface.h>
+#include <ossie/PropertyMap.h>
 #include "fe_types.h"
 
 inline bool operator>>= (const CORBA::Any& a, frontend::frontend_tuner_allocation_struct& s) {
@@ -322,6 +323,82 @@ template<> inline short StructSequenceProperty<frontend::default_frontend_tuner_
     }
 
     std::vector<frontend::default_frontend_tuner_status_struct_struct> tmp;
+    if (fromAny(a, tmp)) {
+        if (tmp != this->value_) {
+            return 1;
+        }
+
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+inline bool operator>>= (const CORBA::Any& a, frontend::frontend_scanner_allocation_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("FRONTEND::scanner_allocation::min_freq")) {
+        if (!(props["FRONTEND::scanner_allocation::min_freq"] >>= s.min_freq)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::max_freq")) {
+        if (!(props["FRONTEND::scanner_allocation::max_freq"] >>= s.max_freq)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::mode")) {
+        if (!(props["FRONTEND::scanner_allocation::mode"] >>= s.mode)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::control_mode")) {
+        if (!(props["FRONTEND::scanner_allocation::control_mode"] >>= s.control_mode)) return false;
+    }
+    if (props.contains("FRONTEND::scanner_allocation::control_limit")) {
+        if (!(props["FRONTEND::scanner_allocation::control_limit"] >>= s.control_limit)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const frontend::frontend_scanner_allocation_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["FRONTEND::scanner_allocation::min_freq"] = s.min_freq;
+ 
+    props["FRONTEND::scanner_allocation::max_freq"] = s.max_freq;
+ 
+    props["FRONTEND::scanner_allocation::mode"] = s.mode;
+ 
+    props["FRONTEND::scanner_allocation::control_mode"] = s.control_mode;
+ 
+    props["FRONTEND::scanner_allocation::control_limit"] = s.control_limit;
+    a <<= props;
+}
+
+inline bool operator== (const frontend::frontend_scanner_allocation_struct& s1, const frontend::frontend_scanner_allocation_struct& s2) {
+    if (s1.min_freq!=s2.min_freq)
+        return false;
+    if (s1.max_freq!=s2.max_freq)
+        return false;
+    if (s1.mode!=s2.mode)
+        return false;
+    if (s1.control_mode!=s2.control_mode)
+        return false;
+    if (s1.control_limit!=s2.control_limit)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const frontend::frontend_scanner_allocation_struct& s1, const frontend::frontend_scanner_allocation_struct& s2) {
+    return !(s1==s2);
+}
+
+template<> inline short StructProperty<frontend::frontend_scanner_allocation_struct>::compare (const CORBA::Any& a) {
+    if (super::isNil_) {
+        CORBA::TypeCode_var aType = a.type();
+        if (aType->kind() == (CORBA::tk_null)) {
+            return 0;
+        }
+        return 1;
+    }
+
+    frontend::frontend_scanner_allocation_struct tmp;
     if (fromAny(a, tmp)) {
         if (tmp != this->value_) {
             return 1;

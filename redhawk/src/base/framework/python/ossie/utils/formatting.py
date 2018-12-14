@@ -33,6 +33,8 @@ class TablePrinter(object):
         self._lines = []
         self._limits = [-1] * self.columns
         self._enable_header = True
+        self._parent = None
+        self._children = []
 
     @property
     def columns(self):
@@ -40,6 +42,12 @@ class TablePrinter(object):
 
     def enable_header(self, state):
         self._enable_header = state
+
+    def set_parent_table(self, parent):
+        self._parent = parent
+
+    def add_child(self, child):
+        self._children = child
 
     def limit_column(self, index, length):
         self._limits[index] = length

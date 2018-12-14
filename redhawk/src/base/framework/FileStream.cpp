@@ -84,9 +84,37 @@ void File_buffer::close() throw(std::ios_base::failure)
         }
 
     } catch (CORBA::SystemException& se) {
-        throw std::ios_base::failure("CORBA SystemException while opening file");
+        throw std::ios_base::failure("CORBA SystemException while closing file");
     } catch (...) {
-        throw std::ios_base::failure("Unexpected error while opening file");
+        throw std::ios_base::failure("Unexpected error while closing file");
+    }
+}
+
+File_stream::File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure) :
+    std::ios(0),
+    needsClose(true) 
+{
+    try {
+        sb = new File_buffer((CF::File_var)fsysptr->open(path, true));
+        this->init(sb);
+    } catch (const CF::InvalidFileName& ifn) {
+        throw std::ios_base::failure(std::string(ifn.msg));
+    } catch (const CF::FileException& fe) {
+        throw std::ios_base::failure(std::string(fe.msg));
+    } catch( ... ) {
+        throw std::ios_base::failure("exception while opening file");
+    }
+}
+
+File_stream::File_stream(CF::File_ptr fptr) :
+    std::ios(0),
+    needsClose(false) 
+{
+    try {
+        sb = new File_buffer(fptr);
+        this->init(sb);
+    } catch( ... ) {
+        throw std::ios_base::failure("exception while opening file");
     }
 }
 

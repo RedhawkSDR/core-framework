@@ -24,8 +24,6 @@
 
 using namespace ossie::corba;
 
-PREPARE_CF_LOGGING(POACreator);
-
 CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, const char* name)
     throw (CORBA::SystemException)
 {
@@ -116,7 +114,6 @@ CORBA::Boolean POACreator::unknown_adapter (PortableServer::POA_ptr parent, cons
     PortableServer::POAManager_var poa_mgr = parent->the_POAManager();
 
     try {
-        LOG_TRACE(POACreator, "Creating POA " << name);
         PortableServer::POA_var child = parent->create_POA(name, poa_mgr, policy_list);
         if (install_adapter_activator) {
             PortableServer::AdapterActivator_var tmpObj = this->_this();

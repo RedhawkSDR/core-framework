@@ -102,13 +102,15 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/component/QueryableUsesPort.java \
 		   src/org/ossie/component/PropertyChangeRec.java \
 		   src/org/ossie/component/Resource.java \
+		   src/org/ossie/component/RHLogger.java \
 		   src/org/ossie/component/Component.java \
 		   src/org/ossie/component/ThreadedComponent.java \
 		   src/org/ossie/component/ThreadedDevice.java \
 		   src/org/ossie/component/ThreadedResource.java \
 		   src/org/ossie/component/Service.java \
 		   src/org/ossie/component/UsesPort.java \
-           src/org/ossie/component/PortBase.java \
+	           src/org/ossie/component/PortBase.java \
+	           src/org/ossie/component/StartablePort.java \
 		   src/org/ossie/logging/logging.java \
 		   src/org/ossie/logging/RH_LogEventAppender.java \
 		   src/org/ossie/events/Consumer_i.java \
@@ -143,16 +145,23 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/properties/PrimitiveArrayUtils.java \
 		   src/org/ossie/properties/Property.java \
 		   src/org/ossie/properties/PropertyListener.java \
+                   src/org/ossie/properties/UTCTimeProperty.java \
+                   src/org/ossie/properties/UTCTimeSequenceProperty.java \
 		   src/org/ossie/properties/StringProperty.java \
 		   src/org/ossie/properties/StringSequenceProperty.java \
 		   src/org/ossie/properties/StructDef.java \
 		   src/org/ossie/properties/StructProperty.java \
 		   src/org/ossie/properties/StructSequenceProperty.java \
 		   src/org/ossie/properties/UnsignedUtils.java \
+                   src/org/ossie/redhawk/PortCallError.java \
                    src/org/ossie/redhawk/ApplicationContainer.java \
                    src/org/ossie/redhawk/DomainManagerContainer.java \
                    src/org/ossie/redhawk/NetworkContainer.java \
-                   src/org/ossie/redhawk/DeviceManagerContainer.java
+                   src/org/ossie/redhawk/DeviceManagerContainer.java \
+                   src/org/ossie/redhawk/NetworkContainer.java \
+                   src/org/ossie/redhawk/time/DefaultComparator.java \
+                   src/org/ossie/redhawk/time/Comparator.java \
+                   src/org/ossie/redhawk/time/utils.java
 
 # Deprecated generic property classes, replaced by strongly-typed classes but
 # maintained for source compatibility.

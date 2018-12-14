@@ -19,6 +19,7 @@
 #
 
 import warnings
+import cStringIO, pydoc
 
 from ossie.cf import CF
 from ossie.utils.notify import notification
@@ -164,10 +165,19 @@ class DomainDevice(DomainComponent):
     def __usageStateChangeEvent(self, deviceId, stateChangeFrom, stateChangeTo):
         self.__usageState.update(stateChangeTo)
 
-    def api(self):
-        super(DomainDevice,self).api()
-        print
-        model.Device.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        super(DomainDevice,self).api(destfile=destfile)
+        print >>destfile, '\n'
+        model.Device.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 class Device(DomainDevice, model.Device):
     def __init__(self, profile, spd, scd, prf, deviceRef, instanceName, refid, impl=None, idmListener=None):

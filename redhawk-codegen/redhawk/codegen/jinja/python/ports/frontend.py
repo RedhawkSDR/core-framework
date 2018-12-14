@@ -50,7 +50,7 @@ class FrontendPortGenerator(PythonPortGenerator):
         return [python.stringLiteral(port.name())]
 
     def constructor(self, name):
-        fei_ports = ['InDigitalTunerPort','InFrontendTunerPort','InAnalogTunerPort','InGPSPort','InRFInfoPort','InRFSourcePort','InNavDataPort']
+        fei_ports = ['InDigitalTunerPort','InDigitalScanningTunerPort','InFrontendTunerPort','InAnalogTunerPort','InGPSPort','InRFInfoPort','InRFSourcePort','InNavDataPort']
         for _port in fei_ports:
             if _port in self.className():
                 return '%s(%s, self)' % (self.className(), ', '.join(self._ctorArgs(name)))

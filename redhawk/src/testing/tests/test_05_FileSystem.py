@@ -630,6 +630,9 @@ class FileManagerTest(scatest.CorbaTestCase):
         # Issue #533
         self.assertRaises(CF.DomainManager.ApplicationInstallationError, self._domMgr.installApplication, '/waveforms')
     def test_ExistsException(self):
+        self.assertNotEqual(self._domMgr, None)
+        fileMgr = self._domMgr._get_fileMgr()
+
         # Makes sure that FileSystem::exists() throws correct exception and
         # doesn't kill domain for files in directories it cannot access
         dirname = '/noaccess'
@@ -639,9 +642,8 @@ class FileManagerTest(scatest.CorbaTestCase):
         else:
             os.chmod(testdir, 0644)
 
-        self.assertNotEqual(self._domMgr, None)
-        fileMgr = self._domMgr._get_fileMgr()
         try:
+            self.assertFalse(os.access(testdir, os.R_OK|os.X_OK), 'Current user can still access directory')
             self.assertRaises(CF.InvalidFileName, fileMgr.exists, os.path.join(dirname, 'testfile'))
         finally:
             os.rmdir(testdir)

@@ -55,6 +55,7 @@ _typeMap = {
     CorbaTypes.FLOAT:     'float',
     CorbaTypes.DOUBLE:    'double',
     CorbaTypes.STRING:    'std::string',
+    CorbaTypes.UTCTIME:   'CF::UTCTime',
     CorbaTypes.OBJREF:    'std::string'
 }
 

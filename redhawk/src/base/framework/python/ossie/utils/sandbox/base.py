@@ -19,19 +19,14 @@
 #
 
 import os
-import logging
-import warnings as _warnings
-import time
 
 from ossie import parsers
-from ossie.cf import CF
-from ossie import properties as _properties
-from ossie.utils import log4py
+from ossie.utils.log4py import logging
 from ossie.utils import weakobj
-from ossie.utils.model import PortSupplier, PropertySet, ComponentBase, CorbaObject
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
-from ossie.utils.sandbox.events import EventChannel
+
+from model import SandboxComponent, SandboxDevice, SandboxService, SandboxEventChannel
 
 log = logging.getLogger(__name__)
 
@@ -189,7 +184,8 @@ class Sandbox(object):
     def _removeEventChannel(self, name):
         del self._eventChannels[name]
 
-    def _get_started(self):
+    @property
+    def started(self):
         return self._started
 
     def start(self):
@@ -219,8 +215,8 @@ class Sandbox(object):
             component.reset()
 
     def launch(self, descriptor, instanceName=None, refid=None, impl=None,
-               debugger=None, window=None, execparams={}, configure={},
-               initialize=True, timeout=None, objType=None, stdout=None):
+               debugger=None, window=None, properties={}, configure=True,
+               initialize=True, timeout=None, objType=None, shared=True, stdout=None):
         sdrRoot = self.getSdrRoot()
 
         # Parse the component XML profile.
@@ -234,8 +230,14 @@ class Sandbox(object):
 
         # Check that we can launch the component.
         comptype = scd.get_componenttype()
-        if comptype not in self.__comptypes__:
-            raise NotImplementedError, "No support for component type '%s'" % comptype
+        if comptype == 'resource':
+            clazz = SandboxComponent
+        elif comptype in ('device', 'loadabledevice', 'executabledevice'):
+            clazz = SandboxDevice
+        elif comptype == 'service':
+            clazz = SandboxService
+        else:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
 
         # Generate/check instance name.
         if not instanceName:
@@ -245,16 +247,26 @@ class Sandbox(object):
 
         # Generate/check identifier.
         if not refid:
-            refid = str(uuid4())
+            refid = 'DCE:'+str(uuid4())
         elif not self._checkInstanceId(refid, comptype):
             raise ValueError, "User-specified identifier '%s' already in use" % (refid,)
 
         # If possible, determine the correct placement of properties
-        execparams, initProps, configure = self._sortOverrides(prf, execparams, configure)
+        execparams, initProps, configProps = self._sortOverrides(prf, properties)
+        if not configure:
+            configProps = None
 
         # Determine the class for the component type and create a new instance.
-        return self._launch(profile, spd, scd, prf, instanceName, refid, impl, execparams,
-                            initProps, initialize, configure, debugger, window, timeout, stdout)
+        comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
+        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
+        if not launcher:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
+        comp._launcher = launcher
+
+        # Launch the component
+        comp._kick()
+
+        return comp
 
     def shutdown(self):
         # Clean up any event channels created by this sandbox instance.
@@ -268,10 +280,10 @@ class Sandbox(object):
             files[profile['name']] = profile['profile']
         return files
 
-    def _sortOverrides(self, prf, execparams, configure):
+    def _sortOverrides(self, prf, properties):
         if not prf:
-            # No PRF file, assume the properties are correct as-is
-            return execparams, {}, configure
+            # No PRF file, assume all properties are execparams.
+            return properties, {}, {}
 
         # Classify the PRF properties by which stage of initialization they get
         # set: 'commandline', 'initialize', 'configure' or None (not settable).
@@ -284,34 +296,29 @@ class Sandbox(object):
                 if not name in stages:
                     stages[name] = stage
 
-        # Check properties that do not belong in execparams
-        arguments = {}
-        for key, value in execparams.iteritems():
-            if key in stages and stages[key] != 'commandline':
-                raise ValueError("Non-command line property '%s' given in execparams" % key)
-            arguments[key] = value
+        # Add in system-defined execparams that users are allowed to override
+        stages['DEBUG_LEVEL'] = 'commandline'
+        stages['LOGGING_CONFIG_URI'] = 'commandline'
 
-        # Sort configure properties into the appropriate stage of initialization
+        # Sort properties into the appropriate stage of initialization
+        execparams = {}
         initProps = {}
-        if configure is not None:
-            configProps = {}
-            for key, value in configure.iteritems():
-                if not key in stages:
-                    log.warning("Unknown property '%s'" , key)
-                    continue
-                stage = stages[key]
-                if stage == 'commandline':
-                    arguments[key] = value
-                elif stage == 'initialize':
-                    initProps[key] = value
-                elif stage == 'configure':
-                    configProps[key] = value
-                else:
-                    log.warning("Property '%s' cannot be set at launch", key)
-        else:
-            configProps = None
+        configProps = {}
+        for key, value in properties.iteritems():
+            if not key in stages:
+                log.warning("Unknown property '%s'" , key)
+                continue
+            stage = stages[key]
+            if stage == 'commandline':
+                execparams[key] = value
+            elif stage == 'initialize':
+                initProps[key] = value
+            elif stage == 'configure':
+                configProps[key] = value
+            else:
+                log.warning("Property '%s' cannot be set at launch", key)
 
-        return arguments, initProps, configProps
+        return execparams, initProps, configProps
 
     def _getInitializationStage(self, prop, kinds, commandline=False):
         # Helper method to classify the initialization stage for a particular
@@ -346,106 +353,21 @@ class Sandbox(object):
         for prop in prf.get_structsequence():
             yield prop, self._getInitializationStage(prop, prop.get_configurationkind())
 
-
-class SandboxComponent(ComponentBase):
-    def __init__(self, sandbox, profile, spd, scd, prf, instanceName, refid, impl):
-        super(SandboxComponent,self).__init__(spd, scd, prf, instanceName, refid, impl)
-        self._sandbox = sandbox
-        self._profile = profile
-        self._componentName = spd.get_name()
-        self._propRef = {}
-        self._configRef = {}
-        self._msgSupplierHelper = None
-        for prop in self._getPropertySet(kinds=('configure',), modes=('readwrite', 'writeonly'), includeNil=False):
-            if prop.defValue is None:
-                continue
-            self._configRef[str(prop.id)] = prop.defValue
-        for prop in self._getPropertySet(kinds=('property',), includeNil=False, commandline=False):
-            if prop.defValue is None:
-                continue
-            self._propRef[str(prop.id)] = prop.defValue
-
-        self.__ports = None
-        
-    def _readProfile(self):
-        sdrRoot = self._sandbox.getSdrRoot()
-        self._spd, self._scd, self._prf = sdrRoot.readProfile(self._profile)
-
-    def _kick(self):
-        self.ref = self._launch()
-        self._sandbox._registerComponent(self)
-
-    @property
-    def _ports(self):
-        #DEPRECATED: replaced with ports
-        _warnings.warn("'_ports' is deprecated", DeprecationWarning)
-        return self.ports
- 
-    @property
-    def ports(self):
-        if self.__ports == None:
-            self.__ports = self._populatePorts()
-        return self.__ports
-        
-    def reset(self):
-        self.releaseObject()
-        self._readProfile()
-        self._kick()
-        self.initialize()
-        self._parseComponentXMLFiles()
-        self._buildAPI()
-        # Clear cached ports list
-        self.__ports = None
-
-    def releaseObject(self):
-        # Break any connections involving this component.
+    def _breakConnections(self, target):
+        # Break any connections involving this object.
         manager = ConnectionManager.instance()
         for _identifier, (identifier, uses, provides) in manager.getConnections().items():
-            if uses.hasComponent(self) or provides.hasComponent(self):
+            if uses.hasComponent(target) or provides.hasComponent(target):
                 manager.breakConnection(identifier, uses)
                 manager.unregisterConnection(identifier, uses)
-        self._sandbox._unregisterComponent(self)
-        super(SandboxComponent,self).releaseObject()
 
-    def api(self):
-        '''
-        Inspect interfaces and properties for the component
-        '''
-        print "Component [" + str(self._componentName) + "]:"
-        PortSupplier.api(self)
-        PropertySet.api(self)
 
-    def sendMessage(self, msg, msgId=None, msgPort=None, restrict=True ):
-        """
-        send a message out a component's message event port
-        
-        msg : dictionary of information to send or an any object
-        msgId : select a specific message structure property from the component, if None will 
-                choose first available message property structure for the component
-        msgPort : select a specified message event port to use, if None will try to autoselect
-        restrict : if True, will restrict msgId to only those message ids defined by the component
-                   if False, will allow for ad-hoc message to be sent
-        """
-        if self._msgSupplierHelper == None:
-            import ossie.utils
-            self._msgSupplierHelper = ossie.utils.sb.io_helpers.MsgSupplierHelper(self)
-        if self.ref and self.ref._get_started() == True and self._msgSupplierHelper: 
-            return self._msgSupplierHelper.sendMessage( msg, msgId, msgPort, restrict )
-        return False
+class SandboxLauncher(object):
+    def launch(self, comp):
+        raise NotImplementedError('launch')
 
-class SandboxEventChannel(EventChannel, CorbaObject):
-    def __init__(self, name, sandbox):
-        EventChannel.__init__(self, name)
-        CorbaObject.__init__(self)
-        self._sandbox = sandbox
-        self._instanceName = name
+    def setup(self, comp):
+        raise NotImplementedError('setup')
 
-    def destroy(self):
-        # Break any connections involving this event channel.
-        manager = ConnectionManager.instance()
-        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
-            if provides.hasComponent(self):
-                manager.breakConnection(identifier, uses)
-                manager.unregisterConnection(identifier, uses)
-        self._sandbox._removeEventChannel(self._instanceName)
-        EventChannel.destroy(self)
+    def terminate(self, comp):
+        raise NotImplementedError('terminate')

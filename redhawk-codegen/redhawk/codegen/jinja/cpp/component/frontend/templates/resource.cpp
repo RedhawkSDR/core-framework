@@ -49,8 +49,32 @@ void ${className}::deviceDisable(frontend_tuner_status_struct_struct &fts, size_
     fts.enabled = false;
     return;
 }
+/*{% if 'ScanningTuner' in component.implements %}*/
+bool ${className}::deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+    /************************************************************
+
+    This function is called when the allocation request contains a scanner allocation
+
+    modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
+      At a minimum, bandwidth, center frequency, and sample_rate have to be set
+      If the device is tuned to exactly what the request was, the code should be:
+        fts.bandwidth = request.bandwidth;
+        fts.center_frequency = request.center_frequency;
+        fts.sample_rate = request.sample_rate;
+
+    return true if the tuning succeeded, and false if it failed
+    ************************************************************/
+    #warning deviceSetTuning(): Evaluate whether or not a tuner is added  *********
+    return true;
+}
+/*{% endif %}*/
 bool ${className}::deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
     /************************************************************
+/*{% if 'ScanningTuner' in component.implements %}*/
+
+    This function is called when the allocation request does not contain a scanner allocation
+
+/*{% endif %}*/
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
       At a minimum, bandwidth, center frequency, and sample_rate have to be set
       If the device is tuned to exactly what the request was, the code should be:
@@ -108,7 +132,7 @@ void ${className}::setTunerCenterFrequency(const std::string& allocation_id, dou
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (freq<0) throw FRONTEND::BadParameterException();
+    if (freq<0) throw FRONTEND::BadParameterException("Center frequency cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].center_frequency = freq;
 }
@@ -124,7 +148,7 @@ void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (bw<0) throw FRONTEND::BadParameterException();
+    if (bw<0) throw FRONTEND::BadParameterException("Bandwidth cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].bandwidth = bw;
 }
@@ -187,7 +211,7 @@ void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, do
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (sr<0) throw FRONTEND::BadParameterException();
+    if (sr<0) throw FRONTEND::BadParameterException("Sample rate cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[idx].sample_rate = sr;
 }
@@ -196,6 +220,29 @@ double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     return frontend_tuner_status[idx].sample_rate;
+}
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
+    frontend::ScanStatus retval(tmp);
+    return retval;
+}
+
+void ${className}::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+}
+
+void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/

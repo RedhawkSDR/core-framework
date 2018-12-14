@@ -32,35 +32,18 @@ from ossie.cf import StandardEvent
 from ossie.events import ChannelManager
 from ossie.utils import redhawk
 from ossie.events import Subscriber
+from ossie.utils import sb
 
 execDeviceNode = "/nodes/test_GPP_node/DeviceManager.dcd.xml"
-
-class Consumer_i(CosEventComm__POA.PushConsumer):
-    def __init__(self, parent):
-        self.parent = parent
-        self.count = 0
-
-    def push(self, data):
-        if data:
-            self.parent.eventFlag = True
-            self.parent.localEvent.set()
-            self.count = self.count +1
-
-    def disconnect_push_consumer (self):
-        pass
-
-
-class PropertyChangeListener_Receiver(CF__POA.PropertyChangeListener):
-    def __init__(self):
-        self.count = 0
-
-    def propertyChange( self, pce ) :
-        self.count = self.count +1
-
 
 class PropertyChangeListenerTest(scatest.CorbaTestCase):
     def setUp(self):
         self._domBooter, self._domMgr = self.launchDomainManager()
+        self.dom=redhawk.attach(scatest.getTestDomainName())
+        self.count = 0
+    
+    def property_change_callback(self, event_id, registration_id, resource_id, properties, timestamp):
+        self.count = self.count + 1
 
     def tearDown(self):
         try:
@@ -88,32 +71,28 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         # class tearDown, or failures will occur.
         scatest.CorbaTestCase.tearDown(self)
 
-    def test_PropertyChangeListener_CPP(self):
+    def _test_PropertyChangeListener(self, app_name, comp_name):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication(app_name)
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(app, None)
         self._app = app
 
-        ps=None
         c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
+        a=self.dom.apps[0]
+        c=filter( lambda c : c.name == comp_name, a.comps )[0]
         self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
         
-        # create listener interface
-        myl = PropertyChangeListener_Receiver()
+        # create listener instance
+        myl = sb.PropertyChangeListener(changeCallbacks={'prop1':self.property_change_callback})
         t=float(0.5)
-        regid=ps.registerPropertyListener( myl._this(), ['prop1'],t)
+        regid=c.registerPropertyListener( myl, ['prop1'], t)
         app.start()
         time.sleep(1)
 
@@ -127,161 +106,39 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results
-        self.assertEquals(myl.count,4)
+        self.assertEquals(self.count,4)
 
         # change unmonitored property
         c.prop2 = 100
         time.sleep(.6)   # wait for listener to receive notice
 
         # now check results
-        self.assertEquals(myl.count,4)
+        self.assertEquals(self.count,4)
 
         # unregister
-        ps.unregisterPropertyListener( regid )
+        c.unregisterPropertyListener( regid )
 
         c.prop1 = 100.0
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results, should be same... 
-        self.assertEquals(myl.count,4)
+        self.assertEquals(self.count,4)
 
         self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
-                           
+            c.unregisterPropertyListener, regid )
 
         app.releaseObject()
         self._app=None
-
+        
+    def test_PropertyChangeListener_CPP(self):
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
 
     def test_PropertyChangeListener_PYTHON(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
-        self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
-        appFact = self._domMgr._get_applicationFactories()[0]
-        self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        self._app=app
-
-        ps=None
-        c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_P1', a.comps )[0]
-        self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
-        
-        # create listener interface
-        myl = PropertyChangeListener_Receiver()
-        t=float(0.5)
-        regid=ps.registerPropertyListener( myl._this(), ['prop1'],t)
-        app.start()
-        time.sleep(1)
-
-        # assign 3 changed values
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 200.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 300.0
-        time.sleep(.6)   # wait for listener to receive notice
-        
-        # now check results
-        self.assertEquals(myl.count,4)
-
-        # change unmonitored property
-        c.prop2 = 100
-        time.sleep(.6)   # wait for listener to receive notice
-
-        # now check results
-        self.assertEquals(myl.count,4)
-
-        # unregister
-        ps.unregisterPropertyListener( regid )
-
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        
-        # now check results, should be same... 
-        self.assertEquals(myl.count,4)
-
-        self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
-                           
-
-        app.releaseObject()
-        self._app=None
-
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
 
     @scatest.requireJava
     def test_PropertyChangeListener_JAVA(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
-        self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        appFact = self._domMgr._get_applicationFactories()[0]
-        self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        self._app=app
-
-        ps=None
-        c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_J1', a.comps )[0]
-        self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
-        
-        # create listener interface
-        myl = PropertyChangeListener_Receiver()
-        t=float(0.5)
-        regid=ps.registerPropertyListener( myl._this(), ['prop1'],t)
-
-        app.start()
-        time.sleep(1)
-
-        # assign 3 changed values
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 200.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 300.0
-        time.sleep(.6)   # wait for listener to receive notice
-        
-        # now check results
-        self.assertEquals(myl.count,4)
-
-        # change unmonitored property
-        c.prop2 = 100
-        time.sleep(.6)   # wait for listener to receive notice
-
-        # now check results
-        self.assertEquals(myl.count,4)
-
-        # unregister
-        ps.unregisterPropertyListener( regid )
-
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        
-        # now check results, should be same... 
-        self.assertEquals(myl.count,4)
-
-        self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
-                           
-
-        app.releaseObject()
-        self._app=None
-
+        self._test_PropertyChangeListener("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
 
     def test_PropertyChangeListener_APP(self):
         self.localEvent = threading.Event()
@@ -296,10 +153,8 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         self.assertNotEqual(app, None)
         self._app=app
 
-        ps=None
         c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
+        a=self.dom.apps[0]
         # component with external property
         c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
         # assembly controller
@@ -307,13 +162,11 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         self.assertNotEqual(a,None)
         self.assertNotEqual(c,None)
         self.assertNotEqual(c2,None)
-        ps = a.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
         
         # create listener interface
-        myl = PropertyChangeListener_Receiver()
+        myl = sb.PropertyChangeListener(defaultCallback = self.property_change_callback)
         t=float(0.5)
-        regid=ps.registerPropertyListener( myl._this(), ['prop1', 'app_prop1'],t)
+        regid=a.registerPropertyListener( myl, ['prop1', 'app_prop1'], t)
         app.start()
         time.sleep(1)
 
@@ -330,7 +183,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results
-        self.assertEquals(myl.count,8)
+        self.assertEquals(self.count,8)
 
         # change unmonitored property
         c.prop2 = 100
@@ -338,20 +191,20 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
 
         # now check results
-        self.assertEquals(myl.count,8)
+        self.assertEquals(self.count,8)
 
         # unregister
-        ps.unregisterPropertyListener( regid )
+        a.unregisterPropertyListener( regid )
 
         c.prop1 = 100.0
         c2.prop1 = 100.0
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results, should be same... 
-        self.assertEquals(myl.count,8)
+        self.assertEquals(self.count,8)
 
         self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
+            a.unregisterPropertyListener, regid )
                            
         app.releaseObject()
         self._app=None
@@ -360,18 +213,21 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
 class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
     def setUp(self):
         self._domBooter, self._domMgr = self.launchDomainManager()
+        self.dom=redhawk.attach(scatest.getTestDomainName())
         # create listener interface
-        orb = CORBA.ORB_init()
-        self.chanMgr = ChannelManager(orb)
         self._app=None
-        # Force creation
-        self.channel1 = self.chanMgr.createEventChannel("TestChan", force=True)
+        self.channel_name = "TestChan"
+        self.chanMgr = self.dom._get_eventChannelMgr()
+        try:
+            self.channel1 = self.chanMgr.create(self.channel_name)
+        except CF.EventChannelManager.ChannelAlreadyExists:
+            self.channel1 = self.chanMgr.get(self.channel_name)
 
 
     def tearDown(self):
         try:
             if self.channel1:
-                self.chanMgr.destroyEventChannel("TestChan")                           
+                self.chanMgr.release(self.channel_name)                           
         except:
             pass
 
@@ -401,36 +257,32 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
 
-    def test_PropertyChangeListener_EC_CPP(self):
+    def _test_PropertyChangeListener_EC_Comps(self, app_name, comp_name):
         self.localEvent = threading.Event()
         self.eventFlag = False
 
         self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
         self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
+        self._domMgr.installApplication(app_name)
         appFact = self._domMgr._get_applicationFactories()[0]
         self.assertNotEqual(appFact, None)
         app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(app, None)
         self._app = app
 
-        ps=None
         c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
+        a=self.dom.apps[0]
+        c=filter( lambda c : c.name == comp_name, a.comps )[0]
         self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
 
         # check if channel is valid
         self.assertNotEqual(self.channel1, None)
         self.assertNotEqual(self.channel1._narrow(CosEventChannelAdmin.EventChannel), None)
 
-        sub = Subscriber( self.channel1 )
+        sub = Subscriber( self.dom, self.channel_name )
 
         t=float(0.5)
-        regid=ps.registerPropertyListener( self.channel1, ['prop1'],t)
+        regid=c.registerPropertyListener( self.channel1, ['prop1'],t)
         app.start()
         time.sleep(1)
 
@@ -447,122 +299,24 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
             self.assertNotEqual(xx, None)
 
         # unregister
-        ps.unregisterPropertyListener( regid )
+        c.unregisterPropertyListener( regid )
 
         self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
+            c.unregisterPropertyListener, regid )
 
+        app.stop()
         app.releaseObject()
         self._app=None
+
+    def test_PropertyChangeListener_EC_CPP(self):
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_C1')
 
     def test_PropertyChangeListener_EC_PYTHON(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
-        self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
-        appFact = self._domMgr._get_applicationFactories()[0]
-        self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        self._app = app
-
-        ps=None
-        c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_P1', a.comps )[0]
-        self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
-
-        # check if channel is valid
-        self.assertNotEqual(self.channel1, None)
-        self.assertNotEqual(self.channel1._narrow(CosEventChannelAdmin.EventChannel), None)
-
-        sub = Subscriber( self.channel1 )
-
-        t=float(0.5)
-        regid=ps.registerPropertyListener( self.channel1, ['prop1'],t)
-        app.start()
-        time.sleep(1)
-
-        # assign 3 changed values
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 200.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 300.0
-        time.sleep(.6)   # wait for listener to receive notice
-
-        for n in range(4):
-            xx=sub.getData()
-            self.assertNotEqual(xx, None)
-
-        # unregister
-        ps.unregisterPropertyListener( regid )
-
-        self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
-
-        app.releaseObject()
-        self._app=None
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml", 'PropertyChange_P1')
 
     @scatest.requireJava
     def test_PropertyChangeListener_EC_JAVA(self):
-        self.localEvent = threading.Event()
-        self.eventFlag = False
-
-        self._devBooter, self._devMgr = self.launchDeviceManager(execDeviceNode, self._domMgr)
-        self.assertNotEqual(self._devBooter, None)
-        self._domMgr.installApplication("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml")
-        appFact = self._domMgr._get_applicationFactories()[0]
-        self.assertNotEqual(appFact, None)
-        app = appFact.create(appFact._get_name(), [], [])
-        self.assertNotEqual(app, None)
-        self._app = app
-
-        ps=None
-        c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
-        c=filter( lambda c : c.name == 'PropertyChange_J1', a.comps )[0]
-        self.assertNotEqual(c,None)
-        ps = c.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
-        
-        # check if channel is valid
-        self.assertNotEqual(self.channel1, None)
-        self.assertNotEqual(self.channel1._narrow(CosEventChannelAdmin.EventChannel), None)
-
-        sub = Subscriber( self.channel1 )
-
-        t=float(0.5)
-        regid=ps.registerPropertyListener( self.channel1, ['prop1'],t)
-        app.start()
-        time.sleep(1)
-
-        # assign 3 changed values
-        c.prop1 = 100.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 200.0
-        time.sleep(.6)   # wait for listener to receive notice
-        c.prop1 = 300.0
-        time.sleep(.6)   # wait for listener to receive notice
-
-        for n in range(4):
-            xx=sub.getData()
-            self.assertNotEqual(xx, None)
-
-        # unregister
-        ps.unregisterPropertyListener( regid )
-
-        self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
-
-        app.releaseObject()
-        self._app=None
+        self._test_PropertyChangeListener_EC_Comps("/waveforms/PropertyChangeListener/PropertyChangeListener.sad.xml", 'PropertyChange_J1')
 
     def test_PropertyChangeListener_EC_APP(self):
         self.localEvent = threading.Event()
@@ -577,10 +331,8 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         self.assertNotEqual(app, None)
         self._app = app
 
-        ps=None
         c=None
-        d=redhawk.attach(scatest.getTestDomainName())
-        a=d.apps[0]
+        a=self.dom.apps[0]
         # component with external property
         c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
         # assembly controller
@@ -588,8 +340,6 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         self.assertNotEqual(a,None)
         self.assertNotEqual(c,None)
         self.assertNotEqual(c2,None)
-        ps = a.ref._narrow(CF.PropertySet)
-        self.assertNotEqual(ps,None)
 
         # check if channel is valid
         self.assertNotEqual(self.channel1, None)
@@ -598,7 +348,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         sub = Subscriber( self.channel1 )
 
         t=float(0.5)
-        regid=ps.registerPropertyListener( self.channel1, ['prop1', 'app_prop1'],t)
+        regid=a.registerPropertyListener( self.channel1, ['prop1', 'app_prop1'],t)
         app.start()
         time.sleep(1)
 
@@ -615,10 +365,10 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
             self.assertNotEqual(xx, None)
 
         # unregister
-        ps.unregisterPropertyListener( regid )
+        a.unregisterPropertyListener( regid )
 
         self.assertRaises( CF.InvalidIdentifier,
-            ps.unregisterPropertyListener, regid )
+            a.unregisterPropertyListener, regid )
 
         app.releaseObject()
         self._app=None

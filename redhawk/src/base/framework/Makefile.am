@@ -41,6 +41,7 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         CorbaUtils.cpp \
                         prop_helpers.cpp \
                         MessageInterface.cpp \
+                        MessageSupplier.cpp \
                         PropertyInterface.cpp \
                         Service_impl.cpp \
                         type_traits.cpp \
@@ -49,15 +50,32 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         logging/rh_logger.cpp \
                         logging/StringInputStream.cpp \
                         logging/RH_LogEventAppender.cpp \
+                        logging/RH_SyncRollingAppender.cpp \
                         EventChannelSupport.cpp \
 	                Events.cpp \
 			Component.cpp \
 			Value.cpp \
 			PropertyType.cpp \
 			PropertyMap.cpp \
-			Versions.cpp
+			Versions.cpp \
+			ExecutorService.cpp \
+			UsesPort.cpp \
+			ProvidesPort.cpp \
+			Transport.cpp \
+			BufferManager.cpp \
+			inplace_list.h \
+			bitops.cpp \
+			bitbuffer.cpp \
+			shm/Allocator.cpp \
+			shm/Heap.cpp \
+			shm/HeapClient.cpp \
+			shm/MappedFile.cpp \
+			shm/Superblock.cpp \
+			shm/SuperblockFile.cpp \
+			shm/System.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
-libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) -ldl
+# Include the omniORB internal directory, otherwise CorbaUtils will not build
+libossiecf_la_CXXFLAGS +=-I$(OMNIORB_INCLUDEDIR)/omniORB4/internal
+libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) -ldl -lrt
 libossiecf_la_LDFLAGS = -Wall -version-info $(LIBOSSIECF_VERSION_INFO)
-
