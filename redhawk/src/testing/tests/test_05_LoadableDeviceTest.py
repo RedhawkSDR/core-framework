@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os, commands
+import unittest, os, commands, time
 from _unitTestHelpers import scatest
 from omniORB import CORBA, URI, any
 from ossie.cf import CF
