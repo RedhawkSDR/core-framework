@@ -79,6 +79,24 @@ namespace {
         }
     }
 
+    // Specialization for boolean, first checking for literal values "true" and
+    // "false" (case insensitive), then convering via lexical cast to double
+    // (for widest range) and comparing with zero
+    template<>
+    inline bool stringToNumber (const std::string& str)
+    {
+        std::string out;
+        std::transform(str.begin(), str.end(), std::back_inserter(out), ::tolower);
+        if (out == "true") {
+            return true;
+        } else if (out == "false") {
+            return false;
+        } else {
+            double temp = boost::lexical_cast<double>(str);
+            return (temp != 0.0);
+        }
+    }
+
     // Specialization for CORBA::Octet (unsigned char), always converting via
     // double because lexical_cast throws a bad_lexical_cast exception with
     // CORBA::Octet
@@ -145,12 +163,16 @@ namespace {
 #define ANY_TO_NUMERIC_TYPE(T,N)                                    \
 bool ossie::any::toNumber (const CORBA::Any& any, T& value)         \
 {                                                                   \
-    return anyToNumber(any, value);                                 \
+    try {                                                           \
+        return ::anyToNumber(any, value);                           \
+    } catch (...) {                                                 \
+        return false;                                               \
+    }                                                               \
 }                                                                   \
 T ossie::any::to##N (const CORBA::Any& any)                         \
 {                                                                   \
-    T value;                                                        \
-    if (ossie::any::toNumber(any, value)) {                         \
+    T value = 0;                                                    \
+    if (::anyToNumber(any, value)) {                                \
         return value;                                               \
     } else {                                                        \
         throw std::invalid_argument("Non-numeric Any type");        \

@@ -61,7 +61,7 @@ namespace HW_LOAD {
     };
 
     static std::string getId() {
-        return std::string("hw_load_request");
+        return std::string("hw_load_status");
     };
 
     std::string request_id;
@@ -84,16 +84,16 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
     if (!(a >>= temp)) return false;
     CF::Properties& props = *temp;
     for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("request_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::request_id", props[idx].id)) {
             if (!(props[idx].value >>= s.request_id)) return false;
         }
-        if (!strcmp("requester_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::requester_id", props[idx].id)) {
             if (!(props[idx].value >>= s.requester_id)) return false;
         }
-        if (!strcmp("hardware_id", props[idx].id)) {
+        if (!strcmp("hw_load_request::hardware_id", props[idx].id)) {
             if (!(props[idx].value >>= s.hardware_id)) return false;
         }
-        if (!strcmp("load_filepath", props[idx].id)) {
+        if (!strcmp("hw_load_request:load_filepath", props[idx].id)) {
             if (!(props[idx].value >>= s.load_filepath)) return false;
         }
     }
@@ -103,16 +103,59 @@ inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_request_s
 inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_request_struct& s) {
     CF::Properties props;
     props.length(4);
-    props[0].id = CORBA::string_dup("request_id");
+    props[0].id = CORBA::string_dup("hw_load_request::request_id");
     props[0].value <<= s.request_id;
-    props[1].id = CORBA::string_dup("requester_id");
+    props[1].id = CORBA::string_dup("hw_load_request::requester_id");
     props[1].value <<= s.requester_id;
-    props[2].id = CORBA::string_dup("hardware_id");
+    props[2].id = CORBA::string_dup("hw_load_request::hardware_id");
     props[2].value <<= s.hardware_id;
-    props[3].id = CORBA::string_dup("load_filepath");
+    props[3].id = CORBA::string_dup("hw_load_request::load_filepath");
     props[3].value <<= s.load_filepath;
     a <<= props;
 };
+
+
+
+inline bool operator>>= (const CORBA::Any& a, HW_LOAD::default_hw_load_status_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    CF::Properties& props = *temp;
+    for (unsigned int idx = 0; idx < props.length(); idx++) {
+        if (!strcmp("hw_load_status::request_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.request_id)) return false;
+        }
+        if (!strcmp("hw_load_status::requester_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.requester_id)) return false;
+        }
+        if (!strcmp("hw_load_status::hardware_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.hardware_id)) return false;
+        }
+        if (!strcmp("hw_load_status:load_filepath", props[idx].id)) {
+            if (!(props[idx].value >>= s.load_filepath)) return false;
+        }
+        if (!strcmp("hw_load_status:state", props[idx].id)) {
+            if (!(props[idx].value >>= s.state)) return false;
+        }
+    }
+    return true;
+};
+
+inline void operator<<= (CORBA::Any& a, const HW_LOAD::default_hw_load_status_struct& s) {
+    CF::Properties props;
+    props.length(4);
+    props[0].id = CORBA::string_dup("hw_load_status::request_id");
+    props[0].value <<= s.request_id;
+    props[1].id = CORBA::string_dup("hw_load_status::requester_id");
+    props[1].value <<= s.requester_id;
+    props[2].id = CORBA::string_dup("hw_load_status::hardware_id");
+    props[2].value <<= s.hardware_id;
+    props[3].id = CORBA::string_dup("hw_load_status::load_filepath");
+    props[3].value <<= s.load_filepath;
+    props[3].id = CORBA::string_dup("hw_load_status::state");
+    props[3].value <<= s.state;
+    a <<= props;
+};
+
 
 /*{% if component is device %}*/
 typedef std::string ${executeType.capitalize()}Id;
@@ -241,7 +284,7 @@ class ${className} : public ${baseClass}
             // system, use the dev filesystem to copy into cache
             if (isSharedLibrary && existsOnDevFS) { 
                 fs = _deviceManager->fileSys();;
-                LOG_DEBUG(${className}, __FUNCTION__ << 
+                RH_DEBUG(this->_deviceLog, __FUNCTION__ << 
                     ": File-system switched to dev");
             }
 
@@ -261,7 +304,7 @@ class ${className} : public ${baseClass}
                 CF::Device::InvalidState, 
                 CORBA::SystemException )
         {
-            LOG_DEBUG(${className}, __FUNCTION__ << 
+            RH_DEBUG(this->_deviceLog, __FUNCTION__ << 
                     ": Instantiating ${executeType} '" << name << "'... ");
             
             // Initialize local variables
@@ -271,7 +314,7 @@ class ${className} : public ${baseClass}
             // Attempt to instantiate the object contained in the shared library
             ${executeType} = instantiate${executeType.capitalize()}(name, options, parameters);
             if (${executeType} == NULL) {
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                RH_FATAL(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to instantiate '" << name << "'");
                 throw (CF::ExecutableDevice::ExecuteFail());
             }
@@ -283,7 +326,7 @@ class ${className} : public ${baseClass}
             _${executeType}Map[${executeType}Id] = ${executeType};
             _processMap[++_processIdIncrement] = ${executeType}Id;
 
-            LOG_DEBUG(${className}, __FUNCTION__ <<
+            RH_DEBUG(this->_deviceLog, __FUNCTION__ <<
                     ": ${executeType.capitalize()} '" << ${executeType}Id << "' has been successfully instantiated");
 
             return _processIdIncrement;
@@ -316,7 +359,7 @@ class ${className} : public ${baseClass}
                     return;
                 }
             }
-            LOG_WARN(${className}, __FUNCTION__ << 
+            RH_WARN(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to locate ${executeType} using pid '" << processId <<"'");
         }
         
@@ -351,7 +394,7 @@ class ${className} : public ${baseClass}
                     // Grab the current hw_load_request struct
                     loadRequestsPtr = getHwLoadRequests();
                     if (loadRequestsPtr == NULL) {
-                        LOG_ERROR(${className}, __FUNCTION__ <<
+                        RH_ERROR(this->_deviceLog, __FUNCTION__ <<
                             ": Unable to get HwLoadRequest vector! Pointer is NULL");
                         continue;
                     }
@@ -370,7 +413,7 @@ class ${className} : public ${baseClass}
                             (*cfPropsPtr)[iv].value >>= (*loadRequestsPtr)[iv];
                         }
                     } else {
-                        LOG_ERROR(${className}, __FUNCTION__ << 
+                        RH_ERROR(this->_deviceLog, __FUNCTION__ << 
                             ": Unable to convert HW_LOAD_REQUEST prop!");
                         continue;
                     }
@@ -381,7 +424,7 @@ class ${className} : public ${baseClass}
                         // Grab the current hw_load_status struct
                         statusVecPtr = getHwLoadStatuses();
                         if (statusVecPtr == NULL) {
-                            LOG_ERROR(${className}, __FUNCTION__ <<
+                            RH_ERROR(this->_deviceLog, __FUNCTION__ <<
                                 ": Unable to get HwLoadStatus vector! Pointer is NULL");
                             continue;
                         }
@@ -397,7 +440,7 @@ class ${className} : public ${baseClass}
             }
 
             updateAdminStates();
-            LOG_DEBUG(${className}, __FUNCTION__ << ": Allocation Result: " << allocationSuccess);
+            RH_DEBUG(this->_deviceLog, __FUNCTION__ << ": Allocation Result: " << allocationSuccess);
             return allocationSuccess;
         }
         
@@ -421,7 +464,7 @@ class ${className} : public ${baseClass}
                 id = capacities[ii].id;
 
                 if (id == HW_LOAD_REQUEST_PROP()) {
-                    LOG_DEBUG(${className}, __FUNCTION__ <<
+                    RH_DEBUG(this->_deviceLog, __FUNCTION__ <<
                         ": Deallocating hw_load_requests...");
                     
                     // Attempt to Convert Any to unwrappable type
@@ -438,7 +481,7 @@ class ${className} : public ${baseClass}
                             (*cfPropsPtr)[iv].value >>= loadRequestsToRemove[iv];
                         }
                     } else {
-                        LOG_ERROR(${className}, __FUNCTION__ << 
+                        RH_ERROR(this->_deviceLog, __FUNCTION__ << 
                             ": Unable to convert HW_LOAD_REQUEST property");
                         continue;
                     }
@@ -446,7 +489,7 @@ class ${className} : public ${baseClass}
                     // Grab the current hw_load_status struct
                     statusVecPtr = getHwLoadStatuses();
                     if (statusVecPtr == NULL) {
-                        LOG_ERROR(${className}, __FUNCTION__ <<
+                        RH_ERROR(this->_deviceLog, __FUNCTION__ <<
                             ": Unable to get HwLoadStatus vector! Pointer is NULL");
                         continue;
                     }
@@ -493,7 +536,7 @@ class ${className} : public ${baseClass}
 
         void setHwLoadRequestsPtr(HwLoadRequestVec* propPtr) {
             if (propPtr == NULL) {
-               LOG_ERROR(${className}, "CANNOT SET HW_LOAD_REQUESTS_PTR: PROPERTY IS NULL");
+               RH_ERROR(this->_deviceLog, "CANNOT SET HW_LOAD_REQUESTS_PTR: PROPERTY IS NULL");
                return;
             }
             _hwLoadRequestsPtr = propPtr;
@@ -501,7 +544,7 @@ class ${className} : public ${baseClass}
         
         void setHwLoadStatusesPtr(HwLoadStatusVec* propPtr) {
             if (propPtr == NULL) {
-               LOG_ERROR(${className}, "CANNOT SET HW_LOAD_STATUSES_PTR: PROPERTY IS NULL");
+               RH_ERROR(this->_deviceLog, "CANNOT SET HW_LOAD_STATUSES_PTR: PROPERTY IS NULL");
                return;
             }
             _hwLoadStatusesPtr = propPtr;
@@ -535,7 +578,7 @@ class ${className} : public ${baseClass}
             void* pHandle = dlopen(absPath.c_str(), RTLD_NOW);
             if (!pHandle) {
                 char* errorMsg = dlerror();
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                RH_FATAL(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to open library '" << absPath.c_str() << "': " << errorMsg);
                 return NULL;
             }  
@@ -551,7 +594,7 @@ class ${className} : public ${baseClass}
             for (size_t ii = 0; ii < combinedProps.length(); ii++) {
                 std::string id(combinedProps[ii].id);
                 std::string val = ossie::any_to_string(combinedProps[ii].value);
-                LOG_DEBUG(${className}, "ARGV[" << id << "]: " << val);
+                RH_DEBUG(this->_deviceLog, "ARGV[" << id << "]: " << val);
             }
 
             // Convert combined properties into ARGV/ARGC format
@@ -576,7 +619,7 @@ class ${className} : public ${baseClass}
             void* fnPtr = dlsym(pHandle, symbol);
             if (!fnPtr) {
                 char* errorMsg = dlerror();
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                RH_FATAL(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to find symbol '" << symbol << "': " << errorMsg);
                 return NULL;
             }
@@ -589,7 +632,7 @@ class ${className} : public ${baseClass}
             try {
                 ${executeType}Ptr = generate${executeType.capitalize()}(argc, argv, constructPtr, libraryName);
             } catch (...) {
-                LOG_FATAL(${className}, __FUNCTION__ << 
+                RH_FATAL(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to construct ${executeType} device: '" << argv[0] << "'");
             }
 
@@ -642,7 +685,7 @@ class ${className} : public ${baseClass}
                     success |= applyHwLoadRequest(loadRequestVec[ii], loadStatusVec[availableStatusIndex]);
                     usedStatusIndices[ii] = availableStatusIndex;;
                 } else {
-                    LOG_ERROR(${className}, __FUNCTION__ << 
+                    RH_ERROR(this->_deviceLog, __FUNCTION__ << 
                         ": Device cannot be allocated against. No load capacity");
                     success = false;
                 }
@@ -721,7 +764,7 @@ class ${className} : public ${baseClass}
         {
             HwLoadStatusVec* statusVecPtr = getHwLoadStatuses();
             if (statusVecPtr == NULL) {
-                LOG_ERROR(${className}, __FUNCTION__ <<
+                RH_ERROR(this->_deviceLog, __FUNCTION__ <<
                     ": Unable to get HwLoadStatus vector! Pointer is NULL");
                 return false;
             }
@@ -746,7 +789,7 @@ class ${className} : public ${baseClass}
                 // Grab the current hw_load_status struct
                 HwLoadStatusVec* statusVecPtr = getHwLoadStatuses();
                 if (statusVecPtr == NULL) {
-                    LOG_ERROR(${className}, __FUNCTION__ <<
+                    RH_ERROR(this->_deviceLog, __FUNCTION__ <<
                         ": Unable to get HwLoadStatus vector! Pointer is NULL");
                     return;
                 }
@@ -764,7 +807,7 @@ class ${className} : public ${baseClass}
                     if (strVecContainsStr(allRequesterIds, iter->first)) {
                         continue; // Skip the running ${executeType}s
                     }
-                    LOG_DEBUG(${className}, __FUNCTION__ <<
+                    RH_DEBUG(this->_deviceLog, __FUNCTION__ <<
                         ": Locking device '" << ossie::corba::returnString(iter->second->identifier()) << "'");
                     iter->second->adminState(CF::Device::LOCKED);
                 }

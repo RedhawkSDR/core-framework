@@ -18,8 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include "ossie/MessageInterface.h"
-#include <iostream>
+#include <ossie/MessageInterface.h>
+#include <ossie/PropertyMap.h>
 
 PREPARE_CF_LOGGING(MessageConsumerPort)
 
@@ -69,11 +69,28 @@ CosEventChannelAdmin::ProxyPullConsumer_ptr SupplierAdmin_i::obtain_pull_consume
     return CosEventChannelAdmin::ProxyPullConsumer::_nil();
 };
     
-MessageConsumerPort::MessageConsumerPort(std::string port_name) : Port_Provides_base_impl(port_name) {
-    supplier_admin = new SupplierAdmin_i(this);
+MessageConsumerPort::MessageConsumerPort(std::string port_name) :
+    Port_Provides_base_impl(port_name),
+    supplier_admin(0)
+{
 }
 
-    // CF::Port methods
+MessageConsumerPort::~MessageConsumerPort()
+{
+    // If a SupplierAdmin was created, deactivate and delete it
+    if (supplier_admin) {
+        PortableServer::POA_var poa = supplier_admin->_default_POA();
+        PortableServer::ObjectId_var oid = poa->servant_to_id(supplier_admin);
+        poa->deactivate_object(oid);
+        supplier_admin->_remove_ref();
+    }
+
+    for (CallbackTable::iterator callback = callbacks_.begin(); callback != callbacks_.end(); ++callback) {
+        delete callback->second;
+    }
+}
+
+// CF::Port methods
 void MessageConsumerPort::connectPort(CORBA::Object_ptr connection, const char* connectionId) {
     CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
     if (CORBA::is_nil(channel)) {
@@ -101,6 +118,12 @@ CosEventChannelAdmin::ConsumerAdmin_ptr MessageConsumerPort::for_consumers() {
 };
     
 CosEventChannelAdmin::SupplierAdmin_ptr MessageConsumerPort::for_suppliers() {
+    boost::mutex::scoped_lock lock(portInterfaceAccess);
+    if (!supplier_admin) {
+        supplier_admin = new SupplierAdmin_i(this);
+        PortableServer::POA_var poa = supplier_admin->_default_POA();
+        PortableServer::ObjectId_var oid = poa->activate_object(supplier_admin);
+    }
     return supplier_admin->_this();
 };
     
@@ -144,9 +167,9 @@ CosEventComm::PushSupplier_ptr MessageConsumerPort::removeSupplier (const std::s
 };
 
 void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any& data) {
-    CallbackTable::iterator callback = callbacks_.find(id);
-    if (callback != callbacks_.end()) {
-        (*callback->second)(id, data);
+    MessageCallback* callback = getMessageCallback(id);
+    if (callback) {
+        callback->dispatch(id, data);
     } else {
         if (generic_callbacks_.empty()) {
             std::string warning = "no callbacks registered for messages with id: "+id+".";
@@ -157,8 +180,8 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
                 warning += " The only registered callback is for message with id: "+callbacks_.begin()->first;
             } else { 
                 warning += " The available message callbacks are for messages with any of the following id: ";
-                for (callback = callbacks_.begin();callback != callbacks_.end(); callback++) {
-                    warning += callback->first+" ";
+                for (CallbackTable::iterator cb = callbacks_.begin(); cb != callbacks_.end(); ++cb) {
+                    warning += cb->first+" ";
                 }
             }
             LOG_WARN(MessageConsumerPort,warning);
@@ -166,87 +189,34 @@ void MessageConsumerPort::fireCallback (const std::string& id, const CORBA::Any&
     }
 
     // Invoke the callback for those messages that are generic
-    generic_callbacks_(id, data);
+    dispatchGeneric(id, data);
 };
+
+MessageConsumerPort::MessageCallback* MessageConsumerPort::getMessageCallback(const std::string& id)
+{
+    CallbackTable::iterator callback = callbacks_.find(id);
+    if (callback != callbacks_.end()) {
+        return callback->second;
+    }
+    return 0;
+}
+
+bool MessageConsumerPort::hasGenericCallbacks()
+{
+    return !generic_callbacks_.empty();
+}
+
+void MessageConsumerPort::dispatchGeneric(const std::string& id, const CORBA::Any& data)
+{
+    generic_callbacks_(id, data);
+}
 
 std::string MessageConsumerPort::getRepid() const 
 {
-	return "IDL:ExtendedEvent/MessageEvent:1.0";
+    return ExtendedEvent::MessageEvent::_PD_repoId;
 }
 
 std::string MessageConsumerPort::getDirection() const 
 {
-	return "Bidir";
-}
-
-MessageSupplierPort::MessageSupplierPort (std::string port_name) :
-    Port_Uses_base_impl(port_name)
-{
-}
-
-MessageSupplierPort::~MessageSupplierPort (void)
-{
-}
-
-void MessageSupplierPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
-{
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
-    this->active = true;
-    CosEventChannelAdmin::EventChannel_var channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(connection);
-    if (CORBA::is_nil(channel)) {
-        throw CF::Port::InvalidPort(0, "The object provided did not narrow to a CosEventChannelAdmin::EventChannel type");
-    }
-    CosEventChannelAdmin::SupplierAdmin_var supplier_admin = channel->for_suppliers();
-    CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer = supplier_admin->obtain_push_consumer();
-    proxy_consumer->connect_push_supplier(CosEventComm::PushSupplier::_nil());
-    extendConsumers(connectionId, proxy_consumer);
-}
-
-void MessageSupplierPort::disconnectPort(const char* connectionId)
-{
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
-    CosEventChannelAdmin::ProxyPushConsumer_var consumer = removeConsumer(connectionId);
-    if (CORBA::is_nil(consumer)) {
-        return;
-    }
-    consumer->disconnect_push_consumer();
-    if (this->consumers.empty()) {
-        this->active = false;
-    }
-}
-
-void MessageSupplierPort::push(const CORBA::Any& data)
-{
-    boost::mutex::scoped_lock lock(portInterfaceAccess);
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.begin();
-    while (connection != consumers.end()) {
-        try {
-            (connection->second)->push(data);
-        } catch ( const CORBA::MARSHAL& ex ) {
-            RH_NL_WARN("MessageSupplierPort","Could not deliver the message. Maximum message size exceeded");
-        } catch ( ... ) {
-        }
-        connection++;
-    }
-}
-
-CosEventChannelAdmin::ProxyPushConsumer_ptr MessageSupplierPort::removeConsumer(std::string consumer_id)
-{
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var>::iterator connection = consumers.find(consumer_id);
-    if (connection == consumers.end()) {
-        return CosEventChannelAdmin::ProxyPushConsumer::_nil();
-    }
-    CosEventChannelAdmin::ProxyPushConsumer_var consumer = connection->second;
-    consumers.erase(connection);
-    return consumer._retn();
-}
-
-void MessageSupplierPort::extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer)
-{
-    consumers[std::string(consumer_id)] = proxy_consumer;
-}
-
-std::string MessageSupplierPort::getRepid() const 
-{
-	return "IDL:ExtendedEvent/MessageEvent:1.0";
+    return CF::PortSet::DIRECTION_BIDIR;
 }

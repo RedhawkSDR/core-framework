@@ -22,12 +22,14 @@ package bulkio;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
+
 import org.omg.CORBA.TCKind;
-import org.ossie.properties.AnyUtils;
+
 import CF.DataType;
+import org.ossie.properties.AnyUtils;
+
 import BULKIO.PortStatistics;
-import bulkio.SizeOf;
+
 
 /**
  * @generated
@@ -62,12 +64,9 @@ public class linkStatistics  {
     /** @generated */
     protected String portName;
     protected int    connection_errors;
-        
-    /**
-     * @generated
-     */
-    public linkStatistics(String portName, SizeOf<?> dataum ) {
-	this.sizeof = dataum.sizeof();
+
+    public linkStatistics(String portName, int sizeof) {
+	this.sizeof = sizeof;
 	this.enabled = true;
 	this.bitSize = this.sizeof * 8.0;
         this.connection_errors=0;
@@ -89,6 +88,11 @@ public class linkStatistics  {
 	for (int i = 0; i < historyWindow; ++i) {
 	    this.receivedStatistics[i] = new statPoint();
 	}
+    }
+
+    @Deprecated
+    public linkStatistics(String portName, SizeOf<?> dataum) {
+	this(portName, dataum.sizeof());
     }
 
     public List< String > getActiveStreamIDs() {
@@ -174,7 +178,7 @@ public class linkStatistics  {
 	    this.runningStats.timeSinceLastCall = (float)(secs - front_sec);
 	    this.runningStats.bitsPerSecond = (float)((totalData * this.bitSize) / totalTime);
 	    this.runningStats.elementsPerSecond = (float)(totalData / totalTime);
-	    this.runningStats.averageQueueDepth = (float)(queueSize / receivedSize);
+	    this.runningStats.averageQueueDepth = queueSize / receivedSize;
 	    this.runningStats.callsPerSecond = (float)((receivedSize - 1) / totalTime);
 	    this.runningStats.streamIDs = this.activeStreamIDs.toArray(new String[0]);
 	    if (flushTime != 0.0) {

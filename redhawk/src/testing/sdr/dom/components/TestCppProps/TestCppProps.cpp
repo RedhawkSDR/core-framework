@@ -52,6 +52,35 @@ TestCppProps::TestCppProps(const char *uuid, const char *label) :
                 "external",
                 "configure");
 
+    addProperty(simple_utctime,
+                "2017:2:1::12:01:00.123",
+                "simple_utctime",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    seq_utctime.push_back(redhawk::time::utils::convert("2010:2:1::12:01:00.123"));
+    seq_utctime.push_back(redhawk::time::utils::convert("2011:2:1::12:01:00.123"));
+    addProperty(seq_utctime,
+                seq_utctime,
+                "seq_utctime",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+    
+    addProperty(reset_utctime,
+                "false",
+                "reset_utctime",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
     addProperty(seq_oct,
                 "DCE:f877b9ee-a682-43a6-ba21-5ea980167f55",
                 "seq_oct",
@@ -82,10 +111,18 @@ TestCppProps::TestCppProps(const char *uuid, const char *label) :
                 "",
                 "external",
                 "property");
+    addPropertyListener(reset_utctime, this, &TestCppProps::resetUTCtime);
 }
 
 TestCppProps::~TestCppProps (void)
 {
+}
+
+void TestCppProps::resetUTCtime(bool oldValue, bool newValue)
+{
+    if (newValue) {
+        this->simple_utctime = redhawk::time::utils::create();
+    }
 }
 
 void TestCppProps::runTest (CORBA::ULong testId, CF::Properties& testValues)

@@ -32,26 +32,41 @@ public abstract class ORB {
 
     public static org.omg.CORBA.Object string_to_object (String ior)
     {
-        long ref = string_to_object_ref(ior);
+        long ref = NativeORB.string_to_object_ref(ior);
         return new CORBAObject(ref);
     }
 
     public static String object_to_string (org.omg.CORBA.Object obj)
     {
         if (obj instanceof omnijni.ObjectImpl) {
-            return objectref_to_string(((omnijni.ObjectImpl)obj)._get_object_ref());
+            return NativeORB.objectref_to_string(((omnijni.ObjectImpl)obj)._get_object_ref());
         } else {
             org.omg.CORBA.ORB orb = ((org.omg.CORBA.portable.ObjectImpl)obj)._orb();
             return orb.object_to_string(obj);
         }
     }
 
-    public static native void shutdown ();
-
-    static {
-        System.loadLibrary("omnijni");
+    public static void shutdown ()
+    {
+        NativeORB.shutdown();
     }
 
-    private static native long string_to_object_ref (String ior);
-    private static native String objectref_to_string (long ref);
+    private static void register_shutdown ()
+    {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                omnijni.ORB.shutdown();
+            }
+        });
+    }
+
+    private static class NativeORB {
+        static {
+            System.loadLibrary("omnijni");
+        }
+
+        private static native void shutdown();
+        private static native long string_to_object_ref (String ior);
+        private static native String objectref_to_string (long ref);
+    }
 }

@@ -50,6 +50,11 @@ namespace ossie {
             return ((type == APPLICATION) && (identifier == identifier_));
         }
 
+        virtual std::string description() const
+        {
+            return "application '" + identifier_ + "'";
+        }
+
         virtual ApplicationEndpoint* clone() const
         {
             return new ApplicationEndpoint(*this);
@@ -94,6 +99,11 @@ namespace ossie {
         virtual bool checkDependency(DependencyType type, const std::string& identifier) const
         {
             return ((type == COMPONENT) && (identifier == identifier_));
+        }
+
+        virtual std::string description() const
+        {
+            return "component '" + identifier_ + "'";
         }
 
         virtual ComponentEndpoint* clone() const
@@ -144,6 +154,11 @@ namespace ossie {
             // application context, where we do not need to determine whether
             // it depends on a given object.
             return false;
+        }
+
+        virtual std::string description() const
+        {
+            return "device that loaded component '" + identifier_ + "'";
         }
 
         virtual DeviceLoadedEndpoint* clone() const
@@ -203,6 +218,11 @@ namespace ossie {
             return new DeviceUsedEndpoint(*this);
         }
 
+        virtual std::string description() const
+        {
+            return "usesdevice '" + usesIdentifier_ + "' for component '" + componentIdentifier_ + "'";
+        }
+
     private:
         virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
         {
@@ -247,6 +267,11 @@ namespace ossie {
             // application context, where we do not need to determine whether
             // it depends on a given object.
             return false;
+        }
+
+        virtual std::string description() const
+        {
+            return "application usesdevice '" + usesIdentifier_ + "'";
         }
 
         virtual ApplicationUsesDeviceEndpoint* clone() const
@@ -298,6 +323,11 @@ namespace ossie {
             return false;
         }
 
+        virtual std::string description() const
+        {
+            return "find by naming service '" + name_ + "'";
+        }
+
         virtual FindByNamingServiceEndpoint* clone() const
         {
             return new FindByNamingServiceEndpoint(*this);
@@ -345,6 +375,15 @@ namespace ossie {
         virtual bool checkDependency(DependencyType type, const std::string& identifier) const
         {
             return ((type == Endpoint::SERVICENAME) && (identifier == name_));
+        }
+
+        virtual std::string description() const
+        {
+            std::string desc = "domain object type " + type_;
+            if (!name_.empty()) {
+                desc += " '" + name_ + "'";
+            }
+            return desc;
         }
 
         virtual FindByDomainFinderEndpoint* clone() const
@@ -405,6 +444,11 @@ namespace ossie {
             return ((type == Endpoint::SERVICENAME) && (identifier == name_));
         }
 
+        virtual std::string description() const
+        {
+            return "service '" + name_ + "'";
+        }
+
         virtual ServiceEndpoint* clone() const
         {
             return new ServiceEndpoint(*this);
@@ -457,6 +501,11 @@ namespace ossie {
             return false;
         }
 
+        virtual std::string description() const
+        {
+            return "event channel '" + name_ + "'";
+        }
+
         virtual EventChannelEndpoint* clone() const
         {
             return new EventChannelEndpoint(*this);
@@ -507,6 +556,11 @@ namespace ossie {
         virtual bool checkDependency(DependencyType type, const std::string& identifier) const
         {
             return false;
+        }
+
+        virtual std::string description() const
+        {
+            return "object reference";
         }
 
         virtual ObjectrefEndpoint* clone() const
@@ -583,6 +637,11 @@ namespace ossie {
             return supplier_->checkDependency(type, identifier);
         }
 
+        virtual std::string description() const
+        {
+            return supplier_->description() + " port '" + name_ + "'";
+        }
+
         virtual PortEndpoint* clone() const
         {
             return new PortEndpoint(*this);
@@ -592,17 +651,24 @@ namespace ossie {
         virtual CORBA::Object_ptr resolve_(ConnectionManager& manager)
         {
             CORBA::Object_var supplierObject = supplier_->resolve(manager);
-            CF::PortSupplier_var portSupplier = ossie::corba::_narrowSafe<CF::PortSupplier>(supplierObject);
-            if (!CORBA::is_nil(portSupplier)) {
-                try {
-                    return portSupplier->getPort(name_.c_str());
-                } catch (const CF::PortSupplier::UnknownPort&) {
-                    LOG_ERROR(PortEndpoint, "Port supplier reports no port with name " << name_);
-                } CATCH_LOG_ERROR(PortEndpoint, "Failure in getPort");
-        
-                invalidPort_ = true;
-            } else {
+            if (CORBA::is_nil(supplierObject)) {
                 LOG_DEBUG(PortEndpoint, "Unable to resolve port supplier");
+            } else {
+                CF::PortSupplier_var portSupplier = ossie::corba::_narrowSafe<CF::PortSupplier>(supplierObject);
+                if (!CORBA::is_nil(portSupplier)) {
+                    try {
+                        return portSupplier->getPort(name_.c_str());
+                    } catch (const CF::PortSupplier::UnknownPort&) {
+                        LOG_ERROR(PortEndpoint, "Port supplier reports no port with name " << name_);
+                    } CATCH_LOG_ERROR(PortEndpoint, "Failure in getPort");
+                } else {
+                    if (manager.exceptionsEnabled()) {
+                        throw LookupError(supplier_->description() + " is not a port supplier");
+                    } else {
+                        LOG_ERROR(PortEndpoint, "Object " << supplier_->description() << " is not a port supplier");
+                    }
+                }
+                invalidPort_ = true;
             }
             return CORBA::Object::_nil();
         }

@@ -3,6 +3,8 @@
 ## Description
 REDHAWK is a software-defined radio (SDR) framework designed to support the development, deployment, and management of real-time software radio applications. To support the design and development of software applications, REDHAWK provides tools that allow development and testing of software modules called "Components" and composition of Components into "Waveform Applications" that can be seamlessly deployed on a single computer or multiple network-enabled computers.
 
+REDHAWK 2.1.0 added support for new C++ Components to be created as shared libraries, which allow multiple Components to be deployed into the same process and enable faster, lower-cost I/O. For documentation on this beta feature, refer to docs/shared-address.
+
 ## Subdirectories
 
 * redhawk - Contains the REDHAWK Core Framework base libraries and system software.

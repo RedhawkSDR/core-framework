@@ -20,15 +20,21 @@
 #% extends "pull/resource_base.py"
 #{% block baseadditionalimports %}
 import frontend
+from omniORB import any as _any
 #{% if 'FrontendTuner' in component.implements %}
 from frontend import FRONTEND
+from ossie.properties import struct_to_props
 BOOLEAN_VALUE_HERE=False
 #{% endif %}
 #{% endblock %}
 #{% block extensions %}
 #{% for prop in component.properties if prop.name == "frontend_tuner_status" %}
         # Rebind tuner status property with custom struct definition
+#{%  if 'ScanningTuner' in component.implements %}
+        frontend_tuner_status = FrontendScannerDevice.frontend_tuner_status.rebind()
+#{%  else %}
         frontend_tuner_status = FrontendTunerDevice.frontend_tuner_status.rebind()
+#{%  endif %}
         frontend_tuner_status.structdef = frontend_tuner_status_struct_struct
 #{% endfor %}
 
@@ -40,7 +46,8 @@ BOOLEAN_VALUE_HERE=False
             tuner_id = self.getTunerMapping(allocation_id)
             if tuner_id < 0:
                 raise FRONTEND.FrontendException(("ERROR: ID: " + str(allocation_id) + " IS NOT ASSOCIATED WITH ANY TUNER!"))
-            return [CF.DataType(id=self.frontend_tuner_status[tuner_id].getId(),value=self.frontend_tuner_status[tuner_id]._toAny())]
+            _props = self.query([CF.DataType(id='FRONTEND::tuner_status',value=_any.to_any(None))])
+            return _props[0].value._v[tuner_id]._v
 
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id
@@ -87,11 +94,6 @@ BOOLEAN_VALUE_HERE=False
                 del self.listeners[listen_alloc_id]
 
 #{% if component.hasmultioutport %}
-            old_table = self.connectionTable
-            for entry in list(self.connectionTable):
-                if entry.connection_id == listen_alloc_id:
-                    self.connectionTable.remove(entry)
-
 #{%   for port_out in component.ports if port_out.multiout %}
             # Check to see if port "${port_out.pyname}" has a connection for this listener
             tmp = self.${port_out.pyname}._get_connections()
@@ -100,6 +102,12 @@ BOOLEAN_VALUE_HERE=False
                 if connection_id == listen_alloc_id:
                     self.${port_out.pyname}.disconnectPort(connection_id)
 #{%   endfor %}
+
+            old_table = self.connectionTable
+            for entry in list(self.connectionTable):
+                if entry.connection_id == listen_alloc_id:
+                    self.connectionTable.remove(entry)
+
             self.connectionTableChanged(old_table, self.connectionTable)
 #{% endif %}
 
@@ -164,7 +172,7 @@ BOOLEAN_VALUE_HERE=False
             tmp = bulkio.connection_descriptor_struct()
 #{%   for port in component.ports if port.multiout %}
             tmp.connection_id = allocation_id
-            tmp.port_name = "${port.pyname}"
+            tmp.port_name = "${port.portname}"
             tmp.stream_id = stream_id
             self.connectionTable.append(tmp)
 #{%   endfor %}

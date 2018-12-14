@@ -119,6 +119,7 @@ typedef SimpleMonitor<CORBA::ULongLong> ULongLongProperty;
 typedef SimpleMonitor<CORBA::LongLong> LongLongProperty;
 typedef SimpleMonitor<CORBA::Float> FloatProperty;
 typedef SimpleMonitor<CORBA::Double> DoubleProperty;
+typedef SimpleMonitor<CF::UTCTime> UTCTimeProperty;
 
 typedef SimpleMonitor<std::complex<float> >            ComplexFloatProperty;
 typedef SimpleMonitor<std::complex<bool> >             ComplexBooleanProperty;
@@ -189,6 +190,7 @@ typedef SequenceMonitor<CORBA::LongLong>  LongLongSeqProperty;
 typedef SequenceMonitor<CORBA::ULongLong> ULongLongSeqProperty;
 typedef SequenceMonitor<CORBA::Float>     FloatSeqProperty;
 typedef SequenceMonitor<CORBA::Double>    DoubleSeqProperty;
+typedef SequenceMonitor<CF::UTCTime>    UTCTimeSeqProperty;
 
 typedef SequenceMonitor<std::complex<float> >            ComplexFloatSeqProperty;
 typedef SequenceMonitor<std::complex<double> >           ComplexDoubleSeqProperty;
@@ -288,6 +290,7 @@ typedef SequenceMonitor<std::complex<CORBA::ULongLong> > ComplexULongLongSeqProp
     static ULongLongProperty* Create (CORBA::ULongLong&);
     static FloatProperty* Create (CORBA::Float&);
     static DoubleProperty* Create (CORBA::Double&);
+    static UTCTimeProperty* Create (CF::UTCTime&);
 
     static ComplexBooleanProperty* Create (std::complex<bool>&);
     static ComplexCharProperty* Create (std::complex<char>&);
@@ -313,6 +316,7 @@ typedef SequenceMonitor<std::complex<CORBA::ULongLong> > ComplexULongLongSeqProp
     static ULongLongSeqProperty* Create (std::vector<CORBA::ULongLong>&);
     static FloatSeqProperty* Create (std::vector<CORBA::Float>&);
     static DoubleSeqProperty* Create (std::vector<CORBA::Double>&);
+    static UTCTimeSeqProperty* Create (std::vector<CF::UTCTime>&);
 
     static ComplexBooleanSeqProperty* Create (std::vector<std::complex<bool> >&);
     static ComplexCharSeqProperty* Create (std::vector<std::complex<char> >&);

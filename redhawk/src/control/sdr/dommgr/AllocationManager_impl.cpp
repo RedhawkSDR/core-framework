@@ -23,12 +23,16 @@
 #include <set>
 
 #include <ossie/CF/WellKnownProperties.h>
+#include <ossie/debug.h>
+#include <ossie/CorbaUtils.h>
+#include <ossie/ossieSupport.h>
+#include <ossie/CorbaIterator.h>
 
+#include <ossie/prop_utils.h>
+#include <ossie/DeviceManagerConfiguration.h>
+
+#include "DomainManager_impl.h"
 #include "AllocationManager_impl.h"
-#include "ossie/debug.h"
-#include "ossie/CorbaUtils.h"
-#include "ossie/ossieSupport.h"
-#include "ossie/CorbaIterator.h"
 
 typedef ossie::corba::Iterator<CF::AllocationManager::AllocationStatusType,
                                CF::AllocationManager::AllocationStatusType_out,
@@ -104,7 +108,6 @@ void AllocationManager_impl::unfilledRequests(CF::AllocationManager::AllocationR
 
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocate(const CF::AllocationManager::AllocationRequestSequence &requests) throw (CF::AllocationManager::AllocationError)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
     // try to fulfill the request locally
@@ -145,15 +148,12 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
         this->_domainManager->updateRemoteAllocations(this->_remoteAllocations);
     }
 
-    TRACE_EXIT(AllocationManager_impl)
     return result._retn();
 }
 
 /* Allocates a set of dependencies only inside the local Domain */
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName) throw (CF::AllocationManager::AllocationError)
 {
-    TRACE_ENTER(AllocationManager_impl);
-
     CF::AllocationManager::AllocationResponseSequence* results;
     if (requests.length() > 0) {
         ossie::DeviceList registeredDevices = this->_domainManager->getRegisteredDevices();
@@ -162,23 +162,22 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
         results = new CF::AllocationManager::AllocationResponseSequence();
     }
 
-    TRACE_EXIT(AllocationManager_impl);
     return results;
 }
 
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateDevices(const CF::AllocationManager::AllocationRequestSequence &requests, ossie::DeviceList& devices, const std::string& domainName)
 {
-    LOG_TRACE(AllocationManager_impl, "Servicing " << requests.length() << " allocation request(s)");
+    RH_TRACE(_allocMgrLog, "Servicing " << requests.length() << " allocation request(s)");
     CF::AllocationManager::AllocationResponseSequence_var response = new CF::AllocationManager::AllocationResponseSequence();
 
     typedef std::list<ossie::AllocationType*> LocalAllocationList;
     LocalAllocationList local_allocations;
-
+    
     for (unsigned int request_idx=0; request_idx<requests.length(); request_idx++) {
         const CF::AllocationManager::AllocationRequestType& request = requests[request_idx];
         const std::string requestID(request.requestID);
         const std::string sourceID(request.sourceID);
-        LOG_TRACE(AllocationManager_impl, "Allocation request " << requestID
+        RH_TRACE(_allocMgrLog, "Allocation request " << requestID
                   << " contains " << request.allocationProperties.length() << " properties");
 
         // Get device identifiers, and ensure that no device references are nil
@@ -204,7 +203,12 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
             }
         }
 
-        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, request.allocationProperties, requestedDevices, sourceID, std::vector<std::string>(), std::vector<ossie::SPD::NameVersionPair>(), domainName);
+        std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID,
+                                                                                               request.allocationProperties,
+                                                                                               requestedDevices,
+                                                                                               sourceID, std::vector<std::string>(),
+                                                                                               std::vector<ossie::SPD::NameVersionPair>(),
+                                                                                               domainName);
         if (result.first) {
             local_allocations.push_back(result.first);
             ossie::AllocationType* allocation(result.first);
@@ -226,12 +230,18 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
     return response._retn();
 }
 
-std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_impl::allocateRequest(const std::string& requestID, const CF::Properties& dependencyProperties, ossie::DeviceList& devices, const std::string& sourceID,  const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps, const std::string& domainName)
+std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_impl::allocateRequest(const std::string& requestID,
+                                                                                                      const CF::Properties& dependencyProperties,
+                                                                                                      ossie::DeviceList& devices, const std::string& sourceID,
+                                                                                                      const std::vector<std::string>& processorDeps,
+                                                                                                      const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                                                                      const std::string& domainName,
+                                                                                                      const CF::Properties &deviceRequires )
 {
     for (ossie::DeviceList::iterator iter = devices.begin(); iter != devices.end(); ++iter) {
         boost::shared_ptr<ossie::DeviceNode> node = *iter;
         CF::Properties allocatedProperties;
-        if (allocateDevice(dependencyProperties, *node, allocatedProperties, processorDeps, osDeps)) {
+        if (allocateDevice(dependencyProperties, *node, allocatedProperties, processorDeps, osDeps, deviceRequires)) {
             ossie::AllocationType* allocation = new ossie::AllocationType();
             allocation->allocationID = ossie::generateUUID();
             allocation->sourceID = sourceID;
@@ -245,10 +255,16 @@ std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> AllocationManager_
     return std::make_pair((ossie::AllocationType*)0, devices.end());
 }
 
-ossie::AllocationResult AllocationManager_impl::allocateDeployment(const std::string& requestID, const CF::Properties& allocationProperties, ossie::DeviceList& devices, const std::string& sourceID, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps)
+ossie::AllocationResult AllocationManager_impl::allocateDeployment(const std::string& requestID,
+                                                                   const CF::Properties& allocationProperties,
+                                                                   ossie::DeviceList& devices,
+                                                                   const std::string& sourceID,
+                                                                   const std::vector<std::string>& processorDeps,
+                                                                   const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                                                   const CF::Properties& deviceRequires )
 {
     const std::string domainName = this->_domainManager->getDomainManagerName();
-    std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, allocationProperties, devices, sourceID, processorDeps, osDeps, domainName);
+    std::pair<ossie::AllocationType*,ossie::DeviceList::iterator> result = allocateRequest(requestID, allocationProperties, devices, sourceID, processorDeps, osDeps, domainName, deviceRequires);
     if (result.first) {
         // Update the allocation table, including the persistence store
         const std::string allocationID = result.first->allocationID;
@@ -277,10 +293,15 @@ bool AllocationManager_impl::hasListenerAllocation(const CF::Properties& request
     return false;
 }
 
-bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedProperties, ossie::DeviceNode& node, CF::Properties& allocatedProperties, const std::vector<std::string>& processorDeps, const std::vector<ossie::SPD::NameVersionPair>& osDeps)
+bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedProperties,
+                                            ossie::DeviceNode& node,
+                                            CF::Properties& allocatedProperties,
+                                            const std::vector<std::string>& processorDeps,
+                                            const std::vector<ossie::SPD::NameVersionPair>& osDeps,
+                                            const CF::Properties& devicerequires)
 {
     if (!ossie::corba::objectExists(node.device)) {
-        LOG_WARN(AllocationManager_impl, "Not using device for uses_device allocation " << node.identifier << " because it no longer exists");
+        RH_WARN(_allocMgrLog, "Not using device for uses_device allocation " << node.identifier << " because it no longer exists");
         return false;
     }
     try {
@@ -289,23 +310,30 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
         }
     } catch ( ... ) {
         // bad device reference or device in an unusable state
-        LOG_WARN(AllocationManager_impl, "Unable to verify state of device " << node.identifier);
+        RH_WARN(_allocMgrLog, "Unable to verify state of device " << node.identifier);
         return false;
     }
 
-    LOG_TRACE(AllocationManager_impl, "Allocating against device " << node.identifier);
+    RH_TRACE(_allocMgrLog, "Allocating against device " << node.identifier);
 
     // Determine whether or not the device in question has the required matching properties
     CF::Properties allocProps;
     if (!checkDeviceMatching(node.prf, allocProps, requestedProperties, processorDeps, osDeps)) {
-        LOG_TRACE(AllocationManager_impl, "Matching failed");
+        RH_TRACE(_allocMgrLog, "Matching failed");
+        return false;
+    }
+
+    RH_DEBUG(_allocMgrLog, "allocateDevice::PartitionMatching " << node.requiresProps );
+    const redhawk::PropertyMap &devReqs = redhawk::PropertyMap::cast(devicerequires);
+    if ( !checkPartitionMatching( node, devReqs ))  {
+        RH_TRACE(_allocMgrLog, "Partition Matching failed");
         return false;
     }
 
     // If there are no external properties to allocate, the allocation is
     // already successful
     if (allocProps.length() == 0) {
-        LOG_TRACE(AllocationManager_impl, "Allocation requires no capacity from device");
+        RH_TRACE(_allocMgrLog, "Allocation requires no capacity from device");
         return true;
     }
 
@@ -313,24 +341,24 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
     std::vector<CF::Properties> allocations;
     partitionProperties(allocProps, allocations);
 
-    LOG_TRACE(AllocationManager_impl, "Allocating " << allocProps.length() << " properties ("
+    RH_TRACE(_allocMgrLog, "Allocating " << allocProps.length() << " properties ("
               << allocations.size() << " calls)");
     try {
         if (!this->completeAllocations(node.device, allocations)) {
-            LOG_TRACE(AllocationManager_impl, "Device lacks sufficient capacity");
+            RH_TRACE(_allocMgrLog, "Device lacks sufficient capacity");
             return false;
         }
     } catch (const CF::Device::InvalidCapacity& e) {
-        LOG_TRACE(AllocationManager_impl, "Device reported invalid capacity");
+        RH_TRACE(_allocMgrLog, "Device reported invalid capacity");
         return false;
     } catch (const CF::Device::InsufficientCapacity& e) {
-        LOG_TRACE(AllocationManager_impl, "Device reported insufficient capacity");
+        RH_TRACE(_allocMgrLog, "Device reported insufficient capacity");
         return false;
     }
 
     // Transfer ownership of the allocated properties to the caller
     ossie::corba::move(allocatedProperties, allocProps);
-    LOG_TRACE(AllocationManager_impl, "Allocation successful");
+    RH_TRACE(_allocMgrLog, "Allocation successful");
     return true;
 }
 
@@ -364,7 +392,7 @@ bool AllocationManager_impl::completeAllocations(CF::Device_ptr device, const st
                 // Allocation succeeded, try next
                 continue;
             }
-        } CATCH_LOG_WARN(AllocationManager_impl, "Device allocation raised an exception");
+        } CATCH_RH_WARN(_allocMgrLog, "Device allocation raised an exception");
 
         // An allocation failed; backtrack and deallocate any prior successes
         bool warned = false;
@@ -376,7 +404,7 @@ bool AllocationManager_impl::completeAllocations(CF::Device_ptr device, const st
                 if (!warned) {
                     // If a symmetric deallocateCapacity failes, the device is
                     // probably in a bad state; only warn about it once
-                    LOG_WARN(AllocationManager_impl, "Device deallocation on cleanup raised an exception");
+                    RH_WARN(_allocMgrLog, "Device deallocation on cleanup raised an exception");
                     warned = true;
                 }
             }
@@ -391,7 +419,7 @@ bool AllocationManager_impl::checkMatchingProperty(const ossie::Property* proper
     // Only attempt matching for simple properties
     const ossie::SimpleProperty* simpleProp = dynamic_cast<const ossie::SimpleProperty*>(property);
     if (!simpleProp) {
-        LOG_ERROR(AllocationManager_impl, "Invalid action '" << property->getAction()
+        RH_ERROR(_allocMgrLog, "Invalid action '" << property->getAction()
                   << "' for non-simple property " << property->getID());
         return false;
     }
@@ -403,7 +431,7 @@ bool AllocationManager_impl::checkMatchingProperty(const ossie::Property* proper
     const CORBA::Any depValue = ossie::convertAnyToPropertyType(dependency.value, simpleProp);
 
     std::string action = simpleProp->getAction();
-    LOG_TRACE(AllocationManager_impl, "Matching " << simpleProp->getID() << " '" << simpleProp->getValue()
+    RH_TRACE(_allocMgrLog, "Matching " << simpleProp->getID() << " '" << simpleProp->getValue()
               << "' " << action << " '" << ossie::any_to_string(dependency.value) << "'");
 
     // Per section D.4.1.1.7 the allocation property is on the left side of the action
@@ -416,20 +444,20 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
     // Check for a matching processor, which only happens in deployment
     if (!processorDeps.empty()) {
         if (!ossie::checkProcessor(processorDeps, prf.getAllocationProperties())) {
-            LOG_TRACE(AllocationManager_impl, "Device did not match requested processor");
+            RH_TRACE(_allocMgrLog, "Device did not match requested processor");
             return false;
         } else {
-            LOG_TRACE(AllocationManager_impl, "Matched processor name");
+            RH_TRACE(_allocMgrLog, "Matched processor name");
         }
     }
 
     // Likewise, check for OS name/version
     if (!osDeps.empty()) {
         if (!ossie::checkOs(osDeps, prf.getAllocationProperties())) {
-            LOG_TRACE(AllocationManager_impl, "Device did not match requested OS name/version");
+            RH_TRACE(_allocMgrLog, "Device did not match requested OS name/version");
             return false;
         } else {
-            LOG_TRACE(AllocationManager_impl, "Matched OS name/version");
+            RH_TRACE(_allocMgrLog, "Matched OS name/version");
         }
     }
 
@@ -441,12 +469,12 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
         const ossie::Property* property = prf.getAllocationProperty(propId);
 
         if (!property) {
-            LOG_TRACE(AllocationManager_impl, "Device has no property " << propId);
+            RH_TRACE(_allocMgrLog, "Device has no property " << propId);
             return false;
         } else if (property->isExternal()) {
             // Collect properties with an action of "external" for a later
             // allocateCapacity() call
-            LOG_TRACE(AllocationManager_impl, "Adding external property " << propId);
+            RH_TRACE(_allocMgrLog, "Adding external property " << propId);
             ossie::corba::push_back(externalProperties, ossie::convertDataTypeToPropertyType(dependency, property));
         } else {
             // Evaluate matching properties right now
@@ -458,24 +486,78 @@ bool AllocationManager_impl::checkDeviceMatching(ossie::Properties& prf, CF::Pro
         }
     }
 
-    LOG_TRACE(AllocationManager_impl, "Matched " << matches << " properties");
+    RH_TRACE(_allocMgrLog, "Matched " << matches << " properties");
     return true;
 }
+
+
+bool AllocationManager_impl::checkPartitionMatching( ossie::DeviceNode& node,
+                                                     const redhawk::PropertyMap& devicerequires )
+{
+    //
+    // perform matching of a device's deployrequires property set against a componentplacment's devicerequires list
+    //
+
+    // Check if the device has a required property set for deployment
+    if ( node.requiresProps.size() == 0 and devicerequires.size() == 0 ) {
+        RH_TRACE(_allocMgrLog, "Device: " << node.label << " has no required properties to filter deployments against.");
+        return true;
+    }
+
+    // Check if the device has a required property set for deployment
+    if ( devicerequires.size() == 0 and node.requiresProps.size() > 0 ) {
+        RH_TRACE(_allocMgrLog, "Device: " << node.label << " has required properties for deployment, component does not provide any properties.");
+        return false;
+    }
+
+    // Check if the component provides a property set for deployment
+    if ( devicerequires.size() > 0 and node.requiresProps.size() == 0 ) {
+        RH_TRACE(_allocMgrLog, "Device: " << node.label << " has no required properties for deployment, component's contains deviicerequires properties.");
+        return false;
+    }
+
+    if ( node.requiresProps.size() != devicerequires.length()) {
+        RH_TRACE(_allocMgrLog, "Device: " << node.label << " has required properties for deployment, number of properties does not match.");
+        return false;
+    }
+
+
+    const redhawk::PropertyMap &provided_props = redhawk::PropertyMap::cast( devicerequires );
+    redhawk::PropertyMap::iterator iter = node.requiresProps.begin();
+    for (  ; iter != node.requiresProps.end(); ++iter) {
+        std::string pid(iter->getId());
+        RH_TRACE(_allocMgrLog, "checkPartitionMatching source device requires:  " << pid );
+        redhawk::PropertyMap::const_iterator provided_prop = provided_props.find( pid );
+        if ( provided_prop == provided_props.end() ) {
+            RH_INFO(_allocMgrLog, "Device: " << node.label << ", Missing REQUIRES property: " << pid << " from component for deployment");
+            return false;
+        }
+
+        // Convert the input Any to the property's data type via string; if it came
+        // from the ApplicationFactory, it's already a string, but a remote request
+        // could be of any type
+        std::string action("eq");
+        if (  !ossie::compare_anys(iter->getValue(), provided_prop->getValue(), action)  ) {
+            return false;
+        }
+    }
+
+    RH_TRACE(_allocMgrLog, "checkPartitionMatch PASSED for device: " << node.label );
+    return true;
+}
+
 
 /* Deallocates a set of allocations */
 void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl);
     if (allocationIDs.length() > 0) {
         deallocate(allocationIDs.get_buffer(), allocationIDs.get_buffer() + allocationIDs.length());
     }
-    TRACE_EXIT(AllocationManager_impl);
 }
 
 /* Returns all current allocations on all Domains */
 CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
     CF::AllocationManager::AllocationStatusSequence_var result = new CF::AllocationManager::AllocationStatusSequence();
@@ -522,15 +604,13 @@ CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocat
             throw CF::AllocationManager::InvalidAllocationId(invalid_ids);
         }
     }
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
 /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated */
 CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     CF::AllocationManager::AllocationStatusSequence_var result = new CF::AllocationManager::AllocationStatusSequence();
@@ -562,8 +642,7 @@ CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAl
             throw CF::AllocationManager::InvalidAllocationId(invalid_ids);
         }
     }
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
@@ -603,7 +682,6 @@ void AllocationManager_impl::listAllocations(CF::AllocationManager::AllocationSc
 /* Returns all devices in all Domains that can be seen by any Allocation Manager seen by the local Allocation Manager */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::allDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Start with local devices
@@ -615,33 +693,29 @@ CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::allDevice
     for (ossie::DomainManagerList::const_iterator start = remoteDomains.begin(); start != end; ++start) {
         CF::AllocationManager_var allocationMgr = start->domainManager->allocationMgr();
         CF::AllocationManager::DeviceLocationSequence_var remoteDevices = allocationMgr->localDevices();
-        LOG_TRACE(AllocationManager_impl, "Adding " << remoteDevices->length() << " device(s) from domain '"
+        RH_TRACE(_allocMgrLog, "Adding " << remoteDevices->length() << " device(s) from domain '"
                   << ossie::corba::returnString(start->domainManager->name()) << "' to list");
         ossie::corba::extend(result, remoteDevices);
     }
-    LOG_TRACE(AllocationManager_impl, result->length() << " total device(s)");
-    
-    TRACE_EXIT(AllocationManager_impl)
+    RH_TRACE(_allocMgrLog, result->length() << " total device(s)");
+
     return result._retn();
 }
 
 /* Returns all devices after policy is applied by any Allocation Manager seen by the local Allocation Manager */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::authorizedDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Default implementation has no policy engine; return all local devices
     CF::AllocationManager::DeviceLocationSequence_var result = localDevices();
-    
-    TRACE_EXIT(AllocationManager_impl)
+
     return result._retn();
 }
 
 /* Returns all devices that are located within the local Domain */
 CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::localDevices()
 {
-    TRACE_ENTER(AllocationManager_impl)
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 
     // Get a point-in-time copy of the domain's devices
@@ -659,18 +733,14 @@ CF::AllocationManager::DeviceLocationSequence* AllocationManager_impl::localDevi
         result[ii].devMgr = CF::DeviceManager::_duplicate((*start)->devMgr.deviceManager);
         result[ii].dev = CF::Device::_duplicate((*start)->device);
     }
-    LOG_TRACE(AllocationManager_impl, result->length() << " local device(s)");
+    RH_TRACE(_allocMgrLog, result->length() << " local device(s)");
 
-    TRACE_EXIT(AllocationManager_impl)
     return result._retn();
 }
 
 /* Returns a link to the local Domain */
 CF::DomainManager_ptr AllocationManager_impl::domainMgr()
 {
-    TRACE_ENTER(AllocationManager_impl);
-
-    TRACE_EXIT(AllocationManager_impl);
     return _domainManager->_this();
 }
 
@@ -696,7 +766,7 @@ void AllocationManager_impl::restoreAllocations (ossie::AllocationTable &ref_all
     for (; start != end; ++start) {
         // Contact the remote AllocationManager to get the full state for each
         // allocation
-        LOG_TRACE(AllocationManager_impl, "Restoring allocation '" << start->first << "'");
+        RH_TRACE(_allocMgrLog, "Restoring allocation '" << start->first << "'");
         CF::AllocationManager::allocationIDSequence alloc_ids;
         alloc_ids.length(1);
         alloc_ids[0] = start->first.c_str();
@@ -704,7 +774,7 @@ void AllocationManager_impl::restoreAllocations (ossie::AllocationTable &ref_all
         try {
             result = start->second->localAllocations(alloc_ids);
         } catch (const CORBA::Exception& ex) {
-            LOG_ERROR(AllocationManager_impl, "Unable to restore allocation '" << start->first << "': CORBA::"
+            RH_ERROR(_allocMgrLog, "Unable to restore allocation '" << start->first << "': CORBA::"
                       << ex._name());
             continue;
         }
@@ -746,10 +816,10 @@ bool AllocationManager_impl::deallocateLocal(const std::string& allocationID)
     const ossie::AllocationType& localAlloc = alloc->second;
     std::vector<CF::Properties> allocations;
     partitionProperties(localAlloc.allocationProperties, allocations);
-    LOG_TRACE(AllocationManager_impl, "Deallocating " << localAlloc.allocationProperties.length()
+    RH_TRACE(_allocMgrLog, "Deallocating " << localAlloc.allocationProperties.length()
               << " properties (" << allocations.size() << " calls) for local allocation " << allocationID);
     if (!ossie::corba::objectExists(localAlloc.allocatedDevice)) {
-        LOG_WARN(AllocationManager_impl, "Not deallocating capacity a device because it no longer exists");
+        RH_WARN(_allocMgrLog, "Not deallocating capacity a device because it no longer exists");
     } else {
         bool warned = false;
         for (size_t index = 0; index < allocations.size(); ++index) {
@@ -760,7 +830,7 @@ bool AllocationManager_impl::deallocateLocal(const std::string& allocationID)
                 if (!warned) {
                     // If a symmetric deallocateCapacity failes, the device is
                     // probably in a bad state; only warn about it once
-                    LOG_WARN(AllocationManager_impl, "Deallocation raised an exception");
+                    RH_WARN(_allocMgrLog, "Deallocation raised an exception");
                     warned = true;
                 }
             }
@@ -777,7 +847,7 @@ bool AllocationManager_impl::deallocateRemote(const std::string& allocationID)
         return false;
     }
      
-    LOG_TRACE(AllocationManager_impl, "Deallocating remote allocation " << allocationID);
+    RH_TRACE(_allocMgrLog, "Deallocating remote allocation " << allocationID);
     CF::AllocationManager::allocationIDSequence allocations;
     allocations.length(1);
     allocations[0] = allocationID.c_str();
@@ -789,7 +859,7 @@ bool AllocationManager_impl::deallocateRemote(const std::string& allocationID)
     } catch (...) {
         // Some other failure occurred; remove the allocation from the table
         // and continue
-        LOG_WARN(AllocationManager_impl, "Remote deallocation " << allocationID << " failed");
+        RH_WARN(_allocMgrLog, "Remote deallocation " << allocationID << " failed");
     }
     this->_remoteAllocations.erase(alloc);
     return true;

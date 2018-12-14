@@ -26,15 +26,17 @@
 #include <vector>
 #include <iterator>
 
+#include <boost/utility/enable_if.hpp>
+
 #include "CF/ExtendedEvent.h"
+#include "CF/QueryablePort.h"
 #include "CF/cf.h"
 #include "CorbaUtils.h"
 #include "Port_impl.h"
 #include "callback.h"
+#include "internal/message_traits.h"
 
 #include <COS/CosEventChannelAdmin.hh>
-
-
 
 /************************************************************************************
   Message consumer
@@ -89,7 +91,7 @@ class MessageConsumerPort : public Port_Provides_base_impl
 
 public:
     MessageConsumerPort (std::string port_name);
-    virtual ~MessageConsumerPort (void) { };
+    virtual ~MessageConsumerPort (void);
 
     /*
      * Register a callback function
@@ -100,7 +102,8 @@ public:
     template <class Class, class MessageStruct>
     void registerMessage (const std::string& id, Class* target, void (Class::*func)(const std::string&, const MessageStruct&))
     {
-        callbacks_[id] = new MemberCallback<Class, MessageStruct>(*target, func);
+        const char* format = ::redhawk::internal::message_traits<MessageStruct>::format();
+        callbacks_[id] = new MessageCallbackImpl<MessageStruct>(format, boost::bind(func, target, _1, _2));
     }
 
     template <class Target, class Func>
@@ -126,15 +129,22 @@ public:
     
     void fireCallback (const std::string& id, const CORBA::Any& data);
 
-	std::string getRepid() const;
+    std::string getRepid() const;
 
-	std::string getDirection() const;
-    
+    std::string getDirection() const;
 
 protected:
+
+    friend class MessageSupplierPort;
+
+    rh_logger::LoggerPtr _messageconsumerLog;
+
     void addSupplier (const std::string& connectionId, CosEventComm::PushSupplier_ptr supplier);
 
     CosEventComm::PushSupplier_ptr removeSupplier (const std::string& connectionId);
+
+    bool hasGenericCallbacks();
+    void dispatchGeneric(const std::string& id, const CORBA::Any& data);
     
     boost::mutex portInterfaceAccess;
     std::map<std::string, Consumer_i*> consumers;
@@ -143,52 +153,74 @@ protected:
     SupplierAdmin_i *supplier_admin;
     
     /*
-     * Abstract interface for message callbacks.
+     * Abstract untyped interface for message callbacks.
      */
     class MessageCallback
     {
     public:
-        virtual void operator() (const std::string& value, const CORBA::Any& data) = 0;
+        virtual void dispatch (const std::string& value, const CORBA::Any& data) = 0;
+        virtual void dispatch (const std::string& value, const void* data) = 0;
         virtual ~MessageCallback () { }
 
+        bool isCompatible (const char* format)
+        {
+            if (_format.empty()) {
+                // Message type has no format descriptor, assume that it cannot
+                // be passed via void*
+                return false;
+            }
+            // The format descriptors must be identical, otherwise go through
+            // CORBA::Any
+            return _format == format;
+        }
+
     protected:
-        MessageCallback () { }
+        MessageCallback(const std::string& format) :
+            _format(format)
+        {
+        }
+
+        const std::string _format;
     };
 
 
     /*
-     * Concrete class for member function property change callbacks.
+     * Concrete typed class for message callbacks.
      */
-    template <class Class, class M>
-    class MemberCallback : public MessageCallback
+    template <class Message>
+    class MessageCallbackImpl : public MessageCallback
     {
     public:
-        typedef void (Class::*MemberFn)(const std::string&, const M&);
+        typedef redhawk::callback<void (const std::string&, const Message&)> CallbackFunc;
 
-        virtual void operator() (const std::string& value, const CORBA::Any& data)
-        {
-            M message;
-            if (data >>= message) {
-                (target_.*func_)(value, message);
-            }
-        }
-
-    protected:
-        // Only allow MessageConsumerPort to instantiate this class.
-        MemberCallback (Class& target, MemberFn func) :
-            target_(target),
+        MessageCallbackImpl (const std::string& format, CallbackFunc func) :
+            MessageCallback(format),
             func_(func)
         {
         }
 
-        friend class MessageConsumerPort;
+        virtual void dispatch (const std::string& value, const CORBA::Any& data)
+        {
+            Message message;
+            if (data >>= message) {
+                func_(value, message);
+            }
+        }
 
-        Class& target_;
-        MemberFn func_;
+        virtual void dispatch (const std::string& value, const void* data)
+        {
+            const Message* message = reinterpret_cast<const Message*>(data);
+            func_(value, *message);
+        }
+
+    private:
+        CallbackFunc func_;
     };
 
     typedef std::map<std::string, MessageCallback*> CallbackTable;
     CallbackTable callbacks_;
+
+    MessageCallback* getMessageCallback(const std::string& msgId);
 
     ossie::notification<void (const std::string&, const CORBA::Any&)> generic_callbacks_;
 
@@ -196,72 +228,6 @@ protected:
     SupplierTable suppliers_;
 };
 
-
-/************************************************************************************
-  Message producer
-************************************************************************************/
-
-class MessageSupplierPort : public Port_Uses_base_impl
-#ifdef BEGIN_AUTOCOMPLETE_IGNORE
-, public virtual POA_CF::Port
-#endif
-{
-
-public:
-    MessageSupplierPort (std::string port_name);
-    virtual ~MessageSupplierPort (void);
-
-    // CF::Port methods
-    void connectPort(CORBA::Object_ptr connection, const char* connectionId);
-    void disconnectPort(const char* connectionId);
-
-    void push(const CORBA::Any& data);
-
-    CosEventChannelAdmin::ProxyPushConsumer_ptr removeConsumer(std::string consumer_id);
-    void extendConsumers(std::string consumer_id, CosEventChannelAdmin::ProxyPushConsumer_ptr proxy_consumer);
-
-    // Send a single message
-    template <typename Message>
-    void sendMessage(const Message& message) {
-        const Message* begin(&message);
-        const Message* end(&begin[1]);
-        sendMessages(begin, end);
-    }
-
-    // Send a sequence of messages
-    template <class Sequence>
-    void sendMessages(const Sequence& messages) {
-        sendMessages(messages.begin(), messages.end());
-    }
-    
-    // Send a set of messages from an iterable set
-    template <typename Iterator>
-    void sendMessages(Iterator first, Iterator last)
-    {
-        CF::Properties properties;
-        properties.length(std::distance(first, last));
-        for (CORBA::ULong ii = 0; first != last; ++ii, ++first) {
-            // Workaround for older components whose structs have a non-const,
-            // non-static member function getId(): determine the type of value
-            // pointed to by the iterator, and const_cast the dereferenced
-            // value; this ensures that it works for both bare pointers and
-            // "true" iterators
-            typedef typename std::iterator_traits<Iterator>::value_type value_type;
-            properties[ii].id = const_cast<value_type&>(*first).getId().c_str();
-            properties[ii].value <<= *first;
-        }
-        CORBA::Any data;
-        data <<= properties;
-        push(data);
-    }
-
-	std::string getRepid() const;
-
-protected:
-    boost::mutex portInterfaceAccess;
-    std::map<std::string, CosEventChannelAdmin::ProxyPushConsumer_var> consumers;
-    std::map<std::string, CosEventChannelAdmin::EventChannel_ptr> _connections;
-
-};
+#include "MessageSupplier.h"
 
 #endif // MESSAGEINTERFACE_H

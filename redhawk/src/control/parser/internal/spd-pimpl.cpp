@@ -33,10 +33,11 @@ CREATE_LOGGER(spd_parser);
 // softPkg_pimpl
 //
 
+rh_logger::LoggerPtr spd::parserLog;
+
 void softPkg_pimpl::
 pre ()
 {
-    LOG_TRACE(spd_parser, "softpkg pre")
     _spd.reset(new ossie::SPD());
 }
 
@@ -61,28 +62,28 @@ description (const ::std::string& description)
 void softPkg_pimpl::
 propertyfile (const ::std::string& propertyfile)
 {
-    LOG_TRACE(spd_parser, "softpkg propertyfile " << propertyfile)
+    RH_TRACE(spd::parserLog, "softpkg propertyfile " << propertyfile)
     _spd->properties = propertyfile; 
 }
 
 void softPkg_pimpl::
 descriptor (const ::std::string& descriptor)
 {
-    LOG_TRACE(spd_parser, "softpkg descriptor " << descriptor)
+    RH_TRACE(spd::parserLog, "softpkg descriptor " << descriptor)
     _spd->descriptor = descriptor;
 }
 
 void softPkg_pimpl::
 implementation (const ossie::SPD::Implementation& implementation)
 {
-    LOG_TRACE(spd_parser, "softpkg impl " << implementation.implementationID << " entry point " << implementation.code.entrypoint)
+    RH_TRACE(spd::parserLog, "softpkg impl " << implementation.implementationID << " entry point " << implementation.code.entrypoint)
     _spd->implementations.push_back(implementation);
 }
 
 void softPkg_pimpl::
-usesdevice (const ossie::SPD::UsesDevice& usesdev)
+usesdevice (const ossie::UsesDevice& usesdev)
 {
-    LOG_TRACE(spd_parser, "softpkg usesdev " << usesdev)
+    RH_TRACE(spd::parserLog, "softpkg usesdev " << usesdev)
     _spd->usesDevice.push_back(usesdev);
 }
 
@@ -113,7 +114,7 @@ version (const ::std::string& version)
 std::auto_ptr<ossie::SPD> softPkg_pimpl::
 post_softPkg ()
 {
-    LOG_TRACE(spd_parser, "softpkg post")
+    RH_TRACE(spd::parserLog, "softpkg post")
     return _spd;
 }
 
@@ -233,35 +234,35 @@ post_descriptor ()
 void implementation_pimpl::
 pre ()
 {
-    LOG_TRACE(spd_parser, "implementation pre")
+    RH_TRACE(spd::parserLog, "implementation pre")
     implementation.reset(new ossie::SPD::Implementation());
 }
 
 void implementation_pimpl::
 description (const ::std::string& description)
 {
-    LOG_TRACE(spd_parser, "implementation description " << description)
+    RH_TRACE(spd::parserLog, "implementation description " << description)
     // Ignored
 }
 
 void implementation_pimpl::
 propertyfile (const ::std::string& propertyfile)
 {
-    LOG_TRACE(spd_parser, "implementation property file " << propertyfile)
+    RH_TRACE(spd::parserLog, "implementation property file " << propertyfile)
     implementation->prfFile = propertyfile;
 }
 
 void implementation_pimpl::
 code (const ossie::SPD::Code& code)
 {
-    LOG_TRACE(spd_parser, "implementation code " << code)
+    RH_TRACE(spd::parserLog, "implementation code " << code)
     implementation->code = code;
 }
 
 void implementation_pimpl::
 compiler (const ossie::SPD::NameVersionPair& compiler)
 {
-    LOG_TRACE(spd_parser, "implementation compiler " << compiler.first << " " << compiler.second)
+    RH_TRACE(spd::parserLog, "implementation compiler " << compiler.first << " " << compiler.second)
     implementation->compiler = compiler;
 }
 
@@ -278,7 +279,7 @@ humanlanguage ()
 void implementation_pimpl::
 runtime (const ossie::SPD::NameVersionPair& runtime)
 {
-    LOG_TRACE(spd_parser, "implementation runtime " << runtime.first << " " << runtime.second)
+    RH_TRACE(spd::parserLog, "implementation runtime " << runtime.first << " " << runtime.second)
     implementation->runtime = runtime;
 }
 
@@ -291,26 +292,26 @@ os (const ossie::SPD::NameVersionPair& os)
 void implementation_pimpl::
 processor (const ::std::string& processor)
 {
-    LOG_TRACE(spd_parser, "implementation processor " << processor)
+    RH_TRACE(spd::parserLog, "implementation processor " << processor)
     implementation->processorDeps.push_back(processor);
 }
 
 void implementation_pimpl::
-dependency (ossie::SPD::DependencyRef* dep)
+dependency (ossie::DependencyRef* dep)
 {
     assert(dep != 0);
-    LOG_TRACE(spd_parser, "add implementation dependencies " << *dep)
-    if (dynamic_cast<const ossie::SPD::PropertyRef*>(dep) != NULL) {
-        implementation->dependencies.push_back(*dynamic_cast<const ossie::SPD::PropertyRef*>(dep));
+    RH_TRACE(spd::parserLog, "add implementation dependencies " << *dep)
+    if (dynamic_cast<const ossie::PropertyRef*>(dep) != NULL) {
+        implementation->dependencies.push_back(*dynamic_cast<const ossie::PropertyRef*>(dep));
     } else if (dynamic_cast<const ossie::SPD::SoftPkgRef*>(dep) != NULL) {
         implementation->softPkgDependencies.push_back(*dynamic_cast<const ossie::SPD::SoftPkgRef*>(dep));
     }
 }
 
 void implementation_pimpl::
-usesdevice (const ossie::SPD::UsesDevice& usesdev)
+usesdevice (const ossie::UsesDevice& usesdev)
 {
-    LOG_TRACE(spd_parser, "implementation usesdev " << usesdev)
+    RH_TRACE(spd::parserLog, "implementation usesdev " << usesdev)
     implementation->usesDevice.push_back(usesdev);
 }
 
@@ -328,7 +329,7 @@ aepcompliance ()
 ossie::SPD::Implementation implementation_pimpl::
 post_implementation ()
 {
-  LOG_TRACE(spd_parser, "implementation post")
+  RH_TRACE(spd::parserLog, "implementation post")
   return *implementation;
 }
 
@@ -338,49 +339,49 @@ post_implementation ()
 void code_pimpl::
 pre ()
 {
-    LOG_TRACE(spd_parser, "code pre")
+    RH_TRACE(spd::parserLog, "code pre")
     code.reset(new ossie::SPD::Code());
 }
 
 void code_pimpl::
 localfile (const ::std::string& localfile)
 {
-    LOG_TRACE(spd_parser, "code localfile " << localfile)
+    RH_TRACE(spd::parserLog, "code localfile " << localfile)
     code->localfile = localfile;
 }
 
 void code_pimpl::
 entrypoint (const ::std::string& entrypoint)
 {
-    LOG_TRACE(spd_parser, "code entrypoint " << entrypoint)
+    RH_TRACE(spd::parserLog, "code entrypoint " << entrypoint)
     code->entrypoint = entrypoint;
 }
 
 void code_pimpl::
 stacksize (unsigned long long stacksize)
 {
-    LOG_TRACE(spd_parser, "code stacksize " << stacksize)
+    RH_TRACE(spd::parserLog, "code stacksize " << stacksize)
     code->stacksize = stacksize;
 }
 
 void code_pimpl::
 priority (unsigned long long priority)
 {
-    LOG_TRACE(spd_parser, "code priority " << priority)
+    RH_TRACE(spd::parserLog, "code priority " << priority)
     code->priority = priority;
 }
 
 void code_pimpl::
-type (const ::std::string& type1)
+type (ossie::SPD::Code::CodeType type1)
 {
-    LOG_TRACE(spd_parser, "code type " << type1)
+    RH_TRACE(spd::parserLog, "code type " << type1)
     code->type = type1;
 }
 
 ossie::SPD::Code code_pimpl::
 post_code ()
 {
-  LOG_TRACE(spd_parser, "code post " << *code)
+  RH_TRACE(spd::parserLog, "code post " << *code)
   assert(code.get() != 0);
   return *code;
 }
@@ -518,43 +519,43 @@ pre ()
 void dependency_pimpl::
 softpkgref (const ossie::SPD::SoftPkgRef& ref)
 {
-    LOG_TRACE(spd_parser, "softpkg ref dep: " << ref)
+    RH_TRACE(spd::parserLog, "softpkg ref dep: " << ref)
     _ref.reset(new ossie::SPD::SoftPkgRef(ref));
 }
 
 void dependency_pimpl::
-propertyref (const ossie::SPD::PropertyRef& ref)
+propertyref (const ossie::PropertyRef& ref)
 {
-    LOG_TRACE(spd_parser, "property ref dep: " << ref)
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    RH_TRACE(spd::parserLog, "property ref dep: " << ref)
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 simpleref (const ossie::SimplePropertyRef& ref)
 {
-    LOG_TRACE(spd_parser, "simple property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    RH_TRACE(spd::parserLog, "simple property ref dep: " << ref);
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 simplesequenceref (const ossie::SimpleSequencePropertyRef& ref)
 {
-    LOG_TRACE(spd_parser, "simple sequence property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    RH_TRACE(spd::parserLog, "simple sequence property ref dep: " << ref);
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 structref (const ossie::StructPropertyRef& ref)
 {
-    LOG_TRACE(spd_parser, "struct property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    RH_TRACE(spd::parserLog, "struct property ref dep: " << ref);
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
 structsequenceref (const ossie::StructSequencePropertyRef& ref)
 {
-    LOG_TRACE(spd_parser, "struct sequence property ref dep: " << ref);
-    _ref.reset(new ossie::SPD::PropertyRef(ref));
+    RH_TRACE(spd::parserLog, "struct sequence property ref dep: " << ref);
+    _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
@@ -564,11 +565,11 @@ type (const ::std::string& type)
   //
 }
 
-ossie::SPD::DependencyRef* dependency_pimpl::
+ossie::DependencyRef* dependency_pimpl::
 post_dependency ()
 {
     assert(_ref.get() != 0);
-    LOG_TRACE(spd_parser, "dependency post " << *_ref);
+    RH_TRACE(spd::parserLog, "dependency post " << *_ref);
     return _ref.get();
 }
 
@@ -620,10 +621,10 @@ value (const ::std::string& value)
     _ref._value = value;
 }
 
-ossie::SPD::PropertyRef propertyRef_pimpl::
+ossie::PropertyRef propertyRef_pimpl::
 post_propertyRef ()
 {
-    return ossie::SPD::PropertyRef(_ref);
+    return ossie::PropertyRef(_ref);
 }
 
 // softPkgRef_pimpl
@@ -679,11 +680,11 @@ post_implRef ()
 void usesDevice_pimpl::
 pre ()
 {
-    _uses.reset(new ossie::SPD::UsesDevice());
+    _uses.reset(new ossie::UsesDevice());
 }
 
 void usesDevice_pimpl::
-propertyref (const ossie::SPD::PropertyRef& propertyRef)
+propertyref (const ossie::PropertyRef& propertyRef)
 {
     _uses->dependencies.push_back(propertyRef);
 }
@@ -724,11 +725,11 @@ type (const ::std::string& type)
     _uses->type = type;
 }
 
-ossie::SPD::UsesDevice usesDevice_pimpl::
+ossie::UsesDevice usesDevice_pimpl::
 post_usesDevice ()
 {
     assert(_uses.get() != 0);
-    LOG_TRACE(spd_parser, "post usesdev " << *_uses)
+    RH_TRACE(spd::parserLog, "post usesdev " << *_uses)
     return *_uses;
 }
 
@@ -758,17 +759,22 @@ pre ()
 {
 }
 
-::std::string codeFileType_pimpl::
+ossie::SPD::Code::CodeType codeFileType_pimpl::
 post_codeFileType ()
 {
-  const ::std::string& v (post_nmtoken ());
-  if ((v != "Executable") 
-      || (v != "SharedLibrary") 
-      || (v != "KernelModule")
-      || (v != "Driver")) {
-      // TODO throw invalid_value<codeFileType_pimpl>(this, v
-  }
-  return v;
+    const std::string& type = post_nmtoken();
+    if (type == "Executable") {
+        return ossie::SPD::Code::EXECUTABLE;
+    } else if (type == "SharedLibrary") {
+        return ossie::SPD::Code::SHARED_LIBRARY;
+    } else if (type == "KernelModule") {
+        return ossie::SPD::Code::KERNEL_MODULE;
+    } else if (type == "Driver") {
+        return ossie::SPD::Code::DRIVER;
+    } else {
+        RH_WARN(spd::parserLog, "Invalid code type '" << type << "'");
+        return ossie::SPD::Code::NONE;
+    }
 }
 
 // simpleref_pimpl

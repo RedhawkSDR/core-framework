@@ -33,6 +33,8 @@ writer_base::writer_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
     loadProperties();
 
     dataOctet_out = new bulkio::OutOctetPort("dataOctet_out");
@@ -82,6 +84,24 @@ void writer_base::loadProperties()
                 "transfer_length",
                 "",
                 "readwrite",
+                "",
+                "external",
+                "property");
+
+    addProperty(total_packets,
+                0,
+                "total_packets",
+                "",
+                "readonly",
+                "",
+                "external",
+                "property");
+
+    addProperty(average_time,
+                0.0,
+                "average_time",
+                "",
+                "readonly",
                 "",
                 "external",
                 "property");

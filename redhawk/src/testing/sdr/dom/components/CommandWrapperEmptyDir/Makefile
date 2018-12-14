@@ -14,3 +14,4 @@ distclean:
 
 clean:
 
+check:

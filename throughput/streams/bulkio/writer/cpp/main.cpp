@@ -21,10 +21,10 @@
 #include "ossie/ossieSupport.h"
 
 #include "writer.h"
-int main(int argc, char* argv[])
-{
-    writer_i* writer_servant;
-    Component::start_component(writer_servant, argc, argv);
-    return 0;
+extern "C" {
+    Resource_impl* make_component(const std::string& uuid, const std::string& identifier)
+    {
+        return new writer_i(uuid.c_str(), identifier.c_str());
+    }
 }
 

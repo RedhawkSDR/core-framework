@@ -34,62 +34,90 @@ namespace frontend {
     {
     }
 
-    FRONTEND::RFInfoPktSequence* OutRFSourcePort::available_rf_inputs()
+    RFInfoPktSequence OutRFSourcePort::available_rf_inputs()
     {
-        FRONTEND::RFInfoPktSequence_var retval = new FRONTEND::RFInfoPktSequence();
+        return _get_available_rf_inputs("");
+    }
+    RFInfoPktSequence OutRFSourcePort::_get_available_rf_inputs(const std::string __connection_id__)
+    {
+        FRONTEND::RFInfoPktSequence_var _retval;
+        RFInfoPktSequence retval;
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
-
-        if (active) {
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                retval = ((*i).first)->available_rf_inputs();
+        __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+        if (this->active) {
+            for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                if (not __connection_id__.empty() and __connection_id__ != i->second)
+                    continue;
+                _retval = ((*i).first)->available_rf_inputs();
             }
+            frontend::copyRFInfoPktSequence(_retval.in(), retval);
         }
 
-        return retval._retn();
+        return retval;
     }
 
-    void OutRFSourcePort::available_rf_inputs(const FRONTEND::RFInfoPktSequence& data)
+    void OutRFSourcePort::available_rf_inputs(const RFInfoPktSequence& data, const std::string __connection_id__)
     {
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
 
-        if (active) {
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                ((*i).first)->available_rf_inputs(data);
+        if (this->active) {
+            FRONTEND::RFInfoPktSequence_var _data = new FRONTEND::RFInfoPktSequence();
+            frontend::copyRFInfoPktSequence(data, _data);
+            for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                if (not __connection_id__.empty() and __connection_id__ != i->second)
+                    continue;
+                ((*i).first)->available_rf_inputs(_data);
             }
         }
 
         return;
     }
 
-    FRONTEND::RFInfoPkt* OutRFSourcePort::current_rf_input()
+    RFInfoPkt *OutRFSourcePort::current_rf_input()
     {
-        FRONTEND::RFInfoPkt_var retval = new FRONTEND::RFInfoPkt();
+        return _get_current_rf_input("");
+    }
+    RFInfoPkt *OutRFSourcePort::_get_current_rf_input(const std::string __connection_id__)
+    {
+        FRONTEND::RFInfoPkt_var _retval;
+        RFInfoPkt *retval = 0;
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        __evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
 
-        if (active) {
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                retval = ((*i).first)->current_rf_input();
+        if (this->active) {
+            for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                if (not __connection_id__.empty() and __connection_id__ != i->second)
+                    continue;
+                _retval = ((*i).first)->current_rf_input();
             }
+            RFInfoPkt __retval;
+            __retval = frontend::returnRFInfoPkt(_retval);
+            retval= new RFInfoPkt(__retval);
         }
 
-        return retval._retn();
+        return retval;
     }
 
-    void OutRFSourcePort::current_rf_input(const FRONTEND::RFInfoPkt& data)
+    void OutRFSourcePort::current_rf_input(const RFInfoPkt& data, const std::string __connection_id__)
     {
         std::vector < std::pair < FRONTEND::RFSource_var, std::string > >::iterator i;
 
         boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+        __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
 
-        if (active) {
-            for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-                ((*i).first)->current_rf_input(data);
+        if (this->active) {
+            FRONTEND::RFInfoPkt_var _data = frontend::returnRFInfoPkt(data);
+            for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                if (not __connection_id__.empty() and __connection_id__ != i->second)
+                    continue;
+                ((*i).first)->current_rf_input(_data);
             }
         }
 

@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(burstio, 2.0.9)
+AC_INIT(burstio, 2.2.1)
 AC_CONFIG_SRCDIR([src/cpp/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -42,10 +42,10 @@ fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 
-PKG_CHECK_MODULES(OSSIE, ossie >= 2.0.9,,exit)
+PKG_CHECK_MODULES(OSSIE, ossie >= 2.2.1,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
-PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.0])
+PKG_CHECK_MODULES([BULKIO], [bulkio >= 2.2])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
 AX_BOOST_BASE([1.41])
@@ -60,7 +60,7 @@ AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable java support]))
 HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # configure was run with java enabled
-  java_source_version=1.6
+  java_source_version=1.8
 
   RH_JAVA_HOME
   RH_PROG_JAVAC([$java_source_version])
@@ -72,7 +72,7 @@ if test "x$enable_java" != "xno"; then
 
   # Set up CLASSPATH for REDHAWK, CF and BULKIO
   RH_PKG_CLASSPATH([OSSIE], [ossie])
-  RH_PKG_CLASSPATH([BULKIO], [bulkioInterfaces])
+  RH_PKG_CLASSPATH([BULKIO], [bulkio])
 
   if test -n "$HAVE_JNI_H"; then
     # The omnijni package must be available to generate JNI stubs and skeletons.
@@ -132,6 +132,17 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
+# Optionally disable unit tests
+AC_ARG_ENABLE([testing], AS_HELP_STRING([--disable-testing], [disable build of unit tests]))
+AS_IF([test "x$enable_testing" != "xno"], [
+  AM_PATH_CPPUNIT(1.12.1)
+  AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+    dnl Use RPM location hard-coded for now
+    AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+  ])
+])
+AM_CONDITIONAL(ENABLE_TESTING, test "x$enable_testing" != "xno")
+
 AC_SUBST(idldir, '${prefix}/share/idl')
 
 AC_CONFIG_FILES([Makefile \
@@ -141,6 +152,8 @@ AC_CONFIG_FILES([Makefile \
                  src/java/Makefile \
                  src/python/Makefile \
                  src/python/setup.py \
-                 src/idl/Makefile])
+                 src/idl/Makefile \
+                 testing/tests/cpp/Makefile \
+                 testing/tests/java/Makefile])
 
 AC_OUTPUT

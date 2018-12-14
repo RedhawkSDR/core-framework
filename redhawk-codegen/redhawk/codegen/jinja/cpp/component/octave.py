@@ -19,20 +19,34 @@
 #
 
 import commands
+import os
 
 from redhawk.codegen.jinja.cpp.component.mFunction.generator import OctaveComponentGenerator, loader
+from redhawk.codegen import versions
 
 def factory(**opts):
     return OctaveComponentGenerator(**opts)
 
-def check():
+def _version_tuple(ver):
+    return tuple(int(n) for n in ver.split('.'))
+
+def _check_octave():
     # Attempt to determine if octave-devel v3.4 or greater is installed.
-    findCommand = 'find /usr -regextype posix-extended -regex ".*include\/octave\-[3]+\.[4-9]+\.[0-9]+$" -print -quit 2>/dev/null'
-    (status,output) = commands.getstatusoutput(findCommand)
-    if output == "":
-        # suitable octave header files were not found
-        print "Could not find suitable Octave installation.  Octave-devel v3.4 or greater is required."
+    (status, output) = commands.getstatusoutput('octave-config -v')
+    if status:
         return False
-    else:
-        # suitable octave header files were found
+
+    # Check the version against the minimum
+    version = _version_tuple(output)
+    if version < _version_tuple(versions.octave):
+        return False
+
+    incdir = commands.getoutput('octave-config -p OCTINCLUDEDIR')
+    return os.path.exists(incdir)
+
+def check():
+    if _check_octave():
         return True
+    else:
+        print "Could not find suitable Octave installation.  Octave-devel v%s or greater is required." % versions.octave
+        return False

@@ -162,11 +162,7 @@ class svc_fn_error_i(svc_fn_error_base):
             return NORMAL
             
         """
-
-        # TODO fill in your code here
-        self._log.debug("process() example log message")
-        a = b
-        return NOOP
+        raise RuntimeError('test exception in process()')
 
   
 if __name__ == '__main__':

@@ -18,17 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 ossieName = TestLargePush
-bindir = $(prefix)/dom/components/TestLargePush/cpp/
+bindir = $(prefix)/dom/components/TestLargePush/cpp
 bin_PROGRAMS = TestLargePush
 
-xmldir = $(prefix)/dom/components/TestLargePush/
+xmldir = $(prefix)/dom/components/TestLargePush
 dist_xml_DATA = ../TestLargePush.scd.xml ../TestLargePush.prf.xml ../TestLargePush.spd.xml
-
-# this is use to build against local bulkio interface and library and not installed version
-bulkio_top=../../../../../
-bulkio_libsrc_top=$(bulkio_top)/libsrc
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
 
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -47,8 +46,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 TestLargePush_SOURCES = $(redhawk_SOURCES_auto)
-TestLargePush_LDADD = -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs $(BIO_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#TestLargePush_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-TestLargePush_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) 
+TestLargePush_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+TestLargePush_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

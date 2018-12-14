@@ -1,0 +1,10 @@
+934a036cb6d1d632e463be733e484fb3  svc_fn_error_cpp_base.cpp
+6fff1615e36ce7a3b335ed7d3bfabb95  main.cpp
+d23f51d099f8c3b419d46aa7a2d953de  reconf
+65a7972a03ea68b984777395e7d74cee  svc_fn_error_cpp_base.h
+c43620d52d78f531a172e559b6e124d3  configure.ac
+7c989e7d0850431d36cf51ed9c26f829  Makefile.am
+a664b33bc1038cb1d0a7a41f290c6bc1  Makefile.am.ide
+2c076f8e3fccffed1199ef5c8adac4b1  svc_fn_error_cpp.h
+b1835160ba93e9e1248209acc174363d  build.sh
+f3060fccac98f1aa5a65109e1569c738  svc_fn_error_cpp.cpp

@@ -90,7 +90,8 @@ if __name__ == '__main__':
     # Deprecated options
     shortopts += 'm:'
   
-    longopts = ['help', 'template=', 'impl=', 'impldir=', 'lang=', 'variant=', 'check-template=', 'version']
+    longopts = ['help', 'template=', 'impl=', 'impldir=', 'lang=', 'variant=',
+                'check-template=', 'header=', 'version']
     # add predefined template settings a full word options
     longopts.extend(TemplateSetup.keys())
     # Deprecated options
@@ -106,6 +107,7 @@ if __name__ == '__main__':
     resource_type=None
     language=None
     variant=""
+    headerFile = None
     checkSupport = False
     for key, value in opts:
         if key == '--help':
@@ -135,6 +137,8 @@ if __name__ == '__main__':
             break
         elif key == '--variant':
             variant = value
+        elif key == '--header':
+            headerFile = value
         elif key == '-l':
             action = Function.LIST
         elif key == '-f':
@@ -271,6 +275,15 @@ if __name__ == '__main__':
     else:
         projectTemplate = 'redhawk.codegen.jinja.project.component'
 
+
+    header = None
+    if headerFile:
+        try:
+            with open(headerFile, 'r') as fp:
+                header = fp.read().rstrip()
+        except Exception as exc:
+            raise SystemExit("Unable to read license header file '%s': %s" % (headerFile, exc.strerror))
+
     try:
         package = importTemplate(projectTemplate)
     except:
@@ -279,13 +292,14 @@ if __name__ == '__main__':
         outputdir='',
         overwrite=overwrite,
         crcs=toplevelCRCs,
-        variant=variant)
+        variant=variant,
+        header=header)
     generators.append(('Component '+softpkg.name(), projectGenerator))
     
     if softpkg.type() != ComponentTypes.SHAREDPACKAGE:
         # Generate unit tests
         from redhawk.codegen.jinja.unitTests.resource import sca
-        generator = sca.factory(outputdir='tests', overwrite=overwrite)
+        generator = sca.factory(outputdir='tests', overwrite=overwrite, header=header)
         generators.append(('Tests '+softpkg.name(), generator))
 
     # Set up generation for each requested implementation.
@@ -376,6 +390,7 @@ if __name__ == '__main__':
             overwrite = overwrite,
             crcs = implSettings.generatedFileCRCs,
             variant = variant,
+            header = header,
             **implSettings.properties)
 
         # Add this generator to the top-level project generator, so that it can

@@ -154,6 +154,9 @@ class SimpleProperty(Property, _Simple, _Single):
     def value(self):
         return self.xml.value
 
+    def hasEnumerations(self):
+        return bool(self.xml.enumerations)
+
     def enumerations(self):
         if self.xml.enumerations:
             return [(e.label, e.value) for e in self.xml.enumerations.enumeration]

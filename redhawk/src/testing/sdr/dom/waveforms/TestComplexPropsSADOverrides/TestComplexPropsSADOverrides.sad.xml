@@ -42,6 +42,49 @@ with this program.  If not, see http://www.gnu.org/licenses/.
           <simpleref refid="complexULongProp" value="2+j3"/>
           <simpleref refid="complexULongLong" value="2+j3"/>
           <simpleref refid="complexLong" value="2+j3"/>
+          <structref refid="complexFloatStruct">
+            <simplesequenceref refid="complexFloatStruct::complex_float_seq">
+                <values>
+                    <value>-5+j5</value>
+                    <value>9-j8</value>
+                    <value>-13-j24</value>
+                    <value>21-j22</value>
+                    <value>31</value>
+                    <value>j431</value>
+                    <value>-j567</value>
+                    <value>-3567</value>
+                    <value>-5.25+j5.25</value>
+                    <value>9.25-j8.25</value>
+                </values>
+            </simplesequenceref>
+          </structref>
+          <simplesequenceref refid="complexFloatSequence">
+              <values>
+                  <value>1+j2</value>
+                  <value>10+j20</value>
+              </values>
+          </simplesequenceref>
+          <structsequenceref refid="complexFloatStructSequence">
+              <structvalue>
+                <simpleref refid="complexFloatStructSequenceMemberMemember" value="32+j33"/>
+                <simplesequenceref refid="complexFloatStructSequence::complex_float_seq">
+                    <values>
+                        <value>45+j55</value>
+                        <value>69+j78</value>
+                    </values>
+                </simplesequenceref>
+              </structvalue>
+              <structvalue>
+                <simpleref refid="complexFloatStructSequenceMemberMemember" value="42+j43"/>
+                <simplesequenceref refid="complexFloatStructSequence::complex_float_seq">
+                    <values>
+                        <value>145+j155</value>
+                        <value>169+j178</value>
+                        <value>279+j998</value>
+                    </values>
+                </simplesequenceref>
+              </structvalue>
+          </structsequenceref>
         </componentproperties>
         <findcomponent>
           <namingservice name="TestComplexProps_1"/>

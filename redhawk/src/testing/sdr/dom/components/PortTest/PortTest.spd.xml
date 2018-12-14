@@ -41,7 +41,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <humanlanguage name="EN"/>
     <runtime name="python" version="2.4.4"/>
     <os name="Linux"/>
-    <processor name="i686"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
     <!--                                                  -->
     <!-- Include some basic 'external' allocation properties -->
     <!--                                                  -->
@@ -57,7 +58,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	<propertyref refid="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8" value="1000"/>
     </dependency>
     <usesdevice id="DCE:1a02ef64-9fa7-48d3-b2df-67fc3f56f754" type="">
-      <propertyref refid="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" value="i686"/>
+      <propertyref refid="DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" value="x86"/>
     </usesdevice>
   </implementation>
 </softpkg>

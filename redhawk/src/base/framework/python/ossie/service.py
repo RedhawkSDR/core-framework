@@ -65,6 +65,7 @@ def patchService(target):
             self._logid = loggerName
         self._logid = self._logid.replace(":","_")
         self._log = logging.getLogger(self._logid)
+        self._baseLog = logging.getLogger(svc_name)
         loglevel = self._log.getEffectiveLevel()
         if loglevel == logging.NOTSET:
             self.logLevel = logging.INFO
@@ -163,6 +164,10 @@ def start_service(serviceclass, thread_policy=None):
     import signal
     import getopt
     
+    if len(sys.argv) == 2:
+        if sys.argv[1] == '-i':
+            print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+            sys.exit(-1)
     try:
         # IMPORTANT YOU CANNOT USE gnu_getopt OR OptionParser
         # because they will treat execparams with negative number

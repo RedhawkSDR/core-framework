@@ -192,12 +192,14 @@ usagename element needs to be unique for each service type.</xs:documentation>
           </xs:element>
 	  <xs:element name="affinity" minOccurs="0" maxOccurs="1" type="affinity"/>
 	  <xs:element name="loggingconfig" minOccurs="0" maxOccurs="1" type="loggingconfig"/>
+	  <xs:element name="deployerrequires" minOccurs="0" type="deployerrequires"/>
 	</xs:sequence>
 	<xs:attribute name="id" use="required" type="xs:string">
 	  <xs:annotation>
 	    <xs:documentation>The componentinstantiation‘s id attribute is a DCE UUID that uniquely identifier the component.</xs:documentation>
 	</xs:annotation>
         </xs:attribute>
+        <xs:attribute name="startorder" use="optional" type="xs:string"/>
 	</xs:complexType>
 
 	<xs:element name="componentinstantiation" type="componentinstantiation"/>
@@ -219,6 +221,17 @@ usagename element needs to be unique for each service type.</xs:documentation>
 	    <xs:element ref="structref" ecore:name="structRef"/>
 	    <xs:element ref="structsequenceref" ecore:name="structSequenceRef"/>
 	  </xs:choice>
+	</xs:complexType>
+
+	<xs:complexType name="deployerrequires">
+	  <xs:sequence>
+	    <xs:element name="requires" type="idvalue" ecore:name="idValue" maxOccurs="unbounded"/>
+	  </xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="idvalue" ecore:name="idValue">
+		<xs:attribute name="id" use="required" type="xs:string"/>
+		<xs:attribute name="value" use="required" type="xs:string"/>
 	</xs:complexType>
 
 	<xs:complexType name="componentproperties" ecore:name="ComponentProperties">

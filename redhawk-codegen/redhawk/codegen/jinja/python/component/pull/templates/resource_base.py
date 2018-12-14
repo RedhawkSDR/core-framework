@@ -52,7 +52,7 @@ from ossie.properties import structseq_property
 import Queue, copy, time, threading
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
-from ossie.resource import usesport, providesport
+from ossie.resource import usesport, providesport, PortCallError
 #{%   endif %}
 #{%   for statement in portgen.imports() %}
 ${statement}
@@ -63,6 +63,14 @@ ${statement}
 #{# Allow additional child class imports #}
 #{% endblock %}
 
+#{% import "base/properties.py" as properties with context %}
+#{% for prop in component.properties if prop is enumerated %}
+#{%   if loop.first %}
+class enums:
+#{%   endif %}
+    ${properties.enumvalues(prop)|indent(4)}
+
+#{% endfor %}
 class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
 
@@ -93,6 +101,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             # Instantiate the default implementations for all ports on this ${artifactType}
 #{% for port in component.ports %}
             self.${port.pyname} = ${port.constructor}
+            self.${port.pyname}._portLog = self._baseLog.getChildLogger('${port.name}', 'ports')
 #{% endfor %}
 #{% if component.hasmultioutport %}
             self.addPropertyChangeListener('connectionTable',self.updated_connectionTable)
@@ -121,7 +130,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             try:
                 self.stop()
             except Exception:
-                self._log.exception("Error stopping")
+                self._baseLog.exception("Error stopping")
             ${superclass}.releaseObject(self)
 
         ######################################################################
@@ -160,7 +169,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         # 
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
-#{% import "base/properties.py" as properties with context %}
 #{% filter codealign %}
 #{% for prop in component.properties %}
 #{%   if prop is struct and not prop.builtin %}
@@ -178,7 +186,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is provides and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''provides port(s)'''
+'''provides port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}
@@ -186,7 +194,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is uses and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''uses port(s)'''
+'''uses port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}

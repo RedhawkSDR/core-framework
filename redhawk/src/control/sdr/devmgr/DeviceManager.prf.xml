@@ -74,4 +74,11 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </description>
         <kind kindtype="property"/>
     </simple>
+    <simple id="DOMAIN_REFRESH" mode="readwrite" name="DOMAIN_REFRESH" type="float">
+        <description>
+            How often the Device Manager should check to see if the Domain contains a reference to this Device Manager (in seconds). This applies to persistence only
+        </description>
+        <value>10</value>
+        <kind kindtype="property"/>
+    </simple>
 </properties>

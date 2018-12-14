@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:199864c2-0a48-4fce-8c73-92f70f1a87c8" name="python_softpkg_deps">
+  <componentfiles>
+    <componentfile id="pythonSoftpkgDep_67d483c1-5257-41ed-b50c-aeb74491ca54" type="SPD">
+      <localfile name="/components/pythonSoftpkgDep/pythonSoftpkgDep.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="pythonSoftpkgDep_67d483c1-5257-41ed-b50c-aeb74491ca54"/>
+      <componentinstantiation id="pythonSoftpkgDep_1">
+        <usagename>pythonSoftpkgDep_1</usagename>
+        <findcomponent>
+          <namingservice name="pythonSoftpkgDep_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="pythonSoftpkgDep_1"/>
+  </assemblycontroller>
+</softwareassembly>

@@ -29,8 +29,8 @@ except:
 import domainless as _domainless
 import threading as _threading
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
-import ossie.utils.bluefile.bluefile_helpers as _bluefile_helpers
-import ossie.utils.bulkio.bulkio_data_helpers as _bulkio_data_helpers
+from ossie.utils.bluefile import bluefile_helpers
+from ossie.utils.bulkio import bulkio_data_helpers
 import ossie.utils.bluefile.bluefile as _bluefile
 from ossie import properties as _properties
 from ossie import events as _events
@@ -38,6 +38,9 @@ from ossie.cf import CF as _CF
 import shlex as _shlex
 import time as _time
 import signal as _signal
+import warnings
+import cStringIO, pydoc
+import sys as _sys
 import os as _os
 import subprocess as _subprocess
 import Queue as _Queue
@@ -46,9 +49,11 @@ import logging as _logging
 import socket as _socket
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
+from omniORB import tcInternal
+import copy as _copy
 import omniORB as _omniORB
 import CosEventComm__POA
-import warnings as _warnings
+import traceback
 
 from ossie.utils.model import PortSupplier, OutputBase
 from ossie.utils.model.connect import ConnectionManager
@@ -62,7 +67,7 @@ log = _logging.getLogger(__name__)
 __all__ = ('DataSink', 'DataSource', 'FileSink', 'FileSource', 'MessageSink',
            'MessageSource','MsgSupplierHelper', 'Plot', 'SRIKeyword', 'compareSRI', 'helperBase',
            'probeBULKIO','createSDDSStreamDefinition', 'DataSourceSDDS',
-           'DataSinkSDDS')
+           'DataSinkSDDS', 'createTimeStamp', 'createSRI', 'compareKeywordLists')
 
 def compareSRI(a, b):
     '''
@@ -93,11 +98,31 @@ def compareSRI(a, b):
     if len(a.keywords) != len(b.keywords):
         return False
     for keyA, keyB in zip(a.keywords, b.keywords):
+        if keyA.id  != keyB.id:
+            return False
         if keyA.value._t != keyB.value._t:
             return False
         if keyA.value._v != keyB.value._v:
             return False
     return True
+
+def compareKeywordLists( a, b ):
+    for keyA, keyB in zip(a, b):
+        if keyA.id  != keyB.id:
+            return False
+        if keyA.value._t != keyB.value._t:
+            return False
+        if keyA.value._v != keyB.value._v:
+            return False
+    return True
+
+def _getAnyValue(key):
+    if key._format[0]=='[' and key._format[-1]==']':
+        expectedType = _properties.getTypeCode(key._format[1:-1])
+        expectedTypeCode = tcInternal.createTypeCode((tcInternal.tv_sequence, expectedType._d, 0))
+        return _CORBA.Any(expectedTypeCode, key._value)
+    else:
+        return _properties.to_tc_value(key._value,str(key._format))
 
 def _checkComplex(data):
     for item in data:
@@ -130,7 +155,14 @@ class helperBase(object):
         pass
 
 class MessageSink(helperBase, PortSupplier):
-    def __init__(self, messageId = None, messageFormat = None, messageCallback = None):
+    '''
+        Received structured messages
+        if storeMessages is True, then messages can be retrieved through the getMessages function
+            The internal message queue is emptied when messages are retrieved, so if storeMessages is True,
+            make sure to regularly retrieve the available messages to empty out the internal list
+
+    '''
+    def __init__(self, messageId = None, messageFormat = None, messageCallback = None, storeMessages = False):
         helperBase.__init__(self)
         PortSupplier.__init__(self)
         self._flowOn = False
@@ -138,6 +170,7 @@ class MessageSink(helperBase, PortSupplier):
         self._messageId = messageId
         self._messageFormat = messageFormat
         self._messageCallback = messageCallback
+        self._storeMessages = storeMessages
         self._providesPortDict = {}
         self._providesPortDict['msgIn'] = {
             'Port Interface': 'IDL:ExtendedEvent/MessageEvent:1.0',
@@ -152,12 +185,15 @@ class MessageSink(helperBase, PortSupplier):
     def messageCallback(self, msgId, msgData):
         print msgId, msgData
 
+    def getMessages(self):
+        return self._messagePort.getMessages()
+
     def getPort(self, portName):
         try:
             if self._messageCallback == None:
                 self._messageCallback = self.messageCallback
             if  self._messagePort == None:
-                self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1)
+                self._messagePort = _events.MessageConsumerPort(thread_sleep=0.1, storeMessages = self._storeMessages)
                 self._messagePort.registerMessage(self._messageId,
                                              self._messageFormat, self._messageCallback)
             return self._messagePort._this()
@@ -165,9 +201,18 @@ class MessageSink(helperBase, PortSupplier):
             log.error("MessageSink:getPort(): failed " + str(e))
         return None
 
-    def api(self):
-        print "Component MessageSink :"
-        PortSupplier.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component MessageSink :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def start(self):
         if self._messagePort :  self._messagePort.startPort()
@@ -291,9 +336,18 @@ class MessageSource(helperBase, PortSupplier):
             log.error("MessageSource:getUsesPort(): failed " + str(e))
         return None
 
-    def api(self):
-        print "Component MessageSource :"
-        PortSupplier.api(self)
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component MessageSource :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def start(self):
         self._flowOn = True
@@ -566,13 +620,22 @@ class _DataPortBase(helperBase, PortSupplier):
         # as the portName should be set via self.supportedPorts.
         raise Exception, "Port name " + portName + " not found."
 
-    def api(self):
+    def api(self, destfile=None):
         """
         Prints application programming interface (API) information and returns.
 
         """
-        print "Component " + self.__class__.__name__ + " :"
-        PortSupplier.api(self)
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Component " + self.__class__.__name__ + " :"
+        PortSupplier.api(self, destfile=destfile)
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class _SourceBase(_DataPortBase):
@@ -661,7 +724,7 @@ class _SourceBase(_DataPortBase):
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
-            self.api()
+            self.api(destfile=_sys.stdout)
 
     def getPort(self, name):
         if name in self._connections:
@@ -674,7 +737,6 @@ class _SourceBase(_DataPortBase):
 
 
 class _SinkBase(_DataPortBase):
-
     def __init__(self, formats=None):
         """
         Forward parameters to parent constructor.
@@ -707,7 +769,7 @@ class _SinkBase(_DataPortBase):
 
         if _domainless._DEBUG == True:
             print self.className + ":_buildAPI()"
-            self.api()
+            self.api(destfile=_sys.stdout)
 
     def getPortType(self, portName):
         """
@@ -741,7 +803,6 @@ class _SinkBase(_DataPortBase):
         self._sink exists.
 
         """
-
         if self._sink == None:
             return False
         return self._sink.gotEOS
@@ -770,7 +831,8 @@ class FileSource(_SourceBase):
                  startTime    = 0.0,
                  streamID     = None,
                  blocking     = True,
-                 subsize      = 0):
+                 subsize      = 0,
+                 throttle     = False):
 
         self._filename = filename
         self._midasFile = midasFile
@@ -783,6 +845,7 @@ class FileSource(_SourceBase):
         self._streamID    = streamID
         self._blocking    = blocking 
         self._sri         = None
+        self._throttle    = throttle
         self._byteswap    = False
         self._defaultDataFormat = '16t'
 
@@ -899,13 +962,13 @@ class FileSource(_SourceBase):
             # If input file is a Midas Blue file
             if self._midasFile == True:
                 # define source helper component
-                self._src = _bluefile_helpers.BlueFileReader(eval(portType))
+                self._src = bluefile_helpers.BlueFileReader(eval(portType), throttle=self._throttle)
             # else, input file is binary file
             else:
-                self._src = _bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes)
+                self._src = bulkio_data_helpers.FileSource(eval(portType),self._byteswap, portTypes, throttle=self._throttle)
                 keywords = []
                 for key in self._SRIKeywords:
-                    keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
+                    keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
 
                 if self._streamID == None:
                     self._streamID = self._filename.split('/')[-1]
@@ -959,9 +1022,15 @@ class FileSource(_SourceBase):
             self._src.EOS = True
 
 class FileSink(_SinkBase):
-    def __init__(self,filename=None, midasFile=False):
+    """
+      To use a different sink (for custom data processing) for regular files, assign the new class to sinkClass
+      To use a different sink for blue files, assign the new class to sinkBlueClass
+    """
+    def __init__(self,filename=None, midasFile=False, sinkClass=bulkio_data_helpers.FileSink, sinkBlueClass=bluefile_helpers.BlueFileWriter):
         _SinkBase.__init__(self)
 
+        self.sinkClass = sinkClass
+        self.sinkBlueClass = sinkBlueClass
         if _domainless._DEBUG == True:
             print className + ":__init__() filename " + str(filename)
             print className + ":__init__() midasFile " + str(midasFile)
@@ -976,10 +1045,10 @@ class FileSink(_SinkBase):
             # If output file is a Midas Blue file
             if self._midasFile == True:
                 # define source helper component
-                self._sink = _bluefile_helpers.BlueFileWriter(self._filename,eval(self._sinkPortType))
+                self._sink = self.sinkBlueClass(self._filename,eval(self._sinkPortType))
             # else, output file is binary file
             else:
-                self._sink = _bulkio_data_helpers.FileSink(self._filename, eval(self._sinkPortType))
+                self._sink = self.sinkClass(self._filename, eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
@@ -1029,14 +1098,14 @@ class DataSinkSDDS(_SinkBase):
 
     It is the responsibility of the user to consume the SDDS data
 
-    DataSinkSDDS manages attachment Ids under the port (self._sink) dictionary attachments
+    DataSinkSDDS manages attachment Ids under the port (sinkClass) dictionary attachments
 
     register an attach callback by passing a function to registerAttachCallback
     register an detach callback by passing a function to registerDetachCallback
     """
-    def __init__(self):
+    def __init__(self, sinkClass=bulkio_data_helpers.SDDSSink):
         _SinkBase.__init__(self, formats=['sdds'])
-        self._sink = _bulkio_data_helpers.SDDSSink(self)
+        self._sink = sinkClass(self)
         self.attach_cb = self.__attach_cb
         self.detach_cb = self.__detach_cb
 
@@ -1077,7 +1146,16 @@ class DataSourceSDDS(_SourceBase):
         Helper to handle the generation of SDDS metadata forwarding
         """
         _SourceBase.__init__(self, bytesPerPush = 0, dataFormat='sdds', formats=['sdds'])
-        self._src = _bulkio_data_helpers.SDDSSource()
+        self._src = bulkio_data_helpers.SDDSSource()
+        self._blocking    = True
+        self._streamdefs = {}
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
     def attach(self, streamData=None, name=None):
         """
         streamData: type BULKIO.SDDSStreamDefinition
@@ -1098,6 +1176,8 @@ class DataSourceSDDS(_SourceBase):
         if not isinstance(name, str):
             raise Exception("name must be of <type 'str'>")
         retval = self._src.attach(streamData, name)
+        if retval:
+            self._streamdefs[name] = streamData
         return retval
 
     def detach(self, attachId=''):
@@ -1108,11 +1188,97 @@ class DataSourceSDDS(_SourceBase):
         if not isinstance(attachId, str):
             raise Exception("attachId must be of <type 'str'>")
         self._src.detach(attachId)
+        try:
+           self._streamdefs.pop(attachid,None)
+        except:
+            pass
 
     def _createArraySrcInst(self, srcPortType):
         return self._src
 
+    def getStreamDef( self, name=None, hostip=None, pkts=1000, block=True, returnSddsAnalyzer=True):
+        # grab data if stream definition is available 
+        sdef =None
+        aid=name
+        if not aid:
+            if len(self._streamdefs) ==  0:
+                raise Exception("No attachment have been made, use grabData or call attach")
+            
+            aid = self._streamdefs.keys()[0]
+            print "Defaults to first entry, attach id = ", aid
+            sdef = self._streamdefs[aid]
+        else:
+            sdef = sefl._streamdefs[aid]
+            
+        if not sdef:
+            raise Exception("No SDDS stream definition for attach id:" + aid )
+        
+        if not hostip:
+            hostip = _socket.gethostbyname(_socket.gethostname())
+
+        return self.getData( sdef.multicastAddress, hostip, sdef.port, packets, block=block, returnSDDSAnalyzer=returnSDDSAnalyzer)
+        
+
+    def getData( self, mgroup, hostip, port=29495, pkts=1000, pktlen=1080, block=True, returnSddsAnalyzer=True):
+        totalRead=0.0
+        startTime = _time.time()        
+        sock = None
+        ismulticast=False
+        blen=10240
+        bytesRead=0
+        requestedBytes=pkts*pktlen
+        data=[]
+        rawdata=''
+        try:
+            try:
+                ip_class=int(mgroup.split('.')[0])
+                if ip_class == '224' or ip_class == '239':
+                    ismulticast=True
+            except:
+                pass
+
+            #print " Capturing ", mgroup, " host ", hostip, " port ", port
+            sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
+            sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+            sock.bind(("",port))
+            if ismulticast:
+                mreq=struct.pack('4s4s',_socket.inet_aton(mgroup),_socket.inet_aton(hostip))
+                sock.setsockopt(_socket.IPPROTO_IP, _socket.IP_ADD_MEMBERSHIP, mreq)
+                print "Capturing Socket Interface: (MULTICAST) Host Interface: " + hostip + " Multicast: " + mgroup + " Port: "+ str(port)
+            else:
+                print "Capturing Socket Interface: (UDP) Host Interface: " + hostip + " Source Address: " + mgroup + " Port: "+ str(port)
+            ncnt=0
+            while totalRead < requestedBytes:
+                rcvddata = sock.recv(blen,_socket.MSG_WAITALL)
+                rawdata=rawdata+rcvddata
+                data=data+list(rcvddata)
+                totalRead = totalRead + len(rcvddata)
+                ncnt += 1
+                print " read ", ncnt, " pkt ", len(rcvddata)
+        except KeyboardInterrupt,e :
+            traceback.print_exc()
+            print "Exception during packet capture: " + str(e)
+        except Exception, e :
+            traceback.print_exc()
+            print "Exception during packet capture: " + str(e)
+        finally:
+            endTime=_time.time()
+            deltaTime=endTime -startTime            
+        if sock: sock.close()
+        print "Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime
+        if returnSddsAnalyzer:
+            from ossie.utils.sdds import SDDSAnalyzer
+            return SDDSAnalyzer( rawdata, pkts, pktlen, totalRead )
+        else:
+            return data, rawdata, (pktlen,pkts,totalRead)
+            
+
 class DataSource(_SourceBase):
+    '''
+      Soure of Bulk IO data. Supported data format strings:
+        char, short, long, float, double, longlong, octet, ushort, ulong, ulonglong
+      throttle: when True, data will match sampleRate (provided in the push function)
+    '''
     def __init__(self,
                  data         = None,
                  dataFormat   = None,
@@ -1120,7 +1286,10 @@ class DataSource(_SourceBase):
                  bytesPerPush = 512000,
                  startTime    = 0.0,
                  blocking     = True,
-                 subsize      = 0):
+                 subsize      = 0,
+                 sri          = None,
+                 throttle     = False):
+        warnings.warn("DataSource is deprecated, use StreamSource", DeprecationWarning)
         fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
         self.threadExited = None
 
@@ -1134,8 +1303,9 @@ class DataSource(_SourceBase):
         self._sampleRate  = None
         self._onPushSampleRate  = None
         self._complexData = None
+        self._streamID = None
         self._SRIKeywords = []
-        self._sri         = None
+        self._sri         = sri
         self._startTime   = startTime
         self._timePush    = None
         self._blocking    = blocking
@@ -1143,6 +1313,7 @@ class DataSource(_SourceBase):
         self._runThread   = None
         self._dataQueue   = _Queue.Queue()
         self._currentSampleTime = self._startTime
+        self._throttle = throttle
 
         # Track unsent packets so that callers can monitor for when all packets
         # have really been sent; checking for an empty queue only tells whether
@@ -1155,9 +1326,9 @@ class DataSource(_SourceBase):
     def _createArraySrcInst(self, srcPortType):
 
         if srcPortType != "_BULKIO__POA.dataXML":
-            return _bulkio_data_helpers.ArraySource(eval(srcPortType))
+            return bulkio_data_helpers.ArraySource(eval(srcPortType))
         else:
-            return _bulkio_data_helpers.XmlArraySource(eval(srcPortType))
+            return bulkio_data_helpers.XmlArraySource(eval(srcPortType))
 
 
     def start(self):
@@ -1171,14 +1342,50 @@ class DataSource(_SourceBase):
             self._runThread.setDaemon(True)
             self._runThread.start()
 
+
+    def sri(self):
+        if self._sri != None:
+            return _copy.copy(self._sri)
+        else:
+            # make a default sri from the current state
+            keywords = []
+            try:
+                for key in self._SRIKeywords:
+                    keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
+            except:
+                pass
+            candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                             "defaultStreamID", self._blocking, keywords)
+            if self._sampleRate > 0.0:
+                candidateSri.xdelta = 1.0/float(self._sampleRate)
+
+            if self._complexData and self._complexData == True:
+                candidateSri.mode = 1
+
+            if self._startTime >= 0.0:
+                candidateSri.xstart = self._startTime
+            return candidateSri
+
+    def sendEOS(self, streamID=None):
+        if streamID:
+            self.push([],EOS=True, streamID=streamID )
+        else:
+            if self._sri:
+                self.push([],EOS=True, streamID=self._sri.streamID )
+            else:
+                self.push([],EOS=True )
+
+
     def push(self,
              data,
              EOS         = False,
-             streamID    = "defaultStreamID",
+             streamID    = None,
              sampleRate  = None,
              complexData = False,
              SRIKeywords = [],
-             loop        = None):
+             loop        = None,
+             sri         = None,
+             ts          = None ):
         """
         Push an arbitrary data vector
       
@@ -1198,13 +1405,32 @@ class DataSource(_SourceBase):
             data = _bulkio_helpers.pythonComplexListToBulkioComplex(data, itemType)
             complexData = True
 
-        if sampleRate == None and self._onPushSampleRate != None:
-            sampleRate = self._onPushSampleRate
-        elif sampleRate == None and self._onPushSampleRate == None:
-            sampleRate = 1.0
-            self._onPushSampleRate = sampleRate
+        # if no stream id is provided then try and use prior stream id
+        if streamID == None:
+            if self._sri == None and sri == None:
+                if self._streamID != None:
+                   streamID = self._streamID
+            elif sri != None:
+                streamID = sri.streamID
+            elif self._sri != None:
+                streamID = self._sri.streamID
+
+        # if no stream id is provided then use default
+        if streamID == None:
+            streamID = "defaultStreamID"
+
+        if sampleRate == None:
+            # if no sample rate provide and no sri provide then use prior sample rate if available
+            if sri != None:
+                if sri.xdelta > 0.0:
+                    self._onPushSampleRate = 1.0/sri.xdelta
+            if self._onPushSampleRate != None:
+                sampleRate = self._onPushSampleRate
         else:
-            self._onPushSampleRate = sampleRate
+            # if we are given a new sample rate then save this off
+            if self._onPushSampleRate == None or ( self._onPushSampleRate != sampleRate ):
+                # save off, data consumer thread can be slower so we can use sri
+                self._onPushSampleRate = sampleRate
 
         self._dataQueue.put((data,
                              EOS,
@@ -1212,7 +1438,9 @@ class DataSource(_SourceBase):
                              sampleRate,
                              complexData,
                              SRIKeywords,
-                             loop))
+                             loop,
+                             sri,
+                             ts))
         self._packetQueued()
 
     def _packetQueued(self):
@@ -1263,44 +1491,100 @@ class DataSource(_SourceBase):
             complexData = dataset[4]
             SRIKeywords = dataset[5]
             loop        = dataset[6]
+            sri         = dataset[7]
+            ts          = dataset[8]
 
             # If loop is set in method call, override class attribute
             if loop != None:
                 self._loop = loop
             try:
-                self._sampleRate  = sampleRate
-                self._complexData = complexData
-                self._SRIKeywords = SRIKeywords
-                self._streamID    = streamID
-                candidateSri      = None
-                # If any SRI info is set, call pushSRI
-                if streamID != None or \
-                  sampleRate != None or \
-                  complexData != None or \
-                  len(SRIKeywords) > 0:
-                    keywords = []
-                    for key in self._SRIKeywords:
-                        keywords.append(_CF.DataType(key._name, _properties.to_tc_value(key._value,str(key._format))))
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
-                                                     streamID, self._blocking, keywords)
+                if sri == None and self._sri == None :
+                    if sampleRate == None : sampleRate=1.0
+                    self._sampleRate  = sampleRate
+                    self._complexData = complexData
+                    self._SRIKeywords = SRIKeywords
+                    self._streamID    = streamID
+                    candidateSri      = None
+                    # If any SRI info is set, call pushSRI
+                    if streamID != None or \
+                      sampleRate != None or \
+                      complexData != None or \
+                      len(SRIKeywords) > 0:
+                        keywords = []
+                        for key in self._SRIKeywords:
+                            keywords.append(_CF.DataType(key._name, _getAnyValue(key)))
+                        candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                                         streamID, self._blocking, keywords)
 
-                    if sampleRate > 0.0:
-                        candidateSri.xdelta = 1.0/float(sampleRate)
+                        if sampleRate > 0.0:
+                            candidateSri.xdelta = 1.0/float(sampleRate)
+                        self._onPushSampleRate = sampleRate
+
+                        if complexData == True:
+                            candidateSri.mode = 1
+                        else:
+                            candidateSri.mode = 0
+
+                        if self._startTime >= 0.0:
+                            candidateSri.xstart = self._startTime
+
+                    else:
+                        candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
+                                                         "defaultStreamID", self._blocking, [])
+                else:
+                    candidateSri = _copy.copy(self._sri)
+                    if sri != None:
+                        # user supplied sri
+                        candidateSri = sri
+
+                    if streamID and streamID != candidateSri.streamID:
+                        candidateSri.streamID = streamID
+                        self._streamID = streamID
+
+                    if sampleRate == None:
+                        sampleRate = 1.0/candidateSri.xdelta
+                        self._sampleRate = sampleRate
+                        self._onPushSampleRate = sampleRate
+                    else:
+                        if sampleRate > 0.0:
+                            candidateSri.xdelta = 1.0/float(sampleRate)
+                        self._sampleRate = sampleRate
+                        self._onPushSampleRate = sampleRate
 
                     if complexData == True:
                         candidateSri.mode = 1
-                    else:
-                        candidateSri.mode = 0
+                        self._complexData = 1
+
+                    self._complexData = candidateSri.mode
 
                     if self._startTime >= 0.0:
                         candidateSri.xstart = self._startTime
-                else:
-                    candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
-                                                     "defaultStreamID", self._blocking, [])
+
+                    # handle keywords
+                    if len(SRIKeywords) > 0 :
+                        self._SRIKeywords = SRIKeywords
+                        # need to keep order for compareSRI
+                        ckeys = [ x.id for x in candidateSri.keywords ]
+                        keywords = candidateSri.keywords[:]
+                        for key in self._SRIKeywords:
+                            # if current sri contains they keyword then overwrite else append
+                            kw = _CF.DataType(key._name, _getAnyValue(key))
+                            if key._name in ckeys:
+                                # replace that keyword
+                                for x in range(len(keywords)):
+                                    if keywords[x].id == kw.id :
+                                        keywords[x] = kw
+                            else:
+                                keywords.append(kw)
+                        candidateSri.keywords = keywords
 
                 if self._sri==None or not compareSRI(candidateSri, self._sri):
-                    self._sri = candidateSri
+                    self._sri = _copy.copy(candidateSri)
                     self._pushSRIAllConnectedPorts(sri = self._sri)
+
+                # if we are give a timestamp then use it as is
+                if ts != None:
+                    self._currentSampleTime = ts
 
                 # Call pushPacket
                 # If necessary, break data into chunks of pktSize for each
@@ -1384,6 +1668,11 @@ class DataSource(_SourceBase):
                                  packetEOS,
                                  streamID,
                                  srcPortType)
+                # covert time stamp if necessary
+                if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
+                    self._currentSampleTime = currentSampleTime.twsec +  currentSampleTime.tfsec
+                    currentSampleTime = self._currentSampleTime
+
                 self._currentSampleTime += sampleTimeForPush
                 currentSampleTime += sampleTimeForPush
         else:
@@ -1414,22 +1703,32 @@ class DataSource(_SourceBase):
                 data = _bulkio_helpers.formatData(data,
                                                   BULKIOtype=eval(srcPortType))
 
-        T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU,
-                                     _BULKIO.TCS_VALID,
-                                     0.0,
-                                     int(currentSampleTime),
-                                     currentSampleTime - int(currentSampleTime))
+        if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
+            T= currentSampleTime
+        else:
+            T = _BULKIO.PrecisionUTCTime(_BULKIO.TCM_CPU,
+                                         _BULKIO.TCS_VALID,
+                                         0.0,
+                                         int(currentSampleTime),
+                                         currentSampleTime - int(currentSampleTime))
+        if self._throttle:
+            if self._sampleRate != None:
+                _time.sleep(len(data)/(self._sampleRate*2.0))
+
         if srcPortType != "_BULKIO__POA.dataXML":
-            _bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
+            bulkio_data_helpers.ArraySource.pushPacket(arraySrcInst,
                                                         data     = data,
                                                         T        = T,
                                                         EOS      = EOS,
                                                         streamID = streamID)
         else:
-            _bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst,
+            bulkio_data_helpers.XmlArraySource.pushPacket(arraySrcInst,
                                                            data     = data,
                                                            EOS      = EOS,
                                                            streamID = streamID)
+        if self._throttle:
+            if self._sampleRate != None:
+                _time.sleep(len(data)/(self._sampleRate*2.0))
 
     def _pushSRIAllConnectedPorts(self, sri):
         for connection in self._connections.values():
@@ -1439,9 +1738,10 @@ class DataSource(_SourceBase):
 
     def _pushSRI(self, arraySrcInst, srcPortType, sri):
         if srcPortType != "_BULKIO__POA.dataXML":
-            _bulkio_data_helpers.ArraySource.pushSRI(arraySrcInst, sri)
+            #print "_pushSRI ", sri
+            bulkio_data_helpers.ArraySource.pushSRI(arraySrcInst, sri)
         else:
-            _bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
+            bulkio_data_helpers.XmlArraySource.pushSRI(arraySrcInst, sri)
 
     def waitAllPacketsSent(self, timeout=None):
         """
@@ -1470,9 +1770,16 @@ class DataSource(_SourceBase):
                     raise AssertionError, self.className + ":stop() failed to exit thread"
 
 class DataSink(_SinkBase):
-    def __init__(self):
+    """
+      To use a different sink (for custom data processing), assign the new class to sinkClass
+      To use a different sink for XML data, assign the new class to sinkXmlClass
+    """
+    def __init__(self, sinkClass=bulkio_data_helpers.ArraySink, sinkXmlClass=bulkio_data_helpers.XmlArraySink):
+        warnings.warn("DataSink is deprecated, use StreamSink instead", DeprecationWarning)
         fmts=['char','short','long','float','double','longlong','octet','ushort', 'ulong', 'ulonglong', 'file','xml' ]
         _SinkBase.__init__(self, formats=fmts)
+        self.sinkClass = sinkClass
+        self.sinkXmlClass = sinkXmlClass
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
@@ -1482,9 +1789,9 @@ class DataSink(_SinkBase):
 
             # Set up output array sink
             if str(portName) == "xmlIn":
-                self._sink = _bulkio_data_helpers.XmlArraySink(eval(self._sinkPortType))
+                self._sink = self.sinkXmlClass(eval(self._sinkPortType))
             else:
-                self._sink = _bulkio_data_helpers.ArraySink(eval(self._sinkPortType))
+                self._sink = self.sinkClass(eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
@@ -1516,7 +1823,7 @@ class DataSink(_SinkBase):
         eos_block: setting to True creates a blocking call until eos is received
         tstamps: setting to True makes the return value a tuple, where the first
             element is the data set and the second element is a series of tuples
-            containing the element index number of and timestamp
+            containing the element index number and the timestamp for that index
         '''
         isChar = self._sink.port_type == _BULKIO__POA.dataChar
 
@@ -1525,6 +1832,10 @@ class DataSink(_SinkBase):
         if eos_block:
             self._sink.waitEOS()
         (retval, timestamps) = self._sink.retrieveData(length=length)
+        if not retval:
+            if tstamps:
+                return ([],[])
+            return []
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
@@ -1538,7 +1849,7 @@ class DataSink(_SinkBase):
             else:
                 retval = from_char(retval)
         if tstamps:
-            return (retval,timestamps)
+            return (retval, timestamps)
         else:
             return retval
 
@@ -1598,8 +1909,12 @@ class _OutputBase(helperBase):
         pass
 
 class probeBULKIO(_SinkBase):
-    def __init__(self):
+    """
+      To use a different sink (for custom data processing), assign the new class to sinkClass
+    """
+    def __init__(self, sinkClass=bulkio_data_helpers.ProbeSink):
         _SinkBase.__init__(self)
+        self._sinkClass = sinkClass
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
@@ -1608,7 +1923,7 @@ class probeBULKIO(_SinkBase):
             self._sinkPortType = self.getPortType(portName)
 
             # Set up output array sink
-            self._sink = _bulkio_data_helpers.ProbeSink(eval(self._sinkPortType))
+            self._sink = self._sinkClass(eval(self._sinkPortType))
 
             if self._sink != None:
                 self._sinkPortObject = self._sink.getPort()
@@ -1706,16 +2021,40 @@ class SRIKeyword(object):
     This is used in the Input series as the element in the SRIKeywords list
     name and value correspond to the id/value pair
     format is a string that describes the data type casting that needs to happen
-      - short, ushort
-      - float, double
-      - long, ulong
-      - longlong, ulonglong
-      - char
-      - octet
+      - short, ushort, complexShort, complexUShort
+      - float, double, complexFloat, complexDouble
+      - long, ulong, complexLong, complexULong
+      - longlong, ulonglong, complexLongLong, complexULongLong
+      - char, complexChar
+      - octet, complexOctet
       - string
-      - boolean
+      - boolean, complexBoolean
+    For sequences, encase the data type in brackets (e.g.: [short])
     '''
     def __init__(self, name, value, format):
-        self._name   = name
-        self._value  = value
-        self._format = format
+        # validate format is legal type to convert to
+        if format[0] == '[' and format[-1] == ']':
+            if format[1:-1] in _properties.getTypeMap().keys():
+                self._name   = name
+                self._value  = value
+                self._format = format
+            else:
+                raise RuntimeError("Unsupported format type: " + format)
+        elif format in _properties.getTypeMap().keys():
+            self._name   = name
+            self._value  = value
+            self._format = format
+        else:
+            raise RuntimeError("Unsupported format type: " + format)
+
+def createTimeStamp():
+    return _bulkio_helpers.createCPUTimestamp()
+
+def createSRI(streamID='defaultStreamID', sampleRate=1.0, mode=0, blocking=True ):
+    xd=1.0
+    if sampleRate and sampleRate > 0.0:
+        xd = 1.0/float(sampleRate)
+
+    return _BULKIO.StreamSRI(hversion=1, xstart=0.0, xdelta=xd,
+                              xunits=1, subsize=0, ystart=0.0, ydelta=0.0,
+                              yunits=0, mode=mode, streamID=streamID, blocking=blocking, keywords=[])

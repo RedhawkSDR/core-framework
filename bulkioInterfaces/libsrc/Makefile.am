@@ -40,28 +40,46 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio_in_stream.cpp \
     cpp/bulkio_out_port.cpp \
     cpp/bulkio_out_stream.cpp \
-	cpp/bulkio_attachable_port.cpp \
+    cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
+    cpp/bulkio_stream.cpp \
     cpp/bulkio_time_helpers.cpp \
     cpp/bulkio_time_operators.cpp \
     cpp/bulkio_datablock.cpp \
-    cpp/bulkio_p.h
+    cpp/bulkio_p.h \
+    cpp/BulkioTransport.cpp \
+    cpp/CorbaTransport.h \
+    cpp/CorbaTransport.cpp \
+    cpp/LocalTransport.h \
+    cpp/LocalTransport.cpp \
+    cpp/shm/FifoIPC.h \
+    cpp/shm/FifoIPC.cpp \
+    cpp/shm/MessageBuffer.h \
+    cpp/shm/ShmInputTransport.h \
+    cpp/shm/ShmInputTransport.cpp \
+    cpp/shm/ShmOutputTransport.h \
+    cpp/shm/ShmOutputTransport.cpp \
+    cpp/shm/ShmTransportFactory.cpp
 
 ## Define the list of public header files and their install location.
 library_includedir = $(includedir)/bulkio
-library_include_HEADERS = cpp/bulkio.h \
-	cpp/BULKIO_Interfaces.h \
-	cpp/bulkio_base.h \
-	cpp/bulkio_callbacks.h \
-	cpp/bulkio_traits.h \
-	cpp/bulkio_in_port.h \
-	cpp/bulkio_in_stream.h \
-	cpp/bulkio_out_port.h \
-	cpp/bulkio_out_stream.h \
-	cpp/bulkio_attachable_base.h \
-	cpp/bulkio_time_operators.h \
-	cpp/bulkio_datablock.h \
-	cpp/bulkio_compat.h
+library_include_HEADERS = cpp/include/bulkio/bulkio.h \
+	cpp/include/bulkio/BULKIO_Interfaces.h \
+	cpp/include/bulkio/BulkioTransport.h \
+	cpp/include/bulkio/bulkio_base.h \
+	cpp/include/bulkio/bulkio_callbacks.h \
+	cpp/include/bulkio/bulkio_traits.h \
+	cpp/include/bulkio/bulkio_in_port.h \
+	cpp/include/bulkio/bulkio_in_stream.h \
+	cpp/include/bulkio/bulkio_out_port.h \
+	cpp/include/bulkio/bulkio_out_stream.h \
+	cpp/include/bulkio/bulkio_attachable_base.h \
+	cpp/include/bulkio/bulkio_stream.h \
+	cpp/include/bulkio/bulkio_time_operators.h \
+	cpp/include/bulkio/bulkio_datablock.h \
+	cpp/include/bulkio/bulkio_datatransfer.h \
+	cpp/include/bulkio/bulkio_typetraits.h \
+	cpp/include/bulkio/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of
 ## $(libdir).  The reason for this is that the configuration information put
@@ -76,7 +94,9 @@ library_include_HEADERS = cpp/bulkio.h \
 ## shipped with the source tarball.
 #bulkio_libincludedir = $(libdir)/bulkio-$(BULKIO_API_VERSION)/include
 
-libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(BULKIO_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I $(srcdir)/cpp -I $(srcdir)/cpp/include/bulkio -DLOGGING $(BULKIOINTERFACES_CFLAGS) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+
+libbulkio_@BULKIO_API_VERSION@_la_LIBADD = $(top_builddir)/libbulkioInterfaces.la
 
 ###############################################################################
 # Python
@@ -87,14 +107,9 @@ ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
 ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
-all-python: build-python
-
-build-python:
-	python setup.py $(OSSIE_V_pysetup) build
-
+rootflag = $(if $(DESTDIR),--root=$(DESTDIR))
 install-python:
-	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
-	  python setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
+	$(PYTHON) setup.py install -f $(rootflag) --home=$(prefix) --old-and-unmanageable
 
 clean-python:
 	python setup.py clean --all
@@ -110,62 +125,34 @@ JAVA_DIR := java
 JAVA_SRCDIR := $(JAVA_DIR)/src
 
 JAVA_SRCS := Const.java \
+DataHelper.java \
 DataTransfer.java \
-InCharPort.java \
-InDoublePort.java \
+ChunkingOutPort.java \
+InBitPort.java \
 InFilePort.java \
-InFloatPort.java \
-InInt16Port.java \
-InInt32Port.java \
-InInt64Port.java \
-InInt8Port.java \
-InLongLongPort.java \
-InLongPort.java \
-InOctetPort.java \
 InSDDSPort.java \
 InVITA49Port.java \
-InShortPort.java \
-InUInt16Port.java \
-InUInt32Port.java \
-InUInt64Port.java \
-InUInt8Port.java \
-InULongLongPort.java \
-InULongPort.java \
-InUShortPort.java \
 InXMLPort.java \
+InDataPort.java \
+InPortImpl.java \
 linkStatistics.java \
-OutCharPort.java \
+OutBitPort.java \
 OutDataPort.java \
-OutDoublePort.java \
 OutFilePort.java \
-OutFloatPort.java \
-OutInt16Port.java \
-OutInt32Port.java \
-OutInt64Port.java \
-OutInt8Port.java \
-OutLongLongPort.java \
-OutLongPort.java \
-OutOctetPort.java \
 OutPortBase.java \
 OutSDDSPort.java \
 OutVITA49Port.java \
-OutShortPort.java \
-OutUInt16Port.java \
-OutUInt32Port.java \
-OutUInt64Port.java \
-OutUInt8Port.java \
-OutULongLongPort.java \
-OutULongPort.java \
-OutUShortPort.java \
 OutXMLPort.java \
 connection_descriptor_struct.java \
 SriMapStruct.java \
-queueSemaphore.java \
 SizeOf.java \
 SriListener.java \
 ConnectionEventListener.java \
 sriState.java \
 utils.java \
+BitDataHelper.java \
+FileDataHelper.java \
+XMLDataHelper.java \
 sdds/SDDSStream.java \
 sdds/SDDSStreamAttachment.java \
 sdds/SDDSStreamContainer.java \
@@ -179,19 +166,83 @@ time/Comparator.java \
 time/DefaultComparator.java \
 time/utils.java
 
-java_JARFILES = bulkio.jar
-java_DATA = bulkio.src.jar
+# Numeric ports are generated via sed for ease of maintenance
+$(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InPort.java.template > $@
 
-bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS))
+$(JAVA_SRCDIR)/bulkio/%DataHelper.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/NumericDataHelper.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/NumericDataHelper.java.template > $@
+
+$(JAVA_SRCDIR)/bulkio/Out%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/OutPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/OutPort.java.template > $@
+
+JAVA_BUILT_SOURCE =  $(JAVA_SRCDIR)/bulkio/InDoublePort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InCharPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InOctetPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/DoubleDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/FloatDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ShortDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongLongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/CharDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UShortDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongLongDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OctetDataHelper.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutDoublePort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutFloatPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutLongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutCharPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUShortPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongLongPort.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutOctetPort.java
+
+# Deprecated port alias classes (e.g., InInt16Port aliases InShortPort)
+$(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template > $@
+
+$(JAVA_SRCDIR)/bulkio/Out%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedOutPort.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DeprecatedOutPort.java.template > $@
+
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutInt8Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt16Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt32Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt64Port.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUInt8Port.java
+
+java_JARFILES = bulkio.jar
+
+bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS)) $(JAVA_BUILT_SOURCE)
 bulkio_jar_CLASSPATH = $(OSSIE_CLASSPATH):$(top_builddir)/BULKIOInterfaces.jar
 bulkio_jar_MANIFEST = $(JAVA_DIR)/META-INF/MANIFEST.MF
+bulkio_jar_JARADD = -C $(JAVA_SRCDIR) bulkio
+bulkio_jar_JAVACFLAGS = -g -Xlint
 
 bulkio.jar: $(top_builddir)/BULKIOInterfaces.jar
 
-bulkio.src.jar: $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(bulkio_jar_SOURCE)
-	$(RH_V_JAR)$(JAR) cmf $< $@ -C $(JAVA_SRCDIR) .
-
-CLEANFILES = bulkio.src.jar
+BUILT_SOURCES = $(JAVA_BUILT_SOURCE)
+CLEANFILES = $(BUILT_SOURCES)
 
 endif
 
@@ -199,9 +250,7 @@ endif
 # General
 #
 
-.PHONY: all-local all-python build-python install-python clean-python reallyclean
-
-all-local: all-python
+.PHONY: install-python clean-python reallyclean
 
 install-exec-hook: install-python
 

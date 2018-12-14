@@ -43,6 +43,7 @@ public class StructSequenceProperty<T extends StructDef> extends AbstractSequenc
         this(id, name, structClass, value, Mode.get(mode), Kind.get(kinds));
     }
 
+    @SafeVarargs
     public static <E extends StructDef> List<E> asList(E... array) {
         return new ArrayList<E>(Arrays.asList(array));
     }

@@ -78,6 +78,15 @@ namespace  redhawk {
 
   namespace affinity {
 
+    bool check_numa() { 
+#ifdef HAVE_LIBNUMA
+      return (numa_available() != -1); 
+#else
+      return false;
+#endif
+    }
+
+
     //
     // promote nic affinity to a socket if all associated cpus for the interface are blacklisted
     //
@@ -222,35 +231,32 @@ namespace  redhawk {
     int   find_socket_for_interface ( const std::string &iface , const bool findFirst, const CpuList &bl ){
 
       int retval=-1;
-      bool check_numa=false;
-#ifdef HAVE_LIBNUMA
-       check_numa=(numa_available() != -1); 
-#endif
       
       // Determine cpu list by interrupts assigned for the specified NIC
       redhawk::affinity::CpuList cpulist = identify_cpus(iface);
       if ( cpulist.size() > 0 ) {
-        if ( check_numa ) {
-          int psoc=-1;
-#ifdef HAVE_LIBNUMA
-          int soc=-1;
-          for( int i=0; i < (int)cpulist.size();i++ ) {
-            RH_NL_DEBUG("gpp::affinity", "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
-            if ( std::count(  bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
-            soc = numa_node_of_cpu(cpulist[i]);
-            if ( soc != psoc && psoc != -1 && !findFirst ) {
-              RH_NL_WARN("gpp::affinity", "More than 1 socket servicing NIC:" << iface);
-              psoc=-1;
-              break;
+        if ( check_numa() ) {
+            int psoc=-1;
+#if HAVE_LIBNUMA
+            int soc=-1;
+            for( int i=0; i < (int)cpulist.size();i++ ) {
+                RH_DEBUG(_affinity_logger, "Finding (processor socket) for NIC:" << iface << " socket :" << numa_node_of_cpu(cpulist[i]) );
+                if ( std::count( bl.begin(), bl.end(), cpulist[i] ) != 0 ) continue;
+
+                soc = numa_node_of_cpu(cpulist[i]);
+                if ( soc != psoc && psoc != -1 && !findFirst ) {
+                    RH_WARN(_affinity_logger, "More than 1 socket servicing NIC:" << iface);
+                    psoc=-1;
+                    break;
+                }
+                psoc=soc;
+                if( findFirst ) break;
             }
-            psoc=soc;
-            if( findFirst ) break;
-          }
 #endif
-          retval=psoc;
+            retval=psoc;
         }
         else {
-          retval=0;
+            retval=0;
         }
       }
 
@@ -271,7 +277,7 @@ namespace  redhawk {
       }
       
 #ifdef HAVE_LIBNUMA
-      if ( numa_available() == -1 ) {
+      if ( check_numa() == false ) {
           return cpu_list;
       }
        
@@ -507,7 +513,7 @@ namespace  redhawk {
         RH_DEBUG(_affinity_logger, " cnt:" << cnt << " Processing Affinity pid: " << pid << " " << affinity_spec.first << ":" << affinity_spec.second );
 
 #ifdef HAVE_LIBNUMA
-        if ( numa_available() == -1 ) {
+        if ( check_numa() == false ) {
             RH_WARN(_affinity_logger, "Missing affinity support from Redhawk libraries, ... ignoring numa affinity based requests ");
         }
         else {

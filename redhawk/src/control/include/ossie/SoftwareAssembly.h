@@ -27,7 +27,36 @@
 #include"ossie/componentProfile.h"
 #include"ossie/exceptions.h"
 
+#include "PropertyRef.h"
+#include "UsesDevice.h"
+
 namespace ossie {
+
+    class Reservation {
+    public:
+        std::string kind;
+        std::string value;
+
+        const std::string& getKind() const {
+            return kind;
+        }
+
+        const std::string& getValue() const {
+            return value;
+        }
+
+        void overloadValue(std::string& new_value) {
+            value = new_value;
+        }
+
+    };
+
+    inline std::ostream& operator<<(std::ostream& out, const Reservation& resrv)
+    {
+        out << "Reservation kind: " << resrv.kind;
+        return out;
+    };
+
     class SoftwareAssembly {
     public:
         class HostCollocation {
@@ -35,18 +64,34 @@ namespace ossie {
                 std::string id;
                 std::string name;
                 std::vector<ComponentPlacement> placements;
+                std::vector<UsesDeviceRef>      usesdevicerefs;
+                std::vector<Reservation>        reservations;
 
-                const char* getID() const {
-                    return id.c_str();
+                const std::string& getID() const {
+                    return id;
                 }
 
-                const char* getName() const {
-                    return name.c_str();
+                const std::string& getName() const {
+                    return name;
                 }
 
                 const std::vector<ComponentPlacement>& getComponents() const {
                     return placements;
                 }
+
+                const std::vector<UsesDeviceRef>& getUsesDeviceRefs() const {
+                    return usesdevicerefs;
+                }
+
+                const std::vector<Reservation>& getReservations() const {
+                    return reservations;
+                }
+
+                void overloadReservation(std::string &value, int idx) {
+                    reservations[idx].overloadValue(value);
+                }
+
+                const ComponentInstantiation* getInstantiation(const std::string& refid) const;
         };
 
         class Partitioning {
@@ -56,18 +101,27 @@ namespace ossie {
         };
 
         class Port {
-            public:
-                typedef enum {
-                    NONE = 0,
-                    USESIDENTIFIER,
-                    PROVIDESIDENTIFIER,
-                    SUPPORTEDIDENTIFIER
-                } port_type;
+        public:
+            typedef enum {
+                NONE = 0,
+                USESIDENTIFIER,
+                PROVIDESIDENTIFIER,
+                SUPPORTEDIDENTIFIER
+            } port_type;
 
-                std::string componentrefid;
-                std::string identifier;
-                std::string externalname;
-                port_type type;
+            std::string componentrefid;
+            std::string identifier;
+            std::string externalname;
+            port_type type;
+
+            const std::string& getExternalName() const
+            {
+                if (externalname.empty()) {
+                    return identifier;
+                } else {
+                    return externalname;
+                }
+            }
         };
 
         class Property {
@@ -75,51 +129,30 @@ namespace ossie {
             std::string comprefid;
             std::string propid;
             std::string externalpropid;
+
+            const std::string& getExternalID() const
+            {
+                if (externalpropid.empty()) {
+                    return propid;
+                } else {
+                    return externalpropid;
+                }
+            }
         };
 
-        class PropertyRef {
+        class Option {
         public:
-            PropertyRef (ComponentProperty* prop) :
-                property (prop)
+            std::string name;
+            std::string value;
+
+            const std::string& getName() const
             {
+                return name;
             }
 
-            PropertyRef(const ComponentProperty &prop) :
-                property(prop.clone())
+            const std::string& getValue() const
             {
-            }
-
-            PropertyRef (const PropertyRef& copy) :
-                property (copy.property->clone())
-            {
-            }
-
-            virtual ~PropertyRef ()
-            {
-              
-            }
-
-            std::string refId;
-            boost::shared_ptr< ossie::ComponentProperty > property;
-
-        };
-
-        class UsesDevice {
-        public:
-            std::string id;
-            std::string type;
-            std::vector<PropertyRef> dependencies;
-
-            const char* getId() const {
-                return id.c_str();
-            }
-
-            const char* getType() const {
-                return type.c_str();
-            }
-
-            const std::vector<PropertyRef>& getDependencies() const {
-                return dependencies;
+                return value;
             }
         };
 
@@ -133,38 +166,51 @@ namespace ossie {
                 std::vector<ComponentFile> componentfiles;
                 std::vector<SoftwareAssembly::Port> externalports;
                 std::vector<SoftwareAssembly::Property> externalproperties;
-                std::vector<SoftwareAssembly::UsesDevice> usesdevice;
+                std::vector<SoftwareAssembly::Option> options;
+                std::vector<UsesDevice> usesdevice;
         };
        
-        SoftwareAssembly() : _sad(0) {}
+        SoftwareAssembly();
 
         SoftwareAssembly(std::istream& input) throw (ossie::parser_error);
 
         void load(std::istream& input) throw (ossie::parser_error);
 
-        const char* getID() const;
+        const std::string& getID() const;
 
-        const char* getName() const;
+        const std::string& getName() const;
 
         const std::vector<ComponentFile>& getComponentFiles() const;
 
         std::vector<ComponentPlacement> getAllComponents() const;
 
+        const std::vector<ComponentPlacement>& getComponentPlacements() const;
+
         const std::vector<HostCollocation>& getHostCollocations() const;
 
         const std::vector<Connection>& getConnections() const;
 
-        const char* getSPDById(const char* refid) const;
+        const ComponentFile* getComponentFile(const std::string& refid) const;
 
-        const char* getAssemblyControllerRefId() const;
+        const std::string& getAssemblyControllerRefId() const;
+
+        const ComponentPlacement* getAssemblyControllerPlacement() const;
 
         const std::vector<SoftwareAssembly::Port>& getExternalPorts() const;
 
         const std::vector<SoftwareAssembly::Property>& getExternalProperties() const;
 
-        const std::vector<SoftwareAssembly::UsesDevice>& getUsesDevices() const;
+        const std::vector<SoftwareAssembly::Option>& getOptions() const;
+
+        const std::vector<UsesDevice>& getUsesDevices() const;
+
+        const ComponentInstantiation* getComponentInstantiation(const std::string& refid) const;
 
     protected:
+        void validateComponentPlacements(std::vector<ComponentPlacement>& placements);
+        void validateExternalPorts(std::vector<Port>& ports);
+        void validateExternalProperties(std::vector<Property>& properties);
+
         std::auto_ptr<SAD> _sad;
     };
 }

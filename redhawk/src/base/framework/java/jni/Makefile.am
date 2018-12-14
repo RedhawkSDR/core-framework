@@ -31,6 +31,7 @@ nodist_libossiecfjni_la_SOURCES = ossie/CF/jni_LogInterfaces.cpp \
 				  ossie/CF/jni_Port.cpp \
 				  ossie/CF/jni_AggregateDevices.cpp \
 				  ossie/CF/jni_QueryablePort.cpp \
+				  ossie/CF/jni_NegotiablePort.cpp \
 				  ossie/CF/jni_StandardEvent.cpp \
 				  ossie/CF/jni_WellKnownProperties.cpp \
 				  ossie/CF/jni_PortTypes.cpp \
@@ -47,6 +48,7 @@ nobase_nodist_include_HEADERS = ossie/CF/jni_LogInterfaces.h \
 				ossie/CF/jni_cf.h \
 				ossie/CF/jni_AggregateDevices.h \
 				ossie/CF/jni_QueryablePort.h \
+				ossie/CF/jni_NegotiablePort.h \
 				ossie/CF/jni_StandardEvent.h \
 				ossie/CF/jni_WellKnownProperties.h \
 				ossie/CF/jni_PortTypes.h \

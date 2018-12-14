@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:2913e3b8-52f5-4b3d-9d15-3f0966af82d8" name="log_test_py_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="log_test_py_d10e2df5-9565-4157-8d46-60565c604367" type="SPD">
+      <localfile name="/devices/log_test_py/log_test_py.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="log_test_py_d10e2df5-9565-4157-8d46-60565c604367"/>
+      <componentinstantiation id="log_test_py_node:log_test_py_1">
+        <usagename>log_test_py_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="log_test_py_d10e2df5-9565-4157-8d46-60565c604367"/>
+      <componentinstantiation id="log_test_py_node:log_test_py_2">
+        <usagename>log_test_py_2</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

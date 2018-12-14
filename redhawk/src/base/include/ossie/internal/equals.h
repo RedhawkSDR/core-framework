@@ -21,6 +21,8 @@
 #ifndef OSSIE_INTERNAL_EQUALS_H
 #define OSSIE_INTERNAL_EQUALS_H
 
+#include <vector>
+
 #include <boost/utility/enable_if.hpp>
 
 /*

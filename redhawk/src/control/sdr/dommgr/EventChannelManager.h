@@ -83,6 +83,18 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannel_ptr get( const char *channel_name  )  
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
+  ossie::events::EventChannel_ptr get( const std::string &channel_name  )  
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
   /*
      Return an Event Channel in the Domain associated with the Manager from the specified channel_name parameter.
      
@@ -106,6 +118,19 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );    
+
+  /*
+        void setLogger(rh_logger::LoggerPtr logptr) {
+            _allocMgrLog = logptr;
+        };
+
+     Force the removal of the event channel from the Domain
+  */
+  void forceRelease( const char *channel_name  ) 
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
 
   /*
      Remove the event channel from the Domain
@@ -146,6 +171,13 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   
   */
 
+  ossie::events::EventChannelReg_ptr _registerResource( const ossie::events::EventRegistration &req)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+
   ossie::events::EventChannelReg_ptr registerResource( const ossie::events::EventRegistration &req)  
     throw ( CF::EventChannelManager::InvalidChannelName, 
             CF::EventChannelManager::RegistrationAlreadyExists,
@@ -153,6 +185,19 @@ class EventChannelManager: public virtual EventChannelManagerBase {
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannelReg_ptr registerConsumer( CosEventComm::PushConsumer_ptr consumer, const ossie::events::EventRegistration &req)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+  ossie::events::PublisherReg_ptr registerPublisher( const ossie::events::EventRegistration &req, CosEventComm::PushSupplier_ptr disconnectReceiver)  
+    throw ( CF::EventChannelManager::InvalidChannelName, 
+            CF::EventChannelManager::RegistrationAlreadyExists,
+            CF::EventChannelManager::OperationFailed, 
+            CF::EventChannelManager::OperationNotAllowed,
+            CF::EventChannelManager::ServiceUnavailable );
+  
   /*
      Unregister a publisher or subcriber from an event channel and invalidates the context
   */
@@ -180,11 +225,7 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   bool             isChannel( const std::string &channel_name );
   void             setPollingPeriod( const int64_t period );
 
- private:
-
-  typedef  std::pair< std::string, std::string >  RegRecord;
   typedef  std::map< std::string, std::string >   RegIdList;
-
   struct ChannelRegistration {
     std::string                      channel_name;
     std::string                      fqn;
@@ -197,11 +238,58 @@ class EventChannelManager: public virtual EventChannelManagerBase {
       return registrants.size();
     }
   };
-
-
-  typedef ChannelRegistration*                              ChannelRegistrationPtr;
-
   typedef std::map< std::string, ChannelRegistration >      ChannelRegistrationTable;
+  
+  typedef std::map<std::string, ossie::events::EventSubscriber_var> SubProxyMap;
+  typedef std::map<std::string, ossie::events::EventPublisher_var> PubProxyMap;
+  
+  SubProxyMap getSubProxies() { return _subProxies;};
+  PubProxyMap getPubProxies() { return _pubProxies;};
+  ChannelRegistrationTable getChannelRegistrations() { return _channels;};
+  void setSubProxies(SubProxyMap &_inval) { _subProxies = _inval;};
+  void setPubProxies(PubProxyMap &_inval) { _pubProxies = _inval;};
+  void setChannelRegistrations(ChannelRegistrationTable &_inval) { _channels = _inval; };
+
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _eventChannelMgrLog = logptr;
+    };
+
+  private:
+
+  // type definitions
+  typedef  std::pair< std::string, std::string >  RegRecord;
+  typedef ChannelRegistration*                              ChannelRegistrationPtr;
+  rh_logger::LoggerPtr _eventChannelMgrLog;
+
+  // event channel manager state
+  SubProxyMap _subProxies;
+  PubProxyMap _pubProxies;
+  //
+  // Channel Registration database
+  //
+  ChannelRegistrationTable                         _channels;
+
+  // configuration and default state information
+#ifndef CPPUNIT_TEST
+  // Handle to the Resource that owns us
+  DomainManager_impl*                              _domainManager;
+#endif
+  // naming context directory to bind event channgels to...
+  std::string                                      _domain_context;
+  // orb context
+  ossie::corba::OrbContext                         _orbCtx;
+  //  Handle to factory interface to create EventChannels
+  ossie::events::EventChannelFactory_var            _event_channel_factory;
+  // if enabled, events will show up in the NamingService
+  bool                                            _use_naming_service;
+  // use fully qualified domain names when creating channels.
+  bool                                           _use_fqn;
+  // allow event service to resolve channels
+  bool                                           _allow_es_resolve;
+  // default polling period to assign to a channel
+  int64_t                                        _default_poll_period;
+  // synchronize access to member variables
+  redhawk::Mutex                                   _mgrlock;
 
 
   void _initialize();
@@ -226,6 +314,11 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable );
 
+  ossie::events::EventChannel_ptr _get( const std::string &channel_name )
+    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+	    CF::EventChannelManager::OperationFailed, 
+	    CF::EventChannelManager::OperationNotAllowed,
+	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _create( const std::string &channel_name, const bool autoRelease=false )  
     throw ( CF::EventChannelManager::ChannelAlreadyExists, 
@@ -311,42 +404,6 @@ class EventChannelManager: public virtual EventChannelManagerBase {
        
    */
   void                                _deleteChannelRegistration( const std::string &cname );
-
-
-
-#ifndef CPPUNIT_TEST
-  // Handle to the Resource that owns us
-  DomainManager_impl*                              _domainManager;
-#endif
-
-  // naming context directory to bind event channgels to...
-  std::string                                      _domain_context;
-
-  // orb context
-  ossie::corba::OrbContext                         _orbCtx;
-
-  //  Handle to factory interface to create EventChannels
-  ossie::events::EventChannelFactory_var            _event_channel_factory;
-
-  //
-  // Channel Registration database
-  //
-  ChannelRegistrationTable                         _channels;
-
-  // if enabled, events will show up in the NamingService
-  bool                                            _use_naming_service;
-
-  // use fully qualified domain names when creating channels.
-  bool                                           _use_fqn;
-
-  // allow event service to resolve channels
-  bool                                           _allow_es_resolve;
-
-  // default polling period to assign to a channel
-  int64_t                                        _default_poll_period;
-
-  // synchronize access to member variables
-  redhawk::Mutex                                   _mgrlock;
 
 };
 

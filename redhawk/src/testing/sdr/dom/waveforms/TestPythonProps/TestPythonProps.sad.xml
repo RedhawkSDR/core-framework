@@ -31,6 +31,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <componentfileref refid="TestPythonProps_c0c68899-dde6-4bfb-a80e-52fc1fb78fd4"/>
       <componentinstantiation id="DCE:f9d0fa95-4cf7-4ed1-a412-a7b9d2ab0ab1">
         <usagename>TestPythonProps1</usagename>
+        <componentproperties>
+          <simpleref refid="simple_utctime" value = "2017:2:1::10:01:00.123"/>
+        </componentproperties>
         <findcomponent>
           <namingservice name="TestPythonProps1"/>
         </findcomponent>

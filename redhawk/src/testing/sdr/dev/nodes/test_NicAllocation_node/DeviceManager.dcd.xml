@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:abfb329b-3d6e-49d8-bb86-b170da53f1ab" name="test_NicAllocation_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="NicExecDevice_6f4afa68-38fe-4a7f-a497-abfccea86553" type="SPD">
+      <localfile name="/devices/NicExecDevice/NicExecDevice.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="NicExecDevice_6f4afa68-38fe-4a7f-a497-abfccea86553"/>
+      <componentinstantiation id="test_NicAllocation_node:NicExecDevice_1">
+        <usagename>NicExecDevice_1</usagename>
+        <componentproperties>
+          <simplesequenceref refid="nic_list">
+            <values>
+              <value>eth0</value>
+              <value>eth1</value>
+              <value>eth2</value>
+            </values>
+          </simplesequenceref>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

@@ -35,6 +35,10 @@ void DeviceManagerConfiguration::load(std::istream& input) throw (ossie::parser_
     _dcd = ossie::internalparser::parseDCD(input);
 }
 
+const bool DeviceManagerConfiguration::isLoaded() const {
+    return _dcd.get() != 0;
+}
+
 const char* DeviceManagerConfiguration::getID() const {
     assert(_dcd.get() != 0);
     return _dcd->id.c_str();
@@ -60,7 +64,7 @@ const std::vector<ComponentFile>& DeviceManagerConfiguration::getComponentFiles(
     return _dcd->componentFiles;
 }
 
-const std::vector<ComponentPlacement>& DeviceManagerConfiguration::getComponentPlacements() {
+const std::vector<DevicePlacement>& DeviceManagerConfiguration::getComponentPlacements() {
     assert(_dcd.get() != 0);
     return _dcd->componentPlacements;
 }
@@ -75,8 +79,8 @@ const char* DeviceManagerConfiguration::getFileNameFromRefId(const char* refid) 
     const std::vector<ComponentFile>& componentFiles = getComponentFiles();
     std::vector<ComponentFile>::const_iterator i;
     for (i = componentFiles.begin(); i != componentFiles.end(); ++i) {
-        if (strcmp(i->getID(), refid) == 0) {
-            return i->getFileName();
+        if (i->getID() == refid) {
+            return i->getFileName().c_str();
         }
     }
 
@@ -84,8 +88,8 @@ const char* DeviceManagerConfiguration::getFileNameFromRefId(const char* refid) 
 }
 
 const ComponentInstantiation& DeviceManagerConfiguration::getComponentInstantiationById(std::string id) throw(std::out_of_range) {
-    const std::vector<ComponentPlacement>& componentPlacements = getComponentPlacements();
-    std::vector<ComponentPlacement>::const_iterator i;
+    const std::vector<DevicePlacement>& componentPlacements = getComponentPlacements();
+    std::vector<DevicePlacement>::const_iterator i;
     for (i = componentPlacements.begin(); i != componentPlacements.end(); ++i) {
         assert(i->getInstantiations().size() > 0);
         const ComponentInstantiation& instantiation = i->getInstantiations().at(0);
@@ -95,4 +99,40 @@ const ComponentInstantiation& DeviceManagerConfiguration::getComponentInstantiat
         }
     }
     throw std::out_of_range("No instantiation with id " + id);
+}
+
+
+//
+// DevicePlacement
+//
+const char* DevicePlacement::getDeployOnDeviceID() const {
+    if (deployOnDeviceID.isSet()) {
+        return deployOnDeviceID->c_str();
+    } else {
+        return 0;
+    }
+}
+
+const char* DevicePlacement::getCompositePartOfDeviceID() const {
+    if (compositePartOfDeviceID.isSet()) {
+        return compositePartOfDeviceID->c_str();
+    } else {
+        return 0;
+    }
+}
+
+const std::string DevicePlacement::getDPDFile() const {
+    if (DPDFile.isSet()) {
+        return DPDFile->c_str();
+    } else {
+        return 0;
+    }
+}
+
+bool DevicePlacement::isDeployOn() const {
+    return deployOnDeviceID.isSet();
+}
+
+bool DevicePlacement::isCompositePartOf() const {
+    return compositePartOfDeviceID.isSet();
 }

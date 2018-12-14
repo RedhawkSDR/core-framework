@@ -73,6 +73,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <simple id="simple_utctime" mode="readwrite" type="utctime">
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simple>
   <simplesequence id="simple_sequence_string" mode="readwrite" type="string">
     <kind kindtype="configure"/>
     <action type="external"/>
@@ -123,6 +127,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </simplesequence>
   <simplesequence id="simple_sequence_ulonglong" mode="readwrite" type="ulonglong">
     <kind kindtype="configure"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simple_sequence_utctime" mode="readwrite" type="utctime">
+    <kind kindtype="property"/>
     <action type="external"/>
   </simplesequence>
   <struct id="struct_vars" mode="readwrite">

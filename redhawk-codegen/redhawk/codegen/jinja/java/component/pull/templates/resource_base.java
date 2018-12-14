@@ -50,6 +50,7 @@ import java.util.List;
 /*{%   endif %}*/
 /*{% endfor %}*/
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 
 import org.apache.log4j.Logger;
 
@@ -116,6 +117,19 @@ public abstract class ${classname} extends ${superClass} {
     public final static Logger logger = Logger.getLogger(${classname}.class.getName());
 
 /*{% import "base/properties.java" as properties with context %}*/
+/*{% for prop in component.properties if prop is enumerated %}*/
+/*{%   if loop.first %}*/
+    /**
+     * Enumerated values for properties
+     */
+    public static class enums {
+/*{%   endif %}*/
+        ${properties.enumvalues(prop)|indent(8)}
+/*{%   if loop.last %}*/
+    }
+/*{%   endif %}*/
+
+/*{% endfor %}*/
 /*{% for prop in component.properties %}*/
 /*{%   if not prop.inherited %}*/
     ${properties.create(prop)|indent(4)}
@@ -150,7 +164,11 @@ public abstract class ${classname} extends ${superClass} {
      */
     public ${classname}()
     {
+/*{% if 'FrontendTuner' in component.implements %}*/
+        super(frontend_tuner_status_struct_struct.class);
+/*{% else %}*/
         super();
+/*{% endif %}*/
 
         setLogger( logger, ${classname}.class.getName() );
 
@@ -204,6 +222,12 @@ public abstract class ${classname} extends ${superClass} {
 /*{% endif %}*/
     }
 
+    protected void setupPortLoggers() {
+/*{% for port in component.ports %}*/
+        ${port.javaname}.setLogger(this._baseLog.getChildLogger("${port.name}", "ports"));
+/*{% endfor %}*/
+    }
+
 /*{% if component.events %}*/
     /**
      * @generated
@@ -222,21 +246,6 @@ public abstract class ${classname} extends ${superClass} {
     }
 
 /*{% endif %}*/
-    public void start() throws CF.ResourcePackage.StartError
-    {
-/*{% for port in component.ports if port.start %}*/
-        this.${port.javaname}.${port.start};
-/*{% endfor %}*/
-        super.start();
-    }
-
-    public void stop() throws CF.ResourcePackage.StopError
-    {
-/*{% for port in component.ports if port.stop %}*/
-        this.${port.javaname}.${port.stop};
-/*{% endfor %}*/
-        super.stop();
-    }
 /*{% if component.hasmultioutport %}*/
 
     protected void connectionTableChanged (List<connection_descriptor_struct> oldValue, List<connection_descriptor_struct> newValue)

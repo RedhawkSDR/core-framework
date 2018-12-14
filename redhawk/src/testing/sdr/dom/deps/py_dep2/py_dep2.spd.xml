@@ -32,7 +32,7 @@ this program.  If not, see http://www.gnu.org/licenses/.
         <description>
         </description>
         <code type="SharedLibrary">
-            <localfile name="lib/python/helloworld/helloworld.py"/>
+            <localfile name="lib/python/helloworld2"/>
         </code>
         <programminglanguage name="python"/>
         <os name="Linux"/>

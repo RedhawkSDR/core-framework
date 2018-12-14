@@ -31,6 +31,8 @@
 
 CREATE_LOGGER(sad_parser);
 
+rh_logger::LoggerPtr sad::parserLog;
+
 namespace sad
 {
   // softwareassembly_pimpl
@@ -50,9 +52,9 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
-  componentfiles (const ::std::vector<ossie::ComponentFile>& componentfiles)
+  componentfiles (::std::vector<ossie::ComponentFile>& componentfiles)
   {
-      _sad->componentfiles = componentfiles;
+      _sad->componentfiles.swap(componentfiles);
   }
 
   void softwareassembly_pimpl::
@@ -68,27 +70,33 @@ namespace sad
   }
 
   void softwareassembly_pimpl::
-  connections (const ::std::vector<ossie::Connection>& connections)
+  connections (::std::vector<ossie::Connection>& connections)
   {
-      _sad->connections = connections;
+      _sad->connections.swap(connections);
   }
 
   void softwareassembly_pimpl::
-  externalports (const ::std::vector<ossie::SoftwareAssembly::Port>& externalports)
+  externalports (::std::vector<ossie::SoftwareAssembly::Port>& externalports)
   {
-      _sad->externalports = externalports;
+      _sad->externalports.swap(externalports);
   }
 
   void softwareassembly_pimpl::
-  externalproperties (const ::std::vector<ossie::SoftwareAssembly::Property>& externalproperties)
+  externalproperties (::std::vector<ossie::SoftwareAssembly::Property>& externalproperties)
   {
-      _sad->externalproperties = externalproperties;
+      _sad->externalproperties.swap(externalproperties);
   }
 
   void softwareassembly_pimpl::
-  usesdevicedependencies (const ::std::vector<ossie::SoftwareAssembly::UsesDevice>& usesdevices)
+  options (::std::vector<ossie::SoftwareAssembly::Option>& options)
   {
-      _sad->usesdevice = usesdevices;
+      _sad->options.swap(options);
+  }
+
+  void softwareassembly_pimpl::
+  usesdevicedependencies (::std::vector<ossie::UsesDevice>& usesdevices)
+  {
+      _sad->usesdevice.swap(usesdevices);
   }
 
   void softwareassembly_pimpl::
@@ -124,7 +132,7 @@ namespace sad
       componentFiles.push_back(componentfile);
   }
 
-  ::std::vector<ossie::ComponentFile> componentfiles_pimpl::
+  ::std::vector<ossie::ComponentFile>& componentfiles_pimpl::
   post_componentfiles ()
   {
     return componentFiles;
@@ -206,7 +214,7 @@ namespace sad
   void partitioning_pimpl::
   hostcollocation (const ossie::SoftwareAssembly::HostCollocation& hostcollocation)
   {
-    LOG_TRACE(sad_parser, "Adding host collocations");
+    RH_TRACE(sad::parserLog, "Adding host collocations");
     partitioning->collocations.push_back(hostcollocation);
   }
 
@@ -278,7 +286,9 @@ namespace sad
   void componentinstantiation_pimpl::
   startorder (const ::std::string& startorder)
   {
-    componentInstantiation._startOrder = startorder;
+    // We have to parse the string into an integer here, rather than declaring
+    // startorder as an integer in the schema, for backwards compatibility.
+    componentInstantiation.startOrder = atoi(startorder.c_str());
   }
 
   void componentinstantiation_pimpl::
@@ -288,15 +298,15 @@ namespace sad
   }
 
   void componentinstantiation_pimpl::
-  componentproperties ( const ossie::ComponentPropertyList& componentproperties)
+  componentproperties (ossie::ComponentPropertyList& componentproperties)
   {
-    componentInstantiation.properties = componentproperties;
+    componentInstantiation.properties.swap(componentproperties);
   }
 
   void componentinstantiation_pimpl::
   findcomponent (const ::std::string& namingservicename)
   {
-    LOG_TRACE(sad_parser, "setting instantiation naming service name " << namingservicename);
+    RH_TRACE(sad::parserLog, "setting instantiation naming service name " << namingservicename);
     componentInstantiation.namingservicename = namingservicename;
   }
 
@@ -307,16 +317,23 @@ namespace sad
   }
 
   void componentinstantiation_pimpl::
-  affinity (const ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
+  affinity (ossie::ComponentInstantiation::AffinityProperties& affinityProperties)
   {
-    LOG_TRACE(sad_parser, "affinity properties");
-    componentInstantiation.affinityProperties= affinityProperties;
+    RH_TRACE(sad::parserLog, "affinity properties");
+    componentInstantiation.affinityProperties.swap(affinityProperties);
   }
 
   void componentinstantiation_pimpl::loggingconfig ( const ossie::ComponentInstantiation::LoggingConfig& log_cfg )
   {
     componentInstantiation.loggingConfig = log_cfg;
+    RH_TRACE(sad::parserLog, "componentinstantiation_pimpl logging cfg "<< componentInstantiation.loggingConfig.first.c_str() << " level " << componentInstantiation.loggingConfig.second.c_str() );    
   }
+
+  void componentinstantiation_pimpl::devicerequires (ossie::ComponentPropertyList& requiresproperties)
+  {
+    componentInstantiation.devicerequires.swap(requiresproperties);
+  }
+
 
 
   const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
@@ -334,32 +351,32 @@ namespace sad
   void affinity_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    LOG_TRACE(sad_parser, "Adding simpleref ");
+    RH_TRACE(sad::parserLog, "Adding simpleref ");
     affinityProperties.push_back(simpleref.clone());
   }
 
   void affinity_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    LOG_TRACE(sad_parser, "Adding simplesequenceref");
+    RH_TRACE(sad::parserLog, "Adding simplesequenceref");
     affinityProperties.push_back(simplesequenceref.clone());
   }
 
   void affinity_pimpl::
   structref (const ossie::StructPropertyRef& structref)
   {
-    LOG_TRACE(sad_parser, "Adding structref");
+    RH_TRACE(sad::parserLog, "Adding structref");
     affinityProperties.push_back(structref.clone());
   }
 
   void affinity_pimpl::
   structsequenceref (const ossie::StructSequencePropertyRef& structsequenceref)
   {
-    LOG_TRACE(sad_parser, "Adding structsequenceref");
+    RH_TRACE(sad::parserLog, "Adding structsequenceref");
     affinityProperties.push_back(structsequenceref.clone());
   }
 
-  const ossie::ComponentInstantiation::AffinityProperties& affinity_pimpl::post_affinity ()
+  ossie::ComponentInstantiation::AffinityProperties& affinity_pimpl::post_affinity ()
   {
     return affinityProperties;
   }
@@ -375,13 +392,38 @@ namespace sad
   void loggingconfig_pimpl::level ( const ::std::string &v )
   {
     info.second=v;
+    RH_TRACE(sad::parserLog, " loggingconfig : parser found level " << v );
   }
 
   const ossie::ComponentInstantiation::LoggingConfig& loggingconfig_pimpl::post_loggingconfig ( )
   {
     info.first = this->post_string();
+    RH_TRACE(sad::parserLog, " loggingconfig : first " << info.first << "second " << info.second );
     return info;
   }
+
+  // devicerequires_pimpl
+  //
+
+  void devicerequires_pimpl::
+  pre ()
+  {
+    devicerequires.clear();
+  }
+
+  void devicerequires_pimpl::
+  requires (const ossie::IdValue& idvalue)
+  {
+    devicerequires.push_back(idvalue.clone());
+  }
+
+  ossie::ComponentPropertyList& devicerequires_pimpl::
+  post_devicerequires ()
+  {
+    return devicerequires;
+  }
+
+
 
   // componentproperties_pimpl
   //
@@ -416,7 +458,7 @@ namespace sad
     componentProperties.push_back(structsequenceref.clone());
   }
 
-  const ossie::ComponentPropertyList& componentproperties_pimpl::
+  ossie::ComponentPropertyList& componentproperties_pimpl::
   post_componentproperties ()
   {
     return componentProperties;
@@ -445,7 +487,7 @@ namespace sad
   ::std::string findcomponent_pimpl::
   post_findcomponent ()
   {
-    LOG_TRACE(sad_parser, "post findcomponent: " << namingservicename)
+    RH_TRACE(sad::parserLog, "post findcomponent: " << namingservicename)
     return namingservicename;
   }
 
@@ -582,6 +624,39 @@ namespace sad
   void resourcefactoryproperties_pimpl::
   post_resourcefactoryproperties ()
   {
+  }
+
+
+
+  // idvalueref_pimpl
+  //
+
+  void idvalue_pimpl::
+  pre ()
+  {
+    RH_TRACE(sad::parserLog, "pre idvalue");
+    simple = ossie::IdValue();
+  }
+
+  void idvalue_pimpl::
+  id (const ::std::string& id)
+  {
+    RH_TRACE(sad::parserLog, "idvalue id: " << id);
+    simple._id = id;
+  }
+
+  void idvalue_pimpl::
+  value (const ::std::string& value)
+  {
+    RH_TRACE(sad::parserLog, "idvalue value: " << value);
+    simple._value = value;
+  }
+
+  const ossie::IdValue& idvalue_pimpl::
+  post_idvalue ()
+  {
+    RH_TRACE(sad::parserLog, "post idvalue");
+    return simple;
   }
 
   // simpleref_pimpl
@@ -867,6 +942,19 @@ namespace sad
     hostcollocation->placements.push_back(componentplacement);
   }
 
+
+  void hostcollocation_pimpl::
+  usesdeviceref (const ::ossie::UsesDeviceRef& usesdeviceref)
+  {
+      hostcollocation->usesdevicerefs.push_back(usesdeviceref);
+  }
+
+  void hostcollocation_pimpl::
+  reservation (const ::ossie::Reservation& reservation)
+  {
+      hostcollocation->reservations.push_back(reservation);
+  }
+
   void hostcollocation_pimpl::
   id (const ::std::string& id)
   {
@@ -884,6 +972,62 @@ namespace sad
   {
       return *hostcollocation;
   }
+
+  // usesdeviceref_pimpl
+  //
+
+  void usesdeviceref_pimpl::
+  pre ()
+  {
+    udevref = ossie::UsesDeviceRef();
+  }
+
+  void usesdeviceref_pimpl::
+  refid (const ::std::string& refid)
+  {
+    udevref.id = refid;
+  }
+
+  const ossie::UsesDeviceRef& usesdeviceref_pimpl::
+  post_usesdeviceref ()
+  {
+    return udevref;
+  }
+
+
+  // reservation_pimpl
+  //
+
+  void reservation_pimpl::
+  pre ()
+  {
+    resrv = ossie::Reservation();
+  }
+
+  void reservation_pimpl::
+  kind (const ::std::string& kind)
+  {
+    resrv.kind = kind;
+  }
+
+  void reservation_pimpl::
+  value (const ::std::string& value)
+  {
+    resrv.value = value;
+  }
+
+  std::string reservation_pimpl::post_string()
+  {
+    resrv.value = this->post_string();
+    return resrv.value;
+  }
+
+  const ossie::Reservation& reservation_pimpl::
+  post_reservation ()
+  {
+    return resrv;
+  }
+
 
   // assemblycontroller_pimpl
   //
@@ -928,10 +1072,10 @@ namespace sad
       //connname << "connection_" << (connections.size());
       //connections.back().connectionId = connname.str();
       //}
-      LOG_TRACE(sad_parser, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
+      RH_TRACE(sad::parserLog, "added connection id " << connections.back().getID() << " type " << connections.back().getType());
   }
 
-  ::std::vector<ossie::Connection> connections_pimpl::
+  ::std::vector<ossie::Connection>& connections_pimpl::
   post_connections ()
   {
     return connections;
@@ -976,7 +1120,7 @@ namespace sad
   void connectinterface_pimpl::
   id (const ::std::string& id)
   {
-      LOG_TRACE(sad_parser, "connection id " << id);
+      RH_TRACE(sad::parserLog, "connection id " << id);
       connection->connectionId = id;
   }
 
@@ -1154,7 +1298,7 @@ namespace sad
       extPorts.push_back(port);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::Port> externalports_pimpl::
+  ::std::vector<ossie::SoftwareAssembly::Port>& externalports_pimpl::
   post_externalports ()
   {
       return extPorts;
@@ -1230,7 +1374,7 @@ namespace sad
       extProps.push_back(prop);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::Property> externalproperties_pimpl::
+  ::std::vector<ossie::SoftwareAssembly::Property>& externalproperties_pimpl::
    post_externalproperties ()
   {
       return extProps;
@@ -1269,6 +1413,54 @@ namespace sad
       return *property;
   }
 
+  // options_pimpl
+  //
+
+  void options_pimpl::
+  pre ()
+  {
+      extOptions.clear();
+  }
+
+  void options_pimpl::
+  option (const ossie::SoftwareAssembly::Option& option)
+  {
+      extOptions.push_back(option);
+  }
+
+  ::std::vector<ossie::SoftwareAssembly::Option>& options_pimpl::
+  post_options ()
+  {
+      return extOptions;
+  }
+
+  // option_pimpl
+  //
+
+  void option_pimpl::
+  pre ()
+  {
+      option.reset(new ossie::SoftwareAssembly::Option());
+  }
+
+  void option_pimpl::
+  name(const ::std::string& name)
+  {
+      option->name = name;
+  }
+
+  void option_pimpl::
+  value(const ::std::string& value)
+  {
+      option->value = value;
+  }
+
+  ::ossie::SoftwareAssembly::Option option_pimpl::
+  post_option ()
+  {
+      return *option;
+  }
+
   // usesdevicedependencies_pimpl
   //
 
@@ -1279,12 +1471,12 @@ namespace sad
   }
 
   void usesdevicedependencies_pimpl::
-  usesdevice (const ossie::SoftwareAssembly::UsesDevice& use)
+  usesdevice (const ossie::UsesDevice& use)
   {
       usesDevices.push_back(use);
   }
 
-  ::std::vector<ossie::SoftwareAssembly::UsesDevice> usesdevicedependencies_pimpl::
+  ::std::vector<ossie::UsesDevice>& usesdevicedependencies_pimpl::
    post_usesdevicedependencies ()
   {
       return usesDevices;
@@ -1296,11 +1488,11 @@ namespace sad
   void usesdevice_pimpl::
   pre ()
   {
-      uses.reset(new ossie::SoftwareAssembly::UsesDevice());
+      uses.reset(new ossie::UsesDevice());
   }
 
   void usesdevice_pimpl::
-  propertyref (const ossie::SoftwareAssembly::PropertyRef& propRef)
+  propertyref (const ossie::PropertyRef& propRef)
   {
       uses->dependencies.push_back(propRef);
   }
@@ -1341,7 +1533,7 @@ namespace sad
       uses->type = type;
   }
 
-  ossie::SoftwareAssembly::UsesDevice usesdevice_pimpl::
+  ossie::UsesDevice usesdevice_pimpl::
   post_usesdevice ()
   {
       return *uses;
@@ -1368,10 +1560,10 @@ namespace sad
       propRef->_value = value;
   }
 
-  ossie::SoftwareAssembly::PropertyRef propertyref_pimpl::
+  ossie::PropertyRef propertyref_pimpl::
   post_propertyref ()
   {
-      return ossie::SoftwareAssembly::PropertyRef(propRef->clone());
+      return ossie::PropertyRef(propRef->clone());
   }
 }
 

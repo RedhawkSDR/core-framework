@@ -25,7 +25,7 @@ from ossie.utils.idllib import IDLLibrary
 from redhawk.codegen.utils import strenum
 
 CorbaTypes = strenum('octet','boolean','char','short','ushort','long','ulong',
-                     'longlong','ulonglong','float','double','string','objref')
+                     'longlong','ulonglong','float','double','string','objref', 'utctime')
 
 idlRepo = IDLLibrary()
 idlRepo.addSearchPath(os.path.join(os.environ['OSSIEHOME'], 'share/idl'))

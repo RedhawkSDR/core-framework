@@ -20,6 +20,7 @@
 
 
 import commands as _commands
+import sys as _sys
 import os as _os
 import copy as _copy
 import logging
@@ -39,11 +40,16 @@ from ossie.properties import getCFType
 from ossie.properties import getMemberType
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.utils.formatting import TablePrinter
+from ossie.utils.log_helpers import stringToCode
 from ossie.utils import prop_helpers
+from ossie.utils import rhtime
 import warnings as _warnings
+import cStringIO, pydoc
 from connect import *
 
-_DEBUG = False 
+_warnings.filterwarnings('once',category=DeprecationWarning)
+
+_DEBUG = False
 _trackLaunchedApps = False
 
 _idllib = idllib.IDLLibrary()
@@ -105,6 +111,11 @@ def _convertType(propType, val):
             real = int(real)
             imag = int(imag)
         newValue = complex(real, imag)
+    elif propType == 'utctime':
+        if type(val) == str:
+            newValue = rhtime.convert(val)
+        else:
+            newValue = val
     else:
         newValue = None
     return newValue    
@@ -188,24 +199,43 @@ class PortSupplier(object):
     def __init__(self):
         self._providesPortDict = {}
         self._usesPortDict = {}
+        self._listener_allocations = {}
 
-    def _showPorts(self, ports):
+    def _showPorts(self, ports, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
         if ports:
             table = TablePrinter('Port Name', 'Port Interface')
             for port in ports.itervalues():
                 table.append(port['Port Name'], port['Port Interface'])
-            table.write()
+            table.write(f=destfile)
         else:
-            print "None"
+            print >>destfile, "None"
 
-    def api(self):
-        print "Provides (Input) Ports =============="
-        self._showPorts(self._providesPortDict)
-        print
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
-        print "Uses (Output) Ports =============="
-        self._showPorts(self._usesPortDict)
-        print
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, "Provides (Input) Ports =============="
+        self._showPorts(self._providesPortDict, destfile=destfile)
+        print >>destfile, "\n"
+
+        print >>destfile, "Uses (Output) Ports =============="
+        self._showPorts(self._usesPortDict, destfile=destfile)
+        print >>destfile, "\n"
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _getUsesPort(self, name):
         if not name in self._usesPortDict:
@@ -284,9 +314,27 @@ class PortSupplier(object):
         to find a matching port automatically. If there are multiple possible matches,
         a uses-side or provides-side port name may be necessary to resolve the ambiguity
         """
+
+        properties = []
+        if hasattr(self, '_properties'):
+            properties = [p for p in self._properties if 'property' in p.kinds or 'configure' in p.kinds or 'execparam' in p.kinds]
+        tuner_status = None
+        valid_tuners = []
+        for prop in properties:
+            if prop.id == 'FRONTEND::tuner_status':
+                tuner_status = prop
+                break
+        if tuner_status:
+            if not connectionId:
+                valid_tuners = []
+                for tuner_idx in range(len(tuner_status)):
+                    if not tuner_status[tuner_idx].enabled:
+                        continue
+                    valid_tuners.append(tuner_idx)
+
         if not connectionId:
-            connectionId = str(_uuidgen())
-            
+            connectionId = 'DCE_'+str(_uuidgen())
+
         if isinstance(providesComponent, PortSupplier):
             log.trace('Provides side is PortSupplier')
             # Remote side supports multiple ports.
@@ -373,6 +421,21 @@ class PortSupplier(object):
         log.trace("Provides endpoint '%s' has interface '%s'", providesEndpoint.getName(), providesEndpoint.getInterface())
         usesPortRef = usesEndpoint.getReference()
         providesPortRef = providesEndpoint.getReference()
+        if ':BULKIO/' in usesEndpoint.getInterface():
+            if len(valid_tuners) == 1:
+                allocation_id = tuner_status[valid_tuners[0]].allocation_id_csv.split(',')[0]
+                while True:
+                    connectionId = str(_uuidgen())
+                    if not self._listener_allocations.has_key(connectionId):
+                        break
+                import frontend
+                listen_alloc = frontend.createTunerListenerAllocation(allocation_id, connectionId)
+                retalloc = self.allocateCapacity(listen_alloc)
+                if not retalloc:
+                    raise RuntimeError, "Unable to create a listener for allocation "+allocation_id+" on device "+usesEndpoint.getName()
+                self._listener_allocations[connectionId] = listen_alloc
+            elif len(valid_tuners) > 1:
+                raise RuntimeError, "More than one valid tuner allocation exists on the frontend interfaces device, so the ambiguity cannot be resolved. Please provide the connection id for the desired allocation"
 
         usesPortRef.connectPort(providesPortRef, connectionId)
         ConnectionManager.instance().registerConnection(connectionId, usesEndpoint, providesEndpoint)
@@ -388,6 +451,9 @@ class PortSupplier(object):
                 usesPortRef.disconnectPort(connectionId)
             except:
                 pass
+            if self._listener_allocations.has_key(connectionId):
+                self.deallocateCapacity(self._listener_allocations[connectionId])
+                self._listener_allocations.pop(connectionId)
             if isinstance(providesComponent, PortSupplier):
                 providesComponent._disconnected(connectionId)
             manager.unregisterConnection(connectionId, uses)
@@ -473,7 +539,14 @@ class PropertySet(object):
         else:
             return None
    
-    def api(self, externalPropInfo=None):
+    def api(self, externalPropInfo=None, destfile=None):
+        '''
+            If destfile is None, output is sent to stdout
+        '''
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
         properties = [p for p in self._properties if 'property' in p.kinds or 'configure' in p.kinds or 'execparam' in p.kinds]
         if not properties:
             return
@@ -489,7 +562,7 @@ class PropertySet(object):
             extId, propId = externalPropInfo
             table.enable_header(False)
         else:
-            print "Properties =============="
+            print >>destfile, "Properties =============="
         for prop in properties:
             if externalPropInfo:
                 # Searching for a particular external property
@@ -541,7 +614,10 @@ class PropertySet(object):
                 currentValue = _formatSimple(prop, currentValue,prop.id)
                 table.append(name, '('+scaType+')', str(prop.defValue), currentValue)
 
-        table.write()
+        table.write(f=destfile)
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 
 class PropertyEmitter(PropertySet):
@@ -553,8 +629,11 @@ class PropertyEmitter(PropertySet):
     
     def registerPropertyListener( self, obj, prop_ids=[], interval=1.0):
         self.__log.trace("registerPropertyListener('%s')", str(prop_ids))
+        _obj = obj
+        if hasattr(obj, '_this'):
+            _obj = obj._this()
         if self.ref:
-            return self.ref.registerPropertyListener(obj, prop_ids, interval )
+            return self.ref.registerPropertyListener(_obj, prop_ids, interval )
         return None
 
     def unregisterPropertyListener( self, reg_id ):
@@ -580,8 +659,20 @@ class RogueService(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
+
+    def resetLog(self):
+        self.ref.resetLog()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -605,6 +696,7 @@ class Service(CorbaObject):
         self._prf = prf
         self._impl = impl
         self._instanceName = instanceName
+        self.name = instanceName
         
          # Add mapping of services operations and attributes
         found = False
@@ -649,8 +741,20 @@ class Service(CorbaObject):
         else:
             self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
-        self.ref.setLogLevel( logid, newLogLevel )
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        return self.ref.getLogLevel(logger_id)
+
+    def getNamedLoggers(self):
+        return self.ref.getNamedLoggers()
+
+    def resetLog(self):
+        self.ref.resetLog()
 
     def getLogConfig(self):
         return self.ref.getLogConfig()
@@ -703,9 +807,9 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
         else:
             return 0
 
-    def _set_log_level(self):
+    def _set_log_level(self, value):
         if self.ref:
-            return self.ref._set_log_level()
+            self.ref._set_log_level(value)
         
     def _get_softwareProfile(self):
         if self.ref:
@@ -773,9 +877,30 @@ class Resource(CorbaObject, PortSet, PropertyEmitter):
             if self.ref:
                self.ref._set_log_level( newLogLevel )
 
-    def setLogLevel(self, logid, newLogLevel ):
+    def setLogLevel(self, logid, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
         if self.ref:
-           self.ref.setLogLevel( logid, newLogLevel )
+            self.ref.setLogLevel( logid, _cf_log_lvl )
+
+    def getLogLevel(self, logger_id):
+        if self.ref:
+            return self.ref.getLogLevel(logger_id)
+        else:
+           None
+
+    def getNamedLoggers(self):
+        if self.ref:
+            return self.ref.getNamedLoggers()
+        else:
+           None
+
+    def resetLog(self):
+        if self.ref:
+            self.ref.resetLog()
+        else:
+           None
 
     def getLogConfig(self):
         if self.ref:
@@ -878,10 +1003,15 @@ class Device(Resource):
             if _DEBUG == True:
                 print ("attempted to deallocate a non-existent allocation")
 
-    def api(self):
-        print 'Allocation Properties ======'
+    def api(self, destfile=None):
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
+
+        print >>destfile, 'Allocation Properties ======'
         if not self._allocProps:
-            print 'None'
+            print >>destfile, 'None'
             return
 
         table = TablePrinter('Property Name', '(Data Type)', 'Action')
@@ -894,8 +1024,10 @@ class Device(Resource):
                     structdef = prop
                 for member in structdef.members.itervalues():
                     table.append('  '+member.clean_name, member.type)
-        table.write()
-            
+        table.write(f=destfile)
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
 class LoadableDevice(Device):
     def load(self, fs, fileName, loadKind):
@@ -1112,7 +1244,7 @@ class QueryableBase(object):
                         defValue = _convertType(propType, val)
                     id_clean = _prop_helpers._cleanId(prop)
                     # Add individual property
-                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames, namesp=structProp.get_id())
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
                     if defValue != None:
@@ -1126,7 +1258,7 @@ class QueryableBase(object):
                         defValue = None
                     id_clean = _prop_helpers._cleanId(prop)
                     # Add individual property
-                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames)
+                    id_clean = _prop_helpers.addCleanName(id_clean, prop.get_id(), _displayNames, _duplicateNames, namesp=structProp.get_id())
                     members.append((prop.get_id(), propType, defValue, id_clean))
                     structDefValue[prop.get_id()] = defValue
                     if defValue == None:
@@ -1173,7 +1305,7 @@ class QueryableBase(object):
                         id_clean = _prop_helpers._cleanId(prp)
                         # Add struct member
                         members.append((prp.get_id(), propType, defValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames, namesp=prop.get_id())
                     for prp in prop.get_struct().get_simplesequence():
                         propType = self._getPropType(prp)
                         vals = prp.get_values()
@@ -1184,7 +1316,7 @@ class QueryableBase(object):
                         id_clean = _prop_helpers._cleanId(prp)
                         # Adds struct member
                         members.append((prp.get_id(), propType, defValue, id_clean))
-                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames)
+                        _prop_helpers.addCleanName(id_clean, prp.get_id(), _displayNames, _duplicateNames, namesp=prop.get_id())
                     
                     structSeqDefValue = None
                     structValues = prop.get_structvalue()
@@ -1281,6 +1413,7 @@ class ComponentBase(QueryableBase):
         super(ComponentBase, self).__init__(prf, refid)
         self._spd = spd
         self._scd = scd
+        self.instanceName = instanceName
         self._instanceName = instanceName
         self._impl = impl
         self._pid = pid
@@ -1318,7 +1451,7 @@ class ComponentBase(QueryableBase):
 
         if _DEBUG == True:
             try:
-                self.api()
+                self.api(destfile=_sys.stdout)
             except:
                 pass
             

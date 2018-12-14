@@ -102,11 +102,11 @@ class SADPropertiesTest(scatest.CorbaTestCase):
 
         # Configure all
         props = [pythonProp, cppProp]
-        number_props = 6
+        number_props = 9
         to_find = 2
         if java_support:
             props.append(javaProp)
-            number_props = 7
+            number_props = 10
             to_find = 3
         self._app.configure(props)
         # Make sure all were set
@@ -227,19 +227,8 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [], [])
 
     def test_badCompRef(self):
-        self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
-
-        sadpath = '/waveforms/ExternalProperties/ExternalPropertiesBadCompRef.sad.xml'
-        self._domMgr.installApplication(sadpath)
-        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
-        appFact = self._domMgr._get_applicationFactories()[0]
-
         # Bad compref tag in externalproperties should throw appropriate error
-        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [], [])
-
-        self.assertNotEqual(self._domMgr, None)
-        self.assertNotEqual(self._devMgr, None)
+        self._test_installFail('BadCompRef')
 
     def test_ExternalPropOverride(self):
         self.assertNotEqual(self._domMgr, None)

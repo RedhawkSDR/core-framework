@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:088b939a-41f4-40f3-9539-581bef243b94" name="busycomp_w">
+  <componentfiles>
+    <componentfile id="busycomp_036cf88f-a589-40a9-acdf-1ef662ce0e53" type="SPD">
+      <localfile name="/components/busycomp/busycomp.spd.xml"/>
+    </componentfile>
+    <componentfile id="msg_through_11" type="SPD">
+      <localfile name="/components/msg_through_cpp/msg_through_cpp.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="busycomp_036cf88f-a589-40a9-acdf-1ef662ce0e53"/>
+      <componentinstantiation id="busycomp_1" startorder="0">
+        <usagename>busycomp_1</usagename>
+        <findcomponent>
+          <namingservice name="busycomp_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="busycomp_036cf88f-a589-40a9-acdf-1ef662ce0e53"/>
+      <componentinstantiation id="busycomp_2" startorder="1">
+        <usagename>busycomp_2</usagename>
+        <findcomponent>
+          <namingservice name="busycomp_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="msg_through_11"/>
+      <componentinstantiation id="msg_through_1" startorder="2">
+        <usagename>msg_through_1</usagename>
+        <findcomponent>
+          <namingservice name="msg_through_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="busycomp_1"/>
+  </assemblycontroller>
+</softwareassembly>

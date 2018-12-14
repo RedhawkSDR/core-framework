@@ -129,6 +129,13 @@ class GenericPortGenerator(JavaPortGenerator):
     def loader(self):
         return jinja2.PackageLoader(__package__)
 
+class GenericProvidesPortGenerator(GenericPortGenerator):
+    def _implementation(self):
+        return JavaTemplate('generic.provides.java')
+
+    def _ctorArgs(self, name):
+        return ('this', java.stringLiteral(name))
+
     def operations(self):
         for op in self.idl.operations():
             yield {'name': op.name,
@@ -148,14 +155,6 @@ class GenericPortGenerator(JavaPortGenerator):
                        'arglist': baseType(attr.attrType)+ ' data',
                        'argnames': ('data',),
                        'returns': 'void'}
-        
-
-class GenericProvidesPortGenerator(GenericPortGenerator):
-    def _implementation(self):
-        return JavaTemplate('generic.provides.java')
-
-    def _ctorArgs(self, name):
-        return ('this', java.stringLiteral(name))
 
 class GenericUsesPortGenerator(GenericPortGenerator):
     def _implementation(self):
@@ -163,3 +162,57 @@ class GenericUsesPortGenerator(GenericPortGenerator):
 
     def _ctorArgs(self, name):
         return (java.stringLiteral(name),)
+
+    def hasOut(self):
+        for op in self.idl.operations():
+            for p in op.params:
+                if p.direction == 'out':
+                    return True
+        return False
+
+    def hasInOut(self):
+        for op in self.idl.operations():
+            for p in op.params:
+                if p.direction == 'inout':
+                    return True
+        return False
+
+    def operations(self):
+        for op in self.idl.operations():
+            _out = False
+            for p in op.params:
+                if p.direction == 'out':
+                    _out = True
+                    break
+            _inout = False
+            for p in op.params:
+                if p.direction == 'inout':
+                    _inout = True
+                    break
+            _raises = [baseType(r) for r in op.raises]
+            _raises.append('PortCallError')
+            yield {'name': op.name,
+                   'arglist': ', '.join('%s %s' % (paramType(p), p.name) for p in op.params),
+                   'argnames': [p.name for p in op.params],
+                   'hasout': _out,
+                   'hasinout': _inout,
+                   'throws': ', '.join(_raises),
+                   'defaultval': defaultValue(op.returnType),
+                   'returns': baseType(op.returnType)}
+        for attr in self.idl.attributes():
+            readwrite_attr = False
+            if not attr.readonly:
+                readwrite_attr = True
+            yield {'name': attr.name,
+                   'arglist': '',
+                   'argnames': tuple(),
+                   'readwrite_attr': readwrite_attr,
+                   'throws': 'PortCallError',
+                   'defaultval': defaultValue(attr.attrType),
+                   'returns': baseType(attr.attrType)}
+            if not attr.readonly:
+                yield {'name': attr.name,
+                       'arglist': baseType(attr.attrType)+ ' data',
+                       'throws': 'PortCallError',
+                       'argnames': ('data',),
+                       'returns': 'void'}

@@ -27,6 +27,7 @@
 #include <ossie/prop_helpers.h>
 
 #include "ossie/Properties.h"
+#include "ossie/PropertyMap.h"
 #include "ossie/SoftPkg.h"
 #include "ossie/componentProfile.h"
 
@@ -36,6 +37,8 @@
 
 namespace ossie
 {
+    extern rh_logger::LoggerPtr proputilsLog;
+
     CF::DataType convertPropertyToDataType(const Property* prop);
     CF::DataType convertPropertyRefToDataType(const ComponentProperty* prop);
     CF::DataType convertPropertyRefToDataType(const ComponentProperty& prop);
@@ -73,9 +76,16 @@ namespace ossie
 
     void convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
                                      CF::Properties &cf_props );
+
+    void convertComponentProperties( const ossie::ComponentPropertyList &cp_props,
+                                     redhawk::PropertyMap &cf_props );
     
     std::string retrieveParserErrorLineNumber(std::string message);
 
+    bool structContainsMixedNilValues(const CF::Properties& properties);
+    CF::Properties getPartialStructs(const CF::Properties& properties);
+
+    CF::Properties getAffinityOptions(const ComponentInstantiation::AffinityProperties& affinityProps);
 }
 
 #endif

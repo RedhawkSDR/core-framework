@@ -23,6 +23,7 @@ import ossie.utils.testing
 import os
 from omniORB import any
 from ossie.utils import sb
+from ossie.cf import CF
 
 class ResourceTests(ossie.utils.testing.RHComponentTestCase):
     # setUp is run before every function preceded by "test" is executed
@@ -65,6 +66,10 @@ class ResourceTests(ossie.utils.testing.RHComponentTestCase):
         # Check the that tuner status exists and contains the extra "agc" field
         self.assertEqual(len(self.comp.frontend_tuner_status), 1)
         self.assertTrue('FRONTEND::tuner_status::agc' in self.comp.frontend_tuner_status[0])
+        tuner_alloc = CF.DataType(id='FRONTEND::tuner_allocation', value=any.to_any(None))
+        listen_alloc = CF.DataType(id='FRONTEND::listener_allocation', value=any.to_any(None))
+        self.assertRaises(CF.UnknownProperties, self.comp.query, [tuner_alloc])
+        self.assertRaises(CF.UnknownProperties, self.comp.query, [listen_alloc])
 
 if __name__ == "__main__":
     ossie.utils.testing.main("../basic_fei_device.spd.xml") # By default tests all implementations

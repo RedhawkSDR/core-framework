@@ -22,6 +22,8 @@
 
 #include "reader_base.h"
 
+class OctetPort;
+
 class reader_i : public reader_base
 {
     ENABLE_LOGGING
@@ -32,6 +34,11 @@ class reader_i : public reader_base
         void constructor();
 
         int serviceFunction();
+
+    private:
+        OctetPort* dataOctet_in;
+
+    double get_average_time();
 };
 
 #endif // READER_I_IMPL_H

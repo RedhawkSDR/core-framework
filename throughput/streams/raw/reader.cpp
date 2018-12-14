@@ -33,6 +33,7 @@
 
 #include <omnithread.h>
 
+#include <timing.h>
 #include <threaded_deleter.h>
 
 #include "control.h"
@@ -125,11 +126,24 @@ int main(int argc, const char* argv[])
 
     control* state = open_control(argv[3]);
 
+    size_t total_packets = 0;
+    double total_seconds = 0.0;
+    size_t last_size = 0;
+
     ssize_t count = 0;
     while (true) {
+        double start = get_time();
+
         size_t buffer_size = 0;
         if (read(fd, &buffer_size, sizeof(buffer_size)) < sizeof(buffer_size)) {
             break;
+        }
+
+        if (buffer_size != last_size) {
+            last_size = buffer_size;
+            total_packets = 0;
+            total_seconds = 0.0;
+            state->average_time = 0.0;
         }
 
         char* buffer = new char[buffer_size];
@@ -138,6 +152,11 @@ int main(int argc, const char* argv[])
         if (pass == 0) {
             break;
         }
+        double end = get_time();
+
+        total_packets++;
+        total_seconds += end - start;
+        state->average_time = total_seconds / total_packets;
         state->total_bytes += pass;
     }
 

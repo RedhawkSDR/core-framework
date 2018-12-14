@@ -60,6 +60,10 @@ class Python_Ports_i(Python_Ports_base):
                 self._log.debug(  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) )
                 #print  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) 
                 outPort.pushPacket( p1[0], p1[1], p1[2], p1[3] )
+                return 1
+
+            # No packets processed
+            return 0
 
     def process(self):
         """
@@ -129,30 +133,27 @@ class Python_Ports_i(Python_Ports_base):
             return NORMAL
             
         """
-
-        # TODO fill in your code here
-        self._log.debug("process() example log message")
-
         #LOG_DEBUG(Python_Ports_i, "serviceFunction() example log message");
-
-        self.DoPort( self.port_dataFloatIn, self.port_dataFloatOut, "FLOAT");
-        self.DoPort( self.port_dataDoubleIn, self.port_dataDoubleOut, "DOUBLE");
-        self.DoPort( self.port_dataCharIn, self.port_dataCharOut, "CHAR");
-        self.DoPort( self.port_dataOctetIn, self.port_dataOctetOut, "OCTET");
-        self.DoPort( self.port_dataShortIn, self.port_dataShortOut, "SHORT");
-        self.DoPort( self.port_dataUShortIn, self.port_dataUShortOut, "USHORT");
-        self.DoPort( self.port_dataLongIn, self.port_dataLongOut, "LONG");
-        self.DoPort( self.port_dataULongIn, self.port_dataULongOut, "ULONG");
-        self.DoPort( self.port_dataLongLongIn, self.port_dataLongLongOut, "LONGLONG");
-        self.DoPort( self.port_dataULongLongIn, self.port_dataULongLongOut, "ULONGLONG");
-        self.DoPort( self.port_dataFileIn, self.port_dataFileOut, "URL");
-        self.DoPort( self.port_dataXMLIn, self.port_dataXMLOut, "XML");
+        serviced = 0
+        serviced += self.DoPort( self.port_dataFloatIn, self.port_dataFloatOut, "FLOAT");
+        serviced += self.DoPort( self.port_dataDoubleIn, self.port_dataDoubleOut, "DOUBLE");
+        serviced += self.DoPort( self.port_dataCharIn, self.port_dataCharOut, "CHAR");
+        serviced += self.DoPort( self.port_dataOctetIn, self.port_dataOctetOut, "OCTET");
+        serviced += self.DoPort( self.port_dataShortIn, self.port_dataShortOut, "SHORT");
+        serviced += self.DoPort( self.port_dataUShortIn, self.port_dataUShortOut, "USHORT");
+        serviced += self.DoPort( self.port_dataLongIn, self.port_dataLongOut, "LONG");
+        serviced += self.DoPort( self.port_dataULongIn, self.port_dataULongOut, "ULONG");
+        serviced += self.DoPort( self.port_dataLongLongIn, self.port_dataLongLongOut, "LONGLONG");
+        serviced += self.DoPort( self.port_dataULongLongIn, self.port_dataULongLongOut, "ULONGLONG");
+        serviced += self.DoPort( self.port_dataFileIn, self.port_dataFileOut, "URL");
+        serviced += self.DoPort( self.port_dataXMLIn, self.port_dataXMLOut, "XML");
         
         self._log.debug( "--TestRCV::SVC_FUNC END" )
 
-        time.sleep(.5);
-        return NORMAL
-
+        if serviced > 0:
+            return NORMAL
+        else:
+            return NOOP
 
 
 

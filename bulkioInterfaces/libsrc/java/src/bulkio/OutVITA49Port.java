@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.HashSet;
 import org.ossie.component.QueryableUsesPort;
+import org.ossie.component.RHLogger;
 import org.apache.log4j.Logger;
 import CF.DataType;
 import CF.PropertiesHelper;
@@ -43,7 +44,6 @@ import BULKIO.dataVITA49Operations;
 import BULKIO.VITA49StreamDefinition;
 
 import bulkio.linkStatistics;
-import bulkio.Int8Size;
 import bulkio.connection_descriptor_struct;
 import bulkio.SriMapStruct;
 import bulkio.vita49.VITA49StreamContainer;
@@ -65,8 +65,6 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
      * @generated
      */
     protected VITA49StreamContainer streamContainer;
-
-    protected List<connection_descriptor_struct> filterTable = null;
 
     public OutVITA49Port(String portName ){
 	this( portName, null, null );
@@ -104,6 +102,12 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
 	}
     }
 
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+        this.streamContainer.setLogger(logger.getL4Logger());
+    }
+
     /**
      * pushSRI
      *     description: send out SRI describing the data payload
@@ -132,14 +136,14 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
     public void pushSRI(StreamSRI header, PrecisionUTCTime time) 
     {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort pushSRI  ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort pushSRI  ENTER (port=" + name +")" );
 	}
 
         // Header cannot be null
         if (header == null) {
-	    if ( logger != null ) {
-		logger.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")" );
+	    if ( _portLog != null ) {
+		_portLog.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")" );
 	    }
 	    return;
 	}
@@ -167,16 +171,16 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                         if (ftPtr.port_name.getValue().equals(this.name)) {
                             portListed = true;
                         }
-                        if ( logger != null ) {
-                            logger.trace( "pushSRI - FilterMatch port:" + this.name + " connection:" + p.getKey() +
+                        if ( _portLog != null ) {
+                            _portLog.trace( "pushSRI - FilterMatch port:" + this.name + " connection:" + p.getKey() +
                                             " streamID:" + header.streamID );
                         }
                         if ( (ftPtr.port_name.getValue().equals(this.name)) &&
                              (ftPtr.connection_id.getValue().equals(p.getKey())) &&
                              (ftPtr.stream_id.getValue().equals(header.streamID))) {
                             try {
-                                if ( logger != null ) {
-                                    logger.trace( "pushSRI - FilterMatch port:" + this.name + " connection:" + p.getKey() +
+                                if ( _portLog != null ) {
+                                    _portLog.trace( "pushSRI - FilterMatch port:" + this.name + " connection:" + p.getKey() +
                                                   " streamID:" + header.streamID );
                                 }
                                 p.getValue().pushSRI(header, time);
@@ -185,8 +189,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                                 this.updateStats(p.getKey());
                             } catch(Exception e) {
                                 if (  this.reportConnectionErrors( p.getKey() ) ) {
-                                    if ( logger != null ) {
-                                        logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                    if ( _portLog != null ) {
+                                        _portLog.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
                                     }
                                 }
                             }
@@ -198,8 +202,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 if (!portListed ) {
                     for (Entry<String, dataVITA49Operations> p : this.outConnections.entrySet()) {
                         try {
-                            if ( logger != null ) {
-                                logger.trace( "pushSRI - NO Filter port:" + this.name + " connection:" + p.getKey() +
+                            if ( _portLog != null ) {
+                                _portLog.trace( "pushSRI - NO Filter port:" + this.name + " connection:" + p.getKey() +
                                               " streamID:" + header.streamID );
                             }
                             p.getValue().pushSRI(header, time);
@@ -208,8 +212,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                             this.updateStats(p.getKey());
                         } catch(Exception e) {
                             if (  this.reportConnectionErrors( p.getKey() ) ) {
-                                if ( logger != null ) {
-                                    logger.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
+                                if ( _portLog != null ) {
+                                    _portLog.error("Call to pushSRI failed on port " + name + " connection " + p.getKey() );
                                 }
                             }
                         }
@@ -220,14 +224,14 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
         }    // don't want to process while command information is coming in
 
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort pushSRI  EXIT (port=" + name +")" );
 	}
         return;
     }
 
     public void updateConnectionFilter(List<connection_descriptor_struct> _filterTable) {
-        this.filterTable = _filterTable;
+        super.updateConnectionFilter(_filterTable);
 
         //1. loop over fitlerTable
         //   A. ignore other port names
@@ -254,8 +258,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
             hasPortEntry = true;
             dataVITA49Operations connectedPort = this.outConnections.get(ftPtr.connection_id.getValue());
             if (connectedPort == null){
-	        if ( logger != null ) {
-	            logger.debug("bulkio.OutPort updateConnectionFilter() did not find connected port for connection_id " + ftPtr.connection_id +")" );
+	        if ( _portLog != null ) {
+	            _portLog.debug("bulkio.OutPort updateConnectionFilter() did not find connected port for connection_id " + ftPtr.connection_id +")" );
 	        }
                 continue;
             }
@@ -283,16 +287,16 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 try{
                     foundStream.updateAttachments(entry.getValue().toArray(new VITA49StreamAttachment[0]));
                 }catch (AttachError e){
-	            if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() AttachError on updateAttachments() for streamId " + streamId);
+	            if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() AttachError on updateAttachments() for streamId " + streamId);
                     }
                 }catch (DetachError e){
-	            if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() DetachError on updateAttachments() for streamId " + streamId);
+	            if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() DetachError on updateAttachments() for streamId " + streamId);
                     }
                 }catch (StreamInputError e){
-                    if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() StreamInputError on updateAttachments() for streamId " + streamId);
+                    if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() StreamInputError on updateAttachments() for streamId " + streamId);
 		    }
                 }
             }
@@ -306,16 +310,16 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                     if(stream != null){
                         try{
                             stream.detachAll();
-	                    if ( logger != null ) {
-                                logger.debug("bulkio::OutPort updateConnectionFilter() calling detachAll() for streamId " + entry.getKey());
+	                    if ( _portLog != null ) {
+                                _portLog.debug("bulkio::OutPort updateConnectionFilter() calling detachAll() for streamId " + entry.getKey());
                             }
                         }catch (DetachError e){
-	                    if ( logger != null ) {
-                                logger.error("bulkio::OutPort updateConnectionFilter() DetachError on detachAll() for streamId " + entry.getKey());
+	                    if ( _portLog != null ) {
+                                _portLog.error("bulkio::OutPort updateConnectionFilter() DetachError on detachAll() for streamId " + entry.getKey());
                             }
                         }catch (StreamInputError e){
-                            if ( logger != null ) {
-                                logger.error("bulkio::OutPort updateConnectionFilter() StreamInputError on detachAll() for streamId " + entry.getKey());
+                            if ( _portLog != null ) {
+                                _portLog.error("bulkio::OutPort updateConnectionFilter() StreamInputError on detachAll() for streamId " + entry.getKey());
 		            }
                         }
                     }
@@ -326,20 +330,20 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
             for (Entry<String, dataVITA49Operations> p : this.outConnections.entrySet()) {
                 try{
                     this.streamContainer.addConnectionToAllStreams(p.getKey(),p.getValue());
-	            if ( logger != null ) {
-                        logger.debug("bulkio::OutPort updateConnectionFilter() calling addConnectionToAllStreams for connection " + p.getKey());
+	            if ( _portLog != null ) {
+                        _portLog.debug("bulkio::OutPort updateConnectionFilter() calling addConnectionToAllStreams for connection " + p.getKey());
                     }
                 }catch (AttachError e){
-	            if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() AttachError on updateAttachments() for all streams");
+	            if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() AttachError on updateAttachments() for all streams");
                     }
                 }catch (DetachError e){
-	            if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() DetachError on updateAttachments() for all streams");
+	            if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() DetachError on updateAttachments() for all streams");
                     }
                 }catch (StreamInputError e){
-                    if ( logger != null ) {
-                        logger.error("bulkio::OutPort updateConnectionFilter() StreamInputError on updateAttachments() for all streams");
+                    if ( _portLog != null ) {
+                        _portLog.error("bulkio::OutPort updateConnectionFilter() StreamInputError on updateAttachments() for all streams");
 		    }
                 }
             }
@@ -360,7 +364,6 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
         String streamId;
         Set<String> streamConnIds = new HashSet<String>(); 
         Set<String> currentSRIConnIds = new HashSet<String>();
-        Iterator connIdIter;
 
         // Iterate through all registered streams
         for (VITA49Stream s: this.streamContainer.getStreams()){
@@ -381,8 +384,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                         // Grab the port
                         dataVITA49Operations connectedPort = this.outConnections.get(connId);
                         if (connectedPort == null) {
-		            if ( logger != null ) {
-                                logger.debug("updateSRIForAllConnections() Unable to find connected port with connectionId: " + connId);
+		            if ( _portLog != null ) {
+                                _portLog.debug("updateSRIForAllConnections() Unable to find connected port with connectionId: " + connId);
                             }
                             continue;
                         }
@@ -401,8 +404,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
     public void connectPort(final org.omg.CORBA.Object connection, final String connectionId) throws CF.PortPackage.InvalidPort, CF.PortPackage.OccupiedPort
     {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort connectPort ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort connectPort ENTER (port=" + name +")" );
 	}
 
         synchronized (this.updatingPortsLock) {
@@ -410,14 +413,14 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
             try {
                 port = BULKIO.jni.dataVITA49Helper.narrow(connection);
             } catch (final Exception ex) {
-		if ( logger != null ) {
-		    logger.error("bulkio::OutPort CONNECT PORT: " + name + " PORT NARROW FAILED");
+		if ( _portLog != null ) {
+		    _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " PORT NARROW FAILED");
 		}
                 throw new CF.PortPackage.InvalidPort((short)1, "Invalid port for connection '" + connectionId + "'");
             }
             this.outConnections.put(connectionId, port);
             this.active = true;
-            this.stats.put(connectionId, new linkStatistics( this.name, new Int8Size() ) );
+            this.stats.put(connectionId, new linkStatistics(this.name, 1));
 
             boolean portListed = false;
 
@@ -431,16 +434,16 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                     try{
                         this.streamContainer.addConnectionToStream(connectionId, port,ftPtr.stream_id.getValue());
                     }catch (AttachError e){
-		        if ( logger != null ) {
-		            logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() AttachError for connectionId " + connectionId);
+		        if ( _portLog != null ) {
+		            _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() AttachError for connectionId " + connectionId);
 		        }
                     }catch (DetachError e){
-		        if ( logger != null ) {
-		            logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() DetachError for connectionId " + connectionId);
+		        if ( _portLog != null ) {
+		            _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() DetachError for connectionId " + connectionId);
 		        }
                     }catch (StreamInputError e){
-		        if ( logger != null ) {
-		            logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() StreamInputError for connectionId " + connectionId);
+		        if ( _portLog != null ) {
+		            _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToStream() StreamInputError for connectionId " + connectionId);
 		        }
                     }
                 }
@@ -449,22 +452,22 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 try{
                     this.streamContainer.addConnectionToAllStreams(connectionId,port);
                 }catch (AttachError e){
-	            if ( logger != null ) {
-		        logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() AttachError for connectionId " + connectionId);
+	            if ( _portLog != null ) {
+		        _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() AttachError for connectionId " + connectionId);
 		    }
                 }catch (DetachError e){
-		    if ( logger != null ) {
-		        logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() DetachError for connectionId " + connectionId);
+		    if ( _portLog != null ) {
+		        _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() DetachError for connectionId " + connectionId);
 	            }
                 }catch (StreamInputError e){
-	            if ( logger != null ) {
-	                logger.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() StreamInputError for connectionId " + connectionId);
+	            if ( _portLog != null ) {
+	                _portLog.error("bulkio::OutPort CONNECT PORT: " + name + " addConnectionToAllStreams() StreamInputError for connectionId " + connectionId);
 	            }
                 }
             }
 
-	    if ( logger != null ) {
-		logger.debug("bulkio::OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
+	    if ( _portLog != null ) {
+		_portLog.debug("bulkio::OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
 	    }
         }
         this.streamContainer.printState("After connectPort");
@@ -476,8 +479,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
      */
     public void disconnectPort(String connectionId) {
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")" );
 	}
         synchronized (this.updatingPortsLock) {
             try {
@@ -492,8 +495,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
             this.stats.remove(connectionId);
             this.active = (this.outConnections.size() != 0);
 
-	    if ( logger != null ) {
-		logger.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
+	    if ( _portLog != null ) {
+		_portLog.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
 	    }
 
             // Remove connectionId from any sets in the currentSRIs.connections values
@@ -501,10 +504,10 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 entry.getValue().connections.remove(connectionId);
             }
 
-            if ( logger != null ) {
-                logger.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
+            if ( _portLog != null ) {
+                _portLog.trace("bulkio.OutPort DISCONNECT PORT:" + name + " CONNECTION '" + connectionId + "'");
                 for(Map.Entry<String, SriMapStruct > entry: this.currentSRIs.entrySet()) {
-                    logger.trace("bulkio.OutPort updated currentSRIs key=" + entry.getKey() + ", value.sri=" + entry.getValue().sri + ", value.connections=" + entry.getValue().connections);
+                    _portLog.trace("bulkio.OutPort updated currentSRIs key=" + entry.getKey() + ", value.sri=" + entry.getValue().sri + ", value.connections=" + entry.getValue().connections);
                 }
             }
         }
@@ -513,8 +516,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
 	    callback.disconnect(connectionId);
 	}
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort disconnectPort EXIT (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort disconnectPort EXIT (port=" + name +")" );
 	}
 
     }
@@ -622,8 +625,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
      */
     public boolean addStream(final BULKIO.VITA49StreamDefinition streamDef) throws AttachError, StreamInputError, DetachError
     {
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort addStream ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort addStream ENTER (port=" + name +")" );
 	}
 
         String attachId = null;
@@ -673,11 +676,11 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
         }
 
         String[] attachIds = stream.getAttachIds();
-	if ( logger != null ) {
+	if ( _portLog != null ) {
             for(String str: attachIds){ 
-	        logger.trace("VITA49 PORT: addStream() ATTACHMENT COMPLETED ATTACH ID:" + str + " NAME(userid):" + stream.getName() );
+	        _portLog.trace("VITA49 PORT: addStream() ATTACHMENT COMPLETED ATTACH ID:" + str + " NAME(userid):" + stream.getName() );
             }
-	    logger.trace("bulkio.OutPort addStream() EXIT (port=" + name +")" );
+	    _portLog.trace("bulkio.OutPort addStream() EXIT (port=" + name +")" );
 	}
         this.streamContainer.printState("After addStream");
         return true;
@@ -697,8 +700,8 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
      */
     public void detach(String attachId, String connectionId) throws DetachError, StreamInputError
     {
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
 
         synchronized (this.updatingPortsLock) {
@@ -713,24 +716,24 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 this.streamContainer.detach();
             }
         }
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
         this.streamContainer.printState("After detach");
     }
 
     public void detach(String attachId) throws DetachError, StreamInputError
     {
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
 
         if(attachId != null){
             this.streamContainer.detachByAttachId(attachId);
         }
 
-	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
+	if ( _portLog != null ) {
+	    _portLog.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
         this.streamContainer.printState("After detach");
     }

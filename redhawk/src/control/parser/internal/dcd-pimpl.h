@@ -28,9 +28,12 @@
 #define CXX___XML_XSD_DCD_PIMPL_H
 
 #include "dcd-pskel.h"
+#include <ossie/logging/rh_logger.h>
 
 namespace dcd
 {
+  extern rh_logger::LoggerPtr parserLog;
+
   class deviceconfiguration_pimpl: public deviceconfiguration_pskel
   {
     public:
@@ -47,7 +50,7 @@ namespace dcd
     componentfiles (const ::std::vector<ossie::ComponentFile>&);
 
     virtual void
-    partitioning (const ::std::vector<ossie::ComponentPlacement>&);
+    partitioning (const ::std::vector<ossie::DevicePlacement>&);
 
     virtual void
     domainmanager (const ::std::string&);
@@ -148,13 +151,13 @@ namespace dcd
     pre ();
 
     virtual void
-    componentplacement (const ::ossie::ComponentPlacement&);
+    componentplacement (const ::ossie::DevicePlacement&);
 
-    virtual ::std::vector<ossie::ComponentPlacement>
+    virtual ::std::vector<ossie::DevicePlacement>
     post_partitioning ();
 
     private:
-    std::vector<ossie::ComponentPlacement> componentPlacements;
+    std::vector<ossie::DevicePlacement> componentPlacements;
   };
 
   class componentplacement_pimpl: public virtual componentplacement_pskel
@@ -178,12 +181,12 @@ namespace dcd
     virtual void
     componentinstantiation (const ::ossie::ComponentInstantiation&);
 
-    virtual const ::ossie::ComponentPlacement&
+    virtual const ::ossie::DevicePlacement&
     post_componentplacement ();
 
     private:
-    //std::auto_ptr<ossie::ComponentPlacement> componentPlacement;
-    ossie::ComponentPlacement componentPlacement;
+    //std::auto_ptr<ossie::DevicePlacement> componentPlacement;
+    ossie::DevicePlacement componentPlacement;
   };
 
   class componentfileref_pimpl: public virtual componentfileref_pskel
@@ -266,10 +269,16 @@ namespace dcd
     id (const ::std::string&);
 
     virtual void
+    startorder (const ::std::string&);
+
+    virtual void
       affinity (const ossie::ComponentInstantiation::AffinityProperties& );
 
     virtual void
       loggingconfig (const ossie::ComponentInstantiation::LoggingConfig& );
+
+    virtual void
+      deployerrequires (const ossie::ComponentPropertyList& );
 
     virtual const ::ossie::ComponentInstantiation&
     post_componentinstantiation ();
@@ -317,6 +326,24 @@ namespace dcd
     private:
     ossie::ComponentInstantiation::LoggingConfig  info;
   };
+
+
+  class deployerrequires_pimpl: public virtual deployerrequires_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    requires (const ossie::IdValue &);
+
+    virtual const ossie::ComponentPropertyList&
+    post_deployerrequires ();
+
+    private:
+    ossie::ComponentPropertyList deployerrequires;
+  };
+
 
 
   class componentproperties_pimpl: public virtual componentproperties_pskel
@@ -378,6 +405,27 @@ namespace dcd
     private:
     std::pair<std::string, std::string> info;
   };
+
+
+  class idvalue_pimpl: public virtual idvalue_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    id (const ::std::string&);
+
+    virtual void
+    value (const ::std::string&);
+
+    virtual const ossie::IdValue&
+    post_idvalue ();
+
+    private:
+    ossie::IdValue simple;
+  };
+
 
   class simpleref_pimpl: public virtual simpleref_pskel
   {

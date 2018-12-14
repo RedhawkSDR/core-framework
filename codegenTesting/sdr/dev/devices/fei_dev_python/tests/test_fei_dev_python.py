@@ -113,7 +113,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         retval = port.ref.getTunerEnable('hello')
         self.assertEquals(retval, True)
         sample_rate = port.ref.getTunerOutputSampleRate('hello')
-        self.assertEquals(sample_rate, 1)
+        self.assertEquals(sample_rate, 0.0)
         port.ref.setTunerOutputSampleRate('hello',5)
         sample_rate = port.ref.getTunerOutputSampleRate('hello')
         self.assertEquals(sample_rate, 5)

@@ -35,28 +35,25 @@ log = logging.getLogger(__name__)
 
 class EventChannel(CosEventChannelAdmin__POA.EventChannel):
     class ProxyPushConsumer(CosEventChannelAdmin__POA.ProxyPushConsumer):
-        __slots__ = ('_channel', '_admin', '_supplier', '_connected')
+        __slots__ = ('_channel', '_admin', '_supplier')
 
         def __init__(self, channel, admin):
             self._channel = channel
             self._admin = admin
             self._supplier = None
-            self._connected = False
 
         def push(self, data):
-            if not self._connected:
-                raise CosEventComm.Disconnected
             self._channel.push(data)
 
         def connect_push_supplier(self, supplier):
-            if self._connected:
+            if self._supplier:
                 raise CosEventChannelAdmin.AlreadyConnected
             self._channel.supplierConnected(supplier)
-            self._connected = True
             self._supplier = supplier
 
         def disconnect_push_consumer(self):
-            self._channel.supplierDisconnected(self._supplier)
+            if self._supplier:
+                self._channel.supplierDisconnected(self._supplier)
             self._admin.remove_consumer(self)
 
         def destroy(self):

@@ -29,26 +29,15 @@
 
 #include <BULKIO/bio_runtimeStats.h>
 
-#include "UsesPort.h"
+#include <ossie/ExecutorService.h>
+#include <ossie/UsesPort.h>
+
 #include "BurstStatistics.h"
 #include "PortTraits.h"
-#include "ExecutorService.h"
 #include "utils.h"
 #include "debug.h"
 
 namespace burstio {
-
-    struct PortStatus
-    {
-        PortStatus(const std::string& name, size_t bitsPerElement):
-            stats(name, bitsPerElement),
-            alive(true)
-        {
-        }
-
-        SenderStatistics stats;
-        bool alive;
-    };
 
     enum RoutingModeType {
         ROUTE_ALL_INTERLEAVED,
@@ -67,15 +56,14 @@ namespace burstio {
         virtual void flush () = 0;
     };
 
-    template <class Traits>
-    class OutPort : public UsesPort<typename Traits::PortType, PortStatus>,
-                    public virtual POA_BULKIO::UsesPortStatisticsProvider
-    {
-        ENABLE_INSTANCE_LOGGING;
+    template <typename Traits>
+    class BurstTransport;
 
+    template <class Traits>
+    class OutPort : public redhawk::UsesPort, public virtual POA_BULKIO::UsesPortStatisticsProvider
+    {
     public:
-        typedef UsesPort<typename Traits::PortType, PortStatus> super;
-		typedef typename Traits::PortType PortType;
+        typedef typename Traits::PortType PortType;
         typedef typename Traits::BurstType BurstType;
         typedef typename Traits::BurstSequenceType BurstSequenceType;
         typedef typename Traits::ElementType ElementType;
@@ -87,8 +75,6 @@ namespace burstio {
 
         OutPort(std::string port_name);
         ~OutPort();
-
-        void setLogger (LoggerPtr logger);
 
         // Sets how streams are routed to connections:
         //   ROUTE_ALL_INTERLEAVED    - All connections receive all streams;
@@ -190,7 +176,7 @@ namespace burstio {
         // Support function for automatic component-managed stop.
         virtual void stopPort ();
 
-		std::string getRepid() const;
+        std::string getRepid() const;
 
     protected:
         class Queue : public OutputPolicy
@@ -229,7 +215,7 @@ namespace burstio {
             void sendBursts_ ();
 
             OutPort<Traits>* port_;
-            LoggerPtr& __logger;
+            LoggerPtr& logger;
 
             mutable boost::mutex mutex_;
 
@@ -244,17 +230,20 @@ namespace burstio {
             std::string streamID_;
         };
 
+        class CorbaTransport;
+        class LocalTransport;
+
         friend class Queue;
 
-        typedef typename super::ConnectionMap ConnectionMap;
-        typedef typename super::Connection Connection;
+        typedef BurstTransport<Traits> TransportType;
+        typedef redhawk::UsesPort::TransportIteratorAdapter<TransportType> TransportIterator;
 
         typedef std::map<std::string,Queue*> QueueMap;
 
         typedef std::map<std::string,std::set<std::string> > RouteTable;
 
         void sendBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID);
-        void partitionBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection);
+        // void partitionBursts (const BurstSequenceType& bursts, boost::system_time startTime, float queueDepth, const std::string& streamID, const Connection& connection);
 
         void scheduleCheck (boost::system_time when);
         void checkQueues ();
@@ -262,8 +251,7 @@ namespace burstio {
         void queueBurst (SequenceType& data, const BURSTIO::BurstSRI& sri,
                          const BULKIO::PrecisionUTCTime& timestamp, bool eos, bool isComplex);
 
-        virtual void connectionAdded (const std::string& connectionId, Connection& connection);
-        virtual void connectionModified (const std::string& connectionId, Connection& connection);
+        virtual redhawk::UsesTransport* _createTransport(CORBA::Object_ptr object, const std::string& connectionId);
 
         const Queue& getQueueForStream (const std::string& streamID) const;
         Queue& getQueueForStream (const std::string& streamID);
@@ -277,10 +265,7 @@ namespace burstio {
         RoutingModeType routingMode_;
         RouteTable routes_;
 
-        ExecutorService monitor_;
-
-        using super::updatingPortsLock;
-        using super::connections_;
+        redhawk::ExecutorService monitor_;
     };
 
     typedef OutPort<ByteTraits>      BurstByteOut;

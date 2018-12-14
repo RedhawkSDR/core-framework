@@ -102,10 +102,16 @@ class EC_PropertyChangeListener  implements PCL_Listener {
     public int  notify( PropertyChangeRec prec, DataType[]  props) {
         
         String uuid = UUID.randomUUID().toString();
+        long tmp_time = System.currentTimeMillis();
+        CF.UTCTime _time = new CF.UTCTime();
+        _time.tcstatus = 1;
+        _time.twsec = tmp_time /1000;
+        _time.tfsec = (tmp_time % 1000)/1000.0;
         PropertyChangeEvent evt = new PropertyChangeEvent( uuid,
                                                            prec.regId,
                                                            prec.rscId,
-                                                           props);
+                                                           props,
+                                                           _time);
 
         final Any any = ORB.init().create_any();
         PropertyChangeEventHelper.insert( any, evt);
@@ -142,10 +148,16 @@ class INF_PropertyChangeListener implements PCL_Listener {
     public int  notify( PropertyChangeRec prec, DataType[]  props) {
 
         String uuid = UUID.randomUUID().toString();
+        long tmp_time = System.currentTimeMillis();
+        CF.UTCTime _time = new CF.UTCTime();
+        _time.tcstatus = 1;
+        _time.twsec = tmp_time /1000;
+        _time.tfsec = (tmp_time % 1000)/1000.0;
         PropertyChangeEvent evt = new PropertyChangeEvent( uuid,
                                                            prec.regId,
                                                            prec.rscId,
-                                                           props);
+                                                           props,
+                                                           _time);
 
         int retval=0;
         try {

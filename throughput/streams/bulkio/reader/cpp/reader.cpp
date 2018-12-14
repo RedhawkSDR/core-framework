@@ -26,7 +26,51 @@
 
 **************************************************************************/
 
+#include <timing.h>
+
 #include "reader.h"
+
+class OctetPort : public bulkio::InOctetPort
+{
+public:
+    OctetPort(const std::string& name) :
+        bulkio::InOctetPort(name),
+        lastPacketSize(0),
+        packetCount(0),
+        totalTime(0.0),
+        averageTime(0.0)
+    {
+    }
+
+    virtual void pushPacket(const CF::OctetSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+    {
+        double start = get_time();
+        bulkio::InOctetPort::pushPacket(data, T, EOS, streamID);
+        double end = get_time();
+
+        if (lastPacketSize != data.length()) {
+            lastPacketSize = data.length();
+            packetCount = 1;
+            totalTime = end - start;
+            averageTime = totalTime;
+        } else {
+            packetCount++;
+            totalTime += end - start;
+            averageTime = totalTime / packetCount;
+        }
+    }
+
+    double getAverageTime()
+    {
+        return averageTime;
+    }
+
+private:
+    size_t lastPacketSize;
+    size_t packetCount;
+    double totalTime;
+    double averageTime;
+};
 
 PREPARE_LOGGING(reader_i)
 
@@ -34,11 +78,13 @@ reader_i::reader_i(const char *uuid, const char *label) :
     reader_base(uuid, label)
 {
     // Avoid placing constructor code here. Instead, use the "constructor" function.
-
+    dataOctet_in = new OctetPort("dataOctet_in");
+    addPort("dataOctet_in", dataOctet_in);
 }
 
 reader_i::~reader_i()
 {
+    delete dataOctet_in;
 }
 
 void reader_i::constructor()
@@ -46,6 +92,12 @@ void reader_i::constructor()
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
+    setPropertyQueryImpl(average_time, this, &reader_i::get_average_time);
+}
+
+double reader_i::get_average_time()
+{
+    return dataOctet_in->getAverageTime();
 }
 
 /***********************************************************************************************

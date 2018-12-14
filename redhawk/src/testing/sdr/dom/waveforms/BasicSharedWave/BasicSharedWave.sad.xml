@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:f4e19632-db57-4d77-b535-81bc5ea78ac7" name="BasicSharedWave">
+  <componentfiles>
+    <componentfile id="BasicShared_355a3ae7-b40e-4e93-b896-7ed48769471e" type="SPD">
+      <localfile name="/components/BasicShared/BasicShared.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="BasicShared_355a3ae7-b40e-4e93-b896-7ed48769471e"/>
+      <componentinstantiation id="BasicShared_1" startorder="0">
+        <usagename>BasicShared_1</usagename>
+        <findcomponent>
+          <namingservice name="BasicShared_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="BasicShared_355a3ae7-b40e-4e93-b896-7ed48769471e"/>
+      <componentinstantiation id="BasicShared_2" startorder="1">
+        <usagename>BasicShared_2</usagename>
+        <findcomponent>
+          <namingservice name="BasicShared_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="BasicShared_1"/>
+  </assemblycontroller>
+</softwareassembly>

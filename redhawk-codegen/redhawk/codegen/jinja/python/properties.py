@@ -47,6 +47,12 @@ class PythonPropertyMapper(PropertyMapper):
             pyprop['value'] = simple.value()
         return pyprop
 
+    def mapEnumeration(self, prop, label, value):
+        pyenum = {}
+        pyenum['pylabel'] = python.identifier(label)
+        pyenum['pyvalue'] = python.literal(value, prop.type(), prop.isComplex())
+        return pyenum
+
     def mapSimpleSequenceProperty(self, simplesequence):
         pyprop = self.mapProperty(simplesequence)
         pyprop['isComplex'] = simplesequence.isComplex()

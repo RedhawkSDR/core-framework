@@ -34,19 +34,24 @@ public:
     /*
      * Return a pointer to the Application that the Resource is deployed on 
      */
-    redhawk::ApplicationContainer* getApplication() {
-        return this->_app;
-    }
+    redhawk::ApplicationContainer* getApplication();
+
     /*
      * Return the network information that was allocated to this Component (if applicable)
      */
-    redhawk::NetworkContainer* getNetwork() {
-        return this->_net;
-    }
-private:
-    redhawk::ApplicationContainer *_app;
-    redhawk::NetworkContainer *_net;
+    redhawk::NetworkContainer* getNetwork();
 
+protected:
+    virtual void setCommandLineProperty(const std::string& id, const redhawk::Value& value);
+
+    void setApplication(CF::Application_ptr application);
+
+    // Give Resource_impl friend access so it can call setApplication
+    friend class Resource_impl;
+
+private:
+    boost::scoped_ptr<redhawk::ApplicationContainer> _app;
+    boost::scoped_ptr<redhawk::NetworkContainer> _net;
 };
 
 #endif	/* COMPONENT_H */

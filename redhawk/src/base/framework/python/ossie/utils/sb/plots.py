@@ -18,12 +18,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import logging
 import threading
 import time
 import struct
+import warnings
 
 from omniORB.any import from_any
+
+from ossie.utils.log4py import logging
 
 def _deferred_imports():
     # Importing PyQt4 and matplotlib may take a long time--more than a second
@@ -39,7 +41,8 @@ def _deferred_imports():
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         import numpy
 
-        from bulkio.bulkioInterfaces import BULKIO__POA
+        import bulkio
+        from bulkio.bulkioInterfaces import BULKIO
 
         # Rebind the function to do nothing in future calls
         def _deferred_imports():
@@ -53,106 +56,40 @@ def _deferred_imports():
         else:
             raise RuntimeError("Missing required package for sandbox plots: '%s'" % e)
 
-from ossie.utils.bulkio import bulkio_data_helpers, bulkio_helpers
 from ossie.utils.model import PortSupplier
 from ossie.utils.model.connect import PortEndpoint
 from ossie.utils.sb import domainless
 
-from io_helpers import helperBase
+from ossie.utils.sandbox.helper import ThreadedSandboxHelper, ThreadStatus
 
 __all__ = ('LinePlot', 'LinePSD', 'RasterPlot', 'RasterPSD', 'XYPlot')
 
 log = logging.getLogger(__name__)
 
-class PlotSink(bulkio_data_helpers.ArraySink):
-    """
-    Helper sink subclass that discards data when it is not started, so that
-    plots do not increase memory use unbounded if they are not running.
-
-    Supports automatic conversion of complex data, and allows the user to
-    force complex behavior regardless of SRI mode.
-    """
-    def __init__(self, porttype):
-        super(PlotSink,self).__init__(porttype)
-        self._started = False
-        self._forceComplex = False
-        self._sriChanged = False
-
-    def start(self):
-        self._started = True
-        super(PlotSink,self).start()
-
-    def stop(self):
-        super(PlotSink,self).stop()
-        self._started = False
-        self.data = []
-
-    def pushPacket(self, data, ts, EOS, stream_id):
-        if not self._started:
-            return
-        super(PlotSink,self).pushPacket(data, ts, EOS, stream_id)
-
-    def pushSRI(self, H):
-        # Turn the keywords into a dictionary for easy lookup
-        H.keywords = dict((dt.id, from_any(dt.value)) for dt in H.keywords)
-        super(PlotSink,self).pushSRI(H)
-        self._sriChanged = True
-
-    def sriChanged(self):
-        changed = self._sriChanged
-        self._sriChanged = False
-        return changed
-
-    def retrieveData(self, length):
-        data, times = super(PlotSink,self).retrieveData(length)
-        if self.sri.mode or self._forceComplex:
-            data2, times2 = super(PlotSink,self).retrieveData(length)
-            data = bulkio_helpers.bulkioComplexToPythonComplexList(data + data2)
-            times.extend(times2)
-        return data, times
-
-class CharSink(PlotSink):
-    def __init__(self):
-        super(CharSink,self).__init__(BULKIO__POA.dataChar)
-
-    def pushPacket(self, data, ts, EOS, stream_id):
-        data = struct.unpack('%db' % len(data), data)
-        super(CharSink,self).pushPacket(data, ts, EOS, stream_id)
-
-
-class OctetSink(PlotSink):
-    def __init__(self):
-        super(OctetSink,self).__init__(BULKIO__POA.dataOctet)
-
-    def pushPacket(self, data, ts, EOS, stream_id):
-        data = struct.unpack('%dB' % len(data), data)
-        super(OctetSink,self).pushPacket(data, ts, EOS, stream_id)
-
-
-class PlotBase(helperBase, PortSupplier):
+class PlotBase(ThreadedSandboxHelper):
     """
     Abstract base class for all matplotlib-based plots. Manages the provides
     port dictionary, the matplotlib figure, and the plot update thread.
     """
     def __init__(self):
         _deferred_imports()
-        helperBase.__init__(self)
-        PortSupplier.__init__(self)
+        ThreadedSandboxHelper.__init__(self)
+
+        # Use 1/10th of a second for sleeping when there are no updates
+        self.setThreadDelay(0.1)
 
         # Create provides port dictionary.
-        self._providesPortDict = {}
-        for interface in ('Char', 'Short', 'Long', 'Float', 'Ulong',
-                          'Double', 'LongLong', 'Octet', 'UlongLong',
-                          'Ushort'):
-            name = '%sIn' % interface.lower()
-            self._providesPortDict[name] = {
-                'Port Interface': 'IDL:BULKIO/data%s:1.0' % interface,
-                'Port Name': name
-                }
-
-        self.breakBlock = False
-        self._thread = None
-        self._started = domainless._getSandbox()._get_started()
+        self._addProvidesPort('charIn', 'IDL:BULKIO/dataChar:1.0', bulkio.InCharPort)
+        self._addProvidesPort('octetIn', 'IDL:BULKIO/dataOctet:1.0', bulkio.InOctetPort)
+        self._addProvidesPort('shortIn', 'IDL:BULKIO/dataShort:1.0', bulkio.InShortPort)
+        self._addProvidesPort('ushortIn', 'IDL:BULKIO/dataUshort:1.0', bulkio.InUShortPort)
+        self._addProvidesPort('longIn', 'IDL:BULKIO/dataLong:1.0', bulkio.InLongPort)
+        self._addProvidesPort('ulongIn', 'IDL:BULKIO/dataUlong:1.0', bulkio.InULongPort)
+        self._addProvidesPort('longlongIn', 'IDL:BULKIO/dataLongLong:1.0', bulkio.InLongLongPort)
+        self._addProvidesPort('ulonglongIn', 'IDL:BULKIO/dataUlongLong:1.0', bulkio.InULongLongPort)
+        self._addProvidesPort('floatIn', 'IDL:BULKIO/dataFloat:1.0', bulkio.InFloatPort)
+        self._addProvidesPort('doubleIn', 'IDL:BULKIO/dataDouble:1.0', bulkio.InDoublePort)
+        self._addProvidesPort('bitIn', 'IDL:BULKIO/dataBit:1.0', bulkio.InBitPort)
 
         # Create a new figure and axes.
         self._figure = pyplot.figure()
@@ -162,6 +99,7 @@ class PlotBase(helperBase, PortSupplier):
 
         # Let subclasses set up the axes.
         self._configureAxes()
+        self._updateAxes()
 
         # Matplotlib 0.99 does not give an easy way to listen for window close
         # events; as a result, we have to get the underlying backend-specific
@@ -183,19 +121,13 @@ class PlotBase(helperBase, PortSupplier):
         lock = threading.Lock()
         oldDraw = self._canvas.draw
         def draw():
-            lock.acquire()
-            try:
+            with lock:
                 oldDraw()
-            finally:
-                lock.release()
         self._canvas.draw = draw
         oldPaint = self._canvas.paintEvent
         def paintEvent(e):
-            lock.acquire()
-            try:
+            with lock:
                 oldPaint(e)
-            finally:
-                lock.release()
         self._canvas.paintEvent = paintEvent
         self._renderLock = lock
 
@@ -204,22 +136,6 @@ class PlotBase(helperBase, PortSupplier):
             if manager.num == self._figure.number:
                 return manager.window
         return None
-
-    def _createSink(self, interface):
-        # Create the type-specific sink servant.
-        interface = interface.split(':')[1]
-        namespace, interface = interface.split('/')
-        if interface == 'dataChar':
-            sink = CharSink()
-        elif interface == 'dataOctet':
-            sink = OctetSink()
-        else:
-            skeleton = getattr(BULKIO__POA, interface)
-            sink = PlotSink(skeleton)
-        if self._thread:
-            # Plot is started; start sink.
-            sink.start()
-        return sink
 
     def _redraw(self):
         """
@@ -239,41 +155,17 @@ class PlotBase(helperBase, PortSupplier):
         finally:
             self._renderLock.release()
 
-    def _run(self):
+    def _threadFunc(self):
         """
         Main method for plot update thread; do not call directly.
         """
-        while not self.breakBlock:
-            # Continually update the plot, unless there is nothing to do (i.e.,
-            # not connected to a data source).
-            if self._update():
-                self._redraw()
-            else:
-                time.sleep(0.1)
-
-    def start(self):
-        """
-        Start the plot, if it is not already started. The plot will continually
-        read input data and refresh the display until it is stopped.
-        """
-        self.breakBlock = False
-        self._started = True
-        if self._thread:
-            return
-        self._thread = threading.Thread(target=self._run)
-        self._thread.setDaemon(True)
-        self._thread.start()
-
-    def stop(self):
-        """
-        Stop the plot. The plot will discontinue reading input data and updating
-        the display.
-        """
-        self.breakBlock = True
-        self._started = False
-        if self._thread:
-            self._thread.join()
-            self._thread = None
+        # Update the plot, unless there is nothing to do (i.e., not connected
+        # to a data source).
+        if self._update():
+            self._redraw()
+            return ThreadStatus.NORMAL
+        else:
+            return ThreadStatus.NOOP
 
     def close(self):
         """
@@ -293,6 +185,45 @@ class PlotBase(helperBase, PortSupplier):
         super(PlotBase,self).releaseObject()
         self.close()
 
+    def _getUnitLabel(self, units):
+        return {
+            BULKIO.UNITS_NONE:         '',
+            BULKIO.UNITS_TIME:         'Time (sec)', 
+            BULKIO.UNITS_DELAY:        'Delay (sec)',
+            BULKIO.UNITS_FREQUENCY:    'Frequency (Hz)',
+            BULKIO.UNITS_TIMECODE:     'Time code format',
+            BULKIO.UNITS_DISTANCE:     'Distance (m)',
+            BULKIO.UNITS_VELOCITY:     'Velocity (m/sec)',
+            BULKIO.UNITS_ACCELERATION: 'Acceleration (m/sec^2)',
+            BULKIO.UNITS_JERK:         'Jerk (m/sec^3)',
+            BULKIO.UNITS_DOPPLER:      'Doppler (Hz)',
+            BULKIO.UNITS_DOPPLERRATE:  'Doppler rate (Hz/sec)',
+            BULKIO.UNITS_ENERGY:       'Energy (J)',
+            BULKIO.UNITS_POWER:        'Power (W)',
+            BULKIO.UNITS_MASS:         'Mass (g)'
+        }.get(units, '')
+
+    def _getXLabel(self):
+        return self._getUnitLabel(self._getXUnits())
+
+    def _getXUnits(self):
+        return BULKIO.UNITS_NONE
+
+    def _getYLabel(self):
+        return self._getUnitLabel(self._getYUnits())
+
+    def _getYUnits(self):
+        return BULKIO.UNITS_NONE
+
+    def _configureAxes(self):
+        pass
+
+    def _updateAxes(self):
+        xlabel = self._getXLabel()
+        self._plot.xaxis.set_label_text(xlabel)
+            
+        ylabel = self._getYLabel()
+        self._plot.yaxis.set_label_text(ylabel)
 
 class PlotEndpoint(PortEndpoint):
     def __init__(self, plot, port, connectionId):
@@ -335,7 +266,7 @@ class LineBase(PlotBase):
         try:
             for name, trace in self._lines.iteritems():
                 if trace['id'] == connectionId:
-                    trace['sink'].stop()
+                    trace['port'].stopPort()
                     line = trace['line']
                     line.remove()
                     del self._lines[name]
@@ -344,65 +275,59 @@ class LineBase(PlotBase):
             self._linesLock.release()
 
     def getPort(self, name):
-        self._linesLock.acquire()
-        try:
-            sink = self._lines[name]['sink']
-            return sink.getPort()
-        finally:
-            self._linesLock.release()
+        with self._linesLock:
+            return self._lines[name]['port']._this()
 
     def _lineOptions(self):
         return {}
 
     def _addTrace(self, port, name):
-        self._linesLock.acquire()
-        try:
+        with self._linesLock:
             traceName = '%s-%s' % (port['Port Name'], name)
             if traceName in self._lines:
                 raise KeyError, "Trace '%s' already exists" % traceName
 
-            sink = self._createSink(port['Port Interface'])
+            port = self._createPort(port, traceName)
             
             options = self._lineOptions()
             line, = self._plot.plot([], [], label=name, scalex=False, scaley=False, **options)
-            trace = { 'sink':   sink,
+            trace = { 'port':   port,
                       'xdelta': None,
                       'line':   line,
                       'id':     name }
             self._lines[traceName] = trace
-        finally:
-            self._linesLock.release()
-        if self._started:
-            self.start()
  
     def _updateTrace(self, trace):
-        sink = trace['sink']
+        port = trace['port']
         line = trace['line']
 
         # Read next frame.
-        data, timestamps = sink.retrieveData(length=self._frameSize)
-        if not data:
-            return
-        x_data, y_data = self._formatData(data, sink.sri)
+        stream = port.getCurrentStream(bulkio.const.NON_BLOCKING)
+        if not stream:
+            return False
+        block = stream.read(self._frameSize)
+        if not block:
+            return False
+        x_data, y_data = self._formatData(block, stream)
         line.set_data(x_data, y_data)
 
         # Check for new xdelta and update canvas if necessary.
-        if sink.sriChanged():
-            trace['xdelta'] = sink.sri.xdelta
-            xmin, xmax = self._getXRange(sink.sri)
+        if block.sriChanged:
+            trace['xdelta'] = block.xdelta
+            xmin, xmax = self._getXRange(stream)
             self._plot.set_xlim(xmin, xmax)
+        return True
 
     def _update(self):
         # Get a copy of the current set of lines to update, then release the
         # lock to do the reads. This allows the read to be interrupted (e.g.,
         # if a source is disconnected) without deadlock.
-        self._linesLock.acquire()
-        try:
+        with self._linesLock:
             traces = self._lines.values()
-        finally:
-            self._linesLock.release()
-        for trace in traces:
-            self._updateTrace(trace)
+ 
+        redraw = [self._updateTrace(trace) for trace in traces]
+        if not any(redraw):
+            return False
 
         if self._ymin is None or self._ymax is None:
             self._plot.relim()
@@ -419,29 +344,27 @@ class LineBase(PlotBase):
 
         return True
 
-    def start(self):
+    def _startHelper(self):
         log.debug("Starting line plot '%s'", self._instanceName)
-        super(LineBase,self).start()
-        # Start all associated sinks.
+        super(LineBase,self)._startHelper()
+        # Start all associated ports.
         self._linesLock.acquire()
         try:
             for trace in self._lines.itervalues():
-                trace['sink'].start()
+                trace['port'].startPort()
         finally:
             self._linesLock.release()
-    start.__doc__ = PlotBase.start.__doc__
 
-    def stop(self):
+    def _stopHelper(self):
         log.debug("Stopping line plot '%s'", self._instanceName)
-        # Stop all associated sinks.
+        # Stop all associated port.
         self._linesLock.acquire()
         try:
             for trace in self._lines.itervalues():
-                trace['sink'].stop()
+                trace['port'].stopPort()
         finally:
             self._linesLock.release()
-        super(LineBase,self).stop()
-    stop.__doc__ = PlotBase.stop.__doc__
+        super(LineBase,self)._stopHelper()
 
     # Plot settings
     def _setYView(self, ymin, ymax):
@@ -452,41 +375,39 @@ class LineBase(PlotBase):
         self._plot.set_xlim(xmin, xmax)
         self._redraw()
 
-    def get_ymin(self):
-        """
-        The lower bound of the Y-axis. If set to None, the lower bound will be
-        determined automatically per-frame based on the data.
-        """
-        return self._ymin
-
-    def set_ymin(self, ymin):
-        self._check_yrange(ymin, self._ymax)
-        self._ymin = ymin
-        self._setYView(self._ymin, self._ymax)
-
-    ymin = property(get_ymin, set_ymin)
-    del get_ymin, set_ymin
-
-    def get_ymax(self):
-        """
-        The upper bound of the Y-axis. If set to None, the upper bound will be
-        determined automatically per-frame based on the data.
-        """
-        return self._ymax
-
     def _check_yrange(self, ymin, ymax):
         if ymin is None or ymax is None:
             return
         if ymax < ymin:
             raise ValueError, 'Y-axis bounds cannot overlap (%d > %d)' % (ymin, ymax)
 
-    def set_ymax(self, ymax):
+    @property
+    def ymin(self):
+        """
+        The lower bound of the Y-axis. If set to None, the lower bound will be
+        determined automatically per-frame based on the data.
+        """
+        return self._ymin
+
+    @ymin.setter
+    def ymin(self, ymin):
+        self._check_yrange(ymin, self._ymax)
+        self._ymin = ymin
+        self._setYView(self._ymin, self._ymax)
+
+    @property
+    def ymax(self):
+        """
+        The upper bound of the Y-axis. If set to None, the upper bound will be
+        determined automatically per-frame based on the data.
+        """
+        return self._ymax
+
+    @ymax.setter
+    def ymax(self, ymax):
         self._check_yrange(self._ymin, ymax)
         self._ymax = ymax
         self._setYView(self._ymin, self._ymax)
-
-    ymax = property(get_ymax, set_ymax)
-    del get_ymax, set_ymax
 
 
 class LinePlot(LineBase):
@@ -506,12 +427,16 @@ class LinePlot(LineBase):
         """
         super(LinePlot,self).__init__(frameSize, ymin, ymax)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Time (s)')
+    def _getXUnits(self):
+        return BULKIO.UNITS_TIME
 
-    def _formatData(self, data, sri):
-        xdelta = sri.xdelta
-        times = numpy.arange(len(data)) * xdelta
+    def _formatData(self, block, stream):
+        # Bit blocks don't have a .complex attribute; default to False
+        if getattr(block, 'complex', False):
+            data = block.buffer[::2]
+        else:
+            data = block.buffer
+        times = numpy.arange(len(data)) * block.xdelta
         return times, data
 
     def _getXRange(self, sri):
@@ -526,38 +451,40 @@ class PSDBase(object):
     def __init__(self, nfft):
         self._nfft = nfft
 
-    def _getFreqOffset(self, sri):
-        offset = sri.keywords.get('CHAN_RF', None)
-        if offset is None:
-            offset = sri.keywords.get('COL_RF', 0.0)
-        return offset
+    def _getFreqOffset(self, stream):
+        if stream.hasKeyword('CHAN_RF'):
+            return stream.getKeyword('CHAN_RF')
+        elif stream.hasKeyword('COL_RF'):
+            return stream.getKeyword('COL_RF')
+        else:
+            return 0.0
 
-    def _psd(self, data, sri):
-        offset = self._getFreqOffset(sri)
-        y_data, x_data = mlab.psd(data, NFFT=self._nfft, Fs=self._getSampleRate(sri))
+    def _psd(self, data, stream):
+        y_data, x_data = mlab.psd(data, NFFT=self._nfft, Fs=self._getSampleRate(stream))
+        offset = self._getFreqOffset(stream)
         if offset:
             x_data += offset
         return y_data, x_data
 
-    def _getSampleRate(self, sri):
-        if sri.xdelta > 0.0:
+    def _getSampleRate(self, stream):
+        if stream.xdelta > 0.0:
             # Round sample rate to an integral value to account for the fact
             # that there is typically some rounding error in the xdelta value.
-            return round(1.0 / sri.xdelta)
+            return round(1.0 / stream.xdelta)
         else:
             # Bad SRI xdelta, use normalized value.
             return 1.0
 
-    def _getFreqRange(self, sri):
-        nyquist = 0.5 * self._getSampleRate(sri)
+    def _getFreqRange(self, stream):
+        nyquist = 0.5 * self._getSampleRate(stream)
         upper = nyquist
-        if sri.mode:
+        if stream.complex:
             # Negative and positive frequencies.
             lower = -nyquist
         else:
             # Non-negative frequencies only.       
             lower = 0
-        offset = self._getFreqOffset(sri)
+        offset = self._getFreqOffset(stream)
         upper += offset
         lower += offset
         return lower, upper
@@ -590,15 +517,23 @@ class LinePSD(LineBase, PSDBase):
         PSDBase.__init__(self, nfft)
 
     def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Frequency (Hz)')
         self._plot.set_yscale('log')
 
-    def _formatData(self, data, sri):
+    def _getXUnits(self):
+        return BULKIO.UNITS_FREQUENCY
+
+    def _formatData(self, block, stream):
+        # Bit blocks don't have a .complex attribute; default to False
+        if getattr(block, 'complex', False):
+            data = block.cxbuffer
+        else:
+            data = block.buffer
+
         # Calculate PSD of input data.
-        data, freqs = self._psd(data, sri)
+        data, freqs = self._psd(data, stream)
 
         # Return x data (frequencies) and y data (magnitudes)
-        return freqs, data.reshape(len(data))
+        return freqs, data.reshape(-1)
 
     def _getXRange(self, sri):
         return self._getFreqRange(sri)
@@ -610,129 +545,199 @@ class RasterBase(PlotBase):
     Y-axis, while magnitude (Z-axis) is displayed using a color map. The
     meaning of the X-axis varies depending on the data being displayed.
     """
-    def __init__(self, frameSize=1024, imageWidth=1024, imageHeight=1024, zmin=-1, zmax=1, defaultValue=0.0):
+    def __init__(self, zmin, zmax, lines=None, readSize=None):
         PlotBase.__init__(self)
-
-        self._frameSize = frameSize
-        self._sink = None
-
-        # Raster state
-        self._imageData = numpy.ones((imageHeight, imageWidth)) * defaultValue
-        self._image = self._plot.imshow(self._imageData, extent=(0, 1, 1, 0))
         self._zmin = zmin
         self._zmax = zmax
+        self._readSize = readSize
+        self._frameSize = None
+        self._frameOffset = 0
+        self._bitMode = False
+        if lines is None:
+            self._lines = 512
+        else:
+            self._lines = self._check_lines(lines)
+
+        # Raster state: start with a 1x1 image with the default value
+        self._imageData = self._createImageData(1, 1)
+        self._buffer = self._imageData.reshape((1,))
+        self._bufferOffset = 0
+        self._image = self._plot.imshow(self._imageData, extent=(0, 1, 1, 0))
         norm = self._getNorm(self._zmin, self._zmax)
         self._image.set_norm(norm)
-        self._row = 0
-        self._xdelta = None
+        self._plot.set_aspect('auto')
 
-        # Maintain aspect ratio of image
-        self._aspect = float(imageHeight)/imageWidth
-        self._plot.set_aspect(self._aspect)
+        # Use a horizontal yellow line to indicate the redraw position
+        self._line = self._plot.axhline(y=0, color='y')
 
-        # Add a colorbar
-        self._colorbar = self._figure.colorbar(self._image)
+        self._stateLock = threading.Lock()
 
-    def _formatData(self, data, sri):
+    def _createImageData(self, width, height):
+        data = numpy.empty((height, width))
+        data[:] = self._zmin
         return data
 
-    def getPort(self, name):
-        if self._sink:
-            if name != self._sinkName:
-                raise RuntimeError, "Raster plot only supports one port at a time (using '%s')" % self._sinkName
+    def _getImageSize(self):
+        return (self._frameSize, self._lines)
+
+    def _portCreated(self, port, portDict):
+        super(RasterBase,self)._portCreated(port, portDict)
+        self._image.set_interpolation('nearest')
+        if port.name == 'bitIn':
+            self._bitMode = True
+            self._setBitMode()
         else:
-            port = self._providesPortDict[name]
-            self._sink = self._createSink(port['Port Interface'])
-            self._sinkName = name
-        return self._sink.getPort()
+            # Add a colorbar
+            self._colorbar = self._figure.colorbar(self._image)
+
+        return port
+
+    def _formatData(self, block, stream):
+        return block.buffer
+
+    def _setBitMode(self):
+        pass
+
+    def _getReadSize(self):
+        return self._readSize
 
     def _update(self):
-        if not self._sink:
+        if not self._port:
             return False
 
         # Read and format data.
-        data, timestamps = self._sink.retrieveData(length=self._frameSize)
-        if not data:
-            return
-        sri = self._sink.sri
-        data = self._formatData(data, sri)
+        stream = self._port.getCurrentStream(bulkio.const.NON_BLOCKING)
+        if not stream:
+            return False
+        block = stream.read(self._getReadSize())
+        if not block:
+            return False
+
+        with self._stateLock:
+            self._frameSize = self._getFrameSize(stream)
+            frame_offset = self._frameOffset
+            image_width, image_height = self._getImageSize()
+
+        update_image = False
+        if self._imageData.shape != (image_height,image_width):
+            # TODO: Save references to old buffer?
+            self._imageData = self._createImageData(image_width, image_height)
+            self._buffer = self._imageData.reshape(-1)
+            self._bufferOffset = 0
+            update_image = True
 
         # If xdelta changes, update the X and Y ranges.
-        if self._sink.sriChanged():
+        redraw = True
+        if block.sriChanged or update_image:
             # Update the X and Y ranges
-            x_min, x_max = self._getXRange(sri)
-            y_min, y_max = self._getYRange(sri)
+            x_min, x_max = self._getXRange(stream, self._frameSize)
+            y_min, y_max = self._getYRange(stream, self._frameSize)
             self._image.set_extent((x_min, x_max, y_max, y_min))
 
-            # Preserve the aspect ratio based on the image size.
-            x_range = x_max - x_min
+            # Trigger a redraw to update the axes
+            redraw = True
+        else:
+            x_min, x_max, y_min, y_max = self._image.get_extent()
+
+        # Update the framebuffer
+        data = self._formatData(block, stream)
+        start = (self._bufferOffset + frame_offset) % len(self._buffer)
+        end = start + len(data)
+        self._writeBuffer(self._buffer, start, end, data)
+        self._bufferOffset = (self._bufferOffset + len(data)) % len(self._buffer)
+
+        last_row = start // self._frameSize
+        new_row  = self._bufferOffset // self._frameSize
+        if new_row != last_row:
+            # Move the draw position indicator
             y_range = y_max - y_min
-            self._plot.set_aspect(x_range/y_range*self._aspect)
-            self._xdelta = sri.xdelta
+            ypos = abs(y_min + ((new_row+1) * y_range)) / self._imageData.shape[0]
+            self._line.set_ydata([ypos, ypos])
 
-        # Resample data from frame size to image size.
-        height, width = self._imageData.shape
-        indices_out = numpy.linspace(0, len(data)-1, width)
-        indices_in = numpy.arange(len(data))
-        data = numpy.interp(indices_out, indices_in, data)
+            # Update the image; by only doing this when at least one row is
+            # completed, we can reduce the amount of time spent in redraws
+            update_image = True
 
-        # Store the new row and update the image data.
-        self._imageData[self._row] = data
-        self._image.set_array(self._imageData)
+        # Only redraw the image from the framebuffer if something has changed
+        if update_image:
+            self._image.set_data(self._imageData)
+            redraw = True
 
-        # Advance row pointer
-        self._row = (self._row + 1) % height
+        return redraw
 
-        return True
-
-    def start(self):
-        log.debug("Starting raster plot '%s'", self._instanceName)
-        if self._sink:
-            self._sink.start()
-        super(RasterBase,self).start()
-    start.__doc__ = PlotBase.start.__doc__
-
-    def stop(self):
-        log.debug("Stopping raster plot '%s'", self._instanceName)
-        if self._sink:
-            self._sink.stop()
-        super(RasterBase,self).stop()
-    stop.__doc__ = PlotBase.stop.__doc__
+    def _writeBuffer(self, dest, start, end, data):
+        if end <= len(dest):
+            dest[start:end] = data
+        else:
+            count = len(dest) - start
+            dest[start:] = data[:count]
+            remain = end - len(dest)
+            dest[:remain] = data[count:]
 
     # Plot settings
+    def _check_lines(self, lines):
+        lines = int(lines)
+        if lines <= 0:
+            raise ValueError('lines must be a positive integer')
+        return lines
+
+    @property
+    def lines(self):
+        """
+        Number of frames worth of history to display. Must be greater than 0.
+        """
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines):
+        with self._stateLock:
+            self._lines = self._check_lines(lines)
+
     def _check_zrange(self, zmin, zmax):
         if zmax < zmin:
             raise ValueError, 'Z-axis bounds cannot overlap (%d > %d)' % (zmin, zmax)
 
-    def get_zmin(self):
+    def _update_zrange(self, zmin, zmax):
+        self._zmin = zmin
+        self._zmax = zmax
+        norm = self._getNorm(self._zmin, self._zmax)
+        self._image.set_norm(norm)
+
+    @property
+    def zmin(self):
         """
         The lower bound of the Z-axis.
         """
         return self._zmin
 
-    def set_zmin(self, zmin):
+    @zmin.setter
+    def zmin(self, zmin):
         self._check_zrange(zmin, self._zmax)
-        self._zmin = zmin
-        norm = self._getNorm(self._zmin, self._zmax)
-        self._image.set_norm(norm)
+        self._update_zrange(zmin, self._zmax)
 
-    zmin = property(get_zmin, set_zmin)
-    del get_zmin, set_zmin
-
-    def get_zmax(self):
+    @property
+    def zmax(self):
         """
         The upper bound of the Z-axis.
         """
         return self._zmax
 
-    def set_zmax(self, zmax):
+    @zmax.setter
+    def zmax(self, zmax):
         self._check_zrange(self._zmin, zmax)
-        self._zmax = zmax
-        norm = self._getNorm(self._zmin, self._zmax)
-        self._image.set_norm(norm)
+        self._update_zrange(self._zmin, zmax)
 
-    zmax = property(get_zmax, set_zmax)
-    del get_zmax, set_zmax
+    @property
+    def readSize(self):
+        return self._readSize
+
+    @readSize.setter
+    def readSize(self, size):
+        if size is not None:
+            size = int(size)
+            if size <= 0:
+                raise ValueError('read size must be a positive integer')
+        self._readSize = size
 
 
 class RasterPlot(RasterBase):
@@ -741,50 +746,117 @@ class RasterPlot(RasterBase):
     while the X-axis represents intra-frame time. The Z-axis, mapped to a color
     range, represents the magnitude of each sample.
     """
-    def __init__(self, frameSize=1024, imageWidth=1024, imageHeight=1024, zmin=-1.0, zmax=1.0):
+    def __init__(self, frameSize=None, imageWidth=None, imageHeight=None, zmin=-1.0, zmax=1.0, lines=None, readSize=None):
         """
         Create a new raster plot.
 
         Arguments:
 
           frameSize   - Number of elements to draw per line
-          imageWidth  - Width of the backing image in pixels
-          imageHeight - Height of the backing image in pixels
           zmin, zmax  - Z-axis (magnitude) constraints. Data is clamped to the
                         range [zmin, zmax].
+          lines       - Number of frames worth of history to display (default 512).
+          readSize    - Number of elements to read from the data stream at a
+                        time (default is to use packet size)
 
-        If the frame size is not equal to the image width, the input line will
-        be linearly resampled to the image width.
+        Deprecated arguments:
+          imageWidth  - Width of the backing image in pixels (width is always
+                        effective frame size)
+          imageHeight - Height of the backing image in pixels (use lines)
         """
-        super(RasterPlot,self).__init__(frameSize, imageWidth, imageHeight, zmin, zmax, defaultValue=zmin)
+        if imageHeight is not None:
+            if lines is not None:
+                raise ValueError("'lines' and 'imageHeight' cannot be combined")
+            warnings.warn('imageHeight is deprecated, use lines', DeprecationWarning)
+            lines = imageHeight
+        super(RasterPlot,self).__init__(zmin, zmax, lines=lines, readSize=readSize)
+        self._frameSizeOverride = frameSize
 
     def _getNorm(self, zmin, zmax):
-        return matplotlib.colors.Normalize(zmin, zmax)
+        if self._bitMode:
+            return matplotlib.colors.NoNorm()
+        else:
+            return matplotlib.colors.Normalize(zmin, zmax)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Time offset (s)')
-        self._plot.yaxis.set_label_text('Time (s)')
+    def _setBitMode(self):
+        self._update_zrange(0, 1)
 
-    def _getXRange(self, sri):
+    def _getXLabel(self):
+        return 'Time offset (s)'
+
+    def _getYUnits(self):
+        return BULKIO.UNITS_TIME
+
+    def _getXRange(self, sri, frameSize):
         # X range is time per line.
-        return 0, sri.xdelta * self._frameSize
+        return 0, sri.xdelta * frameSize
 
-    def _getYRange(self, sri):
+    def _getYRange(self, sri, frameSize):
         # First, get the X range.
-        x_min, x_max = self._getXRange(sri)
+        x_min, x_max = self._getXRange(sri, frameSize)
         x_range = x_max - x_min
 
         # Y range is the total time across all lines.
-        height, width = self._imageData.shape
-        return 0, height*x_range
+        return 0, frameSize*x_range
 
-    def _formatData(self, data, sri):
+    def _formatData(self, block, stream):
         # Image data cannot be complex; just use the real component.
-        if sri.mode:
-            return [x.real for x in data]
+        if self._bitMode:
+            return block.buffer.unpack()
+        elif block.complex:
+            return block.buffer[::2]
         else:
-            return data
+            return block.buffer
 
+    def _getFrameSize(self, stream):
+        if self._frameSizeOverride is not None:
+            # Explicit frame size override
+            return self._frameSizeOverride
+        elif stream.subsize > 0:
+            # Stream is 2-dimensional, use frame size
+            return stream.subsize
+        else:
+            # Auto frame size, default to 1K
+            return 1024
+
+    def _check_zrange(self, zmin, zmax):
+        if zmin != 0:
+            raise ValueError('Z-axis minimum is always 0 with bit data')
+        elif zmax != 1:
+            raise ValueError('Z-axis minimum is always 1 with bit data')
+        super(RasterPlot,self)._check_zrange(zmin, zmax)
+
+    @property
+    def frameSize(self):
+        """
+        The number of elements in a single frame (in other words, a single line
+        of the raster). If set to None, the frame size is automatically
+        determined from the data stream's subsize, defaulting to 1024 if
+        subsize is 0.
+        """
+        return self._frameSizeOverride
+
+    @frameSize.setter
+    def frameSize(self, frameSize):
+        if frameSize is not None:
+            frameSize = int(frameSize)
+            if frameSize <= 0:
+                raise ValueError('frame size must be a positive value')
+        with self._stateLock:
+            self._frameSizeOverride = frameSize
+
+    @property
+    def frameOffset(self):
+        """
+        Offset, in number of real samples, to adjust the frame start.
+        """
+        return self._frameOffset
+
+    @frameOffset.setter
+    def frameOffset(self, offset):
+        frameOffset = int(offset)
+        with self._stateLock:
+            self._frameOffset = offset
 
 class RasterPSD(RasterBase, PSDBase):
     """
@@ -798,7 +870,7 @@ class RasterPSD(RasterBase, PSDBase):
 
     The Z-axis (magnitude) is displayed using a logarithmic scale.
     """
-    def __init__(self, nfft=1024, frameSize=None, imageWidth=1024, imageHeight=1024, zmin=1.0e-16, zmax=1.0):
+    def __init__(self, nfft=1024, frameSize=None, imageWidth=None, imageHeight=None, zmin=1.0e-16, zmax=1.0, lines=None):
         """
         Create a new raster PSD plot.
 
@@ -809,38 +881,77 @@ class RasterPSD(RasterBase, PSDBase):
                         defaults to the FFT size. Must be less than or equal to
                         FFT size.
           imageWidth  - Width of the backing image in pixels
-          imageHeight - Height of the backing image in pixels
           zmin, zmax  - Z-axis (magnitude) constraints. Data is clamped to the
                         range [zmin, zmax].
+          lines       - Number of frames worth of history to display (default 512).
 
-        If the size of the PSD output (nfft/2+1) is not equal to the image
-        width, the PSD output will be linearly resampled to the image width.
+
+        Deprecated arguments:
+          imageWidth  - Width of the backing image in pixels (width is always
+                        determined from nfft)
+          imageHeight - Height of the backing image in pixels (use lines)
         """
-        if not frameSize:
-            frameSize = nfft
-        RasterBase.__init__(self, frameSize, imageWidth, imageHeight, zmin, zmax, defaultValue=zmin)
+        if imageWidth is not None:
+            warnings.warn('imageWidth is deprecated', DeprecationWarning)
+        if imageHeight is not None:
+            if lines is not None:
+                raise ValueError("'lines' and 'imageHeight' cannot be combined")
+            warnings.warn('imageHeight is deprecated, use lines', DeprecationWarning)
+            lines = imageHeight
+        RasterBase.__init__(self, zmin, zmax, lines=lines, readSize=frameSize)
         PSDBase.__init__(self, nfft)
 
     def _getNorm(self, zmin, zmax):
         return matplotlib.colors.LogNorm(zmin, zmax)
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Frequency (Hz)')
-        self._plot.yaxis.set_label_text('Time (s)')
+    def _getXUnits(self):
+        return BULKIO.UNITS_FREQUENCY
 
-    def _getXRange(self, sri):
+    def _getYUnits(self):
+        return BULKIO.UNITS_TIME
+
+    def _getXRange(self, sri, frameSize):
         return self._getFreqRange(sri)
 
-    def _getYRange(self, sri):
+    def _getYRange(self, stream, frameSize):
         # Y range is the total time across all lines.
-        dtime = sri.xdelta * self._nfft
-        height, width = self._imageData.shape
-        return 0, height*dtime
+        dtime = stream.xdelta * self._nfft
+        return 0, frameSize *dtime
 
-    def _formatData(self, data, sri):
+    def _getFrameSize(self, stream):
+        if stream.complex:
+            return self._nfft
+        else:
+            return (self._nfft//2) + 1
+
+    def _getReadSize(self):
+        if self._readSize is not None:
+            return self._readSize
+        return self._nfft
+
+    def _formatData(self, block, stream):
+        if self._bitMode:
+            data = block.buffer.unpack()
+        elif block.complex:
+            data = block.cxbuffer
+        else:
+            data = block.buffer
+
         # Calculate PSD of input data.
-        data, freqs = self._psd(data, sri)
-        return data.reshape(len(data))
+        data, freqs = self._psd(data, stream)
+        return data.reshape(-1)
+
+    @property
+    def nfft(self):
+        return self._nfft
+
+    @nfft.setter
+    def nfft(self, nfft):
+        nfft = int(nfft)
+        if nfft <= 0:
+            raise ValueError('FFT size must be a positive value')
+        with self._stateLock:
+            self._nfft = nfft
 
 
 class XYPlot(LineBase):
@@ -869,13 +980,18 @@ class XYPlot(LineBase):
         self._plot.axhline(0, color='black')
         self._plot.axvline(0, color='black')
 
-    def _configureAxes(self):
-        self._plot.xaxis.set_label_text('Real')
-        self._plot.yaxis.set_label_text('Imaginary')
+    def _getXLabel(self):
+        return 'Real'
+
+    def _getYLabel(self):
+        return 'Imaginary'
 
     def _formatData(self, data, sri):
         # Split real and imaginary components into X and Y coodinates.
-        return [x.real for x in data], [y.imag for y in data]
+        if sri.complex:
+            return data.buffer[::2], data.buffer[1::2]
+        else:
+            return data.buffer, [0.0]*len(data.buffer)
 
     def _getXRange(self, sri):
         return self._xmin, self._xmax
@@ -889,36 +1005,29 @@ class XYPlot(LineBase):
         if xmax < xmin:
             raise ValueError, 'X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax)
 
-    def _createSink(self, *args, **kwargs):
-        sink = super(XYPlot, self)._createSink(*args, **kwargs)
-        sink._forceComplex = True
-        return sink
-
     # Plot properties
-    def get_xmin(self):
+    @property
+    def xmin(self):
         """
         The lower bound of the X-axis.
         """
         return self._xmin
 
-    def set_xmin(self, xmin):
+    @xmin.setter
+    def xmin(self, xmin):
         self._check_yrange(xmin, self._xmax)
         self._xmin = xmin
         self._setXView(self._xmin, self._xmax)
 
-    xmin = property(get_xmin, set_xmin)
-    del get_xmin, set_xmin
-
-    def get_xmax(self):
+    @property
+    def xmax(self):
         """
         The upper bound of the X-axis.
         """
         return self._xmax
 
-    def set_xmax(self, xmax):
+    @xmax.setter
+    def xmax(self, xmax):
         self._check_xrange(self._xmin, xmax)
         self._xmax = xmax
         self._setXView(self._xmin, self._xmax)
-
-    xmax = property(get_xmax, set_xmax)
-    del get_xmax, set_xmax

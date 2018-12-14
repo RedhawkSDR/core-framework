@@ -21,6 +21,8 @@
 
 #include <omniORB4/CORBA.h>
 
+#include <timing.h>
+
 #include "rawdata.h"
 
 class Writer : public virtual POA_rawdata::writer {
@@ -28,7 +30,10 @@ public:
     Writer() :
         _thread(0),
         _running(true),
-        _length(1024)
+        _length(1024),
+        _totalPackets(0),
+        _totalSeconds(0.0),
+        _averageTime(0.0)
     {
         _thread = new omni_thread(&Writer::thread_start, this);
     }
@@ -42,6 +47,9 @@ public:
     void transfer_length(CORBA::Long length)
     {
         _length = length;
+        _totalPackets = 0;
+        _totalSeconds = 0.0;
+        _averageTime = 0.0;
     }
 
     void start()
@@ -52,6 +60,11 @@ public:
     void stop()
     {
         _running = false;
+    }
+
+    double average_time()
+    {
+        return _averageTime;
     }
 
 private:
@@ -82,10 +95,18 @@ private:
                 if (data.length() != _length) {
                     data.length(_length);
                 }
+
+                double start = get_time();
                 _reader->push_octet(data);
+                double end = get_time();
+
+                _totalPackets++;
+                _totalSeconds += end-start;
+                _averageTime = _totalSeconds/_totalPackets;
             }
         }
     }
+
 
     static void* thread_start(void* arg)
     {
@@ -99,6 +120,10 @@ private:
     volatile bool _running;
     std::string _format;
     int _length;
+
+    size_t _totalPackets;
+    double _totalSeconds;
+    double _averageTime;
 };
 
 int main (int argc, char* argv[])

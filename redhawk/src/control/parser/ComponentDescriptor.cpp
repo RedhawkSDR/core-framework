@@ -26,7 +26,6 @@
 #include "ossie/ComponentDescriptor.h"
 #include "internal/scd-parser.h"
 
-using namespace scd;
 using namespace ossie;
 
 ComponentDescriptor::ComponentDescriptor(std::istream& input) throw (ossie::parser_error)  {

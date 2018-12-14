@@ -244,7 +244,7 @@ void ${className}::initialize() throw (CF::LifeCycle::InitializeError, CORBA::Sy
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    LOG_DEBUG(${className}, "serviceFunction() example log message");
+    RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
     
     return NOOP;
 }

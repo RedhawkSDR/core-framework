@@ -23,6 +23,10 @@ import redhawk.codegen.lang.java
 from redhawk.codegen.jinja.template import TemplateFile
 
 class JavaTemplate(TemplateFile):
+    COMMENT_START = '/*'
+    COMMENT_LINE  = ' *'
+    COMMENT_END   = ' */'
+
     def __init__(self, template, filename=None, userfile=False, package=None, context={}):
         super(JavaTemplate,self).__init__(template, filename, userfile=userfile)
         self.package = package

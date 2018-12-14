@@ -34,7 +34,7 @@ import org.ossie.properties.StructProperty;
 
 public class FETypes {
 
-    public enum timeTypes {
+    public static enum timeTypes {
         J1950(1),
         J1970(2),
         JCY(3);
@@ -44,10 +44,10 @@ public class FETypes {
         }
     }
 
-    public class FreqRange {
-        protected double min_val;
-        protected double max_val;
-        protected List<Double> values;
+    public static class FreqRange {
+        public double min_val;
+        public double max_val;
+        public List<Double> values;
         public FreqRange(){
             min_val = 0.0;
             max_val = 0.0;
@@ -55,11 +55,11 @@ public class FETypes {
         }
     }
 
-    public class AntennaInfo {
-        protected String name;
-        protected String type;
-        protected String size;
-        protected String description;
+    public static class AntennaInfo {
+        public String name;
+        public String type;
+        public String size;
+        public String description;
         public AntennaInfo(){
             name = null;
             type = null;
@@ -68,10 +68,10 @@ public class FETypes {
         }
     }
 
-    public class FeedInfo {
-        protected String name;
-        protected String polarization;
-        protected FreqRange freq_range;
+    public static class FeedInfo {
+        public String name;
+        public String polarization;
+        public FreqRange freq_range;
         public FeedInfo(){
             name = null;
             polarization = null;
@@ -79,12 +79,12 @@ public class FETypes {
         }
     }
 
-    public class SensorInfo {
-        protected String mission;
-        protected String collector;
-        protected String rx;
-        protected AntennaInfo antenna;
-        protected FeedInfo feed;
+    public static class SensorInfo {
+        public String mission;
+        public String collector;
+        public String rx;
+        public AntennaInfo antenna;
+        public FeedInfo feed;
         public SensorInfo(){
             mission = null;
             collector = null;
@@ -94,34 +94,34 @@ public class FETypes {
         }
     }
 
-    public class PathDelay {
-        protected double freq;
-        protected double delay_ns;
+    public static class PathDelay {
+        public double freq;
+        public double delay_ns;
         public PathDelay(){
             freq = 0.0;
             delay_ns = 0.0;
         }
     }
 
-    public class RFCapabilities {
-        protected FreqRange freq_range;
-        protected FreqRange bw_range;
+    public static class RFCapabilities {
+        public FreqRange freq_range;
+        public FreqRange bw_range;
         public RFCapabilities(){
             freq_range = new FreqRange();
             bw_range = new FreqRange();
         }
     }
 
-    public class RFInfoPkt {
-        protected String rf_flow_id;
-        protected double rf_center_freq;
-        protected double rf_bandwidth;
-        protected double if_center_freq;
-        protected boolean spectrum_inverted;
-        protected SensorInfo sensor;
-        protected List<PathDelay> ext_path_delays;
-        protected RFCapabilities capabilities;
-        protected CF.PropertiesHolder additional_info;
+    public static class RFInfoPkt {
+        public String rf_flow_id;
+        public double rf_center_freq;
+        public double rf_bandwidth;
+        public double if_center_freq;
+        public boolean spectrum_inverted;
+        public SensorInfo sensor;
+        public List<PathDelay> ext_path_delays;
+        public RFCapabilities capabilities;
+        public CF.PropertiesHolder additional_info;
         public RFInfoPkt(){
             rf_flow_id = null;
             rf_center_freq = 0.0;
@@ -135,12 +135,12 @@ public class FETypes {
         }
     }
 
-    public class PositionInfo {
-        protected boolean valid;
-        protected String datum;
-        protected double lat;
-        protected double lon;
-        protected double alt;
+    public static class PositionInfo {
+        public boolean valid;
+        public String datum;
+        public double lat;
+        public double lon;
+        public double alt;
         public PositionInfo(){
             valid = false;
             datum = null;
@@ -150,22 +150,22 @@ public class FETypes {
         }
     }
 
-    public class GPSInfo {
-        protected String source_id;
-        protected String rf_flow_id;
-        protected String mode;
-        protected long fom;
-        protected long tfom;
-        protected long datumID;
-        protected double time_offset;
-        protected double freq_offset;
-        protected double time_variance;
-        protected double freq_variance;
-        protected short satellite_count;
-        protected float snr;
-        protected String status_message;
-        protected BULKIO.PrecisionUTCTime timestamp;
-        protected CF.PropertiesHolder additional_info;
+    public static class GPSInfo {
+        public String source_id;
+        public String rf_flow_id;
+        public String mode;
+        public long fom;
+        public long tfom;
+        public long datumID;
+        public double time_offset;
+        public double freq_offset;
+        public double time_variance;
+        public double freq_variance;
+        public short satellite_count;
+        public float snr;
+        public String status_message;
+        public BULKIO.PrecisionUTCTime timestamp;
+        public CF.PropertiesHolder additional_info;
         public GPSInfo(){
             source_id = null;
             rf_flow_id = null;
@@ -185,21 +185,21 @@ public class FETypes {
         }
     }
 
-    public class GpsTimePos {
-        protected PositionInfo position;
-        protected BULKIO.PrecisionUTCTime timestamp;
+    public static class GpsTimePos {
+        public PositionInfo position;
+        public BULKIO.PrecisionUTCTime timestamp;
         public GpsTimePos(){
             position = new PositionInfo();
             timestamp = new BULKIO.PrecisionUTCTime();
         }
     }
 
-    public class CartesianPositionInfo {
-        protected boolean valid;
-        protected String datum;
-        protected double x;
-        protected double y;
-        protected double z;
+    public static class CartesianPositionInfo {
+        public boolean valid;
+        public String datum;
+        public double x;
+        public double y;
+        public double z;
         public CartesianPositionInfo(){
             valid = false;
             datum = null;
@@ -209,11 +209,11 @@ public class FETypes {
         }
     }
 
-    public class AttitudeInfo {
-        protected boolean valid;
-        protected double pitch;
-        protected double yaw;
-        protected double roll;
+    public static class AttitudeInfo {
+        public boolean valid;
+        public double pitch;
+        public double yaw;
+        public double roll;
         public AttitudeInfo(){
             valid = false;
             pitch = 0.0;
@@ -222,13 +222,13 @@ public class FETypes {
         }
     }
 
-    public class VelocityInfo {
-        protected boolean valid;
-        protected String datum;
-        protected String coordinate_system;
-        protected double x;
-        protected double y;
-        protected double z;
+    public static class VelocityInfo {
+        public boolean valid;
+        public String datum;
+        public String coordinate_system;
+        public double x;
+        public double y;
+        public double z;
         public VelocityInfo(){
             valid = false;
             datum = null;
@@ -239,13 +239,13 @@ public class FETypes {
         }
     }
 
-    public class AccelerationInfo {
-        protected boolean valid;
-        protected String datum;
-        protected String coordinate_system;
-        protected double x;
-        protected double y;
-        protected double z;
+    public static class AccelerationInfo {
+        public boolean valid;
+        public String datum;
+        public String coordinate_system;
+        public double x;
+        public double y;
+        public double z;
         public AccelerationInfo(){
             valid = false;
             datum = null;
@@ -256,16 +256,16 @@ public class FETypes {
         }
     }
 
-    public class NavigationPacket {
-        protected String source_id;
-        protected String rf_flow_id;
-        protected PositionInfo  position;
-        protected CartesianPositionInfo cposition;
-        protected VelocityInfo  velocity;
-        protected AccelerationInfo  acceleration;
-        protected AttitudeInfo  attitude;
-        protected BULKIO.PrecisionUTCTime timestamp;
-        protected CF.PropertiesHolder additional_info;
+    public static class NavigationPacket {
+        public String source_id;
+        public String rf_flow_id;
+        public PositionInfo  position;
+        public CartesianPositionInfo cposition;
+        public VelocityInfo  velocity;
+        public AccelerationInfo  acceleration;
+        public AttitudeInfo  attitude;
+        public BULKIO.PrecisionUTCTime timestamp;
+        public CF.PropertiesHolder additional_info;
         public NavigationPacket(){
             source_id = null;
             rf_flow_id = null;
@@ -398,6 +398,16 @@ public class FETypes {
             Mode.READWRITE, //mode
             new Kind[] {Kind.ALLOCATION} //kind
             );
+    
+    public final StructProperty<frontend_scanner_allocation_struct> frontend_scanner_allocation =
+        new StructProperty<frontend_scanner_allocation_struct>(
+            "FRONTEND::scanner_allocation", //id
+            "frontend_scanner_allocation", //name
+            frontend_scanner_allocation_struct.class, //type
+            new frontend_scanner_allocation_struct(), //default value
+            Mode.READWRITE, //mode
+            new Kind[] {Kind.ALLOCATION} //kind
+            );
 
     public static class frontend_listener_allocation_struct extends StructDef {
         public final StringProperty existing_allocation_id =
@@ -527,4 +537,113 @@ public class FETypes {
             return "frontend_tuner_status_struct";
         }
     }
+
+    public static class frontend_scanner_allocation_struct extends StructDef {
+        public final DoubleProperty min_freq =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::min_freq", //id
+                "min_freq", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty max_freq =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::max_freq", //id
+                "max_freq", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final StringProperty mode =
+            new StringProperty(
+                "FRONTEND::scanner_allocation::mode", //id
+                "mode", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final StringProperty control_mode =
+            new StringProperty(
+                "FRONTEND::scanner_allocation::control_mode", //id
+                "control_mode", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+        public final DoubleProperty control_limit =
+            new DoubleProperty(
+                "FRONTEND::scanner_allocation::control_limit", //id
+                "control_limit", //name
+                null, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE}
+                );
+    
+        /**
+         * @generated
+         */
+        public frontend_scanner_allocation_struct(Double min_freq, Double max_freq, String mode, String control_mode, Double control_limit) {
+            this();
+            this.min_freq.setValue(min_freq);
+            this.max_freq.setValue(max_freq);
+            this.mode.setValue(mode);
+            this.control_mode.setValue(control_mode);
+            this.control_limit.setValue(control_limit);
+        }
+    
+        /**
+         * @generated
+         */
+        public void set_min_freq(Double min_freq) {
+            this.min_freq.setValue(min_freq);
+        }
+        public Double get_min_freq() {
+            return this.min_freq.getValue();
+        }
+        public void set_max_freq(Double max_freq) {
+            this.max_freq.setValue(max_freq);
+        }
+        public Double get_max_freq() {
+            return this.max_freq.getValue();
+        }
+        public void set_mode(String mode) {
+            this.mode.setValue(mode);
+        }
+        public String get_mode() {
+            return this.mode.getValue();
+        }
+        public void set_control_mode(String control_mode) {
+            this.control_mode.setValue(control_mode);
+        }
+        public String get_control_mode() {
+            return this.control_mode.getValue();
+        }
+        public void set_control_limit(Double control_limit) {
+            this.control_limit.setValue(control_limit);
+        }
+        public Double get_control_limit() {
+            return this.control_limit.getValue();
+        }
+    
+        /**
+         * @generated
+         */
+        public frontend_scanner_allocation_struct() {
+            addElement(this.min_freq);
+            addElement(this.max_freq);
+            addElement(this.mode);
+            addElement(this.control_mode);
+            addElement(this.control_limit);
+        }
+    
+        public String getId() {
+            return "FRONTEND::scanner_allocation";
+        }
+    };
 }

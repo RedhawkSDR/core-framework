@@ -33,6 +33,8 @@ reader_base::reader_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
     loadProperties();
 
     dataOctet_in = new bulkio::InOctetPort("dataOctet_in");
@@ -82,6 +84,15 @@ void reader_base::loadProperties()
                 "received",
                 "",
                 "readwrite",
+                "",
+                "external",
+                "property");
+
+    addProperty(average_time,
+                0.0,
+                "average_time",
+                "",
+                "readonly",
                 "",
                 "external",
                 "property");

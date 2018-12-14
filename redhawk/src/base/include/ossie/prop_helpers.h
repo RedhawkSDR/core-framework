@@ -30,6 +30,35 @@
 #endif
 
 #include "CF/cf.h"
+#include <stdexcept>
+#include <sstream>
+
+namespace redhawk {
+  namespace time {
+    namespace utils {
+        CF::UTCTime create( const double wholeSecs=-1.0, const double fractionalSecs=-1.0 );
+        
+        // year:month:day::hour:minute:second
+        CF::UTCTime convert( const std::string formatted );
+
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime now();
+      
+        /*
+         * Create a time stamp object from the current time of day reported by the system
+         */
+        CF::UTCTime notSet();
+
+        /*
+         * Adjust the whole and fractional portions of a time stamp object to
+         * ensure there is no fraction in the whole seconds, and vice-versa
+         */
+        void normalize(CF::UTCTime& time);
+    }
+  }
+}
 
 namespace ossie
 {
@@ -52,6 +81,20 @@ namespace ossie
             return false;
         }
     }
+
+    class badConversion : public std::runtime_error {
+    public:
+        badConversion(std::string value, std::string type) : std::runtime_error("Unable to perform conversion"), _value(value), _type(type) {};
+        ~badConversion() throw() {};
+        virtual const char* what() const throw()
+        {
+            std::ostringstream _msg;
+            _msg << std::runtime_error::what() << ": '"<<_value<<"' to type '"<<_type << "'";
+            return _msg.str().c_str();
+        };
+    private:
+        std::string _value, _type;
+    };
 
     template<class T>
     double perform_math(double operand, T propval, std::string& math)
@@ -101,6 +144,8 @@ namespace ossie
     std::string any_to_string(const CORBA::Any& value);
 
     CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind);
+    CORBA::Any strings_to_any(const std::vector<std::string>& values, CORBA::TCKind kind, CORBA::TypeCode_ptr type);
+
     CORBA::BooleanSeq* strings_to_boolean_sequence(const std::vector<std::string> &values);
     CORBA::CharSeq* strings_to_char_sequence(const std::vector<std::string> &values);
     CORBA::DoubleSeq* strings_to_double_sequence(const std::vector<std::string> &values);
@@ -113,12 +158,25 @@ namespace ossie
     CORBA::ULongSeq* strings_to_unsigned_long_sequence(const std::vector<std::string> &values);
     CORBA::ULongLongSeq* strings_to_unsigned_long_long_sequence(const std::vector<std::string> &values);
     CORBA::StringSeq* strings_to_string_sequence(const std::vector<std::string> &values);
+    CF::UTCTimeSequence* strings_to_utctime_sequence(const std::vector<std::string> &values);
+
+    CF::complexBooleanSeq* strings_to_complex_boolean_sequence(const std::vector<std::string> &values);
+    CF::complexCharSeq* strings_to_complex_char_sequence(const std::vector<std::string> &values);
+    CF::complexDoubleSeq* strings_to_complex_double_sequence(const std::vector<std::string> &values);
+    CF::complexFloatSeq* strings_to_complex_float_sequence(const std::vector<std::string> &values);
+    CF::complexShortSeq* strings_to_complex_short_sequence(const std::vector<std::string> &values);
+    CF::complexLongSeq* strings_to_complex_long_sequence(const std::vector<std::string> &values);
+    CF::complexLongLongSeq* strings_to_complex_long_long_sequence(const std::vector<std::string> &values);
+    CF::complexOctetSeq* strings_to_complex_octet_sequence(const std::vector<std::string> &values);
+    CF::complexUShortSeq* strings_to_complex_unsigned_short_sequence(const std::vector<std::string> &values);
+    CF::complexULongSeq* strings_to_complex_unsigned_long_sequence(const std::vector<std::string> &values);
+    CF::complexULongLongSeq* strings_to_complex_unsigned_long_long_sequence(const std::vector<std::string> &values);
 
     CORBA::TCKind       getTypeKind(std::string type);
     CORBA::TypeCode_ptr getTypeCode(std::string type);
     CORBA::TypeCode_ptr getTypeCode(CORBA::TCKind kind, std::string structName);
-    CF::Properties      getNonNilProperties(CF::Properties& originalProperties);
-    CF::Properties      getNonNilConfigureProperties(CF::Properties& originalProperties);
+    CF::Properties getNonNilProperties(const CF::Properties& originalProperties);
+    CF::Properties getNonNilConfigureProperties(const CF::Properties& originalProperties);
 }
 
 #endif

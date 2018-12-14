@@ -44,6 +44,7 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              ComplexProperties.h \
              Service_impl.h \
              MessageInterface.h \
+             MessageSupplier.h \
              type_traits.h \
              AnyUtils.h \
              RedhawkDefs.h \
@@ -61,9 +62,29 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              OptionalProperty.h \
              PropertyMonitor.h \
              Autocomplete.h \
-             Versions.h
+             Versions.h \
+             refcount_memory.h \
+             shared_buffer.h \
+             ExecutorService.h \
+             UsesPort.h \
+             ProvidesPort.h \
+             Transport.h \
+             BufferManager.h \
+             bitops.h \
+             bitbuffer.h
 
 nobase_pkginclude_HEADERS = internal/equals.h \
+	     internal/message_traits.h \
 	     logging/rh_logger.h \
 	     logging/LogConfigUriResolver.h \
-	     logging/loghelpers.h
+	     logging/loghelpers.h \
+	     debug/check.h \
+	     debug/checked_allocator.h \
+	     debug/checked_iterator.h \
+	     shm/Allocator.h \
+	     shm/Heap.h \
+	     shm/HeapClient.h \
+	     shm/MappedFile.h \
+	     shm/SuperblockFile.h \
+	     shm/System.h
+

@@ -31,13 +31,33 @@ namespace redhawk {
 
     class Value : public CORBA::Any {
     public:
+        enum Type {
+            TYPE_NONE,
+            TYPE_STRING,
+            TYPE_BOOLEAN,
+            TYPE_FLOAT,
+            TYPE_DOUBLE,
+            TYPE_OCTET,
+            TYPE_SHORT,
+            TYPE_USHORT,
+            TYPE_LONG,
+            TYPE_ULONG,
+            TYPE_LONGLONG,
+            TYPE_ULONGLONG,
+            TYPE_DATATYPE,
+            TYPE_VALUE,
+            TYPE_SEQUENCE,
+            TYPE_VALUE_SEQUENCE,
+            TYPE_PROPERTIES,
+            TYPE_OTHER
+        };
 
         Value();
         explicit Value(const CORBA::Any& any);
         Value(const Value& any);
 
         template <typename T>
-        explicit Value(const T& value)
+        Value(const T& value)
         {
             setValue(value);
         }
@@ -61,6 +81,14 @@ namespace redhawk {
             setValue(value);
             return *this;
         }
+
+        static Type GetType(CORBA::TypeCode_ptr typecode);
+        static bool IsNumeric(Type type);
+
+        Type getType() const;
+        bool isNumeric() const;
+        bool isSequence() const;
+        Type getElementType() const;
 
         std::string toString() const;
         bool toBoolean() const;
@@ -94,6 +122,7 @@ namespace redhawk {
         }
     };
 
+    std::ostream& operator<<(std::ostream& out, const CORBA::Any& value);
 
     class ValueSequence : public CORBA::AnySeq {
     public:

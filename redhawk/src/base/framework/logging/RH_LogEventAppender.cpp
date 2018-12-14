@@ -113,9 +113,7 @@ channelName("LOG_CHANNEL"),
 	_nameContext(""),
 	_reconnect_retries(10),
 	_reconnect_delay(10),
-	_cleanup_event_channel(0)
-{
-
+	_cleanup_event_channel(0) {
 }
 
 

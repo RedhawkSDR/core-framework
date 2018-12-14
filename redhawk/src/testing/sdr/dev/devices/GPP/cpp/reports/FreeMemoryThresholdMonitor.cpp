@@ -2,14 +2,14 @@
  * This file is protected by Copyright. Please refer to the COPYRIGHT file
  * distributed with this source distribution.
  *
- * This file is part of REDHAWK core.
+ * This file is part of REDHAWK GPP.
  *
- * REDHAWK core is free software: you can redistribute it and/or modify it
+ * REDHAWK GPP is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+ * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
  * for more details.
@@ -21,7 +21,7 @@
 #include "utils/ReferenceWrapper.h"
 
 FreeMemoryThresholdMonitor::FreeMemoryThresholdMonitor( const std::string& source_id, QueryFunction threshold, QueryFunction measured ):
-GenericThresholdMonitor<int>(source_id, GetResourceId(), GetMessageClass(), threshold, measured )
+GenericThresholdMonitor<int64_t>(source_id, GetResourceId(), GetMessageClass(), threshold, measured )
 {
 
 }

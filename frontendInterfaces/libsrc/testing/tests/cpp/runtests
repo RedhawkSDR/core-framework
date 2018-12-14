@@ -1,0 +1,5 @@
+#
+#
+make -j 10 Frontend
+./Frontend --xunit-file ../cppunit-results.xml
+

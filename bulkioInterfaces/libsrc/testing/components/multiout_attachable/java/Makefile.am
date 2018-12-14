@@ -17,17 +17,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-multiout_attachable_jar_CLASSPATH = $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_top)/bulkio.jar:$(bulkio_top)/BULKIOInterfaces.jar
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
+
+multiout_attachable_jar_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):$(BULKIO_CLASSPATH)
 
 multiout_attachable.jar$(EXEEXT): $(multiout_attachable_jar_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp $(multiout_attachable_jar_CLASSPATH) -d bin $(multiout_attachable_jar_SOURCES)
+	$(JAVAC) -cp $(multiout_attachable_jar_CLASSPATH) -g -d bin $(multiout_attachable_jar_SOURCES)
 	$(JAR) cf ./multiout_attachable.jar -C bin .
+	$(JAR) uf ./multiout_attachable.jar -C src .
 
 clean-local:
 	rm -rf bin
 
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -44,12 +49,6 @@ ossieName = multiout_attachable
 bindir = $(prefix)/dom/components/multiout_attachable/java/
 bin_PROGRAMS = multiout_attachable.jar
 multiout_attachable_jar_SOURCES := $(shell find ./src -name "*.java")
-
-##
-## This is used to build against local bulkio interface library and not installed version
-##
-bulkio_top=../../../../..
-bulkio_libsrc_top=$(bulkio_top)/libsrc
 
 xmldir = $(prefix)/dom/components/multiout_attachable/
 dist_xml_DATA = ../multiout_attachable.scd.xml ../multiout_attachable.prf.xml ../multiout_attachable.spd.xml

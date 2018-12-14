@@ -101,7 +101,7 @@ namespace  bulkio {
   }
 
 
-  linkStatistics::linkStatistics( std::string &portName , const int nbytes ):
+  linkStatistics::linkStatistics(const std::string &portName, const int nbytes):
     portName(portName),
     nbytes(nbytes)
   {
@@ -245,62 +245,5 @@ namespace  bulkio {
 
     return runningStats;
   }
-
-
-  template < typename DataTransferTraits >
-  DataTransfer< DataTransferTraits >::DataTransfer(const PortSequenceType & data, const BULKIO::PrecisionUTCTime &_T, bool _EOS, const char* _streamID, BULKIO::StreamSRI &_H, bool _sriChanged, bool _inputQueueFlushed)
-  {
-    int dataLength = data.length();
-
-    typedef typename std::_Vector_base< TransportType, typename DataTransferTraits::DataBufferType::allocator_type >::_Vector_impl *VectorPtr;
-    
-    VectorPtr vectorPtr = (VectorPtr)(&dataBuffer);
-    vectorPtr->_M_start = const_cast< PortSequenceType *>(&data)->get_buffer(1);
-    vectorPtr->_M_finish = vectorPtr->_M_start + dataLength;
-    vectorPtr->_M_end_of_storage = vectorPtr->_M_finish;
-
-    //
-    // removed...
-    //
-#if 0
-    dataBuffer.resize(dataLength);
-    if (dataLength > 0) {
-      memcpy(&dataBuffer[0], &data[0], dataLength * sizeof(data[0]));
-    }
-
-#endif
-
-    T = _T;
-    EOS = _EOS;
-    streamID = _streamID;
-    SRI = _H;
-    sriChanged = _sriChanged;
-    inputQueueFlushed = _inputQueueFlushed;
-  }
-
-
-
-
-
-  //
-  // Required for template instantion for the compilation unit.
-  // Note: we only define those valid types for which Bulkio IDL is defined. Users wanting to
-  // inherit this functionality will be unable to since they cannot instantiate and
-  // link against the template.
-  //
-
-
-  template class DataTransfer< CharDataTransferTraits >;
-  template class DataTransfer< OctetDataTransferTraits >;
-  template class DataTransfer< ShortDataTransferTraits >;
-  template class DataTransfer< UShortDataTransferTraits >;
-  template class DataTransfer< LongDataTransferTraits >;
-  template class DataTransfer< ULongDataTransferTraits >;
-  template class DataTransfer< LongLongDataTransferTraits >;
-  template class DataTransfer< ULongLongDataTransferTraits >;
-  template class DataTransfer< FloatDataTransferTraits >;
-  template class DataTransfer< DoubleDataTransferTraits >;
-  template class DataTransfer< StringDataTransferTraits >;
-
 
 } // end of bulkio namespace

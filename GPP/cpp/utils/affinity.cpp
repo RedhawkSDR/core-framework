@@ -305,7 +305,6 @@ namespace  gpp {
                 os << numa_node_of_cpu( cpuid );
                 redhawk::affinity::CpuList tlist = get_cpu_list( "socket", os.str() );
                 RH_INFO(get_affinity_logger(), "Promoting NIC affinity to PID:" << pid << " SOCKET:" << os.str() );
-                cpulist.clear();
                 for( int i=0; i < (int)tlist.size();i++ ) {
                   if ( tlist[i] == cpuid ) continue;
                   cpulist.push_back( tlist[i] );

@@ -1,0 +1,7 @@
+Makefile.in
+Makefile
+configure
+config.*
+appender_test
+proc_log
+cleanmem

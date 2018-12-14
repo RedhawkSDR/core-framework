@@ -20,6 +20,7 @@
 
 import threading
 import time
+import os
 
 # Limit exported symbols to official API; ProcessThread is exported for
 # backwards-compatibility
@@ -47,10 +48,13 @@ class ProcessThread(threading.Thread):
         while not self.stop_signal.isSet():
             try:
                 state = self.target()
-            except Exception, e:
-                if hasattr(self.target.__self__,'_log'):
-                    self.target.__self__._log.error("Exception detected in process function: "+str(e))
-                raise
+            except Exception as exc:
+                log = getattr(self.target.__self__, '_baseLog', None)
+                if log:
+                    log.fatal("Unhandled exception in process function: %s", exc, exc_info=True)
+                # Terminate the process on unhandled exceptions (sys.exit only
+                # exits the current thread, not the whole process)
+                os._exit(-1)
             if state == FINISH:
                 return
             elif state == NOOP:

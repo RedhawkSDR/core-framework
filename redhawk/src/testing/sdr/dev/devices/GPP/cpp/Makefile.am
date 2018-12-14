@@ -42,6 +42,8 @@ reports/SystemMonitorReporting.cpp \
 reports/SystemMonitorReporting.h \
 reports/CpuThresholdMonitor.cpp \
 reports/CpuThresholdMonitor.h \
+parsers/PidProcStatParser.cpp \
+parsers/PidProcStatParser.h \
 parsers/ProcStatFileParser.cpp \
 parsers/ProcStatFileParser.h \
 parsers/ProcStatParser.cpp \
@@ -50,6 +52,8 @@ parsers/ProcMeminfoParser.cpp \
 parsers/ProcMeminfoParser.h \
 states/NicState.cpp \
 states/NicState.h \
+states/Limits.cpp \
+states/Limits.h \
 states/State.h \
 states/CpuState.cpp \
 states/CpuState.h \
@@ -65,6 +69,8 @@ statistics/NicAccumulator.cpp \
 statistics/NicAccumulator.h \
 statistics/Statistics.h \
 struct_props.h \
+utils/popen.cpp \
+utils/popen.h \
 utils/affinity.cpp \
 utils/affinity.h \
 utils/CmdlineExecutor.cpp \
@@ -80,4 +86,4 @@ utils/ReferenceWrapper.h \
 utils/SymlinkReader.cpp \
 utils/SymlinkReader.h
 GPP_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-GPP_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+GPP_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -lboost_iostreams $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

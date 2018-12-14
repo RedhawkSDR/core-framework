@@ -22,15 +22,17 @@
 #include <sstream>
 
 // logging macros used by redhawk resources
+#include "ossie/logging/loghelpers.h"
 #include <ossie/debug.h>
 
 #ifdef HAVE_LOG4CXX
-#include <log4cxx/logger.h>
-#include <log4cxx/level.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/helpers/messagebuffer.h>
 #include <fstream>
+#include <log4cxx/propertyconfigurator.h>
+#include <log4cxx/helpers/bytearrayinputstream.h>
+#include <log4cxx/helpers/properties.h>
+#include <log4cxx/stream.h>
+#include "StringInputStream.h"
+#include <memory>
 #endif 
 
 // internal logging classes for std::out and log4cxx
@@ -79,7 +81,10 @@ namespace rh_logger {
   };
 
 
-  /*
+  const std::string Logger::USER_LOGS = "user";
+  const std::string Logger::SYSTEM_LOGS = "system";
+
+   /*
    */
   namespace spi
   {
@@ -343,7 +348,7 @@ namespace rh_logger {
   //
   // save off the resource logger name when the resource gets it's initial logger
   //
-  static std::string _rsc_logger_name;
+  static std::string _rsc_logger_name = "";
 
 
   //
@@ -372,6 +377,10 @@ namespace rh_logger {
       return _rsc_logger_name;
   }
 
+  LoggerPtr Logger::getInstanceLogger( const std::string &name ) {
+    return this->getLogger(name);
+  }
+
   LoggerPtr Logger::getLogger( const std::string &name ) {
     STDOUT_DEBUG( "RH_LOGGER getLogger  BEGIN ");
     LoggerPtr ret;
@@ -382,10 +391,10 @@ namespace rh_logger {
       ret = StdOutLogger::getLogger( name );
 #endif
       if ( ret->getLevel() ) {
-	STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
       }
       else{
-	STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
       }
     }
     else  {
@@ -395,10 +404,60 @@ namespace rh_logger {
     return ret;
   }
 
+  LoggerPtr Logger::getNewHierarchy( const std::string &name ) {
+    STDOUT_DEBUG( "RH_LOGGER getLogger  BEGIN ");
+    LoggerPtr ret;
+    if ( name != "" ) {
+#ifdef HAVE_LOG4CXX
+      ret = L4Logger::getLogger( name, true );
+#else
+      ret = StdOutLogger::getLogger( name );
+#endif
+      if ( ret->getLevel() ) {
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/" << ret->getLevel()->toString() );
+      }
+      else{
+    STDOUT_DEBUG( "RH_LOGGER getLogger name/level :" << ret->getName() <<  "/UNSET");
+      }
+    }
+    else  {
+#ifdef HAVE_LOG4CXX
+      ret = L4Logger::getLogger( name, true );
+#else
+      ret = getRootLogger();
+#endif
+    }
+    STDOUT_DEBUG( "RH_LOGGER getLogger  END ");
+    return ret;
+  }
+
 
   LoggerPtr Logger::getLogger( const char *name ) {
     std::string n(name);
     return getLogger(n);
+  }
+
+  LoggerPtr Logger::getChildLogger( const std::string &logname, const std::string &ns ) {
+    std::string _full_name;
+    std::string _ns = ns;
+    if (_ns == "user") {
+        if (name.find('.') != std::string::npos) {
+            _ns.clear();
+        }
+    }
+    if (not _ns.empty() and ((_ns!=Logger::USER_LOGS) or ((_ns==Logger::USER_LOGS) and (name.find("."+Logger::USER_LOGS+".") == std::string::npos))))
+        _full_name = name+"."+_ns+"."+logname;
+    else
+        _full_name = name+"."+logname;
+#ifdef HAVE_LOG4CXX
+    L4Logger* _this = (L4Logger*)this;
+    LoggerPtr tmp = _this->getInstanceLogger(_full_name);
+    L4Logger* tmpl4 = (L4Logger*)(tmp.get());
+    tmpl4->setHierarchy(_this->getRootHierarchy());
+    return tmp;
+#else
+    return getLogger(_full_name);
+#endif
   }
 
   void Logger::setLevel ( const LevelPtr &newLevel ) {
@@ -539,6 +598,51 @@ namespace rh_logger {
     return  log_records;
   }
 
+  void Logger::configureLogger(const std::string &configuration, bool root_reset, int level) {
+  }
+
+  void StdOutLogger::configureLogger(const std::string &configuration, bool root_reset, int level) {
+  }
+
+  bool Logger::isLoggerInHierarchy(const std::string& search_name) {
+    std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
+        size_t _idx = it->find(name);
+        if (_idx == 0) {
+            if (it->size() > name.size())
+                if ((*it)[name.size()] != '.')
+                    continue;
+            if (it->find(search_name) != 0)
+                continue;
+            if (it->size() > search_name.size()) {
+                if ((not search_name.empty()) and ((*it)[search_name.size()] != '.')) {
+                    continue;
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+  }
+
+  void* Logger::getUnderlyingLogger() {
+      return NULL;
+  }
+
+  std::vector<std::string> Logger::getNamedLoggers() {
+    std::vector<std::string> ret;
+    std::vector<std::string> loggers = _rootLogger->getNamedLoggers();
+    for (std::vector<std::string>::iterator it=loggers.begin(); it!=loggers.end(); ++it) {
+        size_t _idx = it->find(name);
+        if (_idx == 0) {
+            if (it->size() > name.size())
+                if ((*it)[name.size()] != '.')
+                    continue;
+            ret.push_back(*it);
+        }
+    }
+    return ret;
+  }
 
   //  append log record to circular buffer
   void Logger::appendLogRecord( const LevelPtr &level, const std::string &msg)  {
@@ -588,6 +692,26 @@ namespace rh_logger {
     return _rootLogger;
   }
 
+  bool StdOutLogger::isLoggerInHierarchy(const std::string& search_name) {
+    if (search_name == name)
+        return true;
+    return false;
+  }
+
+  void* StdOutLogger::getUnderlyingLogger() {
+      return NULL;
+  }
+
+  std::vector<std::string> StdOutLogger::getNamedLoggers() {
+      std::vector<std::string> ret;
+      ret.push_back(name);
+      return ret;
+  }
+
+
+  LoggerPtr StdOutLogger::getInstanceLogger( const std::string &name ) {
+    return this->getLogger(name);
+  }
 
   LoggerPtr StdOutLogger::getLogger( const std::string &name ) {
 
@@ -677,6 +801,9 @@ namespace rh_logger {
 
 
   log4cxx::LevelPtr ConvertRHLevelToLog4 ( rh_logger::LevelPtr rh_level ) {
+      if (!rh_level) {
+          return log4cxx::LevelPtr();
+      }
     if (rh_level == rh_logger::Level::getOff() )   return log4cxx::Level::getOff();
     if (rh_level == rh_logger::Level::getFatal() ) return log4cxx::Level::getFatal();
     if (rh_level == rh_logger::Level::getError() ) return log4cxx::Level::getError();
@@ -689,6 +816,9 @@ namespace rh_logger {
     };
 
   rh_logger::LevelPtr ConvertLog4ToRHLevel ( log4cxx::LevelPtr l4_level ) {
+      if (!l4_level) {
+          return rh_logger::LevelPtr();
+      }
     if (l4_level == log4cxx::Level::getOff() )   return rh_logger::Level::getOff();
     if (l4_level == log4cxx::Level::getFatal() ) return rh_logger::Level::getFatal();
     if (l4_level == log4cxx::Level::getError() ) return rh_logger::Level::getError();
@@ -697,7 +827,7 @@ namespace rh_logger {
     if (l4_level == log4cxx::Level::getDebug() ) return rh_logger::Level::getDebug();
     if (l4_level == log4cxx::Level::getTrace() ) return rh_logger::Level::getTrace();
     if (l4_level == log4cxx::Level::getAll() )   return rh_logger::Level::getAll();
-      return rh_logger::Level::getInfo();
+    return rh_logger::Level::getInfo();
     };
 
   L4Logger::L4LoggerPtr L4Logger::_rootLogger;
@@ -710,18 +840,59 @@ namespace rh_logger {
     if ( !_rootLogger ) {
       _rootLogger = L4LoggerPtr( new L4Logger("") );
       _rootLogger->l4logger = log4cxx::Logger::getRootLogger();
-     LevelPtr l= _rootLogger->getLevel();
+      LevelPtr l= _rootLogger->getLevel();
     }
     STDOUT_DEBUG(  " L4Logger  getRootLogger:  END ");
     return _rootLogger;
   }
 
+  LoggerPtr L4Logger::getInstanceLogger( const std::string &name ) {
+    LoggerPtr ret;
+    ret = LoggerPtr(new L4Logger( name, this->_rootHierarchy ));
+    return ret;
+  }
+
+  void L4Logger::configureLogger(const std::string &configuration, bool root_reset, int level) {
+    log4cxx::helpers::Properties  props;
+    log4cxx::helpers::InputStreamPtr is( new log4cxx::helpers::StringInputStream( configuration ) );
+    props.load(is);
+    this->_rootHierarchy->resetConfiguration();
+    log4cxx::spi::LoggerRepositoryPtr log_repo = this->_rootHierarchy;
+    prop_conf.doConfigure(props, log_repo);
+    if (root_reset) {
+        log4cxx::LoggerPtr new_root = this->_rootHierarchy->getRootLogger();
+        if (level == -1) {
+            log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
+            if (global_root->getEffectiveLevel()->toInt() != new_root->getEffectiveLevel()->toInt()) {
+                new_root->setLevel( global_root->getEffectiveLevel() );
+            }
+        } else {
+            new_root->setLevel(ConvertRHLevelToLog4(ossie::logging::ConvertDebugToRHLevel(level)));
+        }
+    }
+  }
+
   LoggerPtr L4Logger::getLogger( const std::string &name ) {
+    return getLogger(name, false);
+  }
+
+  LoggerPtr L4Logger::getLogger( const std::string &name, bool newroot ) {
     STDOUT_DEBUG(  " L4Logger::getLogger:  BEGIN name: " << name  );
 
     LoggerPtr ret;
     if ( name != "" ) {
-      ret = LoggerPtr( new L4Logger( name ) );
+      if (newroot) {
+        L4HierarchyPtr tmpHierarchy(new L4Hierarchy(name));
+
+        // make sure that the new root logger inherit the log level from the global root logger
+        log4cxx::LoggerPtr global_root = log4cxx::Logger::getRootLogger();
+        log4cxx::LoggerPtr new_root = tmpHierarchy->getRootLogger();
+        new_root->setLevel( global_root->getLevel() );
+
+        ret = LoggerPtr( new L4Logger( name, tmpHierarchy ) );
+      } else {
+        ret = LoggerPtr( new L4Logger( name ) );
+      }
       if ( ret->getLevel() )  {
 	STDOUT_DEBUG(  " L4Logger::getLogger: name /level " << ret->getName()  <<  "/" << ret->getLevel()->toString() );
       }
@@ -747,7 +918,19 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
-    //_error_count = 0;
+  }
+
+  L4Logger::L4Logger( const std::string &name, L4HierarchyPtr hierarchy ) : 
+    Logger(name),
+    l4logger()
+  {
+      if (hierarchy) {
+        _instanceRootLogger = hierarchy->getRootLogger();
+        l4logger = hierarchy->getLogger(name);
+        _rootHierarchy = hierarchy;
+      } else {
+        l4logger = log4cxx::Logger::getLogger(name);
+      }
   }
 
   L4Logger::L4Logger( const char *name ) :
@@ -755,7 +938,6 @@ namespace rh_logger {
     l4logger()
   {
     l4logger = log4cxx::Logger::getLogger(name);
-    // _error_count = 0;
   }
 
   void L4Logger::setLevel ( const rh_logger::LevelPtr &newLevel ) {
@@ -772,14 +954,63 @@ namespace rh_logger {
     }
   }
 
+  bool L4Logger::isLoggerInHierarchy(const std::string& search_name) {
+    log4cxx::LoggerList list = _rootHierarchy->getCurrentLoggers();
+    for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
+        std::string _name((*it)->getName());
+        size_t _idx = _name.find(name);
+        if (_idx == 0) {
+            if (_name.size() > name.size())
+                if (_name[name.size()] != '.')
+                    continue;
+            if (_name.find(search_name) != 0)
+                continue;
+            if (_name.size() > search_name.size()) {
+                if ((not search_name.empty()) and (_name[search_name.size()] != '.')) {
+                    continue;
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+  }
+
+  void* L4Logger::getUnderlyingLogger() {
+      return static_cast<void *>(l4logger);
+  }
+
+  std::vector<std::string> L4Logger::getNamedLoggers() {
+    std::vector<std::string> ret;
+    log4cxx::LoggerList list = _rootHierarchy->getCurrentLoggers();
+    for (log4cxx::LoggerList::iterator it=list.begin(); it!=list.end(); ++it) {
+        std::string _name((*it)->getName());
+        size_t _idx = _name.find(name);
+        if (_idx == 0) {
+            if (_name.size() > name.size())
+                if (_name[name.size()] != '.')
+                    continue;
+            ret.push_back(_name);
+        }
+    }
+    return ret;
+  }
 
   rh_logger::LevelPtr L4Logger::getLevel ( ) const {
     STDOUT_DEBUG(  " L4Logger::getLevel:  BEGIN logger: " << name  );
     if ( l4logger ) {
-      log4cxx::LevelPtr l4l = l4logger->getLevel();
-      if ( l4l )  {
-	STDOUT_DEBUG(  " L4Logger::getLevel:  l4level: " << l4l->toString()  ); 
-        return ConvertLog4ToRHLevel( l4l );
+      log4cxx::LevelPtr l4l;
+      log4cxx::LoggerPtr current_logger = l4logger;
+      while ( not l4l ) {
+        l4l = current_logger->getLevel();
+        if ( l4l )  {
+            return ConvertLog4ToRHLevel( l4l );
+        } else {
+            if (not current_logger->getParent()) {
+                return rh_logger::Logger::getLevel();
+            }
+            current_logger = current_logger->getParent();
+        }
       }
     }
 
@@ -787,7 +1018,6 @@ namespace rh_logger {
     STDOUT_DEBUG(  " L4Logger::getLevel:  END logger: " << name  );
     return rh_logger::Logger::getLevel();
   }
-
 
   bool L4Logger::isFatalEnabled() const
   {

@@ -23,13 +23,13 @@ namespace urn:mil:jpeojtrs:sca:sad {
     include "memory";
     include "../include/ossie/SoftwareAssembly.h";
     softwareassembly "::std::auto_ptr<ossie::SoftwareAssembly::SAD>";
-    componentfiles "::std::vector<ossie::ComponentFile>";
+    componentfiles "::std::vector<ossie::ComponentFile> &";
     componentfile "::ossie::ComponentFile";
     componentplacement "const ::ossie::ComponentPlacement&" "const ::ossie::ComponentPlacement&";
     partitioning "ossie::SoftwareAssembly::Partitioning";
     hostcollocation "::ossie::SoftwareAssembly::HostCollocation";
     componentinstantiation "const ::ossie::ComponentInstantiation &" "const ::ossie::ComponentInstantiation &";
-    connections "::std::vector<ossie::Connection>";
+    connections "::std::vector<ossie::Connection> &";
     connectinterface "::ossie::Connection";
     usesport "::ossie::UsesPort";
     providesport "::ossie::ProvidesPort";
@@ -39,7 +39,7 @@ namespace urn:mil:jpeojtrs:sca:sad {
     findby "::ossie::FindBy";
     namingservice "::std::string";
     domainfinder "::std::pair<std::string, std::string>";
-    componentproperties "const ossie::ComponentPropertyList &" "const ossie::ComponentPropertyList &";
+    componentproperties "ossie::ComponentPropertyList &";
     simpleref "const ossie::SimplePropertyRef &" "const ossie::SimplePropertyRef &";
     simplesequenceref "const ossie::SimpleSequencePropertyRef &" "const ossie::SimpleSequencePropertyRef &";
     structref "const ossie::StructPropertyRef &" "const ossie::StructPropertyRef &";
@@ -53,17 +53,23 @@ namespace urn:mil:jpeojtrs:sca:sad {
     devicethatloadedthiscomponentref "::std::string";
     deviceusedbythiscomponentref "::std::pair<std::string, std::string>";
     deviceusedbyapplication "::std::string";
-    externalports "::std::vector<ossie::SoftwareAssembly::Port>";
+    externalports "::std::vector<ossie::SoftwareAssembly::Port> &";
     port "ossie::SoftwareAssembly::Port";
     usesidentifier "::std::string";
     providesidentifier "::std::string";
     supportedidentifier "::std::string";
-    externalproperties "::std::vector<ossie::SoftwareAssembly::Property>";
+    externalproperties "::std::vector<ossie::SoftwareAssembly::Property> &";
     property "ossie::SoftwareAssembly::Property";
-    usesdevicedependencies "::std::vector<ossie::SoftwareAssembly::UsesDevice>";
-    usesdevice "ossie::SoftwareAssembly::UsesDevice";
-    propertyref "ossie::SoftwareAssembly::PropertyRef";
-    affinity "const ossie::ComponentInstantiation::AffinityProperties&" "const ossie::ComponentInstantiation::AffinityProperties&";
+    options "::std::vector<ossie::SoftwareAssembly::Option> &";
+    option "ossie::SoftwareAssembly::Option";
+    usesdevicedependencies "::std::vector<ossie::UsesDevice> &";
+    usesdevice "ossie::UsesDevice";
+    propertyref "ossie::PropertyRef";
+    affinity "ossie::ComponentInstantiation::AffinityProperties&";
     loggingconfig  "const ossie::ComponentInstantiation::LoggingConfig&"  "const ossie::ComponentInstantiation::LoggingConfig&";
+    devicerequires "ossie::ComponentPropertyList &" "ossie::ComponentPropertyList &";
+    idvalue "const ossie::IdValue&" "const ossie::IdValue&";
+    usesdeviceref "const ossie::UsesDeviceRef&" "const ossie::UsesDeviceRef&";
+    reservation "const ossie::Reservation&" "const ossie::Reservation&";
 }
 

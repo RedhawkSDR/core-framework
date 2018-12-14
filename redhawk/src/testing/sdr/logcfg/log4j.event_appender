@@ -1,0 +1,21 @@
+
+
+
+#log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+log4j.rootLogger=ALL,stdout, pse
+
+# Direct log messages to stdout
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n
+ 
+# Direct log messages to stdout
+log4j.appender.pse=org.ossie.logging.RH_LogEventAppender
+log4j.appender.pse.name_context=TEST_APPENDER
+log4j.appender.pse.event_channel=TEST_EVT_CH1
+log4j.appender.pse.producer_id=PRODUCER1
+log4j.appender.pse.producer_name=THE BIG CHEESE
+log4j.appender.pse.layout=org.apache.log4j.PatternLayout
+log4j.appender.pse.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n

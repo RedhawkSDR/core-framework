@@ -34,6 +34,30 @@ import subprocess
 def is_readable(path):
     return os.access(path,os.R_OK)
 
+def is_executable(path):
+    return os.access(path,os.X_OK)
+
+def is_writable(path):
+    return os.access(path,os.W_OK)
+
+def directoriesReadAccess(path):
+    for dirname, subdirlist, files in os.walk(path):
+        if not is_readable(dirname):
+            return False
+    return True
+
+def directoriesWriteAccess(path):
+    for dirname, subdirlist, files in os.walk(path):
+        if not is_readable(dirname):
+            return False
+    return True
+
+def directoriesExecuteAccess(path):
+    for dirname, subdirlist, files in os.walk(path):
+        if not is_executable(dirname):
+            return False
+    return True
+
 def is_running(process):
 
     s = subprocess.Popen(["ps", "axw"],stdout=subprocess.PIPE)
@@ -242,6 +266,7 @@ if __name__ == '__main__':
     endPointsChecked = False
 
     parser = OptionParser(usage=USAGE)
+    parser.add_option("--disk", action="store_true", dest="disk", help="Check $SDRROOT, $OSSIEHOME, and system configuration for minimum read/write access")
     parser.add_option("--ns", action="store_true", dest="namingService", help="Whether or not omniNames is expected to be running on this host")
     parser.add_option("--dom", action="store_true", dest="domain", help="Whether or not the Domain Manager is expected to be running on this host")
     parser.add_option("--dev", action="store_true", dest="device", help="Whether or not the Device Manager is expected to be running on this host")
@@ -252,10 +277,12 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
     if options.namingService == None and \
        options.domain == None and \
+       options.disk == None and \
        options.device == None:
         options.namingService = True 
         options.domain = True 
         options.device = True 
+        options.disk = True 
 
     # Get hostname
     hostname = (socket.gethostname()).split(".")[0]
@@ -264,17 +291,32 @@ if __name__ == '__main__':
         print "=========================================================================="
 
     # Make sure OSSIEHOME, SDRROOT, and /etc/omniORB.cfg are readable
+    ossiehome_set = False
     if os.environ.has_key('OSSIEHOME'):
+        ossiehome_set = True
         if not is_readable(os.environ['OSSIEHOME']):
             print "WARNING: $OSSIEHOME is not readable by this user."
             print "=========================================================================="
+    else:
+        print "ERROR: $OSSIEHOME is not set"
+        print "=========================================================================="
+    sdrroot_set = False
     if os.environ.has_key('SDRROOT'):
+        sdrroot_set = True
         if not is_readable(os.environ['SDRROOT']):
             print "WARNING: $SDRROOT is not readable by this user."
             print "=========================================================================="
+    else:
+        print "ERROR: $SDRROOT is not set"
+        print "=========================================================================="
     if not is_readable('/etc/omniORB.cfg'):
         print "ERROR: /etc/omniORB.cfg is not readable by this user.  This will cause nameclt to fail."
         print "SOLUTION: Set file permissions on /etc/omniORB.cfg to make it accessible to this user."
+        print "=========================================================================="
+        sys.exit() 
+    if not is_readable('/etc/hosts'):
+        print "ERROR: /etc/hosts is not readable by this user.  This may cause errors"
+        print "SOLUTION: Set file permissions on /etc/hosts to make it accessible to this user."
         print "=========================================================================="
         sys.exit() 
     if len(checkCatior()) == 0:
@@ -284,6 +326,47 @@ if __name__ == '__main__':
         sys.exit() 
 
     # If this script is running on the omniNames host, run the following diagnostics:
+    errorFound = False
+    if options.disk and ossiehome_set and sdrroot_set:
+        if not directoriesReadAccess(os.getenv('SDRROOT')):
+            errorFound = True
+            print "ERROR: One or more directories in SDRROOT are not readable by this user. This may lead to deployment errors."
+            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
+            print "=========================================================================="
+        if not directoriesWriteAccess(os.getenv('SDRROOT')):
+            errorFound = True
+            print "WARNING: One or more directories in SDRROOT are not writable by this user. This may lead to component or device installation errors."
+            print "SOLUTION: Set directory access permissions on SDRROOT to make it writable to this user."
+            print "=========================================================================="
+        if not directoriesExecuteAccess(os.getenv('SDRROOT')):
+            errorFound = True
+            print "ERROR: One or more directories in SDRROOT are not executable by this user. This may lead to deployment errors."
+            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
+            print "=========================================================================="
+        if not is_writable(os.getenv('SDRROOT')+'/dev'):
+            errorFound = True
+            print "ERROR: SDRROOT/dev is not writable by this user. This will lead to deployment errors."
+            print "SOLUTION: Set directory write permissions on SDRROOT/dev to make it writable to this user."
+            print "=========================================================================="
+        if not directoriesReadAccess(os.getenv('OSSIEHOME')):
+            errorFound = True
+            print "ERROR: One or more directories in SDRROOT are not readable by this user. This may lead to deployment errors."
+            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
+            print "=========================================================================="
+        if not directoriesWriteAccess(os.getenv('OSSIEHOME')):
+            errorFound = True
+            print "WARNING: One or more directories in OSSIEHOME are not writable by this user. This may lead to IDL project installation errors."
+            print "SOLUTION: Set directory access permissions on OSSIEHOME to make it writable to this user."
+            print "=========================================================================="
+        if not directoriesExecuteAccess(os.getenv('OSSIEHOME')):
+            errorFound = True
+            print "ERROR: One or more directories in SDRROOT are not executable by this user. This may lead to deployment errors."
+            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
+            print "=========================================================================="
+        if not errorFound:
+            print "No errors detected with $SDRROOT, $OSSIEHOME, or system configuration permissions"
+            print "=========================================================================="
+
     errorFound = False
     if options.namingService:
         # 1. Is omniNames process running?
@@ -601,7 +684,7 @@ if __name__ == '__main__':
         while True:
             line = proc.stdout.readline()
             if line != '':
-                if line.find("inet addr:"+ hostIP) != -1:
+                if line.find("inet addr:"+ hostIP) != -1 or line.find("inet "+ hostIP) != -1:
                     foundIP = True
                     break
             else:

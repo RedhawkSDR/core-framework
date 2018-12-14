@@ -45,12 +45,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <kind kindtype="execparam"/>
         <action type="external"/>
     </simple>
-    <simple id="PERSISTENCE" mode="readwrite" name="PERSISTENCE" type="boolean">
+    <simple id="PERSISTENCE" mode="readonly" name="PERSISTENCE" type="boolean" commandline="true">
         <description>
         Enable CORBA persistence for the domain manager.
         </description>
         <value>true</value>
-        <kind kindtype="execparam"/>
+        <kind kindtype="property"/>
         <action type="external"/>
     </simple>
     <simple id="DB_URL" mode="readwrite" name="DB_URL" type="string">

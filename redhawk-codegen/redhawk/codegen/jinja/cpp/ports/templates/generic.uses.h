@@ -27,8 +27,61 @@ class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::Queryabl
         ~${classname}();
 
 /*{% for op in portgen.operations() %}*/
-        ${op.returns} ${op.name}(${op.arglist});
+/*{%  if op.readwrite_attr %}*/
+        ${op.returns} ${op.name}();
+        ${op.returns} _get_${op.name}(const std::string __connection_id__);
+/*{%  else %}*/
+/*{%   if op.arglist %}*/
+        ${op.returns} ${op.name}(${op.arglist}, const std::string __connection_id__ = "");
+/*{%   else %}*/
+        ${op.returns} ${op.name}(const std::string __connection_id__ = "");
+/*{%   endif %}*/
+/*{%  endif %}*/
 /*{% endfor %}*/
+
+        std::vector<std::string> getConnectionIds()
+        {
+            std::vector<std::string> retval;
+            for (unsigned int i = 0; i < outConnections.size(); i++) {
+                retval.push_back(outConnections[i].second);
+            }
+            return retval;
+        };
+
+        void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+            if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                if (out or inOut or returnValue) {
+                    throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                            getConnectionIds());
+                }
+            }
+            if (this->outConnections.empty()) {
+                if (out or inOut or returnValue) {
+                    throw redhawk::PortCallError("No connections available.", std::vector<std::string>());
+                } else {
+                    if (not __connection_id__.empty()) {
+                        std::ostringstream eout;
+                        eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                        throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                    }
+                }
+            }
+            if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
+                bool foundConnection = false;
+                std::vector < std::pair < ${vartype}, std::string > >::iterator i;
+                for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                    if ((*i).second == __connection_id__) {
+                        foundConnection = true;
+                        break;
+                    }
+                }
+                if (not foundConnection) {
+                    std::ostringstream eout;
+                    eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                    throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                }
+            }
+        }
 
         ExtendedCF::UsesConnectionSequence * connections() 
         {

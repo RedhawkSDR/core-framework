@@ -25,8 +25,16 @@ sys.path.append("helpers")
 from _unitTestHelpers import scatest
 from _unitTestHelpers import runtestHelpers
 
+# Create a symbolic link to $SDRROOT/dom/mgr so that the sandbox can find
+# ComponentHost for shared library components
+sdrroot = os.path.join(os.getcwd(), "sdr")
+mgrpath = os.path.join(sdrroot, 'dom/mgr')
+if os.path.exists(mgrpath):
+    os.unlink(mgrpath)
+os.symlink(os.path.join(os.environ['SDRROOT'], 'dom/mgr'), mgrpath)
+
 # Point to the testing SDR folder
-os.environ['SDRROOT'] = os.path.join(os.getcwd(), "sdr")
+os.environ['SDRROOT'] = sdrroot
 os.environ['CODEGENTESTHOME'] = os.path.join(os.getcwd())
 
 def removeAll( src, items):

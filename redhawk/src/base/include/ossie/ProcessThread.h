@@ -24,14 +24,18 @@
 #include <time.h>
 #include <boost/thread.hpp>
 
+#include "debug.h"
+
 class ThreadedComponent;
 
 namespace ossie {
 
 class ProcessThread
 {
+    ENABLE_LOGGING;
+
 public:
-    ProcessThread(ThreadedComponent* target, float delay);
+    ProcessThread(ThreadedComponent* target, float delay, const std::string& name=std::string());
     ~ProcessThread();
 
     // Kicks off the thread
@@ -55,6 +59,7 @@ private:
     volatile bool _running;
     ThreadedComponent* _target;
     struct timespec _delay;
+    std::string _name;
 
 public: 
     boost::thread*& _mythread;

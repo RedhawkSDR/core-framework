@@ -29,6 +29,8 @@
 #include <arpa/inet.h>
 #include <sys/un.h>
 
+#include <timing.h>
+
 #include "control.h"
 
 static volatile bool running = true;
@@ -109,13 +111,24 @@ int main(int argc, const char* argv[])
     char temp;
     std::cin.get(temp);
 
+    size_t total_packets = 0;
+    double total_seconds = 0.0;
+
     while (running) {
         size_t buffer_size = state->transfer_size;
         if (buffer_size != buffer.size()) {
             buffer.resize(buffer_size);
+            total_packets = 0;
+            total_seconds = 0.0;
+            state->average_time = 0.0;
         }
+        double start = get_time();
         write(fd, &buffer_size, sizeof(buffer_size));
         ssize_t pass = write(fd, &buffer[0], buffer.size());
+        double end = get_time();
+        total_packets++;
+        total_seconds += end - start;
+        state->average_time = total_seconds / total_packets;
         state->total_bytes += pass;
     }
 

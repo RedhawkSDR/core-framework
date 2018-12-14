@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:8fb81e55-e0ce-4181-934e-a62a64221a00" name="test_service_startup_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="S1_ceb5b3bd-2d99-4c8e-8fa9-536f8c7b26f8" type="SPD">
+      <localfile name="/services/S1/S1.spd.xml"/>
+    </componentfile>
+    <componentfile id="S2_c4e6f783-864a-4263-a433-f1cc495cb844" type="SPD">
+      <localfile name="/services/S2/S2.spd.xml"/>
+    </componentfile>
+    <componentfile id="S2_pre_c4e6f783-864a-4263-a433-f1cc495cb844" type="SPD">
+      <localfile name="/services/S2_pre/S2_pre.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="S1_ceb5b3bd-2d99-4c8e-8fa9-536f8c7b26f8"/>
+      <componentinstantiation id="S1_1">
+        <usagename>S1_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="S2_c4e6f783-864a-4263-a433-f1cc495cb844"/>
+      <componentinstantiation id="S2_1">
+        <usagename>S2_1</usagename>
+        <componentproperties>
+          <simpleref refid="p1" value="p1 set by DCD file"/>
+          <simpleref refid="p2" value="123456"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="S2_pre_c4e6f783-864a-4263-a433-f1cc495cb844"/>
+      <componentinstantiation id="S2_pre_1">
+        <usagename>S2_pre_1</usagename>
+        <componentproperties>
+          <simpleref refid="p1" value="pre p1 set by DCD file"/>
+          <simpleref refid="p2" value="654321"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

@@ -17,64 +17,51 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-#include <bulkio_p.h>
 
+#include <boost/ref.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/thread.hpp>
+
+#include <bulkio_p.h>
 #include <bulkio_in_port.h>
 
-namespace  bulkio {
-
-  /*
-   * Wrap Callback functions as SriListerer objects
-   */
-  class StaticSriCallback : public SriListener
-  {
-  public:
-    virtual void operator() ( BULKIO::StreamSRI& sri)
-    {
-      (*func_)(sri);
-    }
-
-    StaticSriCallback ( SriListenerCallbackFn func) :
-      func_(func)
-    {
-    }
-
-  private:
-
-    SriListenerCallbackFn func_;
-  };
-
+namespace bulkio {
 
   // ----------------------------------------------------------------------------------------
   //  Source/Input Port Definitions
   // ----------------------------------------------------------------------------------------
 
-  template < typename PortTraits >
-  InPortBase< PortTraits >::InPortBase(std::string port_name, 
-                                       LOGGER_PTR  logger,
-                                       bulkio::sri::Compare sriCmp,
-                                       SriListener *newStreamCB):
-    Port_Provides_base_impl(port_name),
+  template <typename PortType>
+  InPort<PortType>::InPort(std::string port_name, 
+                           LOGGER_PTR  logger,
+                           bulkio::sri::Compare sriCmp,
+                           SriListener *newStreamCB):
+    redhawk::NegotiableProvidesPortBase(port_name),
     sri_cmp(sriCmp),
     newStreamCallback(),
+    maxQueue(100),
     breakBlock(false),
     blocking(false),
-    queueSem(new queueSemaphore(100)),
-    stats(new linkStatistics(port_name, sizeof(TransportType))),
-    logger(logger)
+    stats(new linkStatistics(port_name))
   {
+    // Manually set the bit size because the statistics ctor only takes a byte
+    // count
+    stats->setBitSize(NativeTraits<PortType>::bits);
+
     std::string _cmpMsg("USER_DEFINED");
     std::string _sriMsg("EMPTY");
 
-    if ( !logger  ) {
+    if (!logger) {
         std::string pname("redhawk.bulkio.inport.");
         pname = pname + port_name;
-        logger = rh_logger::Logger::getLogger(pname);
+        setLogger(rh_logger::Logger::getLogger(pname));
+    } else {
+        setLogger(logger);
     }
 
 
     if (newStreamCB) {
-      newStreamCallback = boost::shared_ptr< SriListener >( newStreamCB, null_deleter());
+      newStreamCallback = boost::ref(*newStreamCB);
       _sriMsg = "USER_DEFINED";
     }
 
@@ -83,42 +70,38 @@ namespace  bulkio {
       sri_cmp = bulkio::sri::DefaultComparator;
     }
 
-    LOG_DEBUG( logger, "bulkio::InPort CTOR port:" << name << 
-               " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
+    LOG_DEBUG( _portLog, "bulkio::InPort CTOR port:" << name << 
+               " Blocking/MaxInputQueueSize " << blocking << "/" << maxQueue <<  
                " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
   }
 
 
 
-  template < typename PortTraits >
-  InPortBase< PortTraits >::~InPortBase()
+  template <typename PortType>
+  InPort<PortType>::~InPort()
   {
-    TRACE_ENTER( logger, "InPort::DTOR" );
+    TRACE_ENTER( _portLog, "InPort::DTOR" );
 
     // block any data coming out of getPacket.. 
     block();
 
-    LOG_TRACE( logger, "PORT:" << name << " DUMP PKTS:" << workQueue.size() );
+    LOG_TRACE( _portLog, "PORT:" << name << " DUMP PKTS:" << packetQueue.size() );
 
     // purge the queue...
-    while (workQueue.size() != 0) {
-      DataTransferType *tmp = workQueue.front();
-      workQueue.pop_front();
-      delete tmp;
+    while (packetQueue.size() != 0) {
+      delete packetQueue.front();
+      packetQueue.pop_front();
     }
 
     // clean up allocated containers
-    if ( queueSem ) delete queueSem;
-
     if ( stats ) delete stats;
 
-    TRACE_EXIT( logger, "InPort::DTOR"  );
+    TRACE_EXIT( _portLog, "InPort::DTOR"  );
   }
 
 
-
-  template < typename PortTraits >
-  BULKIO::PortStatistics * InPortBase< PortTraits >::statistics()
+  template <typename PortType>
+  BULKIO::PortStatistics * InPort<PortType>::statistics()
   {
     SCOPED_LOCK lock(dataBufferLock);
     BULKIO::PortStatistics_var recStat = new BULKIO::PortStatistics(stats->retrieve());
@@ -127,13 +110,13 @@ namespace  bulkio {
   }
 
 
-  template < typename PortTraits >
-  BULKIO::PortUsageType InPortBase< PortTraits >::state()
+  template <typename PortType>
+  BULKIO::PortUsageType InPort<PortType>::state()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    if (workQueue.size() == queueSem->getMaxValue()) {
+    if (packetQueue.size() == maxQueue) {
       return BULKIO::BUSY;
-    } else if (workQueue.size() == 0) {
+    } else if (packetQueue.empty()) {
       return BULKIO::IDLE;
     } else {
       return BULKIO::ACTIVE;
@@ -143,179 +126,294 @@ namespace  bulkio {
   }
 
 
-  template < typename PortTraits >
-  BULKIO::StreamSRISequence * InPortBase< PortTraits >::activeSRIs()
+  template <typename PortType>
+  BULKIO::StreamSRISequence * InPort<PortType>::activeSRIs()
   {
     SCOPED_LOCK lock(sriUpdateLock);
-    BULKIO::StreamSRISequence seq_rtn;
-    SriMap::iterator currH;
-    int i = 0;
-    for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-      i++;
-      seq_rtn.length(i);
-      seq_rtn[i-1] = currH->second.first;
+    BULKIO::StreamSRISequence_var retSRI = new BULKIO::StreamSRISequence();
+    for (SriTable::iterator currH = currentHs.begin(); currH != currentHs.end(); ++currH) {
+      ossie::corba::push_back(retSRI, currH->second.first.sri());
     }
-    BULKIO::StreamSRISequence_var retSRI = new BULKIO::StreamSRISequence(seq_rtn);
 
     // NOTE: You must delete the object that this function returns!
     return retSRI._retn();
   }
 
-  template < typename PortTraits >
-  int InPortBase< PortTraits >::getMaxQueueDepth()
+  template <typename PortType>
+  int InPort<PortType>::getMaxQueueDepth()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    return queueSem->getMaxValue();
+    return maxQueue;
   }
 
-  template < typename PortTraits >
-  int  InPortBase< PortTraits >::getCurrentQueueDepth()
+  template <typename PortType>
+  int  InPort<PortType>::getCurrentQueueDepth()
   {
     SCOPED_LOCK lock(dataBufferLock);
-    return workQueue.size();
+    return packetQueue.size();
   }
 
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::setMaxQueueDepth(int newDepth)
+  template <typename PortType>
+  void InPort<PortType>::setMaxQueueDepth(int newDepth)
   {
     SCOPED_LOCK lock(dataBufferLock);
-    queueSem->setMaxValue(newDepth);
+    maxQueue = newDepth;
   }
 
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
+  template <typename PortType>
+  void InPort<PortType>::setNewStreamListener(SriListener* newListener) {
+      if (newListener) {
+          newStreamCallback = boost::ref(*newListener);
+      } else {
+          newStreamCallback.clear();
+      }
+  }
+
+  template <typename PortType>
+  void InPort<PortType>::pushSRI(const BULKIO::StreamSRI& H)
   {
-    TRACE_ENTER( logger, "InPort::pushSRI"  );
+    TRACE_ENTER( _portLog, "InPort::pushSRI"  );
 
     if (H.blocking) {
       SCOPED_LOCK lock(dataBufferLock);
       blocking = true;
-      queueSem->setCurrValue(workQueue.size());
     }
 
     const std::string streamID(H.streamID);
-    BULKIO::StreamSRI tmpH = H; // mutable copy for callbacks
-    LOG_TRACE(logger,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
+    LOG_TRACE(_portLog,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
 
     SCOPED_LOCK lock(sriUpdateLock);
-    SriMap::iterator currH = currentHs.find(streamID);
+    SriTable::iterator currH = currentHs.find(streamID);
+    StreamDescriptor sri(H);
     if (currH == currentHs.end()) {
-      LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
-      if ( newStreamCallback ) (*newStreamCallback)(tmpH);
-      currentHs[streamID] = std::make_pair(tmpH, true);
+      LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
+      if (newStreamCallback) {
+        // The callback takes a non-const SRI, so allow access via const_cast
+        newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
+      }
+      currentHs[streamID] = std::make_pair(sri, true);
       lock.unlock();
       
-      createStream(streamID, tmpH);
+      createStream(streamID, sri);
     } else {
-      if ( sri_cmp && !sri_cmp(tmpH, currH->second.first)) {
-        LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
-        currentHs[streamID] = std::make_pair(tmpH, true);
+      int eos_count = 0;
+      for (typename PacketQueue::iterator ii = this->packetQueue.begin(); ii != this->packetQueue.end(); ++ii) {
+          if (((*ii)->streamID == streamID) and ((*ii)->EOS)) {
+              eos_count++;
+          }
+      }
+      int additional_streams = 1+pendingStreams.count(streamID); // count current and pending streams
+      if (additional_streams == eos_count) { // current and pending streams are all eos
+        createStream(streamID, sri);
+      } else {
+        if (sri_cmp && !sri_cmp(H, currH->second.first.sri())) {
+            LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " SAME SRI:" << streamID << " Mode:" << H.mode );
+            currH->second.first = StreamDescriptor(H);
+            currH->second.second = true;
+        }
       }
     }
-    TRACE_EXIT( logger, "InPort::pushSRI"  );
+    TRACE_EXIT( _portLog, "InPort::pushSRI"  );
   }
 
+    namespace {
+        template <typename T>
+        inline bool is_copy_required(const redhawk::shared_buffer<T>& data)
+        {
+            // If the data comes from a non-shared source (a vector or raw
+            // pointer), we need to make a copy.
+            return (data.transient() && !data.empty());
+        }
 
-  template < typename PortTraits >
-  void  InPortBase< PortTraits >::queuePacket(const PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+        template <typename T>
+        inline redhawk::shared_buffer<T> copy_data(const redhawk::shared_buffer<T>& data)
+        {
+            return data.copy();
+        }
+
+        inline bool is_copy_required(const redhawk::shared_bitbuffer& data)
+        {
+            // If the data comes from a non-shared source (a raw pointer), we
+            // need to make a copy.
+            return (data.transient() && !data.empty());
+        }
+
+        inline const redhawk::shared_bitbuffer copy_data(const redhawk::shared_bitbuffer& data)
+        {
+            return data.copy();
+        }
+
+        inline bool is_copy_required(const std::string&)
+        {
+            // Strings don't have sharing semantics, so no copy is required.
+            return false;
+        }
+
+        inline const std::string& copy_data(const std::string& data)
+        {
+            // Pass through the string by reference (no copies made)
+            return data;
+        }
+
+    }
+
+  template <typename PortType>
+  void  InPort<PortType>::queuePacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const std::string& streamID)
   {
+    TRACE_ENTER( _portLog, "InPort::pushPacket"  );
 
-    TRACE_ENTER( logger, "InPort::pushPacket"  );
-    if (queueSem->getMaxValue() == 0) {
-      TRACE_EXIT( logger, "InPort::pushPacket"  );
-      return;
-    }
-
+    // Discard packets for disabled streams
     if (!_acceptPacket(streamID, EOS)) {
+        if (EOS) {
+            // If this was the only blocking stream, turn off blocking
+            bool turnOffBlocking = _handleEOS(streamID);
+            if (turnOffBlocking) {
+                SCOPED_LOCK lock(dataBufferLock);
+                blocking = false;
+            }
+        }
+        return;
+    }
+
+    if (maxQueue == 0) {
+      TRACE_EXIT( _portLog, "InPort::pushPacket"  );
       return;
     }
 
-    BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, false, 0};
-    bool sriChanged = false;
-    bool portBlocking = false;
+    // Discard empty packets if EOS is not set, as there is no useful data or
+    // metadata to be had--since T applies to the 1st sample (which does not
+    // exist), all we have is a stream ID
+    if (data.empty() && !EOS) {
+        return;
+    }
 
-    SriMap::iterator currH;
+    StreamDescriptor sri;
+    bool sriChanged = false;
+
     {
       SCOPED_LOCK lock(sriUpdateLock);
 
-      currH = currentHs.find(std::string(streamID));
+      SriTable::iterator currH = currentHs.find(streamID);
       if (currH != currentHs.end()) {
-        tmpH = currH->second.first;
+        sri = currH->second.first;
         sriChanged = currH->second.second;
-        currentHs[streamID] = std::make_pair(currH->second.first, false);
+        currH->second.second = false;
       } else {
         // Unknown stream ID, register a new default SRI following the logic in pushSRI,
         // and set the SRI changed flag
-        LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
+        LOG_WARN(_portLog, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
         sriChanged = true;
+        sri = StreamDescriptor(bulkio::sri::create(streamID));
         if (newStreamCallback) {
-          (*newStreamCallback)(tmpH);
+          // The callback takes a non-const SRI, so allow access via const_cast
+          newStreamCallback(const_cast<BULKIO::StreamSRI&>(sri.sri()));
         }
-        currentHs[streamID] = std::make_pair(tmpH, false);
+        currentHs[streamID] = std::make_pair(sri, false);
         lock.unlock();
 
-        createStream(streamID, tmpH);
+        createStream(streamID, sri);
       }
-      portBlocking = blocking;
     }
 
     const size_t length = _getElementLength(data);
-    LOG_DEBUG( logger, "bulkio::InPort port blocking:" << portBlocking );
-    bool flushToReport = false;
-    if(portBlocking) {
-      queueSem->incr();
+    {
+      bool flushToReport = false;
       SCOPED_LOCK lock(dataBufferLock);
-      LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
-      stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, false);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, false);
-      workQueue.push_back(tmpIn);
-      dataAvailable.notify_all();
-    } else {
-      SCOPED_LOCK lock(dataBufferLock);
-      bool sriChangedHappened = false;
-      bool flagEOS = false;
-      if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
-        LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
-        flushToReport = true;
-        DataTransferType *tmp;
-        while (workQueue.size() != 0) {
-          tmp = workQueue.front();
-          if (tmp->sriChanged == true) {
-            sriChangedHappened = true;
-          }
-          if (tmp->EOS == true) {
-              flagEOS = true;
-          }
-          workQueue.pop_front();
-          delete tmp;
+      LOG_DEBUG(_portLog, "bulkio::InPort port blocking:" << blocking);
+      if (blocking) {
+        while (packetQueue.size() >= maxQueue) {
+          queueAvailable.wait(lock);
+        }
+      } else {
+        if (packetQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
+          LOG_DEBUG( _portLog, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
+          flushToReport = true;
+
+          // Need to hold the SRI mutex while flushing the queue because it may
+          // update SRI change state
+          SCOPED_LOCK lock(sriUpdateLock);
+          _flushQueue();
+
+          // Update the SRI change flag for this stream, which may have been
+          // modified during the queue flush
+          sriChanged = currentHs[streamID].second;
+          currentHs[streamID].second = false;
         }
       }
-      if (sriChangedHappened)
-        sriChanged = true;
-      if (flagEOS)
-          EOS = true;
 
-      LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
-      stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
-      DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
-      workQueue.push_back(tmpIn);
+      LOG_TRACE(_portLog, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << packetQueue.size()+1 << ")");
+      stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
+      Packet *tmpIn;
+      if (is_copy_required(data)) {
+          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, false);
+      } else {
+          tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
+      }
+      packetQueue.push_back(tmpIn);
+      // If a flush occurred, always set the flag on the first packet; this may
+      // not be the packet that was just inserted if there were any EOS packets
+      // on the queue
+      if (flushToReport) {
+        packetQueue.front()->inputQueueFlushed = true;
+      }
       dataAvailable.notify_all();
     }
 
-    packetReceived(streamID);
+    packetWaiters.notify(streamID);
 
-    TRACE_EXIT( logger, "InPort::pushPacket"  );
+    TRACE_EXIT( _portLog, "InPort::pushPacket"  );
   }
 
 
-  template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType* InPortBase< PortTraits >::peekPacket(float timeout)
+  template <typename PortType>
+  void InPort<PortType>::_flushQueue()
+  {
+    std::set<std::string> sri_changed;
+    PacketQueue saved_packets;
+    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+      Packet* packet = *iter;
+      if (packet->EOS) {
+        // Remove the SRI change flag for this stream, as further SRI changes
+        // apply to a different stream; set the SRI change flag for the EOS
+        // packet if there was one for this stream earlier in the queue
+        if (sri_changed.erase(packet->streamID)) {
+          packet->sriChanged = true;
+        }
+
+        // Discard data and preserve the EOS packet
+        packet->buffer = BufferType();
+        saved_packets.push_back(packet);
+      } else {
+        if (packet->sriChanged) {
+          sri_changed.insert(packet->streamID);
+        }
+        delete packet;
+      }
+    }
+    packetQueue.swap(saved_packets);
+
+    // Save any SRI change flags that were collected and not applied to an EOS
+    // packet
+    for (std::set<std::string>::iterator stream_id = sri_changed.begin();
+         stream_id != sri_changed.end(); ++stream_id) {
+      // It should be safe to assume that an entry exists for the stream ID,
+      // but just in case, use find instead of operator[]
+      SriTable::iterator currH = currentHs.find(*stream_id);
+      if (currH != currentHs.end()) {
+        currH->second.second = true;
+      }
+    }
+  }
+
+
+  template <typename PortType>
+  typename InPort<PortType>::Packet* InPort<PortType>::peekPacket(float timeout,
+                                                                  boost::unique_lock<boost::mutex>& lock)
   {
     uint64_t secs = (unsigned long)(trunc(timeout));
     uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
     boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-    boost::mutex::scoped_lock lock(this->dataBufferLock);
-    while (!breakBlock && workQueue.empty()) {
+    while (!breakBlock && packetQueue.empty()) {
       if (timeout == 0) {
         break;
       } else if (timeout > 0) {
@@ -327,60 +425,15 @@ namespace  bulkio {
       }
     }
 
-    if (breakBlock || workQueue.empty()) {
+    if (breakBlock || packetQueue.empty()) {
       return 0;
     } else {
-      return workQueue.front();
+      return packetQueue.front();
     }
   }
 
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::isStreamActive(const std::string& streamID)
-  {
-    return true;
-  }
-
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::_acceptPacket(const std::string& streamID, bool EOS)
-  {
-    // Acquire dataBufferLock for the duration of this call to ensure that end-
-    // of-stream is handled atomically for disabled streams
-    SCOPED_LOCK(dataBufferLock);
-    if (isStreamEnabled(streamID)) {
-      return true;
-    }
-    if (EOS) {
-      // Acknowledge the end-of-stream by removing the disabled stream before
-      // discarding the packet
-      removeStream(streamID);
-
-      // If this was the only blocking stream, turn off blocking
-      bool turnOffBlocking = _handleEOS(streamID);
-      if (turnOffBlocking) {
-        queueSem->setCurrValue(0);
-        blocking = false;
-      }
-    }
-    return false;
-  }
-
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::isStreamEnabled(const std::string& streamID)
-  {
-    return true;
-  }
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::packetReceived(const std::string& streamID)
-  {
-    if (isStreamActive(streamID)) {
-      packetWaiters.notify(streamID);
-    }
-  }
-
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::enableStats( bool enable )
+  template <typename PortType>
+  void InPort<PortType>::enableStats( bool enable )
   {
     if (stats ) {
       stats->setEnabled(enable);
@@ -388,39 +441,85 @@ namespace  bulkio {
   }
 
 
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::block()
+  template <typename PortType>
+  void InPort<PortType>::block()
   {
-    TRACE_ENTER( logger, "InPort::block"  );
+    TRACE_ENTER( _portLog, "InPort::block"  );
     breakBlock = true;
-    queueSem->release();
     dataAvailable.notify_all();
     packetWaiters.interrupt();
-    TRACE_EXIT( logger, "InPort::block"  );
+    TRACE_EXIT( _portLog, "InPort::block"  );
   }
 
-  template < typename PortTraits >
-  void  InPortBase< PortTraits >::unblock()
+  template <typename PortType>
+  void  InPort<PortType>::unblock()
   {    
     breakBlock = false;
   }
 
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::stopPort()
+  template <typename PortType>
+  void InPort<PortType>::stopPort()
   {
     block();
   }
 
-  template < typename PortTraits >
-  void  InPortBase< PortTraits >::startPort()
+  template <typename PortType>
+  void  InPort<PortType>::startPort()
   {
     unblock();
   }
 
-  template < typename PortTraits >
-  bool  InPortBase< PortTraits >::blocked()
+  template <typename PortType>
+  bool  InPort<PortType>::blocked()
   {    
     return breakBlock;
+  }
+
+  template <typename PortType>
+  typename InPort<PortType>::StreamType InPort<PortType>::getCurrentStream(float timeout)
+  {
+    // Prefer a stream that already has buffered data
+    {
+      boost::mutex::scoped_lock lock(streamsMutex);
+      for (typename StreamMap::iterator stream = streams.begin(); stream != streams.end(); ++stream) {
+        if (stream->second.hasBufferedData()) {
+          return stream->second;
+        }
+      }
+    }
+
+    // Otherwise, return the stream that owns the next packet on the queue,
+    // potentially waiting for one to be received
+    boost::mutex::scoped_lock lock(this->dataBufferLock);
+    Packet* packet = this->peekPacket(timeout, lock);
+    if (packet) {
+      return getStream(packet->streamID);
+    }
+
+    return StreamType();
+  }
+
+  template <typename PortType>
+  typename InPort<PortType>::StreamType InPort<PortType>::getStream(const std::string& streamID)
+  {
+    boost::mutex::scoped_lock lock(streamsMutex);
+    typename StreamMap::iterator stream = streams.find(streamID);
+    if (stream != streams.end()) {
+      return stream->second;
+    } else {
+      return StreamType();
+    }
+  }
+
+  template <typename PortType>
+  typename InPort<PortType>::StreamList InPort<PortType>::getStreams()
+  {
+    StreamList result;
+    boost::mutex::scoped_lock lock(streamsMutex);
+    for (typename StreamMap::const_iterator stream = streams.begin(); stream != streams.end(); ++stream) {
+      result.push_back(stream->second);
+    }
+    return result;
   }
 
   /*
@@ -430,36 +529,53 @@ namespace  bulkio {
    *  timeout: the amount of time to wait for data before a NULL is returned.
    *           Use 0.0 for non-blocking and -1 for blocking.
    */
-  template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::getPacket(float timeout)
+  template <typename PortType>
+  typename InPort<PortType>::DataTransferType * InPort<PortType>::getPacket(float timeout)
   {
     return getPacket(timeout, "");
   }
 
-
-  template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::getPacket(float timeout, const std::string& streamID)
+  template <typename PortType>
+  typename InPort<PortType>::DataTransferType * InPort<PortType>::getPacket(float timeout, const std::string& streamID)
   {
-    TRACE_ENTER( logger, "InPort::getPacket"  );
+    DataTransferType* transfer = 0;
+    boost::scoped_ptr<Packet> packet(nextPacket(timeout, streamID));
+    if (packet) {
+      transfer = new DataTransferType(packet->buffer, packet->T, packet->EOS, packet->streamID.c_str(), packet->SRI.sri(), packet->sriChanged, packet->inputQueueFlushed);
+      if (packet->EOS) {
+        // When user code is calling getPacket(), it is safe to assume they are
+        // not using using the stream API, so remove the associated stream here
+        // to avoid leaking memory
+        removeStream(packet->streamID);
+      }
+    }
+    return transfer;
+  }
+
+
+  template <typename PortType>
+  typename InPort<PortType>::Packet* InPort<PortType>::nextPacket(float timeout, const std::string& streamID)
+  {
+    TRACE_ENTER(_portLog, "InPort::nextPacket");
     if (breakBlock) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
+      TRACE_EXIT(_portLog, "InPort::nextPacket");
       return NULL;
     }
 
-    DataTransferType *tmp=NULL;
+    Packet* packet = 0;
     {
       SCOPED_LOCK lock(dataBufferLock);
-      tmp = fetchPacket(streamID);
+      packet = fetchPacket(streamID);
       uint64_t secs = (unsigned long)(trunc(timeout));
       uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
       boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-      while (!tmp) {
+      while (!packet) {
         if (timeout == 0.0) {
-          TRACE_EXIT( logger, "InPort::getPacket"  );
+          TRACE_EXIT(_portLog, "InPort::nextPacket");
           return NULL;
         } else if (timeout > 0){
           if (!dataAvailable.timed_wait(lock, to_time)) {
-            TRACE_EXIT( logger, "InPort::getPacket"  );
+            TRACE_EXIT(_portLog, "InPort::nextPacket");
             return NULL;
           }
         } else {
@@ -469,41 +585,37 @@ namespace  bulkio {
             }
         }
         if (breakBlock) {
-          TRACE_EXIT( logger, "InPort::getPacket"  );
+          TRACE_EXIT(_portLog, "InPort::nextPacket");
           return NULL;
         }
-        tmp = fetchPacket(streamID);
+        packet = fetchPacket(streamID);
       }
       
-      LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
+      if (!packet) {
+        TRACE_EXIT(_portLog, "InPort::nextPacket");
+        return NULL;
+      }
 
-    }
-
-    if (!tmp) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
-      return NULL;
+      LOG_TRACE(_portLog, "InPort::nextPacket PORT:" << name << " (QUEUE="<< packetQueue.size() << ")");
+      queueAvailable.notify_all();
     }
 
     bool turnOffBlocking = false;
-    if (tmp->EOS) {
-      turnOffBlocking = _handleEOS(tmp->streamID);
+    if (packet->EOS) {
+      turnOffBlocking = _handleEOS(packet->streamID);
     }
 
     {
       SCOPED_LOCK lock(dataBufferLock);
       if (turnOffBlocking) {
-        queueSem->setCurrValue(0);
         blocking = false;
-      }
-
-      if (blocking) {
-        queueSem->decr();
       }
     }
 
-    TRACE_EXIT( logger, "InPort::getPacket"  );
-    return tmp;
+    TRACE_EXIT( _portLog, "InPort::nextPacket"  );
+    return packet;
   }
+
 
   namespace {
     template <class T>
@@ -527,22 +639,43 @@ namespace  bulkio {
     }
   }
 
-  template < typename PortTraits >
-  typename InPortBase< PortTraits >::DataTransferType * InPortBase< PortTraits >::fetchPacket(const std::string &streamID)
+  template <typename PortType>
+  void InPort<PortType>::createStream(const std::string& streamID,
+                                          const bulkio::StreamDescriptor& sri)
+  {
+    StreamType stream(sri, this);
+    boost::mutex::scoped_lock lock(streamsMutex);
+    if (streams.count(streamID) == 0) {
+      // New stream
+      LOG_DEBUG(_portLog, "Creating new stream " << streamID);
+      streams.insert(std::make_pair(streamID, stream));
+      lock.unlock();
+
+      streamAdded(stream);
+    } else {
+      // An active stream has the same stream ID; add this new stream to the
+      // pending list
+      LOG_DEBUG(_portLog, "Creating pending stream " << streamID);
+      pendingStreams.insert(std::make_pair(streamID, stream));
+    }
+  }
+
+  template <typename PortType>
+  typename InPort<PortType>::Packet * InPort<PortType>::fetchPacket(const std::string &streamID)
   {
     if (streamID.empty()) {
-      if (workQueue.empty()) {
+      if (packetQueue.empty()) {
         return 0;
       }
-      DataTransferType* packet = workQueue.front();
-      workQueue.pop_front();
+      Packet* packet = packetQueue.front();
+      packetQueue.pop_front();
       return packet;
     }
 
-    for (typename WorkQueue::iterator ii = workQueue.begin(); ii != workQueue.end(); ++ii) {
+    for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end(); ++ii) {
       if ((*ii)->streamID == streamID) {
-        DataTransferType* packet = *ii;
-        bulkio::do_erase(workQueue, ii);
+        Packet* packet = *ii;
+        bulkio::do_erase(packetQueue, ii);
         return packet;
       }
     }
@@ -550,17 +683,15 @@ namespace  bulkio {
   }
 
   template <typename PortType>
-  void InPortBase<PortType>::discardPacketsForStream(const std::string& streamID)
+  void InPort<PortType>::discardPacketsForStream(const std::string& streamID)
   {
-    // Caller must hold dataBufferLock
-    for (typename WorkQueue::iterator ii = workQueue.begin(); ii != workQueue.end();) {
+    SCOPED_LOCK lock(dataBufferLock);
+    for (typename PacketQueue::iterator ii = packetQueue.begin(); ii != packetQueue.end();) {
       if ((*ii)->streamID == streamID) {
         bool eos = (*ii)->EOS;
         delete *ii;
-        ii = bulkio::do_erase(workQueue, ii);
-        if (blocking) {
-          queueSem->decr();
-        }
+        ii = bulkio::do_erase(packetQueue, ii);
+        queueAvailable.notify_one();
         if (eos) {
           break;
         }
@@ -570,74 +701,48 @@ namespace  bulkio {
     }
   }
 
-  template < typename PortTraits >
-  bool InPortBase< PortTraits >::_handleEOS(const std::string& streamID)
+  template <typename PortType>
+  bool InPort<PortType>::_handleEOS(const std::string& streamID)
   {
-    bool turnOffBlocking = false;
-    SCOPED_LOCK lock2(sriUpdateLock);
-    SriMap::iterator target = currentHs.find(streamID);
-    if (target != currentHs.end()) {
-      bool sriBlocking = target->second.first.blocking;
-      currentHs.erase(target);
-      if (sriBlocking) {
-        turnOffBlocking = true;
-        SriMap::iterator currH;
-        for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-          if (currH->second.first.blocking) {
-            turnOffBlocking = false;
-            break;
+      bool turnOffBlocking = false;
+      SCOPED_LOCK lock(sriUpdateLock);
+      SriTable::iterator target = currentHs.find(streamID);
+      if (target != currentHs.end()) {
+          bool sriBlocking = target->second.first.blocking();
+          currentHs.erase(target);
+          if (sriBlocking) {
+              turnOffBlocking = true;
+              SriTable::iterator currH;
+              for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+                  if (currH->second.first.blocking()) {
+                      turnOffBlocking = false;
+                      break;
+                  }
+              }
           }
-        }
       }
-    }
-    return turnOffBlocking;
+      return turnOffBlocking;
   }
 
-  template < typename PortTraits >
-  void   InPortBase< PortTraits >::setNewStreamListener( SriListener *newListener ) {
-    newStreamCallback =  boost::shared_ptr< SriListener >(newListener, null_deleter());
+  template <typename PortType>
+  std::string   InPort<PortType>::getRepid() const {
+    return PortType::_PD_repoId;
   }
 
-  template < typename PortTraits >
-  void   InPortBase< PortTraits >::setNewStreamListener( SriListenerCallbackFn  newListener ) {
-    newStreamCallback =  boost::make_shared< StaticSriCallback >( newListener );
-
-  }
-
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::createStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
+  template <typename PortType>
+  int InPort<PortType>::_getElementLength(const BufferType& data)
   {
+    return data.size();
   }
 
-  template < typename PortTraits >
-  void InPortBase< PortTraits >::removeStream(const std::string& streamID)
-  {
-  }
-
-  template < typename PortTraits >
-  void   InPortBase< PortTraits >::setLogger( LOGGER_PTR newLogger ) {
-    logger = newLogger;
-  }
-
-  template < typename PortTraits >
-  std::string   InPortBase< PortTraits >::getRepid() const {
-	return PortType::_PD_repoId;
-  }
-
-  template < typename PortTraits >
-  int InPortBase< PortTraits >::_getElementLength(const PushArgumentType data)
-  {
-    return data.length();
-  }
-
-  template < typename PortTraits >
-  size_t InPortBase< PortTraits >::samplesAvailable (const std::string& streamID, bool firstPacket)
+  template <typename PortType>
+  size_t InPort<PortType>::samplesAvailable (const std::string& streamID, bool firstPacket)
   {
     size_t samples = 0;
     size_t item_size = 1;
     SCOPED_LOCK lock(dataBufferLock);
-    for (typename WorkQueue::iterator iter = workQueue.begin(); iter != workQueue.end(); ++iter) {
-      DataTransferType* packet = *iter;
+    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+      Packet* packet = *iter;
       if (packet->streamID != streamID) {
         continue;
       }
@@ -645,12 +750,109 @@ namespace  bulkio {
         if (!firstPacket) break;
       }
       firstPacket = false;
-      if (packet->SRI.mode) {
+      if (packet->SRI.complex()) {
           item_size = 2;
       }
-      samples += packet->dataBuffer.size();
+      samples += packet->buffer.size();
     }
     return samples / item_size;
+  }
+
+  template <typename PortType>
+  void InPort<PortType>::removeStream(const std::string& streamID)
+  {
+    LOG_DEBUG(_portLog, "Removing stream " << streamID);
+    boost::mutex::scoped_lock lock(streamsMutex);
+
+    // Remove the current stream, and if there's a pending stream with the same
+    // stream ID, move it to the active list
+    typename StreamMap::iterator current = streams.find(streamID);
+    if (current != streams.end()) {
+      // There should always be a stream with the expected streamID when this
+      // method is called, but just to be safe, only close and remove when we
+      // know it's a valid stream
+      current->second.close();
+      streams.erase(current);
+    }
+    typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
+    if (next != pendingStreams.end()) {
+      LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");
+      StreamType stream = next->second;
+      streams.insert(*next);
+      pendingStreams.erase(next);
+      lock.unlock();
+
+      streamAdded(stream);
+    }
+  }
+
+  template <typename PortType>
+  bool InPort<PortType>::isStreamActive(const std::string& streamID)
+  {
+    SCOPED_LOCK lock(streamsMutex);
+    if (pendingStreams.count(streamID) > 0) {
+      // The current stream has received an EOS
+      return false;
+    } else if (streams.count(streamID) == 0) {
+      // Unknown stream, presumably no SRI was received
+      return false;
+    }
+    return true;
+  }
+
+  template <typename PortType>
+  bool InPort<PortType>::_acceptPacket(const std::string& streamID, bool EOS)
+  {
+      // Acquire streamsMutex for the duration of this call to ensure that
+      // end-of-stream is handled atomically for disabled streams
+      boost::mutex::scoped_lock lock(streamsMutex);
+
+      // Find the current stream for the stream ID and check whether it's
+      // enabled
+      typename StreamMap::iterator stream = streams.find(streamID);
+      if (stream == streams.end() || stream->second.enabled()) {
+          return true;
+      }
+
+      // If there's a pending stream, the packet is designated for that
+      if (pendingStreams.find(streamID) != pendingStreams.end()) {
+          return true;
+      }
+
+      if (EOS) {
+          // Acknowledge the end-of-stream by removing the disabled stream
+          // before discarding the packet
+          LOG_DEBUG(_portLog, "Removing stream " << streamID);
+          stream->second.close();
+          streams.erase(stream);
+
+          typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
+          if (next != pendingStreams.end()) {
+              LOG_DEBUG(_portLog, "Moving pending stream " << streamID << " to active");
+              StreamType stream = next->second;
+              streams.insert(*next);
+              pendingStreams.erase(next);
+              lock.unlock();
+
+              streamAdded(stream);
+          }
+      }
+      return false;
+  }
+
+  template <typename PortType>
+  bool InPort<PortType>::isStreamEnabled(const std::string& streamID)
+  {
+    SCOPED_LOCK lock(streamsMutex);
+    if (pendingStreams.count(streamID) == 0) {
+      typename StreamMap::iterator stream = streams.find(streamID);
+      if (stream != streams.end()) {
+        if (!stream->second.enabled()) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   namespace {
@@ -678,119 +880,61 @@ namespace  bulkio {
   }
 
   /*
-   * Specializations of base class methods for dataXML ports
-   */
-
-  template <>
-  int InPortBase< FilePortTraits >::_getElementLength(const char* /*unused*/)
-  {
-    return 1;
-  }
-
-  /*
    * Specializations of base class methods for dataFile ports
    */
 
   template <>
-  int InPortBase< XMLPortTraits >::_getElementLength(const char* data)
+  int InPort<BULKIO::dataFile>::_getElementLength(const std::string& /*unused*/)
   {
-    if (!data) {
-      return 0;
-    }
-    return strlen(data);
+    return 1;
   }
 
   //
-  template < typename PortTraits >
-  InPort< PortTraits >::InPort(std::string port_name, 
-                               LOGGER_PTR  logger,
-                               bulkio::sri::Compare compareSri,
-                               SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, logger, compareSri, newStreamCB)
+  template <typename PortType>
+  InNumericPort<PortType>::InNumericPort(std::string port_name, 
+                                         LOGGER_PTR  logger,
+                                         bulkio::sri::Compare compareSri,
+                                         SriListener *newStreamCB) :
+    InPort<PortType>(port_name, logger, compareSri, newStreamCB)
   {
   }
 
-  template < typename PortTraits >
-  InPort< PortTraits >::InPort(std::string port_name, 
-                               bulkio::sri::Compare compareSri,
-                               SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
+  template <typename PortType>
+  InNumericPort<PortType>::InNumericPort(std::string port_name, 
+                                         bulkio::sri::Compare compareSri,
+                                         SriListener *newStreamCB) :
+    InPort<PortType>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
   {
   }
 
-  template < typename PortTraits >
-  InPort< PortTraits >::InPort(std::string port_name, void* /*unused*/) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR())
+  template <typename PortType>
+  InNumericPort<PortType>::InNumericPort(std::string port_name, void* /*unused*/) :
+    InPort<PortType>(port_name, LOGGER_PTR())
   {
   }
 
-  template < typename PortTraits >
-  void InPort< PortTraits >::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  template <typename PortType>
+  void InNumericPort<PortType>::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    this->queuePacket(data, T, EOS, streamID);
+    size_t size = data.length();
+    TransportType* ptr = const_cast<PortSequenceType&>(data).get_buffer(1);
+    this->queuePacket(BufferType(reinterpret_cast<NativeType*>(ptr), size), T, EOS, streamID);
   }
 
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamType InPort< PortTraits >::getCurrentStream(float timeout)
-  {
-    // Prefer a stream that already has buffered data
-    {
-      boost::mutex::scoped_lock lock(streamsMutex);
-      for (typename StreamMap::iterator stream = streams.begin(); stream != streams.end(); ++stream) {
-        if (stream->second.hasBufferedData()) {
-          return stream->second;
-        }
-      }
-    }
-
-    // Otherwise, return the stream that owns the next packet on the queue,
-    // potentially waiting for one to be received
-    DataTransferType* packet = this->peekPacket(timeout);
-    if (packet) {
-      const std::string& streamID = packet->streamID;
-      return getStream(streamID);
-    }
-
-    return StreamType();
-  }
-
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamType InPort< PortTraits >::getStream(const std::string& streamID)
-  {
-    boost::mutex::scoped_lock lock(streamsMutex);
-    typename StreamMap::iterator stream = streams.find(streamID);
-    if (stream != streams.end()) {
-      return stream->second;
-    } else {
-      return StreamType();
-    }
-  }
-
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::getStreams()
-  {
-    StreamList result;
-    boost::mutex::scoped_lock lock(streamsMutex);
-    for (typename StreamMap::const_iterator stream = streams.begin(); stream != streams.end(); ++stream) {
-      result.push_back(stream->second);
-    }
-    return result;
-  }
-
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::pollStreams(float timeout)
+  template <typename PortType>
+  typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::pollStreams(float timeout)
   {
     return pollStreams(0, timeout);
   }
 
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::pollStreams(StreamList& pollset, float timeout)
+  template <typename PortType>
+  typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::pollStreams(StreamList& pollset, float timeout)
   {
     return pollStreams(pollset, 0, timeout);
   }
 
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::pollStreams(size_t samples, float timeout)
+  template <typename PortType>
+  typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::pollStreams(size_t samples, float timeout)
   {
     redhawk::signal<std::string>::waiter waiter(&packetWaiters, timeout);
 
@@ -808,8 +952,8 @@ namespace  bulkio {
     return result;
   }
 
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::pollStreams(StreamList& pollset, size_t samples, float timeout)
+  template <typename PortType>
+  typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::pollStreams(StreamList& pollset, size_t samples, float timeout)
   {
     redhawk::signal<std::string>::waiter waiter(&packetWaiters, timeout);
 
@@ -833,80 +977,8 @@ namespace  bulkio {
     return result;
   }
 
-  template < typename PortTraits >
-  void InPort< PortTraits >::createStream(const std::string& streamID, const BULKIO::StreamSRI& sri)
-  {
-    StreamType stream(sri, this);
-    boost::mutex::scoped_lock lock(streamsMutex);
-    if (streams.count(streamID) == 0) {
-      // New stream
-      LOG_DEBUG(logger, "Creating new stream " << streamID);
-      streams.insert(std::make_pair(streamID, stream));
-      lock.unlock();
-
-      streamAdded(stream);
-    } else {
-      // An active stream has the same stream ID; add this new stream to the
-      // pending list
-      LOG_DEBUG(logger, "Creating pending stream " << streamID);
-      pendingStreams.insert(std::make_pair(streamID, stream));
-    }
-  }
-
-  template < typename PortTraits >
-  void InPort< PortTraits >::removeStream(const std::string& streamID)
-  {
-    LOG_DEBUG(logger, "Removing stream " << streamID);
-
-    boost::mutex::scoped_lock lock(streamsMutex);
-    typename StreamMap::iterator current = streams.find(streamID);
-    current->second.close();
-    streams.erase(current);
-
-    // If there's a pending stream waiting, move it to the active list
-    typename std::multimap<std::string,StreamType>::iterator next = pendingStreams.find(streamID);
-    if (next != pendingStreams.end()) {
-      LOG_DEBUG(logger, "Moving pending stream " << streamID << " to active");
-      StreamType stream = next->second;
-      streams.insert(*next);
-      pendingStreams.erase(next);
-      lock.unlock();
-
-      streamAdded(stream);
-    }
-  }
-
-  template < typename PortTraits >
-  bool InPort< PortTraits >::isStreamActive(const std::string& streamID)
-  {
-    SCOPED_LOCK lock(streamsMutex);
-    if (pendingStreams.count(streamID) > 0) {
-      // The current stream has received an EOS
-      return false;
-    } else if (streams.count(streamID) == 0) {
-      // Unknown stream, presumably no SRI was received
-      return false;
-    }
-    return true;
-  }
-
-  template < typename PortTraits >
-  bool InPort< PortTraits >::isStreamEnabled(const std::string& streamID)
-  {
-    SCOPED_LOCK lock(streamsMutex);
-    if (pendingStreams.count(streamID) == 0) {
-      typename StreamMap::iterator stream = streams.find(streamID);
-      if (stream != streams.end()) {
-        if (!stream->second.enabled()) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  template < typename PortTraits >
-  typename InPort< PortTraits >::StreamList InPort< PortTraits >::getReadyStreams(size_t samples)
+  template <typename PortType>
+  typename InNumericPort<PortType>::StreamList InNumericPort<PortType>::getReadyStreams(size_t samples)
   {
     StreamList result;
     boost::mutex::scoped_lock lock(streamsMutex);
@@ -919,45 +991,92 @@ namespace  bulkio {
   }
 
 
+  InBitPort::InBitPort(const std::string& name, LOGGER_PTR logger) :
+    InPort<BULKIO::dataBit>(name, logger)
+  {
+  }
+
+  void InBitPort::pushPacket(const BULKIO::BitSequence& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+    redhawk::shared_bitbuffer::data_type* ptr = const_cast<BULKIO::BitSequence&>(data).data.get_buffer(1);
+    redhawk::shared_bitbuffer buffer(ptr, data.bits);
+    queuePacket(buffer, T, EOS, streamID);
+  }
+
   // ----------------------------------------------------------------------------------------
   //  Source Input Port String Definitions
   // ----------------------------------------------------------------------------------------
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, 
-                                           LOGGER_PTR  logger,
-                                           bulkio::sri::Compare compareSri,
-                                           SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, logger, compareSri, newStreamCB)
+  InFilePort::InFilePort(std::string port_name, 
+                         LOGGER_PTR  logger,
+                         bulkio::sri::Compare compareSri,
+                         SriListener *newStreamCB) :
+    InPort<BULKIO::dataFile>(port_name, logger, compareSri, newStreamCB)
   {
   }
 
 
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, 
-                                           bulkio::sri::Compare compareSri,
-                                           SriListener *newStreamCB ) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
+  InFilePort::InFilePort(std::string port_name, 
+                         bulkio::sri::Compare compareSri,
+                         SriListener *newStreamCB) :
+    InPort<BULKIO::dataFile>(port_name, LOGGER_PTR(), compareSri, newStreamCB)
   {
   }
 
-  template < typename PortTraits >
-  InStringPort< PortTraits >::InStringPort(std::string port_name, void* /*unused*/) :
-    InPortBase<PortTraits>(port_name, LOGGER_PTR())
+  InFilePort::InFilePort(std::string port_name, void* /*unused*/) :
+    InPort<BULKIO::dataFile>(port_name, LOGGER_PTR())
   {
   }
 
-  template < typename PortTraits >
-  void InStringPort< PortTraits >::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  void InFilePort::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    this->queuePacket(data, T, EOS, streamID);
+    if (!data) {
+      this->queuePacket(std::string(), T, EOS, streamID);
+    } else {
+      this->queuePacket(data, T, EOS, streamID);
+    }
   }
 
 
-  template < typename PortTraits >
-  void InStringPort< PortTraits >::pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID)
+  InXMLPort::InXMLPort(std::string name,
+                       LOGGER_PTR  logger,
+                       bulkio::sri::Compare compareSri,
+                       SriListener* newStreamCB) :
+    InPort<BULKIO::dataXML>(name, logger, compareSri, newStreamCB)
   {
-    this->queuePacket(data, BULKIO::PrecisionUTCTime(), EOS, streamID);
   }
+
+
+  InXMLPort::InXMLPort(std::string name,
+                       bulkio::sri::Compare compareSri,
+                       SriListener* newStreamCB) :
+    InPort<BULKIO::dataXML>(name, LOGGER_PTR(), compareSri, newStreamCB)
+  {
+  }
+
+  InXMLPort::InXMLPort(std::string name, void* /*unused*/) :
+    InPort<BULKIO::dataXML>(name, LOGGER_PTR())
+  {
+  }
+
+  void InXMLPort::pushPacket(const char* data, CORBA::Boolean EOS, const char* streamID)
+  {
+    std::string buffer;
+    if (data) {
+      buffer = data;
+    }
+    // Use a default timestamp of "not set" for XML
+    this->queuePacket(buffer, bulkio::time::utils::notSet(), EOS, streamID);
+  }
+
+  void InXMLPort::pushPacket(const char* data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
+  {
+    std::string buffer;
+    if (data) {
+      buffer = data;
+    }
+    this->queuePacket(buffer, T, EOS, streamID);
+  }
+
 
   //
   // Required for Template Instantion for the compilation unit.
@@ -966,27 +1085,13 @@ namespace  bulkio {
   // link against the template.
   //
 
-#define INSTANTIATE_BASE_TEMPLATE(x) \
-  template class InPortBase<x>;
-
 #define INSTANTIATE_TEMPLATE(x) \
-  INSTANTIATE_BASE_TEMPLATE(x); template class InPort<x>;
+    template class InPort<x>;
 
-  INSTANTIATE_TEMPLATE(CharPortTraits);
-  INSTANTIATE_TEMPLATE(OctetPortTraits);
-  INSTANTIATE_TEMPLATE(ShortPortTraits);
-  INSTANTIATE_TEMPLATE(UShortPortTraits);
-  INSTANTIATE_TEMPLATE(LongPortTraits);
-  INSTANTIATE_TEMPLATE(ULongPortTraits);
-  INSTANTIATE_TEMPLATE(LongLongPortTraits);
-  INSTANTIATE_TEMPLATE(ULongLongPortTraits);
-  INSTANTIATE_TEMPLATE(FloatPortTraits);
-  INSTANTIATE_TEMPLATE(DoublePortTraits);
+#define INSTANTIATE_NUMERIC_TEMPLATE(x) \
+    template class InNumericPort<x>;
 
-  INSTANTIATE_BASE_TEMPLATE(FilePortTraits);
-  INSTANTIATE_BASE_TEMPLATE(XMLPortTraits);
-  template class InStringPort< FilePortTraits >; 
-  template class InStringPort< XMLPortTraits >;
-
+    FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
 
 } // end of bulkio namespace

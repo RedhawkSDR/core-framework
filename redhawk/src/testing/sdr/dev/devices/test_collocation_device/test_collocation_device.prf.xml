@@ -56,4 +56,10 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <struct id="redhawk::reservation_request" mode="readwrite">
+    <simple id="redhawk::reservation_request::obj_id" type="string"/>
+    <simplesequence id="redhawk::reservation_request::kinds" type="string"/>
+    <simplesequence id="redhawk::reservation_request::values" type="string"/>
+    <configurationkind kindtype="allocation"/>
+  </struct>
 </properties>

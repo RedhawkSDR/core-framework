@@ -20,34 +20,13 @@
 
 import static org.junit.Assert.*;
 
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.After;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.apache.log4j.BasicConfigurator;
+
 import org.apache.log4j.Logger;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.Layout;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
-import org.apache.log4j.xml.DOMConfigurator;
+
 import BULKIO.StreamSRI;
-import BULKIO.PrecisionUTCTime;
-import BULKIO.PortStatistics;
-import BULKIO.PortUsageType;
-import BULKIO. SDDSDataDigraph;
-import BULKIO.SDDSStreamDefinition;
-import BULKIO.dataSDDSPackage.AttachError;
-import BULKIO.dataSDDSPackage.DetachError;
-import BULKIO.dataSDDSPackage.StreamInputError;
 
 /**
  * Tests for {@link Foo}.
@@ -129,34 +108,11 @@ public class InSDDSPort_Test {
 
     test_fact  ctx = null;
 
-    @BeforeClass
-	public static void oneTimeSetUp() {
-	// Set up a simple configuration that logs on the console.
-	BasicConfigurator.configure();
-    }
-
-    @AfterClass
-	public static void oneTimeTearDown() {
-
-    }
-
-    @Before
-	public void setUp() {
-
-    }
-
-    @After
-	public void tearDown() {
-	
-    }
-
     @Test
-	public void test_InSDDS( ) {
+    public void test_InSDDS( ) {
 
 
 	ctx=new test_fact("InSDDS");
-
-	logger.info("------ Testing " + ctx.name + " Port -----");
 
 	bulkio.InSDDSPort port = new bulkio.InSDDSPort(ctx.port_name );
 

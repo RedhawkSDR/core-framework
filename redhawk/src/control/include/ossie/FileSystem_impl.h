@@ -75,9 +75,15 @@ public:
     
     void closeAllFiles();
 
+    void setLogger(rh_logger::LoggerPtr logptr) {
+        _fileSysLog = logptr;
+    };
+
 protected:
     CORBA::ULongLong getSize () const;
     CORBA::ULongLong getAvailableSpace () const;
+
+    rh_logger::LoggerPtr _fileSysLog;
 
 private:
     FileSystem_impl (const FileSystem_impl& _fsi);

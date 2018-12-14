@@ -40,6 +40,14 @@ void signal_catcher(int sig)
     }
 }
 /*{% endif %}*/
+/*{% if not component is device and component.impl.module %}*/
+extern "C" {
+    Resource_impl* make_component(const std::string& uuid, const std::string& identifier)
+    {
+        return new ${component.userclass.name}(uuid.c_str(), identifier.c_str());
+    }
+}
+/*{% else %}*/
 int main(int argc, char* argv[])
 {
 /*{% if component is device %}*/
@@ -56,4 +64,5 @@ int main(int argc, char* argv[])
 /*{% endif %}*/
     return 0;
 }
+/*{% endif %}*/
 /*{% endblock %}*/

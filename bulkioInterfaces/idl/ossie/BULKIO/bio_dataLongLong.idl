@@ -18,8 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef _DATASHORT_IDL_
-#define _DATASHORT_IDL_
+#ifndef _DATALONGLONG_IDL_
+#define _DATALONGLONG_IDL_
 
 #include "ossie/BULKIO/bio_runtimeStats.idl"
 #include "ossie/BULKIO/bio_updateSRI.idl"

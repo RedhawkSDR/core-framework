@@ -48,7 +48,7 @@ import Queue, copy, time, threading
 #{% filter lines|unique|join('\n') %}
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
-from ossie.resource import usesport, providesport
+from ossie.resource import usesport, providesport, PortCallError
 #{%   endif %}
 #{%   for statement in portgen.imports() %}
 ${statement}
@@ -157,7 +157,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             try:
                 self.stop()
             except Exception:
-                self._log.exception("Error stopping")
+                self._baseLog.exception("Error stopping")
             self.threadControlLock.acquire()
             try:
                 ${superclass}.releaseObject(self)
@@ -215,7 +215,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is provides and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''provides port(s)'''
+'''provides port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}
@@ -223,7 +223,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for portgen in component.portgenerators if portgen is uses and portgen.hasImplementation() %}
 
 #{%   if loop.first %}
-'''uses port(s)'''
+'''uses port(s). Send logging to _portLog '''
 
 #{%   endif %}
 #{% include portgen.implementation() %}

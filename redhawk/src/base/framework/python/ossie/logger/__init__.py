@@ -129,16 +129,19 @@ class ServiceCtx(ResourceCtx):
 
 class DeviceCtx(ResourceCtx):
     def __init__(self, name, id, dpath):
-       ResourceCtx.__init__(self, name, id, dpath)
-       self.device_mgr=""
-       self.device_mgr_id=""
-       n=0
-       seg=self._split_path(dpath)
-       if len(seg) > 1 :
+        ResourceCtx.__init__(self, name, id, dpath)
+        self.device_mgr=""
+        self.device_mgr_id=""
+        n=0
+        seg=self._split_path(dpath)
+        if len(seg) > 1 :
             self.domain_name=seg[n]
             n = n + 1
-       if len(seg) > 0 :
+        if len(seg) > 0 :
             self.device_mgr=seg[n]
+
+        ppid = str(os.getppid())
+        self.device_mgr_id = self.domain_name+':'+os.uname()[1]+':'+self.device_mgr+'_'+ppid
 
     def apply(self, tbl):
         SetDeviceInfo(tbl,self)
@@ -159,6 +162,7 @@ def SetComponentInfo( tbl, ctx ):
     SetResourceInfo( tbl, ctx )
     tbl["@@@WAVEFORM.NAME@@@"] = ctx.waveform.replace( ":", "-" )
     tbl["@@@WAVEFORM.ID@@@"] = ctx.waveform_id.replace( ":", "-" )
+    tbl["@@@WAVEFORM.INSTANCE@@@"] = ctx.waveform_id.replace( ":", "-" )
     tbl["@@@COMPONENT.NAME@@@"] = ctx.name.replace( ":", "-" )
     tbl["@@@COMPONENT.INSTANCE@@@"] = ctx.instance_id.replace( ":", "-" )
     tbl["@@@COMPONENT.PID@@@"] = str(os.getpid())
@@ -212,7 +216,7 @@ def ConvertLogLevel( oldstyle_level ):
     return CF.LogLevels.INFO
 
 def ConvertLog4ToCFLevel( log4level ):
-      if  log4level == logging.FATAL+1 :
+      if  log4level == logging.OFF :
           return CF.LogLevels.OFF
       if  log4level == logging.FATAL :
           return CF.LogLevels.FATAL
@@ -226,14 +230,16 @@ def ConvertLog4ToCFLevel( log4level ):
           return CF.LogLevels.DEBUG
       if  log4level == logging.TRACE :
           return CF.LogLevels.TRACE
-      if  log4level == logging.NOTSET:
+      if  log4level == logging.ALL:
           return CF.LogLevels.ALL
       return CF.LogLevels.INFO
 
 def ConvertToLog4Level( newLevel ):
     level = logging.INFO
+    if  newLevel == -1 :
+            level=logging.NOTSET
     if  newLevel == CF.LogLevels.OFF :
-            level=logging.FATAL+1
+            level=logging.OFF
     if  newLevel == CF.LogLevels.FATAL :
             level=logging.FATAL
     if  newLevel == CF.LogLevels.ERROR :
@@ -247,8 +253,32 @@ def ConvertToLog4Level( newLevel ):
     if  newLevel == CF.LogLevels.TRACE:
             level=logging.TRACE
     if  newLevel == CF.LogLevels.ALL:
-            level=logging.TRACE
+            level=logging.ALL
     return level
+
+
+
+def ConvertLevelNameToDebugLevel( level_name ):
+    if  level_name == "OFF" :   return 0
+    if  level_name == "FATAL" : return 0
+    if  level_name == "ERROR" : return 1
+    if  level_name == "WARN" :  return 2
+    if  level_name == "INFO" :  return 3
+    if  level_name == "DEBUG" : return 4
+    if  level_name == "TRACE":  return 5
+    if  level_name ==  "ALL" :  return 5
+    return 3
+
+def ConvertLevelNameToCFLevel( level_name ):
+    if  level_name == "OFF" :   return CF.LogLevels.OFF
+    if  level_name == "FATAL" : return CF.LogLevels.FATAL
+    if  level_name == "ERROR" : return CF.LogLevels.ERROR
+    if  level_name == "WARN" :  return CF.LogLevels.WARN
+    if  level_name == "INFO" :  return CF.LogLevels.INFO
+    if  level_name == "DEBUG" : return CF.LogLevels.DEBUG
+    if  level_name == "TRACE":  return CF.LogLevels.TRACE
+    if  level_name ==  "ALL" :  return CF.LogLevels.ALL
+    return CF.LogLevels.INFO
 
 
 def SupportedCFLevel( newLevel ):
@@ -285,7 +315,7 @@ def GetDefaultConfig():
            "# Direct log messages to STDOUT\n" + \
            "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" +  \
            "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" +  \
-           "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n"
+           "log4j.appender.STDOUT.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L - %m%n\n"
     return cfg
 
 

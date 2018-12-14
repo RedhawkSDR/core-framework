@@ -26,11 +26,13 @@ from ossie.cf import CF as _CF
 from ossie.cf import CF__POA as _CF__POA
 from ossie.cf import ExtendedCF as _ExtendedCF
 from ossie.cf import StandardEvent
+import CosEventChannelAdmin
 from omniORB import CORBA as _CORBA
 import CosNaming as _CosNaming
 import sys as _sys
 import time as _time
 import datetime as _datetime
+import cStringIO, pydoc
 import weakref
 import threading
 import logging
@@ -42,6 +44,7 @@ from ossie.utils.model import _readProfile
 from ossie.utils.model import _idllib
 from ossie.utils.model import ConnectionManager as _ConnectionManager
 from ossie.utils.model import *
+from ossie.utils.log_helpers import stringToCode
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
@@ -158,6 +161,23 @@ class App(_CF__POA.Application, Resource):
                 pass
         return retval
     
+    def _get_stopTimeout(self):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref._get_stopTimeout()
+            except:
+                pass
+        return retval
+    
+    def _set_stopTimeout(self, timeout):
+        retval = None
+        if self.ref:
+            try:
+                self.ref._set_stopTimeout(timeout)
+            except:
+                pass
+    
     def _get_registeredComponents(self):
         retval = None
         if self.ref:
@@ -218,7 +238,16 @@ class App(_CF__POA.Application, Resource):
                 self._domain.removeApplication(self)
             except:
                 raise
-            
+
+    def metrics(self, components, attributes):
+        retval = None
+        if self.ref:
+            try:
+                retval = self.ref.metrics(components, attributes)
+            except:
+                raise
+        return retval
+
     @property
     def aware(self):
         retval = False
@@ -245,6 +274,16 @@ class App(_CF__POA.Application, Resource):
         if self.ref:
             try:
                 retval = self.ref._get_componentImplementations()
+            except:
+                pass
+        return retval
+    
+    @property
+    def stopTimeout(self):
+        retval = []
+        if self.ref:
+            try:
+                retval = self.ref._get_stopTimeout()
             except:
                 pass
         return retval
@@ -327,6 +366,7 @@ class App(_CF__POA.Application, Resource):
                     return getattr(self._acRef, name)
                 except AttributeError:
                     pass
+
             raise AttributeError('App object has no attribute ' + str(name))
     
     def __setattr__(self, name, value):
@@ -407,6 +447,7 @@ class App(_CF__POA.Application, Resource):
                     if compDev.componentId == refid:
                         devs.append(compDev.assignedDeviceId)
             except:
+                # unable to load the component information (the component is non-responsive)
                 continue
             spd, scd, prf = _readProfile(profile, self._domain.fileManager)
             new_comp = Component(profile, spd, scd, prf, compRef, instanceName, refid, implId, pid, devs)
@@ -416,25 +457,30 @@ class App(_CF__POA.Application, Resource):
             if refid.find(self.assemblyController) >= 0:
                 self._acRef = new_comp
 
-    def api(self):
+    def api(self, destfile=None):
         # Display components, their properties, and external ports
-        print "Waveform [" + self.ns_name + "]"
-        print "---------------------------------------------------"
+        localdef_dest = False
+        if destfile == None:
+            localdef_dest = True
+            destfile = cStringIO.StringIO()
 
-        print "External Ports =============="
-        PortSupplier.api(self)
+        print >>destfile, "Waveform [" + self.ns_name + "]"
+        print >>destfile, "---------------------------------------------------"
 
-        print "Components =============="
+        print >>destfile, "External Ports =============="
+        PortSupplier.api(self, destfile=destfile)
+
+        print >>destfile, "Components =============="
         for count, comp_entry in enumerate(self.comps):
             name = comp_entry.name
             if comp_entry._get_identifier().find(self.assemblyController) != -1:
                 name += " (Assembly Controller)"
-            print "%d. %s" % (count+1, name)
-        print "\n"
+            print >>destfile, "%d. %s" % (count+1, name)
+        print >>destfile, "\n"
 
         # Display AC props
         if self._acRef:
-            self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True)
+            self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True, destfile=destfile)
 
         # Loops through each external prop looking for a component to use to display the internal prop value
         for extId in self._externalProps.keys():
@@ -442,10 +488,14 @@ class App(_CF__POA.Application, Resource):
             for comp_entry in self.comps:
                 if comp_entry._get_identifier().find(compRefId) != -1:
                     # Pass along external prop info to component api()
-                    comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId))
+                    comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId), destfile=destfile)
                     break
 
-        print
+        print >>destfile, '\n'
+
+        if localdef_dest:
+            pydoc.pager(destfile.getvalue())
+            destfile.close()
 
     def _populatePorts(self, fs=None):
         """Add all port descriptions to the component instance"""
@@ -692,8 +742,10 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
 
     def __init__(self, name="", devMgr=None, dcd=None, domain=None, idmListener=None, odmListener=None):
         self.name = name
+        self._instanceName = name
         self.ref = devMgr
         self.id = self.ref._get_identifier()
+        self._id = self.id
         self._domain = domain
         self._dcd = dcd
         self.fs = self.ref._get_fileSys()
@@ -802,6 +854,72 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             except:
                 pass
         return retval
+
+    def setLogLevel(self, logger_id, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        if self.ref :
+            try:
+                self.ref.setLogLevel(logger_id, _cf_log_lvl)
+            except:
+                raise
+
+    def getLogLevel(self, logger_id):
+        if self.ref :
+            try:
+                return self.ref.getLogLevel(logger_id)
+            except:
+                raise
+
+    def getLogConfig(self):
+        if self.ref :
+            try:
+                return self.ref.getLogConfig()
+            except:
+                raise
+
+    def setLogConfig(self, new_config):
+        if self.ref :
+            try:
+                self.ref.setLogConfig(new_config)
+            except:
+                raise
+
+    def setLogConfigURL(self, new_config_url):
+        if self.ref :
+            try:
+                self.ref.setLogConfigURL(new_config_url)
+            except:
+                raise
+
+    def _get_log_level(self):
+        if self.ref :
+            try:
+                return self.ref._get_log_level()
+            except:
+                raise
+
+    def _set_log_level(self, value):
+        if self.ref :
+            try:
+                self.ref._set_log_level(value)
+            except:
+                raise
+
+    def getNamedLoggers(self):
+        if self.ref :
+            try:
+                return self.ref.getNamedLoggers()
+            except:
+                raise
+
+    def resetLog(self):
+        if self.ref :
+            try:
+                self.ref.resetLog()
+            except:
+                raise
     
     @property
     def domMgr(self):
@@ -1186,9 +1304,8 @@ class ConnectionManager(CorbaObject):
     def objectRefEndPoint( self, obj_ref, port_name ) :
         restype = _CF.ConnectionManager.EndpointResolutionType(objectRef=obj_ref)
         return _CF.ConnectionManager.EndpointRequest(restype, port_name)
-
-
-    def connect( self, usesEndPoint, providesEndPoint, requesterId, connectionId ):
+    
+    def connect(self, usesEndPoint, providesEndPoint, requesterId='default', connectionId=''):
         retval=None
         if self.ref:
             try:
@@ -1198,12 +1315,9 @@ class ConnectionManager(CorbaObject):
         return retval
 
     def disconnect( self, connectionRecordId ):
-        print 'core disconnect'
         if self.ref:
             try:
-                print 'begin core disconnect'
                 self.ref.disconnect( connectionRecordId )
-                print 'done core disconnect'
             except:
                 raise
 
@@ -1219,17 +1333,103 @@ class ConnectionManager(CorbaObject):
         return retval
 
 
+class EventChannel(CorbaObject):
+    def __init__(self, ref, name):
+        CorbaObject.__init__(self, ref)
+        self.name = name
+        self.ref = self.ref._narrow(CosEventChannelAdmin.EventChannel)
+
 class EventChannelManager(CorbaObject):
 
-    def __init__(self, ref=None):
+    def __init__(self, ref=None, odmListener=None):
         CorbaObject.__init__(self, ref)
+        
+        self.__evtChannels = DomainObjectList(weakobj.boundmethod(self.__getEventChannels),
+                                               weakobj.boundmethod(self.__newEventChannel),
+                                               lambda x: x.name)
+        
+        self.__evtChannels.itemAdded.addListener(weakobj.boundmethod(self.eventChannelAdded))
+        self.__evtChannels.itemRemoved.addListener(weakobj.boundmethod(self.eventChannelRemoved))
+        
+        if odmListener:
+            weakobj.addListener(odmListener.eventChannelAdded, self.__eventChannelAddedEvent)
+            weakobj.addListener(odmListener.eventChannelRemoved, self.__eventChannelRemovedEvent)
+        self.__odmListener = odmListener
 
+    def __inspectEventChannelManager(self, unique=None):
+        if type(unique) == EventChannel:
+            return [unique]
+        channels, _iter = self.ref.listChannels(0)
+        _retval = []
+        status = True
+        while status:
+            status, _chans = _iter.next_n(100)
+            for _chan in _chans:
+                _chanref = self.ref.get(_chan.channel_name)
+                if not unique:
+                    _retval.append(EventChannel(_chanref, _chan.channel_name))
+                else:
+                    if _chanref._is_equivalent(unique):
+                        return [EventChannel(unique, _chan.channel_name)]
+        return _retval
+        
+        
+    def __getEventChannels(self):
+        # If the ODM channel is not connected, force an update to the list.
+        chans = self.__inspectEventChannelManager()
+        return chans
+    
+    def __newEventChannel(self, evtChannel):
+        retval = self.__inspectEventChannelManager(evtChannel)
+        if len(retval) == 1:
+            return retval[0]
+        return EventChannel(evtChannel, '')
+
+    def __eventChannelAddedEvent(self, event):
+        try:
+            self.__evtChannels.add(event.sourceId, event.sourceIOR)
+        except Exception as e:
+            # The event channel is already gone or otherwise unavailable.
+            pass
+
+    def __eventChannelRemovedEvent(self, event):
+        self.__evtChannels.remove(event.sourceId)
+        
+    @property
+    def eventChannels(self):
+        if not self.__odmListener:
+            self.__evtChannels.sync()
+        return self.__evtChannels.values()
+
+    @notification
+    def eventChannelAdded(self, evtChannel):
+        """
+        The device manager 'deviceManager' was added to the system.
+        """
+        pass
+        
+    @notification
+    def eventChannelRemoved(self, evtChannel):
+        """
+        The device manager 'deviceManager' was added to the system.
+        """
+        pass
+    
     def release( self, channelName ):
         if self.ref:
             try:
                 retval = self.ref.release(channelName)
             except:
                 raise
+
+    def get( self, channelName ):
+        retval=None
+        if self.ref:
+            try:
+                retval = self.ref.get(channelName)
+            except:
+                raise
+        return retval
 
     def create( self, channelName ):
         retval=None
@@ -1296,7 +1496,23 @@ class EventChannelManager(CorbaObject):
                 raise
         return retval
 
+    def registerConsumer(self, consumer, req):
+        '''
+           consumer is an event consumer (i.e.: ossie.events.Receiver)
+           req is an EventRegistration (i.e.: CF.EventRegistration)
+        '''
+        if hassattr(consumer, '_this'):
+            return self.ref.registerConsumer(consumer._this(), req)
+        return self.ref.registerConsumer(consumer, req)
 
+    def registerPublisher(self, req, disconnectReceiver):
+        '''
+           req is an EventRegistration (i.e.: CF.EventRegistration)
+           disconnectReceiver is an optional event consumer (i.e.: ossie.events.Receiver)
+        '''
+        #if hassattr(disconnectReceiver, '_this'):
+        #    return self.ref.registerPublisher(req, disconnectReceiver._this())
+        return self.ref.registerPublisher(req, disconnectReceiver)
 
 class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     """The Domain is a descriptor for a Domain Manager.
@@ -1411,14 +1627,19 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             raise StandardError, "Did not find domain "+name
                 
         self.ref = obj._narrow(_CF.DomainManager)
-        self.fileManager = self.ref._get_fileMgr()
+        try:
+            self.fileManager = self.ref._get_fileMgr()
+        except:
+            raise StandardError('Domain Manager '+self.name+' is not available')
+        
         self.id = self.ref._get_identifier()
+        self._id = self.id
         try:
             spd, scd, prf = _readProfile("/mgr/DomainManager.spd.xml", self.fileManager)
             super(Domain, self).__init__(prf, self.id)
         except Exception, e:
             pass
-
+        
         self._buildAPI()
 
         self.__deviceManagers = DomainObjectList(weakobj.boundmethod(self._get_deviceManagers),
@@ -1440,6 +1661,8 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if connectDomainEvents:
             self.__connectIDMChannel()
             self.__connectODMChannel()
+
+        self.__eventChannelMgr = self.getEventChannelMgr()
         
     def _populateApps(self):
         self.__setattr__('_waveformsUpdated', True)
@@ -1495,6 +1718,10 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if not self.__odmListener:
             self.__applications.sync()
         return self.__applications.values()
+
+    @property
+    def eventChannels(self):
+        return self.__eventChannelMgr.eventChannels
 
     @property
     def devices(self):
@@ -1696,34 +1923,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 pass
         return retval
-    
-    def _get_allocationMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_allocationMgr()
-            except:
-                pass
-        return retval
-    
-    def _get_connectionMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_connectionMgr()
-            except:
-                pass
-        return retval
-    
-    def _get_eventChannelMgr(self):
-        retval = None
-        if self.ref:
-            try:
-                retval = self.ref._get_eventChannelMgr()
-            except:
-                pass
-        return retval
-    
+
     def _get_name(self):
         retval = ''
         if self.ref:
@@ -1797,7 +1997,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             except:
                 raise
         return retval
-    
+
     def registerDevice(self, device, deviceManager):
         if self.ref:
             try:
@@ -1901,10 +2101,103 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     def getEventChannelMgr(self):
         if self.ref and self.__eventChannelMgr == None :
             try:
-                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr())
+                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr(), odmListener=self.__odmListener)
             except:
                 raise
         return self.__eventChannelMgr
+
+    def _get_allocationMgr(self):
+        if self.ref and self.__allocationMgr == None :
+            try:
+                self.__allocationMgr = AllocationManager(self.ref._get_allocationMgr())
+            except:
+                raise
+        return self.__allocationMgr
+
+    def _get_connectionMgr(self):
+        if self.ref and self.__connectionMgr == None :
+            try:
+                self.__connectionMgr = ConnectionManager(self.ref._get_connectionMgr())
+            except:
+                raise
+        return self.__connectionMgr
+
+    def _get_eventChannelMgr(self):
+        if self.ref and self.__eventChannelMgr == None :
+            try:
+                self.__eventChannelMgr = EventChannelManager(self.ref._get_eventChannelMgr(), odmListener=self.__odmListener)
+            except:
+                raise
+        return self.__eventChannelMgr
+
+    def _get_log_level(self):
+        ret=None
+        if self.ref :
+            try:
+                ret=self.ref._get_log_level()
+            except:
+                raise
+        return ret
+
+    def _set_log_level(self, cf_log_lvl ):
+        if self.ref :
+            try:
+                self.ref._set_log_level(cf_log_lvl)
+            except:
+                raise
+
+    def getLogConfig(self):
+        if self.ref :
+            try:
+                return self.ref.getLogConfig()
+            except:
+                raise
+        return None
+
+    def setLogConfig(self, cfg):
+        if self.ref :
+            try:
+                self.ref.setLogConfig(cfg)
+            except:
+                raise
+
+    def setLogConfigURL(self, cfg_url):
+        if self.ref :
+            try:
+                self.ref.setLogConfigURL(cfg_url)
+            except:
+                raise
+
+    def setLogLevel(self, logger_id, cf_log_lvl ):
+        _cf_log_lvl = cf_log_lvl
+        if type(cf_log_lvl) == str:
+            _cf_log_lvl = stringToCode(cf_log_lvl)
+        if self.ref :
+            try:
+                self.ref.setLogLevel(logger_id, _cf_log_lvl)
+            except:
+                raise
+
+    def getLogLevel(self, logger_id):
+        if self.ref :
+            try:
+                return self.ref.getLogLevel(logger_id)
+            except:
+                raise
+
+    def getNamedLoggers(self):
+        if self.ref :
+            try:
+                return self.ref.getNamedLoggers()
+            except:
+                raise
+
+    def resetLog(self):
+        if self.ref :
+            try:
+                self.ref.resetLog()
+            except:
+                raise
 
     # End external Domain Manager API
     ########################################

@@ -24,7 +24,7 @@ from _unitTestHelpers import scatest
 from xml.dom import minidom
 from omniORB import CORBA, URI, any
 import omniORB
-from ossie.cf import CF, CF__POA
+from ossie.cf import CF, CF__POA, ExtendedCF
 import commands
 from ossie.utils import redhawk
 from ossie import properties
@@ -344,6 +344,20 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
     def test_NamespacedWaveformJava(self):
         self._test_NamespacedWaveform('javawave')
 
+    def test_BadOverload(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [], )
+        try:
+            app = domMgr.createApplication("/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [])
+        except Exception, e:
+            pass
+        self.assertNotEqual(e.msg.find('Unable to perform conversion'), -1)
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
     def test_PartialStructConfiguration(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
@@ -360,6 +374,15 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(number_components, 1)
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
+
+    def test_DependencyActionDefaultKind(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        domMgr.createApplication("/waveforms/math_py_w/math_py_w.sad.xml", 'some_app', [], [])
+        self.assertEqual(len(domMgr._get_applications()), 1)
 
     def test_PartialStructProp(self):
         nodebooter, domMgr = self.launchDomainManager()
@@ -413,6 +436,18 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app.releaseObject()
         self.assertEqual(len(domMgr._get_applications()), 0)
 
+    def test_cppSlowStop(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+
+        app = domMgr.createApplication("/waveforms/slow_stop_cpp_w/slow_stop_cpp_w.sad.xml", 'slow_stop_cpp_w', [], [])
+        app.start()
+        self.assertEquals(app._get_started(), True)
+        app.stop()
+        self.assertEquals(app._get_started(), False)
+
     def test_NoTimeout(self):
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
@@ -424,6 +459,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         end_time = time.time()
         self.assertTrue(end_time-begin_time >= 9.5)
         app.releaseObject()
+
+    def test_InvalidFile(self):
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, domMgr.createApplication, "AppDoesNotExist", 'my_application', [], [])
 
     def test_NonScaCompliant(self):
         nodebooter, domMgr = self.launchDomainManager()
@@ -1490,27 +1532,14 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             self.fail('Application creation should fail')
 
     def test_NoAssemblyController(self):
-        # Test that creating an application that uses host collocation fails
-        # if all the components cannot be allocated on the same device.
+        # Test that installing an application without an assembly controller fails
         nodebooter, domMgr = self.launchDomainManager()
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        domMgr.installApplication("/waveforms/CommandWrapperNoAssembly/CommandWrapper.sad.xml")
-        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
-
-        appFact = domMgr._get_applicationFactories()[0]
-
-        try:
-            app = appFact.create(appFact._get_name(), [], [])
-        except:
-            pass
-        else:
-            app.stop()
-            app.releaseObject()
-            self.fail('Application creation should fail')
-        domMgr._get_identifier()
+        sadFile = "/waveforms/CommandWrapperNoAssembly/CommandWrapper.sad.xml"
+        self.assertRaises(CF.DomainManager.ApplicationInstallationError, domMgr.installApplication, sadFile)
 
     def test_hostCollocationDAS(self):
         # Test that creating an application that uses host collocation with
@@ -1753,6 +1782,36 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 0)
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapperWithDirectoryLoad")), 0)
 
+    def test_FailStartup2(self):
+        # Verify that if a component fails to start, any allocated resources are restored
+        nodebooter, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+
+        # Set the component name binding timeout to a more reasonable 2 seconds, since the
+        # failures are pretty quick.
+        id = "COMPONENT_BINDING_TIMEOUT"
+        value = CORBA.Any(CORBA.TC_ulong, 2)
+        domMgr.configure([CF.DataType(id, value)])
+
+        self.assertEqual(len(domMgr._get_applicationFactories()), 0)
+        self.assertEqual(len(domMgr._get_applications()), 0)
+
+        domMgr.installApplication("/waveforms/FailStartup/FailStartup.sad.xml")
+        self.assertEqual(len(domMgr._get_applicationFactories()), 1)
+        appFact = domMgr._get_applicationFactories()[0]
+        self.assertEqual(len(domMgr._get_applications()), 0)
+        
+        nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        self.assertEqual(len(domMgr._get_deviceManagers()), 1)
+        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        device = devMgr._get_registeredDevices()[0]
+
+        failurePos="identifier"
+        self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [CF.DataType(id="FAIL_AT", value=any.to_any(failurePos))], [])
+
+
+
     def test_FailStartup(self):
         # Verify that if a component fails to start, any allocated resources are restored
         nodebooter, domMgr = self.launchDomainManager()
@@ -1788,7 +1847,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(nicCapacity.value._v, 100.0)
         self.assertEqual(fakeCapacity.value._v, 3)
 
-        for failurePos in ("constructor", "initializeProperties", "initialize"):
+        for failurePos in ("constructor", "identifier", "initializeProperties", "initialize"):
             self.assertRaises(CF.ApplicationFactory.CreateApplicationError, appFact.create, appFact._get_name(), [CF.DataType(id="FAIL_AT", value=any.to_any(failurePos))], [])
             self.assertEqual(len(domMgr._get_applications()), 0)
             # Verify that capacity was not allocated
@@ -2697,6 +2756,45 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         apps = domMgr._get_applications()
         self.assertEqual(len(apps),0)
 
+    def _test_ExecParamToConstruct(self, lang):
+        """
+        Test execparams will pass to constructor
+        """
+        nb, domMgr = self.launchDomainManager()
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_GPP_node/DeviceManager.dcd.xml')
+        self.assertNotEqual(devMgr, None)
+        dom=redhawk.attach(domMgr._get_name())
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.emptyvalue.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"")
+        app.releaseObject()
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.eparam.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"eparam1")
+        app.releaseObject()
+
+        app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.novalue.sad.xml')
+        self.assertNotEqual(app,None)
+        self.assertEqual(app.comps[0].estr,"ctor-value")
+        app.releaseObject()
+
+
+    def test_ExecParamToConstruct_cpp(self):
+        self._test_ExecParamToConstruct('cpp')
+
+    def test_ExecParamToConstruct_py(self):
+        self._test_ExecParamToConstruct('py')
+
+    @scatest.requireJava
+    def test_ExecParamToConstruct_java(self):
+        self._test_ExecParamToConstruct('java')
+
+
+
     def test_StopAllComponents(self):
         nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
         self.assertNotEqual(domMgr, None)
@@ -2733,6 +2831,138 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         for comp in components:
             comp.componentObject.configure(props)
         app.releaseObject()
+
+    def test_StopTimeout(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', [], [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(16<=stop_time<=17)
+        self.assertTrue(20<=release_time<=22)
+
+    def test_StopTimeoutBuiltinDefault(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/long_stop_builtin_def/long_stop_builtin_def.sad.xml', 'long_stop', [], [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(6<=stop_time<=7)
+        self.assertTrue(20<=release_time<=22)
+
+    def test_StopTimeoutLiveOverride(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        initconfig = [CF.DataType(id=ExtendedCF.WKP.STOP_TIMEOUT, value=any.to_any(4))]
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', initconfig, [])
+        app.start()
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(8<=stop_time<=9)
+        self.assertTrue(20<=release_time<=22)
+
+    def test_StopTimeoutChange(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        initconfig = [CF.DataType(id=ExtendedCF.WKP.STOP_TIMEOUT, value=any.to_any(4))]
+        app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', initconfig, [])
+        app.start()
+        curr_stoptimeout = app._get_stopTimeout()
+        self.assertEquals(curr_stoptimeout, 4.0)
+        app._set_stopTimeout(5)
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(10<=stop_time<=11)
+        self.assertTrue(20<=release_time<=22)
+
+    def test_StopTimeoutIndefinite(self):
+        nb, domMgr = self.launchDomainManager(debug=self.debuglevel)
+        self.assertNotEqual(domMgr, None)
+
+        nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
+        self.assertNotEqual(devMgr, None)
+
+        # Create the application, which is pre-configured such that the last
+        # component in the start order (and hence, first in stop) will fail on
+        # stop().
+        app = domMgr.createApplication('/waveforms/slow_stop_w/slow_stop_w.sad.xml', 'slow_stop', [], [])
+        app.start()
+        curr_stoptimeout = app._get_stopTimeout()
+        self.assertEquals(curr_stoptimeout, -1)
+        begin_stop = time.time()
+        try:
+            app.stop()
+        except:
+            pass
+        end_stop = time.time()
+        stop_time = end_stop-begin_stop
+        app.releaseObject()
+        end_release = time.time()
+        release_time = end_release-end_stop
+        self.assertTrue(5<=stop_time<=6)
+        self.assertTrue(8<=release_time<=9)
 
     def _test_ValgrindCppDevice(self, appFact, valgrind):
         # Clear the device cache to prevent false positives

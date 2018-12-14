@@ -19,8 +19,6 @@
  */
 package bulkio;
 
-import CF.DataType;
-import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 
   /**

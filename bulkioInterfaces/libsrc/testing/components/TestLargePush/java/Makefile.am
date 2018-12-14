@@ -17,15 +17,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
+AUTOMAKE_OPTIONS = subdir-objects
+
+TestLargePush_jar_CLASSPATH = $(SOFTPKG_CLASSPATH):$(REDHAWK_CLASSPATH):$(BULKIO_CLASSPATH)
+
 TestLargePush.jar$(EXEEXT): $(TestLargePush_jar_SOURCES)
 	mkdir -p bin
-	$(JAVAC) -cp $(CLASSPATH_SOFTPKG_DEP)$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_top)/BULKIOInterfaces.jar:$(bulkio_libsrc_top)/bulkio.jar -d bin $(TestLargePush_jar_SOURCES)
+	$(JAVAC) -cp $(TestLargePush_jar_CLASSPATH) -g -d bin $(TestLargePush_jar_SOURCES)
 	$(JAR) cf ./TestLargePush.jar -C bin .
+	$(JAR) uf ./TestLargePush.jar -C src .
 
 clean-local:
 	rm -rf bin
 
 distclean-local:
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -42,12 +49,6 @@ ossieName = TestLargePush
 bindir = $(prefix)/dom/components/TestLargePush/java/
 bin_PROGRAMS = TestLargePush.jar
 TestLargePush_jar_SOURCES := $(shell find ./src -name "*.java")
-
-##
-## This is used to build against local bulkio interface library and not installed version
-##
-bulkio_top=../../../../..
-bulkio_libsrc_top=$(bulkio_top)/libsrc
 
 xmldir = $(prefix)/dom/components/TestLargePush/
 dist_xml_DATA = ../TestLargePush.scd.xml ../TestLargePush.prf.xml ../TestLargePush.spd.xml

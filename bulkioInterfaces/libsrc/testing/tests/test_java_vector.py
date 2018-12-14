@@ -22,44 +22,28 @@ from base_ports  import *
 
 
 class Test_Java_Int8(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Int8', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Int8', 'Java_Ports', *args, **kwargs)
 
 class Test_Java_Int16(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Int16', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname,
-                                bio_in_module=bulkio.InShortPort,
-                                bio_out_module=bulkio.OutShortPort )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Int16', 'Java_Ports', *args, **kwargs)
 
 class Test_Java_Int32(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Int32', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname,
-                                bio_in_module=bulkio.InLongPort,
-                                bio_out_module=bulkio.OutLongPort )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Int32', 'Java_Ports', *args, **kwargs)
 
 class Test_Java_Int64(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Int64', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname,
-                                bio_in_module=bulkio.InLongLongPort,
-                                bio_out_module=bulkio.OutLongLongPort )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Int64', 'Java_Ports', *args, **kwargs)
 
 class Test_Java_Float(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Float', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname,
-                                bio_in_module=bulkio.InFloatPort,
-                                bio_out_module=bulkio.OutFloatPort )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Float', 'Java_Ports', *args, **kwargs)
 
 class Test_Java_Double(BaseVectorPort):
-    def __init__(self, methodName='runTest', ptype='Double', cname='Java_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname,
-                                bio_in_module=bulkio.InDoublePort,
-                                bio_out_module=bulkio.OutDoublePort )
-        pass
+    def __init__(self, *args, **kwargs):
+        BaseVectorPort.__init__(self, 'Double', 'Java_Ports', *args, **kwargs)
 
 
 if __name__ == '__main__':

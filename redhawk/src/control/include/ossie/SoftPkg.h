@@ -31,50 +31,18 @@
 #include "ossie/ossieparser.h"
 #include "ossie/componentProfile.h"
 
+#include "PropertyRef.h"
+#include "UsesDevice.h"
+
 namespace ossie {
+
+    class SoftPkg;
+    class Properties;
+    class ComponentDescriptor;
 
     class SPD {
         public:
         typedef std::pair<std::string, std::string> NameVersionPair;
-
-        class DependencyRef {
-            public:
-                std::string type;
-
-                virtual const std::string asString() const = 0;
-
-                virtual ~DependencyRef() {};
-        };
-
-        class PropertyRef : public DependencyRef {
-            public:
-                PropertyRef() :
-                    property()
-                {
-                }
-
-                PropertyRef(ComponentProperty* prop) :
-                    property(prop)
-                {
-                }
-
-                PropertyRef(const ComponentProperty &prop) :
-                    property(prop.clone())
-                {
-                }
-
-                PropertyRef(const PropertyRef& other)
-                {
-                    if (other.property) {
-                        property.reset(other.property->clone());
-                    }
-                }
-
-                boost::shared_ptr< ossie::ComponentProperty > property;
-
-                virtual const std::string asString() const;
-                virtual ~PropertyRef();
-        };
 
         class SoftPkgRef : public DependencyRef {
             public:
@@ -96,65 +64,32 @@ namespace ossie {
                 optional_value<std::string> webpage;
         };
 
-        class UsesDevice {
-            public:
-                std::string id;
-                std::string type;
-                std::vector<PropertyRef> dependencies;
-                std::vector<SoftPkgRef> softPkgDependencies;
-
-                const char* getID() const {
-                    return id.c_str();
-                }
-
-                const char* getType() const {
-                    return type.c_str();
-                }
-            
-                const std::vector<PropertyRef>& getDependencies() const {
-                    return dependencies;
-                }
-            
-                const std::vector<SoftPkgRef>& getSoftPkgDependencies() const {
-                    return softPkgDependencies;
-                }
-        };
 
         class Code {
             public:
+                enum CodeType {
+                    NONE,
+                    EXECUTABLE,
+                    KERNEL_MODULE,
+                    SHARED_LIBRARY,
+                    DRIVER
+                };
+
                 // Required
                 std::string localfile;
                 // Optional
-                optional_value<std::string> type;
+                CodeType type;
                 optional_value<std::string> entrypoint;
                 optional_value<unsigned long long> stacksize;
                 optional_value<unsigned long long> priority;
 
                 Code() :
                     localfile(""),
-                    type(""),
+                    type(NONE),
                     entrypoint(),
-                    stacksize((unsigned long long)0),
-                    priority((unsigned long long)0)
+                    stacksize(),
+                    priority()
                 {}
-
-                Code(const Code& other) :
-                    localfile(other.localfile),
-                    type(other.type),
-                    entrypoint(other.entrypoint),
-                    stacksize(other.stacksize),
-                    priority(other.priority)
-                {}
-
-                Code& operator=(const Code& other)
-                {
-                    localfile = other.localfile;
-                    type = other.type;
-                    entrypoint = other.entrypoint;
-                    stacksize = other.stacksize;
-                    priority = other.priority;
-                    return *this;
-                }
         };
 
         class Implementation {
@@ -178,8 +113,8 @@ namespace ossie {
                 NameVersionPair runtime;
 
             public:
-                const char* getID() const {
-                    return implementationID.c_str();
+                const std::string& getID() const {
+                    return implementationID;
                 }
 
                 const std::vector<std::string>& getProcessors() const {
@@ -201,16 +136,12 @@ namespace ossie {
                     }
                 }
 
-                const char * getCodeFile() const {
-                    return code.localfile.c_str();
+                const std::string& getCodeFile() const {
+                    return code.localfile;
                 }
 
-                const char * getCodeType() const {
-                    if (code.type.isSet()) {
-                        return code.type->c_str();
-                    } else {
-                        return 0;
-                    }
+                Code::CodeType getCodeType() const {
+                    return code.type;
                 }
 
                 const char * getEntryPoint() const {
@@ -221,7 +152,7 @@ namespace ossie {
                     }
                 }
 
-                const std::vector<ossie::SPD::UsesDevice>& getUsesDevices() const {
+                const std::vector<ossie::UsesDevice>& getUsesDevices() const {
                     return usesDevice;
                 };
 
@@ -239,9 +170,14 @@ namespace ossie {
 
             // SPD Members
         public:
+            SPD() :
+                type("sca_compliant")
+            {
+            }
+
             std::string id;
             std::string name;
-            optional_value<std::string> type;
+            std::string type;
             optional_value<std::string> version;
             optional_value<std::string> title;
             optional_value<std::string> description;
@@ -254,38 +190,24 @@ namespace ossie {
 
     class SoftPkg {
         public:
-            SoftPkg() : _spd(0), _spdFile("")  {}
-
+            SoftPkg();
             SoftPkg(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
-
-            SoftPkg& operator=( SoftPkg other)
-            {
-                _spd = other._spd;
-                _spdFile = other._spdFile;
-                _spdPath = other._spdPath;
-                return *this;
-            }
 
         public:
             void load(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
 
-            const char* getSoftPkgID() const {
+            const std::string& getSoftPkgID() const {
                 assert(_spd.get() != 0);
-                return _spd->id.c_str();
+                return _spd->id;
             }
 
-            const char* getSoftPkgName() const {
+            const std::string& getName() const {
                 assert(_spd.get() != 0);
-                return _spd->name.c_str();
+                return _spd->name;
             }
 
-            const char* getSoftPkgType() const {
-                assert(_spd.get() != 0);
-                if (_spd->type.isSet()) {
-                    return _spd->type->c_str();
-                } else {
-                    return "sca_compliant";
-                }
+            const std::string& getSoftPkgType() const {
+                return _spd->type;
             }
 
             const char* getSoftPkgVersion() const {
@@ -315,12 +237,12 @@ namespace ossie {
                 }
             }
 
-            const char* getSPDPath() const {
-                return _spdPath.c_str();
+            const std::string& getSPDPath() const {
+                return _spdPath;
             }
 
-            const char* getSPDFile() const {
-                return _spdFile.c_str();
+            const std::string& getSPDFile() const {
+                return _spdFile;
             }
 
             const char* getPRFFile() const {
@@ -346,53 +268,48 @@ namespace ossie {
                 return _spd->authors;
             }
 
-            //const std::vector<ossie::SPD::Implementation>& getImplementations() const {
             const ossie::SPD::Implementations& getImplementations() const {
                 assert(_spd.get() != 0);
                 return _spd->implementations; 
             }
 
-            const std::vector<ossie::SPD::UsesDevice>& getUsesDevices() const {
+            const ossie::SPD::Implementation* getImplementation(const std::string& id) const;
+
+            const std::vector<ossie::UsesDevice>& getUsesDevices() const {
                 assert(_spd.get() != 0);
                 return _spd->usesDevice;
             };
 
-            bool isScaCompliant() {
+            bool isScaCompliant() const {
                 assert(_spd.get() != 0);
-                return (strcmp(getSoftPkgType(), "sca_compliant") == 0);
+                // Assume compliant unless explicitly set to non-compliant
+                return _spd->type != "sca_non_compliant";
             }
             
-            bool isScaNonCompliant() {
-                assert(_spd.get() != 0);
-                return (strcmp(getSoftPkgType(), "sca_non_compliant") == 0);
+            const Properties* getProperties() const
+            {
+                return _properties.get();
             }
-            
+
+            void loadProperties(std::istream& file);
+
+            const ComponentDescriptor* getDescriptor() const
+            {
+                return _descriptor.get();
+            }
+
+            void loadDescriptor(std::istream& file);
+
         protected:
             std::auto_ptr<SPD> _spd;
+            boost::shared_ptr<Properties> _properties;
+            boost::shared_ptr<ComponentDescriptor> _descriptor;
             std::string _spdFile;
             std::string _spdPath;
     };
 
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::Code& code)
-    {
-        out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
-        return out;
-    }
-
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::DependencyRef& ref)
-    {
-        out << ref.asString();
-        return out;
-    }
-
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const SPD::UsesDevice& usesdev)
-    {
-        out << "Uses Device id: " << usesdev.id << " type: " << usesdev.type;
-        return out;
-    }
+    std::ostream& operator<<(std::ostream& out, SPD::Code::CodeType type);
+    std::ostream& operator<<(std::ostream& out, const SPD::Code& code);
 
 }
 #endif

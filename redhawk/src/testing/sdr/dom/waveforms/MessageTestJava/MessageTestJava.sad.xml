@@ -32,7 +32,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <partitioning>
     <componentplacement>
         <componentfileref refid="EventReceiveFile"/>
-      <componentinstantiation id="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8">
+      <componentinstantiation id="EventReceiveJava_1">
           <usagename>EventReceiveJava_1</usagename>
         <findcomponent>
             <namingservice name="EventReceiveJava_1"/>
@@ -41,7 +41,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
     <componentplacement>
         <componentfileref refid="EventSenderFile"/>
-        <componentinstantiation id="DCE:52597d1d-d064-4536-9d0e-14bb7724ccdc">
+        <componentinstantiation id="EventSenderJava_1">
             <usagename>EventSenderJava_1</usagename>
             <findcomponent>
                 <namingservice name="EventSenderJava_1"/>
@@ -50,32 +50,32 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </componentplacement>
   </partitioning>
   <assemblycontroller>
-      <componentinstantiationref refid="DCE:52597d1d-d064-4536-9d0e-14bb7724ccdc"/>
+      <componentinstantiationref refid="EventSenderJava_1"/>
   </assemblycontroller>
   <connections>
-      <connectinterface>
+      <connectinterface id="direct">
           <usesport>
               <usesidentifier>message_out</usesidentifier>
-              <componentinstantiationref refid="DCE:52597d1d-d064-4536-9d0e-14bb7724ccdc"/>
+              <componentinstantiationref refid="EventSenderJava_1"/>
           </usesport>
           <providesport>
               <providesidentifier>message_in</providesidentifier>
-              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+              <componentinstantiationref refid="EventReceiveJava_1"/>
           </providesport>
       </connectinterface>
-      <connectinterface>
+      <connectinterface id="channel_receiver">
           <usesport>
               <usesidentifier>message_in</usesidentifier>
-              <componentinstantiationref refid="DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8"/>
+              <componentinstantiationref refid="EventReceiveJava_1"/>
           </usesport>
           <findby>
               <domainfinder type="eventchannel" name="message_two"/>
           </findby>
       </connectinterface>
-      <connectinterface>
+      <connectinterface id="channel_sender">
           <usesport>
               <usesidentifier>message_out</usesidentifier>
-              <componentinstantiationref refid="DCE:52597d1d-d064-4536-9d0e-14bb7724ccdc"/>
+              <componentinstantiationref refid="EventSenderJava_1"/>
           </usesport>
           <findby>
               <domainfinder type="eventchannel" name="message_two"/>

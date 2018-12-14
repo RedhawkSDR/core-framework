@@ -57,6 +57,8 @@ namespace fs = boost::filesystem;
 using namespace std;
 
 
+#define ENABLE_PERSISTENCE (ENABLE_BDB_PERSISTENCE || ENABLE_GDBM_PERSISTENCE || ENABLE_SQLITE_PERSISTENCE)
+
 CREATE_LOGGER(nodebooter);
 
 // Track the DomainManager and DeviceManager pids, if using fork-and-exec.
@@ -154,11 +156,27 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         const ossie::SimpleProperty* simpleProp;
         simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
         if (!simpleProp) {
-            LOG_WARN(nodebooter, "Only execparams of type \"simple\" supported");
+            LOG_WARN(nodebooter, "Only exec params of type \"simple\" supported");
             continue;
         } else if (!simpleProp->getValue()) {
             continue;
         }
+        execParams[simpleProp->getID()] =  simpleProp->getValue();
+    }
+
+    const std::vector<const ossie::Property*>& propertyProps = prf.getConstructProperties();
+
+    for ( prop = propertyProps.begin(); prop != propertyProps.end(); ++prop) {
+        const ossie::SimpleProperty* simpleProp;
+        simpleProp = dynamic_cast<const ossie::SimpleProperty*>(*prop);
+        if (!simpleProp) {
+            // property properties that are not simples cannot be commandline, so no warning is needed
+            continue;
+        } else if (!simpleProp->getValue()) {
+            continue;
+        }
+        if (not simpleProp->isCommandLine())
+            continue;
         execParams[simpleProp->getID()] =  simpleProp->getValue();
     }
 }
@@ -194,7 +212,7 @@ static pid_t launchSPD (
 
     LOG_DEBUG(nodebooter, "Loaded SPD file " << spdFile);
     LOG_DEBUG(nodebooter, "SPD Id:   " << spd.getSoftPkgID());
-    LOG_DEBUG(nodebooter, "SPD Name: " << spd.getSoftPkgName());
+    LOG_DEBUG(nodebooter, "SPD Name: " << spd.getName());
 
     // Find an implementation that we can run.
     const ossie::SPD::Implementation* impl = matchImplementation(spd.getImplementations(), deviceProps);
@@ -224,6 +242,8 @@ static pid_t launchSPD (
         LOG_TRACE(nodebooter, "Loading implementation-specific PRF: " << prfFile);
         loadPRFExecParams(prfFile, execParams);
     }
+    
+    execParams["SPD"] = spdFile;
 
     // Update the execparams with the user-supplied overrides.
     for (ExecParams::const_iterator param = overrideExecParams.begin(); param != overrideExecParams.end(); ++param) {
@@ -240,7 +260,7 @@ static pid_t launchSPD (
     // Create a C string array of the arguments to the executable from the code file name (0th argument)
     // and execparams. Note the importance of the final NULL, which terminates the array.
     std::vector<const char *> argv;
-    argv.push_back(impl->getCodeFile());
+    argv.push_back(impl->getCodeFile().c_str());
     for (ExecParams::const_iterator param = execParams.begin(); param != execParams.end(); ++param) {
         LOG_TRACE(nodebooter, "EXEC_PARAM: " << param->first << "=\"" << param->second << "\"");
         argv.push_back(param->first.c_str());
@@ -316,6 +336,7 @@ static void setOwners(const std::string& user, const std::string& group)
             err << "]: " << strerror(errno);
             throw std::runtime_error(err.str());
         }
+        setgid(gids[0]);
 
         std::cout << "Running as group: [ ";
         for (unsigned int gr_idx=0; gr_idx < groups.size(); gr_idx++) {
@@ -350,6 +371,7 @@ static void setOwners(const std::string& user, const std::string& group)
                 } else {
                     setgroups(ngroups, groups);
                 }
+                setgid(groups[0]);
                 std::cout << "Running as group: [ ";
                 for (unsigned int gr_idx=0; gr_idx < ngroups; gr_idx++) {
                     std::cout << getgrgid(groups[gr_idx])->gr_name <<  "(gid=" << groups[gr_idx] << ") ";
@@ -449,7 +471,6 @@ void usage()
     std::cerr << "    --useloglib                Use libossielogcfg.so to generate LOGGING_CONFIG_URI " << std::endl;
     std::cerr << "    --bindapps                 Bind application and component registrations to the Domain and not the NamingService (DomainManager only)" << std::endl;
     std::cerr << "    --dburl                    Store domain state in the following URL" << std::endl;
-    std::cerr << "    --nopersist                Disable DomainManager IOR persistence" << std::endl;
     std::cerr << "    --force-rebind             Overwrite any existing name binding for the DomainManager" << std::endl;
     std::cerr << "    --daemon                   Run as UNIX daemon" << std::endl;
     std::cerr << "    --pidfile <filename>       Save PID in the specified file" << std::endl;
@@ -508,7 +529,6 @@ void startDomainManager(
     string&                                    domainName,
     const fs::path&                            sdrRootPath,
     const int&                                 debugLevel,
-    const bool&                                noPersist,
     const bool &                               bind_apps,
     const string&                              logfile_uri,
     const bool&                                use_loglib,
@@ -559,17 +579,19 @@ void startDomainManager(
     execParams["DMD_FILE"] = dmdFile;
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
-    std::stringstream debugLevel_str;
-    debugLevel_str << debugLevel;
-    execParams["DEBUG_LEVEL"] = debugLevel_str.str();
-    if (noPersist) {
-        execParams["PERSISTENCE"] = "false";
+    if (debugLevel != -1) {
+        std::stringstream debugLevel_str;
+        debugLevel_str << debugLevel;
+        execParams["DEBUG_LEVEL"] = debugLevel_str.str();
     }
     if (!logfile_uri.empty()) {
         execParams["LOGGING_CONFIG_URI"] = logfile_uri;
     }
     if (!db_uri.empty()) {
+        execParams["PERSISTENCE"] = "true";
         execParams["DB_URL"] = db_uri;
+    } else {
+        execParams["PERSISTENCE"] = "false";
     }
     if (!endPoint.empty()) {
         execParams["-ORBendPoint"] = endPoint;
@@ -687,9 +709,11 @@ void startDeviceManager(
     execParams["DOMAIN_NAME"] = domainName;
     execParams["SDRROOT"] = sdrRootPath.string();
     execParams["SDRCACHE"] = devMgrCache;
-    std::stringstream debugLevel_str;
-    debugLevel_str << debugLevel;
-    execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    if (debugLevel != -1) {
+        std::stringstream debugLevel_str;
+        debugLevel_str << debugLevel;
+        execParams["DEBUG_LEVEL"] = debugLevel_str.str();
+    }
     if (!logfile_uri.empty()) {
         execParams["LOGGING_CONFIG_URI"] = logfile_uri;
     }
@@ -788,7 +812,7 @@ int main(int argc, char* argv[])
     string orb_init_ref;
     string domainName;
     string endPoint;
-    int debugLevel = 3;
+    int debugLevel = -1;
     bool   bind_apps=false;
 
     bool startDeviceManagerRequested = false;
@@ -798,9 +822,6 @@ int main(int argc, char* argv[])
     std::string pidfile;
     std::string user;
     std::string group;
-
-    // If "--nopersist" is asserted, turn off persistent IORs.
-    bool noPersist = false;
 
     // enable/disable use of libossielogcfg.so to resolve LOGGING_CONFIG_URI values
     bool use_loglib = false;
@@ -834,11 +855,8 @@ int main(int argc, char* argv[])
                     dmdFile = tmpdmdfile;
                 }
               }
-
             startDomainManagerRequested = true;
-        }
-
-        if( strcmp( argv[i], "-d" ) == 0 ) {
+        } else if( strcmp( argv[i], "-d" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 dcdFile = argv[i+1];
                 if( dcdFile.find(".dcd.xml") == string::npos ) {
@@ -852,9 +870,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-sdrroot" ) == 0 ) {
+        } else if( strcmp( argv[i], "-sdrroot" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 sdrRoot = argv[i+1];
             } else {
@@ -862,9 +878,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-sdrcache" ) == 0 ) {
+        } else if( strcmp( argv[i], "-sdrcache" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 sdrCache = argv[i+1];
             } else {
@@ -872,9 +886,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-domainname" ) == 0 ) {
+        } else if( strcmp( argv[i], "-domainname" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 domainName = argv[i+1];
                 std::cerr << "[nodeBooter] warning: -domainname is deprecated. Please use --domainname\n";
@@ -884,9 +896,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "--domainname" ) == 0 ) {
+        } else if( strcmp( argv[i], "--domainname" ) == 0 ) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 domainName = argv[i+1];
             }
@@ -895,15 +905,9 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-
-        if (( strcmp( argv[i], "--bindapps" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--bindapps" ) == 0 )) {
             bind_apps = true;
-        }
-
-
-        if (( strcmp( argv[i], "-log4cxx" ) == 0 ) || ( strcmp( argv[i], "-logcfgfile" ) == 0 )) {
+        } else if (( strcmp( argv[i], "-log4cxx" ) == 0 ) || ( strcmp( argv[i], "-logcfgfile" ) == 0 )) {
             if( i + 1 <argc && strcmp( argv[i + 1], "--" ) != 0) {
                 logfile_uri = argv[i+1];
             } else {
@@ -911,14 +915,9 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--useloglib" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--useloglib" ) == 0 )) {
             use_loglib = true;
-        }
-
-
-        if (( strcmp( argv[i], "-dburl" ) == 0 )) {
+        } else if (( strcmp( argv[i], "-dburl" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 std::cout << "WARNING: -dburl has been deprecated. In the future please use --dburl " << std::endl;
                 db_uri = argv[i+1];
@@ -927,9 +926,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--dburl" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--dburl" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 db_uri = argv[i+1];
             } else {
@@ -937,9 +934,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--ORBInitRef" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--ORBInitRef" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 orb_init_ref = "NameService=corbaname::";
                 orb_init_ref += argv[i+1];
@@ -948,9 +943,7 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if (( strcmp( argv[i], "--ORBport" ) == 0 )) {
+        } else if (( strcmp( argv[i], "--ORBport" ) == 0 )) {
             if( i + 1 < argc && strcmp( argv[i + 1], "--" ) != 0) {
                 endPoint = "giop:tcp::";
                 endPoint += argv[i+1];
@@ -968,28 +961,22 @@ int main(int argc, char* argv[])
                 usage();
                 exit(EXIT_FAILURE);
             }
-        }
-
-        if( strcmp( argv[i], "-debug" ) == 0 ) {
+        } else if( strcmp( argv[i], "-debug" ) == 0 ) {
                 if( (i + 1 < argc) && isdigit( *argv[i+1] ) ) {
                     debugLevel = atoi( argv[i+1] );
+                    i++;
                 } else {
                     std::cerr << "\n\t[nodeBooter] WARNING: The debug level must be an integer, using default value (3)\n" << std::endl;
                 }
-        }
-
-        if( strcmp( argv[i], "--help" ) == 0 ) {
+        } else if( strcmp( argv[i], "--help" ) == 0 ) {
             usage();
             exit(EXIT_SUCCESS);
-        }
-        if( strcmp( argv[i], "--version" ) == 0 ) {
+        } else if( strcmp( argv[i], "--version" ) == 0 ) {
             std::cout<<"REDHAWK version: "<<VERSION<<std::endl;
             exit(EXIT_SUCCESS);
-        }
-        if (strcmp(argv[i], "--nopersist") == 0) {
-            noPersist = true;
-        }
-        if (strcmp(argv[i], "--force-rebind") == 0) {
+        } else if (strcmp(argv[i], "--nopersist") == 0) {
+            std::cerr << "[nodeBooter] WARNING: --nopersist is deprecated and will be ignored" << std::endl;
+        } else if (strcmp(argv[i], "--force-rebind") == 0) {
             forceRebind = true;
         } else if (strcmp(argv[i], "--daemon") == 0) {
             daemonize = true;
@@ -1014,9 +1001,25 @@ int main(int argc, char* argv[])
                 return (EXIT_FAILURE);
             }
             group = argv[i];
+        } else {
+            std::string unknown_arg(argv[i]);
+            if (unknown_arg[0] == '-') {
+                if (unknown_arg.find('=') != std::string::npos) {
+                    std::cerr << "[nodeBooter] invalid argument format for argument: \""<<unknown_arg<<"\". Separator must be a space, not an equals sign."<< std::endl;
+                    usage();
+                    return (EXIT_FAILURE);
+                }
+            }
         }
     }  // end argument parsing
 
+    if ((not user.empty()) or (not group.empty())) {
+        if (not daemonize) {
+            std::cerr << "[nodeBooter] If either group or user are specified, daemon must be set" << std::endl;
+            usage();
+            return (EXIT_FAILURE);
+        }
+    }
 
     // Check that there is work to do
     if (!(startDeviceManagerRequested || startDomainManagerRequested)) {
@@ -1118,6 +1121,24 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+
+    // Check persistence flags; only presence is tested here, not validity
+    // (i.e., can the DB file be read/written) because in daemonized mode the
+    // user and group are not applied until after fork()
+    if (!db_uri.empty()) {
+        if (startDomainManagerRequested) {
+#if !ENABLE_PERSISTENCE
+            // Cannot supply persistence flags unless support is compiled in
+            std::cerr << "[nodeBooter] ERROR: --dburl provided, but REDHAWK was compiled without persistence support" << std::endl;
+            exit(EXIT_FAILURE);
+#endif
+        } else {
+            // Cannot supply persistence flags on DeviceManager-only runs
+            std::cerr << "[nodeBooter] ERROR: DeviceManager does not support --dburl" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Create signal handler to catch system interrupts SIGINT and SIGQUIT
     struct sigaction sa;
     sa.sa_handler = signal_catcher;
@@ -1176,28 +1197,20 @@ int main(int argc, char* argv[])
     LOG_DEBUG(nodebooter, "OS " << un.sysname);
 
     // Build a list of properties for this system based on the information from uname.
-    std::vector<std::string> kinds;
-    kinds.push_back("allocation");
     ossie::SimpleProperty osProp("DCE:4a23ad60-0b25-4121-a630-68803a498f75",
                                  "os_name",
                                  "string",
-                                 "readonly",
-                                 "eq",
-                                 kinds,
-                                 std::string(un.sysname),
-                                 "false",
-                                 "false",
-				 "false");
+                                 ossie::Property::MODE_READONLY,
+                                 ossie::Property::ACTION_EQ,
+                                 ossie::Property::KIND_ALLOCATION,
+                                 std::string(un.sysname));
     ossie::SimpleProperty procProp("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b",
                                    "processor_name",
                                    "string",
-                                   "readonly",
-                                   "eq",
-                                   kinds,
-                                   std::string(un.machine),
-                                   "false",
-                                   "false",
-				   "false");
+                                   ossie::Property::MODE_READONLY,
+                                   ossie::Property::ACTION_EQ,
+                                   ossie::Property::KIND_ALLOCATION,
+                                   std::string(un.machine));
     std::vector<const ossie::Property*> systemProps;
     systemProps.push_back(&osProp);
     systemProps.push_back(&procProp);
@@ -1211,7 +1224,6 @@ int main(int argc, char* argv[])
                                domainName,
                                sdrRootPath,
                                debugLevel,
-                               noPersist,
                                bind_apps,
                                logfile_uri,
                                use_loglib,

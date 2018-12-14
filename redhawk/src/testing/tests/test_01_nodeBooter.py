@@ -20,7 +20,7 @@
 #
 
 import unittest, os, signal, time, sys
-from subprocess import Popen
+from subprocess import Popen, PIPE
 from _unitTestHelpers import scatest
 from xml.dom import minidom
 from omniORB import URI, any
@@ -94,6 +94,48 @@ class NodeBooterTest(scatest.CorbaTestCase):
             self.assertEqual(domMgr, None)
         except CosNaming.NamingContext.NotFound:
             pass # This exception is expected
+
+    def test_UserOrGroupNoDaemon(self):
+        """Test that we read the correct domainname from the DMD file, the test domain
+        should have been created by the test runner"""
+        domainName = scatest.getTestDomainName()
+        # Test that we don't already have a bound domain
+        try:
+            domMgr = self._root.resolve(scatest.getDomainMgrURI())
+            self.assertEqual(domMgr, None)
+        except CosNaming.NamingContext.NotFound:
+            pass # This exception is expected
+
+        args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user','domuser','--group','somegroup' ]
+        nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
+        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+
+        args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--group','somegroup' ]
+        nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
+        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+
+        args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user','domuser' ]
+        nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
+        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+
+    def test_BadUserOrBadGroup(self):
+        """Test that we read the correct domainname from the DMD file, the test domain
+        should have been created by the test runner"""
+        domainName = scatest.getTestDomainName()
+        # Test that we don't already have a bound domain
+        try:
+            domMgr = self._root.resolve(scatest.getDomainMgrURI())
+            self.assertEqual(domMgr, None)
+        except CosNaming.NamingContext.NotFound:
+            pass # This exception is expected
+
+        args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user=domuser']
+        nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
+        self.assertNotEqual(nb.stderr.read().find('Separator must be a space'),-1)
+
+        args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--group=somegroup']
+        nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
+        self.assertNotEqual(nb.stderr.read().find('Separator must be a space'),-1)
 
     def test_nodeBooterShutdown(self):
         """Test that nodeBooter correctly cleans up.

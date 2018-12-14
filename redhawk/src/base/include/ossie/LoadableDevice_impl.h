@@ -170,9 +170,6 @@ public:
     LoadableDevice_impl (char*, char*, char*, char*, char*);
     LoadableDevice_impl (char*, char*, char*, char*, CF::Properties capacities, char*);
     virtual ~LoadableDevice_impl ();
-    void configure (const CF::Properties& configProperties)
-    throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
 
     // Externally visible function call to load a file
     void  load (CF::FileSystem_ptr fs, const char* fileName,
@@ -203,6 +200,8 @@ public:
       if ( xfersize > 0 ) transferSize=xfersize;
     }
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
 
     // Increment the loadedFiles counter
@@ -226,6 +225,11 @@ protected:
     void update_selected_paths(std::vector<sharedLibraryStorage> &paths);
     // Transfer size when loading files
     CORBA::LongLong           transferSize;          // block transfer size when loading files
+    std::string prependCacheIfAvailable(const std::string &localPath);
+
+    // Returns the base directory in use for the file cache
+    const std::string& getCacheDirectory();
+    rh_logger::LoggerPtr _loadabledeviceLog;
 
  private:
     LoadableDevice_impl(); // No default constructor
@@ -233,14 +237,12 @@ protected:
     void _init();
     std::map<std::string, time_t> cacheTimestamps;
     std::map<std::string, std::vector<std::string> > duplicate_filenames;
+    std::string cacheDirectory;
 
     void _loadTree(CF::FileSystem_ptr fs, std::string remotePath, boost::filesystem::path& localPath, std::string fileKey);
     void _deleteTree(const std::string &fileKey);
     bool _treeIntact(const std::string &fileKey);
     void _copyFile(CF::FileSystem_ptr fs, const std::string &remotePath, const std::string &localPath, const std::string &fileKey);
-
-
-
 };
 
 #endif

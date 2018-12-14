@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC '-//JTRS//DTD SCA V2.2.2 DCD//EN' 'deviceconfiguration.dtd'>
+<deviceconfiguration name="test_GPP_red" id="test_GPP_red">
+    <devicemanagersoftpkg>
+        <localfile name="/mgr/DeviceManager.spd.xml"/>
+    </devicemanagersoftpkg>
+    <componentfiles>
+        <componentfile type="SPD" id="GPP1_c6e250b8-5223-11db-9fc4-000d56d8556e">
+            <localfile name="/devices/GPP/GPP.spd.xml"/>
+        </componentfile>
+    </componentfiles>
+    <partitioning>
+        <componentplacement>
+            <componentfileref refid="GPP1_c6e250b8-5223-11db-9fc4-000d56d8556e"/>
+            <componentinstantiation id="test_GPP_red::GPP_1">
+                <usagename>test_GPP_red::GPP_1</usagename>
+                <deployerrequires>
+                  <requires id="color" value="RED"/>
+                  <requires id="rank" value="15"/>
+                </deployerrequires>
+            </componentinstantiation>
+        </componentplacement>
+    </partitioning>
+    <domainmanager>
+        <namingservice name="DomainName1/DomainManager"/>
+    </domainmanager>
+</deviceconfiguration>

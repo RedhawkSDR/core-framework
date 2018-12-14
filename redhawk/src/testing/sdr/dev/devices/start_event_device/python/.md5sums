@@ -1,0 +1,6 @@
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+0859f314dda606edc04b24a4680de616  start_event_device.py
+9438c5c435102516c5dada8f8b972ddc  configure.ac
+1e96b4beb34a59ab9f9945325f4081ad  start_event_device_base.py
+76016779fcd2da4ea65a4122d0520ce3  Makefile.am.ide
+abe151480dc78386afe9158da3db6a65  Makefile.am

@@ -34,7 +34,11 @@ if HAVE_JAVASUPPORT
   OMNIJNI = omnijni
 endif
 
-SUBDIRS = acinclude etc $(OMNIJNI) base control tools xml idl testing
+if BUILD_TESTS
+TEST_DIR=testing
+endif
+
+SUBDIRS = acinclude etc $(OMNIJNI) base control tools xml idl $(TEST_DIR)
 
 # Install makefile fragments
 amdir = $(datadir)/aminclude/redhawk

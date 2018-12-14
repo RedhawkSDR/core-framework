@@ -162,8 +162,9 @@ class ECM_PY_i(ECM_PY_base):
                 time.sleep(.10)
             if self.msg_limit > self.msg_recv:
                 msgin=0;
-                msgin = self.sub.getData()
-                if msgin != None:
+                inany = self.sub.getData()
+                if inany != None:
+                    msgin = any.from_any(inany)
                     self._log.info("Received MSG msgid =" +str(msgin))
                     if msgin == self.p_msgid :
                         self.msg_recv = self.msg_recv + 1

@@ -24,8 +24,19 @@
 #include <string.h>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/regex.hpp>
+#include <omniORB4/CORBA.h>
+#include <omniORB4/omniURI.h>
+#include <omniORB4/omniORB.h>
+#include <omniORB4/omniORB.h>
+#include <omniORB4/omniTransport.h>
+#include <omniORB4/internal/omniIdentity.h>
+#include <omniORB4/internal/localIdentity.h>
+#include <omniORB4/internal/inProcessIdentity.h>
+#include <omniORB4/internal/remoteIdentity.h>
 
 #include <ossie/ossieSupport.h>
+#include <ossie/debug.h>
 #include <ossie/boost_compat.h>
 
 namespace fs = boost::filesystem;
@@ -52,6 +63,114 @@ std::string ossie::generateUUID()
     return std::string("DCE:") + strbuf;
 }
 
+
+static std::string _trim_addr( const std::string &addr, const std::string &exp="(.*):([^:]*)$" )
+{
+    std::string ret;
+    boost::regex expr(exp.c_str());
+    boost::smatch what;
+    if (boost::regex_search(addr, what, expr))
+        {
+            ret =  what[1];
+        }
+    return ret;
+}
+
+
+static bool _match_remotes( CORBA::Object_ptr aobj, CORBA::Object_ptr bobj)
+{
+    bool retval=false;
+    omniIOR *a_ior = aobj->_PR_getobj()->_getIOR();
+    omniIOR *b_ior = bobj->_PR_getobj()->_getIOR();
+    omniIdentity* a_identity = aobj->_PR_getobj()->_identity();
+    omniIdentity* b_identity = bobj->_PR_getobj()->_identity();
+    omniRemoteIdentity *a_remote = omniRemoteIdentity::downcast(a_identity);
+    omniRemoteIdentity *b_remote = omniRemoteIdentity::downcast(b_identity);
+    if ( a_remote != NULL and b_remote != NULL ) {
+        omni::Rope *a_rope = a_remote->rope();
+        omni::Rope *b_rope = b_remote->rope();
+        RH_NL_TRACE("redhawk.corba.internal", "Rope A: " << a_rope << " Rope B: " << b_rope );
+        if ( a_rope != NULL and b_rope != NULL and
+             a_rope == b_rope ) {
+            RH_NL_TRACE("redhawk.corba.internal", "Identities Same Rope == Same Remote Host.");
+            retval = true;
+        }
+    }
+
+    // last ditch.. try IORInfo address list resolution
+    if ( !retval and a_ior and b_ior ) {
+        omniIOR::IORInfo *a_iorinfo = a_ior->getIORInfo();
+        omniIOR::IORInfo *b_iorinfo = b_ior->getIORInfo();
+        const omni::giopAddressList &a_addrs = a_iorinfo->addresses();
+        const omni::giopAddressList &b_addrs = b_iorinfo->addresses();
+
+        omni::giopAddressList::const_iterator i, i_last, j, j_last, j_first;
+        i      = a_addrs.begin();
+        i_last = a_addrs.end();
+        j_first= b_addrs.begin();
+        j_last = b_addrs.end();
+        if (  a_addrs.size() >  b_addrs.size() ) {
+            i        = b_addrs.begin();
+            i_last   = b_addrs.end();
+            j_first  = a_addrs.begin();
+            j_last   = a_addrs.end();
+        }
+
+        for (; i != i_last; i++) {
+            // try to match address space.. remove port string has
+            std::string a_addr = _trim_addr((*i)->address());
+            j = j_first;
+            for (; j != j_last; j++) {
+                std::string b_addr = _trim_addr((*j)->address());
+                RH_NL_TRACE("redhawk.corba.internal", "Identities A addr: " << a_addr << " B addr: " << b_addr );
+                if ( a_addr == b_addr) { retval=true; return retval; }
+            }
+        }
+    }
+
+    return retval;
+}
+
+
+bool ossie::sameHost(CORBA::Object_ptr aobj, CORBA::Object_ptr bobj)
+{
+    bool retval=false;
+    // if both identifies are the same
+    omniIdentity* a_identity = aobj->_PR_getobj()->_identity();
+    omniIdentity* b_identity = bobj->_PR_getobj()->_identity();
+    if ( a_identity->is_equivalent(b_identity) == true ) {
+        RH_NL_TRACE("redhawk.corba.internal", "Same identifies, so same host");
+        retval = true;
+    }
+    else {
+        // if both identities are in the same process space then
+        // they are on the same host
+        if ( a_identity->inThisAddressSpace() and
+             b_identity->inThisAddressSpace() ) {
+            RH_NL_TRACE("redhawk.corba.internal", "Identifies Same address space...");
+            retval = true;
+        }
+        else {
+            // if both identities processes then are on the same host
+            omniInProcessIdentity *a_proc = omniInProcessIdentity::downcast(a_identity);
+            omniInProcessIdentity *b_proc = omniInProcessIdentity::downcast(b_identity);
+            if ( a_proc != NULL and b_proc != NULL ) {
+                RH_NL_TRACE("redhawk.corba.internal", "Objects have ProcessIdentities,  they are on same LOCAL HOST.");
+                retval= true;
+            }
+            else {
+                retval=_match_remotes( aobj, bobj );
+                if ( retval ) {
+                   RH_NL_TRACE("redhawk.corba.internal", "Remote Identities are on the SAME HOST.");
+                }
+                else {
+                    RH_NL_TRACE("redhawk.corba.internal", "Remote Identities are different.");
+                }
+            }
+        }
+    }
+    return retval;
+}
 std::string ossie::getCurrentDirName()
 {
   std::string retval;

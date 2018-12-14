@@ -18,6 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#include <boost/foreach.hpp>
+
 #include "ossie/componentProfile.h"
 
 using namespace ossie;
@@ -35,19 +37,19 @@ ComponentProperty *ossie::new_clone(const ComponentProperty &a) {
 //
 // ComponentFile
 //
-const char* ComponentFile::getFileName() const {
-    return filename.c_str();
+const std::string& ComponentFile::getFileName() const {
+    return filename;
 };
 
-const char* ComponentFile::getID() const {
-    return id.c_str();
+const std::string& ComponentFile::getID() const {
+    return id;
 };
 
 //
 // ComponentProperty
 //
-const char* ComponentProperty::getID() const {
-    return _id.c_str();
+const std::string& ComponentProperty::getID() const {
+    return _id;
 }
 
 
@@ -122,49 +124,27 @@ const std::string StructSequencePropertyRef::_asString() const {
 //
 // ComponentInstantiation
 //
-ComponentInstantiation::ComponentInstantiation() 
+ComponentInstantiation::ComponentInstantiation()
 {
-}
-
-ComponentInstantiation::ComponentInstantiation(const ComponentInstantiation& other) {
-    instantiationId = other.instantiationId;
-    _startOrder = other._startOrder;
-    usageName = other.usageName;
-    namingservicename = other.namingservicename;
-    affinityProperties  = other.affinityProperties;
-    loggingConfig  = other.loggingConfig;
-    properties = other.properties;
-
-}
-
-ComponentInstantiation& ComponentInstantiation::operator=(const ComponentInstantiation &other) {
-    instantiationId = other.instantiationId;
-    _startOrder = other._startOrder;
-    usageName = other.usageName;
-    namingservicename = other.namingservicename;
-    properties = other.properties;
-    affinityProperties  = other.affinityProperties;
-    loggingConfig  = other.loggingConfig;
-    return *this;
 }
 
 ComponentInstantiation::~ComponentInstantiation() {
 }
 
-const char* ComponentInstantiation::getID() const {
-    return instantiationId.c_str();
+const std::string& ComponentInstantiation::getID() const {
+    return instantiationId;
 }
 
-const char* ComponentInstantiation::getStartOrder() const {
-    return _startOrder.c_str();
+bool ComponentInstantiation::hasStartOrder() const {
+    return startOrder.isSet();
 }
 
-const char* ComponentInstantiation::getUsageName() const {
-    if (usageName.isSet()) {
-        return usageName->c_str();
-    } else {
-        return 0;
-    }
+int ComponentInstantiation::getStartOrder() const {
+    return *startOrder;
+}
+
+const std::string& ComponentInstantiation::getUsageName() const {
+    return usageName;
 }
 
 const ossie::ComponentPropertyList & ComponentInstantiation::getProperties() const {
@@ -172,15 +152,11 @@ const ossie::ComponentPropertyList & ComponentInstantiation::getProperties() con
 }
 
 bool ComponentInstantiation::isNamingService() const {
-    return namingservicename.isSet();
+    return !namingservicename.empty();
 }
 
-const char* ComponentInstantiation::getFindByNamingServiceName() const {
-    if (namingservicename.isSet()) {
-        return namingservicename->c_str();
-    } else {
-        return 0;
-    }
+const std::string& ComponentInstantiation::getFindByNamingServiceName() const {
+    return namingservicename;
 }
 
 
@@ -192,50 +168,31 @@ const ComponentInstantiation::LoggingConfig &ComponentInstantiation::getLoggingC
   return loggingConfig;
 }
 
+const ossie::ComponentPropertyList & ComponentInstantiation::getDeployerRequires() const {
+    return deployerrequires;
+}
+
+const ossie::ComponentPropertyList & ComponentInstantiation::getDeviceRequires() const {
+    return devicerequires;
+}
 
 //
 // ComponentPlacement
 //
-const char* ComponentPlacement::getDeployOnDeviceID() const {
-    if (deployOnDeviceID.isSet()) {
-        return deployOnDeviceID->c_str();
-    } else {
-        return 0;
-    }
-}
-
-const char* ComponentPlacement::getCompositePartOfDeviceID() const {
-    if (compositePartOfDeviceID.isSet()) {
-        return compositePartOfDeviceID->c_str();
-    } else {
-        return 0;
-    }
-}
-
-const std::string ComponentPlacement::getDPDFile() const {
-    if (DPDFile.isSet()) {
-        return DPDFile->c_str();
-    } else {
-        return 0;
-    }
-}
-
 const std::vector<ComponentInstantiation>& ComponentPlacement::getInstantiations() const {
     return instantiations;
 };
 
-const char* ComponentPlacement::getFileRefId() const {
-    return _componentFileRef.c_str();
+const std::string& ComponentPlacement::getFileRefId() const {
+    return _componentFileRef;
 }
 
-bool ComponentPlacement::isDeployOn() const {
-    return deployOnDeviceID.isSet();
-}
-
-bool ComponentPlacement::isCompositePartOf() const {
-    return compositePartOfDeviceID.isSet();
-}
-
-bool ComponentPlacement::isDomainManager() const {
-    return false;
+const ComponentInstantiation* ComponentPlacement::getInstantiation(const std::string& refid) const
+{
+    BOOST_FOREACH(const ComponentInstantiation& instantiation, instantiations) {
+        if (instantiation.getID() == refid) {
+            return &instantiation;
+        }
+    }
+    return 0;
 }

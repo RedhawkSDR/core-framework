@@ -1,12 +1,15 @@
 *.jar
+*.so
 build
 helpers/buildconfig.py
 _unitTestHelpers/buildconfig.py
 sdr/cache/
 sdr/dev/devices/BasicDevWithExecParam_cpp/BasicDevWithExecParam_cpp_impl1/BasicDevWithExecParam_cpp_impl1
 sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/BasicTestDevice_cpp_impl1
+sdr/dev/devices/base_programmable/cpp/base_programmable
 sdr/dev/devices/cpp_dev/cpp/cpp_dev
 sdr/dev/devices/devcpp/cpp/devcpp
+sdr/dev/devices/dev_alloc_cpp/cpp/dev_alloc_cpp
 sdr/dev/devices/DevC/cpp/DevC
 sdr/dev/devices/CppTestDevice/cpp/CppTestDevice
 sdr/dev/devices/dev_kill_devmgr/cpp/dev_kill_devmgr
@@ -17,6 +20,7 @@ sdr/dev/devices/issue_111_cpp/cpp/issue_111_cpp
 sdr/dev/devices/props_test_device/props_test_device_cpp_impl1/props_test_device_cpp_impl1
 sdr/dev/devices/base_programmable/cpp/base_programmable
 sdr/dev/devices/ProgrammableDevice/cpp/ProgrammableDevice
+sdr/dev/devices/writeonly_cpp/cpp/writeonly_cpp
 sdr/dev/mgr/DeviceManager*
 sdr/dev/nodes/test_Concurrent_nodes/
 sdr/dom/components/BasicAC/BasicAC_cpp_impl1/BasicAC_cpp_impl1
@@ -42,9 +46,14 @@ sdr/dom/components/TestCppOptionalProps/cpp/TestCppOptionalProps
 sdr/dom/components/foo/bar/comp/cpp/comp
 sdr/dom/components/C1/cpp/C1
 sdr/dom/components/C2/cpp/C2
+sdr/dom/components/huge_msg_cpp/cpp/huge_msg_cpp
+sdr/dom/components/msg_through_cpp/cpp/msg_through_cpp
 sdr/dom/components/prop_trigger_timing/cpp/prop_trigger_timing
+sdr/dom/components/timeprop_cpp/cpp/timeprop_cpp
+sdr/dom/components/svc_fn_error_cpp/cpp/svc_fn_error_cpp
 sdr/dom/domain/
 sdr/dom/mgr/DomainManager*
+sdr/dom/mgr/rh/
 sdr/runtests.log
 .pythonInstallFiles
 sdr/dev/nodes/test_affinity_node_socket/DeviceManager.dcd.xml
@@ -65,4 +74,4 @@ sdr/dom/deps/cpp_dep1/cpp_dep1.spd.xml
 sdr/dom/deps/cpp_dep2/cpp_dep2.spd.xml
 sdr/dev/devices/LongDevice/cpp/LongDevice
 sdr/dev/nodes/LongDeviceCalls/DeviceManager.dcd.xml
-
+sdr/dev/services/BasicService_cpp/cpp/BasicService_cpp

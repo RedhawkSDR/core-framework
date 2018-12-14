@@ -55,4 +55,5 @@ dist_ac_DATA = \
     pkg.m4 \
     AC_M_FUNCTION_INTEGRATION.m4 \
     rhpkg.m4 \
-    redhawk.m4
+    redhawk.m4 \
+    octave.m4

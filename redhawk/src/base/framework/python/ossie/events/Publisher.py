@@ -29,6 +29,7 @@ import threading
 from omniORB import any, URI, CORBA
 import CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
+from ossie.cf import CF
 
 
 class Receiver(CosEventComm__POA.PushSupplier):
@@ -83,8 +84,27 @@ class DefaultReceiver(Receiver):
         Receiver.__init__(self)
 
 class Publisher:
-    def __init__(self, channel ):
-        self.channel = channel
+    def __init__(self, remote_obj, channel_name=''):
+        '''
+          remote_obj is either an Event Channel or a Domain Manager
+          if remote_obj is a Domain Manager, a channel_name must be supplied
+        '''
+        self.channel = None
+        self.domain = None
+        self.channel_name = channel_name
+        self.registration = CF.EventChannelManager.EventRegistration( channel_name = self.channel_name, reg_id = "")
+        self.reg_resp = None
+        if hasattr(remote_obj, 'ref'):
+            if remote_obj.ref._narrow(CF.DomainManager) != None:
+                self.domain = remote_obj.ref
+        elif remote_obj._narrow(CosEventChannelAdmin.EventChannel) != None:
+            self.channel = remote_obj._narrow(CosEventChannelAdmin.EventChannel)
+        elif remote_obj._narrow(CF.DomainManager) != None:
+            self.domain = remote_obj._narrow(CF.DomainManager)
+        if self.channel == None and self.domain == None:
+            raise Exception("Error. remote_obj must either be an Event Channel or a Domain Manager")
+        if self.domain != None and channel_name == '':
+            raise Exception("Error. When passing a Domain Manager as an argument, channel_name must have a valid Event Channel name")
         self.proxy = None
         self.logger = logging.getLogger("ossie.events.Publisher")
         self.disconnectReceiver = DefaultReceiver(self)
@@ -107,7 +127,7 @@ class Publisher:
 
     def terminate(self):
         self.logger.debug("Publisher::terminate START")
-        if self.disconnectReceiver and self.disconnectReceiver.get_disconnect() == False:
+        if self.disconnectReceiver:
             self.logger.debug("Publisher::terminate  DISCONNECT")
             self.disconnect()
         
@@ -148,6 +168,15 @@ class Publisher:
 
 
     def disconnect(self, retries=10, retry_wait=.01):
+        if self.channel != None:
+            self.disconnectEvtChan(retries, retry_wait)
+        else:
+            self.disconnectDomMgr()
+
+    def disconnectDomMgr(self):
+        self.ecm.unregister(self.reg_resp.reg)
+
+    def disconnectEvtChan(self, retries=10, retry_wait=.01):
         retval=0
         if self.channel == None:
             return retval
@@ -173,6 +202,17 @@ class Publisher:
 
 
     def connect(self, retries=10, retry_wait=.01):
+        if self.channel != None:
+            self.connectEvtChan(retries, retry_wait)
+        else:
+            self.connectDomMgr()
+        
+    def connectDomMgr(self):
+        self.ecm = self.domain._get_eventChannelMgr()
+        self.reg_resp = self.ecm.registerPublisher(self.registration, self.disconnectReceiver._this())
+        self.proxy = self.reg_resp.proxy_consumer
+
+    def connectEvtChan(self, retries=10, retry_wait=.01):
         retval=-1
         
         if self.channel == None:

@@ -79,7 +79,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def testAllocation(self):
         frontend_alloc = frontend.createTunerAllocation(returnDict=False)
         retval = self.comp.allocateCapacity([frontend_alloc])
-        self.assertEquals(retval, False)
+        self.assertEquals(retval, True)
 
     def testBasicBehavior(self):
         self.assertEquals(self.got_logmsg, False)
@@ -187,6 +187,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertRaises(exception, RFInfo_in.ref._set_rf_flow_id, 'rf_flow')
         self.assertRaises(exception, RFInfo_in.ref._get_rfinfo_pkt)
         self.assertRaises(exception, RFInfo_in.ref._set_rfinfo_pkt, _rfinfopkt)
+
+
+    def test_RFSource_Out(self):
+        self.assertEquals(self.got_logmsg, False)
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        exc_src = sb.launch('./build/fei_exception_through/tests/fei_exc_src/fei_exc_src.spd.xml')
+        self.comp.connect(exc_src,usesPortName='RFSource_out')
+        self.comp.start();
+        self.comp.stop();
+        sb.release()
+
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

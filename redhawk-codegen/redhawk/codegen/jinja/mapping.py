@@ -19,6 +19,7 @@
 #
 
 import os
+import warnings
 
 from redhawk.codegen.model.properties import Kinds
 from redhawk.codegen.model.softwarecomponent import ComponentTypes
@@ -43,10 +44,22 @@ class PropertyMapper(object):
     def _mapSimple(self, prop):
         propdict = self._mapProperty(prop, 'simple')
         propdict['type'] = prop.type()
+        if prop.hasEnumerations():
+            propdict['enums'] = [self._mapEnumeration(prop, l, v) for (l, v) in prop.enumerations()]
         propdict.update(self.mapSimpleProperty(prop))
         return propdict
 
     def mapSimpleProperty(self, prop):
+        return {}
+
+    def _mapEnumeration(self, prop, label, value):
+        enumdict = {}
+        enumdict['label'] = label
+        enumdict['value'] = value
+        enumdict.update(self.mapEnumeration(prop, label, value))
+        return enumdict
+
+    def mapEnumeration(self, prop, label, value):
         return {}
 
     def _mapSimpleSequence(self, prop):
@@ -60,8 +73,7 @@ class PropertyMapper(object):
 
     def _mapStruct(self, prop):
         propdict = self._mapProperty(prop, 'struct')
-        fields = [self._mapSimple(s) for s in prop.fields() if isinstance(s, redhawk.codegen.model.properties.SimpleProperty)]
-	fields += [self._mapSimpleSequence(s) for s in prop.fields() if isinstance(s, redhawk.codegen.model.properties.SimpleSequenceProperty)]
+        fields = [self._mapField(f) for f in prop.fields()]
         propdict['fields'] = fields
         propdict.update(self.mapStructProperty(prop, fields))
         return propdict
@@ -80,6 +92,16 @@ class PropertyMapper(object):
 
     def mapStructSequenceProperty(self, prop, structdef):
         return {}
+
+    def _mapField(self, prop):
+        # NB: This does not support struct or struct sequences as fields;
+        # however, if at some point the PRF is extended to add them, 
+        if prop.isStruct():
+            warnings.warn('Only simple and simplesequence properties may appear in a struct')
+        elif prop.isSequence():
+            return self._mapSimpleSequence(prop)
+        else:
+            return self._mapSimple(prop)
 
     def mapProperties(self, softpkg):
         simple = [self._mapSimple(s) for s in softpkg.getSimpleProperties()]
@@ -272,7 +294,6 @@ class ComponentMapper(SoftpkgMapper):
     def mapComponent(self, softpkg):
         component = self.mapSoftpkg(softpkg)
         component['license'] = None
-        component['mFunction'] = None
         if softpkg.descriptor():
             if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
                 component['aggregate'] = True

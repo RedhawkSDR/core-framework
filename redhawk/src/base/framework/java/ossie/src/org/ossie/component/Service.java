@@ -204,6 +204,13 @@ public abstract class Service  extends Logging
 
         final POA rootpoa  = org.ossie.corba.utils.RootPOA();
 
+        if (args.length == 1) {
+            if (args[0].equals("-i")) {
+                System.out.println("Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain");
+                System.exit(-1);
+            }
+        }
+
         Map<String, String> execparams = parseArgs(args);
 
         DeviceManager deviceMgr = null;

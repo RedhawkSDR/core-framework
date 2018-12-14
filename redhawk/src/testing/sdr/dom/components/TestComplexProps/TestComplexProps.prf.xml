@@ -22,57 +22,52 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <properties>
   <simple id="complexBooleanProp" mode="readwrite" type="boolean" complex="true">
     <value>0+j1</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexULongProp" mode="readwrite" type="ulong" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexShortProp" mode="readwrite" type="short" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexFloatProp" mode="readwrite" type="float" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexOctetProp" mode="readwrite" type="octet" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
-    <action type="external"/>
-  </simple>
-  <simple id="complexCharProp" mode="readwrite" type="char" complex="true">
-    <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexUShort" mode="readwrite" type="ushort" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexDouble" mode="readwrite" type="double" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexLong" mode="readwrite" type="long" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexLongLong" mode="readwrite" type="longlong" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="complexULongLong" mode="readwrite" type="ulonglong" complex="true">
     <value>4+j5</value>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
 
@@ -80,42 +75,59 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <values>
       <value>6+j7</value>
       <value>4+j5</value>
-      <value>4+j5</value>
+      <value>8+j9</value>
     </values>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simplesequence>
   <struct id="FloatStruct" mode="readwrite">
     <simple id="FloatStructMember" mode="readwrite" type="float">
       <value>6</value>
-      <kind kindtype="configure"/>
+      <kind kindtype="property"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
  
   <struct id="complexFloatStruct" mode="readwrite">
     <simple id="complexFloatStructMember" mode="readwrite" type="float" complex="true">
       <value>6+j7</value>
-      <kind kindtype="configure"/>
+      <kind kindtype="property"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <simplesequence id="complexFloatStruct::complex_float_seq" name="complex_float_seq" type="float" complex="true">
+      <values>
+        <value>3+j4</value>
+      </values>
+    </simplesequence>
+    <configurationkind kindtype="property"/>
   </struct>
   <structsequence id="FloatStructSequence" mode="readwrite">
     <struct id="FloatStructSequenceMember">
       <simple id="FloatStructSequenceMemberMemember" type="float">
         <value>6</value>
       </simple>
+      <simplesequence id="FloatStructSequence::float_seq" name="float_seq" type="float">
+        <values>
+          <value>3</value>
+        </values>
+      </simplesequence>
     </struct>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </structsequence>
   <structsequence id="complexFloatStructSequence" mode="readwrite">
     <struct id="complexFloatStructSequenceMember">
-      <simple id="complexFloatStructSequenceMemberMemember" type="float" complex="true">
-        <value>6+j5</value>
-      </simple>
+      <simple id="complexFloatStructSequenceMemberMemember" type="float" complex="true"/>
+      <simplesequence id="complexFloatStructSequence::complex_float_seq" name="complex_float_seq" type="float" complex="true"/>
     </struct>
-    <configurationkind kindtype="configure"/>
+    <structvalue>
+      <simpleref refid="complexFloatStructSequenceMemberMemember" value="9+j4"/>
+      <simplesequenceref refid="complexFloatStructSequence::complex_float_seq">
+        <values>
+          <value>6+j5</value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <configurationkind kindtype="property"/>
   </structsequence>
 </properties>

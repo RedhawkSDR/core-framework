@@ -7,11 +7,14 @@ package burstio;
 
 import burstio.traits.@name@Traits;
 
-import org.ossie.component.PortBase;
+import org.ossie.component.StartablePort;
+import org.ossie.component.RHLogger;
 
-public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>, PortBase
+public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<BURSTIO.@name@Burst>, StartablePort
 {
     private final InPortImpl<BURSTIO.@name@Burst> impl_;
+
+    public RHLogger _portLog = null;
 
     public Burst@name@In (final String name)
     {
@@ -21,6 +24,16 @@ public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<
     public String getName ()
     {
         return this.impl_.getName();
+    }
+
+    public void startPort ()
+    {
+        start();
+    }
+
+    public void stopPort ()
+    {
+        stop();
     }
 
     public void start ()
@@ -88,13 +101,18 @@ public class Burst@name@In extends BURSTIO.jni.burst@name@POA implements InPort<
         this.impl_.flush();
     }
 
-	public String getRepid ()
-	{
-		return BURSTIO.burst@name@Helper.id();
-	}
+    public String getRepid ()
+    {
+        return BURSTIO.burst@name@Helper.id();
+    }
 
-	public String getDirection ()
-	{
-		return "Provides";
-	}
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
+
+    public String getDirection ()
+    {
+        return CF.PortSet.DIRECTION_PROVIDES;
+    }
 }

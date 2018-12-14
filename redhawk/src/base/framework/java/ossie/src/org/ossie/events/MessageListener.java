@@ -20,8 +20,6 @@
 
 package org.ossie.events;
 
-import org.ossie.properties.StructDef;
-
-public interface MessageListener<E extends StructDef> {
+public interface MessageListener<E> {
     public void messageReceived(String messageId, E messageData);
 }

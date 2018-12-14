@@ -39,7 +39,7 @@ if '__main__':
                 # Instantiate component and build API, but don't actually launch component process
                 comp = Component(componentDescriptor=arg,autoKick=False)           
                 print "rh-inspect " + str(arg) + "*******************************"
-                comp.api()
+                comp.api(destfile=sys.stdout)
                 print "\n" 
 
     except Exception, e:

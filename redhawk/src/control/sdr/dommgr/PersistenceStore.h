@@ -25,7 +25,11 @@
 #include <vector>
 
 #include <ossie/exceptions.h>
-#include "applicationSupport.h"
+#include <ossie/SoftPkg.h>
+#include <ossie/Properties.h>
+#include <ossie/PropertyMap.h>
+#include <ossie/DeviceManagerConfiguration.h>
+
 #include "connectionSupport.h"
 
 
@@ -42,6 +46,7 @@ namespace ossie {
             std::string identifier;
             std::string label;
             CF::DeviceManager_var deviceManager;
+            DeviceManagerConfiguration dcd;
     };
 
     class DomainManagerNode {
@@ -68,8 +73,19 @@ namespace ossie {
         ossie::SoftPkg spd;
         ossie::Properties prf;
         std::string implementationId;
-        bool isLoadable;
-        bool isExecutable;
+        redhawk::PropertyMap    requiresProps;
+        CF::LoadableDevice_var loadableDevice;
+        CF::ExecutableDevice_var executableDevice;
+
+        bool isLoadable() const
+        {
+            return !CORBA::is_nil(loadableDevice);
+        }
+
+        bool isExecutable() const
+        {
+            return !CORBA::is_nil(executableDevice);
+        }
     };
 
     typedef std::list<boost::shared_ptr<DeviceNode> > DeviceList;
@@ -92,11 +108,36 @@ namespace ossie {
 
     typedef std::map<std::string, AllocationType> AllocationTable;
     typedef std::map<std::string, RemoteAllocationType> RemoteAllocationTable;
+    typedef std::map<std::string, std::string> EventProxies;
+    struct ChannelRegistrationNode {
+        std::string                          channel_name;
+        std::string                          fqn;
+        std::string                          channel;
+        bool                                 autoRelease;
+        bool                                 release;
+        std::map< std::string, std::string > registrants;
+    };
+    typedef std::map<std::string, ChannelRegistrationNode> ChannelRegistrationNodes;
+
+    struct ComponentNode {
+        std::string identifier;
+        std::string name;
+        std::string softwareProfile;
+        std::string namingContext;
+        std::string implementationId;
+        bool isVisible;
+        std::vector<std::string> loadedFiles;
+        unsigned long processId;
+        CORBA::Object_var componentObject;
+        std::string assignedDeviceId;
+        std::string componentHostId;
+    };
+    typedef std::list<ComponentNode> ComponentList;
 
     struct externalPropertyType {
     public:
         std::string property_id;
-        std::string component_id;
+        CF::Resource_var component;
         std::string access;
     };
 
@@ -106,16 +147,16 @@ namespace ossie {
         std::string identifier;
         std::string contextName;
         CosNaming::NamingContext_var context;
-        std::vector<ossie::DeviceAssignmentInfo> componentDevices;
+        CF::DeviceAssignmentSequence componentDevices;
         ossie::ComponentList components;
-        CF::Resource_var assemblyController;
+        std::string assemblyControllerId;
         std::vector<ConnectionNode> connections;
         std::vector<std::string> allocationIDs;
-        std::vector<CF::Resource_var> componentRefs;
+        std::vector<std::string> startOrder;
         std::map<std::string, CORBA::Object_var> ports;
-        // Ext Props map :  extid -> (propid, access, compid)
         std::map<std::string, externalPropertyType > properties;
         bool aware_application;
+        float stop_timeout;
     };
     
     class ServiceNode {
@@ -235,7 +276,7 @@ namespace boost {
             }
             ar & (*ptr);
         }
-    
+
         template<class Archive>
         void serialize(Archive& ar, ossie::EventChannelNode& node, const unsigned int version) {
             ar & (node.channel);
@@ -245,21 +286,34 @@ namespace boost {
         }
 
         template<class Archive>
-        void serialize(Archive& ar, ossie::ApplicationComponent& node, const unsigned int version) {
+        void serialize(Archive& ar, ossie::ChannelRegistrationNode& node, const unsigned int version) {
+            ar & (node.channel_name);
+            ar & (node.fqn);
+            ar & (node.channel);
+            ar & (node.autoRelease);
+            ar & (node.release);
+            ar & (node.registrants);
+        }
+
+        template<class Archive>
+        void serialize(Archive& ar, ossie::ComponentNode& node, const unsigned int version) {
             ar & node.identifier;
+            ar & node.name;
             ar & node.softwareProfile;
             ar & node.namingContext;
             ar & node.implementationId;
+            ar & node.isVisible;
             ar & node.loadedFiles;
             ar & node.processId;
             ar & node.componentObject;
-            ar & node.assignedDevice;
+            ar & node.assignedDeviceId;
+            ar & node.componentHostId;
         }
 
         template<class Archive>
         void serialize(Archive& ar, ossie::externalPropertyType& prop, const unsigned int version) {
             ar & prop.property_id;
-            ar & prop.component_id;
+            ar & prop.component;
             ar & prop.access;
         }
 
@@ -272,10 +326,10 @@ namespace boost {
             ar & (node.context);
             ar & (node.componentDevices);
             ar & (node.components);
-            ar & (node.assemblyController);
+            ar & (node.assemblyControllerId);
             ar & (node.allocationIDs);
             ar & (node.connections);
-            ar & (node.componentRefs);
+            ar & (node.startOrder);
             ar & (node.ports);
             ar & (node.properties);
         }
@@ -293,12 +347,6 @@ namespace boost {
             ar & (node.provides);
             ar & (node.identifier);
             ar & (node.connected);
-        }
-
-        template<class Archive>
-        void serialize(Archive& ar, ossie::DeviceAssignmentInfo& dai, const unsigned int version) {
-            ar & (dai.deviceAssignment);
-            ar & (dai.device);
         }
 
         template<class Archive>

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -25,5 +25,14 @@ if [ ! -e Makefile ]; then
   ./configure
 fi
 
-make -j $*
+if [ $# == 1 ]; then
+    if [ $1 == 'clean' ]; then
+        make distclean
+    else
+        make -j $*
+    fi
+else
+    make -j $*
+fi
 
+exit $?

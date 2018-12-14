@@ -48,6 +48,8 @@ namespace ossie
 
   namespace SpdSupport {
 
+      extern rh_logger::LoggerPtr spdSupportLog;
+
       class   ResourceInfo;
       class   SoftpkgInfo;
       class   ImplementationInfo;
@@ -98,7 +100,7 @@ namespace ossie
         const CORBA::ULong getPriority() const;
         const bool hasStackSize() const;
         const bool hasPriority() const;
-        const std::vector<SPD::PropertyRef>& getDependencyProperties() const;
+        const std::vector<PropertyRef>& getDependencyProperties() const;
         const SoftpkgInfoList & getSoftPkgDependencies() const;
 
         bool checkProcessorAndOs(const ossie::Properties& prf) const;
@@ -113,11 +115,11 @@ namespace ossie
         ImplementationInfo ( const ImplementationInfo&);
         void setLocalFileName(const char* fileName);
         void setEntryPoint(const char* fileName);
-        void setCodeType(const char* _type);
+        void setCodeType(ossie::SPD::Code::CodeType _type);
         void setPropertyFile(const char* filename);
         void setStackSize(const unsigned long long *_stackSize);
         void setPriority(const unsigned long long *_priority);
-        void addDependencyProperty(const ossie::SPD::PropertyRef& property);
+        void addDependencyProperty(const ossie::PropertyRef& property);
         void addSoftPkgDependency(SoftpkgInfo *softpkg);
 
         std::string id;
@@ -132,7 +134,7 @@ namespace ossie
         bool _hasPriority;
         std::vector<std::string> processorDeps;
         std::vector<ossie::SPD::NameVersionPair> osDeps;
-        std::vector<SPD::PropertyRef> dependencyProperties;
+        std::vector<PropertyRef> dependencyProperties;
         SoftpkgInfoList softPkgDependencies;
 
     };
@@ -171,7 +173,6 @@ namespace ossie
         bool parseProfile (CF::FileSystem_ptr fileSys, CF::FileSystem_ptr depFileSys );
 
         const std::string _spdFileName;
-        std::string _name;                // name from SPD File
         std::string _identifier;          // identifier from SPD File
 
         ImplementationInfo::List           _implementations;
@@ -193,13 +194,13 @@ namespace ossie
         ProgramProfile (const std::string& spdFileName);
         ~ProgramProfile ();
 
-        void setIdentifier(const char* identifier, std::string instance_id);
+        void setIdentifier(const std::string &identifier, const std::string &instance_id);
         void setNamingService(const bool isNamingService);
-        void setNamingServiceName(const char* NamingServiceName);
-        void setUsageName(const char* usageName);
+        void setNamingServiceName(const std::string &NamingServiceName);
+        void setUsageName(const std::string &usageName);
         void setIsAssemblyController(bool isAssemblyController);
         void setIsScaCompliant(bool isScaCompliant);
-        void setNicAssignment(std::string nic);
+        void setNicAssignment(const std::string &nic);
         void setAffinity( const AffinityProperties &affinity );
         void mergeAffinityOptions( const CF::Properties &new_affinity );
         void setLoggingConfig( const LoggingConfig &logcfg );
@@ -246,6 +247,9 @@ namespace ossie
         CF::Properties getAffinityOptionsWithAssignment();
         CF::Properties getExecParameters();
         CF::Properties getPopulatedExecParameters();
+
+        void load(CF::FileSystem_ptr fileSystem,
+                  CF::FileSystem_ptr depFileSys );
 
         ComponentDescriptor scd;
         ossie::Properties prf;

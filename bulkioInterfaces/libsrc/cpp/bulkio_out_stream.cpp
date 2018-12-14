@@ -20,6 +20,8 @@
 
 #include "bulkio_out_stream.h"
 #include "bulkio_out_port.h"
+#include "bulkio_time_operators.h"
+#include "bulkio_p.h"
 
 using bulkio::OutputStream;
 
@@ -37,301 +39,581 @@ namespace {
   };
 }
 
-template <class PortTraits>
-class OutputStream<PortTraits>::Impl {
+template <class PortType>
+class OutputStream<PortType>::Impl : public StreamBase::Impl {
 public:
-  typedef typename PortTraits::DataTransferTraits::NativeDataType ScalarType;
-  typedef std::complex<ScalarType> ComplexType;
-  typedef typename PortTraits::DataTransferTraits::TransportType TransportType;
+    typedef StreamBase::Impl ImplBase;
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
 
-  Impl(const std::string& streamID, bulkio::OutPort<PortTraits>* port) :
-    _streamID(streamID),
-    _port(port),
-    _sri(bulkio::sri::create(streamID)),
-    _sriUpdated(true)
-  {
-  }
-
-  Impl(const BULKIO::StreamSRI& sri, bulkio::OutPort<PortTraits>* port) :
-    _streamID(sri.streamID),
-    _port(port),
-    _sri(sri),
-    _sriUpdated(true)
-  {
-  }
-
-  const std::string& streamID() const
-  {
-    return _streamID;
-  }
-
-  const BULKIO::StreamSRI& sri() const
-  {
-    return _sri;
-  }
-
-  void setSRI(const BULKIO::StreamSRI& sri)
-  {
-    // Copy the new SRI, except for the stream ID, which is immutable
-    _sri = sri;
-    _sri.streamID = _streamID.c_str();
-    _sriUpdated = true;
-  }
-
-  void setXDelta(double delta)
-  {
-    _setStreamMetadata(_sri.xdelta, delta);
-  }
-
-  void setComplex(bool mode)
-  {
-    _setStreamMetadata(_sri.mode, mode?1:0);
-  }
-
-  void setBlocking(bool blocking)
-  {
-    _setStreamMetadata(_sri.blocking, blocking?1:0);
-  }
-
-  void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
-  {
-    _sri.keywords = properties;
-    _sriUpdated = true;
-  }
-
-  void setKeyword(const std::string& name, const CORBA::Any& value)
-  {
-    redhawk::PropertyMap::cast(_sri.keywords)[name] = value;
-    _sriUpdated = true;
-  }
-
-  void eraseKeyword(const std::string& name)
-  {
-    redhawk::PropertyMap::cast(_sri.keywords).erase(name);
-    _sriUpdated = true;
-  }
-
-  template <class Sample>
-  void write(const Sample* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
-  {
-    std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
-    if (timestamp == times.end()) {
-      throw std::logic_error("no timestamps given");
+    Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
+        ImplBase(sri),
+        _modcount(0),
+        _port(port)
+    {
     }
 
-    size_t first = 0;
-    while (first < count) {
-      size_t last = 0;
-      const BULKIO::PrecisionUTCTime& when = timestamp->time;
-      if (++timestamp == times.end()) {
-        last = count;
-      } else {
-        last = timestamp->offset;
-        if (_sri.mode != 0 && !is_complex<Sample>::value) {
-          // If the stream is complex but the data type is not, adjust sample
-          // offset to account for the fact that each real/imaginary pair is
-          // actually two values
-          last *= 2;
+    virtual ~Impl()
+    {
+    }
+
+    virtual void close()
+    {
+        // Send an empty packet with an end-of-stream marker; since there is no
+        // sample data, the timestamp does not matter
+        _send(BufferType(), bulkio::time::utils::notSet(), true);
+    }
+
+    void setXStart(double start)
+    {
+        _setStreamMetadata(_sri->xstart, start);
+    }
+
+    void setXDelta(double delta)
+    {
+        _setStreamMetadata(_sri->xdelta, delta);
+    }
+
+    void setXUnits(short units)
+    {
+        _setStreamMetadata(_sri->xunits, units);
+    }
+
+    void setSubsize(int size)
+    {
+        _setStreamMetadata(_sri->subsize, size);
+    }
+
+    void setYStart(double start)
+    {
+        _setStreamMetadata(_sri->ystart, start);
+    }
+
+    void setYDelta(double delta)
+    {
+        _setStreamMetadata(_sri->ydelta, delta);
+    }
+
+    void setYUnits(short units)
+    {
+        _setStreamMetadata(_sri->yunits, units);
+    }
+
+    void setComplex(bool mode)
+    {
+        _setStreamMetadata(_sri->mode, mode?1:0);
+    }
+
+    void setBlocking(bool mode)
+    {
+        _setStreamMetadata(_sri->blocking, mode?1:0);
+    }
+
+    void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
+    {
+        _modifyingStreamMetadata();
+        _sri->keywords = properties;
+        ++_modcount;
+    }
+
+    void setKeyword(const std::string& name, const CORBA::Any& value)
+    {
+        _modifyingStreamMetadata();
+        redhawk::PropertyMap::cast(_sri->keywords)[name] = value;
+        ++_modcount;
+    }
+
+    void eraseKeyword(const std::string& name)
+    {
+        _modifyingStreamMetadata();
+        redhawk::PropertyMap::cast(_sri->keywords).erase(name);
+        ++_modcount;
+    }
+
+    void setSRI(const BULKIO::StreamSRI& sri)
+    {
+        _modifyingStreamMetadata();
+        // Copy the new SRI, except for the stream ID, which is immutable
+        *_sri = sri;
+        _sri->streamID = _streamID.c_str();
+        ++_modcount;
+    }
+
+    virtual void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
+    {
+        _send(data, time, false);
+    }
+
+    int modcount() const
+    {
+        return _modcount;
+    }
+
+protected:
+    virtual void _modifyingStreamMetadata()
+    {
+        // By default, do nothing
+    }
+
+    template <typename Field, typename Value>
+    void _setStreamMetadata(Field& field, Value value)
+    {
+        if (field != value) {
+            _modifyingStreamMetadata();
+            field = value;
+            ++_modcount;
         }
-      }
-      const size_t pass = last-first;
-      write(data+first, pass, when);
-      first += pass;
     }
-  }
 
-  void write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
-  {
-    if (_sriUpdated) {
-      _port->pushSRI(_sri);
-      _sriUpdated = false;
+    void _send(const BufferType& data, const BULKIO::PrecisionUTCTime& time, bool eos)
+    {
+        _port->_sendPacket(data, time, eos, _streamID);
     }
-    _send(reinterpret_cast<const TransportType*>(data), count, time, false);
-  }
 
-  void write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
-  {
-    if (_sri.mode == 0) {
-      throw std::logic_error("stream mode is not complex");
-    }
-    write(reinterpret_cast<const ScalarType*>(data), count*2, time);
-  }
-
-  void close()
-  {
-    // Send an empty packet with an end-of-stream marker; since there is no
-    // sample data, the timestamp does not matter
-    _send(0, 0, bulkio::time::utils::notSet(), true);
-  }
-
-private:
-  void _send(const TransportType* data, size_t count, const BULKIO::PrecisionUTCTime& time, bool eos)
-  {
-    _port->pushPacket(data, count, time, eos, _streamID);
-  }
-
-  template <typename Field, typename Value>
-  void _setStreamMetadata(Field& field, Value value)
-  {
-    if (field == value) {
-      return;
-    }
-    field = value;
-    _sriUpdated = true;
-  }
-
-  const std::string _streamID;
-  OutPort<PortTraits>* _port;
-  BULKIO::StreamSRI _sri;
-  bool _sriUpdated;
+    int _modcount;
+    OutPortType* _port;
 };
 
-template <class PortTraits>
-OutputStream<PortTraits>::OutputStream() :
-  _impl()
+template <class PortType>
+OutputStream<PortType>::OutputStream() :
+    StreamBase()
 {
 }
 
-template <class PortTraits>
-OutputStream<PortTraits>::OutputStream(const BULKIO::StreamSRI& sri, bulkio::OutPort<PortTraits>* port) :
-  _impl(new Impl(sri, port))
+template <class PortType>
+OutputStream<PortType>::OutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    StreamBase(boost::make_shared<Impl>(sri, port))
 {
 }
 
-template <class PortTraits>
-const std::string& OutputStream<PortTraits>::streamID() const
+template <class PortType>
+OutputStream<PortType>::OutputStream(boost::shared_ptr<Impl> impl) :
+    StreamBase(impl)
 {
-  return _impl->streamID();
 }
 
-template <class PortTraits>
-const BULKIO::StreamSRI& OutputStream<PortTraits>::sri() const
+template <class PortType>
+void OutputStream<PortType>::sri(const BULKIO::StreamSRI& sri)
 {
-  return _impl->sri();
+    impl().setSRI(sri);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::sri(const BULKIO::StreamSRI& sri)
+template <class PortType>
+void OutputStream<PortType>::xstart(double start)
 {
-  _impl->setSRI(sri);
+    impl().setXStart(start);
 }
 
-template <class PortTraits>
-double OutputStream<PortTraits>::xdelta() const
+template <class PortType>
+void OutputStream<PortType>::xdelta(double delta)
 {
-  return _impl->sri().xdelta;
+    impl().setXDelta(delta);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::xdelta(double delta)
+template <class PortType>
+void OutputStream<PortType>::xunits(short units)
 {
-  _impl->setXDelta(delta);
+    impl().setXUnits(units);
 }
 
-template <class PortTraits>
-bool OutputStream<PortTraits>::complex() const
+template <class PortType>
+void OutputStream<PortType>::subsize(int size)
 {
-  return (_impl->sri().mode != 0);
+    impl().setSubsize(size);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::complex(bool mode)
+template <class PortType>
+void OutputStream<PortType>::ystart(double start)
 {
-  _impl->setComplex(mode);
+    impl().setYStart(start);
 }
 
-template <class PortTraits>
-bool OutputStream<PortTraits>::blocking() const
+template <class PortType>
+void OutputStream<PortType>::ydelta(double delta)
 {
-  return _impl->sri().blocking;
+    impl().setYDelta(delta);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::blocking(bool mode)
+template <class PortType>
+void OutputStream<PortType>::yunits(short units)
 {
-  _impl->setBlocking(mode);
+    impl().setYUnits(units);
 }
 
-template <class PortTraits>
-const redhawk::PropertyMap& OutputStream<PortTraits>::keywords() const
+template <class PortType>
+void OutputStream<PortType>::complex(bool mode)
 {
-  return redhawk::PropertyMap::cast(_impl->sri().keywords);
+    impl().setComplex(mode);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
+template <class PortType>
+void OutputStream<PortType>::blocking(bool mode)
 {
-  _impl->setKeywords(props);
+    impl().setBlocking(mode);
 }
 
-template <class PortTraits>
-bool OutputStream<PortTraits>::hasKeyword(const std::string& name) const
+template <class PortType>
+void OutputStream<PortType>::keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props)
 {
-  return keywords().contains(name);
+    impl().setKeywords(props);
 }
 
-template <class PortTraits>
-const redhawk::Value& OutputStream<PortTraits>::getKeyword(const std::string& name) const
+template <class PortType>
+void OutputStream<PortType>::setKeyword(const std::string& name, const CORBA::Any& value)
 {
-  return keywords()[name];
+    impl().setKeyword(name, value);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::setKeyword(const std::string& name, const CORBA::Any& value)
+template <class PortType>
+void OutputStream<PortType>::setKeyword(const std::string& name, const redhawk::Value& value)
 {
-    _impl->setKeyword(name, value);
+    impl().setKeyword(name, value);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::setKeyword(const std::string& name, const redhawk::Value& value)
+template <class PortType>
+void OutputStream<PortType>::eraseKeyword(const std::string& name)
 {
-    _impl->setKeyword(name, value);
+    impl().eraseKeyword(name);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::eraseKeyword(const std::string& name)
+template <class PortType>
+void OutputStream<PortType>::close()
 {
-    _impl->eraseKeyword(name);
+    impl().close();
+    _impl.reset();
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+template <class PortType>
+OutputStream<PortType>::operator unspecified_bool_type() const
 {
-  _impl->write(data, count, time);
+    return _impl?static_cast<unspecified_bool_type>(&OutputStream::impl):0;
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::write(const ScalarType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+template <class PortType>
+bool OutputStream<PortType>::operator==(const OutputStream& other) const
 {
-  _impl->write(data, count, times);
+    return _impl == other._impl;
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const BULKIO::PrecisionUTCTime& time)
+template <class PortType>
+bool OutputStream<PortType>::operator!=(const OutputStream& other) const
 {
-  _impl->write(data, count, time);
+    return !(*this == other);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::write(const ComplexType* data, size_t count, const std::list<bulkio::SampleTimestamp>& times)
+template <class PortType>
+typename OutputStream<PortType>::Impl& OutputStream<PortType>::impl()
 {
-  _impl->write(data, count, times);
+    return static_cast<Impl&>(*this->_impl);
 }
 
-template <class PortTraits>
-void OutputStream<PortTraits>::close()
+template <class PortType>
+const typename OutputStream<PortType>::Impl& OutputStream<PortType>::impl() const
 {
-  _impl->close();
-  _impl.reset();
+    return static_cast<const Impl&>(*this->_impl);
 }
 
-template class OutputStream<bulkio::CharPortTraits>;
-template class OutputStream<bulkio::OctetPortTraits>;
-template class OutputStream<bulkio::ShortPortTraits>;
-template class OutputStream<bulkio::UShortPortTraits>;
-template class OutputStream<bulkio::LongPortTraits>;
-template class OutputStream<bulkio::ULongPortTraits>;
-template class OutputStream<bulkio::LongLongPortTraits>;
-template class OutputStream<bulkio::ULongLongPortTraits>;
-template class OutputStream<bulkio::FloatPortTraits>;
-template class OutputStream<bulkio::DoublePortTraits>;
+template <class PortType>
+int OutputStream<PortType>::modcount() const
+{
+    return impl().modcount();
+}
+
+
+using bulkio::BufferedOutputStream;
+
+template <class PortType>
+class BufferedOutputStream<PortType>::Impl : public Base::Impl {
+public:
+    typedef typename Base::Impl ImplBase;
+
+    typedef typename BufferTraits<PortType>::BufferType BufferType;
+    typedef typename BufferTraits<PortType>::MutableBufferType MutableBufferType;
+
+    using ImplBase::_sri;
+    using ImplBase::_streamID;
+
+    Impl(const BULKIO::StreamSRI& sri, OutPortType* port) :
+        ImplBase::Impl(sri, port),
+        _bufferSize(0),
+        _bufferOffset(0)
+    {
+    }
+
+    void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
+    {
+        // If buffering is disabled, or the buffer is empty and the input data is
+        // large enough for a full buffer, send it immediately
+        if ((_bufferSize == 0) || (_bufferOffset == 0 && (data.size() >= _bufferSize))) {
+            ImplBase::write(data, time);
+        } else {
+            _doBuffer(data, time);
+        }
+    }
+
+    size_t bufferSize() const
+    {
+        return _bufferSize;
+    }
+
+    void setBufferSize(size_t samples)
+    {
+        // Avoid needless thrashing
+        if (samples == _bufferSize) {
+            return;
+        }
+        _bufferSize = samples;
+
+        // If the new buffer size is less than (or exactly equal to) the
+        // currently buffered data size, flush
+        if (_bufferSize <= _bufferOffset) {
+            flush();
+        } else if (_bufferSize > _buffer.size()) {
+            // The buffer size is increasing beyond the existing allocation
+            _buffer.resize(_bufferSize);
+        }
+    }
+
+    void flush()
+    {
+        if (_bufferOffset == 0) {
+            return;
+        }
+
+        _flush(false);
+    }
+
+    virtual void close()
+    {
+        if (_bufferOffset > 0) {
+            // Add the end-of-stream marker to the buffered data and its timestamp
+            _flush(true);
+        } else {
+            ImplBase::close();
+        }
+    }
+
+private:
+    virtual void _modifyingStreamMetadata()
+    {
+        // Flush any data queued with the old SRI
+        flush();
+    }
+
+    void _flush(bool eos)
+    {
+        // Push out all buffered data, which must be less than the full allocated
+        // size otherwise it would have already been sent
+        this->_send(_buffer.slice(0, _bufferOffset), _bufferTime, eos);
+
+        // Allocate a new buffer and reset the offset index
+        _buffer = MutableBufferType(_bufferSize);
+        _bufferOffset = 0;
+    }
+
+    void _doBuffer(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
+    {
+        // If this is the first data being queued, use its timestamp for the start
+        // time of the buffered data
+        if (_bufferOffset == 0) {
+            _bufferTime = time;
+        }
+
+        // Only buffer up to the currently configured buffer size
+        size_t count = std::min(data.size(), _bufferSize - _bufferOffset);
+        _buffer.replace(_bufferOffset, count, data);
+
+        // Advance buffer offset, flushing if the buffer is full
+        _bufferOffset += count;
+        if (_bufferOffset >= _bufferSize) {
+            _flush(false);
+        }
+
+        // Handle remaining data
+        if (count < data.size()) {
+            BULKIO::PrecisionUTCTime next = time + (_sri->xdelta * count);
+            _doBuffer(data.slice(count), next);
+        }
+    }
+
+    MutableBufferType _buffer;
+    BULKIO::PrecisionUTCTime _bufferTime;
+    size_t _bufferSize;
+    size_t _bufferOffset;
+};
+
+template <class PortType>
+BufferedOutputStream<PortType>::BufferedOutputStream() :
+    Base()
+{
+}
+
+template <class PortType>
+BufferedOutputStream<PortType>::BufferedOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(boost::make_shared<Impl>(sri, port))
+{
+}
+
+template <class PortType>
+size_t BufferedOutputStream<PortType>::bufferSize() const
+{
+    return impl().bufferSize();
+}
+
+template <class PortType>
+void BufferedOutputStream<PortType>::setBufferSize(size_t samples)
+{
+    impl().setBufferSize(samples);
+}
+
+template <class PortType>
+void BufferedOutputStream<PortType>::flush()
+{
+    impl().flush();
+}
+
+template <class PortType>
+void BufferedOutputStream<PortType>::write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)
+{
+    impl().write(data, time);
+}
+
+template <class PortType>
+typename BufferedOutputStream<PortType>::Impl& BufferedOutputStream<PortType>::impl()
+{
+    return static_cast<Impl&>(*this->_impl);
+}
+
+template <class PortType>
+const typename BufferedOutputStream<PortType>::Impl& BufferedOutputStream<PortType>::impl() const
+{
+    return static_cast<const Impl&>(*this->_impl);
+}
+
+//
+// Numeric streams add addtional complex/scalar and extended timestamp methods
+//
+using bulkio::NumericOutputStream;
+
+template <class PortType>
+NumericOutputStream<PortType>::NumericOutputStream() :
+    Base()
+{
+}
+
+template <class PortType>
+NumericOutputStream<PortType>::NumericOutputStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(sri, port)
+{
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ScalarBuffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+    Base::write(data, time);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ScalarBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+    _writeMultiple(data, times);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ComplexBuffer& data, const BULKIO::PrecisionUTCTime& time)
+{
+    if (!this->complex()) {
+        throw std::logic_error("stream mode is not complex");
+    }
+    write(ScalarBuffer::recast(data), time);
+}
+
+template <class PortType>
+void NumericOutputStream<PortType>::write(const ComplexBuffer& data, const std::list<bulkio::SampleTimestamp>& times)
+{
+    _writeMultiple(data, times);
+}
+
+template <class PortType>
+template <typename Sample>
+inline void NumericOutputStream<PortType>::_writeMultiple(const redhawk::shared_buffer<Sample>& data,
+                                                          const std::list<bulkio::SampleTimestamp>& times)
+{
+    std::list<bulkio::SampleTimestamp>::const_iterator timestamp = times.begin();
+    if (timestamp == times.end()) {
+        throw std::logic_error("no timestamps given");
+    }
+    size_t first = 0;
+    while (first < data.size()) {
+        size_t last = 0;
+        const BULKIO::PrecisionUTCTime& when = timestamp->time;
+        if (++timestamp == times.end()) {
+            last = data.size();
+        } else {
+            last = timestamp->offset < data.size()? timestamp->offset : data.size();
+            if (!is_complex<Sample>::value && this->complex()) {
+                // If the stream is complex but the data type is not, adjust sample
+                // offset to account for the fact that each real/imaginary pair is
+                // actually two values
+                last *= 2;
+            }
+        }
+        write(data.slice(first, last), when);
+        first = last;
+    }
+}
+
+//
+// XML
+//
+using bulkio::OutXMLStream;
+
+OutXMLStream::OutXMLStream() :
+    Base()
+{
+}
+
+OutXMLStream::OutXMLStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(sri, port)
+{
+}
+
+void OutXMLStream::write(const std::string& xmlString)
+{
+    // XML ports do not officially support timestamps, although the port
+    // implementation includes it (because it's templatized); always pass
+    // "not set" for consistency
+    impl().write(xmlString, bulkio::time::utils::notSet());
+}
+
+//
+// File
+//
+using bulkio::OutFileStream;
+
+OutFileStream::OutFileStream() :
+    Base()
+{
+}
+
+OutFileStream::OutFileStream(const BULKIO::StreamSRI& sri, OutPortType* port) :
+    Base(sri, port)
+{
+}
+
+void OutFileStream::write(const std::string& URL, const BULKIO::PrecisionUTCTime& time)
+{
+    impl().write(URL, time);
+}
+
+#define INSTANTIATE_TEMPLATE(x) \
+    template class OutputStream<x>;
+
+#define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
+    template class BufferedOutputStream<x>;     \
+    template class NumericOutputStream<x>;
+
+FOREACH_PORT_TYPE(INSTANTIATE_TEMPLATE);
+FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_NUMERIC_TEMPLATE);
+// Bit data gets output stream buffering, but does not support scalar/complex
+// data APIs
+template class BufferedOutputStream<BULKIO::dataBit>;

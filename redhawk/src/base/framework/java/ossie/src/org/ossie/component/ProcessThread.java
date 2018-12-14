@@ -20,17 +20,35 @@
 
 package org.ossie.component;
 
+import org.apache.log4j.Logger;
+
 class ProcessThread implements Runnable {
 
     public ProcessThread (ThreadedComponent target)
     {
         this.target = target;
+        // Try to use the most relevant logger for the target
+        if (target instanceof Device) {
+            logger = Device.logger;
+        } else if (target instanceof Resource) {
+            logger = Resource.logger;
+        } else {
+            logger = Logger.getLogger(ProcessThread.class.getName());
+        }
     }
 
     public void run ()
     {
         while (this.isRunning()) {
-            int state = this.target.process();
+            int state = ThreadedComponent.NORMAL;
+            try {
+                state = this.target.process();
+            } catch (Throwable exc) {
+                logger.fatal("Unhandled exception in service function: " + exc.getMessage());
+                exc.printStackTrace();
+                // Terminate the process on unhandled exceptions
+                System.exit(-1);
+            }
             if (state == ThreadedComponent.FINISH) {
                 return;
             } else if (state == ThreadedComponent.NOOP) {
@@ -71,4 +89,5 @@ class ProcessThread implements Runnable {
     private ThreadedComponent target;
     private boolean running = true;
     private long delay = 125;
+    private Logger logger;
 }

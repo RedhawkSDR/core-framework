@@ -51,6 +51,15 @@ class Speedometer(TestMonitor):
         self.line, = self.axes.plot(self.x, self.y)
         self.axes.set_xlim(xmax=period)
 
+        self.figure.subplots_adjust(bottom=0.2)
+
+        sliderax = self.figure.add_axes([0.2, 0.05, 0.6, 0.05])
+        min_size = 1024
+        max_size = 8*1024*1024
+        default_size = 1*1024*1024
+        self.slider = matplotlib.widgets.Slider(sliderax, 'Transfer size', min_size, max_size,
+                                                default_size, '%.0f')
+
         self.figure.show()
 
     def sample_added(self, **stats):
@@ -182,6 +191,7 @@ if __name__ == '__main__':
 
     test = ThroughputTest(poll_time, run_time)
 
+    import matplotlib
     from matplotlib import pyplot
     display = Speedometer(run_time)
     test.add_idle_task(display.update)
@@ -197,6 +207,7 @@ if __name__ == '__main__':
     numa_policy = numa.NumaPolicy(numa_distance)
 
     stream = factory.create('octet', numa_policy.next())
+    display.slider.on_changed(stream.transfer_size)
     try:
         stream.transfer_size(transfer_size)
         test.run(interface, stream)

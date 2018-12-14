@@ -36,3 +36,36 @@ void Port_impl::connectPort(CORBA::Object_ptr connection, const char* connection
 void Port_impl::disconnectPort(const char* connectionId)
 {
 }
+
+LOGGER PortBase::getLogger()
+{
+    return _portLog;
+}
+
+void PortBase::setLogger(LOGGER newLogger)
+{
+    _portLog = newLogger;
+}
+
+namespace redhawk {
+
+    PortCallError::PortCallError( const std::string &msg, const std::vector<std::string> &connectionids ) :
+        std::runtime_error(PortCallError::makeMessage(msg, connectionids)) {}
+
+    PortCallError::~PortCallError() throw () {}
+
+    std::string PortCallError::makeMessage(const std::string& msg, const std::vector<std::string>& connectionids) {
+        std::ostringstream cnvt;
+        cnvt.str("");
+        cnvt << msg;
+        if (not connectionids.empty()) {
+            cnvt << "Connections available: ";
+            for (std::vector<std::string>::const_iterator connectionid=connectionids.begin(); connectionid!=connectionids.end(); connectionid++) {
+                cnvt << *connectionid;
+                if (connectionid!=connectionids.end()-1)
+                    cnvt << ", ";
+            }
+        }
+        return cnvt.str();
+    }
+}

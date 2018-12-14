@@ -52,6 +52,11 @@ ${super()}
         double getTunerOutputSampleRate(const std::string& allocation_id);
         void setTunerOutputSampleRate(const std::string& allocation_id, double sr);
 /*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+        frontend::ScanStatus getScanStatus(const std::string& allocation_id);
+        void setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time);
+        void setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy);
+/*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
         frontend::GPSInfo get_gps_info(const std::string& port_name);
         void set_gps_info(const std::string& port_name, const frontend::GPSInfo &gps_info);
@@ -84,6 +89,9 @@ ${super()}
         // these are pure virtual, must be implemented here
         void deviceEnable(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         void deviceDisable(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
+/*{% if 'ScanningTuner' in component.implements %}*/
+        bool deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
+/*{% endif %}*/
         bool deviceSetTuning(const frontend::frontend_tuner_allocation_struct &request, frontend_tuner_status_struct_struct &fts, size_t tuner_id);
         bool deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id);
 

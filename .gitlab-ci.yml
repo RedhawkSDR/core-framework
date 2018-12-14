@@ -1,8 +1,9 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  other_repos: $yum_repo_url/redhawk-dependencies
-  redhawk_version: '2.0.9'
+  other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
+  redhawk_version: '2.2.1-rc2'
+  redhawk_deps: 'develop-2.2'
 
 stages:
  - package-redhawk-codegen
@@ -33,7 +34,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=$other_repos/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -44,28 +45,19 @@ stages:
                                                 createrepo .;
                                                 tar czf repo.tar.gz *')
     - docker start -a $id
-    #Cleanup any previous output we've inherited
+    # Cleanup any previous output we've inherited
     - cd $CI_PROJECT_DIR
     - rm -rf output && mkdir output
     - docker cp $id:/tmp/repo/repo.tar.gz output/repo.tar.gz
     - docker rm -f $id || true
+    - cd output
+    - tar xf repo.tar.gz
+    - cd $CI_PROJECT_DIR
   artifacts:
     name: $CI_JOB_NAME
     paths:
       - output/
     expire_in: 2 days
-  except:
-    - master
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
-
-.deploy-common: &deploy-common
-  image: ${docker_registry}centos:7
-  stage: deploy
-  dependencies: []
-  script:
-  - if [ -n "$jenkins_url" ]; then
-      curl --insecure -X POST $jenkins_url/job/$jenkins_job/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
-    fi
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/
@@ -261,11 +253,19 @@ frontend:el7:
     local_repo: output
   <<: *rpmbuild
 
-#Trigger a Jenkins job to aggregate artifacts there
 deploy:
-  variables:
-    jenkins_job: redhawk/job/core-framework-$CI_COMMIT_REF_NAME
-  <<: *deploy-common
+  image: ${docker_registry}centos:7
+  stage: deploy
+  dependencies: []
+  before_script:
+    - echo "Deploying to $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`"
+  script:
+    - if [ -n "$jenkins_url" ]; then
+        curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
+      fi
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
+    - master
 
 #Trigger separate tests pipeline
 test-trigger:
@@ -277,6 +277,7 @@ test-trigger:
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
   only:
     - branches
@@ -287,14 +288,87 @@ test-trigger:release:
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
+  variables:
+    redhawk_version: '2.2.0'
   script:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
   only:
     - tags
-  #Skip on tag of following format
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+.s3: &s3
+  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  stage: deploy
+  tags:
+    - s3
+  script:
+    - CI_COMMIT_REF_SLUG_NO_RC=${CI_COMMIT_REF_SLUG%-rc[0-9]*};
+    - mkdir -p $arch
+    - for file in `find output -name *.rpm`; do
+        cp $file $arch;
+      done
+    - createrepo $arch
+    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
+    - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
+        /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
+      fi
+    # Pull down dependencies to create aggregated "cf-and-deps" repo
+    - mkdir -p cf-and-deps/$arch
+    - curl ${s3_repo_url}/redhawk-dependencies/redhawk-dependencies/yum/${redhawk_deps}/$dist/$arch/redhawk-dependencies.repo > /etc/yum.repos.d/redhawk-dependencies.repo
+    - reposync --download_path=tmp
+               --newest-only
+               --repoid=redhawk-dependencies
+    - for file in `find tmp -name *.rpm`; do
+        cp $file cf-and-deps/$arch;
+      done
+    - for file in `find output -name *.rpm`; do
+        cp $file cf-and-deps/$arch;
+      done
+    - createrepo cf-and-deps/$arch
+    - cd cf-and-deps
+    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
+
+deploy-el7:
+  variables:
+    dist: el7
+    arch: x86_64
+  dependencies:
+    - redhawk:el7
+    - bulkio:el7
+    - burstio:el7
+    - frontend:el7
+    - gpp:el7
+    - redhawk-codegen:el7
+  <<: *s3
+
+deploy-el6:
+  variables:
+    dist: el6
+    arch: x86_64
+  dependencies:
+    - redhawk:el6
+    - bulkio:el6
+    - burstio:el6
+    - frontend:el6
+    - gpp:el6
+    - redhawk-codegen:el6
+  <<: *s3
+
+deploy-el6-i386:
+  variables:
+    dist: el6
+    arch: i686
+  dependencies:
+    - redhawk:el6-i386
+    - bulkio:el6-i386
+    - burstio:el6-i386
+    - frontend:el6-i386
+    - gpp:el6-i386
+    - redhawk-codegen:el6-i386
+  <<: *s3

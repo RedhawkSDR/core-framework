@@ -19,10 +19,23 @@
  */
 
 #include <sstream>
-#include "ossie/SoftPkg.h"
+
+#include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
+
+#include <ossie/SoftPkg.h>
+#include <ossie/Properties.h>
+#include <ossie/ComponentDescriptor.h>
+
 #include "internal/spd-parser.h"
 
 using namespace ossie;
+
+SoftPkg::SoftPkg() :
+    _spd(0),
+    _spdFile()
+{
+}
 
 SoftPkg::SoftPkg(std::istream& input, const std::string& spdFile) throw (ossie::parser_error) {
     this->load(input, spdFile);
@@ -53,16 +66,59 @@ void SoftPkg::load(std::istream& input, const std::string& spdFile) throw (ossie
     }
 }
 
-SPD::PropertyRef::~PropertyRef() {
-  property.reset();
+void SoftPkg::loadProperties(std::istream& input)
+{
+    _properties = boost::make_shared<Properties>();
+    _properties->load(input);
 }
 
-const std::string SPD::PropertyRef::asString() const {
-    return property->asString();
+void SoftPkg::loadDescriptor(std::istream& input)
+{
+    _descriptor = boost::make_shared<ComponentDescriptor>();
+    _descriptor->load(input);
+}
+
+const SPD::Implementation* SoftPkg::getImplementation(const std::string& id) const
+{
+    assert(_spd.get() != 0);
+    BOOST_FOREACH(const SPD::Implementation& implementation, _spd->implementations) {
+        if (id == implementation.getID()) {
+            return &implementation;
+        }
+    }
+
+    return 0;
 }
 
 const std::string SPD::SoftPkgRef::asString() const {
     std::ostringstream out;
     out << "SoftPkgRef localfile: " << this->localfile << " implref: " << this->implref;
     return out.str();
+}
+
+std::ostream& ossie::operator<<(std::ostream& out, SPD::Code::CodeType type)
+{
+    switch (type) {
+    case SPD::Code::EXECUTABLE:
+        out << "Executable";
+        break;
+    case SPD::Code::KERNEL_MODULE:
+        out << "KernelModule";
+        break;
+    case SPD::Code::SHARED_LIBRARY:
+        out << "SharedLibrary";
+        break;
+    case SPD::Code::DRIVER:
+        out << "Driver";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
+
+std::ostream& ossie::operator<<(std::ostream& out, const SPD::Code& code)
+{
+    out << "localfile: " << code.localfile << " type: " << code.type << " entrypoint: " << code.entrypoint;
+    return out;
 }

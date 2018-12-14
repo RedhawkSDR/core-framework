@@ -56,6 +56,7 @@ nobase_nodist_include_HEADERS = redhawk/BURSTIO/burstioDataTypes.h \
 				redhawk/BURSTIO/burstio_burstUshort.h
 
 libburstioInterfaces_la_CPPFLAGS = -I . $(OSSIE_CFLAGS)
+libburstioInterfaces_la_LDFLAGS = -lbulkioInterfaces
 
 BUILT_SOURCES = $(nobase_nodist_include_HEADERS) $(nodist_libburstioInterfaces_la_SOURCES)
 CLEANFILES = $(BUILT_SOURCES)
@@ -100,8 +101,7 @@ libburstio_la_SOURCES += lib/OutPortImpl.h
 libburstio_la_SOURCES += lib/utils.cpp
 
 libburstio_la_CPPFLAGS = -I $(srcdir)/include -I redhawk $(OSSIE_CFLAGS) $(BOOST_CPPFLAGS)
-libburstio_la_LIBADD = $(BOOST_LDFLAGS)
-libburstio_la_LDFLAGS = -lburstioInterfaces 
+libburstio_la_LIBADD = $(BOOST_LDFLAGS) $(builddir)/libburstioInterfaces.la $(BULKIO_LIBS)
 
 libincludedir = $(includedir)/redhawk/burstio
 libinclude_HEADERS =  include/burstio/burstio.h

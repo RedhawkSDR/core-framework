@@ -57,7 +57,7 @@ static bool checkPath(const std::string& envpath, const std::string& pattern, ch
 }
 
 void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -65,16 +65,17 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
         const std::string&                            compositeDeviceIOR ){
 
     try {
-        std::string devcache; 
-        std::string usageName; 
-        createDeviceCacheLocation(devcache, usageName, instantiation);
-
 	// proces any instance overrides from DCD componentproperties
 	const ossie::ComponentPropertyList& overrideProps = instantiation.getProperties();
 	for (unsigned int j = 0; j < overrideProps.size (); j++) {
-	  LOG_TRACE(DeviceManager_impl, "Override  Properties prop id " << overrideProps[j].getID());
+	  RH_TRACE(this->_baseLog, "Override  Properties prop id " << overrideProps[j].getID());
 	  compProfile->overrideProperty( overrideProps[j] );
 	}
+
+        std::string devcache; 
+        std::string devcwd; 
+        std::string usageName; 
+        createDeviceCacheLocation(devcache, devcwd, usageName, compProfile, instantiation);
 
         // these variables will cleanup path and environment from package mods that might have failed
         ProcessEnvironment  restoreState;
@@ -85,23 +86,24 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
                            codeFilePath,
                            instantiation,
                            devcache,
+                           devcwd,
                            usageName,
                            compositeDeviceIOR );
 
     } catch (std::runtime_error& ex) {
-        LOG_ERROR(DeviceManager_impl, 
+        RH_ERROR(this->_baseLog, 
                   "The following runtime exception occurred: "<<ex.what()<<" while launching a Device")
         throw;
     } catch ( std::exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, 
+        RH_ERROR(this->_baseLog, 
                   "The following standard exception occurred: "<<ex.what()<<" while launching a Device")
         throw;
     } catch ( const CORBA::Exception& ex ) {
-        LOG_ERROR(DeviceManager_impl, 
+        RH_ERROR(this->_baseLog, 
                   "The following CORBA exception occurred: "<<ex._name()<<" while launching a Device")
         throw;
     } catch ( ... ) {
-        LOG_TRACE(DeviceManager_impl, 
+        RH_TRACE(this->_baseLog, 
                   "Launching Device file failed with an unknown exception")
         throw;
     }
@@ -110,39 +112,73 @@ void DeviceManager_impl::createDeviceThreadAndHandleExceptions(
 
 void DeviceManager_impl::createDeviceCacheLocation(
         std::string& devcache,
+        std::string& devcwd,
         std::string& usageName, 
-        const ossie::ComponentInstantiation& instantiation)
+        local_spd::ProgramProfile            *compProfile,
+        const ossie::ComponentInstantiation& instantiation )
 {
-    // No log messages within this method as it is called between exec and fork
-
-    // create device cache location
-    std::string baseDevCache = _cacheroot + "/." + _label;
-    if (instantiation.getUsageName() == 0) {
+    if (instantiation.getUsageName().empty()) {
         // no usage name was given, so create one. By definition, the instantiation id must be unique
         usageName = instantiation.instantiationId;
     } else {
         usageName = instantiation.getUsageName();
     }
 
-    devcache = baseDevCache + "/" + usageName;
+    RH_DEBUG(this->_baseLog, "Getting Cache/Working Directories for: " << instantiation.instantiationId );
+    redhawk::PropertyMap tmpProps = redhawk::PropertyMap::cast( compProfile->getNonNilConstructProperties() );
+    std::string pcache;
+    std::string pcwd;
+
+    if (tmpProps.find("cacheDirectory")!=tmpProps.end()) {
+        pcache = tmpProps["cacheDirectory"].toString();
+    }
+    if (tmpProps.find("workingDirectory")!=tmpProps.end()) {
+        pcwd = tmpProps["workingDirectory"].toString();
+    }
+    
+    if (pcache.empty()) {
+        std::string baseDevCache = _cacheroot + "/." + _label;
+        devcache = baseDevCache + "/" + usageName;
+    } else {
+        devcache = pcache;
+    }
+    
+    devcwd = pcwd;
+
+    // create device cache location
     bool retval = this->makeDirectory(devcache);
     if (not retval) {
-        LOG_ERROR(DeviceManager_impl, "Unable to create the Device cache: " << devcache)
-        exit(-1);
+        std::ostringstream emsg;
+        emsg << "Unable to create the Device cache directory: " << devcache << " for device : " << usageName;
+        RH_ERROR(this->_baseLog, emsg.str() );
+        std::runtime_error( emsg.str().c_str() );
+    }
+
+    // create device cwd location if needed
+    if (not devcwd.empty()) {
+        retval = this->makeDirectory(devcwd);
+        if (not retval) {
+            std::ostringstream emsg;
+            emsg << "Unable to create the Device working directory: " << devcache << " for device : " << usageName;
+            RH_ERROR(this->_baseLog, emsg.str() );
+            std::runtime_error( emsg.str().c_str() );
+        }
     }
 }
 
+
 void DeviceManager_impl::createDeviceThread(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
         const ossie::ComponentInstantiation&          instantiation,
         const std::string&                            devcache,
+        const std::string&                            devcwd,
         const std::string&                            usageName,
         const std::string&                            compositeDeviceIOR ){
  
-    LOG_DEBUG(DeviceManager_impl, "Launching " << componentType << " file " 
+    RH_DEBUG(this->_baseLog, "Launching " << componentType << " file " 
                                   << codeFilePath << " Usage name " 
                                   << instantiation.getUsageName());
     
@@ -162,7 +198,7 @@ void DeviceManager_impl::createDeviceThread(
         if (CORBA::is_nil(_aggDev_obj)) {
             std::ostringstream emsg;
             emsg << "Failed to deploy '" << usageName << "': Invalid composite device IOR: " << compositeDeviceIOR;
-            LOG_ERROR(DeviceManager_impl, emsg.str() );
+            RH_ERROR(this->_baseLog, emsg.str() );
             return;
         }
 
@@ -172,7 +208,7 @@ void DeviceManager_impl::createDeviceThread(
             std::ostringstream emsg;
             emsg <<"Failed to deploy '" << usageName <<
                 "': DeployOnDevice must be an Executable Device:  Unable to narrow to Executable Device";
-                LOG_ERROR(DeviceManager_impl, emsg.str());
+                RH_ERROR(this->_baseLog, emsg.str());
                 return;
         }
 
@@ -182,9 +218,9 @@ void DeviceManager_impl::createDeviceThread(
         // all conditions are met for a persona    
         // Load shared library into device using load mechanism
         std::string execDevId = ossie::corba::returnString(execDevice->identifier());
-        LOG_DEBUG(DeviceManager_impl, "Loading '" << codeFilePath << "' to parent device: " << execDevId );
+        RH_DEBUG(this->_baseLog, "Loading '" << codeFilePath << "' to parent device: " << execDevId );
         execDevice->load(_fileSys, codeFilePath.c_str(), CF::LoadableDevice::SHARED_LIBRARY);
-        LOG_DEBUG(DeviceManager_impl, "Load complete on device: " << execDevId);
+        RH_DEBUG(this->_baseLog, "Load complete on device: " << execDevId);
        
         const std::string realCompType = "device";
 
@@ -199,7 +235,7 @@ void DeviceManager_impl::createDeviceThread(
         // Pack execparams into CF::Properties to send to the parent
         CF::Properties personaProps;
         for (ExecparamList::iterator arg = execparams.begin(); arg != execparams.end(); ++arg) {
-            LOG_DEBUG(DeviceManager_impl, arg->first << "=\"" << arg->second << "\"");
+            RH_DEBUG(this->_baseLog, arg->first << "=\"" << arg->second << "\"");
             CF::DataType argument;
             argument.id = arg->first.c_str();
             argument.value <<= arg->second;
@@ -216,9 +252,9 @@ void DeviceManager_impl::createDeviceThread(
         }
 
         // Tell parent device to execute shared library using execute mechanism
-        LOG_DEBUG(DeviceManager_impl, "Execute '" << codeFilePath << "' on parent device: " << execDevice->identifier());
+        RH_DEBUG(this->_baseLog, "Execute '" << codeFilePath << "' on parent device: " << execDevice->identifier());
         execDevice->executeLinked(codeFilePath.c_str(), options, personaProps, dep_seq);
-        LOG_DEBUG(DeviceManager_impl, "Execute complete");
+        RH_DEBUG(this->_baseLog, "Execute complete");
 
     } else {
 
@@ -239,14 +275,14 @@ void DeviceManager_impl::createDeviceThread(
         // check that our executable is good
         if (access(codeFilePath.c_str(), R_OK | X_OK) == -1) {
             std::string errMsg = "Missing read or execute file permissions on file: " + codeFilePath;
-            LOG_ERROR(DeviceManager_impl, errMsg );
+            RH_ERROR(this->_baseLog, errMsg );
             return;
         }
 
         // convert std:string to char * for execv
         std::vector<char*> argv(new_argv.size() + 1, NULL);
         for (std::size_t i = 0; i < new_argv.size(); ++i) {
-            LOG_DEBUG(DeviceManager_impl, "ARG: " << i << " VALUE " << new_argv[i] );
+            RH_DEBUG(this->_baseLog, "ARG: " << i << " VALUE " << new_argv[i] );
             argv[i] = const_cast<char*> (new_argv[i].c_str());
         }
 
@@ -259,7 +295,7 @@ void DeviceManager_impl::createDeviceThread(
         int pid = fork();
         if (pid > 0) {
             // parent process: pid is the process ID of the child
-            LOG_TRACE(DeviceManager_impl, "Resulting PID: " << pid);
+            RH_TRACE(this->_baseLog, "Resulting PID: " << pid);
 
             // Add the new device/service to the pending list. When it registers, the remaining
             // fields will be filled out and it will be moved to the registered list.
@@ -316,7 +352,14 @@ void DeviceManager_impl::createDeviceThread(
             //////////////////////////////////////////////////////////////
 
             // switch to working directory
-            chdir(devcache.c_str());
+            if (not devcwd.empty()) {
+                int retval = chdir(devcwd.c_str());
+                if (retval) {
+                    RH_ERROR(__logger, "Unable to change the current working directory to : " << devcwd);
+                }
+            } else {
+                chdir(devcache.c_str());
+            }
 
             // honor affinity requests
             try {
@@ -351,7 +394,7 @@ void DeviceManager_impl::createDeviceThread(
             // The most likely cause is the operating system running out of 
             // threads, in which case the system is in bad shape.  Exit
             // with an error to allow the system to recover.
-            LOG_ERROR(DeviceManager_impl, "[DeviceManager::execute] Cannot create device thread: " << strerror(errno)); 
+            RH_ERROR(this->_baseLog, "[DeviceManager::execute] Cannot create device thread: " << strerror(errno)); 
             throw;
         }
     }
@@ -365,7 +408,7 @@ void DeviceManager_impl::createDeviceThread(
  */
 void DeviceManager_impl::createDeviceExecStatement(
         std::vector< std::string >&                   new_argv, 
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile*                    compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -423,7 +466,7 @@ void DeviceManager_impl::createDeviceExecStatement(
     dpath = _domainName + "/" + _label;
     new_argv.push_back("DOM_PATH");
     new_argv.push_back(dpath);
-    LOG_DEBUG(DeviceManager_impl, "DOM_PATH: arg: " << new_argv[new_argv.size()-2] << " value:"  << dpath);
+    RH_DEBUG(this->_baseLog, "DOM_PATH: arg: " << new_argv[new_argv.size()-2] << " value:"  << dpath);
 
     // check exec params... place all of them here.. allow for instance props to override the params...
     CF::Properties eParams = compProfile->getPopulatedExecParameters();
@@ -432,9 +475,9 @@ void DeviceManager_impl::createDeviceExecStatement(
       std::string p2;
       p1 = ossie::corba::returnString(eParams[i].id);
       p2 = ossie::any_to_string(eParams[i].value);      
-      LOG_TRACE(DeviceManager_impl, "createDevicExecStatement id= " << p1 << " value= " << p2 );
+      RH_TRACE(this->_baseLog, "createDevicExecStatement id= " << p1 << " value= " << p2 );
       CORBA::TypeCode_var  etype=eParams[i].value.type();
-      LOG_TRACE(DeviceManager_impl, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() << " tk_bool " << CORBA::tk_boolean );
+      RH_TRACE(this->_baseLog, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() << " tk_bool " << CORBA::tk_boolean );
       if  ( etype->kind() == CORBA::tk_boolean ) {
           std::string v("");
           resolveBoolExec( p1, v, compProfile, instantiation);
@@ -462,14 +505,14 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
                                             const ossie::ComponentInstantiation&    instantiation ){
 
     const std::vector<const Property*>& eprop = compProfile->prf.getExecParamProperties();
-    LOG_TRACE(DeviceManager_impl, "resolveBoolExec exec params size " << eprop.size() );
+    RH_TRACE(this->_baseLog, "resolveBoolExec exec params size " << eprop.size() );
     for (unsigned int j = 0; j < eprop.size(); j++) {
         std::string prop_id = eprop[j]->getID();
         if ( prop_id == id  ){
-            LOG_TRACE(DeviceManager_impl, "resolveBoolExec exec id == instantiation prop " << id <<  " = " << prop_id );
+            RH_TRACE(this->_baseLog, "resolveBoolExec exec id == instantiation prop " << id <<  " = " << prop_id );
              const SimpleProperty* tmp = dynamic_cast<const SimpleProperty*>(eprop[j]);
              if (tmp) {
-                 LOG_TRACE(DeviceManager_impl, "Default exec boolean with PRF value: " << tmp->getValue());
+                 RH_TRACE(this->_baseLog, "Default exec boolean with PRF value: " << tmp->getValue());
                  if (tmp->getValue()) {
                      std::string v(tmp->getValue());
                      if ( v.size() != 0 ) {
@@ -481,14 +524,14 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
     }
 
     const std::vector<const Property*>& cprop = compProfile->prf.getConstructProperties();
-    LOG_TRACE(DeviceManager_impl, "resolveBoolExec ctor params size: " << cprop.size() );
+    RH_TRACE(this->_baseLog, "resolveBoolExec ctor params size: " << cprop.size() );
     for (unsigned int j = 0; j < cprop.size(); j++) {
         std::string prop_id = cprop[j]->getID();
         if ( prop_id == id  ){
-            LOG_TRACE(DeviceManager_impl, "resolveBoolExec ctor id == instantiation prop " << id <<  " = " << prop_id );
+            RH_TRACE(this->_baseLog, "resolveBoolExec ctor id == instantiation prop " << id <<  " = " << prop_id );
             const SimpleProperty* tmp = dynamic_cast<const SimpleProperty*>(cprop[j]);
             if (tmp) {
-                 LOG_TRACE(DeviceManager_impl, "Default exec boolean with PRF value: " << tmp->getValue());
+                 RH_TRACE(this->_baseLog, "Default exec boolean with PRF value: " << tmp->getValue());
                  if (tmp->getValue()) {
                      std::string v(tmp->getValue());
                      if ( v.size() != 0 ) {
@@ -504,10 +547,10 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
     for (unsigned int j = 0; j < overrideProps.size (); j++) {
         std::string prop_id = overrideProps[j].getID();
         if ( prop_id == id  ){
-            LOG_TRACE(DeviceManager_impl, "resolveBoolExec instance id == instantiation prop " << id <<  " = " << prop_id );
+            RH_TRACE(this->_baseLog, "resolveBoolExec instance id == instantiation prop " << id <<  " = " << prop_id );
             const SimplePropertyRef* ref = dynamic_cast<const SimplePropertyRef*>(&overrideProps[j]);
             if ( ref ) {
-                LOG_TRACE(DeviceManager_impl, "Overriding exec boolean with instance value: " << ref->getValue());
+                RH_TRACE(this->_baseLog, "Overriding exec boolean with instance value: " << ref->getValue());
                 if (ref->getValue()) {
                      std::string v(ref->getValue());
                      value = v;
@@ -522,7 +565,7 @@ void   DeviceManager_impl::resolveBoolExec( const std::string&                  
 
 
 DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
-        const ossie::ComponentPlacement&              componentPlacement,
+        const ossie::DevicePlacement&                 componentPlacement,
 	local_spd::ProgramProfile                     *compProfile,
         const std::string&                            componentType,
         const std::string&                            codeFilePath,
@@ -582,9 +625,9 @@ DeviceManager_impl::ExecparamList DeviceManager_impl::createDeviceExecparams(
       std::string p2;
       p1 = ossie::corba::returnString(eParams[i].id);
       p2 = ossie::any_to_string(eParams[i].value);      
-      LOG_DEBUG(DeviceManager_impl, " createDeviceExecParams id= " << p1 << "  value= " << p2 );
+      RH_DEBUG(this->_baseLog, " createDeviceExecParams id= " << p1 << "  value= " << p2 );
       CORBA::TypeCode_var  etype=eParams[i].value.type();
-      LOG_DEBUG(DeviceManager_impl, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() );
+      RH_DEBUG(this->_baseLog, " createDeviceExecParams id= " << p1 << "  type " << etype->kind() );
       if  ( etype->kind() == CORBA::tk_boolean ) {      
           std::string v("");
           resolveBoolExec( p1, v, compProfile, instantiation);
@@ -635,19 +678,19 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
     const ossie::ComponentPropertyList&      instanceprops = instantiation.getProperties();
     ossie::ComponentPropertyList::const_iterator iprops_iter;
     for (iprops_iter = instanceprops.begin(); iprops_iter != instanceprops.end(); iprops_iter++) {
-        if ((strcmp(iprops_iter->getID(), "LOGGING_CONFIG_URI") == 0)
+        if ((strcmp(iprops_iter->getID().c_str(), "LOGGING_CONFIG_URI") == 0)
             && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
           const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
             logging_uri = simpleref->getValue();
-            LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: property log config:" << logging_uri);
+            RH_DEBUG(this->_baseLog, "resolveLoggingConfig: property log config:" << logging_uri);
             continue;
         }
 
-        if ((strcmp(iprops_iter->getID(), "LOG_LEVEL") == 0)
+        if ((strcmp(iprops_iter->getID().c_str(), "LOG_LEVEL") == 0)
             && (dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter)) != NULL)) {
           const SimplePropertyRef* simpleref = dynamic_cast<const SimplePropertyRef*>(&(*iprops_iter));
           debug_level = resolveDebugLevel(simpleref->getValue());
-          LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: property log level:" << debug_level);
+          RH_DEBUG(this->_baseLog, "resolveLoggingConfig: property log level:" << debug_level);
           continue;
         }
     }
@@ -656,19 +699,19 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
     ossie::ComponentInstantiation::LoggingConfig log_config=instantiation.getLoggingConfig();
     if ( !log_config.first.empty()) {
         logging_uri = log_config.first;
-        LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig log config:" << logging_uri);
+        RH_DEBUG(this->_baseLog, "resolveLoggingConfig: loggingconfig log config:" << logging_uri);
     }
     // check if debug value provided
     if ( !log_config.second.empty() ) {
         debug_level = resolveDebugLevel( log_config.second );
-        LOG_DEBUG(DeviceManager_impl, "resolveLoggingConfig: loggingconfig debug_level:" << debug_level);
+        RH_DEBUG(this->_baseLog, "resolveLoggingConfig: loggingconfig debug_level:" << debug_level);
     }
 
     if ( getUseLogConfigResolver() ) {
         ossie::logging::LogConfigUriResolverPtr logcfg_resolver = ossie::logging::GetLogConfigUriResolver();
         if ( logcfg_resolver ) {
             std::string t_uri = logcfg_resolver->get_uri( logcfg_path );
-            LOG_DEBUG(DeviceManager_impl, "Resolve LOGGING_CONFIG_URI:  key:" << logcfg_path << " value <" << t_uri << ">" );
+            RH_DEBUG(this->_baseLog, "Resolve LOGGING_CONFIG_URI:  key:" << logcfg_path << " value <" << t_uri << ">" );
             if ( !t_uri.empty() ) logging_uri = t_uri;
         }
     }
@@ -684,21 +727,21 @@ void DeviceManager_impl::resolveLoggingConfiguration( const std::string &       
         }
         new_argv.push_back("LOGGING_CONFIG_URI");
         new_argv.push_back(logging_uri);
-        LOG_DEBUG(DeviceManager_impl, "RSC: " << usageName << " LOGGING PARAM:VALUE " << new_argv[new_argv.size()-2] << ":" <<new_argv[new_argv.size()-1] );
+        RH_DEBUG(this->_baseLog, "RSC: " << usageName << " LOGGING PARAM:VALUE " << new_argv[new_argv.size()-2] << ":" <<new_argv[new_argv.size()-1] );
+    }
+    
+    if (debug_level == -1) {
+        debug_level = _initialDebugLevel;
     }
 
-    if ( debug_level == -1 ) {
-      // Pass along the current debug level setting.
-      debug_level = ossie::logging::ConvertRHLevelToDebug(rh_logger::Logger::getRootLogger()->getLevel());
+    if (debug_level != -1) {
+        // Convert the numeric level directly into its ASCII equivalent.
+        std::string dlevel="";
+        dlevel.push_back(char(0x30 + debug_level));
+        new_argv.push_back( "DEBUG_LEVEL");
+        new_argv.push_back(dlevel);
+        RH_DEBUG(this->_baseLog, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << dlevel );
     }
-
-    // Convert the numeric level directly into its ASCII equivalent.
-    std::string dlevel="";
-    dlevel.push_back(char(0x30 + debug_level));
-    new_argv.push_back( "DEBUG_LEVEL");
-    new_argv.push_back(dlevel);
-    LOG_DEBUG(DeviceManager_impl, "DEBUG_LEVEL: arg: " << new_argv[new_argv.size()-2] << " value:"  << dlevel );
-
 }
 
 
@@ -707,7 +750,7 @@ void DeviceManager_impl::setEnvironment( ProcessEnvironment &env,
                                          const PackageMods  &pkgMods )
 {
 
-    LOG_TRACE(DeviceManager_impl, "setEnvironment setting enviroment deps:" << deps.size() );
+    RH_TRACE(this->_baseLog, "setEnvironment setting enviroment deps:" << deps.size() );
 
     // 
     // get modifications for each of the dependency files that were loaded
@@ -715,11 +758,11 @@ void DeviceManager_impl::setEnvironment( ProcessEnvironment &env,
     PackageModList mod_list;
     for (unsigned int i=0; i<deps.size(); i++) {
         std::string dep = deps[i];
-        LOG_TRACE(DeviceManager_impl, "setEnvironment looking for dep: " << dep );
+        RH_TRACE(this->_baseLog, "setEnvironment looking for dep: " << dep );
         if ( pkgMods.find(dep) == pkgMods.end()) {
             // it is not a loaded package
         } else {
-            LOG_TRACE(DeviceManager_impl, "adding to Mod List dep: " << dep );
+            RH_TRACE(this->_baseLog, "adding to Mod List dep: " << dep );
             mod_list.push_back(sharedPkgs[dep]);
         }
     }
@@ -745,7 +788,7 @@ void DeviceManager_impl::setEnvironment( ProcessEnvironment &env,
                     if (!current_path.empty()) {
                         path_mod += ":" + current_path;
                     }
-                    LOG_TRACE(DeviceManager_impl, "setEnvironment env: " << mod->first << " value:"  << path_mod );
+                    RH_TRACE(this->_baseLog, "setEnvironment env: " << mod->first << " value:"  << path_mod );
                     env.setenv(mod->first, path_mod);
                     current_path = path_mod;
                 }
@@ -765,13 +808,13 @@ void DeviceManager_impl::loadDependencies( local_spd::ProgramProfile *component,
         if (!implementation) {
             std::ostringstream emsg;
             emsg << "No implementation selected for dependency " << (*dep)->getName();
-            LOG_ERROR(DeviceManager_impl, emsg.str());
+            RH_ERROR(this->_baseLog, emsg.str());
             throw std::runtime_error( emsg.str().c_str() );
         }
 
         // Recursively load dependencies
         std::string pkgId = (*dep)->getName();
-        LOG_TRACE(DeviceManager_impl, "Loading dependencies for soft package " << pkgId );
+        RH_TRACE(this->_baseLog, "Loading dependencies for soft package " << pkgId );
         loadDependencies(component, device, implementation->getSoftPkgDependencies());
 
         // Determine absolute path of dependency's local file
@@ -788,7 +831,7 @@ void DeviceManager_impl::loadDependencies( local_spd::ProgramProfile *component,
         }
 
         const std::string fileName = codeLocalFile.string();
-        LOG_DEBUG(DeviceManager_impl, "Loading dependency local file " << fileName);
+        RH_DEBUG(this->_baseLog, "Loading dependency local file " << fileName);
         try {
             if ( !CORBA::is_nil(device) ) {
                 device->load(_fileSys, fileName.c_str(), codeType);
@@ -799,7 +842,7 @@ void DeviceManager_impl::loadDependencies( local_spd::ProgramProfile *component,
         } catch (...) {
             std::ostringstream emsg ;
             emsg << "Failure loading file " << fileName;
-            LOG_ERROR(DeviceManager_impl, emsg.str());
+            RH_ERROR(this->_baseLog, emsg.str());
             throw std::runtime_error( emsg.str().c_str() );
         }
 
@@ -822,7 +865,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
     if ((loadKind != CF::LoadableDevice::EXECUTABLE) && (loadKind != CF::LoadableDevice::SHARED_LIBRARY)) {
         std::ostringstream emsg;
         emsg << "File: " << fileName << " is not CF::LoadableDevice::EXECUTABLE or CF::LoadableDevice::SHARED_LIBRARY";
-        LOG_ERROR(DeviceManager_impl, emsg.str() );
+        RH_ERROR(this->_baseLog, emsg.str() );
         throw std::runtime_error( emsg.str().c_str() );
     }
 
@@ -838,14 +881,14 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         if (!fs::exists (workpath)) {
             std::ostringstream emsg;
             emsg << "File : " << workingFileName << " does not exist";
-            LOG_ERROR(DeviceManager_impl, emsg.str());
+            RH_ERROR(this->_baseLog, emsg.str());
             throw std::runtime_error(emsg.str().c_str());
         }
     }
     catch(...){
         std::ostringstream emsg;
         emsg << "Unknown exception when testing file : " << workingFileName ;
-        LOG_ERROR(DeviceManager_impl, emsg.str());
+        RH_ERROR(this->_baseLog, emsg.str());
         throw std::runtime_error(emsg.str().c_str());
     }
     
@@ -860,7 +903,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         //
         // Check to see if it's a C library
         //
-        LOG_DEBUG(DeviceManager_impl, "do_load check read elf file: " << workingFileName );
+        RH_DEBUG(this->_baseLog, "do_load check read elf file: " << workingFileName );
         std::string command = "readelf -h ";
         command += workingFileName;
         command += std::string(" 2>&1"); // redirect stdout to /dev/null
@@ -879,7 +922,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
 
         // Check to see if it's a Python module
         if (!CLibrary) {
-            LOG_DEBUG(DeviceManager_impl, "do_load checking python module file: " << workingFileName );
+            RH_DEBUG(this->_baseLog, "do_load checking python module file: " << workingFileName );
             currentPath = ossie::getCurrentDirName();
             std::string::size_type lastSlash = workingFileName.find_last_of("/");
             if (lastSlash == std::string::npos) { // there are no slashes in the name
@@ -895,7 +938,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                 std::string command = "python -c \"import ";
                 command += fileOrDirectoryName;
                 command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
-                LOG_DEBUG(DeviceManager_impl, "do_load check python module (.py) cmd= " << command << 
+                RH_DEBUG(this->_baseLog, "do_load check python module (.py) cmd= " << command << 
                           " workingFileName: " << workingFileName <<
                           " currentDirectory: " << currentPath);
                 FILE *fileCheck = popen(command.c_str(), "r");
@@ -925,7 +968,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                     std::string command = "python -c \"import ";
                     command += fileOrDirectoryName;
                     command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
-                    LOG_DEBUG(DeviceManager_impl, "cmd= " << command << 
+                    RH_DEBUG(this->_baseLog, "cmd= " << command << 
                               " relativeFileName: " << relativeFileName <<
                               " relativePath: " << relativePath);
                     FILE *fileCheck = popen(command.c_str(), "r");
@@ -944,7 +987,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
 
         // Check to see if it's a Java package
         if (!CLibrary and !PythonPackage) {
-            LOG_DEBUG(DeviceManager_impl, "do_load trying JAVA test for : " << workingFileName );
+            RH_DEBUG(this->_baseLog, "do_load trying JAVA test for : " << workingFileName );
             if ( ossie::helpers::is_jarfile( workingFileName ) == 0 ) {
                 env_changes.addJavaPath(workingFileName);
                 JavaJar = true;
@@ -954,7 +997,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         // It doesn't match anything, assume that it's a set of libraries
         if (!(CLibrary || PythonPackage || JavaJar)) {
             const std::string additionalPath = workingFileName;
-            LOG_DEBUG(DeviceManager_impl, "do_load Adding (PATH) Directory ")
+            RH_DEBUG(this->_baseLog, "do_load Adding (PATH) Directory ")
             env_changes.addLibPath(additionalPath);
             env_changes.addJavaPath(additionalPath);
             env_changes.addOctavePath(additionalPath);

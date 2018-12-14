@@ -22,8 +22,7 @@ domainmgrdir = $(SDR_ROOT)/dom/mgr
 dist_domainmgr_DATA = DomainManager.spd.xml DomainManager.scd.xml DomainManager.prf.xml
 domainmgr_PROGRAMS = DomainManager
 
-DomainManager_SOURCES = applicationSupport.cpp \
-                        connectionSupport.cpp \
+DomainManager_SOURCES = connectionSupport.cpp \
                         AllocationManager_impl.cpp \
                         EventChannelManager.cpp \
                         Application_impl.cpp \
@@ -34,9 +33,18 @@ DomainManager_SOURCES = applicationSupport.cpp \
                         RH_NamingContext.cpp \
                         DomainManager_impl.cpp \
                         FakeApplication.cpp \
+                        Deployment.cpp \
+                        DeploymentExceptions.cpp \
+                        ApplicationDeployment.cpp \
+                        ApplicationValidator.cpp \
+                        ApplicationComponent.cpp \
+                        RH_LogEventAppender.cpp \
+                        RH_SyncRollingAppender.cpp \
+                        ProfileCache.cpp \
                         main.cpp
+
 DomainManager_CPPFLAGS = -I../../include -I../../parser -I$(top_srcdir)/base/include -I$(top_srcdir)/base $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 DomainManager_CXXFLAGS = -Wall
 DomainManager_LDADD = ../../framework/libossiedomain.la ../../parser/libossieparser.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la  $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB)  $(BOOST_REGEX_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS)
-DomainManager_LDFLAGS = -static
+DomainManager_LDFLAGS = -static -lrt
 

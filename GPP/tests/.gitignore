@@ -1,4 +1,3 @@
 sdr/dev/devices/GPP/
-sdr/dev/mgr/DeviceManager
-sdr/dom/mgr/DomainManager
-
+sdr/dev/mgr
+sdr/dom/mgr

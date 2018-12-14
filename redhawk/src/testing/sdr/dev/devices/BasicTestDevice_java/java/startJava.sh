@@ -22,7 +22,7 @@
 myDir=`dirname $0`
 
 # Setup the OSSIEHOME Lib jars on the classpath
-libDir=../../../../../base/framework/java
+libDir=${SDRROOT}/../../base/framework/java
 libFiles=`ls -1 $libDir/*.jar`
 for file in $libFiles
 do

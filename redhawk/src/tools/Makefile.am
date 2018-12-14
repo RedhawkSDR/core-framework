@@ -19,3 +19,14 @@
 #
 
 bin_SCRIPTS = redhawk-softpkg
+bin_PROGRAMS = redhawk-shminfo redhawk-shmclean
+
+OSSIE_LIBS = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
+
+redhawk_shminfo_SOURCES = src/shminfo.cpp src/ShmVisitor.cpp src/ShmVisitor.h
+redhawk_shminfo_CXXFLAGS = -Wall $(OSSIE_CFLAGS)
+redhawk_shminfo_LDFLAGS = $(OSSIE_LIBS)
+
+redhawk_shmclean_SOURCES = src/shmclean.cpp src/ShmVisitor.cpp src/ShmVisitor.h
+redhawk_shmclean_CXXFLAGS = -Wall $(OSSIE_CFLAGS)
+redhawk_shmclean_LDFLAGS = $(OSSIE_LIBS) -lrt

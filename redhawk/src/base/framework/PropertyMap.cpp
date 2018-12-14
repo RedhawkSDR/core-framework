@@ -107,9 +107,67 @@ const Value& PropertyMap::operator[] (const std::string& id) const
     return dt->getValue();
 }
 
+const Value& PropertyMap::get(const std::string& id, const Value& def) const
+{
+    const_iterator dt = find(id);
+    if (dt != end()) {
+        return dt->getValue();
+    } else {
+        return def;
+    }
+}
+
+bool PropertyMap::operator==( const redhawk::PropertyMap &other ) const
+{
+    //
+    // perform simple matching of a property map against another map
+    //
+    if ( size() != other.size() ) {
+        return false;
+    }
+
+    if ( size() == 0 ) {
+        return true;
+    }
+
+    for ( const_iterator iter = begin(); iter != end(); ++iter) {
+        std::string pid(iter->getId());
+        const_iterator other_prop = other.find( pid );
+        if ( other_prop == other.end() ) {
+            return false;
+        }
+        // perform  equal match values
+        std::string action("eq");
+        if (  !ossie::compare_anys(iter->getValue(), other_prop->getValue(), action)  ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool PropertyMap::operator!=( const redhawk::PropertyMap &other ) const
+{
+    return !(*this == other);
+}
+
+void PropertyMap::update(const CF::Properties& properties)
+{
+    const PropertyMap& other = cast(properties);
+    for (const_iterator prop = other.begin(); prop != other.end(); ++prop) {
+        (*this)[prop->getId()] = prop->getValue();
+    }
+}
+
 void PropertyMap::push_back(const CF::DataType& property)
 {
     ossie::corba::push_back(*this, property);
+}
+
+void PropertyMap::extend(const CF::Properties& properties)
+{
+    ossie::corba::extend(*this, properties);
 }
 
 PropertyMap::iterator PropertyMap::begin()
@@ -162,4 +220,26 @@ void PropertyMap::erase(iterator first, iterator last)
 
     // Resize to remove deleted items
     length(length()-(last-first));
+}
+
+std::string PropertyMap::toString() const
+{
+    std::ostringstream out;
+    out << *this;
+    return out.str();
+}
+
+std::ostream& redhawk::operator<<(std::ostream& out, const redhawk::PropertyMap& properties)
+{
+    out << "{";
+    bool first = true;
+    for (PropertyMap::const_iterator prop = properties.begin(); prop != properties.end(); ++prop) {
+        if (!first) {
+            out << ", ";
+        }
+        first = false;
+        out << prop->getId() << "=" << prop->getValue().toString();
+    }
+    out << "}";
+    return out;
 }

@@ -21,71 +21,14 @@
 #ifndef __DMD_PARSER_H__
 #define __DMD_PARSER_H__
 
-#include<sstream>
-#include<istream>
-#include "dmd-pimpl.h"
-#include"ossie/exceptions.h"
+#include <istream>
+
+#include <ossie/DomainManagerConfiguration.h>
+#include <ossie/exceptions.h>
 
 namespace ossie {
     namespace internalparser {
-        inline std::auto_ptr<ossie::DomainManagerConfiguration::DMD> parseDMD(std::istream& input) throw (ossie::parser_error) {
-            using namespace dmd;
-
-            try {
-                // Instantiate individual parsers.
-                //
-                domainmanagerconfiguration_pimpl domainmanagerconfiguration_p;
-                ::xml_schema::string_pimpl string_p;
-                domainmanagersoftpkg_pimpl domainmanagersoftpkg_p;
-                localfile_pimpl localfile_p;
-                services_pimpl services_p;
-                service_pimpl service_p;
-                findby_pimpl findby_p;
-                namingservice_pimpl namingservice_p;
-                ::xml_schema::any_simple_type_pimpl any_simple_type_p;
-                domainfinder_pimpl domainfinder_p;
-
-                // Connect the parsers together.
-                //
-                domainmanagerconfiguration_p.parsers (string_p,
-                                                    domainmanagersoftpkg_p,
-                                                    services_p,
-                                                    string_p,
-                                                    string_p);
-
-                domainmanagersoftpkg_p.parsers (localfile_p);
-
-                localfile_p.parsers (string_p);
-
-                services_p.parsers (service_p);
-
-                service_p.parsers (string_p,
-                                findby_p);
-
-                findby_p.parsers (namingservice_p,
-                                string_p,
-                                domainfinder_p);
-
-                namingservice_p.parsers (any_simple_type_p);
-
-                domainfinder_p.parsers (string_p,
-                                    string_p);
-
-                // Parse the XML document.
-                //
-                ::xml_schema::document doc_p (domainmanagerconfiguration_p, "", "domainmanagerconfiguration");
-
-                domainmanagerconfiguration_p.pre ();
-                doc_p.parse (input);
-                return (domainmanagerconfiguration_p.post_domainmanagerconfiguration ());
-            } catch (const ::xml_schema::exception& e) {
-                std::ostringstream err;
-                err << e;
-                throw ossie::parser_error(err.str());
-            } catch (const std::ios_base::failure& e) {
-                throw ossie::parser_error(e.what());
-            }
-        }
+        std::auto_ptr<ossie::DomainManagerConfiguration::DMD> parseDMD(std::istream& input) throw (ossie::parser_error);
     }
 }
 

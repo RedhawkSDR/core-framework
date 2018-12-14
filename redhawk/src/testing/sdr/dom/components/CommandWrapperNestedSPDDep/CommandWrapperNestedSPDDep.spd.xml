@@ -46,6 +46,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         </code>
         <os name="Linux"/>
         <processor name="x86"/>
+        <processor name="x86_64"/>
         <dependency type="runtime_requirements">
             <softpkgref>
                 <localfile name="/components/softpkgNestedDep/softpkgNestedDep.spd.xml"/>

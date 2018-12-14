@@ -83,8 +83,13 @@ EOF
     else
       AC_MSG_RESULT([no])
       AC_SUBST([JAVAC], [no])
+      AS_EXIT(1)
     fi 
     rm -f Test.java Test.class
+  fi
+  if test "$JAVAC" == "no"; then
+    echo "Java set for required, but no Java is installed"
+    AS_EXIT(1)
   fi
 ])
 

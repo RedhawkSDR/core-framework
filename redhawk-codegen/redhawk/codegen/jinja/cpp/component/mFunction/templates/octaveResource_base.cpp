@@ -90,7 +90,7 @@ const octave_value_list ${className}::_feval(
         errorStr += _diaryFile;
 
         // Log the error and throw an exception
-        LOG_ERROR(${className}, errorStr);
+        RH_ERROR(this->_baseLog, errorStr);
         throw std::invalid_argument("");
     }
     return result;

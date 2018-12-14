@@ -29,12 +29,14 @@ __all__ = ('factory')
 class control(object):
     def __init__(self, transfer_size):
         fd, self.filename = tempfile.mkstemp()
-        os.ftruncate(fd, 12)
-        self.buf = mmap.mmap(fd, 12, mmap.MAP_SHARED, mmap.PROT_WRITE)
+        os.ftruncate(fd, 20)
+        self.buf = mmap.mmap(fd, 20, mmap.MAP_SHARED, mmap.PROT_WRITE)
         os.close(fd)
         self.total_bytes = ctypes.c_uint64.from_buffer(self.buf)
         self.total_bytes.value = 0
-        self.transfer_size = ctypes.c_uint32.from_buffer(self.buf, 8)
+        self.average_time = ctypes.c_double.from_buffer(self.buf, 8)
+        self.average_time.value = 0.0
+        self.transfer_size = ctypes.c_uint32.from_buffer(self.buf, 16)
         self.transfer_size.value = transfer_size
 
     def __del__(self):
@@ -65,11 +67,17 @@ class RawStream(object):
         return self.writer_proc.pid
 
     def transfer_size(self, size):
-        self.writer_control.transfer_size.value = size
-        self.reader_control.transfer_size.value = size
+        self.writer_control.transfer_size.value = int(size)
+        self.reader_control.transfer_size.value = int(size)
 
     def received(self):
         return self.reader_control.total_bytes.value
+
+    def send_time(self):
+        return self.writer_control.average_time.value
+
+    def recv_time(self):
+        return self.reader_control.average_time.value
 
     def terminate(self):
         # Assuming stop() was already called, the reader and writer should have

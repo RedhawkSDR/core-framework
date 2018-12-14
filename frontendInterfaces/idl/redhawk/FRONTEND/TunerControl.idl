@@ -22,16 +22,17 @@
 #define _FRONTEND_TUNERCONTROL_IDL_
 
 #include "redhawk/FRONTEND/Frontend.idl" 
+#include "ossie/BULKIO/bulkioDataTypes.idl"
 
 module FRONTEND {
 
 	/**
 		Mandated Structures and Ports:
 		------------------------------
-		Frontend mandates three property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
+		Frontend mandates four property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
 			(1) FRONTEND::tuner_allocation  - allocation structure to acquire capability on a tuner based off tuner settings. 	       
 					Name || ID || Type || Description
-					- tuner_type || FRONTEND::tuner_allocation::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER
+					- tuner_type || FRONTEND::tuner_allocation::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
 					- allocation_id || FRONTEND::tuner_allocation::allocation_id || string || The allocation_id set by the caller. Used by the caller to reference the device uniquely
 					- center_frequency || FRONTEND::tuner_allocation::center_frequency || double || Requested center frequency in Hz
 					- bandwidth || FRONTEND::tuner_allocation::bandwidth || double || Requested Bandwidth in Hz
@@ -42,14 +43,23 @@ module FRONTEND {
 					        to any currently tasked device that satisfies the parameters (essentually a listener)
 					- group_id || FRONTEND::tuner_allocation::group_id || string || Unique identifier that specifies a group of device. Must match group_id on the device
 					- rf_flow_id || FRONTEND::tuner_allocation::rf_flow_id || string || Optional. Specifies a certain RF flow to allocate against. If left empty, it will match all frontend devices. 
-			(2) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
+            (2) FRONTEND::scanner_allocation
+                  Allocation structure to acquire capability on a scanning tuner (must be used in conjunction with FRONTEND::tuner_allocation).
+                  Note that the allocation does not contain enough information to setup the scan strategy. Once the device is allocated, the strategy must be set through the control API
+                    Name || ID || Type || Description
+                    - min_freq || FRONTEND::scanner_allocation::min_freq || double || Requested lower edge of the scanning band
+                    - max_freq || FRONTEND::scanner_allocation::max_freq || double || Requested upper edge of the scanning band
+                    - mode || FRONTEND::scanner_allocation::mode || enum string || SPAN_SCAN or DISCRETE_SCAN
+                    - control_mode || FRONTEND::scanner_allocation::control_mode || enum string|| TIME_BASED or SAMPLE_BASED
+                    - control_limit || FRONTEND::scanner_allocation::control_limit || double || Either the fastest hop rate (TIME_BASED) or shortest set of samples (SAMPLE_BASED) that the scanner is expected to support. In samples, the number that will be needed before the next retune, equivalent to control_limit >= sample_rate/(max_settle_time+min_dwell_time) is met before the next retune
+			(3) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
 					but can not modify the settings of the tuner	       
 					Name || ID || Type || Description
 					- existing_allocation_id || FRONTEND::listener_allocation::existing_allocation_id || string || Allocation ID for an existing allocation. Could be either control or listener
 					- listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
-			(3) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
+			(4) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
 					Name || ID || Type || Description
-					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGTIZIER_CHANNELIZER
+					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
 					- allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
 					- center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
 					- bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
@@ -57,6 +67,9 @@ module FRONTEND {
 					- group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
 					- rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
 					- enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
+				If the tuner_type is of type RX_SCANNER_DIGITIZER, the following optional fields are required as part of FRONTEND::tuner_status:
+					- scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
+					- supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
 					
 		Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
 		include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
@@ -72,7 +85,8 @@ module FRONTEND {
 			- CHANNELIZER: Accepts digitized wideband and provides DDC's (allocation against a channelizer ensures that the input port is not shared)  
 			- DDC: Digital Down Converter. Channel that is extracted from a wider bandwidth (ie - Channelizer). Similar to a RX_DIGITIZER but often much cheaper.
 			- RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER and CHANNELIZER combo. The reason they are combined is because they are a single device that cannot operate 
-			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)  
+			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)
+            - RX_SCANNER_DIGITIZER: Frequency scanning digitizer
 			
 			
 			
@@ -109,11 +123,11 @@ module FRONTEND {
 	const string TUNER_TYPE_TX = "TX"; 
 	const string TUNER_TYPE_RX = "RX"; 
 	const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
+    const string TUNER_TYPE_RX_SCANNER_DIGITIZER = "RX_SCANNER_DIGITIZER"; 
 	const string TUNER_TYPE_CHANNELIZER = "CHANNELIZER"; 
 	const string TUNER_TYPE_DDC = "DDC"; 
 	const string TUNER_TYPE_RX_DIGITIZER_CHANNELIZER = "RX_DIGITIZER_CHANNELIZER"; 
 	
-
     /*************************/
     /***      INTERFACE      */
     /*************************/
@@ -152,27 +166,27 @@ module FRONTEND {
           raises (FrontendException, BadParameterException, NotSupportedException);
 
         /**  Set/Get tuner bandwidth */
-        void    setTunerBandwidth(in string id,in double bw)
+        void    setTunerBandwidth(in string id, in double bw)
           raises (FrontendException, BadParameterException, NotSupportedException);
         double  getTunerBandwidth(in string id)
           raises (FrontendException, BadParameterException, NotSupportedException);
 
         /**  MGC/AGC  */
-        void    setTunerAgcEnable(in string id,in boolean enable)
+        void    setTunerAgcEnable(in string id, in boolean enable)
           raises (FrontendException, BadParameterException, NotSupportedException);
         boolean   getTunerAgcEnable(in string id)
           raises (FrontendException, BadParameterException, NotSupportedException);
         
-        /**  MGC Gain (where negative gain is attentuation)*/
-        void    setTunerGain(in string id,in float gain)
+        /**  MGC Gain (where negative gain is attenuation)*/
+        void    setTunerGain(in string id, in float gain)
           raises (FrontendException, BadParameterException, NotSupportedException);
         float   getTunerGain(in string id)
           raises (FrontendException, BadParameterException, NotSupportedException);
    
-    	/**  Tuner Reference Source: 0 = internal,  1 = external*/
-	    void    setTunerReferenceSource(in string id,in long source)
+        /**  Tuner Reference Source: 0 = internal,  1 = external*/
+        void    setTunerReferenceSource(in string id, in long source)
           raises (FrontendException, BadParameterException, NotSupportedException);
-	    long    getTunerReferenceSource(in string id)
+        long    getTunerReferenceSource(in string id)
           raises (FrontendException, BadParameterException, NotSupportedException);
 
         /**  Enable/Disable Tuner - Expected to keep current tuner settings on a disable and an EOS to be sent */
@@ -180,7 +194,7 @@ module FRONTEND {
           raises (FrontendException, BadParameterException, NotSupportedException);
         boolean getTunerEnable(in string id)
           raises (FrontendException, BadParameterException, NotSupportedException);
-  };
+    };
 
 
     interface DigitalTuner : AnalogTuner
@@ -190,8 +204,115 @@ module FRONTEND {
           raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
         double  getTunerOutputSampleRate(in string id)
           raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+    };
 
+    /**
+        TUNER SCAN MODE
+        The tuner SCAN mode is being added to reduce aggregate tune delays when there is a need for a series of fast
+        retunes. The objective is to let the tuner asset perform the retuning in an automated fashion.  
+
+        The scan_mode property in the tuner_allocation structure is used for device allocation. If scan_mode is set to 
+        "Scan" and the device has the capability, it will be allocated. The scan_rate property is also available in the 
+        tuner_allocation structure. It is used as an allocation property if the user specifies a desired rate for the scan 
+        operation. It is an optional allocation parameter.
+
+        Tuner SCAN Mode allows the tuner to internally perform a scan where the tuner itself retunes to cover the desired
+        spectrum. There are two types of automated scans: Span scan and discrete frequency scan, and a single non-automated scan: Manual (the way devices normally operate).
+        The scan_mode_type value determines the scan type. If the only scanning that the device allows is manual, then the device does not support scanning.
+        A Span scan is created using a series of start/stop frequencies. A Discrete Frequency Scan is created from a series of discrete 
+        frequencies. Each of these inputs are used to create a series of center tune frequencies. Based on the selected bandwidth,
+        the tuner scan generates as a series of center frequency retunes to cover the spectrum between the start/stop frequencies or
+        discrete frequencies.
+
+        The FRONTEND::tuner_status::scan_mode_enabled reflects whether the tuner is currently scanning through a plan that was generated to cover the spectrum.
+        It will then tune, dwell for a specific number of samples based on the dwell setting and then move to the next center frequency.
+        No output samples should be generated until the tuner settling time has been internally accounted for.
+
+        start_time provides control over the tuner state and allows for synchronous sampling between multiple tuners.
+
+        Scanning is enabled when the following conditions are met:
+          1. FRONTEND::tuner_status::enabled is true
+          2. scan_strategy.scan_mode != MANUAL_SCAN (note that the whole data structure must be passed on the call)
+          3. start_time <= (BULKIO::PrecisionUTCTime) now
+             alternatively, start_time = 0
+
+        Scanning can be disabled by either:
+          - FRONTEND::tuner_status::enabled is false (use setTunerEnable with the argument false)
+          and/or
+          - setting scan_strategy.scan_mode = MANUAL_SCAN
+          and/or
+          - start_time > (BULKIO::PrecisionUTCTime) now
+            note: when the device's clock reaches start_time, the scan will start
+
+        Also note that if the start_time is not set before setting the strategy, the scan plan will be executed as soon as the strategy is set.
+
+        The ScanStatus structure contains the settings for the scan. 
+    */
+
+    interface ScanningTuner
+    {
+        /************************/
+        /*      STRUCTURES      */
+        /************************/
+        enum ScanMode {
+            MANUAL_SCAN,
+            SPAN_SCAN,
+            DISCRETE_SCAN
+        };
+        enum OutputControlMode {
+            TIME_BASED,
+            SAMPLE_BASED
+        };
+        /** Basic Scan Structure */
+        /** Note: the bandwidth is set by the tuner base interface. The scanning interface manages the center frequency and duration of dwell **/
+        struct ScanSpanRange {
+            double begin_frequency;                 /* beginning center frequency for a Scan span (Hz) */
+            double end_frequency;                   /* limit center frequency for a Scan span (Hz) */
+            double step;                            /* change in center frequency (Hz) */
+        };
+        typedef sequence <ScanSpanRange> ScanSpanRanges;
+        typedef sequence <double> Frequencies;
+
+        union ScanModeDefinition switch(ScanMode) {
+            case MANUAL_SCAN:
+                double center_frequency;
+            case SPAN_SCAN:
+                ScanSpanRanges freq_scan_list;
+            case DISCRETE_SCAN:
+                Frequencies discrete_freq_list;
+        };
+        struct ScanStrategy {
+            ScanMode            scan_mode;          /* determines the scan mode type: Manual: MANUAL_SCAN, Span Scan: SPAN_SCAN, Discrete Frequency Scan: DISCRETE_SCAN */
+            ScanModeDefinition  scan_definition;    /* manual, span, or discrete frequency */
+            OutputControlMode   control_mode;       /* time-based or sample-based */
+            double              control_value;      /* time (in seconds) for time-based, or samples (truncated) for sample-based */
+        };
+
+        struct ScanStatus {
+            ScanStrategy strategy;                  /* describes the scanning strategy (i.e.: time-based or sample-based) */
+            BULKIO::PrecisionUTCTime start_time;    /* Scheduled (or actual) start */
+            Frequencies center_tune_frequencies;    /* list of frequencies derived from the scanning plan (computed by the scanner device) */
+            boolean started;                        /* True, scan plan in process */
+        };
+
+        ScanStatus getScanStatus(in string id)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+
+        /**  Set Tuner Scan Start Time. Set to time zero or any time in the past with a valid tcstatus flag to start immediately. Set to invalid tcstatus to disable  */
+        void setScanStartTime(in string id,in BULKIO::PrecisionUTCTime start_time)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+
+        void setScanStrategy(in string id,in ScanStrategy scan_strategy)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
   };
 
+  interface AnalogScanningTuner : ScanningTuner, AnalogTuner
+  {
+  };
+
+  interface DigitalScanningTuner : ScanningTuner, DigitalTuner
+  {
+  };
+  
 };
 #endif

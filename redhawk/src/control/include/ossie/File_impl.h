@@ -33,12 +33,14 @@
 #include "ossie/debug.h"
 
 class FileSystem_impl;
+extern rh_logger::LoggerPtr fileLog;
 
 class File_impl: public virtual POA_CF::File
 {
     ENABLE_LOGGING
 
 public:
+
     static File_impl* Create (const char* fileName, FileSystem_impl* ptrFs);
     static File_impl* Open (const char* fileName, FileSystem_impl* ptrFs, bool readOnly);
 

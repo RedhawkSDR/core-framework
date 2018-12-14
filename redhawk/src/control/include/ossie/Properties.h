@@ -49,31 +49,95 @@ namespace ossie {
     public:
         friend class Properties; 
 
+        enum KindType {
+            KIND_CONFIGURE    = 1<<1,
+            KIND_EXECPARAM    = 1<<2,
+            KIND_ALLOCATION   = 1<<3,
+            KIND_FACTORYPARAM = 1<<4,
+            KIND_TEST         = 1<<5,
+            KIND_EVENT        = 1<<6,
+            KIND_MESSAGE      = 1<<7,
+            KIND_PROPERTY     = 1<<8,
+            KIND_DEFAULT      = KIND_CONFIGURE
+        };
+
+        struct Kinds
+        {
+        public:
+            Kinds() :
+                kinds(0)
+            {
+            }
+
+            Kinds(KindType kind) :
+                kinds(kind)
+            {
+            }
+
+            Kinds& operator|= (KindType kind)
+            {
+                kinds |= kind;
+                return *this;
+            }
+
+            bool operator& (KindType kind) const
+            {
+                return (kinds & kind);
+            }
+
+            Kinds operator| (KindType kind)
+            {
+                Kinds result(*this);
+                result |= kind;
+                return result;
+            }
+
+            bool operator! () const
+            {
+                return (kinds == 0);
+            }
+
+        private:
+            int kinds;
+        };
+
+        enum ActionType {
+            ACTION_EXTERNAL,
+            ACTION_EQ,
+            ACTION_NE,
+            ACTION_GT,
+            ACTION_LT,
+            ACTION_GE,
+            ACTION_LE,
+            ACTION_DEFAULT = ACTION_EXTERNAL
+        };
+
+        enum AccessType {
+            MODE_READWRITE,
+            MODE_READONLY,
+            MODE_WRITEONLY,
+            MODE_DEFAULT = MODE_READWRITE
+        };
+
         Property() {}
 
         Property(const std::string& id, 
                  const std::string& name, 
-                 const std::string& mode, 
-                 const std::string& action, 
-                 const std::vector<std::string>& kinds);
-
-        Property(const std::string& id, 
-                 const std::string& name, 
-                 const std::string& mode, 
-                 const std::string& action, 
-                 const std::vector<std::string>& kinds,
-                 const std::string& cmdline );
+                 AccessType mode, 
+                 ActionType action, 
+                 Kinds kinds);
 
         virtual ~Property();
 
         bool isReadOnly() const;
         bool isReadWrite() const;
         bool isWriteOnly() const;
+        bool canOverride() const;
         bool isAllocation() const;
         bool isConfigure() const;
         bool isProperty() const;
         bool isTest() const;
-        bool isCommandLine() const;
+        virtual bool isCommandLine() const;
         bool isExecParam() const;
         bool isFactoryParam() const;
         bool isEqual() const;
@@ -86,31 +150,41 @@ namespace ossie {
 
         const char* getID() const;
         const char* getName() const;
-        const char* getMode() const;
-        const char* getAction() const;
-        const std::vector<std::string>& getKinds() const;
+        AccessType getMode() const;
+        // NB: getAction() should return an ActionType; however, there are
+        // several places that use its return as a string for an argument to
+        // property helper functions in the base library. Before the parsers
+        // become "public" API, this should be revisited.
+        std::string getAction() const;
+        Kinds getKinds() const;
 
         std::string mapPrimitiveToComplex(const std::string& type) const;
 
         // Pure virtual functions
         virtual bool isNone() const = 0;
         virtual const std::string asString() const = 0;
-        virtual const Property* clone() const = 0;
+        virtual Property* clone() const = 0;
+
+        virtual void override(const Property* otherProp) = 0;
+        virtual void override(const ComponentProperty* newValue) = 0;
 
     protected:
         // Common across all property types
         std::string id;
         std::string name;
-        std::string mode;
-        std::string action;
-        std::vector <std::string> kinds;
-        std::string commandline;
-
-        
-        // Pure virtual functions
-        virtual void override(const Property* otherProp) = 0;
-        virtual void override(const ComponentProperty* newValue) = 0;
+        AccessType mode;
+        ActionType action;
+        Kinds kinds;
     };
+
+    inline Property* new_clone(const Property& property) {
+        return property.clone();
+    }
+
+    inline Property::Kinds operator|(Property::KindType a, Property::KindType b)
+    {
+        return Property::Kinds(a) | b;
+    }
 
     /*
      * 
@@ -124,47 +198,39 @@ namespace ossie {
         SimpleProperty() {}
 
         SimpleProperty(const std::string& id, 
-               const std::string& name, 
-               const std::string& type, 
-               const std::string& mode, 
-               const std::string& action, 
-               const std::vector<std::string>& kinds,
-               const optional_value<std::string>& value,
-               const std::string& complex_,
-               const std::string& commandline,
-	       const std::string& optional);
-
-        SimpleProperty(const std::string& id, 
-               const std::string& name, 
-               const std::string& type, 
-               const std::string& mode, 
-               const std::string& action, 
-               const std::vector<std::string>& kinds,
-               const optional_value<std::string>& value);
+                       const std::string& name, 
+                       const std::string& type, 
+                       AccessType mode, 
+                       ActionType action, 
+                       Kinds kinds,
+                       const optional_value<std::string>& value,
+                       bool complex=false,
+                       bool commandline=false,
+                       bool optional=false);
 
         virtual ~SimpleProperty();
 
         // SimpleProperty specific functions
         const char* getValue() const;
+        const std::string& getType() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
         // Implementation of virtual functions
+        virtual bool isCommandLine() const;
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
-        const char* getType() const;
-        const char* getComplex() const;
-        const char* getCommandLine() const;
-	const char* getOptional() const;
+        virtual Property* clone() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
     private:
         std::string type;
         optional_value<std::string> value;
-        std::string _complex;
-	std::string optional;
+        bool complex;
+        bool commandline;
+        bool optional;
     };
 
     /*
@@ -181,41 +247,32 @@ namespace ossie {
         SimpleSequenceProperty(const std::string&              id, 
                                const std::string&              name, 
                                const std::string&              type, 
-                               const std::string&              mode, 
-                               const std::string&              action, 
-                               const std::vector<std::string>& kinds,
+                               AccessType                      mode, 
+                               ActionType                      action,
+                               Kinds                           kinds,
                                const std::vector<std::string>& values,
-                               const std::string&              complex_,
-			       const std::string& 	       optional);
-
-        SimpleSequenceProperty(const std::string&              id, 
-                               const std::string&              name, 
-                               const std::string&              type, 
-                               const std::string&              mode, 
-                               const std::string&              action, 
-                               const std::vector<std::string>& kinds,
-                               const std::vector<std::string>& values);
+                               bool                            complex=false,
+                               bool                            optional=false);
 
         virtual ~SimpleSequenceProperty();
 
         const std::vector<std::string>& getValues() const;
+        const std::string& getType() const;
+        bool isComplex() const;
+        bool isOptional() const;
 
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
-        const char* getType() const;
-        const char* getComplex() const;
-	const char* getOptional() const;
+        virtual Property* clone() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
     private:
         std::string type;
         std::vector<std::string> values;
-        std::string _complex;
-	std::string optional;
+        bool complex;
+        bool optional;
     };
 
     /*
@@ -230,57 +287,29 @@ namespace ossie {
         StructProperty() {}
 
         StructProperty(const std::string& id, 
-                   const std::string& name, 
-                   const std::string& mode, 
-                   const std::vector<std::string>& configurationkinds,
-                   const std::vector<Property*>& value) :
-            Property(id, name, mode, "external", configurationkinds) 
+                       const std::string& name,
+                       AccessType mode,
+                       Kinds configurationkinds,
+                       const ossie::PropertyList& value) :
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds),
+            value(value)
         {
-	    std::vector<Property*>::const_iterator it;
-	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back(const_cast<Property*>((*it)->clone()));
-	    }
 	}
-
-        StructProperty(const std::string& id, 
-                   const std::string& name, 
-                   const std::string& mode, 
-                   const std::vector<std::string>& configurationkinds,
-                       const ossie::PropertyList & value) :
-            Property(id, name, mode, "external", configurationkinds) 
-        {
-          ossie::PropertyList::const_iterator it;
-	    for(it=value.begin(); it != value.end(); ++it) {
-                this->value.push_back(const_cast<Property*>(it->clone()));
-	    }
-	}
-
-	StructProperty(const StructProperty& other) :
-          Property(other.id, other.name, other.mode, other.action, other.kinds)
-        {
-	    std::vector<Property*>::const_iterator it;
-	    for(it=other.value.begin(); it != other.value.end(); ++it) {
-	        this->value.push_back(const_cast<Property*>((*it)->clone()));
-	    }
-        }
 
         virtual ~StructProperty();
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
 
-        StructProperty &operator=(const StructProperty& src);
-
-        const std::vector<Property*>& getValue() const ;
+        const PropertyList& getValue() const;
 
         const Property* getField(const std::string& id) const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
     private:
-        std::vector<Property*> value;
+        PropertyList value;
     };
 
     /*
@@ -296,11 +325,11 @@ namespace ossie {
 
         StructSequenceProperty(const std::string& id,
                                const std::string& name,
-                               const std::string& mode,
+                               AccessType mode,
                                const StructProperty& structdef,
-                               const std::vector<std::string>& configurationkinds,
+                               Kinds configurationkinds,
                                const std::vector<StructProperty>& values) :
-            Property(id, name, mode, "external", configurationkinds),
+            Property(id, name, mode, Property::ACTION_EXTERNAL, configurationkinds),
             structdef(structdef),
             values(values)
         {
@@ -308,23 +337,13 @@ namespace ossie {
 
         virtual ~StructSequenceProperty();
 
-        StructSequenceProperty(const StructSequenceProperty &src ) :
-        Property(src.id, src.name, src.mode, src.action, src.kinds),
-          structdef(src.structdef),
-          values(src.values)
-        {
-        }
-
-        StructSequenceProperty & operator=( const StructSequenceProperty &src );
-        
         virtual bool isNone() const;
         virtual const std::string asString() const;
-        virtual const Property* clone() const;
+        virtual Property* clone() const;
 
         const StructProperty& getStruct() const;
         const std::vector<StructProperty>& getValues() const;
 
-    protected:
         virtual void override(const Property* otherProp);
         virtual void override(const ComponentProperty* newValue);
 
@@ -333,12 +352,11 @@ namespace ossie {
         std::vector<StructProperty> values;
     };
 
-    template< typename charT, typename Traits>
-    std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const Property& prop)
-    {
-        out << prop.asString();
-        return out;
-    }
+    std::ostream& operator<<(std::ostream& out, const Property& prop);
+    std::ostream& operator<<(std::ostream& stream, Property::KindType kind);
+    std::ostream& operator<<(std::ostream& stream, Property::Kinds kinds);
+    std::ostream& operator<<(std::ostream& stream, Property::ActionType action);
+    std::ostream& operator<<(std::ostream& stream, Property::AccessType mode);
 
     /*
      *
@@ -405,13 +423,11 @@ namespace ossie {
         
         Properties(std::istream& input) throw(ossie::parser_error);
 
-        Properties& operator=( const Properties &other);
-
         virtual ~Properties();
 
         const std::vector<const Property*>& getProperties() const;
 
-        const Property* getProperty(const std::string& id);
+        const Property* getProperty(const std::string& id) const;
 
         const std::vector<const Property*>& getConfigureProperties() const;
 

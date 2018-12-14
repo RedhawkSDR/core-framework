@@ -27,6 +27,7 @@ from ossie.device import Device
 from ossie.properties import simple_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
+from ossie.properties import struct_to_props
 from ossie.utils import model
 
 import threading
@@ -86,7 +87,7 @@ def floatingPointCompare(lhs, rhs, places = 1):
      true if the value requested_val falls within the range [available_min:available_max]
      False is returned if min > max
 '''
-def validateRequest(available_min, available_max, requested_val):
+def validateRequestSingle(available_min, available_max, requested_val):
     if floatingPointCompare(requested_val,available_min) < 0: return False
     if floatingPointCompare(requested_val,available_max) > 0: return False
     if floatingPointCompare(available_min,available_max) > 0: return False
@@ -97,8 +98,9 @@ def validateRequest(available_min, available_max, requested_val):
      False is returned if min > max for either available for requested values
 '''
 def validateRequest(available_min, available_max, requested_min, requested_max):
-    if floatingPointCompare(requested_min,available_min) < 0: return False
-    if floatingPointCompare(requested_max,available_max) > 0: return False
+    center_request = (requested_max+requested_min)/2.0
+    if floatingPointCompare(center_request,available_min) < 0: return False
+    if floatingPointCompare(center_request,available_max) > 0: return False
     if floatingPointCompare(available_min,available_max) > 0: return False
     if floatingPointCompare(requested_min,requested_max) > 0: return False
     return True
@@ -120,12 +122,12 @@ def validateRequestVsSRI(request,upstream_sri,output_mode):
     found_bw = False
     key_size = len(upstream_sri.keywords)
     for i in range(key_size):
-        if upstream_sri.keywords[i].id != "CHAN_RF":
+        if upstream_sri.keywords[i].id == "CHAN_RF":
             upstream_cf = any.from_any(upstream_sri.keywords[i].value)
-            found_cf = true
-        elif upstream_sri.keywords[i].id != "FRONTEND.BANDWIDTH":
+            found_cf = True
+        elif upstream_sri.keywords[i].id == "FRONTEND::BANDWIDTH":
             upstream_bw = any.from_any(upstream_sri.keywords[i].value)
-            found_bw = true
+            found_bw = True
     if not found_cf or not found_bw:
         raise FRONTEND.BadParameterException("CANNOT VERIFY REQUEST -- SRI missing required keywords")
 
@@ -165,7 +167,7 @@ def validateRequestVsSRI(request,upstream_sri,output_mode):
       If the CHAN_RF and FRONTEND.BANDWIDTH keywords are not found in the sri,
       FRONTEND.BadParameterException is thrown.
 '''
-def validateRequestVsDevice(request, upstream_sri, output_mode, min_device_center_freq, max_device_center_freq, max_device_bandwidth, max_device_sample_rate):
+def validateRequestVsDeviceStream(request, upstream_sri, output_mode, min_device_center_freq, max_device_center_freq, max_device_bandwidth, max_device_sample_rate):
 
     # check if request can be satisfied using the available upstream data
     if not validateRequestVsSRI(request,upstream_sri, output_mode):
@@ -173,15 +175,15 @@ def validateRequestVsDevice(request, upstream_sri, output_mode, min_device_cente
 
     # check device constraints
     # check vs. device center frequency capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(min_device_center_freq,max_device_center_freq,request.center_frequency):
+    if not validateRequestSingle(min_device_center_freq,max_device_center_freq,request.center_frequency):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request")
 
     # check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_bandwidth,request.bandwidth):
+    if not validateRequestSingle(0,max_device_bandwidth,request.bandwidth):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request")
 
     # check vs. device sample rate capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_sample_rate,request.sample_rate):
+    if not validateRequestSingle(0,max_device_sample_rate,request.sample_rate):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request")
 
     # calculate overall frequency range of the device (not just CF range)
@@ -226,9 +228,9 @@ def validateRequestVsRFInfo(request, rfinfo, mode):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- analog freq range (RFinfo) cannot support freq/bw request")
 
     # check sample rate
-    scaling_factor = 2
-    if mode == 1:
-        scaling_factor = 4 # adjust for complex data
+    scaling_factor = 4
+    if mode:
+        scaling_factor = 2 # adjust for complex data
     min_requested_freq = request.center_frequency-(request.sample_rate/scaling_factor)
     max_requested_freq = request.center_frequency+(request.sample_rate/scaling_factor)
 
@@ -253,18 +255,21 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
     # see if IF center frequency is set in rfinfo packet
     request_if_center_freq = request.center_frequency
     if request.tuner_type != "TX" and floatingPointCompare(rfinfo.if_center_freq,0) > 0 and floatingPointCompare(rfinfo.rf_center_freq,rfinfo.if_center_freq) > 0:
-        request_if_center_freq = request.center_frequency - (rfinfo.rf_center_freq-rfinfo.if_center_freq)
+        if rfinfo.spectrum_inverted:
+            request_if_center_freq = rfinfo.if_center_freq - (request.center_frequency - rfinfo.rf_center_freq)
+        else:
+            request_if_center_freq = rfinfo.if_center_freq + (request.center_frequency - rfinfo.rf_center_freq)
 
     # check vs. device center freq capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(min_device_center_freq,max_device_center_freq,request_if_center_freq):
+    if not validateRequestSingle(min_device_center_freq, max_device_center_freq, request_if_center_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq request")
 
     # check vs. device bandwidth capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_bandwidth,request.bandwidth):
+    if not validateRequestSingle(0, max_device_bandwidth, request.bandwidth):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support bw request")
 
     # check vs. device sample rate capability (ensure 0 <= request <= max device capability)
-    if not validateRequest(0,max_device_sample_rate,request.sample_rate):
+    if not validateRequestSingle(0, max_device_sample_rate, request.sample_rate):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support sr request")
 
     # calculate overall frequency range of the device (not just CF range)
@@ -278,19 +283,37 @@ def validateRequestVsDevice(request, rfinfo, mode, min_device_center_freq, max_d
     min_requested_freq = request_if_center_freq-(request.bandwidth/2)
     max_requested_freq = request_if_center_freq+(request.bandwidth/2)
 
-    if not validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq):
+    if not validateRequest(min_device_freq, max_device_freq, min_requested_freq, max_requested_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/bw request")
 
     # check based on sample rate
     min_requested_freq = request_if_center_freq-(request.sample_rate/scaling_factor)
     max_requested_freq = request_if_center_freq+(request.sample_rate/scaling_factor)
 
-    if not validateRequest(min_device_freq,max_device_freq,min_requested_freq,max_requested_freq):
+    if not validateRequest(min_device_freq, max_device_freq, min_requested_freq, max_requested_freq):
         raise FRONTEND.BadParameterException("INVALID REQUEST -- device capabilities cannot support freq/sr request")
 
     return True
 
-def createTunerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode="", control_mode="", control_limit=0.0, returnDict=True):
+    if returnDict:
+        retval = {'FRONTEND::scanner_allocation':{'FRONTEND::scanner_allocation::min_freq':min_freq,'FRONTEND::scanner_allocation::max_freq':max_freq,
+        'FRONTEND::scanner_allocation::mode':mode,'FRONTEND::scanner_allocation::control_mode':control_mode,
+        'FRONTEND::scanner_allocation::control_limit':control_limit}}
+    else:
+        alloc=[]
+        alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::min_freq',value=any.to_any(min_freq)))
+        alloc[-1].value._t = CORBA.TC_double
+        alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::max_freq',value=any.to_any(max_freq)))
+        alloc[-1].value._t = CORBA.TC_double
+        alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::mode',value=any.to_any(mode)))
+        alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::control_mode',value=any.to_any(control_mode)))
+        alloc.append(CF.DataType(id='FRONTEND::scanner_allocation::control_limit',value=any.to_any(control_limit)))
+        alloc[-1].value._t = CORBA.TC_double
+        retval = CF.DataType(id='FRONTEND::scanner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
+    return retval
+
+def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=0.0,
                  device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
@@ -323,7 +346,7 @@ def createTunerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0
         retval = CF.DataType(id='FRONTEND::tuner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def createTunerGenericListenerAllocation(tuner_type='DDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createTunerGenericListenerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
                  device_control=False,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
@@ -375,6 +398,7 @@ def createTunerListenerAllocation(existing_allocation_id,listener_allocation_id=
 def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=None,bandwidth=256000,sample_rate=None,device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True,gain=None):
     numTuners = len(device.frontend_tuner_status)
     newAllocation = False
+    allAllocated = False
     #No tuners found on device
     if numTuners == 0:
         print "No Available Tuner"
@@ -382,6 +406,8 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
         if numTuners >= 1:
             for index, key in enumerate(device.frontend_tuner_status):
                 id_csv = device.frontend_tuner_status[index].allocation_id_csv
+                if len(id_csv) != 0:
+                    allAllocated = True
                 if allocation_id != None and allocation_id in id_csv:
                     break
                 if id_csv == '':
@@ -410,14 +436,17 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
                             break
 
         if allocation_id == None and not newAllocation and numTuners >= 1:
-            print "tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties"
+            if allAllocated:
+                print "tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties"
+            else:
+                print "tune(): unable to allocate a tuner with the given parameters"
 
         elif not newAllocation:
             tuner=None
             tuner_type=None
             allocation_status = _getAllocationStatus(device, numTuners, allocation_id)
             if allocation_status == None:
-                print "tune(): no matching allocation ID's for ",allocation_id
+                print "tune(): unable to allocate a tuner with the given parameters"
                 return  allocation_status
             elif "DigitalTuner_in" in device._providesPortDict.keys():
                 tuner_type = "DigitalTuner"
@@ -492,6 +521,7 @@ class FrontendTunerDevice(Device):
         # Provides mapping from unique allocation ID to internal tuner (channel) number
         self.allocation_id_to_tuner_id = {}
         self.allocation_id_mapping_lock = threading.RLock()
+        self.supports_scan = False
 
     def deallocateCapacity(self, properties):
         """
@@ -504,7 +534,7 @@ class FrontendTunerDevice(Device):
         Output:
             None
         """
-        self._log.debug("deallocateCapacity(%s)", properties)
+        self._deviceLog.debug("deallocateCapacity(%s)", properties)
         # Validate
         self._validateAllocProps(properties)
         # Consume
@@ -535,7 +565,7 @@ class FrontendTunerDevice(Device):
         # Update usage state
         self._usageState = self.updateUsageState()
 
-        self._log.debug("deallocateCapacity() -->")
+        self._deviceLog.debug("deallocateCapacity() -->")
 
     def getControlAllocationId(self, idx):
         return self.tuner_allocation_ids[idx].control_allocation_id
@@ -586,6 +616,11 @@ class FrontendTunerDevice(Device):
     # as well as the tuner_allocation_ids vector. Call this function during initialization
     def setNumChannels(self,num,tuner_type='RX_DIGITIZER'):
         self.frontend_tuner_status = []
+        self.addChannels(num, tuner_type)
+
+    # This sets the number of entries in the frontend_tuner_status struct sequence property
+    # as well as the tuner_allocation_ids vector. Call this function during initialization
+    def addChannels(self,num,tuner_type='RX_DIGITIZER'):
         for ii in range(num):
             tuner_status = self.frontend_tuner_status_struct_struct()
             tuner_status.tuner_type = tuner_type
@@ -597,18 +632,54 @@ class FrontendTunerDevice(Device):
         finally:
             self.allocation_id_mapping_lock.release()
 
-    """ Allocation handlers """
-    def allocate_frontend_tuner_allocation(self, frontend_tuner_allocation):
+    def allocateCapacity(self, capacities):
+        return False
+
+    def _checkValidIds(self, propdict):
+        self._has_scanner = False
+        for prop_key in propdict:
+            if prop_key == "FRONTEND::scanner_allocation":
+                raise CF.Device.InvalidCapacity("FRONTEND::scanner_allocation found in allocation; this is not a scanning device", [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
+
+        for prop_key in propdict:
+            if prop_key != "FRONTEND::tuner_allocation" and prop_key != "FRONTEND::listener_allocation":
+                raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
+            self._props[prop_key] = propdict[prop_key]
+
+    def allocateCapacity(self, properties):
+        self._deviceLog.debug("allocateCapacity(%s)", properties)
+
+        self._validateAllocProps(properties)
+
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        self._checkValidIds(propdict)
+        scanner_prop = None
+        if propdict.has_key('FRONTEND::scanner_allocation'):
+            scanner_prop = propdict['FRONTEND::scanner_allocation']
+
+        if propdict.has_key('FRONTEND::tuner_allocation'):
+            return self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
+        if propdict.has_key('FRONTEND::listener_allocation'):
+            return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+
+        raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
+
+    def _allocate_frontend_tuner_allocation(self, frontend_tuner_allocation, scanner_prop = None):
+        exception_raised = False
         try:
             # Check allocation_id
             if not frontend_tuner_allocation.allocation_id:
-                self._log.info("allocate_frontend_tuner_allocation: MISSING ALLOCATION_ID")
-                raise CF.Device.InvalidCapacity("MISSING ALLOCATION_ID", frontend_tuner_allocation)
-            
+                self._deviceLog.info("allocate_frontend_tuner_allocation: MISSING ALLOCATION_ID")
+                raise CF.Device.InvalidCapacity("MISSING ALLOCATION_ID", struct_to_props(frontend_tuner_allocation))
+
             # Check if allocation ID has already been used
             if  self.getTunerMapping(frontend_tuner_allocation.allocation_id) >= 0:
-                self._log.info("allocate_frontend_tuner_allocation: ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE")
-                raise CF.Device.InvalidCapacity("ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE", frontend_tuner_allocation)
+                self._deviceLog.info("allocate_frontend_tuner_allocation: ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE")
+                raise CF.Device.InvalidCapacity("ALLOCATION_ID "+frontend_tuner_allocation.allocation_id+" ALREADY IN USE", struct_to_props(frontend_tuner_allocation))
 
             self.allocation_id_mapping_lock.acquire()
             # Next, try to allocate a new tuner
@@ -618,18 +689,18 @@ class FrontendTunerDevice(Device):
                         self.tuner_allocation_ids.append(tuner_allocation_ids_struct())
                 for tuner_id in range(len(self.tuner_allocation_ids)):
                     if self.frontend_tuner_status[tuner_id].tuner_type != frontend_tuner_allocation.tuner_type:
-                        self._log.debug("allocate_frontend_tuner_allocation: Requested tuner type '" + str(frontend_tuner_allocation.tuner_type) + "' does not match tuner[" + str(tuner_id) + "].tuner_type ("+str(self.frontend_tuner_status[tuner_id].tuner_type)+")")
+                        self._deviceLog.debug("allocate_frontend_tuner_allocation: Requested tuner type '" + str(frontend_tuner_allocation.tuner_type) + "' does not match tuner[" + str(tuner_id) + "].tuner_type ("+str(self.frontend_tuner_status[tuner_id].tuner_type)+")")
                         continue
 
                     if len(frontend_tuner_allocation.group_id) > 0 and frontend_tuner_allocation.group_id != self.frontend_tuner_status[tuner_id].group_id:
-                        self._log.debug("allocate_frontend_tuner_allocation: Requested group_id '"+str(frontend_tuner_allocation.group_id)+"' does not match tuner[" + str(tuner_id) + "].group_id ("+str(self.frontend_tuner_status[tuner_id].group_id)+")")
+                        self._deviceLog.debug("allocate_frontend_tuner_allocation: Requested group_id '"+str(frontend_tuner_allocation.group_id)+"' does not match tuner[" + str(tuner_id) + "].group_id ("+str(self.frontend_tuner_status[tuner_id].group_id)+")")
                         continue
 
                     # special case because allocation is specifying the input stream, which determines the rf_flow_id, etc.
                     if len(frontend_tuner_allocation.rf_flow_id) > 0 and \
                        frontend_tuner_allocation.rf_flow_id != self.frontend_tuner_status[tuner_id].rf_flow_id and \
                        frontend_tuner_allocation.tuner_type != "CHANNELIZER":
-                        self._log.debug("allocate_frontend_tuner_allocation: Requested rf_flow_id '"+str(frontend_tuner_allocation.rf_flow_id)+"' does not match tuner[" +str(tuner_id)+ "].rf_flow_id ("+str(self.frontend_tuner_status[tuner_id].rf_flow_id)+")")
+                        self._deviceLog.debug("allocate_frontend_tuner_allocation: Requested rf_flow_id '"+str(frontend_tuner_allocation.rf_flow_id)+"' does not match tuner[" +str(tuner_id)+ "].rf_flow_id ("+str(self.frontend_tuner_status[tuner_id].rf_flow_id)+")")
                         continue
 
                     if frontend_tuner_allocation.device_control:
@@ -640,11 +711,16 @@ class FrontendTunerDevice(Device):
                         self.frontend_tuner_status[tuner_id].center_frequency = frontend_tuner_allocation.center_frequency
                         self.frontend_tuner_status[tuner_id].bandwidth = frontend_tuner_allocation.bandwidth
                         self.frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate
-                        if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0 or \
-                           not self.deviceSetTuning(frontend_tuner_allocation, self.frontend_tuner_status[tuner_id], tuner_id):
-                            # either not available or didn't succeed setting tuning, try next tuner
-                            self._log.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or didn't succeed while setting tuning ")
-                            continue
+                        if self.supports_scan and self._has_scanner:
+                            if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0 or not self.deviceSetTuningScan(frontend_tuner_allocation, scanner_prop, self.frontend_tuner_status[tuner_id], tuner_id):
+                                # either not available or didn't succeed setting tuning, try next tuner
+                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or didn't succeed while setting tuning ")
+                                continue
+                        else:
+                            if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0 or not self.deviceSetTuning(frontend_tuner_allocation, self.frontend_tuner_status[tuner_id], tuner_id):
+                                # either not available or didn't succeed setting tuning, try next tuner
+                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or didn't succeed while setting tuning ")
+                                continue
 
                         if center_frequency == self.frontend_tuner_status[tuner_id].center_frequency and \
                            bandwidth == self.frontend_tuner_status[tuner_id].bandwidth and \
@@ -652,7 +728,7 @@ class FrontendTunerDevice(Device):
                             self.frontend_tuner_status[tuner_id].center_frequency = frontend_tuner_allocation.center_frequency
                             self.frontend_tuner_status[tuner_id].bandwidth = frontend_tuner_allocation.bandwidth
                             self.frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate
-                           
+
                         self.tuner_allocation_ids[tuner_id].control_allocation_id = frontend_tuner_allocation.allocation_id
                         self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id] =  tuner_id
                         self.frontend_tuner_status[tuner_id].allocation_id_csv = self.createAllocationIdCsv(tuner_id)
@@ -660,14 +736,15 @@ class FrontendTunerDevice(Device):
                         # channelizer allocations must specify device control = true
                         if frontend_tuner_allocation.tuner_type == "CHANNELIZER" or frontend_tuner_allocation.tuner_type == "TX":
                             eout = str(frontend_tuner_allocation.tuner_type) + " allocation with device_control=false is invalid."
-                            self._log.debug(eout)
-                            raise CF.Device.InvalidCapacity(eout, frontend_tuner_allocation)
+                            self._deviceLog.debug(eout)
+                            raise CF.Device.InvalidCapacity(eout, struct_to_props(frontend_tuner_allocation))
                         # listener
-                        if len(self.tuner_allocation_ids[tuner_id].control_allocation_id) == 0 or not listenerRequestValidation(frontend_tuner_allocation, tuner_id):
+                        if len(self.tuner_allocation_ids[tuner_id].control_allocation_id) == 0 or not self.listenerRequestValidation(frontend_tuner_allocation, tuner_id):
                             # either not allocated or can't support listener request
-                            self._log.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or can not support listener request ")
+                            self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or can not support listener request ")
                             continue
                         self.tuner_allocation_ids[tuner_id].listener_allocation_ids.append(frontend_tuner_allocation.allocation_id)
+                        self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id] = tuner_id
                         self.frontend_tuner_status[tuner_id].allocation_id_csv = self.createAllocationIdCsv(tuner_id)
                         self.assignListener(frontend_tuner_allocation.allocation_id,self.tuner_allocation_ids[tuner_id].control_allocation_id)
 
@@ -675,46 +752,44 @@ class FrontendTunerDevice(Device):
 
                     # check tolerances
                     # only check when sample_rate was not set to don't care
-                    self._log.debug(" allocate_frontend_tuner_allocation - SR requested: " + str(frontend_tuner_allocation.sample_rate) + "  SR got: " +str(self.frontend_tuner_status[tuner_id].sample_rate))
+                    self._deviceLog.debug(" allocate_frontend_tuner_allocation - SR requested: " + str(frontend_tuner_allocation.sample_rate) + "  SR got: " +str(self.frontend_tuner_status[tuner_id].sample_rate))
                     if  floatingPointCompare(frontend_tuner_allocation.sample_rate,0)!=0 and  \
                         (floatingPointCompare(self.frontend_tuner_status[tuner_id].sample_rate,frontend_tuner_allocation.sample_rate)<0 or
                          floatingPointCompare(self.frontend_tuner_status[tuner_id].sample_rate,frontend_tuner_allocation.sample_rate+frontend_tuner_allocation.sample_rate * frontend_tuner_allocation.sample_rate_tolerance/100.0)>0 ):
                         eout = "allocate_frontend_tuner_allocation(" + str(int(tuner_id)) +"): returned sr "+str(self.frontend_tuner_status[tuner_id].sample_rate)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.sample_rate_tolerance)+" percent"
-                        self._log.info(eout)
-                        raise RuntimeError(eout)
+                        self._deviceLog.info(eout)
+                        raise allocationException(eout)
 
-                    self._log.debug(" allocate_frontend_tuner_allocation - BW requested: " + str(frontend_tuner_allocation.bandwidth) + "  BW got: " +str(self.frontend_tuner_status[tuner_id].bandwidth))
+                    self._deviceLog.debug(" allocate_frontend_tuner_allocation - BW requested: " + str(frontend_tuner_allocation.bandwidth) + "  BW got: " +str(self.frontend_tuner_status[tuner_id].bandwidth))
                     # Only check when bandwidth was not set to don't care
                     if floatingPointCompare(frontend_tuner_allocation.bandwidth,0)!=0 and \
                         (floatingPointCompare(self.frontend_tuner_status[tuner_id].bandwidth,frontend_tuner_allocation.bandwidth)<0 or \
                         floatingPointCompare(self.frontend_tuner_status[tuner_id].bandwidth,frontend_tuner_allocation.bandwidth+frontend_tuner_allocation.bandwidth * frontend_tuner_allocation.bandwidth_tolerance/100.0)>0 ):
-                        eout = "allocate_frontend_tuner_allocation("<<str(int(tuner_id))+"): returned bw "+str(self.frontend_tuner_status[tuner_id].bandwidth)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.bandwidth_tolerance)+" percent"
-                        self._log.info(eout)
-                        raise RuntimeError(eout)
+                        eout = "allocate_frontend_tuner_allocation("+str(int(tuner_id))+"): returned bw "+str(self.frontend_tuner_status[tuner_id].bandwidth)+" does not meet tolerance criteria of "+str(frontend_tuner_allocation.bandwidth_tolerance)+" percent"
+                        self._deviceLog.info(eout)
+                        raise allocationException(eout)
 
                     if frontend_tuner_allocation.device_control:
                         # enable tuner after successful allocation
-                        try:
-                            self.enableTuner(tuner_id,True)
-                        except Exception, e:
-                            self._log.info('The following error occurred on allocation:',e)
-                            eout = "allocate_frontend_tuner_allocation: Failed to enable tuner after allocation"
-                            self._log.info(eout)
-                            raise RuntimeError(eout)
+                        self.enableTuner(tuner_id,True)
 
                     self._usageState = self.updateUsageState()
                     return True
             
-            except:
+            except allocationException as e:
                 # if we made it here, we failed to find an available tuner
-                eout = "allocate_frontend_tuner_allocation: NO AVAILABLE TUNER. Make sure that the device has an initialized frontend_tuner_status"
-                self._log.info(eout)
-                raise RuntimeError(eout)
+                self._deviceLog.info(e)
+                raise
+            except Exception as e:
+                self._deviceLog.exception(e)
+                raise allocationException(e)
             finally:
                 self.allocation_id_mapping_lock.release()
                     
-        except RuntimeError, e:
-            self.deallocate_frontend_tuner_allocation(frontend_tuner_allocation)
+        except allocationException as e:
+            tuner_id = self.getTunerMapping(frontend_tuner_allocation.allocation_id)
+            if tuner_id >= 0:
+                self.deallocate_frontend_tuner_allocation(frontend_tuner_allocation)
             return False
 
         except AllocationAlreadyExists, e:
@@ -730,7 +805,7 @@ class FrontendTunerDevice(Device):
             return False
         
         except Exception, e:
-            self._log.info('The following error occurred on allocation:',e)
+            self._deviceLog.exception('The following error occurred on allocation:',e)
             #self.deallocateCapacity([frontend_tuner_allocation.getProp()])
             raise e
 
@@ -740,20 +815,32 @@ class FrontendTunerDevice(Device):
         # Try to remove control of the device
         tuner_id = self.getTunerMapping(frontend_tuner_allocation.allocation_id)
         if tuner_id < 0:
-            self._log.debug("deallocate_frontend_tuner_allocation: ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]")
-            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]",frontend_tuner_allocation)
+            self._deviceLog.debug("deallocate_frontend_tuner_allocation: ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]")
+            raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND: [" + str(frontend_tuner_allocation.allocation_id) + "]",struct_to_props(frontend_tuner_allocation))
         
         self.allocation_id_mapping_lock.acquire()
         try:
-            while self.frontend_tuner_status[self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id]].allocation_id_csv != frontend_tuner_allocation.allocation_id:
+            if self.frontend_tuner_status[self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id]].allocation_id_csv.split(',')[0] == frontend_tuner_allocation.allocation_id:
+                # remove if it is controlling
+                while self.frontend_tuner_status[self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id]].allocation_id_csv != frontend_tuner_allocation.allocation_id:
+                    split_id = self.frontend_tuner_status[self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id]].allocation_id_csv.split(',')
+                    for idx in range(len(split_id)):
+                        if split_id[idx] == frontend_tuner_allocation.allocation_id:
+                            continue
+                        else:
+                            self.removeTunerMappingByAllocationId(split_id[idx])
+                            self.removeListenerId(tuner_id, split_id[idx])
+                        break
+            else:
+                # remove if it is not controlling
                 split_id = self.frontend_tuner_status[self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id]].allocation_id_csv.split(',')
                 for idx in range(len(split_id)):
-                    if split_id[idx] == frontend_tuner_allocation.allocation_id:
+                    if split_id[idx] != frontend_tuner_allocation.allocation_id:
                         continue
                     else:
                         self.removeTunerMappingByAllocationId(split_id[idx])
                         self.removeListenerId(tuner_id, split_id[idx])
-                    break
+                        return
         finally:
             self.allocation_id_mapping_lock.release()
         
@@ -772,39 +859,33 @@ class FrontendTunerDevice(Device):
         
         self.frontend_tuner_status[tuner_id].allocation_id_csv = ''
 
-    def allocate_frontend_listener_allocation(self, frontend_listener_allocation):
+    def _allocate_frontend_listener_allocation(self, frontend_listener_allocation):
         try:
             # Check validity of allocation_id's
             if not frontend_listener_allocation.existing_allocation_id:
-                self._log.info("allocate_frontend_listener_allocation: MISSING EXISTING ALLOCATION ID")
-                raise CF.Device.InvalidCapacity("MISSING EXISTING ALLOCATION ID", frontend_listener_allocation)
+                self._deviceLog.info("allocate_frontend_listener_allocation: MISSING EXISTING ALLOCATION ID")
+                raise CF.Device.InvalidCapacity("MISSING EXISTING ALLOCATION ID", struct_to_props(frontend_listener_allocation))
             
             if not frontend_listener_allocation.listener_allocation_id:
-                self._log.info("allocate_frontend_listener_allocation: MISSING LISTENER ALLOCATION ID")
-                raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", frontend_listener_allocation)
-
-            # Check if listener allocation ID has already been used
-            if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
-                self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE")
-                raise CF.Device.InvalidCapacity("LISTENER ALLOCATION ID ALREADY IN USE", frontend_listener_allocation)
+                self._deviceLog.info("allocate_frontend_listener_allocation: MISSING LISTENER ALLOCATION ID")
+                raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", struct_to_props(frontend_listener_allocation))
             
-            #self.tuner_allocation_ids[tuner_id].lock.acquire()
             # Check if listener allocation ID has already been used
             if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
-                self._log.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE: [" + str(frontend_listener_allocation.listener_allocation_id << "]"))
+                self._deviceLog.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE: [" + str(frontend_listener_allocation.listener_allocation_id + "]"))
                 raise AllocationAlreadyExists("LISTENER ALLOCATION ID ALREADY IN USE", frontend_listener_allocation)
 
             # Do not allocate if existing allocation ID does not exist
             tuner_id = self.getTunerMapping(frontend_listener_allocation.existing_allocation_id)
             if tuner_id < 0:
-                self._log.debug("allocate_frontend_listener_allocation: UNKNOWN CONTROL ALLOCATION ID: [" + str(frontend_listener_allocation.existing_allocation_id)+"]")
+                self._deviceLog.debug("allocate_frontend_listener_allocation: UNKNOWN CONTROL ALLOCATION ID: [" + str(frontend_listener_allocation.existing_allocation_id)+"]")
                 raise FRONTEND.BadParameterException("UNKNOWN CONTROL ALLOCATION ID")
 
             # listener allocations are not permitted for channelizers or TX
             if self.frontend_tuner_status[tuner_id].tuner_type == "CHANNELIZER" or self.frontend_tuner_status[tuner_id].tuner_type == "TX":
                 eout = "allocate_frontend_listener_allocation: listener allocations are not permitted for " + str(self.frontend_tuner_status[tuner_id].tuner_type) + " tuner type"
-                self._log.debug(eout)
-                raise CF.Device.InvalidCapacity(eout, frontend_listener_allocation)
+                self._deviceLog.debug(eout)
+                raise CF.Device.InvalidCapacity(eout, struct_to_props(frontend_listener_allocation))
 
             self.allocation_id_mapping_lock.acquire()
             try:
@@ -822,7 +903,7 @@ class FrontendTunerDevice(Device):
         except AllocationAlreadyExists, e:
             # Don't call deallocateCapacity if the allocationId already exists
             #   - Would end up deallocating a valid tuner/listener
-            raise CF.Device.InvalidCapacity(e)
+            raise CF.Device.InvalidCapacity(str(e), struct_to_props(frontend_listener_allocation))
         
         except CF.Device.InvalidCapacity, e:
             raise e
@@ -831,7 +912,7 @@ class FrontendTunerDevice(Device):
             return False
         
         except Exception, e:
-            self._log.info('The following error occurred on allocation:',e)
+            self._deviceLog.info('The following error occurred on allocation:',e)
             raise e
 
         return False
@@ -847,12 +928,12 @@ class FrontendTunerDevice(Device):
     def deallocate_frontend_listener_allocation(self, frontend_listener_allocation):
         tuner_id = self.getTunerMapping(frontend_listener_allocation.listener_allocation_id)
         if tuner_id < 0:
-            self._log.debug("ALLOCATION_ID NOT FOUND: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
+            self._deviceLog.debug("ALLOCATION_ID NOT FOUND: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
             retval_struct = [CF.DataType(id='FRONTEND::listener_allocation::existing_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id)),CF.DataType(id='FRONTEND::listener_allocation::listener_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id))]
             retval = CF.DataType(id='FRONTEND::listener_allocation',value=any.to_any(retval_struct))
             raise CF.Device.InvalidCapacity("ALLOCATION_ID NOT FOUND", [retval])
         if self.tuner_allocation_ids[tuner_id].control_allocation_id == frontend_listener_allocation.listener_allocation_id:
-            self._log.debug("Controlling allocation id cannot be used as a listener id in a deallocation: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
+            self._deviceLog.debug("Controlling allocation id cannot be used as a listener id in a deallocation: [" + str(frontend_listener_allocation.listener_allocation_id) + "]")
             retval_struct = [CF.DataType(id='FRONTEND::listener_allocation::existing_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id)),CF.DataType(id='FRONTEND::listener_allocation::listener_allocation_id',value=any.to_any(frontend_listener_allocation.existing_allocation_id))]
             retval = CF.DataType(id='FRONTEND::listener_allocation',value=any.to_any(retval_struct))
             raise CF.Device.InvalidCapacity("Controlling allocation id cannot be used as a listener id", [retval])
@@ -878,7 +959,7 @@ class FrontendTunerDevice(Device):
         return True
 
     def listenerRequestValidation(self, request, tuner_id):
-        self._log.trace("listenerRequestValidation(): request " + str(request) + " ,tuner_id " + str(tuner_id))
+        self._deviceLog.trace("listenerRequestValidation(): request " + str(request) + " ,tuner_id " + str(tuner_id))
 
         # ensure requested values are non-negative
         if floatingPointCompare(request.center_frequency,0)<0 or \
@@ -890,12 +971,12 @@ class FrontendTunerDevice(Device):
 
         # ensure lower end of requested band fits
         if floatingPointCompare((request.center_frequency-(request.bandwidth*0.5)),(self.frontend_tuner_status[tuner_id].center_frequency-(self.frontend_tuner_status[tuner_id].bandwidth*0.5))) < 0:
-            self._log.trace("listenerRequestValidation(): FAILED LOWER END TEST")
+            self._deviceLog.trace("listenerRequestValidation(): FAILED LOWER END TEST")
             return False
 
         # ensure upper end of requested band fits
         if floatingPointCompare((request.center_frequency + (request.bandwidth*0.5)),(self.frontend_tuner_status[tuner_id].center_frequency + (self.frontend_tuner_status[tuner_id].bandwidth*0.5))) > 0:
-            self._log.trace("listenerRequestValidation(): FAILED UPPER END TEST")
+            self._deviceLog.trace("listenerRequestValidation(): FAILED UPPER END TEST")
             return False
 
         # ensure tuner bandwidth meets requested tolerance
@@ -948,7 +1029,7 @@ class FrontendTunerDevice(Device):
                         break
         
     def removeTunerMappingByAllocationId(self, allocation_id):
-        self._log.trace("removeTunerMapping(allocation_id) allocation_id " + str(allocation_id))
+        self._deviceLog.trace("removeTunerMapping(allocation_id) allocation_id " + str(allocation_id))
         self.allocation_id_mapping_lock.acquire()
         try:
             if self.frontend_tuner_status[self.allocation_id_to_tuner_id[allocation_id]].allocation_id_csv.split(',')[0] == allocation_id:
@@ -1040,7 +1121,7 @@ class FrontendTunerDevice(Device):
         print "\tmode:",  sri.mode
         print "\tstreamID:",  sri.streamID
         for keyword in sri.keywords:
-            print "\t KEYWORD KEY/VAL ::",  keywords.id << ":",  any.from_any(keywords.value)
+            print "\t KEYWORD KEY/VAL ::",  keywords.id + ":",  any.from_any(keywords.value)
             
     ######################################################################
     # PROPERTIES
@@ -1069,14 +1150,14 @@ class FrontendTunerDevice(Device):
                                                 name="frontend_tuner_allocation",
                                                 structdef=frontend_tuner_allocation,
                                                 configurationkind=("allocation",),
-                                                mode="readwrite",
+                                                mode="writeonly",
                                                 description="""Frontend Interfaces v2.0 main allocation structure"""
                                                 )
     frontend_listener_allocation = struct_property(id_="FRONTEND::listener_allocation",
                                                    name="frontend_listener_allocation",
                                                    structdef=frontend_listener_allocation,
                                                    configurationkind=("allocation",),
-                                                   mode="readwrite",
+                                                   mode="writeonly",
                                                    description="""Allocates a listener (subscriber) based off a previous allocation """
                                                    )
     frontend_tuner_status = structseq_property(id_="FRONTEND::tuner_status",
@@ -1089,4 +1170,26 @@ class FrontendTunerDevice(Device):
                                                )
 
 
-    
+class FrontendScannerDevice(FrontendTunerDevice):
+
+    def __init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams):
+        FrontendTunerDevice.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams)
+        self.supports_scan = True
+
+    frontend_scanner_allocation = struct_property(id_="FRONTEND::scanner_allocation",
+                                                name="frontend_scanner_allocation",
+                                                structdef=frontend_scanner_allocation,
+                                                configurationkind=("allocation",),
+                                                mode="writeonly",
+                                                description="""Frontend Interfaces v2.0 scanner allocation structure"""
+                                                )
+
+    def _checkValidIds(self, propdict):
+        self._has_scanner = False
+        for prop_key in propdict:
+            if prop_key != "FRONTEND::tuner_allocation" and prop_key != "FRONTEND::listener_allocation" and prop_key != "FRONTEND::scanner_allocation":
+                raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
+            if prop_key == "FRONTEND::scanner_allocation":
+                self._has_scanner = True
+            self._props[prop_key] = propdict[prop_key]
+

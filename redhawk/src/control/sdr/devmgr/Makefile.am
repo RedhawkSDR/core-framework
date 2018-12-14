@@ -25,6 +25,6 @@ devmgr_PROGRAMS = DeviceManager
 DeviceManager_SOURCES = main.cpp spdSupport.cpp process_utils.cpp DeviceManager_DeployerSupport.cpp DeviceManager_impl.cpp
 DeviceManager_CPPFLAGS = -I../../include -I../../parser -I$(top_srcdir)/base/include -I$(top_srcdir)/base/framework/logging $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 DeviceManager_CXXFLAGS = -Wall
-DeviceManager_LDADD = ../../framework/libossiedomain.la ../../parser/libossieparser.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(LOG4CXX_LIBS) -ldl
+DeviceManager_LDADD = ../../framework/libossiedomain.la ../../parser/libossieparser.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(LOG4CXX_LIBS) -ldl
 DeviceManager_LDFLAGS = -static
 

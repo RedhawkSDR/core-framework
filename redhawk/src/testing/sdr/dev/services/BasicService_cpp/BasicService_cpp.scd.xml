@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/FileManager:1.0"/>
+  <componenttype>service</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/FileManager:1.0" supportsname="FileManager"/>
+    <supportsinterface repid="IDL:CF/FileSystem:1.0" supportsname="FileSystem"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="FileManager" repid="IDL:CF/FileManager:1.0">
+      <inheritsinterface repid="IDL:CF/FileSystem:1.0"/>
+    </interface>
+    <interface name="FileSystem" repid="IDL:CF/FileSystem:1.0"/>
+  </interfaces>
+</softwarecomponent>

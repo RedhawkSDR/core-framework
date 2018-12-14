@@ -33,17 +33,20 @@ import org.omg.CORBA.MARSHAL;
 
 import org.apache.log4j.Logger;
 
+import org.ossie.component.StartablePort;
+import org.ossie.component.RHLogger;
 import org.ossie.properties.IProperty;
 import org.ossie.properties.StructDef;
 
 import burstio.stats.SenderStatistics;
 import burstio.traits.BurstTraits;
 
-import org.ossie.component.PortBase;
 
-abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA implements PortBase {
+abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA implements StartablePort {
     public static final int DEFAULT_MAX_BURSTS = 100;
     public static final int DEFAULT_LATENCY_THRESHOLD = 10000; // 10000 us = 10ms
+
+    public RHLogger _portLog = null;
 
     // Basic port information
     static class Connection<E>
@@ -86,7 +89,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
         {
             this.maxBursts_ = bursts;
             if (this.queue_.size() >= this.maxBursts_) {
-                OutPort.this.logger_.debug("New max bursts " + this.maxBursts_ + " triggering push");
+                if (OutPort.this._portLog != null) {
+                    OutPort.this._portLog.debug("New max bursts " + this.maxBursts_ + " triggering push");
+                }
                 this.executeThreadedFlush();
             }
         }
@@ -113,7 +118,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
         {
             this.thresholdBytes_ = bytes;
             if (this.queuedBytes_ >= this.thresholdBytes_) {
-                OutPort.this.logger_.debug("New byte threshold " + this.thresholdBytes_ + " triggering push");
+                if (OutPort.this._portLog != null) {
+                    OutPort.this._portLog.debug("New byte threshold " + this.thresholdBytes_ + " triggering push");
+                }
                 this.executeThreadedFlush();
             }
         }
@@ -129,16 +136,22 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
             if (this.queue_.isEmpty()) {
                 this.startTime_ = System.nanoTime();
                 // Wake up the monitor thread so it can set its timeout
-                OutPort.this.logger_.trace("Waking monitor thread on first queued burst");
+                if (OutPort.this._portLog != null) {
+                    OutPort.this._portLog.trace("Waking monitor thread on first queued burst");
+                }
                 OutPort.this.scheduleCheck(this.startTime_ + this.thresholdLatency_);
             }
 
             this.queue_.add(burst);
             this.queuedBytes_ += OutPort.this.traits_.burstLength(burst) * OutPort.this.bytesPerElement_;
-            OutPort.this.logger_.trace("Queue size: " + this.queue_.size() + " bursts / " + this.queuedBytes_ + " bytes");
+            if (OutPort.this._portLog != null) {
+                OutPort.this._portLog.trace("Queue size: " + this.queue_.size() + " bursts / " + this.queuedBytes_ + " bytes");
+            }
 
             if (this.shouldFlush()) {
-                OutPort.this.logger_.debug("Queued burst exceeded threshold, flushing queue");
+                if (OutPort.this._portLog != null) {
+                    OutPort.this._portLog.debug("Queued burst exceeded threshold, flushing queue");
+                }
                 this.flushQueue();
             }
         }
@@ -435,6 +448,11 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
         this.logger_ = logger;
     }
 
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
+    }
+
     public synchronized void start ()
     {
         if (this.running_) {
@@ -442,6 +460,11 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
         }
 
         this.running_ = true;
+    }
+
+    public void startPort ()
+    {
+        start();
     }
 
     public void stop ()
@@ -454,6 +477,11 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
             this.running_ = false;
         }
         this.flush();
+    }
+
+    public void stopPort ()
+    {
+        stop();
     }
 
     public BULKIO.PortUsageType state ()
@@ -503,7 +531,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
             queue.queueBurst(burst);
             if (eos) {
                 if (!isInterleaved()) {
-                    this.logger_.debug("Flushing " + sri.streamID + " on EOS");
+                    if (this._portLog != null) {
+                        this._portLog.debug("Flushing " + sri.streamID + " on EOS");
+                    }
                     queue.flush();
                 }
                 this.streamQueues_.remove(sri.streamID);
@@ -528,7 +558,7 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
 
 	public String getDirection ()
 	{
-		return "Uses";
+		return CF.PortSet.DIRECTION_USES;
 	}
 
     protected void sendBursts(B[] bursts, long startTime, float queueDepth, final String streamID)
@@ -555,7 +585,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
                 } catch (org.omg.CORBA.SystemException ex) {
                     if (bursts.length == 1) {
                         if (connection.alive) {
-                            this.logger_.error("pushBursts to " + connectionId + " failed the burst size is too long");
+                            if (this._portLog != null) {
+                                this._portLog.error("pushBursts to " + connectionId + " failed the burst size is too long");
+                            }
                             connection.alive = false;
                         }
                     } else {
@@ -563,7 +595,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
                     }
                 } catch (final Exception ex) {
                     if (connection.alive) {
-                        this.logger_.error("pushBursts to " + connectionId + " failed: " + ex);
+                        if (this._portLog != null) {
+                            this._portLog.error("pushBursts to " + connectionId + " failed: " + ex);
+                        }
                         connection.alive = false;
                     }
                 }
@@ -659,7 +693,9 @@ abstract class OutPort<E,B,A> extends BULKIO.UsesPortStatisticsProviderPOA imple
             if (isInterleaved()) {
                 queue = this.defaultQueue_;
             } else {
-                this.logger_.trace("Creating new queue for stream " + streamID);
+                if (this._portLog != null) {
+                    this._portLog.trace("Creating new queue for stream " + streamID);
+                }
                 // Propagate the default queue's policy settings
                 final int max_bursts = this.defaultQueue_.getMaxBursts();
                 final int byte_threshold = this.defaultQueue_.getByteThreshold();

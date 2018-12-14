@@ -19,7 +19,7 @@
 #
 
 dnl Update this version number immedately after a release
-AC_INIT([ossie],[2.0.9])
+AC_INIT([ossie],[2.2.1])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
 AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
@@ -69,12 +69,17 @@ AX_BOOST_REGEX
 AX_BOOST_THREAD
 AX_BOOST_DATE_TIME
 
+m4_include(acinclude/unitdir.m4)
+m4_include(acinclude/testdir.m4)
+
 AX_LIB_EXPAT([1.95.8])
 if test x"$HAVE_EXPAT" = xno ; then
         AC_MSG_ERROR([The Expat XML parser library and header files are required])
 fi
 
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
+OMNIORB_INCLUDEDIR=`pkg-config --variable=includedir omniORB4`
+AC_SUBST(OMNIORB_INCLUDEDIR)
 PKG_CHECK_EXISTS([omniORB4 >= 4.2.0],[AC_DEFINE([OMNIORB4_2],[1],[])])
 PKG_CHECK_MODULES([OMNITHREAD], [omnithread3 >= 4.0.0])
 PKG_CHECK_MODULES([OMNIDYNAMIC], [omniDynamic4 >= 4.0.0])
@@ -121,8 +126,8 @@ AC_CHECK_PROG([XMLCATALOG], [xmlcatalog], [xmlcatalog], [no])
 AM_CONDITIONAL(HAVE_XMLCATALOG, test $XMLCATALOG != "no")
 
 # add numa support to affinity module
-AC_ARG_ENABLE([affinity], AS_HELP_STRING([--enable-affinity], [Enable numa affinity processing]))
-   AC_MSG_CHECKING([Adding support for numa affinity processing])
+AC_ARG_ENABLE([affinity], [AS_HELP_STRING([--disable-affinity], [Disable numa affinity processing])],,[enable_affinity=yes])
+   AC_MSG_CHECKING([Enabling support for numa affinity processing])
 if test "x$enable_affinity" = "xyes"; then
    dnl  determine if numa library support is available
    AC_SUBST(OSSIE_AFFINITY, "yes")
@@ -148,16 +153,6 @@ OSSIE_ENABLE_PERSISTENCE
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AC_ARG_ENABLE([xml_validation], AS_HELP_STRING([--disable-xml-validation], [Disable xml validation in the parsers]))
-AC_MSG_CHECKING([if xml parsers should perform validation])
-if test "x$enable_xml_validation" != "xno"; then
-  AC_SUBST(OSSIE_XSDFLAGS, "--generate-validation")
-  AC_MSG_RESULT([yes])
-else
-  AC_SUBST(OSSIE_XSDFLAGS, "--suppress-validation")
-  AC_MSG_RESULT([no])
-fi
-
 # Allow user to explictly prevent JAVA compilation
 AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java support]))
 
@@ -169,7 +164,7 @@ if test "x$enable_java" != "xno"; then
   RH_JAVA_HOME
 
   # Minimum Java version
-  java_source_version=1.6
+  java_source_version=1.8
 
   # Locate tools we need based on JAVA_HOME
   RH_PROG_JAVAC([$java_source_version])
@@ -242,6 +237,10 @@ AC_SUBST(OSSIE_CFLAGS, '-I$(top_srcdir)/base/include')
 AC_SUBST(OSSIE_IDLDIR, '$(top_srcdir)/idl')
 AC_SUBST(OSSIEIDL_LIBS, '$(top_builddir)/base/framework/idl/libossieidl.la')
 
+# For test components with a generated Makefile.am, set the expected flags
+AC_SUBST(PROJECTDEPS_CFLAGS, '$(OSSIE_CFLAGS) -I$(top_srcdir)/base/include/ossie')
+AC_SUBST(PROJECTDEPS_LIBS, '$(top_builddir)/base/framework/libossiecf.la $(OSSIEIDL_LIBS)')
+
 if test "$HAVE_JAVASUPPORT" = yes; then
   AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/log4j-1.2.15.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar')
 
@@ -272,6 +271,13 @@ if test "$HAVE_JAVASUPPORT" = yes; then
   IDLJNICXX='$(IDL) -p $(OMNIJNI_PYTHONDIR) -b omnijni.idljni'
 fi
 
+# C++ unit testing support. May want to conditionally enable/disable this.
+AM_PATH_CPPUNIT(1.12.1)
+AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
+  dnl Use RPM location hard-coded for now
+  AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")
+])
+
 # Undefine the PACKAGE_ variables to avoid warnings when omniORB is installed outside of
 # /usr.  OSSIE doesn't use these variables anyways...and even if it did
 # they would get undefined in any file that included CORBA.h (because ossieconfig.h
@@ -295,6 +301,7 @@ AC_CONFIG_FILES(Makefile \
                 control/sdr/Makefile \
                 control/sdr/dommgr/Makefile \
                 control/sdr/devmgr/Makefile \
+                control/sdr/ComponentHost/Makefile \
                 base/Makefile \
                 base/framework/python/Makefile \
                 base/framework/java/Makefile \
@@ -310,10 +317,13 @@ AC_CONFIG_FILES(Makefile \
                 base/plugin/logcfg/Makefile \
                 idl/Makefile \
                 xml/Makefile \
-                tools/Makefile \
-                tools/LogEventAppender/Makefile \
-                testing/Makefile \
+                tools/Makefile )
+
+AM_COND_IF( [BUILD_TESTS], [
+AC_CONFIG_FILES( [testing/Makefile \
                 testing/_unitTestHelpers/buildconfig.py \
+                testing/cpp/Makefile \
+                testing/java/Makefile \
                 testing/sdr/dev/devices/ExecutableDevice/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_cpp/BasicTestDevice_cpp_impl1/Makefile \
                 testing/sdr/dev/devices/BasicTestDevice_java/java/Makefile \
@@ -331,14 +341,20 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dev/devices/base_programmable/cpp/Makefile \
                 testing/sdr/dev/devices/base_persona/cpp/Makefile \
                 testing/sdr/dev/devices/devcpp/cpp/Makefile \
+                testing/sdr/dev/devices/log_test_cpp/cpp/Makefile \
+                testing/sdr/dev/devices/writeonly_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/DevC/cpp/Makefile \
                 testing/sdr/dev/devices/dev_kill_devmgr/cpp/Makefile \
                 testing/sdr/dev/devices/GPP/cpp/Makefile \
                 testing/sdr/dev/devices/java_dev/java/Makefile \
+                testing/sdr/dev/devices/log_test_java/java/Makefile \
                 testing/sdr/dev/devices/LongDevice/cpp/Makefile \
+                testing/sdr/dev/devices/dev_alloc_cpp/cpp/Makefile \
                 testing/sdr/dev/devices/devj/java/Makefile \
+                testing/sdr/dev/devices/writeonly_java/java/Makefile \
                 testing/sdr/dev/devices/DevC/java/Makefile \
                 testing/sdr/dev/services/BasicService_java/java/Makefile \
+                testing/sdr/dev/services/BasicService_cpp/cpp/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/Makefile \
                 testing/sdr/dom/deps/cpp_dep1/cpp/cpp_dep1.pc \
                 testing/sdr/dom/deps/cpp_dep2/cpp/Makefile \
@@ -353,13 +369,20 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/linkedLibraryTest/Makefile \
                 testing/sdr/dom/components/TestCppsoftpkgDeps/Makefile \
                 testing/sdr/dom/components/javaDep/javaDep/Makefile \
+                testing/sdr/dom/components/javaSoftpkgJarDep/java/Makefile \
                 testing/sdr/dom/components/java_comp/java/Makefile \
                 testing/sdr/dom/components/msg_through_java/java/Makefile \
                 testing/sdr/dom/components/huge_msg_java/java/Makefile \
+                testing/sdr/dom/components/timeprop_java/java/Makefile \
+                testing/sdr/dom/components/logger_java/java/Makefile \
+                testing/sdr/dom/components/time_ja_now/java/Makefile \
                 testing/sdr/dom/components/HardLimit/HardLimit_java_impl1/Makefile \
                 testing/sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/basicac_java_impl1/Makefile \
                 testing/sdr/dom/components/BasicAC/BasicAC_cpp_impl1/Makefile \
+                testing/sdr/dom/components/BasicShared/cpp/Makefile \
+                testing/sdr/dom/components/logger/cpp/Makefile \
+                testing/sdr/dom/components/alloc_shm/cpp/Makefile \
                 testing/sdr/dom/components/MessageReceiverCpp/Makefile \
                 testing/sdr/dom/components/MessageSenderCpp/Makefile \
                 testing/sdr/dom/components/EventSend/EventSend_java_impl1/Makefile \
@@ -380,19 +403,27 @@ AC_CONFIG_FILES(Makefile \
                 testing/sdr/dom/components/C2/cpp/Makefile \
                 testing/sdr/dom/components/ECM_CPP/cpp/Makefile \
                 testing/sdr/dom/components/ECM_JAVA/java/Makefile \
+                testing/sdr/dom/components/EmptyString/cpp/Makefile \
+                testing/sdr/dom/components/EmptyString/java/Makefile \
                 testing/sdr/dom/components/PropertyChange_C1/cpp/Makefile \
                 testing/sdr/dom/components/PropertyChange_J1/java/Makefile \
                 testing/sdr/dom/components/Property_CPP/cpp/Makefile \
                 testing/sdr/dom/components/msg_through_cpp/cpp/Makefile \
+                testing/sdr/dom/components/busycomp/cpp/Makefile \
+                testing/sdr/dom/components/slow_stop_cpp/cpp/Makefile \
                 testing/sdr/dom/components/commandline_prop/cpp/Makefile \
+                testing/sdr/dom/components/timeprop_cpp/cpp/Makefile \
+                testing/sdr/dom/components/time_cp_now/cpp/Makefile \
                 testing/sdr/dom/components/nocommandline_prop/cpp/Makefile \
                 testing/sdr/dom/components/Property_JAVA/java/Makefile \
                 testing/sdr/dom/components/foo/bar/comp/cpp/Makefile \
                 testing/sdr/dom/components/foo/bar/jv/java/Makefile \
                 testing/sdr/dom/components/huge_msg_cpp/cpp/Makefile \
                 testing/sdr/dom/components/zero_length/cpp/Makefile \
-                testing/sdr/dom/components/svc_error_cpp/cpp/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
-                testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile )
+                testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile \
+                testing/sdr/dom/components/svc_fn_error_cpp/cpp/Makefile \
+                testing/sdr/dom/components/svc_fn_error_java/java/Makefile ])
+])
 AC_OUTPUT
 

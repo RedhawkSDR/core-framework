@@ -32,6 +32,8 @@ from ossie.utils import uuid
 
 from ossie.device import ExecutableDevice 
 from ossie.properties import simple_property
+from ossie.properties import simpleseq_property
+from ossie.properties import struct_property
 
 from ossie.events import PropertyEventSupplier
 
@@ -138,6 +140,57 @@ class test_collocation_device_base(CF__POA.ExecutableDevice, ExecutableDevice):
         # 
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.       
+        class RedhawkReservationRequest(object):
+            redhawk__reservation_request__obj_id = simple_property(
+                                                                           id_="redhawk::reservation_request::obj_id",
+                                                                           
+                                                                           type_="string")
+        
+            redhawk__reservation_request__kinds = simpleseq_property(
+                                                                     id_="redhawk::reservation_request::kinds",
+                                                                     
+                                                                     type_="string",
+                                                                     defvalue=[]
+                                                                     )
+        
+            redhawk__reservation_request__values = simpleseq_property(
+                                                                      id_="redhawk::reservation_request::values",
+                                                                      
+                                                                      type_="string",
+                                                                      defvalue=[]
+                                                                      )
+        
+            def __init__(self, **kw):
+                """Construct an initialized instance of this struct definition"""
+                for classattr in type(self).__dict__.itervalues():
+                    if isinstance(classattr, (simple_property, simpleseq_property)):
+                        classattr.initialize(self)
+                for k,v in kw.items():
+                    setattr(self,k,v)
+        
+            def __str__(self):
+                """Return a string representation of this structure"""
+                d = {}
+                d["redhawk__reservation_request__obj_id"] = self.redhawk__reservation_request__obj_id
+                d["redhawk__reservation_request__kinds"] = self.redhawk__reservation_request__kinds
+                d["redhawk__reservation_request__values"] = self.redhawk__reservation_request__values
+                return str(d)
+        
+            @classmethod
+            def getId(cls):
+                return "redhawk::reservation_request"
+        
+            @classmethod
+            def isStruct(cls):
+                return True
+        
+            def getMembers(self):
+                return [("redhawk__reservation_request__obj_id",self.redhawk__reservation_request__obj_id),("redhawk__reservation_request__kinds",self.redhawk__reservation_request__kinds),("redhawk__reservation_request__values",self.redhawk__reservation_request__values)]
+
+        redhawk__reservation_request = struct_property(id_="redhawk::reservation_request",
+                                                       structdef=RedhawkReservationRequest,
+                                                       configurationkind=("allocation",),
+                                                       mode="readwrite")
         device_kind = simple_property(id_="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d",
                                           name="device_kind", 
                                           type_="string",

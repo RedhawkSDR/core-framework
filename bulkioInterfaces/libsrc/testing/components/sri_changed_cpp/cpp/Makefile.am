@@ -18,19 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 ossieName = sri_changed_cpp
-bindir = $(prefix)/dom/components/sri_changed_cpp/cpp/
+bindir = $(prefix)/dom/components/sri_changed_cpp/cpp
 bin_PROGRAMS = sri_changed_cpp
 
-xmldir = $(prefix)/dom/components/sri_changed_cpp/
+xmldir = $(prefix)/dom/components/sri_changed_cpp
 dist_xml_DATA = ../sri_changed_cpp.scd.xml ../sri_changed_cpp.prf.xml ../sri_changed_cpp.spd.xml
 ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
-
-# this is use to build against local bulkio interface and library and not installed version
-bulkio_top=../../../../../
-bulkio_libsrc_top=$(bulkio_top)/libsrc
+AUTOMAKE_OPTIONS = subdir-objects
 
 distclean-local:
-	rm -f m4/*
+	rm -rf m4
 	rm -f config.*
 	rm -rf autom4te.cache
 	rm -f acinclude.m4
@@ -49,8 +46,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 sri_changed_cpp_SOURCES = $(redhawk_SOURCES_auto)
-sri_changed_cpp_LDADD = -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs $(BIO_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#sri_changed_cpp_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-sri_changed_cpp_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp -I$(bulkio_top)/src/cpp/ossie $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(RH_DEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+sri_changed_cpp_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+sri_changed_cpp_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 sri_changed_cpp_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

@@ -24,6 +24,7 @@ import FRONTEND.GPSInfo;
 import FRONTEND.GPSHelper;
 import frontend.GPSDelegate;
 import org.ossie.component.PortBase;
+import org.ossie.component.RHLogger;
 
 public class InGPSPort extends FRONTEND.GPSPOA implements PortBase {
 
@@ -42,6 +43,12 @@ public class InGPSPort extends FRONTEND.GPSPOA implements PortBase {
         this.name = portName;
         this.delegate = d;
         this.portAccess = new Object();
+    }
+
+    public RHLogger _portLog = null;
+    public void setLogger(RHLogger logger)
+    {
+        this._portLog = logger;
     }
 
     public GPSInfo gps_info() {

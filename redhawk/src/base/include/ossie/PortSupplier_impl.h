@@ -47,6 +47,8 @@ public:
     // Return an object reference for the named port.
     CORBA::Object* getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
 
+    void setLogger(rh_logger::LoggerPtr logptr);
+
 protected:
     typedef std::map<std::string, PortBase*> PortServantMap;
     PortServantMap _portServants;
@@ -77,6 +79,9 @@ protected:
 private:
     void insertPort (const std::string& name, PortBase* servant);
     void deactivatePort (PortBase* servant);
+
+    rh_logger::LoggerPtr _portsupplierLog;
+
 };
 
 #endif

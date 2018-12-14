@@ -490,7 +490,7 @@ namespace events {
   typedef boost::shared_ptr< EM_Subscriber >  EM_SubscriberPtr;
 
   // Class singleton for this library
-  ManagerPtr Manager::_Manager;
+  std::map<std::string, ManagerPtr> Manager::_managers;
 
 
   ManagerPtr Manager::GetManager( Resource_impl *obj ) {
@@ -500,19 +500,12 @@ namespace events {
       oid = ossie::corba::returnString(obj->identifier());
     }
 
-    if ( !Manager::_Manager ) {
-      try {
-        Manager::_Manager = boost::shared_ptr<Manager>(new Manager( obj ));
+    if (Manager::_managers.find(oid) == Manager::_managers.end()) {
         RH_NL_DEBUG("redhawk::events::Manager",  "Created EventManager for Resource: " << oid );
-      }
-      catch(...){
-        RH_NL_WARN("redhawk::events::Manager",  "Resource (" <<oid << ") does not provide EventChannelManager access, Event channel management is not allowed");
-        throw;
-      }
-
+        Manager::_managers[oid] = boost::shared_ptr<Manager>(new Manager( obj ));
     }
-    return Manager::_Manager;
-    
+
+    return Manager::_managers[oid];
   }
 
 
@@ -520,7 +513,9 @@ namespace events {
 
     // release all Publishers and Subscribers
     RH_NL_TRACE("redhawk::events::Manager",  "Terminate all EventChannels");
-    if ( Manager::_Manager ) _Manager->_terminate();
+    for (std::map<std::string, ManagerPtr>::iterator it=Manager::_managers.begin(); it!=Manager::_managers.end(); it++) {
+        it->second->_terminate();
+    }
   }
 
 
@@ -532,20 +527,24 @@ namespace events {
 
     if ( obj  ){
       _obj = obj;
+      _resourceLog = _obj->getBaseLogger();
+      _eventManagerLog = _resourceLog->getChildLogger("EventManager", "system");
       _obj_id = ossie::corba::returnString(obj->identifier());
-      RH_NL_DEBUG("redhawk::events::Manager",  "Resolve Device and Domain Managers...");
+      RH_DEBUG(_eventManagerLog,  "Resolve Device and Domain Managers...");
       // setup create publisher as internal methods
       redhawk::DomainManagerContainer *dm = obj->getDomainManager();
       if ( dm == NULL ) throw -1;
 
       CF::DomainManager_ptr  domMgr =  dm->getRef();
       if ( !ossie::corba::objectExists( domMgr ) ) throw 1;
-      RH_NL_DEBUG("redhawk::events::Manager",  "Resolved Domain Manager...");
+      RH_DEBUG(_eventManagerLog,  "Resolved Domain Manager...");
 
       CF::EventChannelManager_ptr  ecm = domMgr->eventChannelMgr();
-      RH_NL_DEBUG("redhawk::events::Manager",  "Getting Event Channel Manager...");
+      RH_DEBUG(_eventManagerLog,  "Getting Event Channel Manager...");
       if ( !ossie::corba::objectExists( ecm ) ) throw 1;
       _ecm = ecm;
+    } else {
+      _eventManagerLog = rh_logger::Logger::getLogger("EventManager");
     }
 
   };
@@ -570,7 +569,7 @@ namespace events {
     throw (RegistrationExists, RegistrationFailed) {
     SCOPED_LOCK(_mgr_lock);
 
-    RH_NL_DEBUG("redhawk::events::Manager",  "Requesting Publisher for Channel:" << channel_name  << " resource:" << _obj_id );
+    RH_DEBUG(_eventManagerLog,  "Requesting Publisher for Channel:" << channel_name  << " resource:" << _obj_id );
 
     EM_PublisherPtr pub;
 
@@ -583,39 +582,40 @@ namespace events {
         ereg.channel_name = CORBA::string_dup(channel_name.c_str());
         ereg.reg_id = CORBA::string_dup(registrationId.c_str());
         
-        RH_NL_DEBUG("redhawk::events::Manager",  "Requesting Channel:" << channel_name  << " from Domain's EventChannelManager " );
+        RH_DEBUG(_eventManagerLog,  "Requesting Channel:" << channel_name  << " from Domain's EventChannelManager " );
         registration = _ecm->registerResource( ereg );
         reg = registration.in();
         pub = EM_PublisherPtr( new EM_Publisher( *this, reg ) );
+        pub->setLogger(this->_resourceLog->getChildLogger(channel_name, "events"));
         _publishers.push_back(pub.get());
         
-        RH_NL_INFO("redhawk::events::Manager",  "PUBLISHER - Channel:" << channel_name  << " Reg-Id" << registration->reg.reg_id << " RESOURCE:" << _obj_id  );
+        RH_INFO(_eventManagerLog,  "PUBLISHER - Channel:" << channel_name  << " Reg-Id" << registration->reg.reg_id << " RESOURCE:" << _obj_id  );
         _registrations.push_back( reg );
 
       }
     }
     catch( CF::EventChannelManager::RegistrationAlreadyExists e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Registration already exists.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Registration already exists.");
       throw RegistrationExists();
     }
     catch( CF::EventChannelManager::InvalidChannelName e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Invalid channel name.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Invalid channel name.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::OperationFailed e) {  
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::OperationNotAllowed e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::ServiceUnavailable e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Service unavailable.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Service unavailable.");
       throw RegistrationFailed();
     }
     catch(...) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Publisher for Channel:" << channel_name << ", REASON: Unknown exception occurred.");
+      RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Unknown exception occurred.");
       throw RegistrationFailed();
     }
 
@@ -629,7 +629,7 @@ namespace events {
     SCOPED_LOCK(_mgr_lock);
 
     EM_SubscriberPtr sub;
-    RH_NL_DEBUG("redhawk::events::Manager",  "Requesting Subscriber, for Channel:" << channel_name << " resource:" << _obj_id );
+    RH_DEBUG(_eventManagerLog,  "Requesting Subscriber, for Channel:" << channel_name << " resource:" << _obj_id );
 
     try {
       
@@ -640,39 +640,40 @@ namespace events {
         ereg.channel_name = CORBA::string_dup(channel_name.c_str());
         ereg.reg_id = CORBA::string_dup(registrationId.c_str());
         
-        RH_NL_DEBUG("redhawk::events::Manager",  "Requesting Channel:" << channel_name  << " from Domain's EventChannelManager " );
+        RH_DEBUG(_eventManagerLog,  "Requesting Channel:" << channel_name  << " from Domain's EventChannelManager " );
         registration = _ecm->registerResource( ereg );
 	reg = registration.in();
         sub = EM_SubscriberPtr( new EM_Subscriber( *this, reg ) );
+        sub->setLogger(this->_resourceLog->getChildLogger(channel_name, "events"));
         _subscribers.push_back(sub.get());
         
-        RH_NL_INFO("redhawk::events::Manager",  "SUBSCRIBER - Channel:" << channel_name  << " Reg-Id" << registration->reg.reg_id  << " resource:" << _obj_id );
+        RH_INFO(_eventManagerLog,  "SUBSCRIBER - Channel:" << channel_name  << " Reg-Id" << registration->reg.reg_id  << " resource:" << _obj_id );
         _registrations.push_back( reg  );
 
       }
     }
     catch( CF::EventChannelManager::RegistrationAlreadyExists e ) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Registration already exists.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Registration already exists.");
       throw RegistrationExists();
     }
     catch( CF::EventChannelManager::InvalidChannelName e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Invalid channel name.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Invalid channel name.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::OperationFailed e) {  
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::OperationNotAllowed e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
     catch( CF::EventChannelManager::ServiceUnavailable e) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Service unavailable.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Service unavailable.");
       throw RegistrationFailed();
     } 
     catch( ... ) { 
-      RH_NL_ERROR("EventChannelManager", "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Unknown exception occurred.");
+      RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Unknown exception occurred.");
       throw RegistrationFailed();
     } 
 
@@ -685,7 +686,7 @@ namespace events {
     SCOPED_LOCK(_mgr_lock);
     _allow = false;
 
-    RH_NL_DEBUG("redhawk::events::Manager",  " Resource: " << _obj_id << ", Terminate All Registrations.: " << _registrations.size() );
+    RH_DEBUG(_eventManagerLog,  " Resource: " << _obj_id << ", Terminate All Registrations.: " << _registrations.size() );
     Registrations::iterator iter = _registrations.begin();
       for ( ; iter != _registrations.end();  iter++ ) {
 
@@ -694,12 +695,12 @@ namespace events {
 	if ( ossie::corba::objectExists(_ecm) ) {
 	  try {
 	    // unregister from the Domain
-            RH_NL_DEBUG("redhawk::events::Manager",  "Unregister REG=ID:" << creg.reg.reg_id );
+            RH_DEBUG(_eventManagerLog,  "Unregister REG=ID:" << creg.reg.reg_id );
 	    _ecm->unregister( creg.reg );
 	  }
 	  catch(...) {
 	    // log error
-            RH_NL_ERROR("redhawk::events::Manager",  "Unregister ERROR REG=ID:" << creg.reg.reg_id );
+            RH_ERROR(_eventManagerLog,  "Unregister ERROR REG=ID:" << creg.reg.reg_id );
 	  }
 	}
       }
@@ -707,7 +708,7 @@ namespace events {
       // need to cleanup Publisher memory
       _registrations.clear();
 
-      RH_NL_DEBUG("redhawk::events::Manager",  "Delete subscribers.....");
+      RH_DEBUG(_eventManagerLog,  "Delete subscribers.....");
       Subscribers::iterator siter = _subscribers.begin();
       for ( ; siter != _subscribers.end(); siter++ ) {
         if ( *siter ) delete *siter;
@@ -715,18 +716,18 @@ namespace events {
       _subscribers.clear();
 
 
-      RH_NL_DEBUG("redhawk::events::Manager",  "Delete publishers.....");
+      RH_DEBUG(_eventManagerLog,  "Delete publishers.....");
       Publishers::iterator piter = _publishers.begin();
       for ( ; piter != _publishers.end(); piter++ ) {
         if ( *piter ) delete *piter;
       }
       _publishers.clear();
       
-      RH_NL_DEBUG("redhawk::events::Manager",  "Deleted.... publishers.....");
+      RH_DEBUG(_eventManagerLog,  "Deleted.... publishers.....");
       // if we have any subscribers or publishers left then disconnect and delete those instances
       _ecm = CF::EventChannelManager::_nil();
 
-    RH_NL_DEBUG("redhawk::events::Manager",  "Terminate Completed.");
+    RH_DEBUG(_eventManagerLog,  "Terminate Completed.");
 
   }
 
@@ -786,23 +787,23 @@ namespace events {
 
     SCOPED_LOCK(_mgr_lock);
     std::string regid( reg.reg.reg_id.in() );
-    RH_NL_DEBUG("redhawk::events::Manager",  "Unregister request .... reg-id:" << regid );
+    RH_DEBUG(_eventManagerLog,  "Unregister request .... reg-id:" << regid );
     Registrations::iterator iter = _registrations.begin();
     for ( ; iter != _registrations.end();  iter++ ) {
         
-      RH_NL_DEBUG("redhawk::events::Manager", "TBL REG-ID:" << iter->reg.reg_id << " REQ:" << reg.reg.channel_name );
+      RH_DEBUG(_eventManagerLog, "TBL REG-ID:" << iter->reg.reg_id << " REQ:" << reg.reg.channel_name );
       if ( regid.compare(iter->reg.reg_id) == 0 ){
 
-          RH_NL_DEBUG("redhawk::events::Manager", "FOUND REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
+          RH_DEBUG(_eventManagerLog, "FOUND REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
           if ( ossie::corba::objectExists(_ecm) ) {
             try {
               // unregister from the Domain
-              RH_NL_INFO("redhawk::events::Manager", "UNREGISTER REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
+              RH_INFO(_eventManagerLog, "UNREGISTER REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
               _ecm->unregister( reg.reg );
             }
             catch(...) {
               // log error
-              RH_NL_ERROR("redhawk::events::Manager", "UNREGISTER FAILED, REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
+              RH_ERROR(_eventManagerLog, "UNREGISTER FAILED, REG-ID:" << regid << " CHANNEL:" << reg.reg.channel_name );
             }
             
             _registrations.erase(iter);

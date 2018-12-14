@@ -29,7 +29,7 @@
 
 namespace redhawk {
     
-    int compareVersions(std::string &a, std::string &b);
+    int compareVersions(const std::string& a, const std::string& b);
     
 }
 

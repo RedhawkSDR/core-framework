@@ -24,6 +24,12 @@ SUBDIRS = src/idl src/cpp src/python
 if HAVE_JAVASUPPORT
   SUBDIRS += src/java
 endif
+if ENABLE_TESTING
+  SUBDIRS += testing/tests/cpp
+if HAVE_JAVASUPPORT
+  SUBDIRS += testing/tests/java
+endif
+endif
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = burstioInterfaces.pc burstio.pc

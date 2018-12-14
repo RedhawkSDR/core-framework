@@ -25,6 +25,7 @@
 #include <vector>
 #include <list>
 #include <omniORB4/CORBA.h>
+#include <ossie/CF/DataType.h>
 #include "CorbaSequence.h"
 #include "ossie/debug.h"
 
@@ -231,6 +232,8 @@ namespace ossie {
             return std::string(static_cast<const char*>(corbaString));
         }
 
+        CORBA::TypeCode_ptr unalias(CORBA::TypeCode_ptr type);
+
         bool isValidType (const CORBA::Any& lhs, const CORBA::Any& rhs);
 
         inline bool objectExists(CORBA::Object_ptr obj) {
@@ -252,6 +255,25 @@ namespace ossie {
 
         // Set up a handler for retrying calls to the provided object on a COMM_FAILURE exception.
         void setObjectCommFailureRetries (CORBA::Object_ptr obj, int numRetries);
+
+        namespace internal {
+            // Implementation of reference-to-servant lookup for generic type
+            PortableServer::ServantBase* getLocalServant(CORBA::Object_ptr object);
+        }
+
+        // If the object reference is to a servant in this process space, return a pointer to
+        // the local servant; otherwise, return a null pointer
+        template <class T>
+        T* getLocalServant(CORBA::Object_ptr object) {
+            PortableServer::ServantBase* servant = internal::getLocalServant(object);
+            if (servant) {
+                return dynamic_cast<T*>(servant);
+            }
+            return 0;
+        }
+
+        std::string describeException(const CORBA::SystemException& exc);
+        std::string describeException(const CORBA::Exception& exc);
 
         // Mapping of C++ types to type codes.
         template <typename T>
@@ -330,6 +352,12 @@ namespace ossie {
         inline CORBA::TypeCode_ptr TypeCode<std::string> (void)
         {
             return CORBA::_tc_string;
+        }
+        
+        template<>
+        inline CORBA::TypeCode_ptr TypeCode<CF::UTCTime> (void)
+        {
+            return CORBA::_tc_TypeCode;
         }
 
         // Instantiates POAs on demand
@@ -456,6 +484,16 @@ inline void operator <<= (CORBA::Any& _a, const std::string& _s)
     _a <<= _s.c_str();
 }
 
+inline bool operator >>= (const CORBA::Any& _a, CF::UTCTime& _utctime)
+{
+    const CF::UTCTime* _local_utctime;
+    if (_a >>= _local_utctime) {
+        _utctime = *_local_utctime;
+        return true;
+    }
+    return false;
+}
+
 inline bool operator >>= (const CORBA::Any& _a, bool& _b)
 {
     CORBA::Boolean b;
@@ -491,6 +529,7 @@ ANY_VECTOR_OPERATORS(CORBA::LongLong, CORBA::LongLongSeq);
 ANY_VECTOR_OPERATORS(CORBA::ULongLong, CORBA::ULongLongSeq);
 ANY_VECTOR_OPERATORS(CORBA::Float, CORBA::FloatSeq);
 ANY_VECTOR_OPERATORS(CORBA::Double, CORBA::DoubleSeq);
+ANY_VECTOR_OPERATORS(CF::UTCTime, CF::UTCTimeSequence);
 #undef ANY_VECTOR_OPERATORS
 
 #define ANY_VECTOR_CONVERT_OPERATORS(T,SEQ)                         \
