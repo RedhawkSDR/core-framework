@@ -23,6 +23,8 @@
 #include <list>
 #include <string>
 #include <sched.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
@@ -76,6 +78,38 @@ namespace  gpp {
       return redhawk::affinity::get_nic_promotion();
     }
 
+    static int get_irqs( const std::string &msi_intr, std::vector< std::string > &irqs ) {
+        int ret=0;
+        // check if device has interrupt mapping file
+        DIR *dirp=0;
+        struct dirent *ent;
+        dirp=opendir(msi_intr.c_str());
+        if ( dirp ) {
+            while( ( ent = readdir(dirp)) != NULL  ) {
+                // skip dot files..
+                if ( ent->d_name[0] == '.' ) continue;
+                irqs.push_back( std::string(ent->d_name)+":");
+                ret=1;
+            }
+            closedir(dirp);
+        }
+        else  {
+            std::ifstream in(msi_intr.c_str(), std::ifstream::in );
+            if ( in.fail() ) {
+                return ret;
+            }
+
+            int irq=0;
+            in >> irq;
+            std::ostringstream os;
+            os << irq << ":";
+            irqs.push_back( os.str() );
+            ret=1;
+        }
+
+        return ret;
+    }
+
 
    /**
        identify_cpus
@@ -94,15 +128,30 @@ namespace  gpp {
             return cpus;
         }
 
-        // get interface strings for rx queues and device only lines
-        const boost::regex iface_scan("("+iface+"(?!(-tx)|(-events)))");
+        // try to lookup interrupt(s) assigned to nic
+        std::vector< std::string > irqs;
+        std::string msi_intr("/sys/class/net/"+iface+"/device/msi_irqs");
+        RH_TRACE(get_affinity_logger(), "Getting interrupt vector list for : " << msi_intr );
+        if ( !get_irqs( msi_intr, irqs ) ) {
+               msi_intr = "/sys/class/net/"+iface+"/device/irq";
+               RH_TRACE(get_affinity_logger(), "Getting interrupt for : " << msi_intr );
+               get_irqs( msi_intr, irqs );
+        }
+        RH_TRACE(get_affinity_logger(), "Number IRQs found: " << irqs.size() );
 
+        // default regex to looking for interface string
+        std::string  lscan("("+iface+")");
+        if ( irqs.size() ) {
+            lscan = "("+boost::algorithm::join(irqs,"|")+")";
+        }
+
+        RH_TRACE(get_affinity_logger(), "Searching /proc/interrupts for: " << lscan );
+        const boost::regex  line_scan(lscan);
         std::string line;
         while( std::getline( in, line ) ) {
             // check if the device is our interface
             RH_TRACE(get_affinity_logger(), "Processing /proc/interrupts.... line:" << line );
-            if ( boost::regex_search(line,iface_scan) ) {
-                //if ( line.rfind(iface) != std::string::npos ) {
+            if ( boost::regex_search(line,line_scan) ) {
                 std::istringstream iss(line);
                 int parts=0;
                 do {
