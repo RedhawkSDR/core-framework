@@ -131,7 +131,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         remap_api = dir(self._rhDom)
         not_remap = ['_NP_RepositoryId','_Object__release','__getattribute__','__getstate__','__hash__','__setattr__','__setstate__','__weakref__',
                      '__methods__','_duplicate','_dynamic_op','_hash','_is_a','_is_equivalent','_narrow','_nil','_obj',
-                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent',
+                     '__del__','__omni_obj','_release','_unchecked_narrow', '_non_existent', '_NP_disconnect',
                      'retrieve_records', 'retrieve_records_by_date', 'retrieve_records_from_date'  ]
         if  v > 3 :  not_remap += ['log_level']
         for entry in orig_api:
