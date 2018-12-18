@@ -88,7 +88,7 @@ namespace  gpp {
             while( ( ent = readdir(dirp)) != NULL  ) {
                 // skip dot files..
                 if ( ent->d_name[0] == '.' ) continue;
-                irqs.push_back( std::string(ent->d_name)+":");
+                irqs.push_back( std::string(ent->d_name));
                 ret=1;
             }
             closedir(dirp);
@@ -102,7 +102,7 @@ namespace  gpp {
             int irq=0;
             in >> irq;
             std::ostringstream os;
-            os << irq << ":";
+            os << irq;
             irqs.push_back( os.str() );
             ret=1;
         }
@@ -142,6 +142,8 @@ namespace  gpp {
         // default regex to looking for interface string
         std::string  lscan("("+iface+")");
         if ( irqs.size() ) {
+            std::vector< std::string >::iterator i=irqs.begin();
+            for ( ; i != irqs.end(); i++ ) *i = "\\b"+*i+":";
             lscan = "("+boost::algorithm::join(irqs,"|")+")";
         }
 

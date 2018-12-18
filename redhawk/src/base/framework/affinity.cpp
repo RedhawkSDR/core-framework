@@ -190,7 +190,7 @@ namespace  redhawk {
             while( ( ent = readdir(dirp)) != NULL  ) {
                 // skip dot files..
                 if ( ent->d_name[0] == '.' ) continue;
-                irqs.push_back( std::string(ent->d_name)+":");
+                irqs.push_back( std::string(ent->d_name));
                 ret=1;
             }
             closedir(dirp);
@@ -204,7 +204,7 @@ namespace  redhawk {
             int irq=0;
             in >> irq;
             std::ostringstream os;
-            os << irq << ":";
+            os << irq;
             irqs.push_back( os.str() );
             ret=1;
         }
@@ -242,8 +242,10 @@ namespace  redhawk {
 
         // default regex to looking for interface string
         std::string  lscan("("+iface+")");
-        if ( irqs.size() ) {
-            lscan = "("+boost::algorithm::join(irqs,"|")+")";
+        if ( irqs.size() ) { 
+            std::vector< std::string >::iterator i=irqs.begin();
+            for ( ; i != irqs.end(); i++ ) *i = "\\b"+*i+":"; 
+            lscan = "(\\b"+boost::algorithm::join(irqs,"|")+")";
         }
 
         RH_TRACE(_affinity_logger, "Searching /proc/interrupts for: " << lscan );
