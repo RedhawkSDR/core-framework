@@ -49,11 +49,6 @@ def getChildren(parentPid):
             continue
     return children
 
-def waitDevices(devMgr, num_devices, timeout=10):
-    begin_time = time.time()
-    while len(devMgr._get_registeredDevices()) != num_devices and time.time()-begin_time < timeout:
-        time.sleep(0.5)
-
 def killChildProcesses(parentPid):
     childPids = getChildren(parentPid)
     for pid in childPids:
@@ -109,9 +104,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
-        
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
+
         self.assertTrue(self._domMgr._is_equivalent(devMgr._get_domMgr()))
 
         # Test that the DCD file componentproperties get pushed to configure()
@@ -128,8 +122,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 5)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 5)
+        scatest.verifyDeviceLaunch(self, devMgr, 5)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -153,7 +146,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devs = devMgr._get_registeredDevices()
         devs[0].start()
@@ -171,8 +164,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devs = devMgr._get_registeredDevices()
         pids = getChildren(os.getpid())
@@ -196,8 +188,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devs = devMgr._get_registeredDevices()
         pids = getChildren(devmgr_nb.pid)
@@ -209,8 +200,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -225,8 +215,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Because the DeviceManager has the same identifier, we cannot use the launchDeviceManager
         # method; however, to get automatic cleanup in the event of a failure, we manually add the
@@ -242,8 +231,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         devMgr = self._domMgr._get_deviceManagers()[0]
         self.assertEqual(devMgr._get_label(), "BasicTestDevice_node") # If the second one won, it would be DeviceManager2
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
     def test_IgnoreDeviceDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
@@ -252,8 +240,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
     def test_DeviceBadOverload(self):
         # This device manager fails to launch because of a bad overloaded value
@@ -277,8 +264,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # Device initialization failed, so remove the Device from the registered Device list
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 0)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 0)
+        scatest.verifyDeviceLaunch(self, devMgr, 0)
 
     def test_ReRegDevMgrDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
@@ -287,8 +273,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.terminateChild(devmgr_nb, signals=(signal.SIGKILL,))
         self.assertNotEqual(devmgr_nb.poll(), None)
@@ -298,8 +283,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Verify that the second DeviceManager is no longer alive,
         # This is REDHAWK specific, the spec would have let this go without
@@ -307,23 +291,21 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
         devMgr = self._domMgr._get_deviceManagers()[0]
         self.assertEqual(devMgr._get_label(), "BasicTestDeviceSameDevMgrId_node") # If the second one won, it would be DeviceManager2
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
     def test_IgnoreDevDuplicate(self):
         # These two nodes have devices with the same identifier, but have different names to distinguish them
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
         self.assertEqual(dev._get_label(), "BasicTestDevice1")
 
         devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
-        self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
         dev2 = devMgr2._get_registeredDevices()[0]
         self.assertEqual(dev2._get_label(), "BasicTestDeviceSameDevId")
 
@@ -334,8 +316,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
         self.assertEqual(dev._get_label(), "BasicTestDevice1")
 
@@ -345,7 +326,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDeviceSameDevId_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
-        self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
         dev2 = devMgr2._get_registeredDevices()[0]
         self.assertEqual(dev2._get_label(), "BasicTestDeviceSameDevId")
 
@@ -356,8 +337,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -428,8 +408,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -446,8 +425,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         device = devMgr._get_registeredDevices()[0]
         # this device implementation will put a non-nil value on the property (even if a nil has been passed in a configure call)
@@ -459,8 +437,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         device = devMgr._get_registeredDevices()[0]
         # this device implementation will put a non-nil value on the property (even if a nil has been passed in a configure call)
@@ -478,8 +455,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -499,8 +475,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
@@ -535,12 +510,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         self.assertNotEqual(device, None)
 
@@ -633,8 +607,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         device = devMgr._get_registeredDevices()[0]
         self.assertNotEqual(device, None)
@@ -651,8 +624,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         dev = devMgr._get_registeredDevices()[0]
         prop = dev.query([])
@@ -671,11 +643,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         self.assertNotEqual(device, None)
 
@@ -731,7 +703,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         waitDevices(devMgr, 4)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 4)
+        scatest.verifyDeviceLaunch(self, devMgr, 4)
 
     def test_BadDeviceManagerName(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BadDeviceManagerName_node/DeviceManager.dcd.xml")
@@ -754,7 +726,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         waitDevices(devMgr1, 1)
         waitDevices(devMgr2, 1)
         for devMgr in self._domMgr._get_deviceManagers():
-            self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+            scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Although nothing in the spec specifies where a device is to be bound
         # ossie does /DomainName/DevicemgrName/DeviceName, so let's check that now
@@ -784,7 +756,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file execparam get's sent to Device
         device = devMgr._get_registeredDevices()[0]
@@ -861,11 +833,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Test that the DCD file componentproperties get pushed to configure()
         # as per DeviceManager requirement SR:482
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         self.assertNotEqual(device, None)
 
@@ -1340,9 +1312,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             del os.environ['VALGRIND']
 
         self.assertFalse(devMgr is None)
-        # add some more time for device registration to complete
-        waitDevices(devMgr, 1)
-        self.assertEquals(len(devMgr._get_registeredDevices()), 1, msg='device failed to launch with valgrind')
+        scatest.verifyDeviceLaunch(self, devMgr, 1, msg='device failed to launch with valgrind')
         children = getChildren(nb.pid)
         self.assertEqual(len(children), 1)
         devMgr.shutdown()
@@ -1790,8 +1760,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devMgr.shutdown()
 
@@ -1804,8 +1773,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devMgr.shutdown()
 
@@ -1819,8 +1787,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 2)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 2)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
 
         devMgr.shutdown()
 
@@ -1835,8 +1802,8 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr_2, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
-        self.assertEqual(len(devMgr_1._get_registeredDevices()), 1)
-        self.assertEqual(len(devMgr_2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr_1, 1)
+        scatest.verifyDeviceLaunch(self, devMgr_2, 1)
 
         devMgr_1.shutdown()
         devMgr_2.shutdown()
@@ -1853,8 +1820,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         devMgr.shutdown()
 
@@ -1868,8 +1834,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
-        waitDevices(devMgr, 3, 15)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 3)
+        scatest.verifyDeviceLaunch(self, devMgr, 3)
 
         devMgr.shutdown()
 

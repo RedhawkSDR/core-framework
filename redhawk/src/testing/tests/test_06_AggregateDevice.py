@@ -41,7 +41,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self._childDevice = None
 
         # These tests must be kept in sync with the DCD.
-        self.assertEqual(len(self._devMgr._get_registeredDevices()), 2)
+        scatest.verifyDeviceLaunch(self, self._devMgr, 2)
         for device in self._devMgr._get_registeredDevices():
             if device._get_identifier() == "DCE:8f3478e3-626e-45c3-bd01-0a8117dbe59b":
                 self._parentDevice = device
@@ -87,7 +87,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 if number_attempts == 5:
                     break
         pids = getChildren(self._devBooter.pid)
-        self.assertEqual(len(self._devMgr._get_registeredDevices()), 0)
+        scatest.verifyDeviceLaunch(self, self._devMgr, 0)
         # make sure the child device was also released
         self.assertEqual(len(pids), 0)
 
@@ -120,7 +120,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             if number_attempts == 5:
                 break
         self.assertEqual(len(self._aggregateDevice._get_devices()), 0)
-        self.assertEqual(len(self._devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, self._devMgr, 1)
         # make sure child device no longer exists
         pids = getChildren(self._devBooter.pid)
         self.assertEqual(len(pids), 1)
@@ -128,7 +128,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # now make sure parent device releases okay
         pids = getChildren(self._devBooter.pid)
         self._parentDevice.releaseObject()
-        self.assertEqual(len(self._devMgr._get_registeredDevices()), 0)
+        scatest.verifyDeviceLaunch(self, self._devMgr, 0)
         number_attempts = 0
         while True:
             try:
