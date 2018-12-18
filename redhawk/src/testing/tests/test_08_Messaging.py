@@ -168,7 +168,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(5)
+        # in slower systems, it takes longer for java to start, so the total message sent count should wait extra time
+        begin_time = time.time()
+        while self.messages_passed != 101 and time.time()-begin_time < 20:
+            time.sleep(1)
+
         fp = None
         try:
             fp = open('foo/bar/test.log','r')

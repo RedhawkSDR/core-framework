@@ -119,7 +119,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 2)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
         device1 = None
         device2 = None
         for dev in devMgr._get_registeredDevices():
@@ -196,7 +196,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newDevMgr = self._domMgr._get_deviceManagers()[0]
         self.assertEqual(self._orb.object_to_string(devMgr), self._orb.object_to_string(newDevMgr))
 
-        self.assertEqual(len(devMgr._get_registeredDevices()), 2)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
         newDevice1 = None
         newDevice2 = None
         for dev in devMgr._get_registeredDevices():
@@ -565,7 +565,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Kill the domainMgr and device manager

@@ -32,7 +32,7 @@ class JavaDeviceTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Checks init state
@@ -170,7 +170,7 @@ class JavaDeviceTest(scatest.CorbaTestCase):
 
         device.releaseObject()
 
-        self.assertEqual(len(devMgr._get_registeredDevices()), 0)
+        scatest.verifyDeviceLaunch(self, devMgr, 0)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
 
         devMgr.shutdown()

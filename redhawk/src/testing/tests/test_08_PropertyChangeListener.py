@@ -257,6 +257,14 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         scatest.CorbaTestCase.tearDown(self)
 
 
+    def _checkSubGotData(self, sub, timeout=5):
+        begin_time = time.time()
+        xx = sub.getData()
+        while xx == None and time.time()-begin_time < timeout:
+            time.sleep(0.5)
+            xx = sub.getData()
+        self.assertNotEqual(xx, None)
+
     def _test_PropertyChangeListener_EC_Comps(self, app_name, comp_name):
         self.localEvent = threading.Event()
         self.eventFlag = False
@@ -284,7 +292,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         t=float(0.5)
         regid=c.registerPropertyListener( self.channel1, ['prop1'],t)
         app.start()
-        time.sleep(1)
+        self._checkSubGotData(sub)
 
         # assign 3 changed values
         c.prop1 = 100.0
@@ -294,9 +302,8 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         c.prop1 = 300.0
         time.sleep(.6)   # wait for listener to receive notice
 
-        for n in range(4):
-            xx=sub.getData()
-            self.assertNotEqual(xx, None)
+        for n in range(3):
+            self._checkSubGotData(sub)
 
         # unregister
         c.unregisterPropertyListener( regid )

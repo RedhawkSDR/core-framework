@@ -71,7 +71,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         del self.sink2
         del self.sink3
         del self.sink4
-
+        sb.release()
 
     # ##############
     # Helper Methods 
