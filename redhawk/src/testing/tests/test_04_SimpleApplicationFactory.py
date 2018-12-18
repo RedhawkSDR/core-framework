@@ -54,7 +54,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager(dcdFile="/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(ds), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         self.assertEqual(device._get_identifier(), ds[0].assignedDeviceId)
 

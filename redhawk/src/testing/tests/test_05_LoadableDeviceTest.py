@@ -46,7 +46,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -87,7 +87,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         device.load(devMgr._get_fileSys(), '/data/big_file.txt', CF.LoadableDevice.SHARED_LIBRARY)
         source_file = open('sdr/dev/data/big_file.txt','r')
@@ -112,7 +112,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -138,7 +138,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
         self.assertEqual(os.listdir('sdr/cache/.ExecutableDevice_node/ExecutableDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
@@ -167,7 +167,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -208,7 +208,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -242,7 +242,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         device.load(devMgr._get_fileSys(), "/data/subdir_test", CF.LoadableDevice.EXECUTABLE)
         self.assertEqual(os.listdir('sdr/cache/.BasicTestDevice_node/BasicTestDevice1/data/subdir_test/subdir_two'),['second_file.txt'])
@@ -271,7 +271,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -328,7 +328,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
@@ -366,7 +366,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
@@ -442,7 +442,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
@@ -524,7 +524,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager(dcdFile="/nodes/test_%s/DeviceManager.dcd.xml" % nodeName)
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Create the initial file we'll be loading.
@@ -571,7 +571,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager(dcdFile="/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Load a "shared library" with a very short basename to check that the
