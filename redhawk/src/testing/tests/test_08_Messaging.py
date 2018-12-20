@@ -503,6 +503,10 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         app.start()
         time.sleep(sleep_time)
 
+        begin_time = time.time()
+        while self.messages_passed != 101 and time.time()-begin_time < 10:
+            time.sleep(0.5)
+
         self.assertEqual(self.messages_passed, 101)
         app.releaseObject()
 
