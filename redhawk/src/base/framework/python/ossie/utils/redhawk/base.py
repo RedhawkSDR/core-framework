@@ -108,9 +108,8 @@ def _getDCDFile(sdrroot, dcdFile):
     if _os.path.exists(sdr_path):
         return sdr_path
 
-    # Could not fine any matching path
+    # Could not find any matching path
     return None
-    
 
 def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], detached=False, sdrroot=None, stdout=None, logfile=None, debug_level=None, device_managers_debug_levels=[]):
     """Kick-start a REDHAWK domain.
@@ -228,9 +227,8 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
             globals()['currentdevmgrs'] = dm_procs
 
     dom = attach(domain_name)
-    
+
     return dom
-    
 
 def scan(location=None):
     orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
@@ -243,7 +241,7 @@ def scan(location=None):
         rootContext = obj._narrow(_CosNaming.NamingContext)
     except:
         raise RuntimeError('NameService not found')
-    
+
     base_list = rootContext.list(100)
     domainsFound = []
     for entry in base_list[0]:
@@ -292,12 +290,20 @@ def attach(domain=None, location=None, connectDomainEvents=True):
             else:
                 print "Multiple domains found: "+str(domains)+". Please specify one."
             return None
-    
-    dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
-    
-    if not globals().has_key('attached_domains'):
-        globals()['attached_domains'] = []
 
-    globals()['attached_domains'].append(dom_entry)
+    dom_entry = None
+    if globals().has_key('attached_domains'):
+        for dom in globals()['attached_domains']:
+            if dom.name == domain and dom.location == location:
+                dom_entry = dom
+                break
+
+    if dom_entry == None:
+        dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
+
+        if not globals().has_key('attached_domains'):
+            globals()['attached_domains'] = []
+
+        globals()['attached_domains'].append(dom_entry)
 
     return dom_entry

@@ -25,6 +25,7 @@ import contextlib
 import cStringIO
 import tempfile
 import re
+import resource
 import sys as _sys
 from omniORB import CORBA
 from omniORB import any as _any
@@ -1048,8 +1049,76 @@ class DomainMgrLoggingAPI(scatest.CorbaTestCase):
         res=c_cfg.find(scatest.getTestDomainName())
         self.assertNotEquals( res, -1 )
 
+class RedhawkModuleAttachTest(scatest.CorbaTestCase):
+    def setUp(self):
+        pass
 
+    def tearDown(self):
+        try:
+            # Cannot call _shutdown_session() because it'll kill the test case class' ORB
+            redhawk.base.attach.__globals__['attached_domains'] = []
+        except:
+            pass
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels......
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
 
+    def getAttachedDomain(self, domainName, location=None):
+        if not redhawk.base.attach.__globals__.has_key('attached_domains'):
+            return None
+
+        for dom in redhawk.base.attach.__globals__['attached_domains']:
+            if dom.name == domainName and dom.location == location:
+                return dom
+
+        return None
+
+    def test_attach(self):
+        dom_name=scatest.getTestDomainName()
+        dom=self.getAttachedDomain(dom_name)
+        self.assertIsNone(dom)
+
+        self.launchDomainManager()
+        dom=redhawk.base.attach(dom_name)
+        dom2=self.getAttachedDomain(dom_name)
+        self.assertEqual(dom, dom2)
+
+        dom3=self.getAttachedDomain(dom_name, 'bad_location')
+        self.assertIsNone(dom3)
+
+        # Specify a different location with the same domain name, verify it's not the same as the first
+        dom4=self.getAttachedDomain(dom_name, 'localhost:2809')
+        self.assertIsNone(dom4)
+        dom5=redhawk.base.attach(dom_name, 'localhost:2809')
+        self.assertIsNotNone(dom5)
+        self.assertNotEqual(dom, dom5)
+        self.assertEqual(dom.name, dom5.name)
+        self.assertEqual(dom5.location, 'localhost:2809')
+
+        # Verify that we get the location=None domain, not dom4
+        dom7=redhawk.base.attach(dom_name)
+        self.assertEqual(dom, dom7)
+
+    def test_attach_memory(self):
+        dommgr_nb, domMgr = self.launchDomainManager()
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
+        begin_time = time.time()
+        while len(domMgr._get_deviceManagers()) != 1 and time.time()-begin_time < 5:
+            time.sleep(.5)
+
+        start_max_mem=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+        for i in range(10000):
+            d=redhawk.attach(scatest.getTestDomainName())
+            v=d.devices
+
+        end_max_mem=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        # Make sure that attach didn't keep on making more objects. 5000 is 5MB
+        self.assertLess(end_max_mem, start_max_mem+5000)
 
 class RedhawkStartup(scatest.CorbaTestCase):
     def setUp(self):
@@ -1086,7 +1155,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
                     traceback.print_exc()
                     pass
 
-	time.sleep(2)
+        time.sleep(2)
         new_stdout=open(tmpfile,'r')
         for k, epat in epatterns.iteritems():
             epat.setdefault('results',[])
