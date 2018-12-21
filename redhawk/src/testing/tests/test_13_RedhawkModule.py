@@ -1087,6 +1087,27 @@ class RedhawkModuleAttachTest(scatest.CorbaTestCase):
         self.assertNotEqual(dom, dom4)
         self.assertNotEquals(orb1, dom4.orb)
 
+    def test_attach_memory(self):
+        dommgr_nb, domMgr = self.launchDomainManager()
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
+        begin_time = time.time()
+        while len(domMgr._get_deviceManagers()) != 1 and time.time()-begin_time < 5:
+            time.sleep(.5)
+
+        start_max_mem=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+        for i in range(1000):
+            d=redhawk.attach(scatest.getTestDomainName())
+            v=d.devices
+            del d
+            del v
+
+        end_max_mem=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+        # Make sure that attach didn't keep on making more objects. 1000 is 1MB
+        self.assertLess(end_max_mem, start_max_mem+1000)
+
 class RedhawkStartup(scatest.CorbaTestCase):
     def setUp(self):
         pass
