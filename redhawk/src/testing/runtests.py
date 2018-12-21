@@ -75,6 +75,9 @@ def configureTestPaths():
     appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'omnijni/src/cpp/.libs'))
     appendPath('LD_LIBRARY_PATH', os.path.join(topdir, 'base/plugin/logcfg/.libs'))
 
+    # use nodeBooter in the current source tree path..
+    prependPath('PATH', os.path.join(topdir, 'control/framework'))
+
     # Set the model IDL paths to point to the (uninstalled) REDHAWK IDLs.
     from ossie.utils import model
     from ossie.utils.idllib import IDLLibrary
