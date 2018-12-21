@@ -402,6 +402,7 @@ class CorbaTestCase(OssieTestCase):
         for arg in args:
             if '--debuglevel' in arg:
                 self.debuglevel = arg.split('=')[-1]
+        self._orb_args=sys.argv+orbArgs
         self._orb = CORBA.ORB_init(sys.argv + orbArgs, CORBA.ORB_ID)
         self._poa = self._orb.resolve_initial_references("RootPOA")
         self._poa._get_the_POAManager().activate()
@@ -417,6 +418,14 @@ class CorbaTestCase(OssieTestCase):
         self._deviceBooters = []
         self._deviceManagers = []
         self._execparams = ""
+
+    def _reinit(self):
+        self._orb = CORBA.ORB_init(self._orb_args, CORBA.ORB_ID)
+        self._poa = self._orb.resolve_initial_references("RootPOA")
+        self._poa._get_the_POAManager().activate()
+        self._ns = self._orb.resolve_initial_references("NameService")
+        self._root = self._ns._narrow(CosNaming.NamingContext)
+
 
     def _addDeviceBooter(self, devBooter):
         self._deviceLock.acquire()
@@ -470,6 +479,8 @@ class CorbaTestCase(OssieTestCase):
             domMgr = self._root.resolve(getDomainMgrURI())._narrow(CF.DomainManager)
             if domMgr:
                 return domMgr
+        except CORBA.BAD_INV_ORDER, e:
+            self._reinit()
         except:
             pass
         return None
@@ -586,7 +597,13 @@ class CorbaTestCase(OssieTestCase):
         else:
             numDevices = 0
 
-        dm = self._getDomainManager()
+        # wait for DomainManager to register in naming context 
+        dm=None
+        begin_time = time.time()
+        while dm == None and time.time()-begin_time < 10:
+            dm = self._getDomainManager()
+            if dm : break
+            time.sleep(0.5)
 
         devMgr = None
         while devMgr == None:
