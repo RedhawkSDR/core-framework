@@ -1063,7 +1063,7 @@ class RedhawkModuleAttachTest(scatest.CorbaTestCase):
 
         self.launchDomainManager()
         dom=redhawk.base.attach(dom_name)
-        self.assertIsNotNone(dom)
+        self.assertNotEqual(dom, None)
         orb1 = dom.orb
 
         try:
@@ -1074,7 +1074,7 @@ class RedhawkModuleAttachTest(scatest.CorbaTestCase):
 
         # Specify a different location with the same domain name, verify it's not the same as the first
         dom3=redhawk.base.attach(dom_name, 'localhost:2809')
-        self.assertIsNotNone(dom3)
+        self.assertNotEqual(dom3,None)
         self.assertNotEqual(dom, dom3)
         self.assertEqual(dom.name, dom3.name)
         self.assertEqual(dom3.location, 'localhost:2809')
@@ -1106,7 +1106,7 @@ class RedhawkModuleAttachTest(scatest.CorbaTestCase):
         end_max_mem=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
         # Make sure that attach didn't keep on making more objects. 1000 is 1MB
-        self.assertLess(end_max_mem, start_max_mem+1000)
+        self.assertTrue((end_max_mem < (start_max_mem+10000)))
 
 class RedhawkStartup(scatest.CorbaTestCase):
     def setUp(self):

@@ -1618,7 +1618,6 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             try:
                 obj = self.orb.resolve_initial_references("NameService")
             except _CORBA.BAD_INV_ORDER:
-                print "Remaking ORB"
                 self.orb.destroy()
                 self.orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
                 obj = self.orb.resolve_initial_references("NameService")
