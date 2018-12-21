@@ -78,11 +78,11 @@ def _cleanup_domain():
         if x : del x
 
 def _shutdown_session():
-    if globals().has_key('attached_domains'):
-        doms = globals()['attached_domains']
-        if len(doms) > 0:
-            doms[0].orb.shutdown(True)
-            globals()['attached_domains'] = []
+    if globals().has_key('orb_to_shutdown'):
+        orb = globals()['orb_to_shutdown']
+        if orb:
+            orb.shutdown(True)
+        globals().pop('orb_to_shutdown')
     _cleanup_domain()
 
 atexit.register(_shutdown_session)
@@ -234,9 +234,19 @@ def scan(location=None):
     orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
 
     if location:
-        obj = orb.string_to_object('corbaname::'+location)
+        try:
+            obj = orb.string_to_object('corbaname::'+location)
+        except _CORBA.BAD_INV_ORDER:
+            orb.destroy()
+            orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+            obj = orb.string_to_object('corbaname::'+location)
     else:
-        obj = orb.resolve_initial_references("NameService")
+        try:
+            obj = orb.resolve_initial_references("NameService")
+        except _CORBA.BAD_INV_ORDER:
+            orb.destroy()
+            orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+            obj = orb.resolve_initial_references("NameService")
     try:
         rootContext = obj._narrow(_CosNaming.NamingContext)
     except:
@@ -291,19 +301,7 @@ def attach(domain=None, location=None, connectDomainEvents=True):
                 print "Multiple domains found: "+str(domains)+". Please specify one."
             return None
 
-    dom_entry = None
-    if globals().has_key('attached_domains'):
-        for dom in globals()['attached_domains']:
-            if dom.name == domain and dom.location == location:
-                dom_entry = dom
-                break
-
-    if dom_entry == None:
-        dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
-
-        if not globals().has_key('attached_domains'):
-            globals()['attached_domains'] = []
-
-        globals()['attached_domains'].append(dom_entry)
+    dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)
+    globals()['orb_to_shutdown'] = dom_entry.orb
 
     return dom_entry
