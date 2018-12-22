@@ -29,7 +29,7 @@ Prefix:         %{_sysconfdir}
 
 Name:           redhawk
 Version:        2.2.1
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
 Group:          Applications/Engineering
