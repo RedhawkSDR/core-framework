@@ -1058,35 +1058,6 @@ class RedhawkModuleAttachTest(scatest.CorbaTestCase):
         # or failures will probably occur.
         scatest.CorbaTestCase.tearDown(self)
 
-    def test_attach_shutdown(self):
-        dom_name=scatest.getTestDomainName()
-
-        self.launchDomainManager()
-        dom=redhawk.base.attach(dom_name)
-        self.assertNotEqual(dom, None)
-        orb1 = dom.orb
-
-        try:
-            redhawk.base.attach(dom_name, 'bad_location')
-            self.assertFalse(True)
-        except:
-            self.assertTrue(True)
-
-        # Specify a different location with the same domain name, verify it's not the same as the first
-        dom3=redhawk.base.attach(dom_name, 'localhost:2809')
-        self.assertNotEqual(dom3,None)
-        self.assertNotEqual(dom, dom3)
-        self.assertEqual(dom.name, dom3.name)
-        self.assertEqual(dom3.location, 'localhost:2809')
-        self.assertEquals(orb1, dom3.orb)
-
-        orb1.shutdown(True)
-
-        # Verify that we get the location=None domain, not dom4
-        dom4=redhawk.base.attach(dom_name)
-        self.assertNotEqual(dom, dom4)
-        self.assertNotEquals(orb1, dom4.orb)
-
     def test_attach_memory(self):
         dommgr_nb, domMgr = self.launchDomainManager()
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
