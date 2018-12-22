@@ -27,6 +27,9 @@ from ossie.cf import CF
 from ossie import properties
 from xml.dom import minidom
 import os
+import sys as _sys
+from omniORB import CORBA as _CORBA
+import CosNaming
 import time
 
 def launchDomain(number, root):
@@ -36,7 +39,11 @@ def launchDomain(number, root):
         _domainManager = None
         try:
             _domainManager = root.resolve(URI.stringToName("%s/%s" % (domainName, domainName)))._narrow(CF.DomainManager)
-        except:
+        except _CORBA.BAD_INV_ORDER:
+            orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+            ns = orb.resolve_initial_references("NameService")
+            root = ns._narrow(CosNaming.NamingContext)
+        except Exception, e:
             _domainManager = None
         if _domainManager:
             break
