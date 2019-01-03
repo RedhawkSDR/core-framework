@@ -150,7 +150,13 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(ts), ts - int(ts))
         expected_packets = self.source.packets_ingested + 1
         inFloatPort = self.source.getPort("dataFloat_in")
-        inFloatPort.pushSRI(sri)
+        time_begin = time.time()
+        while time.time()-time_begin < 10:
+            try:
+                inFloatPort.pushSRI(sri)
+                break
+            except:
+                time.sleep(1)
         inFloatPort.pushPacket(range(1,100),T,False,streamId)
 
         # Wait until we know that the packet and SRI have been processed by the
@@ -183,8 +189,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
             timeout = 10
             if sriFields:
                 for key,val in sriFields.items():
-                    attachedSRIs = port._get_attachedSRIs()
-                    self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
+                    time_begin = time.time()
+                    while time.time()-time_begin < 10:
+                        try:
+                            attachedSRIs = port._get_attachedSRIs()
+                            self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
+                            break
+                        except:
+                            time.sleep(1)
                     while getattr(port._get_attachedSRIs()[0],key) != val:
                         time.sleep(1)
                         timeout -= 1
