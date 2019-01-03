@@ -144,9 +144,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
-        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
+        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
 
         devs = devMgr._get_registeredDevices()
         devs[0].start()
@@ -641,7 +640,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 
@@ -701,7 +699,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 4)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 4)
 
@@ -723,10 +720,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         nb2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice2_node/DeviceManager.dcd.xml")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
-        waitDevices(devMgr1, 1)
-        waitDevices(devMgr2, 1)
-        for devMgr in self._domMgr._get_deviceManagers():
-            scatest.verifyDeviceLaunch(self, devMgr, 1)
+        scatest.verifyDeviceLaunch(self, devMgr1, 1)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
 
         # Although nothing in the spec specifies where a device is to be bound
         # ossie does /DomainName/DevicemgrName/DeviceName, so let's check that now
@@ -754,7 +749,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         props = devMgr.query([])
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 
@@ -831,7 +825,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 
