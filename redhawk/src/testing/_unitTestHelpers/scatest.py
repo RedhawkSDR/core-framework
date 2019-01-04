@@ -186,7 +186,9 @@ def which(command):
     return None
 
 def _skip(obj):
-    return None
+    print 'Add {0}.skip = True'.format(obj.__name__)
+    obj.skip = True
+    return obj
 
 def _id(obj):
     return obj

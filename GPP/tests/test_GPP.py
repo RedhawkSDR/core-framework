@@ -50,8 +50,6 @@ def hasNumaSupport():
 topology = numa.NumaTopology()
 
 skipUnless = scatest._skipUnless
-def requireNuma(obj):
-    return skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')(obj)
 
 
 def wait_predicate(pred, timeout):
@@ -1291,7 +1289,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
-@requireNuma
+@skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')
 class AffinityTests(GPPSandboxTest):
     def setUp(self):
         super(AffinityTests,self).setUp()
