@@ -79,10 +79,14 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
         (status,output) = commands.getstatusoutput('mkdir -p '+cachedir)
         (status,output) = commands.getstatusoutput('chmod 000 '+cachedir)
         self.assertFalse(os.access(cachedir, os.R_OK|os.W_OK|os.X_OK), 'Current user can still access directory')
-        try:
-            devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
-        except Exception, e:
-            pass
+        devmgr_nb = None
+        while not devmgr_nb:
+            try:
+                devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+            except Exception, e:
+                print e
+            if not devmgr_nb:
+                time.sleep(2) # pause before trying again
         begin_time = time.time()
         while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
             devmgr_nb.poll()
