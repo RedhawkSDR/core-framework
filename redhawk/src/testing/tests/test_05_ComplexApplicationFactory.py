@@ -47,7 +47,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -86,7 +86,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -120,7 +120,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         nb1, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -162,7 +162,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(basicDevNode2, None)
 
         # Ensure the expected devices are available
-        self.assertEqual(len(basicDevNode1._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, basicDevNode1, 1)
         for device in basicDevNode1._get_registeredDevices():
             # Query the known allocation properties
             memCapacity = device.query([CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None))])[0]
@@ -170,7 +170,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
             self.assertEqual(memCapacity.value._v, 100000000)
             self.assertEqual(bogoMips.value._v, 100000000)
 
-        self.assertEqual(len(basicDevNode2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, basicDevNode2, 1)
         for device in basicDevNode2._get_registeredDevices():
             # Query the known allocation properties
             memCapacity = device.query([CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None))])[0]
@@ -178,7 +178,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
             self.assertEqual(memCapacity.value._v, 100000000)
             self.assertEqual(bogoMips.value._v, 100000000)
 
-        self.assertEqual(len(execDevNode1._get_registeredDevices()), 4)
+        scatest.verifyDeviceLaunch(self, execDevNode1, 4)
 
         appFact = self._domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], []) # LOOK MA, NO DAS!
@@ -236,7 +236,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(node1, None)
-        self.assertEqual(len(node1._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, node1, 1)
         device1 = node1._get_registeredDevices()[0]
         self.assertEqual(self._getBogoMips(device1), 100000000)
 
@@ -264,7 +264,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(node2, None)
-        self.assertEqual(len(node2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, node2, 1)
         device2 = node2._get_registeredDevices()[0]
         self.assertEqual(self._getBogoMips(device2), 100000000)
 
@@ -318,7 +318,7 @@ class ComplexApplicationFactoryTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertNotEqual(node1, None)
-        self.assertEqual(len(node1._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, node1, 1)
         device1 = node1._get_registeredDevices()[0]
         self.assertEqual(self._getBogoMips(device1), 100000000)
 

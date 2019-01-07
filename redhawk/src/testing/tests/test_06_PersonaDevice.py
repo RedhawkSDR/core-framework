@@ -32,7 +32,7 @@ class PersonaTest(scatest.CorbaTestCase):
         self._devBooter,self._devMgr = self.launchDeviceManager("/nodes/%s/DeviceManager.dcd.xml" % (node),)
 
     def checkRegisteredDevices(self,numDevices):
-        self.assertEqual(len(self._devMgr._get_registeredDevices()),numDevices)
+        scatest.verifyDeviceLaunch(self, self._devMgr, numDevices)
 
     def allocate(self):
         deviceNumber = 1
