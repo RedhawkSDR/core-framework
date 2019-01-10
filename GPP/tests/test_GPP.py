@@ -118,6 +118,8 @@ def spawnNodeBooter(dmdFile=None,
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
     def setUp(self):
+        ossie.utils.testing.unit_test_helpers.setImplId('cpp')
+        ossie.utils.testing.unit_test_helpers.setSoftPkg('../GPP.spd.xml')
         super(ComponentTests,self).setUp()
         self.child_pids=[]
         print "\n-----------------------"
