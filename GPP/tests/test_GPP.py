@@ -838,7 +838,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue('sys_limits::max_open_files')
 
     def get_single_nic_interface(self):
-        import commands
         cmd = '/sbin/ifconfig -a'
         (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
