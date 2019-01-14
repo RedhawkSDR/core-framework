@@ -25,6 +25,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
   <property environment="env" />
   <property name="src.dir" location="${basedir}" />
+  <property name="reports.dir" location="${basedir}/reports" />
   <property name="build.dir" location="${basedir}" />
   <property name="top.dir" location="${basedir}/../../../.." />
 
@@ -46,11 +47,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </target>
 
   <target name="test" depends="compile">
+    <mkdir dir="${reports.dir}"/>
     <junit fork="yes" printsummary="yes" haltonfailure="no">
       <classpath refid="junit.class.path"/>
       <sysproperty key="java.library.path" value="${java.library.path}:${top.dir}/jni/.libs"/>
       <formatter type="xml"/>
-      <test name="AllTests" todir="${basedir}/../"/>
+      <test name="AllTests" todir="${basedir}/../" outfile="libbulkio-junit-results"/>
     </junit>
   </target>
 

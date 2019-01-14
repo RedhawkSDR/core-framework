@@ -178,6 +178,12 @@ if __name__ == "__main__":
         default=False,
         choices=['True', 'False', 'true', "false"])
 
+    parser.add_option(
+        "--xmlfile",
+        dest="xmlfile",
+        default="nosetests.xml",
+        help="output to XML file")
+
     (options, args) = parser.parse_args()
 
     if len(args) == 0:
@@ -197,7 +203,8 @@ if __name__ == "__main__":
 
     try:
         import xmlrunner
-        runner = xmlrunner.XMLTestRunner(verbosity=options.verbosity)
+        stream = open(options.xmlfile, "w")
+        runner = xmlrunner.XMLTestRunner(stream, verbosity=options.verbosity)
     except ImportError:
         runner = unittest.TextTestRunner(verbosity=options.verbosity)
     runner.run(suite)

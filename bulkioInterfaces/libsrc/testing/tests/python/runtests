@@ -17,26 +17,16 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
 xml=
 if [ $# -gt 0 ];
 then
    if [ "-xml" == "${1##[-+]}" ];
    then
-       xml="yes"
+       xml="--with-xunit --xunit-file ../libbulkio-pyunit-results.xml"
        shift
    fi
 fi
 
-if [[ $xml ]]
-then
-    # limit for cm builds
-    make -j 4 Bulkio
-   ./Bulkio --xunit-file ../libbulkio-cppunit-results.xml
-else
-    make -j 10 Bulkio
-   ./Bulkio
-fi
-
-
-
+nosetests  $xml
 
