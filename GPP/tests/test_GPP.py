@@ -839,9 +839,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
     def get_single_nic_interface(self):
         import commands
-        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        cmd = '/sbin/ifconfig -a'
+        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
-            self._log.debug("Proplem running '/sbin/ifconfig'")
+            print "Problem running '{0}'".format(cmd)
             return
 
         self.nic_list = []
