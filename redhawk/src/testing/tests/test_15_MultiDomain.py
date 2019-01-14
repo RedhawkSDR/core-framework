@@ -29,9 +29,9 @@ from xml.dom import minidom
 import os
 import time
 
-def launchDomain(number, root):
+def launchDomain(number, root, dmdFile=''):
     domainName = scatest.getTestDomainName() + '_' + str(number)
-    _domainBooter = scatest.spawnNodeBooter(dmdFile='', domainname=domainName)
+    _domainBooter = scatest.spawnNodeBooter(dmdFile=dmdFile, domainname=domainName)
     while _domainBooter.poll() == None:
         _domainManager = None
         try:
@@ -59,12 +59,11 @@ class MultiDomainTest(scatest.CorbaTestCase):
     def setUp(self):
         (self._domainBooter_1, self._domainManager_1) = launchDomain(1, self._root)
         (self._domainBooter_2, self._domainManager_2) = launchDomain(2, self._root)
+        self.__nodeBooters =[self._domainBooter_1, self._domainBooter_2]
 
     def tearDown(self):
-        if self._domainBooter_1:
-            self.terminateChild(self._domainBooter_1)
-        if self._domainBooter_2:
-            self.terminateChild(self._domainBooter_2)
+        for nb in self.__nodeBooters:
+            self.terminateChild(nb)
 
     def test_MultipleDomainDeployment(self):
         self.assertEqual(len(self._domainManager_1._get_applicationFactories()), 0)
@@ -309,6 +308,94 @@ class MultiDomainTest(scatest.CorbaTestCase):
         # The remote domain should have nothing left
         self.assertEqual(allocMgr_2.allocations([]), [])
         self.assertEqual(allocMgr_2.localAllocations([]), [])
+
+    def test_AllocationSubsetLocalRemote(self):
+        """
+        Test that AllocationManager can split usesdevice allocations across
+        the local domain and a remote one.
+        """
+        self.launchDeviceManager("/nodes/MultiDomain1_node/DeviceManager.dcd.xml", domainManager=self._domainManager_1)
+        self.launchDeviceManager("/nodes/MultiDomain2_node/DeviceManager.dcd.xml", domainManager=self._domainManager_2)
+
+        # Register second domain with first (no need to do both directions)
+        self._domainManager_1.registerRemoteDomainManager(self._domainManager_2)
+
+        allocMgr_1 = self._domainManager_1._get_allocationMgr()
+        allocMgr_2 = self._domainManager_2._get_allocationMgr()
+
+        # Check that the initial state of all allocations is empty
+        self.assertEqual(allocMgr_1.allocations([]), [])
+        self.assertEqual(allocMgr_1.localAllocations([]), [])
+        self.assertEqual(allocMgr_2.allocations([]), [])
+        self.assertEqual(allocMgr_2.localAllocations([]), [])
+
+        # Make a couple of allocation requests that we know will have to be
+        # split across the local and remote domains
+        usescap = {'count':1}
+        requests = [allocMgrHelpers.createRequest('test_%d' % ii, properties.props_from_dict(usescap)) for ii in range(2)]
+
+        # Both requests should be satisfied
+        results = allocMgr_1.allocate(requests)
+        self.assertEqual(len(requests), len(results))
+
+        # One allocation on the local domain
+        allocations = allocMgr_1.localAllocations([])
+        self.assertEqual(len(allocations), 1)
+
+        # One allocation on the remote domain
+        allocations = allocMgr_2.localAllocations([])
+        self.assertEqual(len(allocations), 1)
+
+    def test_AllocationSubsetRemoteRemote(self):
+        """
+        Test that AllocationManager can split usesdevice allocations across
+        the two remote domains.
+        """
+        # Launch a third domain; need to specify a different DMD so that it has
+        # a unique ID for the DomainManager
+        nb3, domainManager_3 = launchDomain(3, self._root, '/domain/DomainManager2.dmd.xml')
+        self.__nodeBooters.append(nb3)
+
+        # Launch device nodes on the two remote domains
+        self.launchDeviceManager("/nodes/MultiDomain1_node/DeviceManager.dcd.xml", domainManager=self._domainManager_2)
+        self.launchDeviceManager("/nodes/MultiDomain2_node/DeviceManager.dcd.xml", domainManager=domainManager_3)
+
+        # Register second and third domains with first
+        self._domainManager_1.registerRemoteDomainManager(self._domainManager_2)
+        self._domainManager_1.registerRemoteDomainManager(domainManager_3)
+
+        allocMgr_1 = self._domainManager_1._get_allocationMgr()
+        allocMgr_2 = self._domainManager_2._get_allocationMgr()
+        allocMgr_3 = domainManager_3._get_allocationMgr()
+
+        # Check that the initial state of all allocations is empty
+        self.assertEqual(allocMgr_1.allocations([]), [])
+        self.assertEqual(allocMgr_1.localAllocations([]), [])
+        self.assertEqual(allocMgr_2.allocations([]), [])
+        self.assertEqual(allocMgr_2.localAllocations([]), [])
+        self.assertEqual(allocMgr_3.allocations([]), [])
+        self.assertEqual(allocMgr_3.localAllocations([]), [])
+
+        # Make a couple of allocation requests that we know will have to be
+        # split across the local and remote domains
+        usescap = {'count':1}
+        requests = [allocMgrHelpers.createRequest('test_%d' % ii, properties.props_from_dict(usescap)) for ii in range(2)]
+
+        # Both requests should be satisfied
+        results = allocMgr_1.allocate(requests)
+        self.assertEqual(len(requests), len(results))
+
+        # No allocation on the local domain
+        allocations = allocMgr_1.localAllocations([])
+        self.assertEqual(len(allocations), 0)
+
+        # One allocation on the 1st remote domain
+        allocations = allocMgr_2.localAllocations([])
+        self.assertEqual(len(allocations), 1)
+
+        # One allocation on the 2nd remote domain
+        allocations = allocMgr_3.localAllocations([])
+        self.assertEqual(len(allocations), 1)
 
 @scatest.requirePersistence
 class MultiDomainPersistenceTest(scatest.CorbaTestCase):
