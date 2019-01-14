@@ -201,7 +201,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
       _eventChannelMgr = new EventChannelManager(this, true, true, true);
       std::string id = _domainName + "/EventChannelManager";
       oid = ossie::corba::activatePersistentObject(poa, _eventChannelMgr, id );
-      _allocationMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
+      _eventChannelMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
       _eventChannelMgr->_remove_ref();
       RH_DEBUG(this->_baseLog, "Started EventChannelManager for the domain.");
       // setup IDM and ODM Channels for this domain
