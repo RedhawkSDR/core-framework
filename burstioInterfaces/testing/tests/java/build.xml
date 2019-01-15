@@ -26,6 +26,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <property environment="env" />
   <property name="src.dir" location="${basedir}" />
   <property name="build.dir" location="${basedir}" />
+  <property name="reports.dir" location="${basedir}/reports" />
 
   <path id="junit.class.path">
     <pathelement path="${java.class.path}"/>
@@ -57,11 +58,12 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   </target>
 
   <target name="test" depends="compile">
+    <mkdir dir="${reports.dir}"/>
     <junit fork="yes" printsummary="yes" haltonfailure="no">
       <classpath refid="junit.class.path"/>
       <sysproperty key="java.library.path" value="${java.library.path}:${basedir}/../../../src/java/.libs"/>
       <formatter type="xml" />
-      <batchtest todir="${basedir}/../" >
+      <batchtest fork="yes" todir="${reports.dir}">
         <fileset dir="${basedir}">
           <include name="*Test.class" />
         </fileset>

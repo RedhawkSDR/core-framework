@@ -28,36 +28,37 @@ setup_redhawk_import() {
   popd
 }
 
-setup_redhawk_import
-if [ $# -gt 0 ]
+xml=
+if [ $# -gt 0 ];
 then
-    # run an associated test script
-    cd python
-    python  $*
-    cd -
-else
-    cd python
-    for pt in test_*.py ; do
-       python $pt
-    done
-    cd -
+   if [ "-xml" == "${1##[-+]}" ];
+   then
+       xml="--xml"
+       shift
+   fi
 fi
+
+
+setup_redhawk_import
+
+cd python
+./runtests $xml
+cd -
 
 # clean up
 cleanup_redhawk_import
 
 #
-#  Run Java based testing
+#  Run Java unit tests
 #
-if command -v ant 2>/dev/null
-then
-    ant -f java/build.xml test
-else
-    make -C java check
-fi
+cd java
+./runtests $xml
+cd -
 
 #
 #  Run C++ based testing
 #
-make -j 6 -C cpp check
+cd cpp
+./runtests $xml
+cd -
 
