@@ -17,14 +17,14 @@ export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${bulkio_top}/BULKIOInterfaces.
 # due to hitting the per-user process limit
 export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
 
-nosetest_cmd=
-xml=
+
+with_xunit=
+pproc=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="--xml"
-       nosetest_cmd="nosetests"
+       with_xunit="--with-xunit"
        shift
    fi
 fi
@@ -32,42 +32,29 @@ fi
 #
 #  Run Python Sandbox based testing..
 #
-if [[ $xml ]]
+if [ $# -gt 0 ]
 then
-    if [ $# -gt 0 ]
-    then
-        $nosetest_cmd --with-xunit --xunit-file $bulkio_libsrc_testdir/nosetests-bulkio-ports-results.xml  $*
-    else
-        for pt in test_*.py ; do
-            outfile="$bulkio_libsrc_testdir/nosetests-bulkio-"${pt%.py}"-results.xml"
-            $nosetest_cmd --with-xunit --xunit-file $outfile  $pt
-        done
-    fi
+    # run an associated test script
+    python  $*
+    exit
 else
-   if [ $# -gt 0 ]
-   then
-       # run an associated test script
-       python  $*
-       exit
-   else
-       for pt in test_*.py ; do
-          python $pt
-       done
-   fi
+    for pt in test_*.py ; do
+        python $pt
+    done
 fi
 
 #
 #  Run Java unit tests
 #
 cd java
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 #
 #  Run C++ unit tests
 #
 cd cpp
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 #
@@ -75,7 +62,7 @@ cd -
 #
 # NOTE: virtualenv aliases python in the shell, so it's necessary to explicitly
 # run runtests.py via python
-(cd python && ./runtests $xml)
+(cd python && ./runtests.py -x)
 
 #
 # Resource level unit tests
@@ -98,11 +85,11 @@ cd -
 }
 
 run_component_test() {
-    run_resource_test components $@
+    run_resource_test components $*
 }
 
 run_device_test() {
-    run_resource_test devices $@
+    run_resource_test devices $*
 }
 
 
@@ -110,30 +97,30 @@ run_device_test() {
 #  Run Large Packet Size Test
 #
 #
-run_resource_test TestLargePush "$bulkio_libsrc_testdir/nosetests-bulkio-large-push-results.xml"  $xml
+run_component_test TestLargePush "$bulkio_libsrc_testdir/nosetests-bulkio-large-push-results.xml"  $with_xunit
 
 
 #
 #  Run Attachable/Multiout Test
 #
 #
-run_resource_test multiout_attachable "$bulkio_libsrc_testdir/nosetests-bulkio-multiout-attachable-results.xml"  $xml
+run_component_test multiout_attachable "$bulkio_libsrc_testdir/nosetests-bulkio-multiout-attachable-results.xml"  $with_xunit
 
 
 #
 #  Run Oversized frame data Test
 #
 #
-run_resource_test Oversized_framedata "$bulkio_libsrc_testdir/nosetests-bulkio-oversized-frames-results.xml"  $xml
+run_component_test Oversized_framedata "$bulkio_libsrc_testdir/nosetests-bulkio-oversized-frames-results.xml"  $with_xunit
 
 #
 #  Run port lock Test
 #
 #
-run_resource_test src "$bulkio_libsrc_testdir/nosetests-bulkio-port-block-results.xml"  $xml
+run_component_test src "$bulkio_libsrc_testdir/nosetests-bulkio-port-lock-results.xml"  $with_xunit
 
 
 #  Run jni reference resolution
 #
 #
-run_resource_test dev_src "$bulkio_libsrc_testdir/nosetests-bulkio-jni-reference-results.xml"  $xml dev
+run_device_test dev_src "$bulkio_libsrc_testdir/nosetests-bulkio-jni-reference-results.xml"  $with_xunit

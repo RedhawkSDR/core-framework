@@ -35,7 +35,6 @@ try:
             self.mycfg=TestCfgPlugin(self,spd)
             self.results=[]
             super(NoseTestProgram,self).__init__(addplugins=[self.mycfg],**kw)
-            #super(NoseTestProgram,self).__init__(defaultTest='__main__',addplugins=[self.mycfg],**kw)
 
         def TworunTests(self):
             spd = SPDParser.parse(self.mycfg.spd_file)
@@ -81,5 +80,6 @@ try:
             if self.exit:
                 sys.exit(not self.success)
             return self.success
-except:
+except ImportError:
     pass
+

@@ -28,21 +28,20 @@ setup_redhawk_import() {
   popd
 }
 
-xml=
+with_xunit=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="--xml"
+       with_xunit="--with-xunit"
        shift
    fi
 fi
 
-
 setup_redhawk_import
 
 cd python
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 # clean up
@@ -52,13 +51,13 @@ cleanup_redhawk_import
 #  Run Java unit tests
 #
 cd java
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 #
 #  Run C++ based testing
 #
 cd cpp
-./runtests $xml
+./runtests $with_xunit
 cd -
 

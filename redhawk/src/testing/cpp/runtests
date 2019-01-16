@@ -17,17 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-xml=
+with_xunit=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="yes"
+       with_xunit="yes"
        shift
    fi
 fi
-
-if [[ $xml ]]
+echo "with_xunit=$with_xunit"
+if [[ $with_xunit ]]
 then
     make -j 4 test_libossiecf
    ./test_libossiecf --xunit-file libossiecf-cppunit-results.xml

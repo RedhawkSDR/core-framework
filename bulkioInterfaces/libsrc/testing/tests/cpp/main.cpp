@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 {
     const char* short_options = "v";
     struct option long_options[] = {
-        { "xunit-file", required_argument, 0, 'x' },
+        { "with-xunit", required_argument, 0, 'x' },
         { "log-level",  required_argument, 0, 'l' },
         { "log-config", required_argument, 0, 'c' },
         { "verbose",    no_argument,       0, 'v' },

@@ -18,14 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-xml=
+with_xunit=
+pproc=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="--with-xunit --xunit-file libossiecf-pyunit-results.xml"
+       with_xunit="--with-xunit --xunit-file libossiecf-pyunit-results.xml"
+       pproc="xsltproc -o libossiecf-pyunit-results.xml nosetest-to-junit.xsl libossiecf-pyunit-results.xml"
        shift
    fi
 fi
 
-nosetests  $xml
+nosetests  $with_xunit && $pproc 

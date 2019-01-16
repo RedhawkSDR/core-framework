@@ -16,16 +16,16 @@ export CLASSPATH=${frontend_libsrc_top}/frontend.jar:${frontend_top}/frontendInt
 # due to hitting the per-user process limit
 export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
 
-xml=
+with_xunit=
+pproc=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="--xml"
+       with_xunit="--with-xunit"
        shift
    fi
 fi
-
 
 #
 #  Run Python Sandbox based testing (this is a placeholder, there are none right now)
@@ -49,14 +49,14 @@ fi
 #  Run Java unit tests
 #
 cd java
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 #
 #  Run C++ unit tests
 #
 cd cpp
-./runtests $xml
+./runtests $with_xunit
 cd -
 
 #

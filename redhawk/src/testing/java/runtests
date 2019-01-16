@@ -18,17 +18,17 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-xml=
+with_xunit=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="yes"
+       with_xunit="yes"
        shift
    fi
 fi
 
-if [[ $xml ]]
+if [[ $with_xunit ]]
 then
    if command -v ant 2>/dev/null
    then

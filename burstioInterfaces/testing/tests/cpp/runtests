@@ -17,21 +17,21 @@
 # You should have received a copy of the GNU Lesser General Public License 
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-xml=
+with_xunit=
 if [ $# -gt 0 ];
 then
-   if [ "-xml" == "${1##[-+]}" ];
+   if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       xml="yes"
+       with_xunit="--with-xunit"
        shift
    fi
 fi
 
-if [[ $xml ]]
+if [[ $with_xunit ]]
 then
     # limit for cm builds
     make -j 4 Burstio
-   ./Burstio --xunit-file ../libburstio-cppunit-results.xml
+   ./Burstio $with_xunit ../libburstio-cppunit-results.xml
 else
     make -j 6 Burstio
    ./Burstio
