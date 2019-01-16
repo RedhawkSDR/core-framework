@@ -27,6 +27,7 @@ import time
 import commands
 import sys
 import Queue
+import shlex
 import shutil
 import subprocess, multiprocessing
 
@@ -360,6 +361,14 @@ class GPPTests(GPPSandboxTest):
         # worried about the extra processing time here)
         self.comp.threshold_cycle_time = 0.1
 
+        # Add a file for the shm_free threshold test.  1 MiB is sufficient.
+        fpath = '/dev/shm/junk'
+        self._testFiles.append(fpath)
+        cmd = 'dd if=/dev/zero of={0} count=1024 bs=1024'.format(fpath)
+        cmd = shlex.split(cmd)
+        with open(os.devnull, 'w') as devnull:
+            subprocess.call(cmd, stdout=devnull, stderr=devnull)
+
         # Create a virtual event channel to queue the GPP's messages
         event_channel = sb.createEventChannel('thresholds')
         self.queue = Queue.Queue()
@@ -545,7 +554,7 @@ class GPPTests(GPPSandboxTest):
         # threshold
         self.clearBusyTasks()
         print 'Waiting for load average to fall below threshold, may take a while'
-        self.waitUsageState(CF.Device.IDLE, 60.0)
+        self.waitUsageState(CF.Device.IDLE, 90.0)
         self.assertEqual(self.comp.busy_reason, "")
 
     def testBusySharedMemory(self):

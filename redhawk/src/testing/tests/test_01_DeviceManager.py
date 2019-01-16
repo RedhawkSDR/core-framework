@@ -79,10 +79,14 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
         (status,output) = commands.getstatusoutput('mkdir -p '+cachedir)
         (status,output) = commands.getstatusoutput('chmod 000 '+cachedir)
         self.assertFalse(os.access(cachedir, os.R_OK|os.W_OK|os.X_OK), 'Current user can still access directory')
-        try:
-            devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
-        except Exception, e:
-            pass
+        devmgr_nb = None
+        while not devmgr_nb:
+            try:
+                devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+            except Exception, e:
+                print e
+            if not devmgr_nb:
+                time.sleep(2) # pause before trying again
         begin_time = time.time()
         while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
             devmgr_nb.poll()
@@ -144,9 +148,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_SelfTerminatingDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
-        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
+        # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
 
         devs = devMgr._get_registeredDevices()
         devs[0].start()
@@ -641,7 +644,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 
@@ -701,7 +703,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 4)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 4)
 
@@ -723,10 +724,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         nb2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice2_node/DeviceManager.dcd.xml")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 2)
-        waitDevices(devMgr1, 1)
-        waitDevices(devMgr2, 1)
-        for devMgr in self._domMgr._get_deviceManagers():
-            scatest.verifyDeviceLaunch(self, devMgr, 1)
+        scatest.verifyDeviceLaunch(self, devMgr1, 1)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
 
         # Although nothing in the spec specifies where a device is to be bound
         # ossie does /DomainName/DevicemgrName/DeviceName, so let's check that now
@@ -754,7 +753,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         props = devMgr.query([])
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 
@@ -831,7 +829,6 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/SimpleDevMgr/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
-        waitDevices(devMgr, 1)
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 1)
 

@@ -613,7 +613,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/tmp.dcd.xml")
         self.assertNotEqual(devMgr, None)
-        scatest.verifyDeviceLaunch(self, devMgr_1, 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
@@ -672,7 +672,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         devBooter, devMgr = self.launchDeviceManager(node)
         self.assertNotEqual(devMgr, None)
-        scatest.verifyDeviceLaunch(self, devMgr_1, 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = self._domMgr._get_applicationFactories()[0]
