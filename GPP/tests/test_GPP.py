@@ -45,9 +45,11 @@ from ossie.cf import CF, CF__POA
 import ossie.utils.testing
 
 
-maxcpus = 0
-numa_match = {}
-affinity_test_src = {}
+# globals
+maxcpus = None
+numa_match = None
+affinity_test_src = None
+
 
 def get_match( key="all" ):
     if key and  key in numa_match:
@@ -1683,6 +1685,27 @@ def get_affinity_ctx():
     global maxcpus
     global numa_match
     global affinity_test_src
+
+    maxcpus=32
+    maxnodes=2
+    all_cpus='0-'+str(maxcpus-1)
+    all_cpus_sans0='1-'+str(maxcpus-1)
+    numa_match={ "all" : "0-31",
+                 "sock0": "0-7,16-23",
+                 "sock1": "8-15,24-31",
+                 "sock0sans0": "1-7,16-23",
+                 "sock1sans0": "1-7,16-23",
+                 "5" : "5",
+                 "8-10" : "8-10" }
+    numa_layout=[ "0-7,16-23", "8-15,24-31" ]
+
+    affinity_test_src={ "all" : "0-31",
+                     "sock0": "0",
+                     "sock1": "1",
+                     "sock0sans0": "0",
+                     "5" : "5",
+                     "8-10" : "8,9,10",
+                     "eface" : "em1" }
 
     # figure out numa layout, test numaclt --show ..
     all_cpus="0"
