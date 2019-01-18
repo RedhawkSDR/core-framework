@@ -19,15 +19,20 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest
+import multiprocessing
 import os
+import re
 import socket
 import time
 import signal
 import commands
+from shutil import copyfile
+import shutil
+import subprocess
 import sys
 import threading
 import Queue
+
 from omniORB import any
 from ossie.cf import ExtendedEvent
 from ossie.parsers import DCDParser
@@ -35,36 +40,14 @@ from omniORB import CORBA
 import omniORB
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.utils.sandbox.registrar import ApplicationRegistrarStub
-import subprocess, multiprocessing
 from ossie.utils import sb, redhawk
 from ossie.cf import CF, CF__POA
 import ossie.utils.testing
-from shutil import copyfile
-import shutil
-import os
 
-# numa layout: node 0 cpus, node 1 cpus, node 0 cpus sans cpuid=0
 
-maxcpus=32
-maxnodes=2
-all_cpus='0-'+str(maxcpus-1)
-all_cpus_sans0='1-'+str(maxcpus-1)
-numa_match={ "all" : "0-31",
-             "sock0": "0-7,16-23",
-             "sock1": "8-15,24-31", 
-             "sock0sans0": "1-7,16-23", 
-             "sock1sans0": "1-7,16-23", 
-             "5" : "5",
-             "8-10" : "8-10" }
-numa_layout=[ "0-7,16-23", "8-15,24-31" ]
-
-affinity_test_src={ "all" : "0-31",
-                 "sock0": "0",
-                 "sock1": "1", 
-                 "sock0sans0": "0", 
-                 "5" : "5",
-                 "8-10" : "8,9,10",
-                 "eface" : "em1" }
+maxcpus = 0
+numa_match = {}
+affinity_test_src = {}
 
 def get_match( key="all" ):
     if key and  key in numa_match:
@@ -120,6 +103,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def setUp(self):
         ossie.utils.testing.unit_test_helpers.setImplId('cpp')
         ossie.utils.testing.unit_test_helpers.setSoftPkg('../GPP.spd.xml')
+        get_affinity_ctx()
         super(ComponentTests,self).setUp()
         self.child_pids=[]
         print "\n-----------------------"
@@ -1599,7 +1583,6 @@ class ComponentTests_SystemReservations(ossie.utils.testing.ScaComponentTestCase
 
 def get_nonnuma_affinity_ctx( affinity_ctx ):
     # test should run but affinity will be ignored
-    import multiprocessing
     maxcpus=multiprocessing.cpu_count()
     maxnodes=1
     all_cpus='0-'+str(maxcpus-1)
@@ -1690,8 +1673,17 @@ def get_numa_affinity_ctx( affinity_ctx ):
     affinity_ctx['numa_layout']=numa_layout
     affinity_ctx['affinity_match']=affinity_match
 
-    
-if __name__ == "__main__":
+
+def get_affinity_ctx():
+    if hasattr(get_affinity_ctx, 'done'):
+        return
+    else:
+        get_affinity_ctx.done = True
+
+    global maxcpus
+    global numa_match
+    global affinity_test_src
+
     # figure out numa layout, test numaclt --show ..
     all_cpus="0"
     maxnode=1
@@ -1701,7 +1693,6 @@ if __name__ == "__main__":
     # Figure out ethernet interface to use
     #
     lines = [line.rstrip() for line in os.popen('cat /proc/net/dev')]
-    import re
     for l in lines[2:]:
         t1=l.split(':')[0].lstrip()
         if re.match('e.*', t1 ) :
@@ -1751,4 +1742,7 @@ if __name__ == "__main__":
             affinity_test_src["5"] = all_cpus
 
     print "numa findings maxnodes:", maxnodes, " maxcpus:", maxcpus, " numa_match:", numa_match, " numa_layout", numa_layout, " map:", affinity_test_src
+
+
+if __name__ == "__main__":
     ossie.utils.testing.main("../GPP.spd.xml") # By default tests all implementations
