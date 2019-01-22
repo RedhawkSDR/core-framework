@@ -118,6 +118,8 @@ def spawnNodeBooter(dmdFile=None,
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
     def setUp(self):
+        ossie.utils.testing.unit_test_helpers.setImplId('cpp')
+        ossie.utils.testing.unit_test_helpers.setSoftPkg('../GPP.spd.xml')
         super(ComponentTests,self).setUp()
         self.child_pids=[]
         print "\n-----------------------"
@@ -838,10 +840,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue('sys_limits::max_open_files')
 
     def get_single_nic_interface(self):
-        import commands
-        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        cmd = '/sbin/ifconfig -a'
+        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
-            self._log.debug("Proplem running '/sbin/ifconfig'")
+            print "Problem running '{0}'".format(cmd)
             return
 
         self.nic_list = []

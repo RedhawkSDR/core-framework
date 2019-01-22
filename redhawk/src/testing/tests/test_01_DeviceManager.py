@@ -76,10 +76,14 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
     def test_NoWriteCache(self):
         (status,output) = commands.getstatusoutput('mkdir -p '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
         (status,output) = commands.getstatusoutput('chmod 000 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
-        try:
-            devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
-        except Exception, e:
-            print e
+        devmgr_nb = None
+        while not devmgr_nb:
+            try:
+                devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
+            except Exception, e:
+                print e
+            if not devmgr_nb:
+                time.sleep(2) # pause before trying again
         begin_time = time.time()
         while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
             devmgr_nb.poll()
