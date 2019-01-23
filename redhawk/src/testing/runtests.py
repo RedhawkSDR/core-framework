@@ -95,6 +95,22 @@ from _unitTestHelpers import runtestHelpers
 class PromptTestLoader(unittest.TestLoader):
     PROMPT = False
 
+    def getTestCaseNames(self, testCaseClass):
+        """Return a sorted sequence of method names found within testCaseClass
+        """
+        def isTestMethod(attrname, testCaseClass=testCaseClass, prefix=self.testMethodPrefix):
+            if not (attrname.startswith(prefix) and hasattr(getattr(testCaseClass, attrname), '__call__')):
+                return False
+            function = getattr(testCaseClass, attrname, None)
+            if function and getattr(function, 'skip', False):
+                print 'SKIPPING:  {0}.{1}'.format(testCaseClass.__name__, function.__name__)
+                return False
+            return True
+        testFnNames = filter(isTestMethod, dir(testCaseClass))
+        if self.sortTestMethodsUsing:
+            testFnNames.sort(key=unittest._CmpToKey(self.sortTestMethodsUsing))
+        return testFnNames
+
     def loadTestsFromTestCase(self, testCaseClass):
         """Return a suite of all tests cases contained in testCaseClass"""
         if issubclass(testCaseClass, unittest.TestSuite):
@@ -135,6 +151,9 @@ class TestCollector(unittest.TestSuite):
                 candidate = getattr(mod, candidate)
                 try:
                     if issubclass(candidate, unittest.TestCase):
+                        if getattr(candidate, 'skip', False):
+                            print 'SKIPPING:  {0}'.format(candidate.__name__)
+                            continue
                         print "LOADING"
                         loader = PromptTestLoader()
                         loader.PROMPT = self.__prompt
