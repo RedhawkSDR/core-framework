@@ -118,6 +118,8 @@ def spawnNodeBooter(dmdFile=None,
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in test"""
     def setUp(self):
+        ossie.utils.testing.unit_test_helpers.setImplId('cpp')
+        ossie.utils.testing.unit_test_helpers.setSoftPkg('../GPP.spd.xml')
         super(ComponentTests,self).setUp()
         self.child_pids=[]
         print "\n-----------------------"
@@ -838,10 +840,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue('sys_limits::max_open_files')
 
     def get_single_nic_interface(self):
-        import commands
-        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        cmd = '/sbin/ifconfig -a'
+        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
-            self._log.debug("Proplem running '/sbin/ifconfig'")
+            print "Problem running '{0}'".format(cmd)
             return
 
         self.nic_list = []
@@ -1128,8 +1130,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         # enable affinity processing..
         props=[ossie.cf.CF.DataType(id='affinity', value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), 
-                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, '1')), 
-                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'socket')), 
+                       [ ossie.cf.CF.DataType(id='affinity::exec_directive_value', value=CORBA.Any(CORBA.TC_string, numa_match['sock0sans0'])),
+                         ossie.cf.CF.DataType(id='affinity::exec_directive_class', value=CORBA.Any(CORBA.TC_string, 'cpu')),
                          ossie.cf.CF.DataType(id='affinity::force_override', value=CORBA.Any(CORBA.TC_boolean, True)), 
                          ossie.cf.CF.DataType(id='affinity::blacklist_cpus', value=CORBA.Any(CORBA.TC_string, '')), 
                          ossie.cf.CF.DataType(id='affinity::deploy_per_socket', value=CORBA.Any(CORBA.TC_boolean, True)), 
@@ -1168,8 +1170,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.assertNotEqual(pid1, 0)
 
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid0)
-        self.check_affinity( 'component_stub.py',get_match("sock1"), False, pid1)
+        self.check_affinity( 'component_stub.py', numa_match['sock0sans0'], False, pid0)
+        self.check_affinity( 'component_stub.py', numa_match['sock0sans0'], False, pid1)
         
         for pid in [ pid0, pid1 ]:
             try:

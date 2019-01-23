@@ -291,7 +291,7 @@ class LoggingConfigTest(scatest.CorbaTestCase):
         self.assertEqual(devLoggingConfigURI, "sca:///mgr/logging.properties")
 
         # Check the devices exec params
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         execparams = device.query([CF.DataType(id="DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2", value=any.to_any(None))])[0]
         args = execparams.value._v.split()
@@ -326,7 +326,7 @@ class LoggingConfigTest(scatest.CorbaTestCase):
         self.assertEqual(devLoggingConfigURI, expectedDevLoggingConfigUri)
 
         # Check the devices exec params
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         execparams = device.query([CF.DataType(id="DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2", value=any.to_any(None))])[0]
         args = execparams.value._v.split()

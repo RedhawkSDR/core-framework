@@ -95,6 +95,11 @@ def getExecDeviceNode():
 def getExecDevice():
     return "GPP_node"
 
+def verifyDeviceLaunch(testobj, devMgr, num_devices, timeout=10, msg=None):
+    begin_time = time.time()
+    while len(devMgr._get_registeredDevices()) != num_devices and time.time()-begin_time < timeout:
+        time.sleep(0.5)
+    testobj.assertEqual(len(devMgr._get_registeredDevices()), num_devices, msg)
 
 def getLogConfig():
     return os.environ['OSSIEUNITTESTSLOGCONFIG']

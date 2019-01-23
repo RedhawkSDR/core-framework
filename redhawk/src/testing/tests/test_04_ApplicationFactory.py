@@ -157,7 +157,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(ds), 1)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
         self.assertEqual(device._get_identifier(), ds[0].assignedDeviceId)
 
@@ -293,6 +293,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Query the known allocation properties
@@ -312,6 +313,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         app = domMgr.createApplication("/waveforms/configure_call_property_w/configure_call_property_w.sad.xml", 'configure_call_property', [], [])
         self.assertNotEqual(app, None)
         configure_called = app.query([CF.DataType(id='configure_called',value=any.to_any(None))])
@@ -322,6 +324,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/foo/wav/%s/%s.sad.xml" % (name,name))
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -349,6 +352,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/TestComponentProperty_w/TestComponentProperty_w.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -366,6 +370,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/struct_prop_check_w/struct_prop_check_w.sad.xml", 'some_app', [], [], )
 
     def test_commandline_props(self):
@@ -373,6 +378,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         app = domMgr.createApplication("/waveforms/commandline_prop_w/commandline_prop_w.sad.xml", 'some_app', [], [])
         comp_pid = int(app._get_componentProcessIds()[0].processId)
@@ -396,6 +402,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         app = domMgr.createApplication("/waveforms/nocommandline_prop_w/nocommandline_prop_w.sad.xml", 'some_app', [], [])
         comp_pid = int(app._get_componentProcessIds()[0].processId)
@@ -418,6 +425,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         app = domMgr.createApplication("/waveforms/slow_stop_cpp_w/slow_stop_cpp_w.sad.xml", 'slow_stop_cpp_w', [], [])
         app.start()
@@ -430,6 +438,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         app = domMgr.createApplication("/waveforms/start_timeout_w/start_timeout_w.sad.xml", 'my_application', [], [])
         begin_time = time.time()
         app.start()
@@ -442,6 +451,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -483,6 +493,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -511,6 +522,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -541,7 +553,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Query the known allocation properties
@@ -592,7 +604,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
 
@@ -626,7 +638,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -684,6 +696,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/ticket_cf_939_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -712,6 +725,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -746,6 +760,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         # Ensure the expected device is available
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -779,7 +794,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -847,7 +862,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -884,6 +899,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -894,7 +910,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         # Ensure the expected device is available
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -969,6 +985,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1000,6 +1017,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1033,6 +1051,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1072,6 +1091,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
 
         props = [CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None)), CF.DataType(id="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8", value=any.to_any(None))]
@@ -1114,6 +1134,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
 
         props = [CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None)), CF.DataType(id="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8", value=any.to_any(None))]
@@ -1157,6 +1178,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
 
         props = [CF.DataType(id="DCE:8dcef419-b440-4bcf-b893-cab79b6024fb", value=any.to_any(None)), CF.DataType(id="DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8", value=any.to_any(None))]
@@ -1201,6 +1223,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceNoAllocDeps_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
@@ -1233,6 +1256,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDeviceAllocOverride/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         dev = devMgr._get_registeredDevices()[0]
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
@@ -1266,6 +1290,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleSimpleDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
         devUses = None
         for dev in devMgr._get_registeredDevices():
             if dev._get_identifier() == 'DCE:fe4fee1e-f305-454b-aa96-9f6e7d960cde':
@@ -1349,6 +1374,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleSimpleDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
         devUses = None
         for dev in devMgr._get_registeredDevices():
             if dev._get_identifier() == 'DCE:fe4fee1e-f305-454b-aa96-9f6e7d960cde':
@@ -1390,6 +1416,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleSimpleDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
         devUses = None
         for dev in devMgr._get_registeredDevices():
             if dev._get_identifier() == 'DCE:fe4fee1e-f305-454b-aa96-9f6e7d960cde':
@@ -1446,6 +1473,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleSimpleDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
 
         domMgr.installApplication("/waveforms/CommandWrapperUsesDevice/CommandWrapper.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1481,6 +1509,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleBasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
 
         domMgr.installApplication("/waveforms/CollocationTest/CollocationTest.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1508,6 +1537,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperNoAssembly/CommandWrapper.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1531,6 +1561,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleBasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
 
         domMgr.installApplication("/waveforms/CollocationTest/CollocationTest.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1569,7 +1600,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Query the known allocation properties
@@ -1650,7 +1681,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Query the known allocation properties
@@ -1723,6 +1754,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1787,7 +1819,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         # Query the known allocation properties
@@ -1843,6 +1875,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1892,6 +1925,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1907,6 +1941,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 0)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -1966,6 +2001,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDep/CommandWrapperSPDDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1992,6 +2028,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDep/CommandWrapperSPDDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2010,6 +2047,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDepAutomatic/CommandWrapperSPDDepAutomatic.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2028,6 +2066,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDepProcessorMatch/CommandWrapperSPDDepProcessorMatch.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2049,6 +2088,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperNestedSPDDep/CommandWrapperNestedSPDDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2067,6 +2107,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDep/CommandWrapperSPDDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2093,6 +2134,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperSPDDep/CommandWrapperSPDDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2111,6 +2153,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CppsoftpkgDep/CppsoftpkgDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2129,6 +2172,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CppsoftpkgDep/CppsoftpkgDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2147,6 +2191,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CppsoftpkgDep_with_hostcollocation/CppsoftpkgDep_with_hostcollocation.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2166,6 +2211,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/JavasoftpkgDep/JavasoftpkgDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2185,6 +2231,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/JavasoftpkgDep/JavasoftpkgDep.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2212,13 +2259,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         devmgr2_nb, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice2_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 2)
-        self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
         device2 = devMgr2._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -2245,8 +2292,8 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             if len(devMgr._get_registeredDevices()) ==  0:
                 break
             time.sleep(1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 0)
-        self.assertEqual(len(devMgr2._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 0)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
 
         # Try again
         app = appFact.create(appFact._get_name(),
@@ -2282,9 +2329,11 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicAlwaysBusyDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         
         nodebooter2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr2, None)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
 
         appFact = domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(),[],[])
@@ -2327,9 +2376,11 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicAlwaysBusyDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         
         nodebooter2, devMgr2 = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr2, None)
+        scatest.verifyDeviceLaunch(self, devMgr2, 1)
 
         appFact = domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(),[],[])
@@ -2364,6 +2415,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_MultipleBasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 2)
 
         domMgr.installApplication("/waveforms/StructAllocTest/StructAllocTest.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2394,6 +2446,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/TestPythonPropsNoDefaults/TestPythonProps.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2416,6 +2469,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithoutOrder.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2453,6 +2507,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithOrder.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2486,6 +2541,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(domMgr, None)
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication("/waveforms/CommandWrapperStartOrderTests/CommandWrapperWithBadOrder.sad.xml")
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -2529,7 +2585,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)
-        self.assertEqual(len(devMgr._get_registeredDevices()), 1)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
         appFact = domMgr._get_applicationFactories()[0]
@@ -2557,6 +2613,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication('/waveforms/orphaned_child/orphaned_child.sad.xml')
 
@@ -2589,6 +2646,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_GPP_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication('/waveforms/orphaned_child/orphaned_child.sad.xml')
 
@@ -2621,6 +2679,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication('/waveforms/hang_release/hang_release.sad.xml')
 
@@ -2651,6 +2710,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication('/waveforms/hang_release/hang_release.sad.xml')
 
@@ -2690,6 +2750,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_GPP_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         domMgr.installApplication('/waveforms/execcheck_w/execcheck_w.sad.xml')
 
@@ -2719,6 +2780,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         nb, devMgr = self.launchDeviceManager('/nodes/test_GPP_node/DeviceManager.dcd.xml')
         self.assertNotEqual(devMgr, None)
         dom=redhawk.attach(domMgr._get_name())
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         app=dom.createApplication('/waveforms/empty_wf/empty_wf.'+lang+'.emptyvalue.sad.xml')
         self.assertNotEqual(app,None)
@@ -2754,6 +2816,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         nb, devMgr = self.launchDeviceManager('/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml', debug=self.debuglevel)
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1)
 
         # Create the application, which is pre-configured such that the last
         # component in the start order (and hence, first in stop) will fail on
@@ -2796,6 +2859,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         finally:
             del os.environ['VALGRIND']
         self.assertNotEqual(devMgr, None)
+        scatest.verifyDeviceLaunch(self, devMgr, 1, msg='device failed to launch with valgrind')
 
         # Create the application and create a lookup table of component IDs to
         # PIDs, then check that there is a log file for that PID in the device

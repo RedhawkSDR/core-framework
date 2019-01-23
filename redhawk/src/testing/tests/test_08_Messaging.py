@@ -170,15 +170,24 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         c=sb.launch('huge_msg_java', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
         c.connect(snk)
         sb.start()
-        time.sleep(5)
-        fp = None
-        try:
-            fp = open('foo/bar/test.log','r')
-        except:
-            pass
-        if fp != None:
-            log_contents = fp.read()
-            fp.close()
+        time.sleep(2)
+
+        log_contents = ''
+        begin_time = time.time()
+        while time.time()-begin_time < 10:
+            fp = None
+            try:
+                fp = open('foo/bar/test.log','r')
+            except:
+                pass
+            if fp != None:
+                log_contents = fp.read()
+                fp.close()
+            number_warnings_1 = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually.')
+            number_warnings_2 = log_contents.count('Could not deliver the message. Maximum message size exceeded')
+            if number_warnings_1 == 1 and number_warnings_2 == 3 and self.messages_passed == 101:
+                break
+
         try:
             os.remove('foo/bar/test.log')
         except:
@@ -191,11 +200,11 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually.')
-        self.assertEquals(number_warnings, 1)
-        number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded')
-        self.assertEquals(number_warnings, 3)
+
+        self.assertEquals(number_warnings_1, 1)
+        self.assertEquals(number_warnings_2, 3)
         self.assertEqual(self.messages_passed, 101)
+
 
     def test_MessageMarshalPython(self):
         snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
@@ -493,6 +502,10 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         self.assertNotEqual(app, None)
         app.start()
         time.sleep(sleep_time)
+
+        begin_time = time.time()
+        while self.messages_passed != 101 and time.time()-begin_time < 10:
+            time.sleep(0.5)
 
         self.assertEqual(self.messages_passed, 101)
         app.releaseObject()
