@@ -22,12 +22,13 @@
 # System imports
 # NOTE: all REDHAWK framework imports must occur after configureTestPaths()
 import commands
-import unittest
+import functools
 import os
 import re
 import shutil
 import sys
 import time
+import unittest
 
 def prependPythonPath(thepath):
     theabspath = os.path.abspath(thepath)
@@ -108,7 +109,12 @@ class PromptTestLoader(unittest.TestLoader):
             return True
         testFnNames = filter(isTestMethod, dir(testCaseClass))
         if self.sortTestMethodsUsing:
-            testFnNames.sort(key=unittest._CmpToKey(self.sortTestMethodsUsing))
+            _cmp = cmp
+            if hasattr(unittest, '_CmpToKey'):  # Python 2.6
+                _cmp = unittest._CmpToKey
+            elif hasattr(functools, 'cmp_to_key'):  # Python 2.7
+                _cmp = functools.cmp_to_key
+            testFnNames.sort(key=_cmp(self.sortTestMethodsUsing))
         return testFnNames
 
     def loadTestsFromTestCase(self, testCaseClass):
