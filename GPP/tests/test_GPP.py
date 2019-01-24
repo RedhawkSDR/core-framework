@@ -27,6 +27,7 @@ import time
 import commands
 import sys
 import Queue
+import shlex
 import shutil
 import subprocess, multiprocessing
 
@@ -49,8 +50,6 @@ def hasNumaSupport():
 topology = numa.NumaTopology()
 
 skipUnless = scatest._skipUnless
-def requireNuma(obj):
-    return skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')(obj)
 
 
 def wait_predicate(pred, timeout):
@@ -360,6 +359,14 @@ class GPPTests(GPPSandboxTest):
         # worried about the extra processing time here)
         self.comp.threshold_cycle_time = 0.1
 
+        # Add a file for the shm_free threshold test.  1 MiB is sufficient.
+        fpath = '/dev/shm/junk'
+        self._testFiles.append(fpath)
+        cmd = 'dd if=/dev/zero of={0} count=1024 bs=1024'.format(fpath)
+        cmd = shlex.split(cmd)
+        with open(os.devnull, 'w') as devnull:
+            subprocess.call(cmd, stdout=devnull, stderr=devnull)
+
         # Create a virtual event channel to queue the GPP's messages
         event_channel = sb.createEventChannel('thresholds')
         self.queue = Queue.Queue()
@@ -545,7 +552,7 @@ class GPPTests(GPPSandboxTest):
         # threshold
         self.clearBusyTasks()
         print 'Waiting for load average to fall below threshold, may take a while'
-        self.waitUsageState(CF.Device.IDLE, 60.0)
+        self.waitUsageState(CF.Device.IDLE, 90.0)
         self.assertEqual(self.comp.busy_reason, "")
 
     def testBusySharedMemory(self):
@@ -1282,7 +1289,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(ustate, CF.Device.IDLE)
 
 
-@requireNuma
+@skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')
 class AffinityTests(GPPSandboxTest):
     def setUp(self):
         super(AffinityTests,self).setUp()
@@ -1320,25 +1327,87 @@ class AffinityTests(GPPSandboxTest):
         pid, comp = self._launchComponentStub(name, options=options)
         return pid
 
-    def _getNicAffinity(self, nic):
-        ncpus=self._getNumCpus()
-        cpu_list = []
-        with open('/proc/interrupts', 'r') as fp:
-            for line in fp:
-                # Remove final newline and make sure the line ends with the NIC
-                # name (in the unlikely event a machine goes up to "em11")
-                line = line.rstrip()
-                if not line.endswith(nic):
+    def _getIrqs(self, nic):
+        """Get IRQ numbers for a nic."""
+        # Location 1:  the filenames in this dir listing.
+        dpath = '/xsys/class/net/{0}/device/msi_irqs'.format(nic)
+        irqs = []
+        try:
+            irqs = os.listdir(dpath)
+        except OSError:
+            # If Message Signaled Interrupts is not installed, location 1 does not exist.
+            pass
+        non_number_found = False
+        for irq in irqs:
+            if not irq.isdigit():
+                non_number_found = True
+        if irqs and not non_number_found:
+            return irqs
+
+        # If location 1 does not exist,
+        # use location 2:  the contents of this file.
+        fpath = '/xsys/class/net/{0}/device/irq'.format(nic)
+        content = ''
+        irqs = []
+        try:
+            content = open(fpath).read().strip()
+        except IOError:
+            pass
+        if not content:
+            return []
+        non_number_found = False
+        irqs = content.split()
+        for irq in irqs:
+            if not irq.isdigit():
+                non_number_found = True
+        if irqs and not non_number_found:
+            return irqs
+        return []
+
+    def _getNicAffinityViaIrqs(self, nic, irqs):
+        cpus = set()
+        with open('/proc/interrupts') as fp:
+            for line in fp.readlines():
+                words = line.split()
+                irq = words[0][:-1]  # remove ':' from end
+                if irq in irqs:
+                    # Discard the first column (the IRQ number) and the last two
+                    # (type and name) to get the CPU IRQ service totals
+                    for cpu, count in enumerate(words[1:-2]):
+                        if int(count) > 0:
+                            cpus.add(cpu)
+        return sorted(cpus)
+
+    def _getNicAffinityViaParse(self, nic):
+        cpus = set()
+        with open('/proc/interrupts') as fp:
+            for line in fp.readlines():
+                # Deselect lines that end with neither of these:
+                # <NIC name>         eg eth0
+                # <NIC name>-        eg eth0-rxtx-0
+                line = line.strip()
+                words = line.split()
+                word = words[-1]
+                if len(word) > len(nic):
+                    suffix = word[len(nic):]
+                    if not suffix.startswith('-') or 'event' in suffix:
+                        continue
+                elif word != nic:
                     continue
-                # Discard the first entry (the IRQ number) and the last two
+                # Discard the first column (the IRQ number) and the last two
                 # (type and name) to get the CPU IRQ service totals
-                ncpus+=1
-                cpu_irqs = line.split()[1:ncpus]
+                cpu_irqs = line.split()[1:-2]
                 for cpu, count in enumerate(cpu_irqs):
                     if int(count) > 0:
-                        cpu_list.append(cpu)
-                break
-        return cpu_list
+                        cpus.add(cpu)
+        return sorted(cpus)
+
+    def _getNicAffinity(self, nic):
+        irqs = self._getIrqs(nic)
+        if irqs:
+            return self._getNicAffinityViaIrqs(nic, irqs)
+        else:
+            return self._getNicAffinityViaParse(nic)
 
     @skipUnless(len(topology.nodes) > 1, 'At least two NUMA nodes required')
     def testNicAffinity(self):
