@@ -19,7 +19,6 @@
 #
 
 with_xunit=
-pproc=
 if [ $# -gt 0 ];
 then
    if [ "-with-xunit" == "${1##[-+]}" ];

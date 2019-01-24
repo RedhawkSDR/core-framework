@@ -108,10 +108,6 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
-        import pdb
-        import pprint
-        pprint.pprint(globals())
-        pdb.set_trace()
         self.assertEquals(len(self._rhDom._get_applications()), 0)
 
     def tearDown(self):
