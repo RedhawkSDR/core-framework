@@ -109,12 +109,15 @@ class PromptTestLoader(unittest.TestLoader):
             return True
         testFnNames = filter(isTestMethod, dir(testCaseClass))
         if self.sortTestMethodsUsing:
-            _cmp = cmp
+            cmp_to_key = None
             if hasattr(unittest, '_CmpToKey'):  # Python 2.6
-                _cmp = unittest._CmpToKey
+                cmp_to_key = unittest._CmpToKey
             elif hasattr(functools, 'cmp_to_key'):  # Python 2.7
-                _cmp = functools.cmp_to_key
-            testFnNames.sort(key=_cmp(self.sortTestMethodsUsing))
+                cmp_to_key = functools.cmp_to_key
+            if cmp_to_key:
+                testFnNames.sort(key=cmp_to_key(self.sortTestMethodsUsing))
+            else:
+                print 'Conversion function "cmp_to_key" not found.  Not sorting.'
         return testFnNames
 
     def loadTestsFromTestCase(self, testCaseClass):
