@@ -23,8 +23,11 @@
 #include <list>
 #include <string>
 #include <sched.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -75,6 +78,38 @@ namespace  gpp {
       return redhawk::affinity::get_nic_promotion();
     }
 
+    static int get_irqs( const std::string &msi_intr, std::vector< std::string > &irqs ) {
+        int ret=0;
+        // check if device has interrupt mapping file
+        DIR *dirp=0;
+        struct dirent *ent;
+        dirp=opendir(msi_intr.c_str());
+        if ( dirp ) {
+            while( ( ent = readdir(dirp)) != NULL  ) {
+                // skip dot files..
+                if ( ent->d_name[0] == '.' ) continue;
+                irqs.push_back( std::string(ent->d_name));
+                ret=1;
+            }
+            closedir(dirp);
+        }
+        else  {
+            std::ifstream in(msi_intr.c_str(), std::ifstream::in );
+            if ( in.fail() ) {
+                return ret;
+            }
+
+            int irq=0;
+            in >> irq;
+            std::ostringstream os;
+            os << irq;
+            irqs.push_back( os.str() );
+            ret=1;
+        }
+
+        return ret;
+    }
+
 
    /**
        identify_cpus
@@ -85,53 +120,73 @@ namespace  gpp {
      */
     redhawk::affinity::CpuList identify_cpus( const std::string &iface ) {
 
-      redhawk::affinity::CpuList  cpus;
-      std::string pintr("/proc/interrupts");
-      std::ifstream in(pintr.c_str(), std::ifstream::in );
-      if ( in.fail() ) {
-        RH_ERROR(get_affinity_logger(), "Unable to access /proc/interrupts");
-        return cpus;
-      }
-
-      std::string line;
-      while( std::getline( in, line ) ) {
-        // check if the device is our interface
-        RH_TRACE(get_affinity_logger(), "Processing /proc/interrupts.... line:" << line);
-        if ( line.rfind(iface) != std::string::npos ) {
-          std::istringstream iss(line);
-          int parts=0;
-          do {
-            std::string tok;
-            iss>>tok;
-            // skip interrupt number and iface
-            if ( parts > 0 and tok != iface ) {
-	      int icnt=0;
-	      try {
-		icnt=boost::lexical_cast<int>(tok);
-		RH_TRACE(get_affinity_logger(), "identify cpus: CPU : " << parts-1 << " nic interrupts:" << icnt);
-		if ( icnt > 0 ) {
-		  RH_TRACE(get_affinity_logger(), "identify cpus: Adding CPU : " << parts-1);
-		  cpus.push_back(parts-1);
-		}
-	      }
-	      catch(...){
-		RH_TRACE(get_affinity_logger(), "Invalid Token: tok:" << tok);
-	      }
-            }
-            parts++;
-          }while(iss);
-
+        redhawk::affinity::CpuList  cpus;
+        std::string pintr("/proc/interrupts");
+        std::ifstream in(pintr.c_str(), std::ifstream::in );
+        if ( in.fail() ) {
+            RH_ERROR(get_affinity_logger(), "Unable to access /proc/interrupts");
+            return cpus;
         }
-      }
 
-      redhawk::affinity::CpuList::iterator citer=cpus.begin();
-      for (; citer != cpus.end(); citer++) {
-        RH_DEBUG(get_affinity_logger(), "identified CPUS iface/cpu ...:" << iface << "/" << *citer);
-      }
+        // try to lookup interrupt(s) assigned to nic
+        std::vector< std::string > irqs;
+        std::string msi_intr("/sys/class/net/"+iface+"/device/msi_irqs");
+        RH_TRACE(get_affinity_logger(), "Getting interrupt vector list for : " << msi_intr );
+        if ( !get_irqs( msi_intr, irqs ) ) {
+               msi_intr = "/sys/class/net/"+iface+"/device/irq";
+               RH_TRACE(get_affinity_logger(), "Getting interrupt for : " << msi_intr );
+               get_irqs( msi_intr, irqs );
+        }
+        RH_TRACE(get_affinity_logger(), "Number IRQs found: " << irqs.size() );
 
-      return cpus;
+        // default regex to looking for interface string
+        std::string  lscan("("+iface+")");
+        if ( irqs.size() ) {
+            std::vector< std::string >::iterator i=irqs.begin();
+            for ( ; i != irqs.end(); i++ ) *i = "\\b"+*i+":";
+            lscan = "("+boost::algorithm::join(irqs,"|")+")";
+        }
+
+        RH_TRACE(get_affinity_logger(), "Searching /proc/interrupts for: " << lscan );
+        const boost::regex  line_scan(lscan);
+        std::string line;
+        while( std::getline( in, line ) ) {
+            // check if the device is our interface
+            RH_TRACE(get_affinity_logger(), "Processing /proc/interrupts.... line:" << line );
+            if ( boost::regex_search(line,line_scan) ) {
+                std::istringstream iss(line);
+                int parts=0;
+                do {
+                    std::string tok;
+                    iss>>tok;
+                    // skip interrupt number and iface
+                    const boost::regex num_scan("^\\b\\d+\\b$");
+                    RH_TRACE(get_affinity_logger(), "identify cpu interrupts: tok : (" << tok << ") res " << boost::regex_search(tok,num_scan));
+                    if ( parts > 0 and boost::regex_search(tok,num_scan) ) {
+                        std::istringstream iss(tok);
+                        int icnt;
+                        iss >> icnt;
+                        if ( icnt > 0 ) {
+                            // only add unique instances
+                            if ( std::find( cpus.begin(), cpus.end(), parts-1) == cpus.end() ) {
+                                RH_TRACE(get_affinity_logger(), "identify cpus: Adding CPU : " << parts-1 << " tok " << tok);
+                                cpus.push_back(parts-1);
+                            }
+                        }
+                    }
+                    parts++;
+                }while(iss);
+
+            }
+        }
+
+        redhawk::affinity::CpuList::iterator citer=cpus.begin();
+        for (; citer != cpus.end(); citer++) {
+            RH_DEBUG(get_affinity_logger(), "identified CPUS iface/cpu ...:" << iface << "/" << *citer);
+        }
+    
+        return cpus;
     }
-
 
     int   find_socket_for_interface ( const std::string &iface , const bool findFirst, const redhawk::affinity::CpuList &bl ){
 
