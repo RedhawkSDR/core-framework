@@ -29,6 +29,7 @@ import tempfile
 import threading
 import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin
+import CosNaming
 from ossie import properties
 from ossie.cf import StandardEvent
 from ossie.utils import uuid
@@ -1034,4 +1035,107 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         cpids=[ int(x._pid) for x in app.comps ]
         for p in cpids:
             self.assertRaises(OSError, os.kill, p, 0 )
+
+
+    def test_DomainChannelsRestore_NormalShutdown(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        domain_name = self._domMgr._get_name()
+        self.assertNotEqual( domain_name, None)
+
+        orig_ODM_ref = None
+        orig_IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        orig_ODM_ref = self._root.resolve(ns_ODM)
+        orig_IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(orig_ODM_ref, None)
+        self.assertNotEqual(orig_IDM_ref, None)
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGINT)
+        if not self.waitTermination(self._nb_domMgr, 5.0):
+            self.fail("Domain Manager Failed to Die")
+
+        # check if event channel entries are removed
+        ODM_ref = None
+        IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_IDM)
+
+        # restart domain manager
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        # check if event channel entries are restored
+        ODM_ref = None
+        IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        ODM_ref = self._root.resolve(ns_ODM)
+        IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(ODM_ref, None)
+        self.assertNotEqual(IDM_ref, None)
+        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+
+        # check that qualified event channel names are not in naming context
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, domain_name+".ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, domain_name+".IDM_Channel"))
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_IDM)
+
+
+    def test_DomainChannelsRestore_KillDomain(self):
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+        domain_name = self._domMgr._get_name()
+        self.assertNotEqual( domain_name, None)
+
+        orig_ODM_ref = None
+        orig_IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        orig_ODM_ref = self._root.resolve(ns_ODM)
+        orig_IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(orig_ODM_ref, None)
+        self.assertNotEqual(orig_IDM_ref, None)
+
+        # Kill the domainMgr
+        os.kill(self._nb_domMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_domMgr, 5.0):
+            self.fail("Domain Manager Failed to Die")
+
+        # check event channels entries still exist in domain's naming context
+        ODM_ref = None
+        IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        ODM_ref = self._root.resolve(ns_ODM)
+        IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(ODM_ref, None)
+        self.assertNotEqual(IDM_ref, None)
+        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+
+        # restart domain manager
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
+
+        # check event channel are in domain's naming context
+        ODM_ref = None
+        IDM_ref = None
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        ODM_ref = self._root.resolve(ns_ODM)
+        IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(ODM_ref, None)
+        self.assertNotEqual(IDM_ref, None)
+        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+
+        # check that qualified event channel names are not in naming context
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, domain_name+".ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, domain_name+".IDM_Channel"))
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_IDM)
+
 

@@ -28,6 +28,7 @@
 #include <signal.h>
 
 #include <boost/foreach.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include <omniORB4/CORBA.h>
 #include <omniORB4/internal/orbParameters.h>
@@ -201,7 +202,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
       _eventChannelMgr = new EventChannelManager(this, true, true, true);
       std::string id = _domainName + "/EventChannelManager";
       oid = ossie::corba::activatePersistentObject(poa, _eventChannelMgr, id );
-      _allocationMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
+      _eventChannelMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));
       _eventChannelMgr->_remove_ref();
       RH_DEBUG(this->_baseLog, "Started EventChannelManager for the domain.");
       // setup IDM and ODM Channels for this domain
@@ -315,12 +316,14 @@ void DomainManager_impl::restoreEventChannels(const std::string& _db_uri) {
                   RH_WARN(this->_baseLog, "EventChannelManager, Failed to recover Event Channel: " << i->boundName);
                 }
                 CosEventChannelAdmin::EventChannel_var channel = i->channel;
-                CosNaming::Name_var cosName = ossie::corba::stringToName(i->boundName);
+                std::string ctx_name=i->boundName;
+                boost::replace_first(ctx_name,".","/");
+                CosNaming::Name_var cosName = ossie::corba::stringToName(ctx_name);
                 try {
                     // Use rebind to force the naming service to replace any existing object with the same name.
                     rootContext->rebind(cosName, channel);
                 } catch ( ... ) {
-                    channel = ossie::events::connectToEventChannel(rootContext, i->boundName);
+                    channel = ossie::events::connectToEventChannel(rootContext, ctx_name);
                 }
                 bool foundEventChannel = false;
                 for (std::vector<EventChannelNode>::iterator j=_eventChannels.begin(); j!=_eventChannels.end(); j++) {

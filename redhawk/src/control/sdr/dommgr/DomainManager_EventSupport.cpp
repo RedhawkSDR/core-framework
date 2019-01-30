@@ -430,6 +430,8 @@ void DomainManager_impl::destroyEventChannels()
         RH_ERROR(this->_baseLog, "Error Destroying ODM Channel. ");
       }
 
+      destroyEventChannel(redhawk::events::ODM_Channel_Spec);
+
       try {
         RH_DEBUG(this->_baseLog, "Disconnect IDM CHANNEL. " );
         _idm_reader.unsubscribe();
@@ -437,6 +439,8 @@ void DomainManager_impl::destroyEventChannels()
       catch(...){ 
         RH_ERROR(this->_baseLog, "Error Destroying IDM Channel. ");
       }
+
+      destroyEventChannel(redhawk::events::IDM_Channel_Spec);
 
       try{
         std::vector < ossie::EventChannelNode >::iterator _iter = _eventChannels.begin();
