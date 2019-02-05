@@ -64,6 +64,7 @@ DOM_Subscriber_ptr DomainManager_impl::subscriber( const std::string &cname )
     ossie::events::EventChannel_var evt_channel;
     RH_DEBUG(this->_baseLog, "Requesting Event Channel::" << cname);
     if ( _eventChannelMgr->isChannel( cname ) ) {
+        RH_DEBUG(this->_baseLog, "Found event channel in event channel manager..." << cname);
       evt_channel =  ossie::events::EventChannel::_duplicate( _eventChannelMgr->findChannel( cname ) );
     }
     else {  
@@ -209,13 +210,12 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
     if ( _eventChannelMgr ){
 
       if ( !dburi.empty() ) {
-        RH_INFO(this->_baseLog, "Restoring event channel manager state");
-        restorePubProxies(dburi);
-        restoreSubProxies(dburi);
-        restoreEventChannelRegistrations(dburi);
-        RH_DEBUG(this->_baseLog, "Completed Restoring Event Channel Manager state");
-	RH_INFO(this->_baseLog, "Restoring event channels file:" << dburi);
-	restoreEventChannels(dburi);
+          RH_INFO(this->_baseLog, "Restoring event channel manager state, db file :" << dburi );
+          restoreEventChannels(dburi);
+          restorePubProxies(dburi);
+          restoreSubProxies(dburi);
+          restoreEventChannelRegistrations(dburi);
+          RH_INFO(this->_baseLog, "Completed restoring event channel manager state");
       }
       
 
@@ -248,7 +248,7 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
         if ( idmSubscriber ) {
           RH_INFO(this->_baseLog, "Domain Channel: " << cname << " created.");
           _idm_reader.setTerminationListener( this, &DomainManager_impl::idmTerminationMessages );
-          _idm_reader.subscribe( subscriber( cname  ) );
+          _idm_reader.subscribe( idmSubscriber );
         }
         else {
           throw -1;
@@ -269,7 +269,7 @@ void DomainManager_impl::establishDomainManagementChannels( const std::string &d
 void DomainManager_impl::disconnectDomainManagementChannels() {
 
     if ( _eventChannelMgr ) {
-      RH_DEBUG(this->_baseLog, "Disconnect Domain Mananagment Event Channels. " );
+      RH_DEBUG(this->_baseLog, "Disconnect Domain Management Event Channels. " );
       try {
         if ( _odm_publisher ) {
           _odm_publisher->disconnect();
@@ -383,8 +383,9 @@ void DomainManager_impl::destroyEventChannel (const std::string& name)
       try {
         RH_DEBUG(this->_baseLog, "Releasing channel: " << name );
         _eventChannelMgr->release(name);
-
-
+      }
+      catch(const CF::EventChannelManager::RegistrationsExists &e){ 
+          RH_WARN(this->_baseLog, "Unable to release event channel " << name << " when registrations exists.");
       }
       catch(...){ 
         RH_ERROR(this->_baseLog, "Error trying to release channel: " << name );
@@ -418,7 +419,7 @@ void DomainManager_impl::destroyEventChannel (const std::string& name)
 void DomainManager_impl::destroyEventChannels()
 {
     if ( _eventChannelMgr ) {
-      RH_DEBUG(this->_baseLog, "Delete Domain Mananagment Event Channels. " );
+      RH_DEBUG(this->_baseLog, "Delete Domain Management Event Channels. " );
       try {
         RH_DEBUG(this->_baseLog, "Disconnect ODM CHANNEL. " );
         if ( _odm_publisher ) {
@@ -427,20 +428,16 @@ void DomainManager_impl::destroyEventChannels()
         }
       }
       catch(...){ 
-        RH_ERROR(this->_baseLog, "Error Destroying ODM Channel. ");
+        RH_ERROR(this->_baseLog, "Error disconnecting from ODM_Channel. ");
       }
-
-      destroyEventChannel(redhawk::events::ODM_Channel_Spec);
 
       try {
         RH_DEBUG(this->_baseLog, "Disconnect IDM CHANNEL. " );
         _idm_reader.unsubscribe();
       }
       catch(...){ 
-        RH_ERROR(this->_baseLog, "Error Destroying IDM Channel. ");
+        RH_ERROR(this->_baseLog, "Error disconnecting from IDM_Channel. ");
       }
-
-      destroyEventChannel(redhawk::events::IDM_Channel_Spec);
 
       try{
         std::vector < ossie::EventChannelNode >::iterator _iter = _eventChannels.begin();
@@ -452,10 +449,14 @@ void DomainManager_impl::destroyEventChannels()
              }
         }
         _eventChannels.clear();
-        
+
+        try {
+            db.store("EVENT_CHANNELS", _eventChannels);
+        } catch (const ossie::PersistenceException& ex) {
+            RH_ERROR(this->_baseLog, "Error persisting change to event channels");
+        }
 
         RH_DEBUG(this->_baseLog, "Terminating all event channels within EventChannelManager" );
-        //boost::this_thread::sleep( boost::posix_time::milliseconds( 3000 ) );
         _eventChannelMgr->terminate();
 
       }

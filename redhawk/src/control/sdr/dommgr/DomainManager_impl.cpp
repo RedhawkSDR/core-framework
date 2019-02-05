@@ -2124,7 +2124,14 @@ void DomainManager_impl::restorePubProxies(const std::string& _db_uri)
     }
     EventChannelManager::PubProxyMap _newVal;
     for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
-        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushConsumer>(_orbCtx.orb->string_to_object(it->second.c_str()));
+        ossie::events::EventPublisher_var pub = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushConsumer>(_orbCtx.orb->string_to_object(it->second.c_str()));
+        if ( ossie::corba::objectExists(pub) == true ) {
+            RH_INFO(this->_baseLog, "Recovered event channel publisher, registration id " << it->first); 
+            _newVal[it->first] = pub;
+        }
+        else {
+            RH_WARN(this->_baseLog, "Failed to recover event channel publisher registration, " << it->first); 
+        }
     }
     _eventChannelMgr->setPubProxies(_newVal);
 }
@@ -2145,7 +2152,14 @@ void DomainManager_impl::restoreSubProxies(const std::string& _db_uri)
     }
     EventChannelManager::SubProxyMap _newVal;
     for (EventProxies::iterator it = _proxies.begin(); it != _proxies.end(); it++) {
-        _newVal[it->first] = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushSupplier>(_orbCtx.orb->string_to_object(it->second.c_str()));
+        ossie::events::EventSubscriber_var sub = ossie::corba::_narrowSafe<CosEventChannelAdmin::ProxyPushSupplier>(_orbCtx.orb->string_to_object(it->second.c_str()));
+        if ( ossie::corba::objectExists(sub) == true ) {
+            RH_INFO(this->_baseLog, "Recovered event channel subscriber, registration id " << it->first); 
+            _newVal[it->first] = sub;
+        }
+        else {
+            RH_WARN(this->_baseLog, "Failed to recover event channel subscriber registration, " << it->first); 
+        }
     }
     _eventChannelMgr->setSubProxies(_newVal);
 }
@@ -2169,12 +2183,21 @@ void DomainManager_impl::restoreEventChannelRegistrations(const std::string& _db
         EventChannelManager::ChannelRegistration _tmp;
         _tmp.channel_name = it->second.channel_name;
         _tmp.fqn = it->second.fqn;
+        RH_DEBUG(this->_baseLog, "Channel FQN " << it->second.fqn << " channel_name " << it->second.channel_name );
         _tmp.channel = ossie::corba::_narrowSafe<CosEventChannelAdmin::EventChannel>(_orbCtx.orb->string_to_object(it->second.channel.c_str()));
-        _tmp.autoRelease = it->second.autoRelease;
-        _tmp.release = it->second.release;
-        _tmp.registrants = it->second.registrants;
-        _newVal[it->first] = _tmp;
+        if (ossie::corba::objectExists(_tmp.channel)) {
+            _tmp.autoRelease = it->second.autoRelease;
+            _tmp.release = it->second.release;
+            _tmp.registrants = it->second.registrants;
+            RH_DEBUG(this->_baseLog, "Recovered event channel registration for event channel: " << it->second.channel_name );
+
+            _newVal[it->first] = _tmp;
+        }
+        else {
+            RH_WARN(this->_baseLog, "Unable to restore event channel registrations for event channel: " << it->second.channel_name << " fqn "  << it->second.fqn );
+        }
     }
+
     _eventChannelMgr->setChannelRegistrations(_newVal);
 }
 
