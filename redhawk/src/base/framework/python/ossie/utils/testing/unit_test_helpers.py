@@ -434,6 +434,35 @@ Examples:
             testLoader = rhunittest.RHTestLoader(impl)
         unittest.TestProgram.__init__(self, module, defaultTest, argv, testRunner, testLoader)
 
+    def getTestNamesForModule(self):
+        names = []
+        for name in dir(self.module):
+            obj = getattr(self.module, name, None)
+            if obj and isinstance(obj, type) and issubclass(obj, unittest.TestCase):
+                names.append(name)
+        return tuple(names)
+
+    def removeSkippedNames(self, names):
+        unskipped_names = []
+        for name in names:
+            # Handle a class name.
+            if name.count('.') == 0:
+                obj = getattr(self.module, name, None)
+                if obj and isinstance(obj, type) and getattr(obj, 'skip', False):
+                    print '\nSkip {0}'.format(name)
+                    continue
+            # Handle a name of type class.function.
+            elif name.count('.') == 1:
+                obj_name, func_name = name.split('.')
+                obj = getattr(self.module, obj_name, None)
+                func = getattr(obj, func_name, None)
+                if obj and isinstance(obj, type) and func:
+                    if getattr(obj, 'skip', False) or getattr(func, 'skip', False):
+                        print '\nSkip {0}'.format(name)
+                        continue
+            unskipped_names.append(name)
+        return tuple(unskipped_names)
+
     def parseArgs(self, argv):
         try:
             options, args = getopt.getopt(argv[1:], 'hHvqi:',
@@ -447,13 +476,15 @@ Examples:
                     self.verbosity = 2
                 if opt in ('-i','--impl'):
                     self.impl = value
-            if len(args) == 0 and self.defaultTest is None:
-                self.test = self.testLoader.loadTestsFromModule(self.module)
-                return
-            if len(args) > 0:
+
+            if len(args):
                 self.testNames = args
-            else:
+            elif self.defaultTest:
                 self.testNames = (self.defaultTest,)
+            else:
+                self.testNames = self.getTestNamesForModule()
+
+            self.testNames = self.removeSkippedNames(self.testNames)
             self.createTests()
         except getopt.error, msg:
             self.usageExit(msg)
