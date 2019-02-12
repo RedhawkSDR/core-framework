@@ -19,17 +19,17 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest
-import os
-import resource
-import socket
-import time
 import commands
-import sys
+import multiprocessing
+import os
 import Queue
+import resource
 import shlex
 import shutil
-import subprocess, multiprocessing
+import socket
+import subprocess
+import sys
+import time
 
 from omniORB import any, CORBA
 
@@ -1058,10 +1058,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertRaises( CF.Device.InsufficientCapacity, self.comp_obj.allocateCapacity, allocProps)
 
     def get_single_nic_interface(self):
-        import commands
-        (exitstatus, ifconfig_info) = commands.getstatusoutput('/sbin/ifconfig -a')
+        cmd = '/sbin/ifconfig -a'
+        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
-            self._log.debug("Proplem running '/sbin/ifconfig'")
+            print "Problem running '{0}'".format(cmd)
             return
 
         self.nic_list = []
