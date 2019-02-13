@@ -250,6 +250,13 @@ class RHTestLoader(unittest.TestLoader):
         self.impl = impl
 
     def selectTestsFromCase(self, test):
+        # check if test is a class with .skip
+        if getattr(test, 'skip', False):
+            class_name = test.__class__.__name__
+            print 'SKIP {0}'.format(class_name)
+            return None
+
+        # check if test is a method with .skip
         method_name = test._testMethodName
         method = getattr(test, method_name, None)
         if method and getattr(method, 'skip', False):
