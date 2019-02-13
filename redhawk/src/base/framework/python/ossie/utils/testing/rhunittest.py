@@ -249,6 +249,35 @@ class RHTestLoader(unittest.TestLoader):
         unittest.TestLoader.__init__(self)
         self.impl = impl
 
+    def selectTestsFromCase(self, test):
+        method_name = test._testMethodName
+        method = getattr(test, method_name, None)
+        if method and getattr(method, 'skip', False):
+            print 'SKIP {0}'.format(method_name)
+            return None
+        else:
+            return test
+
+    def selectTestsFromSuite(self, suite_in):
+        #import pdb; pdb.set_trace()
+        suite = unittest.TestSuite()
+        for item in suite_in._tests:
+            if isinstance(item, unittest.TestSuite):
+                suite.addTests(self.selectTestsFromSuite(item))
+            else:
+                test = self.selectTestsFromCase(item)
+                if test:
+                    suite.addTest(test)
+        return suite
+
+    def loadTestsFromTestCase(self, testCaseClass):
+        loaded_suite = super(RHTestLoader, self).loadTestsFromTestCase(testCaseClass)
+        return self.selectTestsFromSuite(loaded_suite)
+
+    def loadTestsFromNames(self, names, module=None):
+        loaded_suite = super(RHTestLoader, self).loadTestsFromNames(names, module=module)
+        return self.selectTestsFromSuite(loaded_suite)
+
     def getTestCaseNames(self, testCaseClass):
         if issubclass(testCaseClass, RHTestCase):
             return testCaseClass.getTestMethodNames(self.testMethodPrefix, self.impl)
