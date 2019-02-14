@@ -1156,7 +1156,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
 
-        # Kill the domainMgr
+        # Kill the devMgr
         os.killpg(self._nb_devMgr.pid, signal.SIGKILL)
         if not self.waitTermination(self._nb_devMgr, 5.0):
             self.fail("Device Manager Failed to Die")
