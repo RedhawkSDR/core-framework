@@ -185,10 +185,12 @@ def which(command):
             return execpath
     return None
 
-def _skip(obj):
-    print 'Add {0}.skip = True'.format(obj.__name__)
-    obj.skip = True
-    return obj
+def _skip(reason):
+    def wrapper(obj):
+        #print 'Mark {0} for skipping'.format(obj.__name__)
+        obj.skip_reason = reason
+        return obj
+    return wrapper
 
 def _id(obj):
     return obj
@@ -197,7 +199,7 @@ def _skipUnless(condition, reason):
     if hasattr(unittest, 'skipUnless'):
         return unittest.skipUnless(condition, reason)
     elif not condition:
-        return _skip
+        return _skip(reason)
     else:
         return _id
 

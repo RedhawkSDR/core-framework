@@ -448,17 +448,20 @@ Examples:
             # Handle a class name.
             if name.count('.') == 0:
                 obj = getattr(self.module, name, None)
-                if obj and isinstance(obj, type) and getattr(obj, 'skip', False):
-                    print '\nSkip {0}'.format(name)
-                    continue
+                if obj and isinstance(obj, type):
+                    reason = getattr(obj, 'skip_reason', None)
+                    if reason:
+                        print "\nSKIPPING:  {0} - '{1}'".format(name, reason)
+                        continue
             # Handle a name of type class.function.
             elif name.count('.') == 1:
                 obj_name, func_name = name.split('.')
                 obj = getattr(self.module, obj_name, None)
                 func = getattr(obj, func_name, None)
                 if obj and isinstance(obj, type) and func:
-                    if getattr(obj, 'skip', False) or getattr(func, 'skip', False):
-                        print '\nSkip {0}'.format(name)
+                    reason = getattr(obj, 'skip_reason', False) or getattr(func, 'skip_reason', False)
+                    if reason:
+                        print "\nSKIPPING:  {0} - '{1}'".format(name, reason)
                         continue
             unskipped_names.append(name)
         return tuple(unskipped_names)

@@ -250,23 +250,29 @@ class RHTestLoader(unittest.TestLoader):
         self.impl = impl
 
     def selectTestsFromCase(self, test):
-        # check if test is a class with .skip
-        if getattr(test, 'skip', False):
-            class_name = test.__class__.__name__
-            print 'SKIP {0}'.format(class_name)
+        class_name = test.__class__.__name__
+        # check if class should be skipped
+        reason = getattr(test, 'skip_reason', False)
+        if reason:
+            if hasattr(self.selectTestsFromCase, 'classes_skipped'):
+                if class_name not in self.selectTestsFromCase.classes_skipped:
+                    self.selectTestsFromCase.classes_skipped.append(class_name)
+                    print "SKIPPING:  {0} - '{1}'".format(class_name, reason)
             return None
 
-        # check if test is a method with .skip
+        # check if method should be skipped
         method_name = test._testMethodName
         method = getattr(test, method_name, None)
-        if method and getattr(method, 'skip', False):
-            print 'SKIP {0}'.format(method_name)
-            return None
-        else:
-            return test
+        if method:
+            reason = getattr(method, 'skip_reason', False)
+            if reason:
+                print "SKIPPING:  {0}.{1} - '{2}'".format(class_name, method_name, reason)
+                return None
+        return test
+
+    selectTestsFromCase.classes_skipped = []
 
     def selectTestsFromSuite(self, suite_in):
-        #import pdb; pdb.set_trace()
         suite = unittest.TestSuite()
         for item in suite_in._tests:
             if isinstance(item, unittest.TestSuite):

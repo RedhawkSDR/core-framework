@@ -1885,4 +1885,4 @@ if __name__ == "__main__":
         print "NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus))
         for node in topology.nodes:
             print 'Node', node.node, 'CPUs:', node.cpus
-    ossie.utils.testing.rhunittest.RHTestProgram()  # By default tests all implementations
+    ossie.utils.testing.main()  # By default tests all implementations

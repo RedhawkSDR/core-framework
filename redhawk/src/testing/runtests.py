@@ -103,9 +103,11 @@ class PromptTestLoader(unittest.TestLoader):
             if not (attrname.startswith(prefix) and hasattr(getattr(testCaseClass, attrname), '__call__')):
                 return False
             function = getattr(testCaseClass, attrname, None)
-            if function and getattr(function, 'skip', False):
-                print 'SKIPPING:  {0}.{1}'.format(testCaseClass.__name__, function.__name__)
-                return False
+            if function:
+                reason = getattr(function, 'skip_reason', False)
+                if reason:
+                    print "SKIPPING:  {0}.{1} - '{2}'".format(testCaseClass.__name__, function.__name__, reason)
+                    return False
             return True
         testFnNames = filter(isTestMethod, dir(testCaseClass))
         if self.sortTestMethodsUsing:
@@ -160,8 +162,9 @@ class TestCollector(unittest.TestSuite):
                 candidate = getattr(mod, candidate)
                 try:
                     if issubclass(candidate, unittest.TestCase):
-                        if getattr(candidate, 'skip', False):
-                            print 'SKIPPING:  {0}'.format(candidate.__name__)
+                        reason = getattr(candidate, 'skip_reason', False)
+                        if reason:
+                            print "SKIPPING:  {0} - '{1}'".format(candidate.__name__, reason)
                             continue
                         print "LOADING"
                         loader = PromptTestLoader()
