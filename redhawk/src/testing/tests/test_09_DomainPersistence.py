@@ -1141,6 +1141,14 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
 
     def test_DomainChannelsRestore_KillDeviceManager(self):
+
+        # check that event channel names are not in naming context
+	domain_name = scatest.getTestDomainName()
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_IDM)
+
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self._nb_devMgr, self._devMgr = self.launchDeviceManager("/nodes/test_GPP_node/DeviceManager.dcd.xml")
         domain_name = self._domMgr._get_name()
@@ -1166,6 +1174,12 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         if not self.waitTermination(self._nb_domMgr, 5.0):
             self.fail("Domain Manager Failed to Die")
 
+        # check that event channel names are not in naming context
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
+        self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_IDM)
+
         # restart domain manager
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
         self.assertNotEqual( self._domMgr, None )
@@ -1185,6 +1199,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
+	self.assertEqual( ODM_ref._non_existent(), 0)
+	self.assertEqual( IDM_ref._non_existent(), 0)
 
         # perform normal shutdown for DomainManager
         os.kill(self._nb_domMgr.pid, signal.SIGINT)
