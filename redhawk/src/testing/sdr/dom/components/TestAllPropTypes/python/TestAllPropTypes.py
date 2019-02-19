@@ -144,6 +144,7 @@ class TestAllPropTypes_i(TestAllPropTypes_base):
     
     def onconfigure_prop_struct_seq(self, old, new):
         temp = self.StructSeqVars('67',False,0,'',0,0,0,0,0,0,0,0,0)
+        self.struct_seq = []
         self.struct_seq.append(temp)
 
     def process(self):

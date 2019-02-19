@@ -25,6 +25,8 @@ from ossie.cf import CF
 from ossie.utils import redhawk
 from omniORB import CORBA
 import struct
+from omniORB import tcInternal as _tcInternal
+from ossie.cf import PortTypes as _PortTypes
 
 class TestAllTypes(scatest.CorbaTestCase):
     def setUp(self):
@@ -116,6 +118,173 @@ class TestAllTypes(scatest.CorbaTestCase):
             self.preconditions()
             res = self._app.query([])
             for r in res:
+                if r.value._t == CORBA.TC_null:
+                    if r.id == 'simple_boolean':
+                        r.value = any.to_any(False)
+                    elif r.id == 'simple_char':
+                        r.value = any.to_any('o')
+                        r.value._t = CORBA.TC_char
+                    elif r.id == 'simple_string':
+                        r.value = any.to_any('foo')
+                        r.value._t = CORBA.TC_string
+                    elif r.id == 'simple_double':
+                        r.value = any.to_any(1.0)
+                        r.value._t = CORBA.TC_double
+                    elif r.id == 'simple_float':
+                        r.value = any.to_any(1.0)
+                        r.value._t = CORBA.TC_float
+                    elif r.id == 'simple_short':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_short
+                    elif r.id == 'simple_ushort':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_ushort
+                    elif r.id == 'simple_long':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_long
+                    elif r.id == 'simple_longlong':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_longlong
+                    elif r.id == 'simple_ulong':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_ulong
+                    elif r.id == 'simple_ulonglong':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_ulonglong
+                    elif r.id == 'simple_objref':
+                        r.value = any.to_any('o')
+                        r.value._t = CORBA.TC_string
+                    elif r.id == 'simple_octet':
+                        r.value = any.to_any(1)
+                        r.value._t = CORBA.TC_octet
+                    elif r.id == 'simple_sequence_boolean':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/BooleanSeq:1.0")
+                    elif r.id == 'simple_sequence_char':
+                        r.value = any.to_any('')
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/CharSeq:1.0")
+                    elif r.id == 'simple_sequence_double':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/DoubleSeq:1.0")
+                    elif r.id == 'simple_sequence_float':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/FloatSeq:1.0")
+                    elif r.id == 'simple_sequence_long':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/LongSeq:1.0")
+                    elif r.id == 'simple_sequence_longlong':
+                        r.value = any.to_any([])
+                        r.value._t = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.LongLongSequence)
+                    elif r.id == 'simple_sequence_string':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/StringSeq:1.0")
+                    elif r.id == 'simple_sequence_objref':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/StringSeq:1.0")
+                    elif r.id == 'simple_sequence_octet':
+                        r.value = any.to_any('')
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0")
+                    elif r.id == 'simple_sequence_short':
+                        r.value = any.to_any([])
+                        r.value._t = _tcInternal.typeCodeFromClassOrRepoId(CORBA.UShortSeq)
+                    elif r.id == 'simple_sequence_ulong':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/ULongSeq:1.0")
+                    elif r.id == 'simple_sequence_ulonglong':
+                        r.value = any.to_any([])
+                        r.value._t = _tcInternal.typeCodeFromClassOrRepoId(_PortTypes.UlongLongSequence)
+                    elif r.id == 'simple_sequence_ushort':
+                        r.value = any.to_any([])
+                        r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0")
+                if r.id == 'struct_vars':
+                    for item in r.value._v:
+                        if item.value._t != CORBA.TC_null:
+                            continue
+                        if item.id == 'struct_string':
+                            item.value = any.to_any('foo')
+                            item.value._t = CORBA.TC_string
+                        elif item.id == 'struct_boolean':
+                            item.value = any.to_any(False)
+                        elif item.id == 'struct_ulong':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_ulong
+                        elif item.id == 'struct_objref':
+                            item.value = any.to_any('o')
+                            item.value._t = CORBA.TC_string
+                        elif item.id == 'struct_short':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_short
+                        elif item.id == 'struct_float':
+                            item.value = any.to_any(1.0)
+                            item.value._t = CORBA.TC_float
+                        elif item.id == 'struct_octet':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_octet
+                        elif item.id == 'struct_char':
+                            item.value = any.to_any('o')
+                            item.value._t = CORBA.TC_char
+                        elif item.id == 'struct_ushort':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_ushort
+                        elif item.id == 'struct_double':
+                            item.value = any.to_any(1.0)
+                            item.value._t = CORBA.TC_double
+                        elif item.id == 'struct_long':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_long
+                        elif item.id == 'struct_longlong':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_longlong
+                        elif item.id == 'struct_ulonglong':
+                            item.value = any.to_any(1)
+                            item.value._t = CORBA.TC_ulonglong
+                if type(r.value._v) == int or type(r.value._v) == long or type(r.value._v) == float:
+                    r.value._v = r.value._v + 1
+                elif r.value._t == CORBA.TC_char:
+                    r.value._v = 'o'
+                elif type(r.value._v) == str:
+                    r.value._v = 'foo'
+                elif type(r.value._v) == bool:
+                    r.value._v = False
+                elif type(r.value._v) == list:
+                    if r.id == 'simple_sequence_string':
+                        r.value._v = ['foo']
+                    elif r.id == 'simple_sequence_boolean':
+                        r.value._v = [False]
+                    elif r.id == 'simple_sequence_ulong':
+                        r.value._v = [1]
+                    elif r.id == 'simple_sequence_short':
+                        r.value._v = [1]
+                    elif r.id == 'simple_sequence_float':
+                        r.value._v = [1.0]
+                    elif r.id == 'simple_sequence_ushort':
+                        r.value._v = [1]
+                    elif r.id == 'simple_sequence_double':
+                        r.value._v = [1.0]
+                    elif r.id == 'simple_sequence_long':
+                        r.value._v = [1]
+                    elif r.id == 'simple_sequence_longlong':
+                        r.value._v = [1]
+                    elif r.id == 'simple_sequence_ulonglong':
+                        r.value._v = [1]
+
+                if r.id == 'struct_seq':
+                    if r.value._v == []:
+                        seq_vars = CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), [
+                            CF.DataType(id='struct_seq_string', value=CORBA.Any(CORBA.TC_string, 'foo')),
+                            CF.DataType(id='struct_seq_boolean', value=CORBA.Any(CORBA.TC_boolean, False)),
+                            CF.DataType(id='struct_seq_ulong', value=CORBA.Any(CORBA.TC_ulong, 1)),
+                            CF.DataType(id='struct_seq_objref', value=CORBA.Any(CORBA.TC_string, 'o')),
+                            CF.DataType(id='struct_seq_short', value=CORBA.Any(CORBA.TC_short, 1)),
+                            CF.DataType(id='struct_seq_float', value=CORBA.Any(CORBA.TC_float, 1.0)),
+                            CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TC_octet, 1)),
+                            CF.DataType(id='struct_seq_char', value=CORBA.Any(CORBA.TC_char, 'o')),
+                            CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TC_ushort, 1)),
+                            CF.DataType(id='struct_seq_double', value=CORBA.Any(CORBA.TC_double, 1.0)),
+                            CF.DataType(id='struct_seq_long', value=CORBA.Any(CORBA.TC_long, 1)),
+                            CF.DataType(id='struct_seq_longlong', value=CORBA.Any(CORBA.TC_longlong, 1)),
+                            CF.DataType(id='struct_seq_ulonglong', value=CORBA.Any(CORBA.TC_ulonglong, 1)),])
+                        r = CF.DataType(id='struct_seq', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/AnySeq:1.0"), [any.to_any(seq_vars)]))
                 self._app.configure([r])
             res = self._app.query([])
 
