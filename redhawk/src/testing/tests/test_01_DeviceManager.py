@@ -685,6 +685,14 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleExecutableDevice_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
 
+        devices = []
+        begin_time = time.time()
+        while len(devices) != 4:
+            devices = devMgr._get_registeredDevices()
+            time.sleep(0.1)
+            if (time.time() - begin_time) > 5.0:
+                break
+
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 4)
 
