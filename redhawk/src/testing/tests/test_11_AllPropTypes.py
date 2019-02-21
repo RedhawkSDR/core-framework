@@ -78,22 +78,34 @@ class TestAllTypes(scatest.CorbaTestCase):
     def test_AllPropTypesJava(self):
         self._test_AllPropTypes('Java')
 
-    def checkValue(self, results, prop_id, value):
+    def checkValue(self, results, prop_id, value, same=True):
         for r in results:
             if r.id == prop_id:
                 if prop_id == 'struct_vars':
-                    self.assertEqual(r.value.value()[0].value.value(), value)
+                    if same:
+                        self.assertEqual(r.value.value()[0].value.value(), value)
+                    else:
+                        self.assertNotEqual(r.value.value()[0].value.value(), value)
                 elif prop_id == 'struct_seq':
                     found_id = False
                     for curr in r.value.value()[0].value():
                         if curr.id == 'struct_seq_string':
                             found_id = True
-                            self.assertEqual(curr.value.value(), value)
+                            if same:
+                                self.assertEqual(curr.value.value(), value)
+                            else:
+                                self.assertNotEqual(curr.value.value(), value)
                     self.assertEqual(found_id, True)
                 elif prop_id.find('simple_sequence') != -1:
-                    self.assertEqual(r.value.value()[0], value)
+                    if same:
+                        self.assertEqual(r.value.value()[0], value)
+                    else:
+                        self.assertNotEqual(r.value.value()[0], value)
                 else:
-                    self.assertEqual(r.value.value(), value)
+                    if same:
+                        self.assertEqual(r.value.value(), value)
+                    else:
+                        self.assertNotEqual(r.value.value(), value)
 
     def test_deploytime_sequenceExt(self):
         dom=redhawk.attach(self._domMgr._get_name())
@@ -116,6 +128,12 @@ class TestAllTypes(scatest.CorbaTestCase):
         for lang in languages:
             self.launchApplication(lang)
             self.preconditions()
+
+            res = self._app.query([CF.DataType(id='simple_string', value=any.to_any(None))])
+            self._app.configure(res)
+            res = self._app.query([])
+            self.checkValue(res, 'simple_string', '42', same=False)
+
             res = self._app.query([])
             for r in res:
                 if r.value._t == CORBA.TC_null:
