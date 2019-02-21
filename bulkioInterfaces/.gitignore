@@ -13,6 +13,7 @@ libtool
 ltmain.sh
 missing
 status
+test-driver
 *.o
 *.lo
 .libs

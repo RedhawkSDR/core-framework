@@ -23,6 +23,7 @@ libfrontendInterfaces.la
 libtool
 ltmain.sh
 missing
+test-driver
 /src/
 /libsrc/java/bin/
 /libsrc/cpp/.dirstamp
