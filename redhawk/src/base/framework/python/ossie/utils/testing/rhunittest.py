@@ -249,6 +249,48 @@ class RHTestLoader(unittest.TestLoader):
         unittest.TestLoader.__init__(self)
         self.impl = impl
 
+    def selectTestsFromCase(self, test):
+        class_name = test.__class__.__name__
+        # check if class should be skipped
+        reason = getattr(test, 'skip_reason', False)
+        if reason:
+            if hasattr(self.selectTestsFromCase, 'classes_skipped'):
+                if class_name not in self.selectTestsFromCase.classes_skipped:
+                    self.selectTestsFromCase.classes_skipped.append(class_name)
+                    print "SKIPPING:  {0} - '{1}'".format(class_name, reason)
+            return None
+
+        # check if method should be skipped
+        method_name = test._testMethodName
+        method = getattr(test, method_name, None)
+        if method:
+            reason = getattr(method, 'skip_reason', False)
+            if reason:
+                print "SKIPPING:  {0}.{1} - '{2}'".format(class_name, method_name, reason)
+                return None
+        return test
+
+    selectTestsFromCase.classes_skipped = []
+
+    def selectTestsFromSuite(self, suite_in):
+        suite = unittest.TestSuite()
+        for item in suite_in._tests:
+            if isinstance(item, unittest.TestSuite):
+                suite.addTests(self.selectTestsFromSuite(item))
+            else:
+                test = self.selectTestsFromCase(item)
+                if test:
+                    suite.addTest(test)
+        return suite
+
+    def loadTestsFromTestCase(self, testCaseClass):
+        loaded_suite = super(RHTestLoader, self).loadTestsFromTestCase(testCaseClass)
+        return self.selectTestsFromSuite(loaded_suite)
+
+    def loadTestsFromNames(self, names, module=None):
+        loaded_suite = super(RHTestLoader, self).loadTestsFromNames(names, module=module)
+        return self.selectTestsFromSuite(loaded_suite)
+
     def getTestCaseNames(self, testCaseClass):
         if issubclass(testCaseClass, RHTestCase):
             return testCaseClass.getTestMethodNames(self.testMethodPrefix, self.impl)
