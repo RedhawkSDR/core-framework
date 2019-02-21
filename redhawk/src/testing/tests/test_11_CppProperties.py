@@ -65,6 +65,10 @@ class CppPropertiesTest(scatest.CorbaTestCase):
         props = self._app.query([])
         # filter out readonly props
         props = [ p for p in props if p.id != 'readOnly' ]
+        for prop_idx in range(len(props)):
+            if props[prop_idx].id == 'reset_utctime':
+                props.pop(prop_idx)
+                break
 
         for prop in props:
             if prop.id == 'DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7':
