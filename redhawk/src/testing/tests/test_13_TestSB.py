@@ -186,7 +186,14 @@ class SBTestTest(scatest.CorbaTestCase):
     def test_LogServiceFunctionException(self):
         file_loc = os.getcwd()
         comp = sb.launch('sdr/dom/components/svc_fn_error/svc_fn_error.spd.xml', execparams={'LOGGING_CONFIG_URI':'file://'+os.getcwd()+'/logconfig.cfg'})
-        comp.start()
+        begin_time = time.time()
+        while time.time()-begin_time < 10:
+            try:
+                comp.start()
+                break
+            except:
+                time.sleep(0.5)
+
         time.sleep(0.5)
         fp = None
         try:
