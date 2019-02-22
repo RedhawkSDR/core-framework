@@ -282,13 +282,13 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
      */
     public void pushSRI(StreamSRI header) {
 
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
 	}
 
         synchronized (sriUpdateLock) {
             if (!currentHs.containsKey(header.streamID)) {
-		if ( logger != null ) {
+		if (( logger != null ) && (logger.isDebugEnabled())) {
 		    logger.debug("pushSRI PORT:" + name + " NEW SRI:" + 
 				 header.streamID );
 		}
@@ -332,7 +332,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
                 }
             }
 	}
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
 	}
     }
@@ -344,12 +344,12 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
      */
     public void pushPacket( String data, boolean eos, String streamID) 
     {
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort pushPacket ENTER (port=" + name +")" );
 	}
         synchronized (this.dataBufferLock) {
             if (this.maxQueueDepth == 0) {
-		if ( logger != null ) {
+		if (( logger != null ) && (logger.isTraceEnabled())) {
 		    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
 		}
                 return;
@@ -368,7 +368,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
 		}
                 portBlocking = blocking;
             } else {
-                if (logger != null) {
+                if (( logger != null ) && (logger.isEnabledFor(org.apache.log4j.Level.WARN))) {
                     logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
                 }
                 tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
@@ -401,7 +401,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
             synchronized (this.dataBufferLock) {
                 boolean flushToReport = false;
                 if ((this.maxQueueDepth >= 0) && (this.workQueue.size() >= this.maxQueueDepth)) {
-		    if ( logger != null ) {
+		    if (( logger != null ) && (logger.isDebugEnabled())) {
 			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
 		    }
                     flushToReport = true;
@@ -419,7 +419,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
                     }
                 }
                 this.stats.update(data.length(), (this.workQueue.size()+1)/(float)this.maxQueueDepth, eos, streamID, flushToReport);
-		if ( logger != null ) {
+		if (( logger != null ) && (logger.isDebugEnabled())) {
 		    logger.debug( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + (workQueue.size()+1) + ")");
 		}
                 Packet p = new Packet(data, time, eos, streamID, tmpH, sriChanged, false);
@@ -435,7 +435,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
                 this.dataSem.release();
             }
         }
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
 	}
         return;
@@ -484,24 +484,24 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
     public Packet getPacket(long wait) 
     {
 
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort getPacket ENTER (port=" + name +")" );
 	}
 
         try {
             if (wait < 0) {
-		if ( logger != null ) {
+		if (( logger != null ) && (logger.isTraceEnabled())) {
 		    logger.trace("bulkio.InPort getPacket PORT:" + name +" Block until data arrives" );
 		}
                 this.dataSem.acquire();
             } else {
-		if ( logger != null ) {
+		if (( logger != null ) && (logger.isTraceEnabled())) {
 		    logger.trace("bulkio.InPort getPacket PORT:" + name +" TIMED WAIT:" + wait );
 		}
                 this.dataSem.tryAcquire(wait, TimeUnit.MILLISECONDS);
             }
         } catch (InterruptedException ex) {
-	    if ( logger != null ) {
+	    if (( logger != null ) && (logger.isTraceEnabled())) {
 		logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
 	    }
             return null;
@@ -541,7 +541,7 @@ public class InXMLPort extends BULKIO.jni.dataXMLPOA implements PortBase {
             }
         }
 
-	if ( logger != null ) {
+	if (( logger != null ) && (logger.isTraceEnabled())) {
 	    logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
 	}
         return p;
