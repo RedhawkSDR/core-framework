@@ -688,10 +688,10 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devices = []
         begin_time = time.time()
         while len(devices) != 4:
-            devices = devMgr._get_registeredDevices()
             time.sleep(0.1)
-            if (time.time() - begin_time) > 5.0:
+            if (time.time() - begin_time) > 15.0:
                 break
+            devices = devMgr._get_registeredDevices()
 
         # NOTE These assert check must be kept in-line with the DeviceManager.dcd.xml
         scatest.verifyDeviceLaunch(self, devMgr, 4)
