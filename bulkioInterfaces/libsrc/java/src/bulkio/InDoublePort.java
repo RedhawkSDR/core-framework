@@ -24,32 +24,48 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
+import org.omg.CORBA.TCKind;
+import org.ossie.properties.AnyUtils;
+import CF.DataType;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.log4j.Logger;
-
-import CF.DataType;
-import org.ossie.component.RHLogger;
-
-import BULKIO.PortStatistics;
-import BULKIO.PortUsageType;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
+import BULKIO.PortStatistics;
+import BULKIO.PortUsageType;
+import org.apache.log4j.Logger;
+
+import bulkio.sriState;
+import bulkio.linkStatistics;
+import bulkio.DataTransfer;
+import bulkio.DoubleSize;
+
+import org.ossie.component.PortBase;
 
 /**
  * 
  */
-class InPortImpl<A> {
+public class InDoublePort extends BULKIO.jni.dataDoublePOA implements org.ossie.component.PortBase {
+
+    /**
+     * A class to hold packet data.
+     * 
+     */
+    public class Packet extends DataTransfer < double[] > {
+
+	public Packet(double[] data, PrecisionUTCTime time, boolean endOfStream, String streamID, StreamSRI H, boolean sriChanged, boolean inputQueueFlushed ) {
+	    super(data,time,endOfStream,streamID,H,sriChanged,inputQueueFlushed); 
+	};
+    };
 
     /**
      * 
      */
     protected String name;
-
+     
     /**
      * 
      */
@@ -74,12 +90,12 @@ class InPortImpl<A> {
      * 
      */
     protected Object dataBufferLock;
-
+    
     /**
      * 
      */
     protected int maxQueueDepth;
-
+    
     /**
      * 
      */
@@ -95,34 +111,53 @@ class InPortImpl<A> {
      */
     protected boolean blocking;
 
-    /**
-     *
-     */
-    protected Logger   logger = null;
 
     protected bulkio.sri.Comparator    sri_cmp;
 
-    protected bulkio.SriListener   sriCallback;
+    protected bulkio.SriListener       sriCallback;
+
+
+    protected Logger                   logger = null;
 
 
     /**
      * This queue stores all packets received from pushPacket.
      * 
      */
-    private ArrayDeque<DataTransfer<A>> workQueue;
+    private ArrayDeque< Packet > workQueue;
+    
 
-    private DataHelper<A> helper;
-
+    
     /**
      * 
      */
-    public InPortImpl(String portName, Logger logger, bulkio.sri.Comparator compareSRI, bulkio.SriListener sriCallback, DataHelper<A> helper) {
+    public InDoublePort( String portName ) {
+	this( portName,  null, new bulkio.sri.DefaultComparator(), null );
+    }
+
+    public InDoublePort( String portName, bulkio.sri.Comparator compareSRI  ) {
+	this( portName, null, compareSRI, null );
+    }
+
+    public InDoublePort( String portName, 
+			bulkio.sri.Comparator compareSRI, 
+			bulkio.SriListener sriCallback
+			 ) {
+	this( portName, null, compareSRI, null );
+    }
+
+    public InDoublePort( String portName, Logger logger ) {
+	this( portName,  logger, new bulkio.sri.DefaultComparator(), null );
+    }
+
+    public InDoublePort( String portName, 
+			 Logger logger,
+			 bulkio.sri.Comparator compareSRI, 
+			 bulkio.SriListener sriCallback ) {
+
         this.name = portName;
-        this.logger = logger;
-        this.stats = new linkStatistics(this.name, 1);
-        // Update bit size from the helper, because element size does not take
-        // sub-byte elements (i.e., dataBit) into account.
-        this.stats.setBitSize(helper.bitSize());
+	this.logger = logger;
+        this.stats = new linkStatistics(this.name, new DoubleSize() );
         this.sriUpdateLock = new Object();
         this.statUpdateLock = new Object();
         this.currentHs = new HashMap<String, sriState>();
@@ -131,46 +166,34 @@ class InPortImpl<A> {
         this.queueSem = new Semaphore(this.maxQueueDepth);
         this.dataSem = new Semaphore(0);
         this.blocking = false;
-        this.helper = helper;
 
-        this.workQueue = new ArrayDeque<DataTransfer<A>>();
+	this.workQueue = new  ArrayDeque< Packet >();
 
-        sri_cmp = compareSRI;
-        sriCallback = sriCallback;
+	sri_cmp = compareSRI;	
+	sriCallback = sriCallback;
 
 	if ( this.logger == null ) {
             this.logger = Logger.getLogger("redhawk.bulkio.inport."+portName);
         }
         this.logger.debug( "bulkio::InPort CTOR port: " + portName ); 
+
     }
 
-    public Logger getLogger() {
+    public void setLogger( Logger newlogger ){
         synchronized (this.sriUpdateLock) {
-            return logger;
-        }
+	    logger = newlogger;
+	}
     }
 
-    public void setLogger(Logger newlogger) {
-        synchronized (this.sriUpdateLock) {
-            logger = newlogger;
-        }
-    }
 
-    public void setLogger(RHLogger logger) {
-        if (logger != null) {
-            setLogger(logger.getL4Logger());
-        } else {
-            setLogger((Logger) null);
-        }
-    }
 
     /**
-     * 
+     *
      */
     public void setSriListener( bulkio.SriListener sriCallback ) {
         synchronized(this.sriUpdateLock) {
-            this.sriCallback = sriCallback;
-        }
+	    this.sriCallback = sriCallback;
+	}
     }
 
     /**
@@ -179,7 +202,7 @@ class InPortImpl<A> {
     public String getName() {
         return this.name;
     }
-
+     
     /**
      * 
      */
@@ -203,13 +226,13 @@ class InPortImpl<A> {
         int queueSize = 0;
         synchronized (dataBufferLock) {
             queueSize = workQueue.size();
-            if (queueSize == maxQueueDepth) {
-                return PortUsageType.BUSY;
-            } else if (queueSize == 0) {
-                return PortUsageType.IDLE;
-            }
-            return PortUsageType.ACTIVE;
-        }
+	    if (queueSize == maxQueueDepth) {
+		return PortUsageType.BUSY;
+	    } else if (queueSize == 0) {
+		return PortUsageType.IDLE;
+	    }
+	    return PortUsageType.ACTIVE;
+	}
     }
 
     /**
@@ -225,7 +248,7 @@ class InPortImpl<A> {
             return sris.toArray(new StreamSRI[sris.size()]);
         }
     }
-
+    
     /**
      * 
      */
@@ -234,7 +257,7 @@ class InPortImpl<A> {
             return workQueue.size();
         }
     }
-
+    
     /**
      * 
      */
@@ -243,7 +266,7 @@ class InPortImpl<A> {
             return this.maxQueueDepth;
         }
     }
-
+    
     /**
      * 
      */
@@ -254,21 +277,22 @@ class InPortImpl<A> {
         }
     }
 
+
     /**
      * 
      */
     public void pushSRI(StreamSRI header) {
 
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
-        }
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort pushSRI  ENTER (port=" + name +")" );
+	}
 
         synchronized (sriUpdateLock) {
             if (!currentHs.containsKey(header.streamID)) {
-                if (( logger != null ) && (logger.isDebugEnabled())) {
-                    logger.debug("pushSRI PORT:" + name + " NEW SRI:" +
-                                 header.streamID );
-                }
+		if (( logger != null ) && (logger.isDebugEnabled())) {
+		    logger.debug("pushSRI PORT:" + name + " NEW SRI:" + 
+				 header.streamID );
+		}
                 if ( sriCallback != null ) { sriCallback.newSRI(header); }
                 currentHs.put(header.streamID, new sriState(header, true));
                 if (header.blocking) {
@@ -286,12 +310,12 @@ class InPortImpl<A> {
                 }
             } else {
                 StreamSRI oldSri = currentHs.get(header.streamID).getSRI();
-                boolean cval = false;
-                if ( sri_cmp != null ) {
-                    cval = sri_cmp.compare( header, oldSri );
-                }
+		boolean cval = false;
+		if ( sri_cmp != null ) {
+		    cval = sri_cmp.compare( header, oldSri );
+		}
                 if ( cval == false ) {
-                    if ( sriCallback != null ) { sriCallback.changedSRI(header); }
+		    if ( sriCallback != null ) { sriCallback.changedSRI(header); }
                     this.currentHs.put(header.streamID, new sriState(header, true));
                     if (header.blocking) {
                         //If switching to blocking we have to set the semaphore
@@ -309,32 +333,29 @@ class InPortImpl<A> {
                 }
             }
         }
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
-        }
+
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort pushSRI  EXIT (port=" + name +")" );
+	}
     }
+
+    
 
     /**
      * 
      */
-    public void pushPacket(A data, PrecisionUTCTime time, boolean eos, String streamID)
+    public void pushPacket(double[] data, PrecisionUTCTime time, boolean eos, String streamID) 
     {
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort pushPacket ENTER (port=" + name +")" );
-        }
 
-        // Discard empty packets if EOS is not set, as there is no useful data
-        // or metadata to be had--since T applies to the 1st sample (which does
-        // not exist), all we have is a stream ID
-        if (helper.isEmpty(data) && !eos) {
-            return;
-        }
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort pushPacket ENTER (port=" + name +")" );
+	}
 
         synchronized (this.dataBufferLock) {
             if (this.maxQueueDepth == 0) {
-                if (( logger != null ) && (logger.isTraceEnabled())) {
-                    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
-                }
+		if (( logger != null ) && (logger.isTraceEnabled())) {
+		    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
+		}
                 return;
             }
         }
@@ -346,9 +367,9 @@ class InPortImpl<A> {
             if (this.currentHs.containsKey(streamID)) {
                 tmpH = this.currentHs.get(streamID).getSRI();
                 sriChanged = this.currentHs.get(streamID).isChanged();
-                if ( eos == false ) {
-                    this.currentHs.get(streamID).setChanged(false);
-                }
+		if ( eos == false ) {
+		    this.currentHs.get(streamID).setChanged(false);
+		}
                 portBlocking = blocking;
             } else {
                 if (( logger != null ) && (logger.isEnabledFor(org.apache.log4j.Level.WARN))) {
@@ -364,10 +385,8 @@ class InPortImpl<A> {
         }
 
         // determine whether to block and wait for an empty space in the queue
-        int elements = helper.arraySize(data);
-
         if (portBlocking) {
-            DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
+            Packet p = new Packet(data, time, eos, streamID, tmpH, sriChanged, false);
 
             try {
                 queueSem.acquire();
@@ -376,7 +395,7 @@ class InPortImpl<A> {
             }
 
             synchronized (this.dataBufferLock) {
-                this.stats.update(elements, this.workQueue.size()/(float)this.maxQueueDepth, eos, streamID, false);
+                this.stats.update(data.length, this.workQueue.size()/(float)this.maxQueueDepth, eos, streamID, false);
                 this.workQueue.add(p);
                 this.dataSem.release();
             }
@@ -384,9 +403,9 @@ class InPortImpl<A> {
             synchronized (this.dataBufferLock) {
                 boolean flushToReport = false;
                 if ((this.maxQueueDepth >= 0) && (this.workQueue.size() >= this.maxQueueDepth)) {
-                    if (( logger != null ) && (logger.isDebugEnabled())) {
-                        logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
-                    }
+		    if (( logger != null ) && (logger.isDebugEnabled())) {
+			logger.debug( "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE"  + this.workQueue.size() + ")" );
+		    }
                     flushToReport = true;
 
                     // Need to hold the SRI mutex while flushing the queue
@@ -401,27 +420,27 @@ class InPortImpl<A> {
                         currH.setChanged(false);
                     }
                 }
-                this.stats.update(elements, (this.workQueue.size()+1)/(float)this.maxQueueDepth, eos, streamID, flushToReport);
-                if (( logger != null ) && (logger.isTraceEnabled())) {
-                    logger.trace( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + workQueue.size() + ")");
-                }
-                DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
+                this.stats.update(data.length, (this.workQueue.size()+1)/(float)this.maxQueueDepth, eos, streamID, flushToReport);
+		if (( logger != null ) && (logger.isDebugEnabled())) {
+		    logger.debug( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + (workQueue.size()+1) + ")");
+		}
+                Packet p = new Packet(data, time, eos, streamID, tmpH, sriChanged, false);
                 this.workQueue.add(p);
                 // If a flush occurred, always set the flag on the first
                 // packet; this may not be the packet that was just inserted if
                 // there were any EOS packets on the queue
                 if (flushToReport) {
-                    DataTransfer<A> first = this.workQueue.removeFirst();
-                    first = new DataTransfer<A>(first.dataBuffer, first.T, first.EOS, first.streamID, first.SRI, first.sriChanged, true);
+                    Packet first = this.workQueue.removeFirst();
+                    first = new Packet(first.dataBuffer, first.T, first.EOS, first.streamID, first.SRI, first.sriChanged, true);
                     this.workQueue.addFirst(first);
                 }
                 this.dataSem.release();
             }
         }
 
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
-        }
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
+	}
         return;
 
     }
@@ -429,8 +448,8 @@ class InPortImpl<A> {
     private void _flushQueue()
     {
         Set<String> sri_changed = new HashSet<String>();
-        ArrayDeque<DataTransfer<A>> saved_packets = new ArrayDeque<DataTransfer<A>>();
-        for (DataTransfer<A> packet : this.workQueue) {
+        ArrayDeque<Packet> saved_packets = new ArrayDeque<Packet>();
+        for (Packet packet : this.workQueue) {
             if (packet.EOS) {
                 // Remove the SRI change flag for this stream, as further SRI
                 // changes apply to a different stream; set the SRI change flag
@@ -442,7 +461,7 @@ class InPortImpl<A> {
                 }
 
                 // Discard data and preserve the EOS packet
-                DataTransfer<A> modified_packet = new DataTransfer<A>(this.helper.emptyArray(), packet.T, true, packet.streamID, packet.SRI, sri_flag, false);
+                Packet modified_packet = new Packet(new double[0], packet.T, true, packet.streamID, packet.SRI, sri_flag, false);
                 saved_packets.addLast(modified_packet);
             } else if (packet.sriChanged) {
                 sri_changed.add(packet.streamID);
@@ -465,33 +484,32 @@ class InPortImpl<A> {
     /**
      * 
      */
-    public DataTransfer<A> getPacket(long wait)
+    public Packet getPacket(long wait) 
     {
 
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort getPacket ENTER (port=" + name +")" );
-        }
-
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort getPacket ENTER (port=" + name +")" );
+	}
         try {
             if (wait < 0) {
-                if (( logger != null ) && (logger.isTraceEnabled())) {
-                    logger.trace("bulkio.InPort getPacket PORT:" + name +" Block until data arrives" );
-                }
+		if (( logger != null ) && (logger.isTraceEnabled())) {
+		    logger.trace("bulkio.InPort getPacket PORT:" + name +" Block until data arrives" );
+		}
                 this.dataSem.acquire();
             } else {
-                if (( logger != null ) && (logger.isTraceEnabled())) {
-                    logger.trace("bulkio.InPort getPacket PORT:" + name +" TIMED WAIT:" + wait );
-                }
+		if (( logger != null ) && (logger.isTraceEnabled())) {
+		    logger.trace("bulkio.InPort getPacket PORT:" + name +" TIMED WAIT:" + wait );
+		}
                 this.dataSem.tryAcquire(wait, TimeUnit.MILLISECONDS);
             }
         } catch (InterruptedException ex) {
-            if (( logger != null ) && (logger.isTraceEnabled())) {
-                logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
-            }
+	    if (( logger != null ) && (logger.isTraceEnabled())) {
+		logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
+	    }
             return null;
         }
-
-        DataTransfer<A> p = null;
+        
+        Packet p = null;
         synchronized (this.dataBufferLock) {
             p = this.workQueue.poll();
         }
@@ -506,7 +524,7 @@ class InPortImpl<A> {
                             boolean stillBlocking = false;
                             Iterator<sriState> iter = currentHs.values().iterator();
                             while (iter.hasNext()) {
-                                if (iter.next().getSRI().blocking) {
+                            	if (iter.next().getSRI().blocking) {
                                     stillBlocking = true;
                                     break;
                                 }
@@ -519,16 +537,27 @@ class InPortImpl<A> {
                     }
                 }
             }
-
+            
             if (blocking) {
                 queueSem.release();
             }
         }
 
-        if (( logger != null ) && (logger.isTraceEnabled())) {
-            logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
-        }
-
+	if (( logger != null ) && (logger.isTraceEnabled())) {
+	    logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
+	}
         return p;
     }
+
+	public String getRepid()
+	{
+		return BULKIO.dataDoubleHelper.id();
+	}
+
+	public String getDirection()
+	{
+		return "Provides";
+	}
+
 }
+
