@@ -13,3 +13,4 @@ missing
 ossie.pc
 *.class
 py-compile
+test-driver

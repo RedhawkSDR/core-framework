@@ -30,6 +30,8 @@ classlist.txt
 filelist.txt
 src/cpp/redhawk
 src/java/redhawk
+src/python/build
 src/python/build/
 src/python/redhawk/burstioInterfaces
 src/python/setup.py
+test-driver

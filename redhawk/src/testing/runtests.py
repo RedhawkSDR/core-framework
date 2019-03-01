@@ -22,13 +22,14 @@
 # System imports
 # NOTE: all REDHAWK framework imports must occur after configureTestPaths()
 import commands
-import unittest
+import functools
 import os
 import re
 import shutil
 import sys
 import time
 import functools
+import unittest
 
 def prependPythonPath(thepath):
     theabspath = os.path.abspath(thepath)
@@ -103,18 +104,23 @@ class PromptTestLoader(unittest.TestLoader):
             if not (attrname.startswith(prefix) and hasattr(getattr(testCaseClass, attrname), '__call__')):
                 return False
             function = getattr(testCaseClass, attrname, None)
-            if function and getattr(function, 'skip', False):
-                print 'SKIPPING:  {0}.{1}'.format(testCaseClass.__name__, function.__name__)
-                return False
+            if function:
+                reason = getattr(function, 'skip_reason', False)
+                if reason:
+                    print "SKIPPING:  {0}.{1} - '{2}'".format(testCaseClass.__name__, function.__name__, reason)
+                    return False
             return True
         testFnNames = filter(isTestMethod, dir(testCaseClass))
         if self.sortTestMethodsUsing:
-            _cmp = cmp
+            cmp_to_key = None
             if hasattr(unittest, '_CmpToKey'):  # Python 2.6
-                _cmp = unittest._CmpToKey
+                cmp_to_key = unittest._CmpToKey
             elif hasattr(functools, 'cmp_to_key'):  # Python 2.7
-                _cmp = functools.cmp_to_key
-            testFnNames.sort(key=_cmp(self.sortTestMethodsUsing))
+                cmp_to_key = functools.cmp_to_key
+            if cmp_to_key:
+                testFnNames.sort(key=cmp_to_key(self.sortTestMethodsUsing))
+            else:
+                print 'Conversion function "cmp_to_key" not found.  Not sorting.'
         return testFnNames
 
     def loadTestsFromTestCase(self, testCaseClass):
@@ -157,8 +163,9 @@ class TestCollector(unittest.TestSuite):
                 candidate = getattr(mod, candidate)
                 try:
                     if issubclass(candidate, unittest.TestCase):
-                        if getattr(candidate, 'skip', False):
-                            print 'SKIPPING:  {0}'.format(candidate.__name__)
+                        reason = getattr(candidate, 'skip_reason', False)
+                        if reason:
+                            print "SKIPPING:  {0} - '{1}'".format(candidate.__name__, reason)
                             continue
                         print "LOADING"
                         loader = PromptTestLoader()
