@@ -606,13 +606,13 @@ class ComponentTests(GPPSandboxTest):
             pass
 
     def get_single_nic_interface(self):
+        self.nic_list = []
         cmd = '/sbin/ifconfig -a'
         (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
         if exitstatus != 0:
             print "Problem running '{0}'".format(cmd)
             return
 
-        self.nic_list = []
         # add vlans
         for i in ifconfig_info.splitlines():
             i = i.strip()
@@ -1265,7 +1265,7 @@ class AffinityTests(GPPSandboxTest):
     def _getIrqs(self, nic):
         """Get IRQ numbers for a nic."""
         # Location 1:  the filenames in this dir listing.
-        dpath = '/xsys/class/net/{0}/device/msi_irqs'.format(nic)
+        dpath = '/sys/class/net/{0}/device/msi_irqs'.format(nic)
         irqs = []
         try:
             irqs = os.listdir(dpath)
@@ -1281,7 +1281,7 @@ class AffinityTests(GPPSandboxTest):
 
         # If location 1 does not exist,
         # use location 2:  the contents of this file.
-        fpath = '/xsys/class/net/{0}/device/irq'.format(nic)
+        fpath = '/sys/class/net/{0}/device/irq'.format(nic)
         content = ''
         irqs = []
         try:
@@ -1309,8 +1309,11 @@ class AffinityTests(GPPSandboxTest):
                     # Discard the first column (the IRQ number) and the last two
                     # (type and name) to get the CPU IRQ service totals
                     for cpu, count in enumerate(words[1:-2]):
-                        if int(count) > 0:
-                            cpus.add(cpu)
+                        try:
+                          if count.isalnum() and int(count) > 0:
+                              cpus.add(cpu)
+                        except:
+                            pass
         return sorted(cpus)
 
     def _getNicAffinityViaParse(self, nic):
@@ -1333,8 +1336,11 @@ class AffinityTests(GPPSandboxTest):
                 # (type and name) to get the CPU IRQ service totals
                 cpu_irqs = line.split()[1:-2]
                 for cpu, count in enumerate(cpu_irqs):
-                    if int(count) > 0:
-                        cpus.add(cpu)
+                    try:
+                       if count.isalnum() and int(count) > 0:
+                           cpus.add(cpu)
+                    except:
+                        pass
         return sorted(cpus)
 
     def _getNicAffinity(self, nic):
