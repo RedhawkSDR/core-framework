@@ -28,6 +28,7 @@ import re
 import shutil
 import sys
 import time
+import functools
 import unittest
 
 def prependPythonPath(thepath):
