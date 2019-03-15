@@ -18,6 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+use_nose() 
+{
 with_xunit=
 pproc=
 if [ $# -gt 0 ];
@@ -31,3 +33,8 @@ then
 fi
 
 nosetests  $with_xunit && $pproc 
+}
+
+
+./runtests.py --xunit=results
+
