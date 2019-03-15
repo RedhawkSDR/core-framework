@@ -605,6 +605,12 @@ class ComponentTests(GPPSandboxTest):
         except OSError:
             pass
 
+        try:
+            os.system('pkill -9 -f "spacely sprockets"')
+        except OSError:
+            pass
+
+
     def get_single_nic_interface(self):
         self.nic_list = []
         cmd = '/sbin/ifconfig -a'
@@ -896,6 +902,7 @@ class ComponentTests(GPPSandboxTest):
         sproc="./spacely sprockets"
         shutil.copy(proc,sproc)
         procs = subprocess.Popen(sproc)
+	self._busyProcs += [procs]
         self.assertEqual(procs.poll(), None )
 
         self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
