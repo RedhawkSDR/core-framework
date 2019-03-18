@@ -913,7 +913,7 @@ class ComponentTests(GPPSandboxTest):
         self.assertEqual(self.comp._process.isAlive(), True )
         try:
             os.system('pkill -9 -f "'+sproc+'"')
-            proc.kill()
+            procs.kill()
         except:
             pass
 
@@ -970,6 +970,10 @@ class ComponentTests(GPPSandboxTest):
         self.assertEquals( cprops[1].value.value(), 90)
 
     def test_loadCapacity(self):
+
+        # wait for load avg to settle 
+        time.sleep(5)
+
         # query current capacity
         cprops = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(None))]
         cprops = self.comp.ref.query(cprops)
