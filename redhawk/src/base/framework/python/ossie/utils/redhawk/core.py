@@ -132,7 +132,12 @@ class App(_CF__POA.Application, Resource):
 
         if self._domain == None:
             orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
-            obj = orb.resolve_initial_references("NameService")
+            try:
+                obj = orb.resolve_initial_references("NameService")
+            except _CORBA.BAD_INV_ORDER:
+                orb.destroy()
+                orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+                obj = orb.resolve_initial_references("NameService")
             self.rootContext = obj._narrow(_CosNaming.NamingContext)
         else:
             self.rootContext = self._domain.rootContext
@@ -774,7 +779,12 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
 
         if self._domain == None:
             orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
-            obj = orb.resolve_initial_references("NameService")
+            try:
+                obj = orb.resolve_initial_references("NameService")
+            except _CORBA.BAD_INV_ORDER:
+                orb.destroy()
+                orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+                obj = orb.resolve_initial_references("NameService")
             self.rootContext = obj._narrow(_CosNaming.NamingContext)
         else:
             self.rootContext = self._domain.rootContext
@@ -1596,10 +1606,21 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         
         # create orb reference
         self.orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+        # Make sure the user hasn't shutdown the ORB on us
         if location:
-            obj = self.orb.string_to_object('corbaname::'+location)
+            try:
+                obj = self.orb.string_to_object('corbaname::'+location)
+            except _CORBA.BAD_INV_ORDER:
+                self.orb.destroy()
+                self.orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+                obj = self.orb.string_to_object('corbaname::'+location)
         else:
-            obj = self.orb.resolve_initial_references("NameService")
+            try:
+                obj = self.orb.resolve_initial_references("NameService")
+            except _CORBA.BAD_INV_ORDER:
+                self.orb.destroy()
+                self.orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
+                obj = self.orb.resolve_initial_references("NameService")
         try:
             self.rootContext = obj._narrow(_CosNaming.NamingContext)
         except:

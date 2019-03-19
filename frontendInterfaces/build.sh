@@ -25,9 +25,9 @@ elif [ "$1" = "rpm" ]; then
   # A very simplistic RPM build scenario
   mydir=`dirname $0`
   tmpdir=`mktemp -d`
-  cp -r ${mydir} ${tmpdir}/frontendInterfaces-2.4.4
-  tar czf ${tmpdir}/frontendInterfaces-2.4.4.tar.gz --exclude=".svn" -C ${tmpdir} frontendInterfaces-2.4.4
-  rpmbuild -ta ${tmpdir}/frontendInterfaces-2.4.4.tar.gz
+  cp -r ${mydir} ${tmpdir}/frontendInterfaces-2.4.5
+  tar czf ${tmpdir}/frontendInterfaces-2.4.5.tar.gz --exclude=".svn" -C ${tmpdir} frontendInterfaces-2.4.5
+  rpmbuild -ta ${tmpdir}/frontendInterfaces-2.4.5.tar.gz
   rm -rf $tmpdir
 else
   # Checks if build is newer than makefile (based on modification time)

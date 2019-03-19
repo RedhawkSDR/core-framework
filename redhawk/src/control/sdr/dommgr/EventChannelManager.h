@@ -59,7 +59,7 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   //
   // Remove all event channel object and any registrations.
   //
-  void      terminate( const bool destoryChannels = true );
+  void      terminate( const bool destroyChannels = true );
 
   /*
      Return an Event Channel in the Domain associated with the Manager from the specified channel_name parameter.
