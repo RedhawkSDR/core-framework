@@ -122,16 +122,14 @@ void EventChannelManager::terminate ( const bool destroyChannels ) {
       RH_DEBUG(_eventChannelMgrLog, "    ChannelRecord: release:" << iter->second.release );
       RH_DEBUG(_eventChannelMgrLog, "    ChannelRecord: registrants:" << iter->second.registrants.size());
       RH_DEBUG(_eventChannelMgrLog, "    ChannelRecord: channel:" << iter->second.channel);
-      //if ( CORBA::is_nil(iter->second.channel) == true ) {
       if ( ossie::corba::objectExists(iter->second.channel) == false ) {
-        RH_DEBUG(_eventChannelMgrLog, " Channel is NIL : " << iter->first );
+        RH_DEBUG(_eventChannelMgrLog, " Channel does not exists: " << iter->first );
       }
       else {
-        RH_DEBUG(_eventChannelMgrLog, " Destroy EventChannel PRE: " << iter->first );
         if ( destroyChannels ) {
           iter->second.channel->destroy();
         }
-        RH_DEBUG(_eventChannelMgrLog, " Destroy EventChannel POST: " << iter->first );
+        RH_DEBUG(_eventChannelMgrLog, " Destroyed event channel: " << iter->first );
       }
       iter->second.channel = ossie::events::EventChannel::_nil();
     }
@@ -143,12 +141,22 @@ void EventChannelManager::terminate ( const bool destroyChannels ) {
     }
     catch(...){
         if ( !CORBA::is_nil(_event_channel_factory) ) {
-            RH_WARN(_eventChannelMgrLog,"Remove Channel FAILED, CHANNEL:" << iter->first << " Possible legacy channels in event service ");
+            RH_WARN(_eventChannelMgrLog,"Remove Channel FAILED, CHANNEL:" << iter->first << " REASON: Possible legacy channels in event service ");
         }
     }
   }
 
   _channels.clear();
+  _pubProxies.clear();
+  _subProxies.clear();
+  // if we are shutting down, clear out data stores..
+  if ( destroyChannels ) {
+      RH_DEBUG(_eventChannelMgrLog, "Clearing all persistent event registration tables");
+      this->_domainManager->storeSubProxies();
+      this->_domainManager->storePubProxies();
+      this->_domainManager->storeEventChannelRegistrations();
+  }
+
   RH_DEBUG(_eventChannelMgrLog, " Terminate COMPLETED " );
 
 }
@@ -278,7 +286,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
 
-    RH_DEBUG(_eventChannelMgrLog, " Delete event channel: " << channel_name );    
+    RH_DEBUG(_eventChannelMgrLog, " Trying to delete event channel: " << channel_name );    
     std::string cname(channel_name);
 
     RH_DEBUG(_eventChannelMgrLog, " Check registration for event channel: " << channel_name );    
@@ -589,8 +597,8 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     // try and resolve with naming service (if enabled)
     //
     if ( _use_naming_service &&  CORBA::is_nil(event_channel) ) {
-      RH_TRACE(_eventChannelMgrLog, " Rebind Exiting Channel to:" << fqn );
-      if ( ossie::corba::Bind( fqn, savedChannel, _domain_context ) != 0 ) {
+        RH_TRACE(_eventChannelMgrLog, " Rebind existing channel to:" << channel_name << ", domain context " << _domain_context);
+      if ( ossie::corba::Bind( channel_name, savedChannel, _domain_context ) != 0 ) {
         RH_TRACE(_eventChannelMgrLog, " Checking NamingService for:" << fqn );
         event_channel = _resolve_ns( cname, fqn, _domain_context );
         // if NamingService is enable and we require its use, but channel evaluation failed
@@ -1522,12 +1530,12 @@ EventChannelManager::ChannelRegistrationPtr EventChannelManager::_addChannelRegi
           RH_DEBUG(_eventChannelMgrLog, "Calling Destroy, Channel/EventChannel: "<< cname << "/" << reg->fqn);
           try {
             reg->channel->destroy();
+            RH_DEBUG(_eventChannelMgrLog, "Event channel destroy completed, EventChannel: "<< cname << "/" << reg->fqn);
           }
           catch(...){
-            RH_DEBUG(_eventChannelMgrLog, "Exception during destroy  EventService.. channel/EventChannel: "<< cname << "/" << reg->fqn);
+            RH_ERROR(_eventChannelMgrLog, "Exception destroying Event Channel: "<< cname << "/" << reg->fqn);
           }
           reg->channel = ossie::events::EventChannel::_nil();
-          RH_DEBUG(_eventChannelMgrLog, "Destory Completed, Channel/EventChannel: "<< cname << "/" << reg->fqn);
         }
       }
 
