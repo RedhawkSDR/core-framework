@@ -174,7 +174,13 @@ CosNaming::NamingContext_ptr InitialNamingContext ()
 {
     if (CORBA::is_nil(inc) && !CORBA::is_nil(orb)) {
         CORBA::Object_var obj = orb->resolve_initial_references("NameService");
-        inc = CosNaming::NamingContext::_narrow(obj);
+	
+	try {        
+	    inc = CosNaming::NamingContext::_narrow(obj);
+	} catch (CORBA::TRANSIENT& ex){
+	    LOG_FATAL(CorbaUtils,"Error occured unable to find name service. Ensure that name service is running.");
+            throw;
+	}
     }
 
     return inc;

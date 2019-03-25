@@ -200,7 +200,6 @@ int old_main(int argc, char* argv[])
         return(EXIT_FAILURE);
     }
 #endif
-
     // We have to have a real SDRROOT
     fs::path sdrRootPath;
     if (!sdrRoot.empty()) {
@@ -266,6 +265,7 @@ int old_main(int argc, char* argv[])
     // NO LOG_ STATEMENTS ABOVE THIS POINT
     ///////////////////////////////////////////////////////////////////////////
 
+
     // Create signal handler to catch system interrupts SIGINT and SIGQUIT
     struct sigaction sa;
     sa.sa_handler = signal_catcher;
@@ -304,6 +304,7 @@ int old_main(int argc, char* argv[])
     // Start CORBA. Only ask for persistence if "--nopersist" was not asserted, which implies
     // using the same port.
     ossie::corba::ORBProperties orbProperties;
+    RH_NL_DEBUG(logname, "Starting CORBA");
     // If a user-specified ORB endpoint is present, do not override it. This
     // allows multiple persistent endpoints on the same machine.
     if (enablePersistence && !endPoint) {
@@ -314,6 +315,7 @@ int old_main(int argc, char* argv[])
     // initialize() and configure() on each component in an application, then
     // never talks to them again; in heavy utilization, this can cause hard-to-
     // diagnose failures.
+
     orbProperties.push_back(std::make_pair("outConScanPeriod", "10"));
     CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, orbProperties, enablePersistence);
 
@@ -358,6 +360,13 @@ int old_main(int argc, char* argv[])
     if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
         RH_NL_DEBUG(logname, "File descriptor limit " << limit.rlim_cur);
     }
+    
+    // Check if name service is running 
+    try{
+        CosNaming::NamingContext_ptr nc = ossie::corba::InitialNamingContext();
+    }catch (const CORBA::TRANSIENT& ex) {
+        return(EXIT_FAILURE);
+    }
 
     // Create Domain Manager servant and object
     RH_NL_INFO(logname, "Starting Domain Manager");
@@ -378,11 +387,10 @@ int old_main(int argc, char* argv[])
                                                        initialDebugLevel
                                                        );
 
-        // set logging level for the DomainManager's logger
-        if ( DomainManager_servant ) {
+    // set logging level for the DomainManager's logger
+    if ( DomainManager_servant ) {
           DomainManager_servant->saveLoggingContext( logfile_uri, initialDebugLevel, ctx );
         }
-
     } catch (const CORBA::Exception& ex) {
         RH_NL_ERROR(logname, "Terminated with CORBA::" << ex._name() << " exception");
         return(-1);
@@ -396,7 +404,6 @@ int old_main(int argc, char* argv[])
 
     // Pass any execparams on to the DomainManager
     DomainManager_servant->setExecparamProperties(execparams);
-
     // If a database URI was given, attempt to restore the state. Most common errors should
     // be handled gracefully, so any exception that escapes to this level probably indicates
     // a severe problem.
