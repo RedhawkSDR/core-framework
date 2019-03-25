@@ -1,2 +1,4 @@
 TEST-*.xml
-cppunit-results.xml
+*cppunit-results.xml
+*junit-results.xml
+*pyunit-results.xml

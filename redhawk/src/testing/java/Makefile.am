@@ -42,4 +42,4 @@ test_ossie : ossie-tests.jar Makefile
 	@echo "exec java -cp ossie-tests.jar:$(ossie_tests_jar_CLASSPATH) Main \$$*" >> $@
 	@chmod +x $@
 
-CLEANFILES = test_ossie
+CLEANFILES = test_ossie libossiecf-junit-results.xml

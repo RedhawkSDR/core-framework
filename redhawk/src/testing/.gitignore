@@ -1,5 +1,7 @@
 *.jar
 *.so
+*.trs
+*-results.xml
 build
 helpers/buildconfig.py
 _unitTestHelpers/buildconfig.py

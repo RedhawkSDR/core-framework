@@ -26,6 +26,8 @@ from omniORB import any
 from ossie.utils import sb
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
+from ossie.utils.testing import main as _ossie_test_main
+
 
 from ossie.utils.sandbox import debugger
 #from ossie.utils.log4py import logging
@@ -38,6 +40,8 @@ from ossie.utils.idllib import IDLLibrary
 model._idllib = IDLLibrary()
 model._idllib.addSearchPath('../../../../../idl')
 model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+main=_ossie_test_main
+
 
 class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all resource implementations in multiout_attachable"""
@@ -244,4 +248,16 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
 
 if __name__ == "__main__":
-    ossie.utils.testing.main("../multiout_attachable.spd.xml") # By default tests all implementations
+
+    try:
+        import sys
+        import os
+        if '--with-xunit' in sys.argv:
+            sys.argv=sys.argv[:]+[ __file__ ]
+            import use_nose_test
+            main=use_nose_test.NoseTestProgram
+    except:
+        traceback.print_exc()
+        pass
+
+    main("../multiout_attachable.spd.xml") # By default tests all implementations

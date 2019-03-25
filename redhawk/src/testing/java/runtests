@@ -23,21 +23,17 @@ if [ $# -gt 0 ];
 then
    if [ "-with-xunit" == "${1##[-+]}" ];
    then
-       with_xunit="--with-xunit"
+       with_xunit="yes"
        shift
    fi
 fi
 
 if [[ $with_xunit ]]
 then
-    # limit for cm builds
-    make -j 4 Bulkio
-   ./Bulkio $with_xunit ../libbulkio-cppunit-results.xml
+   if command -v ant 2>/dev/null
+   then
+      ant -f build.xml
+   fi
 else
-    make -j 10 Bulkio
-   ./Bulkio
+    make check
 fi
-
-
-
-

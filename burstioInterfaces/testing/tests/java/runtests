@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,21 +18,22 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-if [ "$1" = "clean" ]; then
-  make clean
-elif [ "$1" = "rpm" ]; then
-  # A very simplistic RPM build scenario
-  mydir=`dirname $0`
-  tmpdir=`mktemp -d`
-  cp -r ${mydir} ${tmpdir}/frontendInterfaces-2.4.6
-  tar czf ${tmpdir}/frontendInterfaces-2.4.6.tar.gz --exclude=".svn" -C ${tmpdir} frontendInterfaces-2.4.6
-  rpmbuild -ta ${tmpdir}/frontendInterfaces-2.4.6.tar.gz
-  rm -rf $tmpdir
+with_xunit=
+if [ $# -gt 0 ];
+then
+   if [ "-with-xunit" == "${1##[-+]}" ];
+   then
+       with_xunit="--with-xunit"
+       shift
+   fi
+fi
+
+if [[ $with_xunit ]]
+then
+   if command -v ant 2>/dev/null
+   then
+      ant -f build.xml
+   fi
 else
-  # Checks if build is newer than makefile (based on modification time)
-  if [ ! -e configure ] || [ ! -e Makefile ] || [ configure.ac -nt Makefile ] || [ Makefile.am -nt Makefile ]; then
-    ./reconf
-    ./configure
-  fi
-  make
+    make check
 fi

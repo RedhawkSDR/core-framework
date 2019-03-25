@@ -27,6 +27,17 @@ setup_redhawk_import() {
 
 setup_redhawk_import
 
+with_xunit=
+if [ $# -gt 0 ];
+then
+   if [ "-with-xunit" == "${1##[-+]}" ];
+   then
+       with_xunit="--with-xunit"
+       shift
+   fi
+fi
+
+
 if [ $# -gt 0 ]
 then
     # run an associated test script

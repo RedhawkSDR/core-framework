@@ -751,7 +751,6 @@ std::string describeException(const CORBA::Exception& exc) {
   //
   int  Bind(const std::string &name,  CORBA::Object_ptr obj,  CosNaming::NamingContext_ptr namingContext  ) {
 
-    LNTRACE( "Bind", " created event channel " << name );
     int retval=1;
     try {
       if(!CORBA::is_nil(namingContext) ) {
