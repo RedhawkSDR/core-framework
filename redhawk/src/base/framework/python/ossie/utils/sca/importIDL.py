@@ -326,6 +326,8 @@ class ExampleVisitor (idlvisitor.AstVisitor):
             node.accept(visitor)
             interface = visitor.interface
             _interfaces[node.repoId()] = interface
+            for decl in node.declarations():
+                decl.accept(self)
         self.myInterfaces.append(interface)
 
 def run(tree, args):

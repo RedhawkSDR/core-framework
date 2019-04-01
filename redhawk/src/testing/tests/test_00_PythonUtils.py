@@ -19,11 +19,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import os
 import unittest
 import weakref
 
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
+
+from ossie.utils import idllib
 
 class TestClass(object):
     def foo(self):
@@ -263,3 +266,22 @@ class TestPythonUtils(unittest.TestCase):
 
         del obj3
         self.assertEqual(len(children), 0)
+
+class TestIdlLibrary(unittest.TestCase):
+    def setUp(self):
+        # Use a local IDL library path to have complete control over tests
+        idldir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'idl'))
+        self.lib = idllib.IDLLibrary()
+        self.lib.addSearchPath(idldir)
+
+    def test_NestedStruct(self):
+        """
+        Tests that the IDL library allows looking up structs nested under
+        interfaces.
+        """
+        repo_id = 'IDL:TestIdl/StructInterface/NestedStruct:1.0'
+        try:
+            structdef = self.lib.getIdlStruct(repo_id)
+        except idllib.UnknownInterfaceError as exc:
+            self.fail('Nested IDL struct was not found')
+        self.assertEqual(structdef.repoId, repo_id)
