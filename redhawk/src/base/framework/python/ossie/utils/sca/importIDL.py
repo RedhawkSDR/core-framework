@@ -293,8 +293,11 @@ class IdlStruct():
         self.name = '::'.join(node.scopedName())
         self.repoId = node.repoId()
         self.members = {}
+        self._fields = []
         for member in node.members():
-            self.members[member.declarators()[0].scopedName()[-1]] = baseTypes[member.memberType().kind()]
+            name = member.declarators()[0].scopedName()[-1]
+            self.members[name] = baseTypes[member.memberType().kind()]
+            self._fields.append((name, IDLType.instance(member.memberType())))
         
 class ExampleVisitor (idlvisitor.AstVisitor):
     def __init__(self,*args):

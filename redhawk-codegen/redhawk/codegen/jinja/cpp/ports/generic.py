@@ -28,8 +28,6 @@ from redhawk.codegen.jinja.cpp import CppTemplate
 
 from generator import CppPortGenerator
 
-from ossie.utils.sca.importIDL import SequenceType, BaseType
-
 if not '__package__' in locals():
     # Python 2.4 compatibility
     __package__ = __name__.rsplit('.', 1)[0]
@@ -48,54 +46,13 @@ _baseMap = {
     CORBA.tk_ulonglong: 'CORBA::ULongLong'
 }
 
-def baseType(typeobj, direction=None):
-    kind = typeobj.kind()
-    if kind in _baseMap:
-        return _baseMap[kind]
-    elif kind == CORBA.tk_void:
-        return 'void'
-    elif kind == CORBA.tk_string:
-        if direction == 'out':
-            return 'CORBA::String_out'
-        else:
-            return 'char*'
-    elif kind == CORBA.tk_any:
-        return 'CORBA::Any'
-    elif kind == CORBA.tk_alias and \
-        typeobj.aliasType().kind() == CORBA.tk_string: 
-        return 'char*' 
-    
-    name = '::'.join(typeobj.scopedName())
-    if kind == CORBA.tk_objref:
-        if direction == 'out':
-            return name + '_out'
-        else:
-            return name + '_ptr'
-    elif kind == CORBA.tk_alias and isinstance(typeobj.aliasType(), SequenceType):
-        if direction == 'out':
-            return name + '_out'
-        else:
-            return name
-    else:
-        return name 
+def cppName(typeobj):
+    return '::'.join(typeobj.scopedName())
 
-def doesStructIncludeInterface(scopedName):
-    repo_id = 'IDL:'
-    if len(scopedName) == 1:
-        repo_id += scopedName[0]
-    else:
-        for name in scopedName:
-            repo_id += name + '/'
-        repo_id = repo_id[:-1]
-    repo_id += ':1.0'
-    idl = IDLStruct(repo_id)
-    _members = idl.members()
-    for member_key in _members:
-        if _members[member_key] in ['objref', 'alias', 'struct']:
-            return True
-    return False
+def newObject(typeobj):
+    return 'new %s()' % baseType(typeobj)
 
-def baseReturnType(typeobj):
+def baseType(typeobj):
     kind = typeobj.kind()
     if kind in _baseMap:
         return _baseMap[kind]
@@ -105,16 +62,39 @@ def baseReturnType(typeobj):
         return 'char*'
     elif kind == CORBA.tk_any:
         return 'CORBA::Any'
-    
-    name = '::'.join(typeobj.scopedName())
+
+    return cppName(typeobj)
+
+def isVariableLength(typeobj):
+    # Remove any aliases
+    typeobj = unaliasedType(typeobj)
+    kind = typeobj.kind()
+    if kind in _baseMap:
+        # Basic numeric types are always fixed-length
+        return False
+    elif kind == CORBA.tk_struct:
+        # Structs are variable-length if any members are
+        repo_id = 'IDL:' + '/'.join(typeobj.scopedName()) + ':1.0'
+        idl = IDLStruct(repo_id)
+        for member_name, member_type in idl.idl()._fields:
+            if isVariableLength(member_type):
+                return True
+        return False
+    else:
+        # Assume everything else is variable-length
+        return True
+
+def returnType(typeobj):
+    name = baseType(typeobj)
+    kind = unaliasedType(typeobj).kind()
     if kind == CORBA.tk_objref:
         return name + '_ptr'
     elif kind == CORBA.tk_struct:
-        if doesStructIncludeInterface(typeobj.scopedName()):
+        if isVariableLength(typeobj):
             return name + '*'
         else:
             return name
-    elif kind == CORBA.tk_alias and isinstance(typeobj.aliasType(), SequenceType):
+    elif kind in (CORBA.tk_any, CORBA.tk_sequence):
         return name + '*'
     else:
         return name
@@ -127,20 +107,18 @@ def unaliasedType(typeobj):
         return unaliasedType(typeobj.aliasType())
 
 def temporaryType(typeobj):
-    kind = typeobj.kind()
-    if kind in _baseMap:
-        return _baseMap[kind]
-    elif kind == CORBA.tk_void:
-        return 'void'
-    elif kind == CORBA.tk_string:
-        return 'CORBA::String_var'
-    elif kind == CORBA.tk_any:
-        return 'CORBA::Any'
-    
-    name = '::'.join(typeobj.scopedName())
+    name = baseType(typeobj)
     kind = unaliasedType(typeobj).kind()
-    if kind in (CORBA.tk_objref, CORBA.tk_sequence) or ((kind == CORBA.tk_struct) and doesStructIncludeInterface(typeobj.scopedName())):
+    if kind == CORBA.tk_string:
+        # Use the base type even when aliased
+        return 'CORBA::String_var'
+    elif kind in (CORBA.tk_objref, CORBA.tk_sequence, CORBA.tk_any):
         return name + '_var'
+    elif kind == CORBA.tk_struct:
+        if isVariableLength(typeobj):
+            return name + '_var'
+        else:
+            return name
     else:
         return name
 
@@ -149,67 +127,77 @@ def temporaryValue(typeobj):
     if kind in _baseMap:
         return '0'
     elif kind == CORBA.tk_enum:
-        return '::'.join(typeobj.enumValues()[0].scopedName())
+        enum_values = unaliasedType(typeobj).enumValues()
+        return cppName(enum_values[0])
     elif kind == CORBA.tk_string:
         return 'CORBA::string_dup("")'
-    elif kind == CORBA.tk_sequence or ((kind == CORBA.tk_struct) and doesStructIncludeInterface(typeobj.scopedName())):
-        return 'new %s()' % '::'.join(typeobj.scopedName())
-    elif ((kind == CORBA.tk_struct) and not doesStructIncludeInterface(typeobj.scopedName())):
-        return '%s()' % '::'.join(typeobj.scopedName())
+    elif kind in (CORBA.tk_sequence, CORBA.tk_any):
+        return newObject(typeobj)
+    elif kind == CORBA.tk_struct:
+        if isVariableLength(typeobj):
+            return newObject(typeobj)
+        else:
+            # The default constructor is fine, no need to generate a temporary
+            # that does the same thing
+            return None
     else:
         return None
 
-def passByValue(argType,direction):
-    if direction == 'in':
-        if not passConst(argType,direction):
-            return True
-        else:
-            kind = argType.kind()
-            if kind == CORBA.tk_string or \
-               (kind == CORBA.tk_alias and argType.aliasType().kind() == CORBA.tk_string):
-                return True
-            else:
-                return False
-    else:
-        kind = argType.kind()
-        if kind == CORBA.tk_alias and isinstance(argType.aliasType(), SequenceType):
-            if direction == 'out':
-                return True
-            elif direction == 'inout':
-                return False
-        elif kind == CORBA.tk_string:
-            if direction == 'out':
-                return True
-            elif direction == 'inout':
-                return False
-        elif kind == CORBA.tk_objref:
-            return True
-        else:
-            return False
+def inType(typeobj):
+    kind = unaliasedType(typeobj).kind()
+    if kind == CORBA.tk_string:
+        # Strings are always "const char*" even when aliased because for a
+        # typedef the const applies to the full type (i.e., the pointer), but
+        # the contract is that the contents (char) cannot be modified
+        return 'const char*'
 
-def passConst(argType,direction):
-    if direction == 'in':
-        kind = argType.kind()
-        if kind in _baseMap or \
-            (kind == CORBA.tk_alias and isinstance(argType.aliasType(), BaseType) and argType.aliasType().kind() != CORBA.tk_string) or \
-            kind == CORBA.tk_objref or kind == CORBA.tk_enum:
-            return False 
-        else:
-            return True
+    name = baseType(typeobj)
+    if kind in _baseMap or kind == CORBA.tk_enum:
+        # Basic types are passed by value
+        return name
+    elif kind == CORBA.tk_objref:
+        return name + '_ptr'
     else:
-        return False 
+        return 'const '+name+'&'
+
+def outType(typeobj):
+    if typeobj.kind() == CORBA.tk_string:
+        # Strings (just the base type, not aliases) require special handling in
+        # that the out type is not derived from the normal mapping (char*)
+        return 'CORBA::String_out'
+
+    name = baseType(typeobj)
+    kind = unaliasedType(typeobj).kind()
+    if kind in _baseMap or kind == CORBA.tk_enum:
+        # CORBA technically has "_out" typedefs for primitive types, but for
+        # consistency with prior versions just use a reference
+        return name + '&'
+    elif kind == CORBA.tk_struct and not isVariableLength(typeobj):
+        # Since omniORB directly uses the reference type, copy that here
+        return name + '&'
+    else:
+        return name+'_out'
+
+def inoutType(typeobj):
+    kind = unaliasedType(typeobj).kind()
+    if kind == CORBA.tk_string:
+        # Just for consistency with omniORB, remap all string types to the base
+        # type
+        return 'char*&'
+
+    name = baseType(typeobj)
+    if kind == CORBA.tk_objref:
+        return name + '_ptr&'
+    else:
+        return name + '&'
 
 def argumentType(argType, direction):
-    name = baseType(argType,direction)
-    if not direction == 'in':
-        # sequence is special case because arg is different in C++ than the IDL
-        if argType == 'sequence':
-            return name + '_out'
-    if passConst(argType,direction):
-        name = 'const '+name
-    if not passByValue(argType,direction):
-        name = name + '&'
-    return name
+    if direction == 'in':
+        return inType(argType)
+    elif direction == 'out':
+        return outType(argType)
+    else:
+        return inoutType(argType)
 
 class GenericPortFactory(PortFactory):
     def match(self, port):
@@ -247,24 +235,14 @@ class GenericPortGenerator(CppPortGenerator):
 
     def operations(self):
         for op in self.idl.operations():
-            _out = False
-            for p in op.params:
-                if p.direction == 'out':
-                    _out = True
-                    break
-            _inout = False
-            for p in op.params:
-                if p.direction == 'inout':
-                    _inout = True
-                    break
             yield {'name': op.name,
                    'arglist': ', '.join('%s %s' % (argumentType(p.paramType,p.direction), p.name) for p in op.params),
                    'argnames': ', '.join(p.name for p in op.params),
-                   'hasout': _out,
-                   'hasinout': _inout,
+                   'hasout': any(p.direction == 'out' for p in op.params),
+                   'hasinout': any(p.direction == 'inout' for p in op.params),
                    'temporary': temporaryType(op.returnType),
                    'initializer': temporaryValue(op.returnType),
-                   'returns': baseReturnType(op.returnType)}
+                   'returns': returnType(op.returnType)}
         #
         # for attributes of an interface...provide manipulator methods
         # 
@@ -278,7 +256,7 @@ class GenericPortGenerator(CppPortGenerator):
                    'readwrite_attr': readwrite_attr,
                    'temporary': temporaryType(attr.attrType),
                    'initializer': temporaryValue(attr.attrType),
-                   'returns': baseReturnType(attr.attrType)}
+                   'returns': returnType(attr.attrType)}
             if not attr.readonly:
                 yield {'name': attr.name,
                        'arglist':   argumentType(attr.attrType,'in') + ' data',
