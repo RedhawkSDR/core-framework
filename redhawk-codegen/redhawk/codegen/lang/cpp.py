@@ -79,6 +79,12 @@ def stringLiteral(string):
 def charLiteral(string):
     return "'" + string + "'"
 
+def boolLiteral(value):
+    if value:
+        return TRUE
+    else:
+        return FALSE
+
 def complexType(typename):
     return 'std::complex<%s>' % (cppType(typename),)
 
@@ -127,10 +133,7 @@ def literal(value, typename, complex=False):
         else:
             return stringLiteral(value)
     elif typename == CorbaTypes.BOOLEAN:
-        if parseBoolean(value):
-            return TRUE
-        else:
-            return FALSE
+        return boolLiteral(parseBoolean(value))
     elif typename in (CorbaTypes.LONGLONG, CorbaTypes.ULONGLONG):
         # Explicitly mark the literal as a 'long long' for 32-bit systems
         if not isinstance(value, list):

@@ -32,24 +32,8 @@ ${classname}::~${classname}()
 {
 }
 /*{% for operation in portgen.operations() %}*/
+
 //% set hasreturn = operation.returns != 'void'
-/*{% if hasreturn %}*/
-/*{%     set returnstate='true' %}*/
-/*{% else %}*/
-/*{%     set returnstate='false' %}*/
-/*{% endif %}*/
-//% set hasout = operation.hasout
-/*{% if hasout %}*/
-/*{%     set _hasout='true' %}*/
-/*{% else %}*/
-/*{%     set _hasout='false' %}*/
-/*{% endif %}*/
-//% set hasinout = operation.hasinout
-/*{% if hasinout %}*/
-/*{%     set _hasinout='true' %}*/
-/*{% else %}*/
-/*{%     set _hasinout='false' %}*/
-/*{% endif %}*/
 /*{%  if operation.readwrite_attr %}*/
 ${operation.returns} ${classname}::${operation.name}() {
     return _get_${operation.name}("");
@@ -71,7 +55,7 @@ ${operation.returns} ${classname}::${operation.name}(const std::string __connect
 
     boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
-    __evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout});
+    __evaluateRequestBasedOnConnections(__connection_id__, ${cpp.boolLiteral(hasreturn)}, ${cpp.boolLiteral(operation.hasinout)}, ${cpp.boolLiteral(operation.hasout)});
     if (this->active) {
         for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
             if (not __connection_id__.empty() and __connection_id__ != (*i).second)
