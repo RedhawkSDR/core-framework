@@ -105,6 +105,9 @@ def returnType(typeobj):
     else:
         return name
 
+# Preserve old name in case other places still reference it
+baseReturnType = returnType
+
 def unaliasedType(typeobj):
     kind = typeobj.kind()
     if kind != CORBA.tk_alias:
