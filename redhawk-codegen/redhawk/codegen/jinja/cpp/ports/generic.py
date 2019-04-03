@@ -22,7 +22,7 @@ import jinja2
 from omniORB import CORBA
 
 from redhawk.codegen.lang import cpp
-from redhawk.codegen.lang.idl import IDLInterface, IDLStruct
+from redhawk.codegen.lang import idl
 from redhawk.codegen.jinja.ports import PortFactory
 from redhawk.codegen.jinja.cpp import CppTemplate
 
@@ -72,12 +72,18 @@ def isVariableLength(typeobj):
     if kind in _baseMap:
         # Basic numeric types are always fixed-length
         return False
-    elif kind == CORBA.tk_struct:
-        # Structs are variable-length if any members are
+    elif kind in (CORBA.tk_struct, CORBA.tk_union):
+        # Struct and unions are variable-length if any members are
         repo_id = 'IDL:' + '/'.join(typeobj.scopedName()) + ':1.0'
-        idl = IDLStruct(repo_id)
-        for member_name, member_type in idl.idl()._fields:
-            if isVariableLength(member_type):
+        idl_type = idl.idlRepo.getIdlStruct(repo_id)
+        if kind == CORBA.tk_struct:
+            # Work around insufficent information in public interface by using
+            # "private" interface that was added for this usage
+            members = idl_type._fields
+        else:
+            members = idl_type.members()
+        for member in members:
+            if isVariableLength(member.memberType()):
                 return True
         return False
     else:
@@ -89,7 +95,7 @@ def returnType(typeobj):
     kind = unaliasedType(typeobj).kind()
     if kind == CORBA.tk_objref:
         return name + '_ptr'
-    elif kind == CORBA.tk_struct:
+    elif kind in (CORBA.tk_struct, CORBA.tk_union):
         if isVariableLength(typeobj):
             return name + '*'
         else:
@@ -114,7 +120,7 @@ def temporaryType(typeobj):
         return 'CORBA::String_var'
     elif kind in (CORBA.tk_objref, CORBA.tk_sequence, CORBA.tk_any):
         return name + '_var'
-    elif kind == CORBA.tk_struct:
+    elif kind in (CORBA.tk_struct, CORBA.tk_union):
         if isVariableLength(typeobj):
             return name + '_var'
         else:
@@ -133,7 +139,7 @@ def temporaryValue(typeobj):
         return 'CORBA::string_dup("")'
     elif kind in (CORBA.tk_sequence, CORBA.tk_any):
         return newObject(typeobj)
-    elif kind == CORBA.tk_struct:
+    elif kind in (CORBA.tk_struct, CORBA.tk_union):
         if isVariableLength(typeobj):
             return newObject(typeobj)
         else:
@@ -172,7 +178,7 @@ def outType(typeobj):
         # CORBA technically has "_out" typedefs for primitive types, but for
         # consistency with prior versions just use a reference
         return name + '&'
-    elif kind == CORBA.tk_struct and not isVariableLength(typeobj):
+    elif kind in (CORBA.tk_struct, CORBA.tk_union) and not isVariableLength(typeobj):
         # Since omniORB directly uses the reference type, copy that here
         return name + '&'
     else:

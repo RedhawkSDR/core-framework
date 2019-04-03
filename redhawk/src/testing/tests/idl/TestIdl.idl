@@ -29,4 +29,22 @@ module TestIdl {
 
         NestedStruct func();
     };
+
+    union BasicUnion switch (short) {
+    case 0: octet octetValue;
+    case 1: long longValue;
+    case 2:
+    case 3:
+        float floatValue;
+    default: string stringValue;
+    };
+
+    interface UnionInterface {
+        union NestedUnion switch (long) {
+        case 0: string stringValue;
+        default: any anyValue;
+        };
+
+        NestedUnion func();
+    };
 };

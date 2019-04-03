@@ -285,3 +285,26 @@ class TestIdlLibrary(unittest.TestCase):
         except idllib.UnknownInterfaceError as exc:
             self.fail('Nested IDL struct was not found')
         self.assertEqual(structdef.repoId, repo_id)
+
+    def test_Union(self):
+        repo_id = 'IDL:TestIdl/BasicUnion:1.0'
+        try:
+            union = self.lib.getIdlStruct(repo_id)
+        except idllib.UnknownInterfaceError as exc:
+            self.fail('IDL union was not found')
+        self.assertEqual(union.repoId, repo_id)
+
+        # Make sure it has the exactly the expected members
+        expected = ['octetValue', 'longValue', 'floatValue', 'stringValue']
+        expected.sort()
+        actuals = [m.name() for m in union.members()]
+        actuals.sort()
+        self.assertEqual(expected, actuals)
+
+    def test_NestedUnion(self):
+        repo_id = 'IDL:TestIdl/UnionInterface/NestedUnion:1.0'
+        try:
+            union = self.lib.getIdlStruct(repo_id)
+        except idllib.UnknownInterfaceError as exc:
+            self.fail('Nested IDL union was not found')
+        self.assertEqual(union.repoId, repo_id)
