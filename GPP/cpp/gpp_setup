@@ -85,14 +85,11 @@ class BaseConfigurator(object):
         self.props['os_name']    = platform.system()
         self.props['os_version'] = platform.release()
         self.props['hostName'] = self.hostname
-        tmp_uname_p    = platform.processor()
-        tmp_proc_map   = {'i386':'x86',
-                          'i686':'x86',
-                          'x86_64':'x86_64',
-                          'armv7l':'armv7l'}
-        self.props['processor_name']  = tmp_proc_map.get(tmp_uname_p, 'x86')
 
-
+        if self.options.add_os_processor:
+            self.props['processor_name'] = self.options.add_os_processor 
+        else:
+            self.props['processor_name'] = self._check_processor(0)
 
         # Output some debug information
         if not self.options.silent:
@@ -101,6 +98,29 @@ class BaseConfigurator(object):
             k.sort()
             for n in k:
                 self._log.debug("  %-30s %s ", n, self.props[n])
+
+    def _check_processor(self,value):
+        if value==0:
+            return self._processor_name(platform.processor(),value)
+        elif value==1:
+            return self._processor_name(platform.machine(),value)
+        elif value==2:
+            return self._processor_name(os.uname()[4],value)
+        else:
+            self._log.error("Cannot determine processor.  Please enter the appropriate values in the brackets [] and run the following code from the command line",
+            "\n./gpp_setup --gppcfg --processorname [YOUR COMPUTER'S PROCESSOR]",
+            "\nIn the event of a 'Permission Denied' error, please change the permissions by running the following code before rerunning the previous command:",
+            "\ng+rwx /var/redhawk/sdr/dev/devices/GPP/GPP.prf.xml")
+            sys.exit(1)
+
+    def _processor_name(self, tmp_uname_p, v):
+        if tmp_uname_p == 'i386' or tmp_uname_p == 'i686':
+            return 'x86'
+        elif tmp_uname_p is not '' or None:
+            return tmp_uname_p
+        else:
+            return self._check_processor(v+1)
+
 
     def _gather_mcastnic_information(self):
 
@@ -557,6 +577,8 @@ if __name__ == "__main__":
                       help="clean up the previous configuration for this node first (delete entire node)")
     parser.add_option("-v", "--verbose", dest="verbose", default=False, action="store_true",
                       help="enable verbose logging")
+    parser.add_option("--processorname", dest="add_os_processor", default=False, action="store",
+                      help="set the processor")
 
     (options, args) = parser.parse_args()
 
