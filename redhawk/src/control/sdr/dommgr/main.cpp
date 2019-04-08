@@ -387,9 +387,13 @@ int old_main(int argc, char* argv[])
                                                        initialDebugLevel
                                                        );
 
-    // set logging level for the DomainManager's logger
-    if ( DomainManager_servant ) {
-          DomainManager_servant->saveLoggingContext( logfile_uri, initialDebugLevel, ctx );
+        // set logging level for the DomainManager's logger
+        if ( !DomainManager_servant ) {
+            RH_NL_ERROR(logname, "DomainManager_servant not found");
+            return(EXIT_FAILURE);
+        }
+        else {
+            DomainManager_servant->saveLoggingContext( logfile_uri, initialDebugLevel, ctx );
         }
     } catch (const CORBA::Exception& ex) {
         RH_NL_ERROR(logname, "Terminated with CORBA::" << ex._name() << " exception");
