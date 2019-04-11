@@ -3,7 +3,12 @@ variables:
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
   redhawk_version: '2.2.3'
-  redhawk_deps: 'develop-2.2'
+  # The REDHAWK branch variable tracks the mainline branch from which a topic
+  # branch was forked, allowing it to still trigger that branch's test pipeline
+  redhawk_branch: 'develop-2.2'
+  # By default, pull dependencies from the REDHAWK branch, but should there be
+  # a need to use a different set, override that here
+  redhawk_deps: $redhawk_branch
 
 stages:
  - package-redhawk-codegen
@@ -204,22 +209,40 @@ deploy:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
     - master
 
-#Trigger separate tests pipeline
-test-trigger:
+# Trigger separate tests pipeline
+.trigger-common: &trigger-common
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
+  variables:
+    # Default to the redhawk branch named in the global variables, which will
+    # typically be a develop branch. Feature branches trigger a test pipeline
+    # using the develop branch from which they were forked unless overridden
+    # here.
+    redhawk_testing_ref: $redhawk_branch
   script:
-    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME
+    - curl --insecure -X POST -F ref=$redhawk_testing_ref
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
-                              -F "variables[output_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
+
+# For bug/feature branches, require the developer to manually trigger the tests
+test-trigger:branch:
+  <<: *trigger-common
+  when: manual
   only:
     - branches
   except:
     - master
+    - /^develop.*$/
+
+# For develop branches, automatically trigger test pipeline
+test-trigger:develop:
+  <<: *trigger-common
+  only:
+    - /^develop.*$/
 
 test-trigger:release:
   image: ${docker_registry}centos:7
