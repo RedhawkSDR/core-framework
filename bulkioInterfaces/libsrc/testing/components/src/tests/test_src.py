@@ -3,6 +3,8 @@
 import ossie.utils.testing
 from ossie.utils import sb
 import time
+from ossie.utils.testing import main as _ossie_test_main
+main=_ossie_test_main
 
 class ComponentTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -69,4 +71,16 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         self.snk.releaseObject()
 
 if __name__ == "__main__":
-    ossie.utils.testing.main() # By default tests all implementations
+    try:
+        import sys
+        import os
+        if '--with-xunit' in sys.argv:
+            sys.argv=sys.argv[:]+[ __file__ ]
+            import use_nose_test
+            main=use_nose_test.NoseTestProgram
+    except:
+        traceback.print_exc()
+        pass
+
+    main("../src.spd.xml") # By default tests all implementations
+

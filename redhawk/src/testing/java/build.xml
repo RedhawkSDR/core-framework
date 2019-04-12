@@ -1,4 +1,4 @@
-<project name="bulkio-java-tests" default="test" basedir=".">
+<project name="redhawk-libossiecf-java-tests" default="test" basedir=".">
 <!--
 This file is protected by Copyright. Please refer to the COPYRIGHT file
 distributed with this source distribution.
@@ -27,32 +27,44 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <property name="src.dir" location="${basedir}" />
   <property name="reports.dir" location="${basedir}/reports" />
   <property name="build.dir" location="${basedir}" />
-  <property name="top.dir" location="${basedir}/../../../.." />
+  <property name="top.dir" location="${basedir}/../.." />
+  <property name="lib.java.dir" location="${basedir}/../../base/framework/java" />
 
   <path id="junit.class.path">
     <pathelement path="${java.class.path}"/>
+    <pathelement location="${basedir}/ossie-tests.jar"/>
+    <pathelement location="${lib.java.dir}/CFInterfaces.jar"/>
+    <pathelement location="${lib.java.dir}/log4j-1.2.15.jar"/>
+    <pathelement location="${lib.java.dir}/apache-commons-lang-2.4.jar"/>
+    <pathelement location="${lib.java.dir}/ossie/ossie.jar"/>
+    <pathelement location="${lib.java.dir}/ossie/ossie-legacy.jar"/>
     <pathelement location="/usr/share/java/junit4.jar"/>
-    <pathelement location="${basedir}/bulkio-tests.jar"/>
-    <pathelement location="${env.OSSIEHOME}/lib/CFInterfaces.jar"/>
-    <pathelement location="${env.OSSIEHOME}/lib/log4j-1.2.15.jar"/>
-    <pathelement location="${env.OSSIEHOME}/lib/ossie.jar"/>
-    <pathelement location="${top.dir}/libsrc/bulkio.jar"/>
-    <pathelement location="${top.dir}/BULKIOInterfaces.jar"/>
   </path>
 
   <target name="compile">
     <exec executable="/usr/bin/make">
-      <arg value="bulkio-tests.jar"/>
+      <arg value="ossie-tests.jar"/>
     </exec>
   </target>
 
   <target name="test" depends="compile">
     <mkdir dir="${reports.dir}"/>
-    <junit fork="yes" printsummary="yes" haltonfailure="no">
+    <junit fork="yes" printsummary="yes" haltonfailure="no" >
       <classpath refid="junit.class.path"/>
       <sysproperty key="java.library.path" value="${java.library.path}:${top.dir}/jni/.libs"/>
       <formatter type="xml"/>
-      <test name="AllTests" todir="${basedir}/../" outfile="libbulkio-junit-results"/>
+
+      <test name="AllTests" todir="${basedir}/" outfile="libossiecf-junit-results"/> 
+
+<!-- batch mode
+      <batchtest fork="yes" todir="${reports.dir}">
+        <fileset dir="${src.dir}">
+          <include name="*Test*.java"/>
+          <exclude name="**/AllTests.java"/>
+        </fileset>
+      </batchtest>
+-->
+
     </junit>
   </target>
 

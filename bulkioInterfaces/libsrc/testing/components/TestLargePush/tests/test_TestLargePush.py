@@ -24,7 +24,9 @@ import os
 from omniORB import any
 import time
 from ossie.utils.testing.unit_test_helpers import getImplId
+from ossie.utils.testing import main as _ossie_test_main
 from ossie.utils import sb
+import traceback
 
 # Add the local search paths to find local IDL files
 from ossie.utils import model
@@ -36,6 +38,7 @@ model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
 PAUSE = .1
 MAX_WAIT_TIME = 10
 EXPECTED_EOS = True
+main=_ossie_test_main
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in TestLargePush"""
@@ -116,6 +119,18 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.checkData(sink, isLong=isLong, isOctet=isOctet)
             self.comp.disconnect(sink)
 
-
 if __name__ == "__main__":
-    ossie.utils.testing.main("../TestLargePush.spd.xml") # By default tests all implementations
+
+    try:
+        import sys
+        import os
+        if '--with-xunit' in sys.argv:
+            sys.argv=sys.argv[:]+[ __file__ ]
+            import use_nose_test
+            main=use_nose_test.NoseTestProgram
+    except:
+        traceback.print_exc()
+        pass
+
+    main("../TestLargePush.spd.xml") # By default tests all implementations
+

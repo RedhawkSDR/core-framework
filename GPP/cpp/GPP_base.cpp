@@ -70,6 +70,7 @@ void GPP_base::construct()
     loadProperties();
 
     propEvent = new PropertyEventSupplier("propEvent");
+    propEvent->setLogger(this->_baseLog->getChildLogger("propEvent", "ports"));
     addPort("propEvent", propEvent);
     propEvent->registerProperty(this->_identifier, this->naming_service_name, this->getPropertyFromId("DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39"));
     propEvent->registerProperty(this->_identifier, this->naming_service_name, this->getPropertyFromId("DCE:506102d6-04a9-4532-9420-a323d818ddec"));
@@ -84,6 +85,7 @@ void GPP_base::construct()
     propEvent->registerProperty(this->_identifier, this->naming_service_name, this->getPropertyFromId("DCE:9da85ebc-6503-48e7-af36-b77c7ad0c2b4"));
     this->registerPropertyChangePort(propEvent);
     MessageEvent_out = new MessageSupplierPort("MessageEvent_out");
+    MessageEvent_out->setLogger(this->_baseLog->getChildLogger("MessageEvent_out", "ports"));
     addPort("MessageEvent_out", MessageEvent_out);
 
 }

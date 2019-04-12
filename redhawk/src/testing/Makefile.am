@@ -143,6 +143,9 @@ all-local:
 clean-local:
 	python setup.py clean
 	rm -rf build
+	-@rm cpp/libossie*.xml 
+	-@rm java/libossie*.xml
+	-@rm -r pyton/libossie*.xml
 
 EXTRA_DIST = setup.py
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/bin/env python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -71,10 +71,11 @@ class TestProgram(object):
 
     def parseArgs(self, argv):
         import getopt
-        short_options = 'vx'
-        long_options = ['xunit', 'log-level=', 'log-config=', 'verbose']
+        short_options = 'vx:'
+        long_options = ['xunit=', 'log-level=', 'log-config=', 'verbose']
 
         xunit = False
+        xmlout=None
         log_level = None
         log_config = None
         options, args = getopt.getopt(argv, short_options, long_options)
@@ -83,6 +84,7 @@ class TestProgram(object):
                 self.verbosity = 2
             elif opt in ('-x', '--xunit'):
                 xunit = True
+                xmlout=value
             elif opt == '--log-level':
                 # Map from string names to Python levels (this does not appear to
                 # be built into Python's logging module)
@@ -96,7 +98,10 @@ class TestProgram(object):
         if xunit:
             try:
                 import xmlrunner
-                self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
+                if xmlout:
+                    self.testRunner = xmlrunner.XMLTestRunner(output=xmlout, verbosity=self.verbosity)
+                else:
+                    self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
             except ImportError:
                 print >>sys.stderr, 'WARNING: XML test runner module is not installed'
             except TypeError:
