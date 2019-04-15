@@ -248,6 +248,10 @@ public class ${classname} extends ${baseclass} {
      *   - NOOP:   the next call happens after a pre-defined delay (100 ms)
      *   - FINISH: no more calls occur
      *
+     * Note: if returning NORMAL, the serviceFunction thread may be sufficiently
+     *       busy that garbage collection for objects created in the function is 
+     *       delayed and memory for this component can grow significantly.
+     *
      * StreamSRI:
      *    To create a StreamSRI object, use the following code:
      *            String stream_id = "testStream";
