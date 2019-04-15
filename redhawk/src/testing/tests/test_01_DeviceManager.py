@@ -448,6 +448,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         prop = CF.DataType(id=propId, value=any.to_any(None))
         result = device.query([prop])
         self.assertEqual(any.from_any(result[0].value), None)
+        prop.value = any.to_any(2.0)
         device.configure([prop])
         result = device.query([prop])
         self.assertEqual(any.from_any(result[0].value), -1.0)
