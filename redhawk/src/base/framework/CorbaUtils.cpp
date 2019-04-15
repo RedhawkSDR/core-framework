@@ -178,7 +178,7 @@ CosNaming::NamingContext_ptr InitialNamingContext ()
 	try {        
 	    inc = CosNaming::NamingContext::_narrow(obj);
 	} catch (CORBA::TRANSIENT& ex){
-	    LOG_FATAL(CorbaUtils,"Error occured. Unable to find Naming Service. Ensure that Naming Service is running.");
+	    LOG_FATAL(CorbaUtils,"Error occurred. Unable to find Naming Service. Ensure that Naming Service is running.");
             throw;
 	}
     }
