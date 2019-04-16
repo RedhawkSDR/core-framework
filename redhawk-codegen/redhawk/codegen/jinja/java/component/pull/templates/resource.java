@@ -245,10 +245,11 @@ public class ${classname} extends ${baseclass} {
      *   - NOOP:   the next call happens after a pre-defined delay (100 ms)
      *   - FINISH: no more calls occur
      *
-     * Note: if objects are created in the serviceFunction, little or no additional work is performed, 
-     *       and the return value is NORMAL (no delay), then garbage collection may have trouble 
-     *       keeping up with processing. This condition will result in a substantial 
-     *       growth in the component's memory footprint
+     * Note: When serviceFunction returns NORMAL, it will immediately loop back. 
+     *       If objects are created in the serviceFunction and no blocking calls are made, 
+     *       garbage collection will be deferred until no more heap space is available.
+     *       Under these conditions there are likely to be substantial CPU and JVM
+     *       memory utilization issues.
      *
      * StreamSRI:
      *    To create a StreamSRI object, use the following code:
