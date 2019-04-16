@@ -245,9 +245,10 @@ public class ${classname} extends ${baseclass} {
      *   - NOOP:   the next call happens after a pre-defined delay (100 ms)
      *   - FINISH: no more calls occur
      *
-     * Note: if returning NORMAL, the serviceFunction thread may be sufficiently
-     *       busy that garbage collection for objects created in the function is 
-     *       delayed and memory for this component can grow significantly.
+     * Note: if objects are created in the serviceFunction, little or no additional work is performed, 
+     *       and the return value is NORMAL (no delay), then garbage collection may have trouble 
+     *       keeping up with processing. This condition will result in a substantial 
+     *       growth in the component's memory footprint
      *
      * StreamSRI:
      *    To create a StreamSRI object, use the following code:
