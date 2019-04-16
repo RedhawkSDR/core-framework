@@ -423,7 +423,8 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/TestCppOptionalProps/cpp/Makefile \
                 testing/sdr/dom/components/TestJavaOptionalProps/java/Makefile \
                 testing/sdr/dom/components/svc_fn_error_cpp/cpp/Makefile \
-                testing/sdr/dom/components/svc_fn_error_java/java/Makefile ])
+                testing/sdr/dom/components/svc_fn_error_java/java/Makefile \
+                testing/sdr/dom/components/DomainEventReader/cpp/Makefile ])
 ])
 AC_OUTPUT
 

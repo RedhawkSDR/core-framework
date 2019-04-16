@@ -29,6 +29,7 @@ import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.cf import StandardEvent
 from ossie.events import ChannelManager
+from ossie.utils import redhawk
 
 # create a class for consuming events
 class ConsumerODM_i(CosEventComm__POA.PushConsumer):
@@ -207,4 +208,38 @@ class ODMEventsTest(scatest.CorbaTestCase):
         self.assertEqual(_consumer.getRemovedEventCount('SERVICE'), 1)
 
         self.terminateChild(devBooter)
+
+
+class DomainEventReaderTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.assertEquals(len(self._rhDom._get_applications()), 0)
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown, or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # Need to let event service clean up event channels; cycle period is 10 milliseconds.
+        time.sleep(0.1)
+
+    def testAddAndRemoveEvents(self):
+        app = self._rhDom.createApplication('/waveforms/DomainEventReaderWaveform/DomainEventReaderWaveform.sad.xml')
+        comp = app.comps[0]
+
+        # Count Add and Remove events before starting 2nd device manager and device.
+        num_add_events = comp.query([ CF.DataType( id='num_add_events', value=any.to_any(None)) ])[0].value._v
+        num_remove_events = comp.query([ CF.DataType( id='num_remove_events', value=any.to_any(None)) ])[0].value._v
+        self.assertEquals(num_add_events, 1)  # the waveform
+        self.assertEquals(num_remove_events, 0)
+
+        _, self._devMgr_2 = self.launchDeviceManager("/nodes/DomainEventReader/DeviceManager.dcd.xml")
+        self._devMgr_2.shutdown()
+
+        # Count Add and Remove events after starting and stopping 2nd device manager and device.
+        num_add_events = comp.query([ CF.DataType( id='num_add_events', value=any.to_any(None)) ])[0].value._v
+        num_remove_events = comp.query([ CF.DataType( id='num_remove_events', value=any.to_any(None)) ])[0].value._v
+        self.assertEquals(num_add_events, 3)  # the waveform, the 2nd device manager, the 2nd device
+        self.assertEquals(num_remove_events, 2)  # the 2nd device manager, the 2nd device
 

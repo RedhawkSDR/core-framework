@@ -91,7 +91,8 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/zero_length/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/busycomp/cpp \
-          sdr/dom/components/svc_fn_error_cpp/cpp
+          sdr/dom/components/svc_fn_error_cpp/cpp \
+          sdr/dom/components/DomainEventReader/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dom/deps/java_dep1/java \
