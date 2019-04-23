@@ -29,7 +29,7 @@ Listener::Listener(DomainEventReader_i *r) : pReader(r)
 }
 
 void Listener::operator() ( const redhawk::events::DomainStateEvent &data ) {
-    std::cerr << "....... state change\n"
+    std::cout << "....... state change\n"
               << "            prod id:  " << data.prod_id << "\n"
               << "          source id:  " << data.source_id << "\n"
               << "        source name:  " << data.source_name << "\n"

@@ -229,6 +229,12 @@ class DomainEventReaderTest(scatest.CorbaTestCase):
         comp = app.comps[0]
 
         # Count Add and Remove events before starting 2nd device manager and device.
+        def _waitFirstAddEvent():
+            if comp.query([ CF.DataType( id='num_add_events', value=any.to_any(None)) ])[0].value._v:
+                return True
+            else:
+                print 'got num_add_events:  0'
+        self.waitPredicate(_waitFirstAddEvent, 1)
         num_add_events = comp.query([ CF.DataType( id='num_add_events', value=any.to_any(None)) ])[0].value._v
         num_remove_events = comp.query([ CF.DataType( id='num_remove_events', value=any.to_any(None)) ])[0].value._v
         self.assertEquals(num_add_events, 1)  # the waveform
