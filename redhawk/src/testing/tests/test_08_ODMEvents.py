@@ -224,7 +224,7 @@ class DomainEventReaderTest(scatest.CorbaTestCase):
         # Need to let event service clean up event channels; cycle period is 10 milliseconds.
         time.sleep(0.1)
 
-    def testAddAndRemoveEvents(self):
+    def test_AddAndRemoveEvents(self):
         app = self._rhDom.createApplication('/waveforms/DomainEventReaderWaveform/DomainEventReaderWaveform.sad.xml')
         comp = app.comps[0]
 
