@@ -107,9 +107,9 @@ class BaseConfigurator(object):
         elif tmp_testvalue_p==2:
             return self._processor_name(os.uname()[4],tmp_testvalue_p)
         else:
-            self._log.error("Cannot determine processor.  Please enter the appropriate values in the brackets [] and run the following code from the command line",
-            "\n./gpp_setup --gppcfg --processorname [YOUR COMPUTER'S PROCESSOR]",
-            "\nIn the event of a 'Permission Denied' error, please change the permissions by running the following code before rerunning the previous command:",
+            self._log.error("Cannot determine processor name.  Run the following command with the appropriate processor name (for example, x86_64):",
+            "\n./gpp_setup --gppcfg --processorname <processor name>",
+            "\nIn the event of a 'Permission Denied' error, change the permissions with the following command and rerun the gpp_setup command:",
             "\nsudo chmod g+rw /var/redhawk/sdr/dev/devices/GPP/GPP.prf.xml")
             sys.exit(1)
 
