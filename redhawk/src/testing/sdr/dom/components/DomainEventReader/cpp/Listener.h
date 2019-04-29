@@ -20,7 +20,10 @@
 #ifndef LISTENER_H_
 #define LISTENER_H_
 
-#include "DomainEventReader.h"
+#include <ossie/Component.h>
+
+
+class DomainEventReader_i;
 
 
 class Listener : public redhawk::events::DomainEventReader::AddRemoveListener

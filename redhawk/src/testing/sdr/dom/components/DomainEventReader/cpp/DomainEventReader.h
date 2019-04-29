@@ -21,10 +21,15 @@
 #define DOMAINEVENTREADER_I_IMPL_H
 
 #include "DomainEventReader_base.h"
+#include "Listener.h"
+
 
 class DomainEventReader_i : public DomainEventReader_base
 {
     ENABLE_LOGGING
+    private:
+        Listener listener;
+        redhawk::events::DomainEventReader * reader;
     public:
         DomainEventReader_i(const char *uuid, const char *label);
         ~DomainEventReader_i();

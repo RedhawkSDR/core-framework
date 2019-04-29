@@ -24,7 +24,8 @@
 #include "DomainEventReader.h"
 
 
-Listener::Listener(DomainEventReader_i *r) : pReader(r)
+Listener::Listener(DomainEventReader_i *r) :
+    pReader(r)
 {
 }
 

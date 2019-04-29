@@ -27,12 +27,11 @@
 **************************************************************************/
 
 #include "DomainEventReader.h"
-#include "Listener.h"
 
 PREPARE_LOGGING(DomainEventReader_i)
 
 DomainEventReader_i::DomainEventReader_i(const char *uuid, const char *label) :
-    DomainEventReader_base(uuid, label)
+    DomainEventReader_base(uuid, label), listener(this)
 {
     // Avoid placing constructor code here. Instead, use the "constructor" function.
 
@@ -40,6 +39,10 @@ DomainEventReader_i::DomainEventReader_i(const char *uuid, const char *label) :
 
 DomainEventReader_i::~DomainEventReader_i()
 {
+    if (reader) {
+        delete reader;
+        reader = NULL;
+    }
 }
 
 void DomainEventReader_i::constructor()
@@ -47,9 +50,7 @@ void DomainEventReader_i::constructor()
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
-    Listener listener(this);
-
-    redhawk::events::DomainEventReader *reader = new redhawk::events::DomainEventReader(redhawk::events::Manager::GetManager(this)->Subscriber("ODM_Channel", "my_registration_id"));
+    reader = new redhawk::events::DomainEventReader(redhawk::events::Manager::GetManager(this)->Subscriber("ODM_Channel", "my_registration_id"));
     reader->setAddRemoveListener(&listener);
 }
 
