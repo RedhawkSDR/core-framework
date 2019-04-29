@@ -420,17 +420,22 @@ void DomainConnectionManager::tryPendingConnections_(Endpoint::DependencyType ty
                 continue;
             }
             RH_TRACE(_connectionLog, "Resolving pending connection " << connection->identifier);
-            if (!connection->connect(*this)) {
-                if (!connection->allowDeferral()) {
-                    // This connection needs to be removed from the list
-                    RH_ERROR(_connectionLog, "Connection " << connection->identifier << " cannot be resolved");
-                    connection = connections.erase(connection);
+            try {
+                if (!connection->connect(*this)) {
+                    if (!connection->allowDeferral()) {
+                        // This connection needs to be removed from the list
+                        RH_ERROR(_connectionLog, "Connection " << connection->identifier << " cannot be resolved");
+                        connection = connections.erase(connection);
+                    } else {
+                        RH_TRACE(_connectionLog, "Connection " << connection->identifier << " still has pending dependencies");
+                        connection++;
+                    }
                 } else {
-                    RH_TRACE(_connectionLog, "Connection " << connection->identifier << " still has pending dependencies");
+                    RH_DEBUG(_connectionLog, "Connection " << connection->identifier << " resolved");
                     connection++;
                 }
-            } else {
-                RH_DEBUG(_connectionLog, "Connection " << connection->identifier << " resolved");
+            } catch ( ... ) {
+                RH_ERROR(_connectionLog, "Connection " << connection->identifier << " cannot be resolved. At least one of the endpoints is invalid");
                 connection++;
             }
         }
