@@ -255,11 +255,12 @@ throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration,
                 std::string comparator("eq");
                 if (ossie::compare_anys(before_value, after_value, comparator)) {
                     RH_TRACE(_propertysetLog, "Value has not changed on configure for property " << property->id << ". Not triggering callback");
-                }
-                executePropertyCallback(property->id);
-                if (sendEvent) {
-                    // sending the event
-                    propertyChangePort->sendPropertyEvent(property->id);
+                } else {
+                    executePropertyCallback(property->id);
+                    if (sendEvent) {
+                        // sending the event
+                        propertyChangePort->sendPropertyEvent(property->id);
+                    }
                 }
                 ++validProperties;
             } catch (std::exception& e) {

@@ -174,7 +174,13 @@ CosNaming::NamingContext_ptr InitialNamingContext ()
 {
     if (CORBA::is_nil(inc) && !CORBA::is_nil(orb)) {
         CORBA::Object_var obj = orb->resolve_initial_references("NameService");
-        inc = CosNaming::NamingContext::_narrow(obj);
+
+        try {        
+            inc = CosNaming::NamingContext::_narrow(obj);
+        } catch (CORBA::TRANSIENT& ex){
+            LOG_FATAL(CorbaUtils,"Error occurred. Unable to find Naming Service. Ensure that Naming Service is running.");
+            throw;
+        }
     }
 
     return inc;
@@ -745,7 +751,6 @@ std::string describeException(const CORBA::Exception& exc) {
   //
   int  Bind(const std::string &name,  CORBA::Object_ptr obj,  CosNaming::NamingContext_ptr namingContext  ) {
 
-    LNTRACE( "Bind", " created event channel " << name );
     int retval=1;
     try {
       if(!CORBA::is_nil(namingContext) ) {

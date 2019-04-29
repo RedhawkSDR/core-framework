@@ -23,6 +23,8 @@ import ossie.utils.testing
 import os
 from omniORB import any
 from ossie.utils import sb
+from ossie.utils.testing import main as _ossie_test_main
+main=_ossie_test_main
 
 class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all resource implementations in Oversized_framedata"""
@@ -56,4 +58,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     # for modules that will assist with testing resource with BULKIO ports
 
 if __name__ == "__main__":
-    ossie.utils.testing.main("../Oversized_framedata.spd.xml") # By default tests all implementations
+    try:
+        import sys
+        import os
+        if '--with-xunit' in sys.argv:
+            sys.argv=sys.argv[:]+[ __file__ ]
+            import use_nose_test
+            main=use_nose_test.NoseTestProgram
+    except:
+        traceback.print_exc()
+        pass
+
+    main("../Oversized_framedata.spd.xml") # By default tests all implementations
