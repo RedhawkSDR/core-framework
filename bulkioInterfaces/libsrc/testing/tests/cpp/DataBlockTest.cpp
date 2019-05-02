@@ -24,6 +24,50 @@
 using bulkio::StringDataBlock;
 using bulkio::BitDataBlock;
 
+namespace  {
+    // Stream insertion operator for shared buffer. This must be defined to use
+    // CPPUNIT_ASSERT_EQUALS.
+    template <typename T>
+    std::ostream& operator<< (std::ostream& oss, const redhawk::shared_buffer<T>& value)
+    {
+        oss << "[";
+        for (unsigned ii = 0; ii < value.size(); ++ii) {
+            if (ii != 0) {
+                oss << ",";
+            }
+            oss << value[ii];
+        }
+        oss << "]";
+	return oss;
+    };
+
+    // Stream insertion operator for bitbuffer. This must be defined to use
+    // CPPUNIT_ASSERT_EQUALS.
+    std::ostream& operator<< (std::ostream& oss, const redhawk::shared_bitbuffer& value)
+    {
+        for (unsigned ii = 0; ii < value.size(); ++ii) {
+            oss << value[ii];
+        }
+	return oss;
+    };
+
+    // Default uniqueness check (for shared buffer and bitbuffer). Verifies
+    // that each object has its own underlying memory.
+    template <typename T>
+    bool assert_unique(const T& lhs, const T& rhs) {
+        return lhs.data() != rhs.data();
+    }
+
+    // Overload of uniqueness check for std::string; glibc++ implements STL
+    // string with copy-on-write, so in a const context the data() method will
+    // return the same pointer even though changing one does not affect the
+    // other. Instead, simply check that they are different objects.
+    bool assert_unique(const std::string& lhs, const std::string& rhs)
+    {
+        return (&lhs) != (&rhs);
+    }
+}
+
 template <class Block>
 Block DataBlockTest<Block>::_createBasicBlock(size_t size, const std::string& streamID)
 {
@@ -33,6 +77,9 @@ Block DataBlockTest<Block>::_createBasicBlock(size_t size, const std::string& st
     BULKIO::StreamSRI sri = bulkio::sri::create(streamID);
     typedef typename Block::ScalarType ScalarType;
     redhawk::buffer<ScalarType> buffer(size, std::allocator<ScalarType>());
+    for (size_t ii = 0; ii < buffer.size(); ++ii) {
+        buffer[ii] = (ScalarType) ii;
+    }
     return Block(sri, buffer);
 }
 
@@ -57,12 +104,11 @@ BitDataBlock DataBlockTest<BitDataBlock>::_createBasicBlock(size_t size, const s
 template <class Block>
 void DataBlockTest<Block>::testCopy()
 {
-    Block block = _createBasicBlock(16, "test_copy");
+    const Block block = _createBasicBlock(16, "test_copy");
 
     Block copy = block.copy();
-    if (block.buffer() != copy.buffer()) {
-        CPPUNIT_FAIL("Copy produced unequal buffers");
-    }
+    CPPUNIT_ASSERT_EQUAL(block.buffer(), copy.buffer());
+    CPPUNIT_ASSERT(assert_unique(block.buffer(), copy.buffer()));
 }
 
 #define CREATE_TEST(X, BASE)                                            \
