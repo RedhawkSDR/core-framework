@@ -163,4 +163,62 @@ class DCDConnectionsTest(scatest.CorbaTestCase):
             if (time.time() - begin_time) > 5.0:
                 self.fail('Device manager test_BasicService_node did not unregister')
 
+    def test_MultipleDeviceService(self):
+        svcBooterSecond, svcMgrSecond = self.launchDeviceManager("/nodes/test_PortTestDeviceService_2_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(svcMgrSecond, None)
+        svcBooterThird, svcMgrThird = self.launchDeviceManager("/nodes/test_PortTestDeviceService_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(svcMgrThird, None)
 
+        conns = self._domMgr._get_connectionMgr()._get_connections()
+        self.assertEqual(len(conns), 2)
+        correct_name = 'resource_out'
+        incorrect_name = 'incorrect_name'
+
+        # verify that the 2 connections are pending
+        matches = 0
+        for conn in conns:
+            if conn.usesEndpoint.portName == correct_name:
+                self.assertEqual(conn.connected, False)
+                matches+=1
+            if conn.usesEndpoint.portName == incorrect_name:
+                self.assertEqual(conn.connected, False)
+                matches+=1
+        self.assertEqual(matches, 2)
+
+        svcBooter, svcMgr = self.launchDeviceManager("/nodes/test_BasicService_node/DeviceManager.dcd.xml")
+        self.assertNotEqual(svcMgr, None)
+
+        # verify that the 1 connection is on and the other one is pending
+        conns = self._domMgr._get_connectionMgr()._get_connections()
+        self.assertEqual(len(conns), 2)
+        matches = 0
+        for conn in conns:
+            if conn.usesEndpoint.portName == correct_name:
+                self.assertEqual(conn.connected, True)
+                matches+=1
+            if conn.usesEndpoint.portName == incorrect_name:
+                self.assertEqual(conn.connected, False)
+                matches+=1
+        self.assertEqual(matches, 2)
+
+        svcMgr.shutdown()
+
+        # verify that the 2 connections are pending
+        conns = self._domMgr._get_connectionMgr()._get_connections()
+        self.assertEqual(len(conns), 2)
+        matches = 0
+        for conn in conns:
+            if conn.usesEndpoint.portName == correct_name:
+                self.assertEqual(conn.connected, False)
+                matches+=1
+            if conn.usesEndpoint.portName == incorrect_name:
+                self.assertEqual(conn.connected, False)
+                matches+=1
+        self.assertEqual(matches, 2)
+
+        svcMgrSecond.shutdown()
+        svcMgrThird.shutdown()
+
+        # verify that the pending connections are removed
+        conns = self._domMgr._get_connectionMgr()._get_connections()
+        self.assertEqual(len(conns), 0)

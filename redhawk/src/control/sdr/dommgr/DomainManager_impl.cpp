@@ -87,7 +87,6 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
   _initialLogLevel(initialLogLevel),
   _bindToDomain(bindToDomain)
 {
-
     std::string std_logconfig_uri;
     if (_logconfig_uri) {
         std::string _lu(_logconfig_uri);
@@ -137,7 +136,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
                 "external",
                 "property");
 
-
+    RH_TRACE(this->_baseLog, "Establishing domain manager naming context");
     // Create file manager and register with the parent POA.
     fileMgr_servant = new FileManager_impl (_rootpath);
     std::string fileManagerId = _domainName + "/FileManager";
@@ -729,8 +728,8 @@ DomainManager_impl::~DomainManager_impl ()
 
 
     /**************************************************
-     *    Save current state for configuration recall   *
-     *    this is not supported by this version          *
+     *    Save current state for configuration recall *
+     *    this is not supported by this version       *
      **************************************************/
 }
 
