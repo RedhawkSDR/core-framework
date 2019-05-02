@@ -180,7 +180,7 @@ public:
         std::cout << "  heap used:   " << _format(stats.used) << " (" << percent(used_pct) << ")" << std::endl;
 
         pid_t creator = heap.creator();
-        std::cout << "  creator:     " << creator << std::endl;
+        std::cout << "  creator:     " << std::dec << creator << std::endl;
         std::cout << "  orphaned:    " << std::boolalpha << heap.isOrphaned() << std::endl;
         std::cout << "  refcount:    " << heap.refcount() << std::endl;
 
