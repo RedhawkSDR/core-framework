@@ -63,7 +63,9 @@ DeviceManager_impl::DeviceManager_impl(
     DomainWatchThread(NULL),
     _registeredDevices(),
     devmgr_info(0),
-    _initialDebugLevel(initialDebugLevel)
+    _initialDebugLevel(initialDebugLevel),
+    disconnected(false)
+
 {
 
     __logger = rh_logger::Logger::getResourceLogger("DeviceManager_impl");
@@ -242,6 +244,7 @@ int DeviceManager_impl::checkDomain()
         if ((this->startDomainWarn.tv_sec == 0) and (this->startDomainWarn.tv_usec == 0)) {
             RH_WARN(this->_baseLog, "Unable to contact the Domain Manager");
             gettimeofday(&startDomainWarn, NULL);
+            disconnected = true;
             return DomainCheckThread::NOOP;
         }
         struct timeval now;
@@ -257,6 +260,10 @@ int DeviceManager_impl::checkDomain()
 
     for (unsigned int i=0; i<devMgrs->length(); i++) {
         if (devMgrs[i]->_is_equivalent(this->_this())) {
+            if (disconnected){
+                RH_INFO(this->_baseLog, "Reconnected to the Domain Manager");
+                disconnected = false;
+            }
             return DomainCheckThread::NOOP;
         }
     }
@@ -690,14 +697,15 @@ void DeviceManager_impl::registerDeviceManagerWithDomainManager(
         try {
             cnt++;
             _dmnMgr->registerDeviceManager(my_object_var);
+            disconnected = false;
             break;
         } catch (const CORBA::TRANSIENT& ex) {
             // The DomainManager isn't currently reachable, but it may become accessible again.
-          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  TRANSIENT condition: retry cnt" << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  TRANSIENT condition: retry cnt " << cnt); }
             usleep(100000);
         } catch (const CORBA::OBJECT_NOT_EXIST& ex) {
             // This error occurs while the DomainManager is still being constructed 
-          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  DOES NOT EXIST condition: retry cnt" << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  DOES NOT EXIST condition: retry cnt " << cnt); }
             usleep(100000);
         } catch (const CF::DomainManager::RegisterError& e) {
             RH_ERROR(this->_baseLog, "Failed to register with domain manager due to: " << e.msg);
@@ -1261,11 +1269,13 @@ void DeviceManager_impl::postConstructor (
     }
 
     if (domain_persistence) {
-        DomainWatchThread = new DomainCheckThread(this);
-        DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
-        this->startDomainWarn.tv_sec = 0;
-        this->startDomainWarn.tv_usec = 0;
-        DomainWatchThread->start();
+        if (DomainWatchThread == NULL) {
+            DomainWatchThread = new DomainCheckThread(this);
+            DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
+            this->startDomainWarn.tv_sec = 0;
+            this->startDomainWarn.tv_usec = 0;
+            DomainWatchThread->start();
+        }
     } else {
         DomainWatchThread = NULL;
     }
