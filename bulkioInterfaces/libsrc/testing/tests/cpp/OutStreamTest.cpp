@@ -104,6 +104,88 @@ void OutStreamTest<Port>::testSriFields()
 }
 
 template <class Port>
+void OutStreamTest<Port>::testSriNoChange()
+{
+    int expected_H_size = 0;
+
+    StreamType stream = port->createStream("test_sri_no_change");
+    BULKIO::StreamSRI sri = stream.sri();
+
+    CPPUNIT_ASSERT_MESSAGE("SRI update occurred without call to write data.",
+                           stub->H.size() == expected_H_size);
+
+    _writeSinglePacket(stream, 10);
+    expected_H_size++;
+    CPPUNIT_ASSERT_MESSAGE("No SRI update before first data write.",
+                           stub->H.size() == expected_H_size);
+
+    stream.sri(sri);
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Call to sri() with sri_old == sri_new caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    sri.streamID = "renamed";
+    stream.sri(sri);
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Call to sri() with sri_old == sri_new (except .streamID) caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    sri.xdelta = 2.0;
+    stream.sri(sri);
+    expected_H_size++;
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Setting sri.xdelta to new value failed to cause SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.xdelta(3.0);
+    expected_H_size++;
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Setting sri.xdelta to unchanged value caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.xdelta(3.0);
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.xdelta() with unchanged value caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    redhawk::PropertyMap props;
+    props["foo"] = "word1";
+    props["bar"] = "word2";
+    stream.keywords(props);
+    expected_H_size++;
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.keywords() with new value failed to cause SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.keywords(props);
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.keywords() with unchanged value caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.setKeyword("foo", "word8");
+    expected_H_size++;
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.setKeyword() with new value failed to cause SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.setKeyword("foo", "word8");
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.setKeyword() with unchanged value caused SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.eraseKeyword("bar");
+    expected_H_size++;
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.eraseKeyword(<existing key>) failed to cause SRI update.",
+                           stub->H.size() == expected_H_size);
+
+    stream.eraseKeyword("bar");
+    _writeSinglePacket(stream, 10);
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.eraseKeyword(<no such key>) caused SRI update.",
+                           stub->H.size() == expected_H_size);
+}
+
+template <class Port>
 void OutStreamTest<Port>::testSriUpdate()
 {
     // Create initial stream; all changes should be queued up for the first
