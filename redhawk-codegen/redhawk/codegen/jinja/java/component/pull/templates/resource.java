@@ -248,6 +248,12 @@ public class ${classname} extends ${baseclass} {
      *   - NOOP:   the next call happens after a pre-defined delay (100 ms)
      *   - FINISH: no more calls occur
      *
+     * Note: When serviceFunction returns NORMAL, it will immediately loop back. 
+     *       If objects are created in the serviceFunction and no blocking calls are made, 
+     *       garbage collection will be deferred until no more heap space is available.
+     *       Under these conditions there are likely to be substantial CPU and JVM
+     *       memory utilization issues.
+     *
      * StreamSRI:
      *    To create a StreamSRI object, use the following code:
      *            String stream_id = "testStream";

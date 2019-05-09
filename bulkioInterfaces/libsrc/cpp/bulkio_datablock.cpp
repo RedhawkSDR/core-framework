@@ -257,6 +257,18 @@ SampleDataBlock<T>::SampleDataBlock(const BULKIO::StreamSRI& sri, size_t size) :
 }
 
 template <class T>
+SampleDataBlock<T> SampleDataBlock<T>::copy() const
+{
+    // To support the covariant return type without reimplementing the method,
+    // use the base class copy() to return a temporary and then reinterpret it
+    // as the derived type to pass to the copy constructor. Since there are no
+    // additional data members, the only concern is a potential extra copy of
+    // the shared pointer (which may get optimized out by the compiler).
+    Base temp = Base::copy();
+    return SampleDataBlock(reinterpret_cast<const SampleDataBlock&>(temp));
+}
+
+template <class T>
 T* SampleDataBlock<T>::data()
 {
     // To preserve data integrity of shared buffers received from a port, make
