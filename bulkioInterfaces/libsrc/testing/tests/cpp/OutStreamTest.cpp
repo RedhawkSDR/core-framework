@@ -103,6 +103,10 @@ void OutStreamTest<Port>::testSriFields()
     CPPUNIT_ASSERT_EQUAL((CORBA::Long) 100, stream.getKeyword("number").toLong());
 }
 
+/* Test that the SRI is not pushed when not needed.
+ * Calls to set attributes of the SRI, or set or erase SRI keywords should
+ * only cause the SRI to be pushed if a change was made.
+ */
 template <class Port>
 void OutStreamTest<Port>::testSriNoChange()
 {
@@ -119,28 +123,23 @@ void OutStreamTest<Port>::testSriNoChange()
     CPPUNIT_ASSERT_MESSAGE("No SRI update before first data write.",
                            stub->H.size() == expected_H_size);
 
+    sri.streamID = "changed_sri";
     stream.sri(sri);
     _writeSinglePacket(stream, 10);
-    CPPUNIT_ASSERT_MESSAGE("Call to sri() with sri_old == sri_new caused SRI update.",
-                           stub->H.size() == expected_H_size);
-
-    sri.streamID = "renamed";
-    stream.sri(sri);
-    _writeSinglePacket(stream, 10);
-    CPPUNIT_ASSERT_MESSAGE("Call to sri() with sri_old == sri_new (except .streamID) caused SRI update.",
+    CPPUNIT_ASSERT_MESSAGE("Calling sri() with no sri change (except streamID) caused SRI update.",
                            stub->H.size() == expected_H_size);
 
     sri.xdelta = 2.0;
     stream.sri(sri);
     expected_H_size++;
     _writeSinglePacket(stream, 10);
-    CPPUNIT_ASSERT_MESSAGE("Setting sri.xdelta to new value failed to cause SRI update.",
+    CPPUNIT_ASSERT_MESSAGE("Calling sri() with changed sri (other than streamID) failed to cause SRI update.",
                            stub->H.size() == expected_H_size);
 
     stream.xdelta(3.0);
     expected_H_size++;
     _writeSinglePacket(stream, 10);
-    CPPUNIT_ASSERT_MESSAGE("Setting sri.xdelta to unchanged value caused SRI update.",
+    CPPUNIT_ASSERT_MESSAGE("Calling stream.xdelta() with changed value failed to cause SRI update.",
                            stub->H.size() == expected_H_size);
 
     stream.xdelta(3.0);

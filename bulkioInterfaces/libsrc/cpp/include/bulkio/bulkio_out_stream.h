@@ -107,7 +107,8 @@ namespace bulkio {
          * @pre  Stream is valid.
          *
          * Overwrites all SRI fields except for @c streamID, which is
-         * immutable.  The updated SRI will be pushed on the next write.
+         * immutable.  If the SRI is changed, it will be pushed on the next
+         * write.
          */
         void sri(const BULKIO::StreamSRI& sri);
 
@@ -241,8 +242,9 @@ namespace bulkio {
          * @pre  Stream is valid.
          * @see  setKeyword
          *
-         * The current SRI keywords are replaced with @a props. The updated SRI
-         * will be pushed on the next write.
+         * If @a props differ from the current SRI keywords, the keywords are
+         * replaced with @a props. The updated SRI will be pushed on the next
+         * write.
          */
         void keywords(const _CORBA_Unbounded_Sequence<CF::DataType>& props);
 
@@ -254,11 +256,11 @@ namespace bulkio {
          * @see  setKeyword(const std::string&, const redhawk::Value&)
          * @see  setKeyword(const std::string&, const T&)
          *
-         * If the keyword @a name already exists, its value is updated to
-         * @a value.  If the keyword @a name does not exist, the new keyword is
-         * appended.
+         * If keyword @a name does not exist, the new keyword is appended.
+         * If the keyword @a name exists, and its value differs from @ value,
+         * then its value is updated to @a value.
          *
-         * Setting a keyword updates the SRI, which will be pushed on the next
+         * Changing a keyword updates the SRI, which will be pushed on the next
          * write.
          */
         void setKeyword(const std::string& name, const CORBA::Any& value);
@@ -270,11 +272,11 @@ namespace bulkio {
          * @pre  Stream is valid.
          * @see  setKeyword(const std::string&, const T&)
          *
-         * If the keyword @a name already exists, its value is updated to
-         * @a value. If the keyword @a name does not exist, the new keyword is
-         * appended.
+         * If keyword @a name does not exist, the new keyword is appended.
+         * If the keyword @a name exists, and its value differs from @ value,
+         * then its value is updated to @a value.
          *
-         * Setting a keyword updates the SRI, which will be pushed on the next
+         * Changing a keyword updates the SRI, which will be pushed on the next
          * write.
          */
         void setKeyword(const std::string& name, const redhawk::Value& value);
@@ -286,11 +288,11 @@ namespace bulkio {
          * @tparam T  Any type that can be converted to a redhawk::Value.
          * @pre  Stream is valid.
          *
-         * If the keyword @a name already exists, its value is updated to
-         * @a value. If the keyword @a name does not exist, the new keyword is
-         * appended.
+         * If keyword @a name does not exist, the new keyword is appended.
+         * If the keyword @a name exists, and its value differs from @ value,
+         * then its value is updated to @a value.
          *
-         * Setting a keyword updates the SRI, which will be pushed on the next
+         * Changing a keyword updates the SRI, which will be pushed on the next
          * write.
          */
         template <typename T>

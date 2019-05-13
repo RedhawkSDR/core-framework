@@ -19,6 +19,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import copy
 import unittest
 import math
 
@@ -103,6 +104,81 @@ class OutStreamTest(object):
         self.assertEqual(len(sri.keywords), len(stream.keywords))
         self.assertEqual('value', stream.getKeyword('string'))
         self.assertEqual(100, stream.getKeyword('number'))
+
+    def testSriNoChange(self):
+        """Test that the SRI is not pushed when not needed.
+
+        Calls to set attributes of the SRI, or set or erase SRI keywords should
+        only cause the SRI to be pushed if a change was made.
+        """
+        expected_H_size = 0
+
+        stream = self.port.createStream('test_sri_no_change')
+        sri = copy.deepcopy(stream.sri)
+        sri.streamID = 'changed_sri'
+        msg = 'SRI update occurred without call to write data.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'No SRI update before first data write.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.sri = sri
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting sri with no sri change (except streamID) caused SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        sri.xdelta *= 2
+        stream.sri = sri
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting sri with changed sri (other than streamID) failed to cause SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.xdelta *= 2
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting stream.xdelta to changed value failed to cause SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.xdelta = stream.xdelta
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting stream.xdelta to unchanged value caused SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.keywords = properties.props_from_dict({'string':'value', 'number':100})
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting stream.keywords to new value failed to cause SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.keywords = properties.props_from_dict({'string':'value', 'number':100})
+        self._writeSinglePacket(stream, 10)
+        msg = 'Setting stream.keywords to unchanged value caused SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.setKeyword('string', 'changed-value')
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'Calling stream.setKeyword() with new value failed to cause SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.setKeyword('string', 'changed-value')
+        self._writeSinglePacket(stream, 10)
+        msg = 'Calling stream.setKeyword() with unchanged value caused SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.eraseKeyword('string')
+        expected_H_size += 1
+        self._writeSinglePacket(stream, 10)
+        msg = 'Calling stream.eraseKeyword(<existing key>) failed to cause SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
+
+        stream.eraseKeyword('string')
+        self._writeSinglePacket(stream, 10)
+        msg = 'Calling stream.eraseKeyword(<no such key>) caused SRI update.'
+        self.assertEqual(len(self.stub.H), expected_H_size, msg)
 
     def testSriUpdate(self):
         # Create initial stream; all changes should be queued up for the first
