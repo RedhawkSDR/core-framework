@@ -120,21 +120,18 @@ public:
 
     void setKeyword(const std::string& name, const CORBA::Any& value)
     {
-        bool contains_key_value = false;
         redhawk::PropertyMap & sri_keywords = redhawk::PropertyMap::cast(_sri->keywords);
         redhawk::PropertyMap::const_iterator it = sri_keywords.find(name);
         if ( it != sri_keywords.end() ) {
             const CORBA::Any & value_orig = it->getValue();
             std::string action("eq");
             if ( ossie::compare_anys(value_orig, value, action) ) {
-                contains_key_value = true;
+                return;
             }
         }
-        if (!contains_key_value) {
-            _modifyingStreamMetadata();
-            sri_keywords[name] = value;
-            ++_modcount;
-        }
+        _modifyingStreamMetadata();
+        sri_keywords[name] = value;
+        ++_modcount;
     }
 
     void eraseKeyword(const std::string& name)
@@ -149,7 +146,7 @@ public:
 
     void setSRI(const BULKIO::StreamSRI& sri)
     {
-        // If only streamID differs, do nothing.
+        // If the SRI is the same, or differs only by streamID, do nothing.
         int comparison = bulkio::sri::compareFields(*_sri, sri);
         if ( (comparison | bulkio::sri::STREAMID) != bulkio::sri::STREAMID ) {
             _modifyingStreamMetadata();

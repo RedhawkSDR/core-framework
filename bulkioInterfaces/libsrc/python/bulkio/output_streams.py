@@ -80,7 +80,8 @@ class OutputStream(StreamBase):
     def sri(self, sri):
         if not isinstance(sri, BULKIO.StreamSRI):
             raise TypeError('sri must be a BULKIO.StreamSRI') 
-        if bulkio.sri.compareFields(self.sri, sri) | bulkio.sri.STREAMID == bulkio.sri.STREAMID:
+        # If the SRI is the same, or differs only by streamID, do nothing.
+        if bulkio.sri.compareFields(self.sri, sri) in (bulkio.sri.NONE, bulkio.sri.STREAMID):
             return
         self._modifyingStreamMetadata()
         # Deep copy to avoid accidental updates to the SRI via the caller's
