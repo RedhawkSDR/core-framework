@@ -257,7 +257,7 @@ namespace bulkio {
          * @see  setKeyword(const std::string&, const T&)
          *
          * If keyword @a name does not exist, the new keyword is appended.
-         * If the keyword @a name exists, and its value differs from @ value,
+         * If the keyword @a name exists, and its value differs from @a value,
          * then its value is updated to @a value.
          *
          * Changing a keyword updates the SRI, which will be pushed on the next
@@ -273,7 +273,7 @@ namespace bulkio {
          * @see  setKeyword(const std::string&, const T&)
          *
          * If keyword @a name does not exist, the new keyword is appended.
-         * If the keyword @a name exists, and its value differs from @ value,
+         * If the keyword @a name exists, and its value differs from @a value,
          * then its value is updated to @a value.
          *
          * Changing a keyword updates the SRI, which will be pushed on the next
@@ -289,7 +289,7 @@ namespace bulkio {
          * @pre  Stream is valid.
          *
          * If keyword @a name does not exist, the new keyword is appended.
-         * If the keyword @a name exists, and its value differs from @ value,
+         * If the keyword @a name exists, and its value differs from @a value,
          * then its value is updated to @a value.
          *
          * Changing a keyword updates the SRI, which will be pushed on the next
