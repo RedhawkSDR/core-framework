@@ -701,14 +701,14 @@ void DeviceManager_impl::registerDeviceManagerWithDomainManager(
             break;
         } catch (const CORBA::TRANSIENT& ex) {
             // The DomainManager isn't currently reachable, but it may become accessible again.
-          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  TRANSIENT condition: retry cnt " << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "Domain Manager not available,  TRANSIENT condition: retry count " << cnt); }
             usleep(100000);
         } catch (const CORBA::OBJECT_NOT_EXIST& ex) {
             // This error occurs while the DomainManager is still being constructed 
-          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "DomainManager not available,  DOES NOT EXIST condition: retry cnt " << cnt); }
+          if ( !(++cnt % 10) ) {RH_WARN(this->_baseLog, "Domain Manager not available,  DOES NOT EXIST condition: retry count " << cnt); }
             usleep(100000);
         } catch (const CF::DomainManager::RegisterError& e) {
-            RH_ERROR(this->_baseLog, "Failed to register with domain manager due to: " << e.msg);
+            RH_ERROR(this->_baseLog, "Failed to register with Domain Manager due to: " << e.msg);
             throw std::runtime_error("Error registering with Domain Manager");
         } catch (const CF::InvalidObjectReference& _ex) {
             RH_FATAL(this->_baseLog, "While registering DevMgr with DomMgr: " << _ex.msg);
