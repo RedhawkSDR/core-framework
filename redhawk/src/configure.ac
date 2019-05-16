@@ -383,6 +383,7 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/BasicShared/cpp/Makefile \
                 testing/sdr/dom/components/logger/cpp/Makefile \
                 testing/sdr/dom/components/alloc_shm/cpp/Makefile \
+                testing/sdr/dom/components/check_noop/cpp/Makefile \
                 testing/sdr/dom/components/MessageReceiverCpp/Makefile \
                 testing/sdr/dom/components/MessageSenderCpp/Makefile \
                 testing/sdr/dom/components/EventSend/EventSend_java_impl1/Makefile \
