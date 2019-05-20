@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="IDL:CF/Resource:1.0"/>
+  <componenttype>resource</componenttype>
+  <componentfeatures>
+    <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
+    <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
+    <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
+    <supportsinterface repid="IDL:CF/PropertyEmitter:1.0" supportsname="PropertyEmitter"/>
+    <supportsinterface repid="IDL:CF/PropertySet:1.0" supportsname="PropertySet"/>
+    <supportsinterface repid="IDL:CF/PortSet:1.0" supportsname="PortSet"/>
+    <supportsinterface repid="IDL:CF/PortSupplier:1.0" supportsname="PortSupplier"/>
+    <supportsinterface repid="IDL:CF/Logging:1.0" supportsname="Logging"/>
+    <supportsinterface repid="IDL:CF/LogEventConsumer:1.0" supportsname="LogEventConsumer"/>
+    <supportsinterface repid="IDL:CF/LogConfiguration:1.0" supportsname="LogConfiguration"/>
+    <ports/>
+  </componentfeatures>
+  <interfaces>
+    <interface name="Resource" repid="IDL:CF/Resource:1.0">
+      <inheritsinterface repid="IDL:CF/LifeCycle:1.0"/>
+      <inheritsinterface repid="IDL:CF/TestableObject:1.0"/>
+      <inheritsinterface repid="IDL:CF/PropertyEmitter:1.0"/>
+      <inheritsinterface repid="IDL:CF/PortSet:1.0"/>
+      <inheritsinterface repid="IDL:CF/Logging:1.0"/>
+    </interface>
+    <interface name="LifeCycle" repid="IDL:CF/LifeCycle:1.0"/>
+    <interface name="TestableObject" repid="IDL:CF/TestableObject:1.0"/>
+    <interface name="PropertyEmitter" repid="IDL:CF/PropertyEmitter:1.0">
+      <inheritsinterface repid="IDL:CF/PropertySet:1.0"/>
+    </interface>
+    <interface name="PropertySet" repid="IDL:CF/PropertySet:1.0"/>
+    <interface name="PortSet" repid="IDL:CF/PortSet:1.0">
+      <inheritsinterface repid="IDL:CF/PortSupplier:1.0"/>
+    </interface>
+    <interface name="PortSupplier" repid="IDL:CF/PortSupplier:1.0"/>
+    <interface name="Logging" repid="IDL:CF/Logging:1.0">
+      <inheritsinterface repid="IDL:CF/LogEventConsumer:1.0"/>
+      <inheritsinterface repid="IDL:CF/LogConfiguration:1.0"/>
+    </interface>
+    <interface name="LogEventConsumer" repid="IDL:CF/LogEventConsumer:1.0"/>
+    <interface name="LogConfiguration" repid="IDL:CF/LogConfiguration:1.0"/>
+  </interfaces>
+</softwarecomponent>

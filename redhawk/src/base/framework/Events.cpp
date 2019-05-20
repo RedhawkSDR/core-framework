@@ -158,21 +158,35 @@ namespace events {
   }
 
   bool  DomainEventReader::_addRemoveMsgHandler( const CORBA::Any & data ) {
-    const StandardEvent::DomainManagementObjectAddedEventType *rmsg;
-    if ( data >>= rmsg ) {
-      DomainStateEvent evt;
-      evt.prod_id = rmsg->producerId;      
-      evt.source_id = rmsg->sourceId;
-      evt.source_name = rmsg->sourceName;
-      evt.category = rmsg->sourceCategory;
-      evt.obj = rmsg->sourceIOR;
+    const StandardEvent::DomainManagementObjectAddedEventType *rmsg_added;
+    const StandardEvent::DomainManagementObjectRemovedEventType *rmsg_removed;
+    DomainStateEvent evt;
+    bool unpacked = false;
+    if ( data >>= rmsg_added ) {
+      RH_NL_DEBUG("DomainEventReader", "DomainManagementObjectAdded, producerId:  "<<rmsg_added->producerId<<", sourceId:  "<<rmsg_added->sourceId);
+      evt.prod_id = rmsg_added->producerId;
+      evt.source_id = rmsg_added->sourceId;
+      evt.source_name = rmsg_added->sourceName;
+      evt.category = rmsg_added->sourceCategory;
+      evt.obj = rmsg_added->sourceIOR;
+      unpacked = true;
+    } else if (data >>= rmsg_removed ) {
+      RH_NL_DEBUG("DomainEventReader", "DomainManagementObjectRemoved, producerId:  "<<rmsg_removed->producerId<<", sourceId:  "<<rmsg_removed->sourceId);
+      evt.prod_id = rmsg_removed->producerId;
+      evt.source_id = rmsg_removed->sourceId;
+      evt.source_name = rmsg_removed->sourceName;
+      evt.category = rmsg_removed->sourceCategory;
+      evt.obj = CORBA::Object::_nil();
+      unpacked = true;
+    }
+
+    if (unpacked) {
       AddRemoveListeners::iterator i = addrm_cbs.begin();
       for( ; i != addrm_cbs.end(); i++ ) {
         (*(*i))( evt );
       }
-      return true;
     }
-    return false;
+    return unpacked;
   }
 
 
