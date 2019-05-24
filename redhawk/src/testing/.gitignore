@@ -57,6 +57,7 @@ sdr/dom/domain/
 sdr/dom/mgr/DomainManager*
 sdr/dom/mgr/rh/
 sdr/runtests.log
+sdr/domtest.log
 .pythonInstallFiles
 sdr/dev/nodes/test_affinity_node_socket/DeviceManager.dcd.xml
 sdr/dev/nodes/test_affinity_node_unlocked/DeviceManager.dcd.xml
