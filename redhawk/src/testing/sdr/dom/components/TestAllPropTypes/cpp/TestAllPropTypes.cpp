@@ -282,66 +282,79 @@ void TestAllPropTypes_i::simpleULongLongChanged(const std::string& id)
 
 void TestAllPropTypes_i::seqStringChanged(const std::string& id)
 {
+    this->simple_sequence_string.clear();
     this->simple_sequence_string.push_back("54");
 }
 
 void TestAllPropTypes_i::seqBooleanChanged(const std::string& id)
 {
+    this->simple_sequence_boolean.clear();
     this->simple_sequence_boolean.push_back(true);
 }
 
 void TestAllPropTypes_i::seqULongChanged(const std::string& id)
 {
+    this->simple_sequence_ulong.clear();
     this->simple_sequence_ulong.push_back(55);
 }
 
 void TestAllPropTypes_i::seqObjRefChanged(const std::string& id)
 {
+    this->simple_sequence_objref.clear();
     this->simple_sequence_objref.push_back("56");
 }
 
 void TestAllPropTypes_i::seqShortChanged(const std::string& id)
 {
+    this->simple_sequence_short.clear();
     this->simple_sequence_short.push_back(57);
 }
 
 void TestAllPropTypes_i::seqFloatChanged(const std::string& id)
 {
+    this->simple_sequence_float.clear();
     this->simple_sequence_float.push_back(58.0);
 }
 
 void TestAllPropTypes_i::seqOctetChanged(const std::string& id)
 {
+    this->simple_sequence_octet.clear();
     this->simple_sequence_octet.push_back(59);
 }
 
 void TestAllPropTypes_i::seqCharChanged(const std::string& id)
 {
+    this->simple_sequence_char.clear();
     this->simple_sequence_char.push_back(60);
 }
 
 void TestAllPropTypes_i::seqUShortChanged(const std::string& id)
 {
+    this->simple_sequence_ushort.clear();
     this->simple_sequence_ushort.push_back(61);
 }
 
 void TestAllPropTypes_i::seqDoubleChanged(const std::string& id)
 {
+    this->simple_sequence_double.clear();
     this->simple_sequence_double.push_back(62.0);
 }
 
 void TestAllPropTypes_i::seqLongChanged(const std::string& id)
 {
+    this->simple_sequence_long.clear();
     this->simple_sequence_long.push_back(63);
 }
 
 void TestAllPropTypes_i::seqLongLongChanged(const std::string& id)
 {
+    this->simple_sequence_longlong.clear();
     this->simple_sequence_longlong.push_back(64);
 }
 
 void TestAllPropTypes_i::seqULongLongChanged(const std::string& id)
 {
+    this->simple_sequence_ulonglong.clear();
     this->simple_sequence_ulonglong.push_back(65);
 }
 
@@ -352,6 +365,7 @@ void TestAllPropTypes_i::structChanged(const std::string& id)
 
 void TestAllPropTypes_i::structSeqChanged(const std::string& id)
 {
+    this->struct_seq.clear();
     struct_seq_vars_struct temp;
     temp.struct_seq_string = "67";
     this->struct_seq.push_back(temp);

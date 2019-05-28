@@ -9,6 +9,8 @@ variables:
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   redhawk_deps: $redhawk_branch
+  commit: $CI_COMMIT_SHA
+  datetime: ""
 
 stages:
  - package-redhawk-codegen
@@ -18,7 +20,7 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: ${docker_registry}docker:latest
+  image: ${docker_registry}utils/docker:latest-git
   tags:
     - cf
     - docker
@@ -27,6 +29,9 @@ stages:
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
+    - echo "commit hash => ${commit:0:8}"
+    - datetime=$(git show -s --format=%cd ${commit})
+    - echo "commit date => ${datetime}"
     - printf "FROM ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
@@ -36,6 +41,8 @@ stages:
     - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --pull
                    --no-cache
+                   --build-arg "commit=${commit:0:8}"
+                   --build-arg "datetime=${datetime}"
                    --build-arg "project=$project"
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"

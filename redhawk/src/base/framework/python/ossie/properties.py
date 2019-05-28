@@ -952,14 +952,14 @@ class _property(object):
 
         oldvalue = self.get(obj)        
         configure = self._getCallback(obj, self._conf_cbname)
-        if configure != None:
+        valueChanged = self.compareValues(oldvalue, value)
+        if configure != None and valueChanged:
             configure(oldvalue, value)
         else:
             self.set(obj, value)
         
         if disableCallbacks == True : return
             
-        valueChanged = self.compareValues(oldvalue, value)
         if valueChanged and self.isSendEventChange():
             if self.sendPropertyChangeEvent:
                 self.sendPropertyChangeEvent(self.id_)

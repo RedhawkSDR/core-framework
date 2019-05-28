@@ -215,6 +215,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             #the onconfigure for the boolSimple is supposed to flip the flag
             self.assertEquals(simple_dict['boolSimple'], not flag, msg=str(simple_dict['boolSimple']) + ' != ' + str(not flag) + '  for boolSimple')
             simple_dict.pop('boolSimple')
+            self.comp_obj.configure([ossie.cf.CF.DataType(id='boolSimple', value=CORBA.Any(CORBA.TC_boolean, flag))])
             
             #the onconfigure for the charSimple is supposed raise the case
             self.assertEquals(simple_dict['charSimple'], charval.upper(), msg=str(simple_dict['charSimple']) + ' != ' + str(charval.upper()) + '  for charSimple')

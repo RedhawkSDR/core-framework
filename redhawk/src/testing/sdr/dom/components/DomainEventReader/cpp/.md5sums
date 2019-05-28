@@ -1,0 +1,10 @@
+f009bb367d00304469d9ea286fbbd673  main.cpp
+9a6bef0fea1fc4f880d63f4203bc63e6  DomainEventReader.cpp
+8798848c4b004a8ab55da6957d932787  reconf
+c043348bf71864c53952994958e3e5f1  DomainEventReader.h
+ce3126c4b8287cf7c322c4f08b2384e8  DomainEventReader_base.cpp
+ece4fecc75dae2c12b8b8e264eb63fce  configure.ac
+2814742d9bc1ac9bd4ce4d6a6b4bab5a  Makefile.am
+74c91155155b87b8358ed2aa646a6300  Makefile.am.ide
+86ed23a9d165699980dc47022917ab66  DomainEventReader_base.h
+bfd6cbcbce587e4b1ee5563cd1e758dc  build.sh

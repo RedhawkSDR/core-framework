@@ -65,8 +65,33 @@ class CppPropertiesTest(scatest.CorbaTestCase):
         props = self._app.query([])
         # filter out readonly props
         props = [ p for p in props if p.id != 'readOnly' ]
+        for prop_idx in range(len(props)):
+            if props[prop_idx].id == 'reset_utctime':
+                props.pop(prop_idx)
+                break
+
+        for prop in props:
+            if prop.id == 'DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7':
+                prop.value._v = 'abc'
+            elif prop.id == 'DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71':
+                prop.value._v = 1
+            elif prop.id == 'DCE:e415de60-68cb-403e-812e-76f114731bb4':
+                prop.value._v.append(prop.value._v[0])
+            elif prop.id == 'DCE:f877b9ee-a682-43a6-ba21-5ea980167f55':
+                prop.value._v = [0,0,0,0,0]
+
         for result in self._app.runTest(0, props):
             self.assert_(result.value._v)
+
+        for prop in props:
+            if prop.id == 'DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7':
+                prop.value._v = 'def'
+            elif prop.id == 'DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71':
+                prop.value._v = 2
+            elif prop.id == 'DCE:e415de60-68cb-403e-812e-76f114731bb4':
+                prop.value._v.append(prop.value._v[0])
+            elif prop.id == 'DCE:f877b9ee-a682-43a6-ba21-5ea980167f55':
+                prop.value._v = [0,0,0,0,0,0]
 
         # ...and static functions.
         for result in self._app.runTest(1, props):
