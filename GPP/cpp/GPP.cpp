@@ -421,11 +421,6 @@ void GPP_i::_init() {
 
   struct utsname _uts;
   if (uname(&_uts) != -1) {
-    std::string machine(_uts.machine);
-    if ((machine== "i386") or (machine== "i686")) {
-      machine = "x86";
-    }
-    processor_name = machine;
     os_name = _uts.sysname;
     os_version = _uts.release;
   }
@@ -1066,6 +1061,12 @@ void GPP_i::_sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured,
 
 void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
 {
+
+  if (processor_name.empty()) {
+    RH_FATAL(_baseLog, "Property processor_name (DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b) must have a value. Please set this property value either GPP.prf.xml or is the node's DeviceManager.dcd.xml file");
+    throw CF::LifeCycle::InitializeError(1);
+  }
+
   RH_NL_INFO("GPP", "initialize()");
   //
   // subscribe to ODM_Channel for receiving state changes from Application objects
