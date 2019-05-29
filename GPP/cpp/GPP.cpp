@@ -1063,7 +1063,7 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
 {
 
   if (processor_name.empty()) {
-    RH_FATAL(_baseLog, "Property processor_name (DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b) must have a value. Please set this property value either GPP.prf.xml or is the node's DeviceManager.dcd.xml file");
+    RH_FATAL(_baseLog, "Property processor_name (DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b) must have a value. Please set this property value either in GPP.prf.xml or in the node's DeviceManager.dcd.xml file");
     throw CF::LifeCycle::InitializeError(1);
   }
 
