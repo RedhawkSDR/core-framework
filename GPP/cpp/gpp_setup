@@ -86,18 +86,20 @@ class BaseConfigurator(object):
         self.props['os_version'] = platform.release()
         self.props['hostName'] = self.hostname
 
+        p_name = self._check_processor(0)
+
         if self.options.add_os_processor:
             self.props['processor_name'] = self.options.add_os_processor
-            if self.options.add_os_processor != self._check_processor(0) and self._check_processor(0) is not '':
+            if self.options.add_os_processor != p_name and p_name is not '':
                 msg0 = "\n                       "
                 msg1 = "User input '"
                 msg2 = "' does not match the identified processor name '"
                 msg3 = "'"
                 msg4 = "Processor name is set to '"
-                msg  = ''.join([msg1,self.options.add_os_processor,msg2,self._check_processor(0),msg3,msg0,msg4,self.options.add_os_processor,msg3])
-                self._log.error(msg)
+                msg  = ''.join([msg1,self.options.add_os_processor,msg2,p_name,msg3,msg0,msg4,self.options.add_os_processor,msg3])
+                self._log.warn(msg)
         else:
-            self.props['processor_name'] = self._check_processor(0)
+            self.props['processor_name'] = p_name
             if self.props['processor_name'] is "":
                 msg0 = "\n                       "
                 msg1 = "Cannot determine processor name.  Run the following command with the" 
