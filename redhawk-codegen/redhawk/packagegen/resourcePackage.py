@@ -22,6 +22,8 @@ import os
 from ossie.parsers import spd, scd, prf
 from redhawk.packagegen.softPackage import SoftPackage
 
+from redhawk.codegen.lang.idl import CorbaTypes, IDLInterface
+
 OSSIEHOME=os.environ["OSSIEHOME"]
 DEFAULT_SPD_TEMPLATE="/lib/python/redhawk/packagegen/templates/resourceTemplate.spd.xml"
 DEFAULT_SCD_TEMPLATE="/lib/python/redhawk/packagegen/templates/resourceTemplate.scd.xml"
@@ -100,6 +102,9 @@ class ResourcePackage(SoftPackage):
                 complex=False,
                 kindtypes=["configure", "execparam"])
 
+        self.setComponentType('resource')
+        self.setComponentRepid('IDL:CF/Resource:1.0')
+
     def _setPropertyFileInSpd(self):
         localfile = spd.localFile(name = self.name + ".prf.xml")
         propertyfile = spd.propertyFile(localfile = localfile)
@@ -174,6 +179,26 @@ class ResourcePackage(SoftPackage):
 
         self.spd.add_implementation(value = implementation)
 
+    def setComponentType(self, type_):
+        self.scd.set_componenttype(type_)
+
+    def setComponentRepid(self, repid):
+        self.scd.get_componentrepid().set_repid(repid)
+        self._addInterface(repid)
+
+        supportsinterface = []
+
+        idl = IDLInterface(repid)
+        supports = scd.supportsInterface(repid=idl.repid(), supportsname=idl.interface())
+        supportsinterface.append(supports)
+
+        for parent in idl.idl().inherits:
+            idl = IDLInterface(parent)
+            supports = scd.supportsInterface(repid=idl.repid(), supportsname=idl.interface())
+            supportsinterface.append(supports)
+
+        self.scd.componentfeatures.set_supportsinterface(supportsinterface)
+
     def addUsesPort(self, name, type):
         ports = self.scd.componentfeatures.get_ports()
         if ports is None:
@@ -182,6 +207,7 @@ class ResourcePackage(SoftPackage):
         ports.add_uses(scd.uses(usesname=name,
                                 repid=type))
         self.scd.componentfeatures.set_ports(ports)
+        self._addInterface(type)
 
     def addProvidesPort(self, name, type):
         ports = self.scd.componentfeatures.get_ports()
@@ -191,6 +217,20 @@ class ResourcePackage(SoftPackage):
         ports.add_provides(scd.provides(providesname=name,
                                         repid=type))
         self.scd.componentfeatures.set_ports(ports)
+        self._addInterface(type)
+
+    def _addInterface(self, repid):
+        for inf in self.scd.interfaces.get_interface():
+            if inf.repid == repid:
+                return
+        idl = IDLInterface(repid)
+        interface = scd.interface(repid=idl.repid(), name=idl.interface())
+        self.scd.interfaces.add_interface(interface)
+
+        for parent in idl.idl().inherits:
+            self._addInterface(parent)
+            inherits = scd.inheritsInterface(repid=parent)
+            interface.add_inheritsinterface(inherits)
 
     def addSimpleProperty(
             self,
