@@ -704,6 +704,9 @@ class FrontendTunerDevice(Device):
                         continue
 
                     if frontend_tuner_allocation.device_control:
+                        if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0:
+                            self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available")
+                            continue
                         # device control
                         center_frequency = self.frontend_tuner_status[tuner_id].center_frequency
                         bandwidth = self.frontend_tuner_status[tuner_id].bandwidth
@@ -712,14 +715,14 @@ class FrontendTunerDevice(Device):
                         self.frontend_tuner_status[tuner_id].bandwidth = frontend_tuner_allocation.bandwidth
                         self.frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate
                         if self.supports_scan and self._has_scanner:
-                            if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0 or not self.deviceSetTuningScan(frontend_tuner_allocation, scanner_prop, self.frontend_tuner_status[tuner_id], tuner_id):
+                            if not self.deviceSetTuningScan(frontend_tuner_allocation, scanner_prop, self.frontend_tuner_status[tuner_id], tuner_id):
                                 # either not available or didn't succeed setting tuning, try next tuner
-                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or didn't succeed while setting tuning ")
+                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] didn't succeed while setting tuning ")
                                 continue
                         else:
-                            if len(self.tuner_allocation_ids[tuner_id].control_allocation_id)>0 or not self.deviceSetTuning(frontend_tuner_allocation, self.frontend_tuner_status[tuner_id], tuner_id):
+                            if not self.deviceSetTuning(frontend_tuner_allocation, self.frontend_tuner_status[tuner_id], tuner_id):
                                 # either not available or didn't succeed setting tuning, try next tuner
-                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] is either not available or didn't succeed while setting tuning ")
+                                self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] didn't succeed while setting tuning ")
                                 continue
 
                         if center_frequency == self.frontend_tuner_status[tuner_id].center_frequency and \

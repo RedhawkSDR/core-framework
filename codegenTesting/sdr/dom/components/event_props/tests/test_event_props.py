@@ -151,6 +151,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #test that an event is created for the first configure
         propID = 'eventBoolSimple'
         val = True
+        now_val_prop = self.comp_obj.query([ossie.cf.CF.DataType(id=propID, value=any.to_any(None))])
+        now_val = now_val_prop[0].value._v
+        if now_val == True:
+            self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_boolean, False))])
+            event = consumerPort.getEvent()
         self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_boolean, val))])
         event = consumerPort.getEvent()
         if not event:

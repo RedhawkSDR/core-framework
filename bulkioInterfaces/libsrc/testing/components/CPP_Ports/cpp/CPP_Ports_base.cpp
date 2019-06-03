@@ -69,7 +69,7 @@ CPP_Ports_base::CPP_Ports_base(const char *uuid, const char *label) :
     construct();
 
     if ( __logger  ) {
-      __logger->setLevel( rh_logger::Level::getTrace()   );
+      __logger->setLevel( rh_logger::Level::getInfo()   );
     }
 }
 

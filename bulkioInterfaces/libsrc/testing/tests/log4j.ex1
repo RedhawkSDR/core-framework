@@ -21,5 +21,5 @@ log4j.appender.NULL.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:
 log4j.appender.NULL.File=/dev/null
 
 log4j.category.CPP_Ports_i=ERROR,CONSOLE
-log4j.logger.redhawk.bulkio.output=TRACE, CONSOLE 
+log4j.logger.redhawk.bulkio.output=INFO, CONSOLE 
 #log4j.additivity.redhawk.bulkio=true

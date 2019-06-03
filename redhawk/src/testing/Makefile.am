@@ -59,6 +59,7 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/BasicShared/cpp \
           sdr/dom/components/logger/cpp \
           sdr/dom/components/alloc_shm/cpp \
+          sdr/dom/components/check_noop/cpp \
           sdr/dom/components/SimpleComponent/SimpleComponent_cpp_impl1 \
           sdr/dom/components/MessageReceiverCpp \
           sdr/dom/components/MessageSenderCpp \
@@ -91,7 +92,8 @@ SUBDIRS = sdr/dom/deps/cpp_dep1/cpp \
           sdr/dom/components/zero_length/cpp \
           sdr/dom/components/msg_through_cpp/cpp \
           sdr/dom/components/busycomp/cpp \
-          sdr/dom/components/svc_fn_error_cpp/cpp
+          sdr/dom/components/svc_fn_error_cpp/cpp \
+          sdr/dom/components/DomainEventReader/cpp
 
 if HAVE_JAVASUPPORT
 SUBDIRS += sdr/dom/deps/java_dep1/java \

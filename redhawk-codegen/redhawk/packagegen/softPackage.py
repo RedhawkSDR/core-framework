@@ -19,6 +19,8 @@
 #
 import subprocess
 import os
+import uuid
+
 from ossie.parsers import spd
 
 class SoftPackage(object):
@@ -43,7 +45,7 @@ class SoftPackage(object):
         self.wavedevContent = None
 
     def _setNameInSpd(self):
-        self.spd.id_ = self.name
+        self.spd.id_ = 'DCE:%s' % uuid.uuid4()
         self.spd.name = self.name
 
     def runCompileRpm(self):

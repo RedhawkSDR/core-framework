@@ -82,7 +82,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         print "-----------------------\n"
 
         if self._shouldLaunch():
-            self.launchGPP()
+            self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
         else:
             self.comp = None
 
@@ -429,7 +429,7 @@ class GPPTests(GPPSandboxTest):
         cache_dir = os.path.join(os.getcwd(), 'testCacheDirectory')
         os.mkdir(cache_dir)
         self.addTestDirectory(cache_dir)
-        self.launchGPP({'cacheDirectory':cache_dir})
+        self.launchGPP({'cacheDirectory':cache_dir, 'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
 
         # Make sure the property is correct
         self.assertEqual(cache_dir, self.comp.cacheDirectory)
@@ -447,7 +447,7 @@ class GPPTests(GPPSandboxTest):
         working_dir = os.path.join(os.getcwd(), 'testWorkingDirectory')
         os.mkdir(working_dir)
         self.addTestDirectory(working_dir)
-        self.launchGPP({'workingDirectory':working_dir})
+        self.launchGPP({'workingDirectory':working_dir, 'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
 
         # Make sure the property is correct
         self.assertEqual(working_dir, self.comp.workingDirectory)
@@ -475,7 +475,7 @@ class GPPTests(GPPSandboxTest):
         os.mkdir(cache_dir)
         working_dir = os.path.join(base_dir, 'cwd')
         os.mkdir(working_dir)
-        self.launchGPP({'cacheDirectory':cache_dir, 'workingDirectory':working_dir})
+        self.launchGPP({'cacheDirectory':cache_dir, 'workingDirectory':working_dir, 'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
 
         # Make sure the properties are correct
         self.assertEqual(cache_dir, self.comp.cacheDirectory)
@@ -922,7 +922,8 @@ class ComponentTests(GPPSandboxTest):
         # pass additional mcast params for the test
         params = { "DCE:4e416acc-3144-47eb-9e38-97f1d24f7700": 'eth0',
                    'DCE:5a41c2d3-5b68-4530-b0c4-ae98c26c77ec': 100,
-                   'DCE:442d5014-2284-4f46-86ae-ce17e0749da0': 100 }
+                   'DCE:442d5014-2284-4f46-86ae-ce17e0749da0': 100,
+                   'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64' }
         self.launchGPP(params)
 
         # fire off change listener for setting threshold
@@ -1024,9 +1025,9 @@ class ComponentTests(GPPSandboxTest):
         self.get_single_nic_interface()
         if len(self.nic_list)> 1:
             params = {'nic_interfaces': [self.nic_list[0]]}
-            self.launchGPP(parameters=params)
+            self.launchGPP(parameters=params, properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
         else:
-            self.launchGPP()
+            self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
 
         # set cpu to be 100.00 ... the check busy state..
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
@@ -1163,9 +1164,9 @@ class ComponentTests(GPPSandboxTest):
         self.get_single_nic_interface()
         if len(self.nic_list)> 1:
             params = {'nic_interfaces': [self.nic_list[0]]}
-            self.launchGPP(parameters=params)
+            self.launchGPP(parameters=params, properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
         else:
-            self.launchGPP()
+            self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
 
         self.comp.thresholds.ignore = True
 
