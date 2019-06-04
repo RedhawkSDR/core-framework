@@ -85,14 +85,31 @@ class BaseConfigurator(object):
         self.props['os_name']    = platform.system()
         self.props['os_version'] = platform.release()
         self.props['hostName'] = self.hostname
-        tmp_uname_p    = platform.processor()
-        tmp_proc_map   = {'i386':'x86',
-                          'i686':'x86',
-                          'x86_64':'x86_64',
-                          'armv7l':'armv7l'}
-        self.props['processor_name']  = tmp_proc_map.get(tmp_uname_p, 'x86')
 
+        p_name = self._check_processor(0)
 
+        if self.options.add_os_processor:
+            self.props['processor_name'] = self.options.add_os_processor
+            if self.options.add_os_processor != p_name and p_name is not '':
+                msg0 = "\n                       "
+                msg1 = "User input '"
+                msg2 = "' does not match the identified processor name '"
+                msg3 = "'"
+                msg4 = "Processor name is set to '"
+                msg  = ''.join([msg1,self.options.add_os_processor,msg2,p_name,msg3,msg0,msg4,self.options.add_os_processor,msg3])
+                self._log.warn(msg)
+        else:
+            self.props['processor_name'] = p_name
+            if self.props['processor_name'] is "":
+                msg0 = "\n                       "
+                msg1 = "Cannot determine processor name.  Run the following command with the" 
+                msg2 = "appropriate processor name (for example, x86_64):"
+                msg3 = "./gpp_setup --gppcfg --processorname <processor name>"
+                msg4 = "In the event of a 'Permission Denied' error, change the permissions" 
+                msg5 = "with the following command and rerun the gpp_setup command:"
+                msg6 = "sudo chmod g+rw /var/redhawk/sdr/dev/devices/GPP/GPP.prf.xml"
+                msg  = ''.join([msg1,msg0,msg2,msg0,msg3,msg0,msg4,msg0,msg5,msg0,msg6])
+                self._log.error(msg)
 
         # Output some debug information
         if not self.options.silent:
@@ -101,6 +118,25 @@ class BaseConfigurator(object):
             k.sort()
             for n in k:
                 self._log.debug("  %-30s %s ", n, self.props[n])
+
+    def _check_processor(self,tmp_testvalue_p):
+        if tmp_testvalue_p==0:
+            return self._processor_name(platform.processor(),tmp_testvalue_p)
+        elif tmp_testvalue_p==1:
+            return self._processor_name(platform.machine(),tmp_testvalue_p)
+        elif tmp_testvalue_p==2:
+            return self._processor_name(os.uname()[4],tmp_testvalue_p)
+        else:
+            return ""
+
+    def _processor_name(self, tmp_uname_p, tmp_tv_p):
+        if tmp_uname_p in ('i386','i686'):
+            return 'x86'
+        elif not tmp_uname_p:
+            return self._check_processor(tmp_tv_p+1)
+        else:
+            return tmp_uname_p
+
 
     def _gather_mcastnic_information(self):
 
@@ -557,6 +593,8 @@ if __name__ == "__main__":
                       help="clean up the previous configuration for this node first (delete entire node)")
     parser.add_option("-v", "--verbose", dest="verbose", default=False, action="store_true",
                       help="enable verbose logging")
+    parser.add_option("--processorname", dest="add_os_processor", default=False, action="store",
+                      help="set the processor")
 
     (options, args) = parser.parse_args()
 

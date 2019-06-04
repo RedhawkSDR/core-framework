@@ -357,7 +357,7 @@ namespace bulkio {
     */
  
     /*
-     *  Comparator method to search for matching SRI information if "a" matches "b"
+     * Method signature for comparing sri objects
      */
     typedef bool  (*Compare)( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
 

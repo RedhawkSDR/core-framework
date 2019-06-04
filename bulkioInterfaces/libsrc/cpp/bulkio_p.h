@@ -86,11 +86,14 @@ namespace bulkio    {
     }
   };
 
+  namespace sri {
 
+    // Compare SRI keyword lists.
+    bool compareKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& lhs,
+                         const _CORBA_Unbounded_Sequence<CF::DataType>& rhs);
+  }  // namespace sri
 
-
-
-}   // end of namespace
+}  // namespace bulkio
 
 #define FOREACH_NUMERIC_PORT_TYPE(x) \
     x(BULKIO::dataChar);             \

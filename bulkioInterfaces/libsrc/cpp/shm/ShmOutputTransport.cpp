@@ -239,6 +239,11 @@ namespace bulkio {
 
         void _sendMessage(const void* header, size_t hsize, const void* body, size_t bsize)
         {
+            // NOTE: This method needs to complete atomically (in that all
+            // reads and writes must be completed) to avoid corruption in the
+            // message stream. The FIFO class no longer supports thread
+            // interruption for this reason, but thread interruption can be
+            // disabled for the duration of this method if necessary.
             try {
                 _fifo.write(&hsize, sizeof(hsize));
                 _fifo.write(header, hsize);

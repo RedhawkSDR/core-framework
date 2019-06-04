@@ -45,6 +45,9 @@ class props_i(props_base):
         self.stringSimple = newvalue*2
         
     def onconfigure_prop_boolSimple(self, oldvalue, newvalue):
+        if newvalue == None:
+            self.boolSimple = None
+            return
         self.boolSimple = not newvalue
 
     def onconfigure_prop_ulongSimple(self, oldvalue, newvalue):
