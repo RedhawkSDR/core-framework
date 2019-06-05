@@ -1271,11 +1271,11 @@ void DeviceManager_impl::postConstructor (
     if (domain_persistence) {
         if (DomainWatchThread == NULL) {
             DomainWatchThread = new DomainCheckThread(this);
+            DomainWatchThread->start();
         }
         DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
         this->startDomainWarn.tv_sec = 0;
         this->startDomainWarn.tv_usec = 0;
-        DomainWatchThread->start();
     } else {
         DomainWatchThread = NULL;
     }
