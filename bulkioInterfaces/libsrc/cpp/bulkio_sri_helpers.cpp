@@ -25,33 +25,12 @@
 #include <ossie/prop_helpers.h>
 
 #include "bulkio_base.h"
-
-namespace {
-  bool compareKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& lhs,
-                       const _CORBA_Unbounded_Sequence<CF::DataType>& rhs)
-  {
-    if (lhs.length() != rhs.length()) {
-        return false;
-    }
-
-    std::string action = "eq";
-    for (unsigned int index=0; index<lhs.length(); index++) {
-        if (strcmp(lhs[index].id, rhs[index].id)) {
-            return false;
-        }
-        if (!ossie::compare_anys(lhs[index].value, rhs[index].value, action)) {
-            return false;
-        }
-    }
-
-    return true;
-  }
-}
+#include "bulkio_p.h"
 
 namespace  bulkio {
 
 namespace  sri {
-  
+
 bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI &SRI_2){
     if (SRI_1.hversion != SRI_2.hversion)
         return false;
@@ -75,6 +54,26 @@ bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI 
         return false;
     if (!compareKeywords(SRI_1.keywords, SRI_2.keywords))
         return false;
+    return true;
+}
+
+bool compareKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& lhs,
+                     const _CORBA_Unbounded_Sequence<CF::DataType>& rhs)
+{
+    if (lhs.length() != rhs.length()) {
+        return false;
+    }
+
+    std::string action = "eq";
+    for (unsigned int index=0; index<lhs.length(); index++) {
+        if (strcmp(lhs[index].id, rhs[index].id)) {
+            return false;
+        }
+        if (!ossie::compare_anys(lhs[index].value, rhs[index].value, action)) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -119,8 +118,8 @@ bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI 
 }
 
 
-}
+} // namespace sri
 
 
-} // end of bulkio namespace
+} // namespace bulkio
 
