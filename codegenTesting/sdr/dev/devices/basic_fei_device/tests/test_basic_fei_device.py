@@ -24,6 +24,7 @@ import os
 from omniORB import any
 from ossie.utils import sb
 from ossie.cf import CF
+import frontend
 
 class ResourceTests(ossie.utils.testing.RHComponentTestCase):
     # setUp is run before every function preceded by "test" is executed
@@ -70,6 +71,21 @@ class ResourceTests(ossie.utils.testing.RHComponentTestCase):
         listen_alloc = CF.DataType(id='FRONTEND::listener_allocation', value=any.to_any(None))
         self.assertRaises(CF.UnknownProperties, self.comp.query, [tuner_alloc])
         self.assertRaises(CF.UnknownProperties, self.comp.query, [listen_alloc])
+
+    def testFailedAllocation(self):
+        # Check the that tuner status exists and contains the extra "agc" field
+        frontend_allocation_1 = frontend.tuner_device.createTunerAllocation(tuner_type="RX_DIGITIZER",bandwidth=24.576, center_frequency=30000000, sample_rate=123, bandwidth_tolerance=100, allocation_id='hello')
+        retval = self.comp.allocateCapacity(frontend_allocation_1)
+        self.assertEqual(retval, True)
+        self.assertEqual(self.comp.frontend_tuner_status[0].bandwidth, 24.576)
+        self.assertEqual(self.comp.frontend_tuner_status[0].sample_rate, 123)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 30000000)
+        frontend_allocation_2 = frontend.tuner_device.createTunerAllocation(tuner_type="RX_DIGITIZER",bandwidth=20.576, center_frequency=20000000, sample_rate=456, bandwidth_tolerance=100, allocation_id='hello_2')
+        retval = self.comp.allocateCapacity(frontend_allocation_2)
+        self.assertEqual(retval, False)
+        self.assertEqual(self.comp.frontend_tuner_status[0].bandwidth, 24.576)
+        self.assertEqual(self.comp.frontend_tuner_status[0].sample_rate, 123)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 30000000)
 
 if __name__ == "__main__":
     ossie.utils.testing.main("../basic_fei_device.spd.xml") # By default tests all implementations

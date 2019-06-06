@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+#include <ossie/prop_helpers.h>
 
 #include "bulkio_out_stream.h"
 #include "bulkio_out_port.h"
@@ -110,32 +111,50 @@ public:
 
     void setKeywords(const _CORBA_Unbounded_Sequence<CF::DataType>& properties)
     {
-        _modifyingStreamMetadata();
-        _sri->keywords = properties;
-        ++_modcount;
+        if ( !bulkio::sri::compareKeywords(_sri->keywords, properties) ) {
+            _modifyingStreamMetadata();
+            _sri->keywords = properties;
+            ++_modcount;
+        }
     }
 
     void setKeyword(const std::string& name, const CORBA::Any& value)
     {
+        redhawk::PropertyMap & sri_keywords = redhawk::PropertyMap::cast(_sri->keywords);
+        redhawk::PropertyMap::const_iterator it = sri_keywords.find(name);
+        if ( it != sri_keywords.end() ) {
+            const CORBA::Any & value_orig = it->getValue();
+            std::string action("eq");
+            if ( ossie::compare_anys(value_orig, value, action) ) {
+                return;
+            }
+        }
         _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(_sri->keywords)[name] = value;
+        sri_keywords[name] = value;
         ++_modcount;
     }
 
     void eraseKeyword(const std::string& name)
     {
-        _modifyingStreamMetadata();
-        redhawk::PropertyMap::cast(_sri->keywords).erase(name);
-        ++_modcount;
+        redhawk::PropertyMap & sri_keywords = redhawk::PropertyMap::cast(_sri->keywords);
+        if (sri_keywords.contains(name)) {
+            _modifyingStreamMetadata();
+            sri_keywords.erase(name);
+            ++_modcount;
+        }
     }
 
     void setSRI(const BULKIO::StreamSRI& sri)
     {
-        _modifyingStreamMetadata();
-        // Copy the new SRI, except for the stream ID, which is immutable
-        *_sri = sri;
-        _sri->streamID = _streamID.c_str();
-        ++_modcount;
+        // If the SRI is the same, or differs only by streamID, do nothing.
+        int comparison = bulkio::sri::compareFields(*_sri, sri);
+        if ( (comparison | bulkio::sri::STREAMID) != bulkio::sri::STREAMID ) {
+            _modifyingStreamMetadata();
+            // Copy the new SRI, except for the stream ID, which is immutable
+            *_sri = sri;
+            _sri->streamID = _streamID.c_str();
+            ++_modcount;
+        }
     }
 
     virtual void write(const BufferType& data, const BULKIO::PrecisionUTCTime& time)

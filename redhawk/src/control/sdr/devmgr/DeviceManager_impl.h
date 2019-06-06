@@ -410,6 +410,7 @@ private:
     ossie::events::EventChannelReg_var   idm_registration;
     std::string                          IDM_IOR;
     int _initialDebugLevel;
+    bool disconnected;
 
 };
 

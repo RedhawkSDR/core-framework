@@ -35,6 +35,7 @@ class OutStreamTest : public OutPortTestFixture<Port>
     CPPUNIT_TEST(testBasicWrite);
     CPPUNIT_TEST(testSriFields);
     CPPUNIT_TEST(testSriUpdate);
+    CPPUNIT_TEST(testSriNoChange);
     CPPUNIT_TEST(testKeywords);
     CPPUNIT_TEST(testSendEosOnClose);
     CPPUNIT_TEST_SUITE_END();
@@ -46,6 +47,7 @@ public:
 
     void testSriFields();
     void testSriUpdate();
+    void testSriNoChange();
 
     void testKeywords();
 
