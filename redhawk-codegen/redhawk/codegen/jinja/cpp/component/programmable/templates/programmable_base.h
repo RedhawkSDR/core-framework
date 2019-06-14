@@ -199,11 +199,6 @@ class ${className} : public ${baseClass}
         
 /*{% endif %}*/
         virtual ~${className}() {
-            // Clean up all children that were executed
-            ${executeType.capitalize()}MapIter ${executeType}Iter;
-            for (${executeType}Iter = _${executeType}Map.begin(); ${executeType}Iter != _${executeType}Map.end(); ${executeType}Iter++) {
-                delete ${executeType}Iter->second;
-            }
         }
 
 /*{% if component is device %}*/
@@ -311,6 +306,8 @@ class ${className} : public ${baseClass}
                     ${executeType}Iter->second->setAdminState(CF::Device::UNLOCKED);
 /*{% endif %}*/
                     ${executeType}Iter->second->releaseObject();
+                    ${executeType}Iter->second->_remove_ref();
+                    ${executeType}Iter->second = 0;
                     _processMap.erase(processIter); // Erase process mapping here to minimize collisions with non-persona processIds
                     _${executeType}Map.erase(${executeType}Iter);
                     return;
