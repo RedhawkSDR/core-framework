@@ -56,6 +56,7 @@ Requires:       python
 Requires:       python-lxml
 Requires:       python-omniORB >= 3.0
 Requires:       omniORB-devel >= 4.1.0
+Requires:       bash-completion
 %endif
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 Requires:       python-omniORB > 4.2.2

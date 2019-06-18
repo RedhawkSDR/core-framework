@@ -58,7 +58,7 @@ _nodeBooter()
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  opts="--help -D -d -sdrroot -sdrcache -debug -logcfgfile --dburl --force-rebind --daemon --pidfile --user --group --ORBport --ORBInitRef --domainname --version"
+  opts="--help -D -d -sdrroot -sdrcache -debug -logcfgfile --useloglib --dburl --force-rebind --daemon --pidfile --user --group --ORBport --ORBInitRef --domainname --version"
 
   # Determine the SDRROOT to use, if any
   sdrroot=`_nodeBooter_get_sdrroot`
@@ -95,6 +95,16 @@ _nodeBooter()
     --force-rebind|--daemon|--version)
       # These are no-arg; suggest a new option
       COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+      return 0
+      ;;
+    --useloglib)
+      # Try to complete files with .so in the name
+      dirs=$(compgen -A directory -S / -- "$cur")
+      if [ $? = 0 ]; then
+        compopt -o nospace
+      fi
+      files=$(compgen -A file -X '!*.so*' -- "$cur" )
+      COMPREPLY=( ${dirs[@]} ${files[@]} )
       return 0
       ;;
     --user)
