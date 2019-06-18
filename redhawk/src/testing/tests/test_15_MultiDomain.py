@@ -344,6 +344,9 @@ class MultiDomainTest(scatest.CorbaTestCase):
         # Both requests should be satisfied
         results = allocMgr_1.allocate(requests)
         self.assertEqual(len(requests), len(results))
+        expected = set(r.requestID for r in requests)
+        actual = set(r.requestID for r in results)
+        self.assertEqual(expected, actual)
 
         # One allocation on the local domain
         allocations = allocMgr_1.localAllocations([])
@@ -391,6 +394,9 @@ class MultiDomainTest(scatest.CorbaTestCase):
         # Both requests should be satisfied
         results = allocMgr_1.allocate(requests)
         self.assertEqual(len(requests), len(results))
+        expected = set(r.requestID for r in requests)
+        actual = set(r.requestID for r in results)
+        self.assertEqual(expected, actual)
 
         # No allocation on the local domain
         allocations = allocMgr_1.localAllocations([])
