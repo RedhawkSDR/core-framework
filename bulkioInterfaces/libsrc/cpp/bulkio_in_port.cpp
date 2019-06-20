@@ -174,8 +174,12 @@ namespace bulkio {
   {
     TRACE_ENTER( _portLog, "InPort::pushSRI"  );
 
+    // Acquire the mutex for the packet queue before the SRI mutex to avoid
+    // priority inversion. Strictly speaking it's only required if the stream ID
+    // already exists, while traversing the queue to look for EOS packets, but
+    // this is always safe.
+    SCOPED_LOCK data_lock(dataBufferLock);
     if (H.blocking) {
-      SCOPED_LOCK lock(dataBufferLock);
       blocking = true;
     }
 
@@ -186,6 +190,9 @@ namespace bulkio {
     SriTable::iterator currH = currentHs.find(streamID);
     StreamDescriptor sri(H);
     if (currH == currentHs.end()) {
+      // No need to access the packet queue, release the lock
+      data_lock.unlock();
+
       LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
@@ -202,6 +209,9 @@ namespace bulkio {
               eos_count++;
           }
       }
+      // Finished accessing the packet queue, release the lock
+      data_lock.unlock();
+
       int additional_streams = 1+pendingStreams.count(streamID); // count current and pending streams
       if (additional_streams == eos_count) { // current and pending streams are all eos
         createStream(streamID, sri);
