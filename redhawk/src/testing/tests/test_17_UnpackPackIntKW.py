@@ -22,6 +22,7 @@ import unittest
 import tempfile
 import os
 import numpy
+import platform
 
 from ossie.utils import sb
 from ossie.utils.bluefile import bluefile, bluefile_helpers
@@ -93,21 +94,31 @@ class BlueFileExtKeyword(unittest.TestCase):
         self.assertEqual(type(hdr['ext_header']['mykeyword']), \
                          type(hdr2['ext_header']['mykeyword']))
 
+    def _typeInteger(self, dt):
+        # read in same file and check keyword
+        cver=platform.linux_distribution()[1]
+        datatype = str(type(dt))
+        if cver.startswith('7'):
+            self.assertIn('int',datatype)  
+        else:
+            self.assertTrue('int' in datatype)
+
+
     def test_typeInteger(self):
     #confirm value types are integers (int, numpy.int32, numpy.int16)
         filename = self._createtempfile('dataValueTypeInt')
         hdr = bluefile.readheader(filename,dict)
-        self.assertIn('int',str(type(hdr['ext_header']['mykeyword'])))
+        self._typeInteger(hdr['ext_header']['mykeyword'])
 
         # write back to disk, unmodified
         bluefile.writeheader(filename, hdr)
         hdr2 = bluefile.readheader(filename,dict)
 
         # read in same file and check keyword
-        self.assertIn('int',str(type(hdr2['ext_header']['mykeyword'])))
+        self._typeInteger(hdr2['ext_header']['mykeyword'])
 
         #cast the integer to 'int'
         hdr['ext_header']['mykeyword'] = int(hdr['ext_header']['mykeyword'])
         bluefile.writeheader(filename, hdr)
         hdr = bluefile.readheader(filename,dict)
-        self.assertIn('int',str(type(hdr['ext_header']['mykeyword'])))
+        self._typeInteger(hdr['ext_header']['mykeyword'])
