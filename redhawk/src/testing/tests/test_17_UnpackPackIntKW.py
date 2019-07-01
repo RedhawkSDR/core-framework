@@ -85,23 +85,25 @@ class BlueFileExtKeyword(unittest.TestCase):
 
         # read in same file and check keyword
         self.assertEqual(type(hdr['ext_header']['mykeyword']), \
-                         type(hdr2['ext_header']['mykeyword']))
+                         type(hdr2['ext_header']['mykeyword']), \
+                         msg="\nKeyword data type is not packed and unpacked consistently")
 
         #cast the integer to int()
         hdr['ext_header']['mykeyword'] = int(hdr['ext_header']['mykeyword'])
         bluefile.writeheader(filename, hdr)
         hdr = bluefile.readheader(filename,dict)
         self.assertEqual(type(hdr['ext_header']['mykeyword']), \
-                         type(hdr2['ext_header']['mykeyword']))
+                         type(hdr2['ext_header']['mykeyword']), \
+                         msg="\nKeyword is not packed and unpacked consistently")
 
     def _typeInteger(self, dt):
         # read in same file and check keyword
         cver=platform.linux_distribution()[1]
         datatype = str(type(dt))
         if cver.startswith('7'):
-            self.assertIn('int',datatype)  
+            self.assertIn('int',datatype, msg=("\nKeyword is not packed/unpacked as an integer (int, numpy.int32, or numpy.int16)"))
         else:
-            self.assertTrue('int' in datatype)
+            self.assertTrue('int' in datatype, msg=("\nKeyword is not packed/unpacked as an integer (int, numpy.int32, or numpy.int16)"))
 
 
     def test_typeInteger(self):
