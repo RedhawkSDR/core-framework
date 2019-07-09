@@ -24,7 +24,6 @@
 
 #include <boost/thread.hpp>
 
-#include <ossie/shm/HeapClient.h>
 #include <ossie/shm/Heap.h>
 
 #include <BulkioTransport.h>
@@ -38,12 +37,14 @@ namespace bulkio {
     class ShmInputTransport : public InputTransport<PortType>
     {
     public:
+        typedef ShmInputManager<PortType> ManagerType;
         typedef typename NativeTraits<PortType>::NativeType NativeType;
         typedef typename BufferTraits<PortType>::BufferType BufferType;
 
         ShmInputTransport(InPort<PortType>* port, const std::string& transportId,
-                          const std::string& writePath) :
+                          ManagerType* manager, const std::string& writePath) :
             InputTransport<PortType>(port, transportId),
+            _manager(manager),
             _running(false),
             _fifo()
         {
@@ -53,9 +54,6 @@ namespace bulkio {
         ~ShmInputTransport()
         {
             _fifo.disconnect();
-
-            // The HeapClient is automatically detached by its destructor,
-            // ensuring that any heap(s) it was attached to can be cleaned up
         }
 
         std::string transportType() const
@@ -194,7 +192,7 @@ namespace bulkio {
             size_t offset;
             msg.read(offset);
 
-            void* base = _heapClient.fetch(ref);
+            void* base = _manager->fetchShmRef(ref);
 
             // Find the first element, which may be offset from the base
             // pointer.  If so, start with a larger buffer and then trim the
@@ -223,11 +221,11 @@ namespace bulkio {
             }
         }
 
+        ManagerType* _manager;
         volatile bool _running;
         boost::mutex _mutex;
         boost::thread _thread;
         FifoEndpoint _fifo;
-        redhawk::shm::HeapClient _heapClient;
     };
 
     template <class PortType>
@@ -263,7 +261,7 @@ namespace bulkio {
         }
         const std::string location = properties["fifo"].toString();
         try {
-            return new ShmInputTransport<PortType>(this->_port, transportId, location);
+            return new ShmInputTransport<PortType>(this->_port, transportId, this, location);
         } catch (const std::exception& exc) {
             throw redhawk::FatalTransportError("failed to connect to FIFO " + location);
         }
@@ -279,6 +277,13 @@ namespace bulkio {
         redhawk::PropertyMap properties;
         properties["fifo"] = transport->getFifoName();
         return properties;
+    }
+
+    template <class PortType>
+    void* ShmInputManager<PortType>::fetchShmRef(const redhawk::shm::MemoryRef& ref)
+    {
+        boost::mutex::scoped_lock lock(_mutex);
+        return _heapClient.fetch(ref);
     }
 
 #define INSTANTIATE_NUMERIC_TEMPLATE(x)         \
