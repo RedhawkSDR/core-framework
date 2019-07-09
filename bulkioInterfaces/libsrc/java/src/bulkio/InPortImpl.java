@@ -419,6 +419,12 @@ class InPortImpl<A> {
             }
         }
 
+        if (eos) {
+            synchronized (this.sriUpdateLock) {
+                this.currentHs.remove(streamID);
+            }
+        }
+
         if (( logger != null ) && (logger.isTraceEnabled())) {
             logger.trace("bulkio.InPort pushPacket EXIT (port=" + name +")" );
         }
@@ -499,23 +505,18 @@ class InPortImpl<A> {
         if (p != null) {
             if (p.getEndOfStream()) {
                 synchronized (this.sriUpdateLock) {
+                    boolean stillBlocking = false;
                     if (this.currentHs.containsKey(p.getStreamID())) {
-                        sriState rem = this.currentHs.remove(p.getStreamID());
-
-                        if (rem.getSRI().blocking) {
-                            boolean stillBlocking = false;
-                            Iterator<sriState> iter = currentHs.values().iterator();
-                            while (iter.hasNext()) {
-                                if (iter.next().getSRI().blocking) {
-                                    stillBlocking = true;
-                                    break;
-                                }
-                            }
-
-                            if (!stillBlocking) {
-                                blocking = false;
+                        Iterator<sriState> iter = currentHs.values().iterator();
+                        while (iter.hasNext()) {
+                            if (iter.next().getSRI().blocking) {
+                                stillBlocking = true;
+                                break;
                             }
                         }
+                    }
+                    if (!stillBlocking) {
+                        blocking = false;
                     }
                 }
             }

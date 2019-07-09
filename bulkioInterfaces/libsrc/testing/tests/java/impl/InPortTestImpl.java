@@ -152,6 +152,117 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
     }
 
     @Test
+    public void testStreamIds()
+    {
+    System.out.println("........ begin testStreamIds");
+        BULKIO.StreamSRI sri_1 = bulkio.sri.utils.create("test_get_packet");
+        DataTransfer<A> packet = null;
+        sri_1.mode = 0;
+        corbaPort.pushSRI(sri_1);
+
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), false, sri_1.streamID);
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), false, sri_1.streamID);
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), true, sri_1.streamID);
+
+        BULKIO.StreamSRI sri_2 = bulkio.sri.utils.create("test_get_packet");
+        sri_2.mode = 1;
+        corbaPort.pushSRI(sri_2);
+
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), false, sri_2.streamID);
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), false, sri_2.streamID);
+        helper.pushTestPacket(port, 50, bulkio.time.utils.now(), true, sri_2.streamID);
+
+        // Check result of getPacket
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(true, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(50, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(true, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+
+        corbaPort.pushSRI(sri_1);
+
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), false, sri_1.streamID);
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), false, sri_1.streamID);
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), true, sri_1.streamID);
+
+        corbaPort.pushSRI(sri_2);
+
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), false, sri_2.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(true, packet.EOS);
+        Assert.assertEquals(0, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), false, sri_2.streamID);
+        helper.pushTestPacket(port, 100, bulkio.time.utils.now(), true, sri_2.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(false, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertNotNull(packet.dataBuffer);
+        Assert.assertEquals(100, helper.dataLength(packet.dataBuffer));
+        Assert.assertEquals(true, packet.EOS);
+        Assert.assertEquals(1, packet.SRI.mode);
+    }
+
+    @Test
     public void testQueueDepth()
     {
         // The port had better start with an empty queue
