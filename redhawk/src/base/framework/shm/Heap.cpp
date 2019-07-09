@@ -22,6 +22,7 @@
 #include "Superblock.h"
 #include "Block.h"
 #include "ThreadState.h"
+#include "HeapPolicy.h"
 #include "Metrics.h"
 
 #include <stdexcept>
@@ -34,10 +35,35 @@
 
 #include <boost/thread.hpp>
 
-using namespace redhawk::shm;
-
 #define PAGE_ROUND_DOWN(x,p) ((x/p)*p)
 #define PAGE_ROUND_UP(x,p) (((x+p-1)/p)*p)
+
+namespace redhawk {
+    namespace shm {
+        namespace {
+            static HeapPolicy* initializePolicy()
+            {
+                std::string policy_type = "cpu";
+                const char* env_value = getenv("RH_SHMALLOC_HEAP_POLICY");
+                if (env_value && (*env_value != '\0')) {
+                    policy_type = env_value;
+                }
+                if (policy_type == "thread") {
+                    return new ThreadHeapPolicy;
+                } else {
+                    if (policy_type != "cpu") {
+                        std::cerr << "Invalid SHM heap policy '" << policy_type << "'" << std::endl;
+                    }
+                    return new CPUHeapPolicy;
+                }
+            }
+
+            static boost::scoped_ptr<HeapPolicy> policy(initializePolicy());
+        }
+    }
+}
+
+using namespace redhawk::shm;
 
 bool MemoryRef::operator! () const
 {
@@ -53,12 +79,8 @@ public:
         RECORD_SHM_METRIC(private_heaps_created);
     }
 
-    void* allocate(size_t bytes)
+    void* allocate(ThreadState* state, size_t bytes)
     {
-        // NB: Thread-specific state may not be needed with per-CPU private
-        //     heaps; it is maintained here to avoid modifying the superblock
-        //     API (for now)
-        ThreadState* state = _heap->_getThreadState();
         boost::mutex::scoped_lock lock(_mutex);
         for (SuperblockList::iterator superblock = _superblocks.begin(); superblock != _superblocks.end(); ++superblock) {
             void* ptr = (*superblock)->allocate(state, bytes);
@@ -98,8 +120,8 @@ Heap::Heap(const std::string& name) :
     _canGrow(true)
 {
     _file.create();
-    int nprocs = sysconf(_SC_NPROCESSORS_CONF);
-    for (int id = 0; id < nprocs; ++id) {
+    int num_heaps = policy->getHeapCount();
+    for (int id = 0; id < num_heaps; ++id) {
         _allocs.push_back(new PrivateHeap(id, this));
     }
 
@@ -108,6 +130,15 @@ Heap::Heap(const std::string& name) :
 
 Heap::~Heap()
 {
+#if 0
+    if (redhawk::shm::Metrics::enabled) {
+        std::cout << "Heap statistics (" << _file.name() << "):" << std::endl;
+        SuperblockFile::Statistics stats = _file.getStatistics();
+        std::cout << "  Total size: " << stats.size << std::endl;
+        std::cout << "  Total superblocks: " << stats.superblocks << std::endl;
+    }
+#endif
+
     // Remove the file when the owner exits; other processes connected to the
     // same superblock file will still be able to access everything, but no new
     // connections are possible
@@ -116,17 +147,13 @@ Heap::~Heap()
     } catch (const std::exception&) {
         // It may have been removed from another context, nothing else to do
     }
-
-#ifdef HEAP_DEBUG
-    std::cout << _superblocks.size() << " superblocks" << std::endl;
-    std::cout << _file.size() << " total bytes" << std::endl;
-#endif
 }
 
 void* Heap::allocate(size_t bytes)
 {
-    PrivateHeap* heap = _getPrivateHeap();
-    return heap->allocate(bytes);
+    ThreadState* state = _getThreadState();
+    PrivateHeap* heap = _getPrivateHeap(state);
+    return heap->allocate(state, bytes);
 }
 
 void Heap::deallocate(void* ptr)
@@ -155,19 +182,20 @@ const std::string& Heap::name() const
     return _file.name();
 }
 
-Heap::PrivateHeap* Heap::_getPrivateHeap()
+Heap::PrivateHeap* Heap::_getPrivateHeap(ThreadState* state)
 {
-    size_t cpuid = sched_getcpu();
-    assert(cpuid < _allocs.size());
-    return _allocs[cpuid];
+    size_t heap_id = policy->getHeapAssignment(state);
+    assert(heap_id < _allocs.size());
+    return _allocs[heap_id];
 }
 
 ThreadState* Heap::_getThreadState()
 {
     ThreadState* state = _threadState.get();
     if (!state) {
-        state = new ThreadState();
+        state = new ThreadState;
         _threadState.reset(state);
+        policy->initThreadState(state);
     }
     return state;
 }

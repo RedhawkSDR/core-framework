@@ -63,7 +63,7 @@ namespace redhawk {
 
             Superblock* _createSuperblock(size_t minSize);
 
-            PrivateHeap* _getPrivateHeap();
+            PrivateHeap* _getPrivateHeap(ThreadState* state);
             ThreadState* _getThreadState();
 
             // Serializes access to all members except thread-specific data
