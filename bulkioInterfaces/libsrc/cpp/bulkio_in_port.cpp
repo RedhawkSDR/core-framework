@@ -361,6 +361,14 @@ namespace bulkio {
 
     packetWaiters.notify(streamID);
 
+    if (EOS) {
+        SCOPED_LOCK lock(sriUpdateLock);
+        SriTable::iterator target = currentHs.find(streamID);
+        if (target != currentHs.end()) {
+            currentHs.erase(target);
+        }
+    }
+
     TRACE_EXIT( _portLog, "InPort::pushPacket"  );
   }
 
@@ -704,14 +712,12 @@ namespace bulkio {
   template <typename PortType>
   bool InPort<PortType>::_handleEOS(const std::string& streamID)
   {
-      bool turnOffBlocking = false;
+      bool turnOffBlocking = true;
       SCOPED_LOCK lock(sriUpdateLock);
       SriTable::iterator target = currentHs.find(streamID);
       if (target != currentHs.end()) {
           bool sriBlocking = target->second.first.blocking();
-          currentHs.erase(target);
           if (sriBlocking) {
-              turnOffBlocking = true;
               SriTable::iterator currH;
               for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
                   if (currH->second.first.blocking()) {
