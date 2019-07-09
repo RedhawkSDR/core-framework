@@ -70,6 +70,7 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
 			shm/Heap.cpp \
 			shm/HeapClient.cpp \
 			shm/MappedFile.cpp \
+			shm/Metrics.cpp \
 			shm/Superblock.cpp \
 			shm/SuperblockFile.cpp \
 			shm/System.cpp

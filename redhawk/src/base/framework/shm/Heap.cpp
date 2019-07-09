@@ -22,6 +22,7 @@
 #include "Superblock.h"
 #include "Block.h"
 #include "ThreadState.h"
+#include "Metrics.h"
 
 #include <stdexcept>
 #include <cstring>
@@ -49,6 +50,7 @@ public:
         _id(id),
         _heap(heap)
     {
+        RECORD_SHM_METRIC(private_heaps_created);
     }
 
     void* allocate(size_t bytes)
@@ -65,16 +67,20 @@ public:
                 // under the assumption that it is more likely to satisfy a
                 // future request
                 std::iter_swap(superblock, _superblocks.begin());
+                RECORD_SHM_METRIC(heaps_alloc_hot);
                 return ptr;
             }
         }
 
         Superblock* superblock = _heap->_createSuperblock(bytes);
         if (superblock) {
+            RECORD_SHM_METRIC_IF(_superblocks.empty(), private_heaps_used);
             _superblocks.insert(_superblocks.begin(), superblock);
+            RECORD_SHM_METRIC(heaps_alloc_cold);
             return superblock->allocate(state, bytes);
         }
 
+        RECORD_SHM_METRIC(heaps_alloc_failed);
         return 0;
     }
 
@@ -96,6 +102,8 @@ Heap::Heap(const std::string& name) :
     for (int id = 0; id < nprocs; ++id) {
         _allocs.push_back(new PrivateHeap(id, this));
     }
+
+    RECORD_SHM_METRIC(heaps_created);
 }
 
 Heap::~Heap()
