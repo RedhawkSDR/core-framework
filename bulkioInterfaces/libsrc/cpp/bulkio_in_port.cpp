@@ -726,14 +726,11 @@ namespace bulkio {
       SCOPED_LOCK lock(sriUpdateLock);
       SriTable::iterator target = currentHs.find(streamID);
       if (target != currentHs.end()) {
-          bool sriBlocking = target->second.first.blocking();
-          if (sriBlocking) {
-              SriTable::iterator currH;
-              for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-                  if (currH->second.first.blocking()) {
-                      turnOffBlocking = false;
-                      break;
-                  }
+          SriTable::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+              if (currH->second.first.blocking()) {
+                  turnOffBlocking = false;
+                  break;
               }
           }
       }
