@@ -24,8 +24,6 @@ SUBDIRS += components/multiout_attachable/cpp
 SUBDIRS += components/Oversized_framedata/cpp
 SUBDIRS += components/src/cpp
 SUBDIRS += components/snk_slow/cpp
-SUBDIRS += components/stream_src/cpp
-SUBDIRS += components/stream_snk/cpp
 if HAVE_JAVASUPPORT
 SUBDIRS += components/TestLargePush/java
 SUBDIRS += components/Java_Ports/java

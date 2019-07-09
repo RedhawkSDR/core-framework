@@ -32,6 +32,7 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testGetPacket);
     CPPUNIT_TEST(testGetPacketStreamRemoved);
     CPPUNIT_TEST(testActiveSRIs);
+    CPPUNIT_TEST(testStreamIds);
     CPPUNIT_TEST(testQueueDepth);
     CPPUNIT_TEST(testState);
     CPPUNIT_TEST(testSriChanged);
@@ -48,6 +49,7 @@ public:
     void testGetPacket();
     void testGetPacketStreamRemoved();
     void testActiveSRIs();
+    void testStreamIds();
     void testQueueDepth();
     void testState();
     void testSriChanged();
