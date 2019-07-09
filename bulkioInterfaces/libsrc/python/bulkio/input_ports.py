@@ -394,6 +394,10 @@ class InPort(object):
             # Let one waiting getPacket call know there is a packet available
             self._dataAvailable.notify()
 
+        with self._sriUpdateLock:
+            if EOS:
+                sri, _ = self.sriDict.pop(streamID, (None, None))
+
     def _flushQueue(self):
         # Prerequisite: caller holds self._dataBufferLock and
         # self._sriUpdateLock
@@ -526,14 +530,12 @@ class InPort(object):
 
     def _disableBlockingOnEOS(self, streamID):
         with self._sriUpdateLock:
-            sri, _ = self.sriDict.pop(streamID, (None, None))
-            if sri and sri.blocking:
-                for hdr, _ in self.sriDict.itervalues():
-                    if hdr.blocking:
-                        return False
-                return True
+            for hdr, _ in self.sriDict.itervalues():
+                if hdr.blocking:
+                    return False
+            return True
 
-        return False
+        return True
 
     def _createStream(self, sri):
         with self._streamsMutex:
