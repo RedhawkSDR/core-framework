@@ -360,6 +360,15 @@ namespace bulkio {
           tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
       }
       packetQueue.push_back(tmpIn);
+
+      if (EOS) {
+          SCOPED_LOCK lock(sriUpdateLock);
+          SriTable::iterator target = currentHs.find(streamID);
+          if (target != currentHs.end()) {
+              currentHs.erase(target);
+          }
+      }
+
       // If a flush occurred, always set the flag on the first packet; this may
       // not be the packet that was just inserted if there were any EOS packets
       // on the queue
@@ -370,14 +379,6 @@ namespace bulkio {
     }
 
     packetWaiters.notify(streamID);
-
-    if (EOS) {
-        SCOPED_LOCK lock(sriUpdateLock);
-        SriTable::iterator target = currentHs.find(streamID);
-        if (target != currentHs.end()) {
-            currentHs.erase(target);
-        }
-    }
 
     TRACE_EXIT( _portLog, "InPort::pushPacket"  );
   }

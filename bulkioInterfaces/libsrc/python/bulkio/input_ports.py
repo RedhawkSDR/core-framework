@@ -385,6 +385,10 @@ class InPort(object):
             packet = InPort.Packet(data, T, EOS, sri, sri_changed, False)
             self.queue.append(packet)
 
+            with self._sriUpdateLock:
+                if EOS:
+                    sri, _ = self.sriDict.pop(streamID, (None, None))
+
             # If a flush occurred, always set the flag on the first packet;
             # this may not be the packet that was just inserted if there were
             # any EOS packets on the queue
@@ -393,10 +397,6 @@ class InPort(object):
 
             # Let one waiting getPacket call know there is a packet available
             self._dataAvailable.notify()
-
-        with self._sriUpdateLock:
-            if EOS:
-                sri, _ = self.sriDict.pop(streamID, (None, None))
 
     def _flushQueue(self):
         # Prerequisite: caller holds self._dataBufferLock and

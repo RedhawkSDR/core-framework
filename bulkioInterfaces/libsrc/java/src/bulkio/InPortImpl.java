@@ -380,6 +380,12 @@ class InPortImpl<A> {
                 this.workQueue.add(p);
                 this.dataSem.release();
             }
+
+            if (eos) {
+                synchronized (this.sriUpdateLock) {
+                    this.currentHs.remove(streamID);
+                }
+            }
         } else {
             synchronized (this.dataBufferLock) {
                 boolean flushToReport = false;
@@ -407,6 +413,12 @@ class InPortImpl<A> {
                 }
                 DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
                 this.workQueue.add(p);
+
+                if (eos) {
+                    synchronized (this.sriUpdateLock) {
+                        this.currentHs.remove(streamID);
+                    }
+                }
                 // If a flush occurred, always set the flag on the first
                 // packet; this may not be the packet that was just inserted if
                 // there were any EOS packets on the queue
@@ -416,12 +428,6 @@ class InPortImpl<A> {
                     this.workQueue.addFirst(first);
                 }
                 this.dataSem.release();
-            }
-        }
-
-        if (eos) {
-            synchronized (this.sriUpdateLock) {
-                this.currentHs.remove(streamID);
             }
         }
 
