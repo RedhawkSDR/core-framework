@@ -80,30 +80,23 @@ void AllocationManager_impl::unfilledRequests(CF::AllocationManager::AllocationR
         return;
     }
 
-    std::vector<unsigned int> unfilled_request_idx;
-    unfilled_request_idx.resize(0);
-    for (unsigned int req_idx=0; req_idx<result.length(); req_idx++) {
-        std::string req_request_id = ossie::corba::returnString(requests[req_idx].requestID);
-        bool found_match = false;
-        for (unsigned int res_idx=0; res_idx<requests.length(); res_idx++) {
-            std::string res_request_id = ossie::corba::returnString(result[res_idx].requestID);
-            if (res_request_id == req_request_id) {
-                found_match = true;
-                break;
-            }
-        }
-        if (not found_match) {
-            unfilled_request_idx.push_back(req_idx);
+    // First, collect the filled request IDs
+    std::set<std::string> filled_requests;
+    for (unsigned int idx = 0; idx < result.length(); ++idx) {
+        filled_requests.insert(static_cast<const char*>(result[idx].requestID));
+    }
+
+    // Then, sweep through the requests and remove any that have already been
+    // filled
+    for (unsigned int idx = 0; idx < requests.length(); ) {
+        if (filled_requests.count(static_cast<const char*>(requests[idx].requestID))) {
+            // NB: The erase() function has an extra unused template parameter
+            //     that breaks type deduction; explicitly specify as workaround
+            ossie::corba::erase<CF::AllocationManager::AllocationRequestSequence,void>(requests, idx);
+        } else {
+            ++idx;
         }
     }
-    std::sort(unfilled_request_idx.begin(),unfilled_request_idx.end(),std::greater<unsigned int>());
-    for (std::vector<unsigned int>::iterator ur_itr = unfilled_request_idx.begin(); ur_itr != unfilled_request_idx.end(); ur_itr++) {
-        for (unsigned int idx=(*ur_itr); idx<requests.length()-1; idx++) {
-            requests[idx] = requests[idx+1];
-        }
-        requests.length(requests.length()-1);
-    }
-    return;
 }
 
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocate(const CF::AllocationManager::AllocationRequestSequence &requests) throw (CF::AllocationManager::AllocationError)
@@ -119,17 +112,15 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
         const ossie::DomainManagerList remoteDomains = this->_domainManager->getRegisteredRemoteDomainManagers();
         ossie::DomainManagerList::const_iterator remoteDomains_itr = remoteDomains.begin();
 
-        CF::AllocationManager::AllocationRequestSequence remaining_requests;
-        remaining_requests.length(requests.length());
-        for (unsigned ridx=0;ridx<requests.length();ridx++) {
-            remaining_requests[ridx] = requests[ridx];
-        }
+        CF::AllocationManager::AllocationRequestSequence remaining_requests = requests;
 
         while ((remoteDomains_itr != remoteDomains.end()) and (result->length() != requests.length())) {
             unfilledRequests(remaining_requests, result);
             CORBA::String_var domain_name = this->_domainManager->name();
             CF::AllocationManager_var allocationMgr = remoteDomains_itr->domainManager->allocationMgr();
+            RH_DEBUG(_allocMgrLog, "Attempting remote allocation for " << remaining_requests.length() << " request(s) on domain '" << ossie::corba::returnString(remoteDomains_itr->domainManager->name()) << "'");
             CF::AllocationManager::AllocationResponseSequence_var new_result = allocationMgr->allocateLocal(remaining_requests, domain_name);
+            RH_DEBUG(_allocMgrLog, "Satisfied " << new_result->length() << " request(s) on remote domain");
             for (unsigned int idx=0; idx<new_result->length(); idx++) {
                 ossie::corba::push_back(result, new_result[idx]);
                 ossie::RemoteAllocationType allocation;
@@ -154,6 +145,8 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
 /* Allocates a set of dependencies only inside the local Domain */
 CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName) throw (CF::AllocationManager::AllocationError)
 {
+    RH_TRACE(_allocMgrLog, "Attempting local allocation for " << requests.length()
+             << " request(s)");
     CF::AllocationManager::AllocationResponseSequence* results;
     if (requests.length() > 0) {
         ossie::DeviceList registeredDevices = this->_domainManager->getRegisteredDevices();
@@ -210,10 +203,13 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
                                                                                                std::vector<ossie::SPD::NameVersionPair>(),
                                                                                                domainName);
         if (result.first) {
+            RH_DEBUG(_allocMgrLog, "Satisfied request '" << request.requestID << "' on device '" << (*result.second)->label << "'");
             local_allocations.push_back(result.first);
             ossie::AllocationType* allocation(result.first);
             const std::string requestID(request.requestID);
             ossie::corba::push_back(response, ossie::assembleResponse(requestID, allocation->allocationID, allocation->allocationProperties, allocation->allocatedDevice, allocation->allocationDeviceManager));
+        } else {
+            RH_DEBUG(_allocMgrLog, "Unable to satisfy request '" << request.requestID << "'");
         }
     }
 
@@ -306,6 +302,7 @@ bool AllocationManager_impl::allocateDevice(const CF::Properties& requestedPrope
     }
     try {
         if ((node.device->usageState() == CF::Device::BUSY) and not(hasListenerAllocation(requestedProperties))) {
+            RH_TRACE(_allocMgrLog, "Ignoring busy device '" << node.label << "'");
             return false;
         }
     } catch ( ... ) {
