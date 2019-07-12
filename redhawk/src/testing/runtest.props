@@ -22,7 +22,7 @@ log4j.appender.FILE.Threshold=TRACE
 # If you want to debug a specific class, uncomment or add
 # the appropriate line(s) below
 #log4j.logger.prop_utils=TRACE
-#log4j.logger.AllocationManager_impl=TRACE
+#log4j.logger.DomainManager.AllocationManager=TRACE
 #log4j.logger.nodebooter=TRACE
 #log4j.logger.DomainManager_impl=TRACE
 #log4j.logger.ApplicationFactory_impl=TRACE
