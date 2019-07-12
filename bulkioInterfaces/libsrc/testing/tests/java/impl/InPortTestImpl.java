@@ -154,7 +154,6 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
     @Test
     public void testStreamIds()
     {
-    System.out.println("........ begin testStreamIds");
         BULKIO.StreamSRI sri_1 = bulkio.sri.utils.create("test_get_packet");
         DataTransfer<A> packet = null;
         sri_1.mode = 0;
