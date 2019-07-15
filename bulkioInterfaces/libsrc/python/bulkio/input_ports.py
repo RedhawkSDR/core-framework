@@ -535,8 +535,6 @@ class InPort(object):
                     return False
             return True
 
-        return True
-
     def _createStream(self, sri):
         with self._streamsMutex:
             if sri.streamID in self._streams:
