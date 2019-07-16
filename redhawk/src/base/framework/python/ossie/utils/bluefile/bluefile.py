@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-# $Id: bluefile.py 4301 2012-06-02 00:33:05Z jai $
+# $Id: bluefile.py 4648 2015-02-05 19:37:41Z krd $
 
 """
 Python interface to the X-Midas BLUE file format.  Uses the xmpyapi
@@ -79,7 +79,17 @@ import os
 import re
 import numpy
 import warnings
-from exceptions import UserWarning
+from exceptions import UserWarning, NameError
+
+# define a portable string instance tester going forward that includes
+# unicode strings in Python 2.x and portable to Python 3
+try:
+    basestring  # attempt to evaluate basestring
+    def isstr(s):
+        return isinstance(s, basestring)
+except NameError:
+    def isstr(s):
+        return isinstance(s, str)
 
 try:
     import xmpyapi
@@ -170,6 +180,7 @@ _mode_tran = {
     'M' : 9,
     'X' : 10,
     'T' : 16,
+    'A' : 32,
     'U' : 1,
     '1' : 1,
     '2' : 2,
@@ -276,7 +287,7 @@ def _truncate_struct_def(struct_def, max_bytes):
     for name, fmt, count, byte_offset in struct_def['fields']:
         if byte_offset >= max_bytes:
             break
-        elif not isinstance(fmt, str):
+        elif not isstr(fmt):
             # A composite type, return a raw <n>s byte string
             s += str(count * fmt['nbytes']) + 's'
             npacking += 1
@@ -306,7 +317,7 @@ def _unpack_blue_struct(buf, struct_def, endian='@'):
         sdict = {}
         for name, fmt, count, byte_offset in struct_def['fields']:
             # fmt is an optional repcount and a struct pack char
-            if isinstance(fmt, str):
+            if isstr(fmt):
                 if fmt.endswith('s'):
                     val = ''
                 else:
@@ -341,7 +352,7 @@ def _unpack_blue_struct(buf, struct_def, endian='@'):
     for name, fmt, count, byte_offset in struct_def['fields']:
         if index >= len(vals):
             break
-        elif not isinstance(fmt, str):
+        elif not isstr(fmt):
             # Embedded struct(s), union(s) are read in as a single string
             sdict[name] = vals[index]
             count = 1
@@ -417,6 +428,11 @@ def _blue_subrecord_map(hdr):
         fields.append((_m_length(subr['name'].lower()),
                        fmt, count, byte_offset))
         packing += fmt
+        # Check the packing string for '.', indicating a fractional
+        # byte, i.e., bit (SP) data which is not supported for Type
+        # 3000/5000/6000 files
+        if '.' in packing:
+            raise Exception('Bit data not supported for record-oriented files')
         npacking += count
         byte_offset = struct.calcsize(packing)
 
@@ -815,7 +831,7 @@ def _open_t6subrecords(hdr):
     repack = 0
     subrec_def_string = 0
     
-    if isinstance(hdr['ext_header'], str):
+    if isstr(hdr['ext_header']):
         unpack_ext_header(hdr)
         repack = 1
         
@@ -844,13 +860,33 @@ def _open_t6subrecords(hdr):
 
     # Cast selected subrecord fields to thier appropriate numeric data types
     for subrec in hdr['subr']:
-        subrec['minval']   = float(subrec['minval'])
-        subrec['maxval']   = float(subrec['maxval'])
+        # The minval and maxval strings from the subrecord structure are
+        # in the FORTRAN "e24.17" format, which isn't always in a format
+        # recognized by the Python float(str) conversion.  Specifically,
+        # if the exponent is three digits, the "e" is omitted.  For 
+        # example:  1.234e+22
+        #           6.789+222
+        # Detect this case and convert the string to a format recognized
+        # by float(str).  The regular expression basically says, "replace
+        # any instances in the string of a digit, followed by a plus or a
+        # minus, followed by 3 digits, with the same string but with an
+        # 'e' inserted in the appropriate place.
+        subrec['minval']   = float(re.sub(r"(\d)([\+\-])(\d\d\d)$",
+                                          r"\1e\2\3", subrec['minval']))
+        subrec['maxval']   = float(re.sub(r"(\d)([\+\-])(\d\d\d)$",
+                                          r"\1e\2\3", subrec['maxval']))
         subrec['offset']   = int(subrec['offset'])
         subrec['units']    = int(subrec['units'])
         subrec['num_elts'] = int(subrec['num_elts'])
-        subrec['uprefix']  = int(subrec['uprefix'])
-        del subrec['reserved']
+        try:
+            # 'uprefix' can apparently sometimes be a string of just spaces.
+            # X-Midas converts this case to 0, which is what we should do.
+            subrec['uprefix'] = int(subrec['uprefix'])
+        except ValueError:
+            subrec['uprefix'] = 0
+        
+        if 'reserved' in subrec:
+            del subrec['reserved']
         
 
 def readheader(filename, ext_header_type=None, keepopen=0):
@@ -1073,7 +1109,7 @@ def _add_subr(hdr, name, format, ctype=0, units=0, \
         hdr['record_length'] = 0
     if format != hdr['format']:
         hdr['format'] = 'NH'
-    if hdr['record_length'] % _type_tran[format[1]]:
+    if format[1] != 'A' and hdr['record_length'] % _type_tran[format[1]]:
         warnings.warn("%s %s is not naturally aligned." %
                       (nfield[:-1].title(), name), UserWarning, stacklevel=3)
     s = {'name':name, 'format':format}
@@ -1570,7 +1606,7 @@ def _update_t6subrecords(hdr):
     # Make sure the extended header is in list format 
     if isinstance(hdr['ext_header'], dict):
         hdr['ext_header'] = hdr['ext_header'].items()
-    elif isinstance(hdr['ext_header'], str):
+    elif isstr(hdr['ext_header']):
         unpack_ext_header(hdr)
 
     # Pack all of the subrecords into one string
@@ -1884,7 +1920,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
     # Round start to the nearest integral value to match X-Midas' file
     # trimming behavior.
     if start:
-        start = round(start)
+        start = int(round(start))
         
     if (fhdr and start) and (append or not truncate):
         if append :
@@ -2094,7 +2130,7 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                                     'boundaries not supported')
                 bpe = long(bpe)
                 for frame in data:
-                    if not isinstance(frame, str):
+                    if not isstr(frame):
                         raise Exception('Bit data given for write '
                                         'must be a string')
                     if len(frame) != bpe:
@@ -2113,7 +2149,7 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                         f.write(elem + ' ' * (bpa - len(elem)))
         else:
             try: 
-                # Numeric data
+                # numeric data
                 # Retranslate format to NumPy, not struct
                 packing = _xm_to_numpy[hdr['format'][-1]]
                 if hdr['format'] in ('CD','CF'):
@@ -2131,7 +2167,8 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                                         'proper dimensions: expected %s, '
                                         'got %s' % (file_class, shape,
                                                     numpy.shape(frame)))
-                    if endian != '@'  and  endian != _native_endian:
+                    if endian not in ['@', '=', _native_endian]:
+                        # DR 667036-19 changed from Numeric.byteswapped()
                         f.write(frame.astype(packing).byteswap().tostring())
                     else:
                         f.write(frame.astype(packing).tostring())
@@ -2329,7 +2366,13 @@ def read(filename, ext_header_type=None, start=None, end=None,
         elif hdr['class'] == 2:
             # Adjust the 'ystart' field to reflect the data being returned
             hdr['ystart'] = hdr['ystart'] + ((start-1) * hdr['ydelta'])
-                
+        elif hdr['class'] == 3:
+            # Adjust the 'rstart' field to reflect the data being returned
+            hdr['rstart'] = hdr['rstart'] + ((start-1) * hdr['rdelta'])    
+        elif hdr['class'] == 5:
+            # Adjust the 'tstart' field to reflect the data being returned
+            hdr['tstart'] = hdr['tstart'] + ((start-1) * hdr['tdelta'])
+        
         if end is None or end > hdr['size']:
             end = hdr['size']
         elif end < 1:
@@ -2459,7 +2502,7 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
             blocksize = scalars_per_pass * bps
 
             unpack_data_block = _unpack_data_block
-            swap_bytes = (endian != '@' and endian != _native_endian)
+            swap_bytes = (endian not in ['@', '=', _native_endian])
 
             # Read the data into the output array block-by-block.
             scalars_read = 0
@@ -2474,6 +2517,7 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
             # If the endian-ness does not match (checked above), byteswap the
             # array.
             if swap_bytes:
+                # DR 667036-19 changed from Numeric.byteswapped()
                 pydata = pydata.byteswap()
 
             # Determine the appropriate shape of the output array based on
@@ -2585,7 +2629,7 @@ def unpack_ext_header(hdr, structured=0):
     pack_ext_header() with the same structured=1.  See pack_keywords()
     for more info.
     """
-    if isinstance(hdr['ext_header'], str):
+    if isstr(hdr['ext_header']):
         hdr['ext_header'] = unpack_keywords(hdr['ext_header'],
                                             _rep_tran[hdr['head_rep']],
                                             structured=structured)
@@ -2611,7 +2655,7 @@ def unpack_keywords(buf, endian='@', lcase=0, start=0, structured=0):
 
     """
     lbuf = len(buf)
-    byteswap = (endian != '@' and endian != _native_endian)
+    byteswap = (endian not in ['@', '=', _native_endian])
     keywords = []
 
     oldstyle = lbuf >= 8 and struct.unpack(endian + 'i', buf[4:8])[0] <= 128
@@ -2664,12 +2708,13 @@ def unpack_keywords(buf, endian='@', lcase=0, start=0, structured=0):
 
         if format != 'A':
             try:
-                if isinstance(data, str):
+                if isstr(data):
                     data = numpy.fromstring(data, _xm_to_numpy[format])
                     if byteswap:
+                        # DR 667036-19 changed from Numeric.byteswapped()
                         data = data.byteswap()
                     if len(data) == 1:
-                        data = data[0]
+                        data = numpy.asscalar(data[0])
                         if format == 'X':
                             # Coerce type 'X' keywords into longs so they
                             # are written back as 'X'.
@@ -2720,7 +2765,7 @@ def _is_kvpair_list(value):
     """
     return (isinstance(value, list) and value and
             isinstance(value[0], tuple) and len(value[0]) == 2 and
-            isinstance(value[0][0], str))
+            isstr(value[0][0]))
 
         
 def pack_ext_header(hdr, structured=0):
@@ -2802,9 +2847,9 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
     format impossible.
     """
     kpacked = ''
-    byteswap = (endian != '@' and endian != _native_endian)
+    byteswap = (endian not in ['@', '=', _native_endian])
 
-    if isinstance(keywords, str):
+    if isstr(keywords):
         return keywords
     elif isinstance(keywords, dict):
         keywords = keywords.items()
@@ -2842,7 +2887,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
                 format = 'X'
                 ldata = 8
                 packing += 'q'
-        elif isinstance(value, str):
+        elif isstr(value):
             format = 'A'
             ldata = len(value)
             packing += str(ldata) + 's'
@@ -2871,6 +2916,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
                     value = value.astype(typecode)
                 format = _numpy_to_xm[typecode]
                 if byteswap:
+                    # DR 667036-19 changed from Numeric.byteswapped()
                     value = value.byteswap()
                 value = value.tostring()
             elif structured and value is None:
@@ -3305,3 +3351,121 @@ def is_blue_hdr(dict):
             break
         
     return is_blue
+
+
+
+def _check_eq (kv1, kv2):
+    if kv1[0] != kv2[0]:
+        return False
+    try:
+        ## If the values are numbers, try to normalize them so
+        ## we're comparing apples to apples.
+        return float(kv1[1]) == float(kv2[1])
+    except:
+        return kv1[1] == kv2[1]
+
+def kwscope(ext_hdr_kwlist, scope_list):
+    """
+    Returns the subset of keywords in <ext_hdr_kwlist> that fall within
+    the scope defined by <scope_list>.
+
+    This function mimics the behavior provided by the /SCOPE switch to
+    the KEYWORD intrinsic (see EXPLAIN KEYWORD for more details).
+    
+    <ext_hdr_kwlist> is expected to be formatted like the data within
+    the 'ext_header' key from the dictionary returned by
+    readheader(...).  Although readheader can return the extended
+    header keywords in different formats, this function requires the
+    *list* format (other formats don't necessarily preserve ordering).
+
+    <scope_list> is a list of "key=value" strings defining the scope
+    of interest.
+
+    Examples (taken from EXPLAIN KEYWORD):
+
+    1) The following keyword list groups keywords according to time:
+    
+        TIME==12:00
+	FREQ==31e6
+	AMPL==1.1
+	TIME==13:00
+	FREQ==32e6
+	AMPL==1.2
+	TIME==14:00
+	FREQ==33e6
+	AMPL==1.3
+    
+        To access only the parameters between 13:00 and 14:00:
+
+        hdr = readheader(file_name, ext_header_type=list)
+        scp = kwscope(hdr['ext_header'], ['time=13:00'])
+        print scp
+        [('TIME', '13:00'), ('FREQ', 32000000.0), ('AMPL', 1.2)]
+
+
+    2) Keyword scope can be nested by adding additional elements to
+    the <scope_list> argument.  Take the keyword segment (indented for
+    clarity):
+
+        TIME==13:00
+	  RCVR==01
+	    CHAN==A
+	      FREQ==32E6
+	      AMPL==1.2
+	    CHAN==B
+	      FREQ==42E6
+	      AMPL==3.4
+	  RCVR==02
+	...
+	TIME==14:00
+
+    Channel B of receiver 01 at time 13:00 would be accessed by:
+    
+    hdr = readheader(file_name, ext_header_type=list)
+    scp = kwscope(hdr['ext_header'], ['time=13:00', 'rcvr=01', 'chan=B'])
+    print scp
+    [('CHAN', 'B'), ('FREQ', 42000000.0), ('AMPL', 3.3999999999999999)]
+    
+
+    NOTE: At this time, the additional '+'/'-' qualifiers (for
+    skipping/including the starting/ending scope values) are not
+    supported here.
+    """
+
+    ## Type checking
+    if type(ext_hdr_kwlist) != list:
+        raise TypeError('Only ext_header list format is supported')
+
+    if type(scope_list) != list:
+        raise TypeError('scope_list must be a list')
+
+    ## Tuples of uppercase keys and values to look for
+    slist = [ (x.upper(),y) for x,y in [ s.split('=') for s in scope_list ] ]
+    ## List of just the keys (so we know when to stop)
+    skeys = [ s[0] for s in slist ]
+
+    ## Check for unsupported +/- operators
+    for kv in slist:
+        if kv[0].endswith('+') or kv[0].endswith('-'):
+            raise Exception('kwscope does not support +=/-= operators')
+
+    res = []
+    for hkey,hval in ext_hdr_kwlist:
+        if len(slist) == 0:
+            ## We're within the scope, accumulate until we hit a duplicate key
+            if hkey in skeys:
+                ## Duplicate, we're done
+                break
+            res.append((hkey,hval))
+        elif _check_eq((hkey,hval), slist[0]):
+            ## Found a match, remove it from the list
+            kv = slist.pop(0)
+            if len(slist) == 0:
+                ## If this was the last one, start accumulating key/values
+                res.append(kv)
+
+    if len(slist) != 0:
+        ## Something went wrong:
+        raise Exception('Keyword scope start tag not found: %s' % slist[0][0])
+
+    return res
