@@ -48,22 +48,18 @@ class Python_Ports_i(Python_Ports_base):
 
 
     def DoPort(self, inPort, outPort, pname ):
-            p1 = inPort.getPacket( );
+            pkt = inPort.getPacket()
 
-            if p1 and p1[inPort.SRI_CHG] :
-                outPort.pushSRI(p1[inPort.SRI] )
-                
+            if pkt.sriChanged:
+                outPort.pushSRI(pkt.SRI)
 
-            ##self._log.debug(  "SF  TYPE:" + pname + " pkt:" +  str(p1) )
-            ##print   "SF  TYPE:" + pname + " pkt:" +  str(p1) 
-            if p1 and p1[inPort.DATA_BUFFER]:
-                self._log.debug(  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) )
-                #print  "SF  TYPE:" + pname + " DATALEN:" +  str(len(p1[inPort.DATA_BUFFER])) 
-                outPort.pushPacket( p1[0], p1[1], p1[2], p1[3] )
-                return 1
+            # Note:  `pkt.dataBuffer = []` is still a packet, but would evaluate False.
+            if pkt.dataBuffer is None:  # got no packet
+                return 0
 
-            # No packets processed
-            return 0
+            self._log.debug('SF TYPE:  {0}, DATALEN:  {1}'.format(pname, len(pkt.dataBuffer)))
+            outPort.pushPacket(pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID)
+            return 1
 
     def process(self):
         """
