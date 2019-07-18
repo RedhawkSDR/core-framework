@@ -18,15 +18,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import unittest
 import ossie.utils.testing
-import os
 from omniORB import any
-import time
-from ossie.utils.testing.unit_test_helpers import getImplId
-from ossie.utils.testing import main as _ossie_test_main
 from ossie.utils import sb
-import traceback
 
 # Add the local search paths to find local IDL files
 from ossie.utils import model
@@ -38,7 +32,6 @@ model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
 PAUSE = .1
 MAX_WAIT_TIME = 10
 EXPECTED_EOS = True
-main=_ossie_test_main
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in TestLargePush"""
@@ -55,26 +48,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.start()
         sink.start()
         if isLong:
-            expectedOutput = [long(0) for x in range(self.comp.numSamples)]
+            expectedOutput = [long(0)] * self.comp.numSamples
         elif isOctet:
-            expectedOutput = ['\x00' for x in range(self.comp.numSamples)]
+            expectedOutput = ['\x00'] * self.comp.numSamples
         else:
-            expectedOutput = [0 for x in range(self.comp.numSamples)]
+            expectedOutput = [0] * self.comp.numSamples
 
-        waitCountdown = maxWaitTime
-        while not sink.eos():
-            time.sleep(pause)
-            waitCountdown -= pause
-            if waitCountdown <= 0:
-                self.fail("Failed to receive an EOS")
-        retData = sink.getData()
+        streamData = sink.read(timeout=maxWaitTime, eos=True)
+        if not streamData.eos:
+            self.fail("Failed to receive an EOS")
 
         # If this assertion fails, make sure the length of the vectors match.
         # if they do not, try increasing the value of pause
-        self.assertEquals(retData, expectedOutput)
+        self.assertEquals(streamData.data, expectedOutput)
         self.comp.stop()
 
     def test_push(self):
+        """Test that ...
+        """
         # Launch the resource with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",),
                                          modes=("readwrite", "writeonly"),
@@ -82,14 +73,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
         self.launch(execparams)
 
-        sink = sb.DataSink()
-
         class Connection:
             def __init__(self, uses, provides):
                 self.uses = uses
                 self.provides = provides
 
-        # octet test is diabled until python test component supports it
+        # octet test is disabled until python test component supports it
         connections = (
             Connection(uses = "dataFloat",       provides = "floatIn"),
             Connection(uses = "dataDouble",      provides = "doubleIn"),
@@ -112,6 +101,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 isOctet = True
             else:
                 isOctet = False
+
+            sink = sb.StreamSink()
             self.comp.connect(
                 sink,
                 usesPortName=connection.uses,
@@ -119,18 +110,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.checkData(sink, isLong=isLong, isOctet=isOctet)
             self.comp.disconnect(sink)
 
+
 if __name__ == "__main__":
-
-    try:
-        import sys
-        import os
-        if '--with-xunit' in sys.argv:
-            sys.argv=sys.argv[:]+[ __file__ ]
-            import use_nose_test
-            main=use_nose_test.NoseTestProgram
-    except:
-        traceback.print_exc()
-        pass
-
-    main("../TestLargePush.spd.xml") # By default tests all implementations
+    ossie.utils.testing.main("../TestLargePush.spd.xml") # By default tests all implementations
 
