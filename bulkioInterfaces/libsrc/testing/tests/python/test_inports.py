@@ -511,6 +511,26 @@ class InPortTest(object):
             self.failIf(packet.dataBuffer is None)
             self.assertFalse(packet.inputQueueFlushed)
 
+    def testQueueSizeMax(self):
+        """
+        Tests that the max queue size can be set to a non-default value or
+        unlimited (negative)
+        """
+        sri = bulkio.sri.create('queue_size')
+        sri.blocking = False
+        self.port.pushSRI(sri)
+
+        # Set queue depth to unlimited and push a lot of packets
+        self.port.setMaxQueueDepth(-1)
+        QUEUE_SIZE = 300
+        for _ in xrange(QUEUE_SIZE):
+            self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+        self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
+        for _ in xrange(QUEUE_SIZE):
+            packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.inputQueueFlushed)
+
 
     def _pushTestPacket(self, length, time, eos, streamID):
         data = self.helper.createData(length)
