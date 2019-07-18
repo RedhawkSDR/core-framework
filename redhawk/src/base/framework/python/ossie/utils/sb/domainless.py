@@ -34,7 +34,7 @@ Component and Device classes support additional functionality:
     - Ambiguities can be resolved with usesPortName and/or providesPortName.
 
 Helpers are provided to move data into and out of component objects
-  - DataSource and DataSink are used to push vectors from Python to components and back.
+  - StreamSource and StreamSink are used to push vectors from Python to components and back.
   - FileSource and FileSink are used to push data from a file into components and back.
   - MessageSource and MessageSink are used to push messages from Python into components and back.
 
@@ -87,15 +87,14 @@ Examples of use:
     start() # calls start on all deployed components and helpers
     stop() # calls stop on all deployed components and helpers
 
-    # Continuously pushing an array of data to a plot
-    # a.stop() stops the loop
-    a = DataSource()   # default data type is short
-    b = DataSink()
-    a.connect(b,usesPortName=\"shortOut\")
-    data = range(1000)
-    a.push(data,loop=True)
-    retval = b.getData(100)            # block until 100 elements are received, then return the received elements
-    retval = b.getData(eos_block=True) # block until EOS is received, then return all available data
+    # Push data to a plot
+    src = StreamSource()
+    plot = LinePlot()
+    src.connect(plot, usesPortName='shortOut')
+    data = range(1000) * 4
+    start()
+    src.write(data)
+    stop()
 """
 import atexit
 import copy
