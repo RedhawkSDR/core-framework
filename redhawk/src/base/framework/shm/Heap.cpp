@@ -24,6 +24,7 @@
 #include "ThreadState.h"
 #include "HeapPolicy.h"
 #include "Metrics.h"
+#include "Environment.h"
 
 #include <stdexcept>
 #include <cstring>
@@ -43,11 +44,7 @@ namespace redhawk {
         namespace {
             static HeapPolicy* initializePolicy()
             {
-                std::string policy_type = "cpu";
-                const char* env_value = getenv("RH_SHMALLOC_HEAP_POLICY");
-                if (env_value && (*env_value != '\0')) {
-                    policy_type = env_value;
-                }
+                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_HEAP_POLICY", "cpu");
                 if (policy_type == "thread") {
                     return new ThreadHeapPolicy;
                 } else {
@@ -207,20 +204,8 @@ Superblock* Heap::_createSuperblock(size_t minSize)
         return 0;
     }
 
-    size_t superblock_size = DEFAULT_SUPERBLOCK_SIZE;
-    const char* superblock_size_env = getenv("SUPERBLOCK_SIZE");
-    if (superblock_size_env) {
-        char* end;
-        superblock_size = strtoll(superblock_size_env, &end, 10);
-        if ((superblock_size == 0) || (*end != '\0')) {
-            std::cerr << "Invalid superblock size, using default" << std::endl;
-            superblock_size = DEFAULT_SUPERBLOCK_SIZE;
-        } else {
-            // Shared memory should be allocated along page boundaries
-            superblock_size = PAGE_ROUND_UP(superblock_size, MappedFile::PAGE_SIZE);
-            std::cout << "Using superblock size " << superblock_size << std::endl;
-        }
-    }
+    size_t superblock_size = redhawk::env::getVariable("RH_SHMALLOC_SUPERBLOCK_SIZE", DEFAULT_SUPERBLOCK_SIZE);
+    superblock_size = PAGE_ROUND_UP(superblock_size, MappedFile::PAGE_SIZE);
 
     // Ensure that the superblock is large enough for the request, accounting
     // for the overhead of the block metadata (roughly)

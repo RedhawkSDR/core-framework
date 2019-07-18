@@ -28,6 +28,7 @@
 #include <boost/thread.hpp>
 
 #include "Block.h"
+#include "Environment.h"
 
 namespace redhawk {
     namespace shm {
@@ -37,8 +38,7 @@ namespace redhawk {
 
             static void initializeHeap()
             {
-                char* shm_env = getenv("RH_SHMALLOC");
-                if (shm_env && strcmp(shm_env, "disable") == 0) {
+                if (!redhawk::env::getEnable("RH_SHMALLOC", true)) {
                     std::cerr << "SHM disabled" << std::endl;
                 } else {
                     const std::string name = redhawk::shm::getProcessHeapName(getpid());

@@ -19,10 +19,10 @@
  */
 
 #include "Metrics.h"
+#include "Environment.h"
 
 #include <cstring>
 #include <cassert>
-#include <cstdlib>
 #include <iostream>
 
 #include <sys/types.h>
@@ -82,8 +82,7 @@ Metrics& Metrics::Instance()
 // Metrics::enabled variable
 bool Metrics::_initializeMetrics()
 {
-    const char* metrics_env = getenv("RH_SHM_METRICS");
-    if (!metrics_env || strcmp(metrics_env, "disable") == 0) {
+    if (!redhawk::env::getEnable("RH_SHM_METRICS", false)) {
         return false;
     }
     // Instantiate the singleton now (which should be process startup time) to
