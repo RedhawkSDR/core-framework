@@ -360,6 +360,15 @@ namespace bulkio {
           tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
       }
       packetQueue.push_back(tmpIn);
+
+      if (EOS) {
+          SCOPED_LOCK lock(sriUpdateLock);
+          SriTable::iterator target = currentHs.find(streamID);
+          if (target != currentHs.end()) {
+              currentHs.erase(target);
+          }
+      }
+
       // If a flush occurred, always set the flag on the first packet; this may
       // not be the packet that was just inserted if there were any EOS packets
       // on the queue
@@ -714,20 +723,15 @@ namespace bulkio {
   template <typename PortType>
   bool InPort<PortType>::_handleEOS(const std::string& streamID)
   {
-      bool turnOffBlocking = false;
+      bool turnOffBlocking = true;
       SCOPED_LOCK lock(sriUpdateLock);
       SriTable::iterator target = currentHs.find(streamID);
       if (target != currentHs.end()) {
-          bool sriBlocking = target->second.first.blocking();
-          currentHs.erase(target);
-          if (sriBlocking) {
-              turnOffBlocking = true;
-              SriTable::iterator currH;
-              for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-                  if (currH->second.first.blocking()) {
-                      turnOffBlocking = false;
-                      break;
-                  }
+          SriTable::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+              if (currH->second.first.blocking()) {
+                  turnOffBlocking = false;
+                  break;
               }
           }
       }
