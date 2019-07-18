@@ -36,51 +36,15 @@ def str_to_class(s):
     if s in globals() and isinstance(globals()[s], types.ClassType):
         return globals()[s]
     return None
-#
-#
-# BaseVectorPort
-#
-#  Runs 3 tests against a component using bulkio library classes
-#  
-# The component should provide a pass through interface from a corresponding 
-# input/output port pair.  The names and types of the ports must match the 
-# the table below... ie. int16 port test, input port name: dataShortIn output port name: dataShortOut
-#
-# test_push_packet:
-#     test input/output port pair of the component, push 100 sample vector
-#
-# test_inport_api:
-#     bulkio input port::
-#            getMaxQueueDepth
-#            setMaxQueueDepth
-#            getPacket
-#
-#     ProvidesPortStatisticsProvider::
-#            _get_statistics
-#            _get_state
-#     updateSRI
-#            _get_activeSRIs
-#            pushSRI
-#
-#      
-#     data<Type>:
-#         pushPacket
-#
-# test_outport_api:
-#     bulkio output port::
-#
-#     UsesPortStatisticsProvider::
-#            _get_statistics
-#
-#     CF::Port
-#            _get_connections
-#            connectPort
-#            disconnectPort
-#     data<Type>:
-#         pushPacket
 
 
 class BaseVectorPort(unittest.TestCase):
+    """Test against a component using bulkio library classes.
+
+    The component should provide a pass through interface from a corresponding
+    input/output port pair.  The names and types of the ports must match the
+    the PORT_FLOW table.
+    """
     KEYS = ['c_name', 'c_inport', 'c_outport', 'sink_inport']
     PORT_FLOW = {
                'Int8' : [ 'dataCharIn', 'dataCharOut', 'charIn' ],
@@ -151,31 +115,38 @@ class BaseVectorPort(unittest.TestCase):
         return comp
 
     def test_push_packet(self):
+        """Test input/output port pair of the component."""
         in_sri = bulkio.sri.create()
         in_sri.streamID = "VECTOR-PUSHPACKET-SIMPLE"
         in_sri.mode = 0
         in_sri.xdelta  = 1/33.0
-        dsource=sb.DataSource()
-        dsink=sb.DataSink()
+        source = sb.StreamSource(streamID=in_sri.streamID)
+        source.sri = in_sri
+        sink = sb.StreamSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
-        data=self.seq
+        data_in = self.seq
 
-        dsource.connect(test_comp, providesPortName=self.c_inport )
-        test_comp.connect(dsink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
+        source.connect(test_comp, providesPortName=self.c_inport)
+        test_comp.connect(sink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
         sb.start()
-        dsource.push( data, EOS=True, streamID=in_sri.streamID, sampleRate=33.0, complexData=(in_sri.mode==1))
-        adata=dsink.getData(eos_block=True)
-        #print "Result data: " + str(len(adata))
-        #print data
-        #print adata
-        self.assertEqual(len(data),len(adata),"PUSH PACKET FAILED....Data Vector Mismatch")
+        source.write(data_in)
+        source.close()
+        stream_data = sink.read(eos=True)
+        data_out = stream_data.data
+        #print 'Result data: ' + str(len(data_out))
+        #print data_in
+        #print data_out
+        if isinstance(data_in, basestring):
+            self.assertEqual(data_in, data_out[0], 'PUSH PACKET FAILED....Data Vector Mismatch')
+        else:
+            self.assertEqual(len(data_in), len(data_out), 'PUSH PACKET FAILED....Data Vector Mismatch')
 
         #
         # check sri values
         #
-        sri = dsink.sri()
+        sri = stream_data.sri
         print "StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID) 
         self.assertEqual(sri.streamID,in_sri.streamID,"PUSH PACKET FAILED....SRI StreamID Mismatch")
 
@@ -187,31 +158,38 @@ class BaseVectorPort(unittest.TestCase):
 
 
     def test_push_packet_cplx(self):
+        """Test input/output port pair of the component."""
         in_sri = bulkio.sri.create()
         in_sri.streamID = "VECTOR-PUSHPACKET-CPLX"
         in_sri.mode = 1
         in_sri.xdelta  = 1/33.0
-        dsource=sb.DataSource()
-        dsink=sb.DataSink()
+        source = sb.StreamSource(streamID=in_sri.streamID)
+        source.sri = in_sri
+        sink = sb.StreamSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
-        data=self.seq
+        data_in = self.seq
 
-        dsource.connect(test_comp, providesPortName=self.c_inport )
-        test_comp.connect(dsink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
+        source.connect(test_comp, providesPortName=self.c_inport)
+        test_comp.connect(sink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
         sb.start()
-        dsource.push( data, EOS=True, streamID=in_sri.streamID, sampleRate=33.0, complexData=(in_sri.mode==1) )
-        adata=dsink.getData(eos_block=True)
-        #print "Result data: " + str(len(adata))
-        #print data
-        #print adata
-        self.assertEqual(len(data),len(adata),"PUSH PACKET CPLX FAILED....Data Vector Mismatch")
+        source.write(data_in)
+        source.close()
+        stream_data = sink.read(eos=True)
+        data_out = stream_data.data
+        #print "Result data_in: " + str(len(data_out))
+        #print data_in
+        #print data_out
+        if isinstance(data_in, basestring):
+            self.assertEqual(data_in, data_out[0], 'PUSH PACKET FAILED....Data Vector Mismatch')
+        else:
+            self.assertEqual(len(data_in), len(data_out), 'PUSH PACKET FAILED....Data Vector Mismatch')
 
         #
         # check sri values
         #
-        sri = dsink.sri()
+        sri = stream_data.sri
         print "StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID) 
         self.assertEqual(sri.streamID,in_sri.streamID,"PUSH PACKET CPLX FAILED....SRI StreamID Mismatch")
 
@@ -223,6 +201,23 @@ class BaseVectorPort(unittest.TestCase):
 
 
     def test_inport_using_component(self):
+        """Test some API calls.
+
+        These comments appear out of date.
+
+        bulkio input port
+            getMaxQueueDepth  (unused.  remove/replace?)
+            setMaxQueueDepth  (unused.  remove/replace?)
+            getPacket  (unused.  remove/replace?)
+        ProvidesPortStatisticsProvider:
+            _get_statistics
+            _get_state
+        updateSRI
+            _get_activeSRIs
+            pushSRI
+        data<Type>
+            pushPacket  (unused.  remove/replace?)
+        """
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
@@ -250,6 +245,21 @@ class BaseVectorPort(unittest.TestCase):
 
 
     def test_outport_using_component(self):
+        """Test some API calls.
+
+        These comments appear out of date.
+
+        bulkio output port
+            none
+        UsesPortStatisticsProvider
+            _get_statistics
+        CF::Port
+            _get_connections
+            connectPort  (unused.  remove/replace?)
+            disconnectPort  (unused.  remove/replace?)
+        data<Type>
+            pushPacket  (unused.  remove/replace?)
+        """
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
         print "Test Component:" + c_spd_xml
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
@@ -263,14 +273,14 @@ class BaseVectorPort(unittest.TestCase):
         ps = oport._get_statistics()
         self.assertNotEqual(ps,None,"Cannot get Port Statistics")
 
-        dsink=sb.DataSink()
-        test_comp.connect(dsink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
+        sink = sb.StreamSink()
+        test_comp.connect(sink, providesPortName=self.sink_inport, usesPortName=self.c_outport)
 
         cl = oport._get_connections()
         self.assertNotEqual(cl,None,"Cannot get Connections List")
         self.assertEqual(len(cl),1,"Incorrect Connections List Length")
 
-        test_comp.disconnect(dsink)
+        test_comp.disconnect(sink)
 
         cl = oport._get_connections()
         self.assertNotEqual(cl,None,"Cannot get Connections List")
