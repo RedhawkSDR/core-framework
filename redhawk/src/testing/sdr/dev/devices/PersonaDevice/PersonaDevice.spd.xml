@@ -33,8 +33,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <implementation id="cpp">
     <description>The implementation contains descriptive information about the template for a software component.</description>
     <code type="SharedLibrary">
-      <localfile name="libPersonaDevice.so"/>
-      <entrypoint>./libPersonaDevice.so</entrypoint>
+      <localfile name="cpp/libPersonaDevice.so"/>
+      <entrypoint>cpp/libPersonaDevice.so</entrypoint>
     </code>
     <compiler name="/usr/bin/gcc" version="4.1.2"/>
     <programminglanguage name="C++"/>

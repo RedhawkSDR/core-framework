@@ -385,6 +385,10 @@ class InPort(object):
             packet = InPort.Packet(data, T, EOS, sri, sri_changed, False)
             self.queue.append(packet)
 
+            with self._sriUpdateLock:
+                if EOS:
+                    sri, _ = self.sriDict.pop(streamID, (None, None))
+
             # If a flush occurred, always set the flag on the first packet;
             # this may not be the packet that was just inserted if there were
             # any EOS packets on the queue
@@ -526,14 +530,12 @@ class InPort(object):
 
     def _disableBlockingOnEOS(self, streamID):
         with self._sriUpdateLock:
-            sri, _ = self.sriDict.pop(streamID, (None, None))
-            if sri and sri.blocking:
-                for hdr, _ in self.sriDict.itervalues():
-                    if hdr.blocking:
-                        return False
-                return True
+            for hdr, _ in self.sriDict.itervalues():
+                if hdr.blocking:
+                    return False
+            return True
 
-        return False
+        return True
 
     def _createStream(self, sri):
         with self._streamsMutex:

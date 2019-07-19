@@ -80,6 +80,9 @@ class OutputStream(StreamBase):
     def sri(self, sri):
         if not isinstance(sri, BULKIO.StreamSRI):
             raise TypeError('sri must be a BULKIO.StreamSRI') 
+        # If the SRI is the same, or differs only by streamID, do nothing.
+        if bulkio.sri.compareFields(self.sri, sri) in (bulkio.sri.NONE, bulkio.sri.STREAMID):
+            return
         self._modifyingStreamMetadata()
         # Deep copy to avoid accidental updates to the SRI via the caller's
         # reference
@@ -126,6 +129,8 @@ class OutputStream(StreamBase):
 
     @StreamBase.keywords.setter
     def keywords(self, keywords):
+        if bulkio.sri._compareKeywords(self.keywords, keywords):
+            return
         self._modifyingStreamMetadata()
         # Copy the sequence, but not the values
         self._sri.keywords = keywords[:]
@@ -134,6 +139,10 @@ class OutputStream(StreamBase):
         """
         Sets the current value of a keyword in the SRI.
 
+        If the keyword name does not exist, the new keyword is appended.
+        If the keyword name exists, and the value argument differs from the
+        keyword's value, the keyword is updated to the argument value.
+
         If the keyword name already exists, its value is updated to value. If
         the keyword name does not exist, the new keyword is appended.
 
@@ -141,14 +150,17 @@ class OutputStream(StreamBase):
         desired CORBA type. Otherwise, the CORBA type is determined based on
         the Python type of 'value'.
 
-        Setting a keyword updates the SRI, which will be pushed on the next
-        write.
+        If setting a keyword changes its key or value, it updates the SRI,
+        which will be pushed on the next write.
 
         Args:
             name:   The name of the keyword.
             value:  The new value.
             format: Optional type name.
         """
+        if bulkio.sri.hasKeyword(self._sri, name):
+            if bulkio.sri.getKeyword(self._sri, name) == value:
+                return
         self._modifyingStreamMetadata()
         bulkio.sri.setKeyword(self._sri, name, value, format)
 
@@ -159,12 +171,14 @@ class OutputStream(StreamBase):
         Erases the keyword named 'name' from the SRI keywords. If no keyword
         'name' is found, the keywords are not modified.
 
-        Removing a keyword updates the SRI, which will be pushed on the next
-        write.
+        If the keywords are modified, the SRI is updated and will be pushed on
+        the next write.
 
         Args:
             name: The name of the keyword.
         """
+        if not bulkio.sri.hasKeyword(self._sri, name):
+            return
         self._modifyingStreamMetadata()
         bulkio.sri.eraseKeyword(self._sri, name)
 

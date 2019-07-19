@@ -133,7 +133,6 @@ namespace bulkio {
         char* ptr = static_cast<char*>(buffer);
         size_t remain = bytes;
         while (remain > 0) {
-            boost::this_thread::interruption_point();
             size_t todo = std::min(remain, _blockSize);
             ssize_t pass = ::read(_fd, ptr, todo);
             if (pass <= 0) {
@@ -153,7 +152,6 @@ namespace bulkio {
         const char* ptr = static_cast<const char*>(data);
         size_t remain = bytes;
         while (remain > 0) {
-            boost::this_thread::interruption_point();
             size_t todo = std::min(remain, _blockSize);
             ssize_t pass = ::write(_fd, ptr, todo);
             if (pass <= 0) {

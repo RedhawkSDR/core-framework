@@ -174,8 +174,12 @@ namespace bulkio {
   {
     TRACE_ENTER( _portLog, "InPort::pushSRI"  );
 
+    // Acquire the mutex for the packet queue before the SRI mutex to avoid
+    // priority inversion. Strictly speaking it's only required if the stream ID
+    // already exists, while traversing the queue to look for EOS packets, but
+    // this is always safe.
+    SCOPED_LOCK data_lock(dataBufferLock);
     if (H.blocking) {
-      SCOPED_LOCK lock(dataBufferLock);
       blocking = true;
     }
 
@@ -186,6 +190,9 @@ namespace bulkio {
     SriTable::iterator currH = currentHs.find(streamID);
     StreamDescriptor sri(H);
     if (currH == currentHs.end()) {
+      // No need to access the packet queue, release the lock
+      data_lock.unlock();
+
       LOG_DEBUG(_portLog,"pushSRI  PORT:" << name << " NEW SRI:" << streamID << " Mode:" << H.mode );
       if (newStreamCallback) {
         // The callback takes a non-const SRI, so allow access via const_cast
@@ -202,6 +209,9 @@ namespace bulkio {
               eos_count++;
           }
       }
+      // Finished accessing the packet queue, release the lock
+      data_lock.unlock();
+
       int additional_streams = 1+pendingStreams.count(streamID); // count current and pending streams
       if (additional_streams == eos_count) { // current and pending streams are all eos
         createStream(streamID, sri);
@@ -350,6 +360,15 @@ namespace bulkio {
           tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
       }
       packetQueue.push_back(tmpIn);
+
+      if (EOS) {
+          SCOPED_LOCK lock(sriUpdateLock);
+          SriTable::iterator target = currentHs.find(streamID);
+          if (target != currentHs.end()) {
+              currentHs.erase(target);
+          }
+      }
+
       // If a flush occurred, always set the flag on the first packet; this may
       // not be the packet that was just inserted if there were any EOS packets
       // on the queue
@@ -704,20 +723,15 @@ namespace bulkio {
   template <typename PortType>
   bool InPort<PortType>::_handleEOS(const std::string& streamID)
   {
-      bool turnOffBlocking = false;
+      bool turnOffBlocking = true;
       SCOPED_LOCK lock(sriUpdateLock);
       SriTable::iterator target = currentHs.find(streamID);
       if (target != currentHs.end()) {
-          bool sriBlocking = target->second.first.blocking();
-          currentHs.erase(target);
-          if (sriBlocking) {
-              turnOffBlocking = true;
-              SriTable::iterator currH;
-              for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-                  if (currH->second.first.blocking()) {
-                      turnOffBlocking = false;
-                      break;
-                  }
+          SriTable::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+              if (currH->second.first.blocking()) {
+                  turnOffBlocking = false;
+                  break;
               }
           }
       }
