@@ -77,27 +77,9 @@ class FrontendComponentMapper(PullComponentMapper):
                 # Add the most specific tuner delegate interface:
                 #   (Digital > Analog > Frontend)
                 if 'DigitalScanningTuner' in deviceinfo:
-                    classes.append({'name': 'virtual frontend::digital_scanning_tuner_delegation', 'header': ''})
                     parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
                 elif 'AnalogScanningTuner' in deviceinfo:
-                    classes.append({'name': 'virtual frontend::analog_scanning_tuner_delegation', 'header': ''})
                     parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
-                elif 'DigitalTuner' in deviceinfo:
-                    classes.append({'name': 'virtual frontend::digital_tuner_delegation', 'header': ''})
-                elif 'AnalogTuner' in deviceinfo:
-                    classes.append({'name': 'virtual frontend::analog_tuner_delegation', 'header': ''})
-                else:
-                    classes.append({'name': 'virtual frontend::frontend_tuner_delegation', 'header': ''})
-
-            # Add additonal FRONTEND delegate interfaces
-            if 'RFInfo' in deviceinfo:
-                classes.append({'name': 'virtual frontend::rfinfo_delegation', 'header': ''})
-            if 'RFSource' in deviceinfo:
-                classes.append({'name': 'virtual frontend::rfsource_delegation', 'header': ''})
-            if 'GPS' in deviceinfo:
-                classes.append({'name': 'virtual frontend::gps_delegation', 'header': ''})
-            if 'NavData' in deviceinfo:
-                classes.append({'name': 'virtual frontend::nav_delegation', 'header': ''})
 
         return classes
 

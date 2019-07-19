@@ -78,28 +78,11 @@ ${className}::~${className}()
 
 void ${className}::constructor()
 {
+/*{% block constructorBody %}*/
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
-/*{% if 'FrontendTuner' in component.implements %}*/
-
-     For a tuner device, the structure frontend_tuner_status needs to match the number
-     of tuners that this device controls and what kind of device it is.
-     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
-     
-     For example, if this device has 5 physical
-     tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-     should look like this:
-
-     this->addChannels(3, "RX_DIGITIZER");
-     this->addChannels(2, "CHANNELIZER");
-     
-     The incoming request for tuning contains a string describing the requested tuner
-     type. The string for the request must match the string in the tuner status.
-/*{% endif %}*/
     ***********************************************************************************/
-/*{% if 'FrontendTuner' in component.implements %}*/
-    this->addChannels(1, "RX_DIGITIZER");
-/*{% endif %}*/
+/*{% endblock %}*/
 }
 
 /*{% if component is device %}*/
@@ -396,4 +379,179 @@ int ${className}::serviceFunction()
     return NOOP;
 }
 /*{% block extensions %}*/
+/*{% block portFunctionDelegates %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+/*************************************************************
+Functions servicing the tuner control port
+*************************************************************/
+std::string ${className}::getTunerType(const std::string& allocation_id) {
+    return std::string("none");
+}
+
+bool ${className}::getTunerDeviceControl(const std::string& allocation_id) {
+    return true;
+}
+
+std::string ${className}::getTunerGroupId(const std::string& allocation_id) {
+    return std::string("none");
+}
+
+std::string ${className}::getTunerRfFlowId(const std::string& allocation_id) {
+    return std::string("none");
+}
+/*{% endif %}*/
+/*{% if 'AnalogTuner' in component.implements %}*/
+
+void ${className}::setTunerCenterFrequency(const std::string& allocation_id, double freq) {
+}
+
+double ${className}::getTunerCenterFrequency(const std::string& allocation_id) {
+    return 0;
+}
+
+void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw) {
+}
+
+double ${className}::getTunerBandwidth(const std::string& allocation_id) {
+    return 0;
+}
+
+void ${className}::setTunerAgcEnable(const std::string& allocation_id, bool enable)
+{
+}
+
+bool ${className}::getTunerAgcEnable(const std::string& allocation_id)
+{
+    return true;
+}
+
+void ${className}::setTunerGain(const std::string& allocation_id, float gain)
+{
+}
+
+float ${className}::getTunerGain(const std::string& allocation_id)
+{
+    return 0;
+}
+
+void ${className}::setTunerReferenceSource(const std::string& allocation_id, long source)
+{
+}
+
+long ${className}::getTunerReferenceSource(const std::string& allocation_id)
+{
+    return 0;
+}
+
+void ${className}::setTunerEnable(const std::string& allocation_id, bool enable) {
+}
+
+bool ${className}::getTunerEnable(const std::string& allocation_id) {
+    return true;
+}
+/*{% endif %}*/
+/*{% if 'DigitalTuner' in component.implements %}*/
+
+void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, double sr) {
+}
+
+double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
+    return 0;
+}
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
+    frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
+    frontend::ScanStatus retval(tmp);
+    return retval;
+}
+
+void ${className}::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
+}
+
+void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
+}
+/*{% endif %}*/
+/*{% if 'GPS' in component.implements %}*/
+
+frontend::GPSInfo ${className}::get_gps_info(const std::string& port_name)
+{
+    frontend::GPSInfo gps_info;
+    return gps_info;
+}
+
+void ${className}::set_gps_info(const std::string& port_name, const frontend::GPSInfo &gps_info)
+{
+}
+
+frontend::GpsTimePos ${className}::get_gps_time_pos(const std::string& port_name)
+{
+    frontend::GpsTimePos gps_time_pos;
+    return gps_time_pos;
+}
+
+void ${className}::set_gps_time_pos(const std::string& port_name, const frontend::GpsTimePos &gps_time_pos)
+{
+}
+/*{% endif %}*/
+/*{% if 'NavData' in component.implements %}*/
+
+frontend::NavigationPacket ${className}::get_nav_packet(const std::string& port_name)
+{
+    frontend::NavigationPacket nav_info;
+    return nav_info;
+}
+
+void ${className}::set_nav_packet(const std::string& port_name, const frontend::NavigationPacket &nav_info)
+{
+}
+/*{% endif %}*/
+/*{% if 'RFInfo' in component.implements %}*/
+
+/*************************************************************
+Functions servicing the RFInfo port(s)
+- port_name is the port over which the call was received
+*************************************************************/
+std::string ${className}::get_rf_flow_id(const std::string& port_name)
+{
+    return std::string("none");
+}
+
+void ${className}::set_rf_flow_id(const std::string& port_name, const std::string& id)
+{
+}
+
+frontend::RFInfoPkt ${className}::get_rfinfo_pkt(const std::string& port_name)
+{
+    frontend::RFInfoPkt pkt;
+    return pkt;
+}
+
+void ${className}::set_rfinfo_pkt(const std::string& port_name, const frontend::RFInfoPkt &pkt)
+{
+}
+/*{% endif %}*/
+/*{% if 'RFSource' in component.implements %}*/
+
+std::vector<frontend::RFInfoPkt> ${className}::get_available_rf_inputs(const std::string& port_name)
+{
+    std::vector<frontend::RFInfoPkt> inputs;
+    return inputs;
+}
+
+void ${className}::set_available_rf_inputs(const std::string& port_name, const std::vector<frontend::RFInfoPkt> &inputs)
+{
+}
+
+frontend::RFInfoPkt ${className}::get_current_rf_input(const std::string& port_name)
+{
+    frontend::RFInfoPkt pkt;
+    return pkt;
+}
+
+void ${className}::set_current_rf_input(const std::string& port_name, const frontend::RFInfoPkt &pkt)
+{
+}
+/*{% endif %}*/
+/*{% endblock %}*/
 /*{% endblock %}*/

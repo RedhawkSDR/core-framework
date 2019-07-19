@@ -18,6 +18,30 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
 //% extends "pull/resource.cpp"
+/*{% block constructorBody %}*/
+    /***********************************************************************************
+     This is the RH constructor. All properties are properly initialized before this function is called 
+/*{% if 'FrontendTuner' in component.implements %}*/
+
+     For a tuner device, the structure frontend_tuner_status needs to match the number
+     of tuners that this device controls and what kind of device it is.
+     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+     
+     For example, if this device has 5 physical
+     tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
+     should look like this:
+
+     this->addChannels(3, "RX_DIGITIZER");
+     this->addChannels(2, "CHANNELIZER");
+     
+     The incoming request for tuning contains a string describing the requested tuner
+     type. The string for the request must match the string in the tuner status.
+/*{% endif %}*/
+    ***********************************************************************************/
+/*{% if 'FrontendTuner' in component.implements %}*/
+    this->addChannels(1, "RX_DIGITIZER");
+/*{% endif %}*/
+/*{% endblock %}*/
 
 /*{% block updateUsageState %}*/
 /*{%   for sc in component.superclasses if sc.name == "Device_impl" %}*/
@@ -95,7 +119,10 @@ bool ${className}::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, 
     #warning deviceDeleteTuning(): Deallocate an allocated tuner  *********
     return true;
 }
+/*{% endif %}*/
 
+/*{% block portFunctionDelegates %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
 /*************************************************************
 Functions servicing the tuner control port
 *************************************************************/
@@ -326,4 +353,5 @@ void ${className}::set_current_rf_input(const std::string& port_name, const fron
 {
 }
 /*{% endif %}*/
+/*{% endblock %}*/
 /*{% endblock %}*/
