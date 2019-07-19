@@ -43,6 +43,10 @@ public class BooleanProperty extends AbstractSimpleProperty<Boolean> {
      }
 
     protected Boolean parseString(String str) {
-        return (Boolean)AnyUtils.convertString(str,"boolean");
+        try {
+          return (Boolean)AnyUtils.convertString(str,"boolean");
+        } catch(IllegalArgumentException e) {
+          return Boolean.FALSE;
+        }
     }
 }

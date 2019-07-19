@@ -48,35 +48,12 @@ typedef  ossie::corba::Iterator< CF::EventChannelManager::EventRegistrant,
                                    POA_CF::EventRegistrantIterator >   EventRegistrantIter;
 
 
-#ifdef CPPUNIT_TEST
-  EventChannelManager::EventChannelManager ( const bool use_fqn,
-                                             const bool enableNS,
-                                             const bool allow_es ) :
-    EventChannelManagerBase(),
-    _event_channel_factory(),
-    _use_naming_service( enableNS ),
-    _use_fqn(use_fqn),
-    _allow_es_resolve(allow_es),
-    _default_poll_period(20000000)
-  {
-    try {
-       _getEventChannelFactory();  
-    }
-    catch(...){
-    }
-
-  }
-#else
-  EventChannelManager::EventChannelManager (DomainManager_impl * domainManager, 
-                                            const bool use_fqn,
-                                            const bool enableNS,
-                                            const bool allow_es ) :
+EventChannelManager::EventChannelManager (DomainManager_impl * domainManager):
     EventChannelManagerBase(),
     _domainManager(domainManager),
     _event_channel_factory(),
-    _use_naming_service( enableNS ),
-    _use_fqn(use_fqn),
-    _allow_es_resolve(allow_es),
+    _enable_ns_resolution(true),
+    _use_fqn(true),
     _default_poll_period(20000000)
   {
 
@@ -89,7 +66,6 @@ typedef  ossie::corba::Iterator< CF::EventChannelManager::EventRegistrant,
     }
 
   }
-#endif
 
 
 EventChannelManager::~EventChannelManager () {
@@ -310,9 +286,8 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     //
     // if naming service registry is used then unbind the object 
     //
-    if ( _use_naming_service ) {
-      RH_DEBUG(_eventChannelMgrLog, " Remove channel from NamingService: " << channel_name );    
-      ossie::corba::Unbind( cname, _domain_context );        }
+    RH_DEBUG(_eventChannelMgrLog, " Remove channel from NamingService: " << channel_name );    
+    ossie::corba::Unbind( cname, _domain_context );
 
     // destroy the event channel and delete the registration
     try {
@@ -428,40 +403,13 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     ossie::events::EventChannel_var event_channel = ossie::events::EventChannel::_nil();
     std::string   cname(channel_name);
     std::string   fqn = _getFQN(cname);
-    bool          require_ns = false;           // if channel exists and use_nameing_service is enabled
-    event_channel = _resolve_es( cname, fqn );
-
-    // if we found a matching channel
-    if ( !CORBA::is_nil(event_channel) ) {
-
-      // if naming service disabled then throw
-      if ( _use_naming_service == false && _allow_es_resolve == false ) {
-        RH_WARN(_eventChannelMgrLog, "Event Channel: "<< channel_name << " exists in EventService!");
-        throw (CF::EventChannelManager::ChannelAlreadyExists());
-      }
-      else {
-        if ( _allow_es_resolve == false ) {
-          // set next search method to require use of NS
-          require_ns=true;
-          RH_DEBUG(_eventChannelMgrLog, "Event Channel: "<< channel_name << " exists,  requiring NamingService resolution.");
-        }
-        else {
-          RH_DEBUG(_eventChannelMgrLog, "Event Channel: "<< channel_name << " exists,  using EventService resolution.");
-        }
-      }
-    }
     
     //
     // try and resolve with naming service (if enabled)
     //
-    if ( require_ns ) {
+    if ( _enable_ns_resolution ) {
       RH_TRACE(_eventChannelMgrLog, " Checking NamingService for:" << fqn );
       event_channel = _resolve_ns( cname, fqn, _domain_context );
-
-      // if NamingService is enable and we require its use, but channel evaluation failed
-      if ( CORBA::is_nil(event_channel) && require_ns) {
-        throw (CF::EventChannelManager::OperationFailed());
-      }        
     }
   
     //
@@ -469,7 +417,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     // this throws OperationFailed or OperationNotAllowed
     //
     if ( CORBA::is_nil(event_channel) ) {    
-      event_channel = _createChannel( cname, fqn, _domain_context, require_ns );  
+      event_channel = _createChannel( cname, fqn, _domain_context );  
     }
 
     if ( CORBA::is_nil(event_channel) == true ) {
@@ -517,35 +465,16 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     ossie::events::EventChannel_var event_channel = ossie::events::EventChannel::_nil();
     std::string   cname(channel_name);
     std::string   fqn = _getFQN(cname);
-    bool          require_ns = false;           // if channel exists and use_nameing_service is enabled
-    event_channel = _resolve_es( cname, fqn );
-
-    // if we found a matching channel
-    if ( !CORBA::is_nil(event_channel) ) {
-
-      // if naming service disabled then throw
-      if ( _use_naming_service == false && _allow_es_resolve == false ) {
-          return(ossie::events::EventChannel::_duplicate(event_channel));
-      }
-      else {
-        if ( _allow_es_resolve == false ) {
-          // set next search method to require use of NS
-          require_ns=true;
-        }
-      }
-    }
     
     //
     // try and resolve with naming service (if enabled)
     //
-    if ( require_ns ) {
+    if ( _enable_ns_resolution ) {
       RH_TRACE(_eventChannelMgrLog, " Checking NamingService for:" << fqn );
       event_channel = _resolve_ns( cname, fqn, _domain_context );
-      // if NamingService is enable and we require its use, but channel evaluation failed
-      if ( CORBA::is_nil(event_channel) && require_ns) {
-        throw (CF::EventChannelManager::OperationFailed());
-      }        
-      return(ossie::events::EventChannel::_duplicate(event_channel));
+      if ( !CORBA::is_nil(event_channel) ) {
+          return(ossie::events::EventChannel::_duplicate(event_channel));
+      }
     }
     RH_DEBUG(_eventChannelMgrLog, "Event channel: "<< channel_name << " does not exist in the local domain");
     throw (CF::EventChannelManager::ChannelDoesNotExist());
@@ -591,20 +520,17 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     else {
       fqn = fqn_name;
     }
-    bool          require_ns = false;           // if channel exists and use_naming_service is enabled
-
+    
     //
     // try and resolve with naming service (if enabled)
     //
-    if ( _use_naming_service &&  CORBA::is_nil(event_channel) ) {
+    if ( CORBA::is_nil(event_channel) ) {
         RH_TRACE(_eventChannelMgrLog, " Rebind existing channel to:" << channel_name << ", domain context " << _domain_context);
       if ( ossie::corba::Bind( channel_name, savedChannel, _domain_context ) != 0 ) {
         RH_TRACE(_eventChannelMgrLog, " Checking NamingService for:" << fqn );
-        event_channel = _resolve_ns( cname, fqn, _domain_context );
-        // if NamingService is enable and we require its use, but channel evaluation failed
-        if ( CORBA::is_nil(event_channel) && require_ns) {
-          throw (CF::EventChannelManager::OperationFailed());
-        }        
+        if ( _enable_ns_resolution ) {
+            event_channel = _resolve_ns( cname, fqn, _domain_context );
+        }
       }
       else {
         event_channel = ossie::events::EventChannel::_duplicate(savedChannel);
@@ -616,7 +542,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     // this throws OperationFailed or OperationNotAllowed
     //
     if ( CORBA::is_nil(event_channel) ) {    
-      event_channel = _createChannel( cname, fqn, _domain_context, require_ns );  
+      event_channel = _createChannel( cname, fqn, _domain_context );  
     }
 
     if ( CORBA::is_nil(event_channel) == true ) {
@@ -1106,8 +1032,7 @@ void EventChannelManager::_getEventChannelFactory ()
 
   ossie::events::EventChannel_ptr EventChannelManager::_createChannel( const std::string &cname, 
                                                                       const std::string &fqn, 
-                                                                      const std::string &nc_name,
-                                                                      const bool require_ns ) 
+                                                                       const std::string &nc_name )
     throw ( CF::EventChannelManager::ChannelAlreadyExists, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
@@ -1194,14 +1119,12 @@ void EventChannelManager::_getEventChannelFactory ()
     }
     RH_TRACE(_eventChannelMgrLog, " created event channel " << cname );
 
-    if ( _use_naming_service ){
-      try {
+    try {
         // bind channel using channel name and not fqn name
       	ossie::corba::Bind( cname, event_channel.in(), nc_name, false );
-      } 
-      catch (const CORBA::Exception& ex) {
+    } 
+    catch (const CORBA::Exception& ex) {
 	RH_ERROR(_eventChannelMgrLog, " Bind Failed, CHANNEL:" << cname << " REASON: CORBA " << ex._name() );
-      }
     }
 
     RH_TRACE(_eventChannelMgrLog, " completed create event channel : " << cname );
@@ -1298,50 +1221,6 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
     }
   }
 
-
-  return event_channel._retn();
-}
-
-
-
-ossie::events::EventChannel_ptr  EventChannelManager::_resolve_es ( const std::string& cname, 
-                                                                   const std::string& fqn, 
-                                                                   bool suppress ) {
-
-  RH_DEBUG(_eventChannelMgrLog,  " : resolve event channel ... " << cname );
-
-  // return value if no event channel was found or error occured
-  ossie::events::EventChannel_var event_channel = ossie::events::EventChannel::_nil();
-
-  std::string tname;
-  //
-  // try to resolve with corbaloc method and string_to_object method
-  //
-  try {
-    std::ostringstream os;
-    //
-    // last gasp... try the corbaloc method...corbaloc::host:11169/<channel name>
-    // 
-    os << "corbaloc::localhost:11169/"<< fqn;
-    tname=os.str();
-    RH_TRACE(_eventChannelMgrLog," : Trying corbaloc resolution " << tname );
-    CORBA::Object_var obj = _orbCtx.orb->string_to_object(tname.c_str());
-    if ( !CORBA::is_nil(obj) ) {
-      event_channel = ossie::events::EventChannel::_narrow(obj);
-      if ( CORBA::is_nil(event_channel) == false ){
-        RH_TRACE(_eventChannelMgrLog, " : FOUND EXISTING (corbaloc), Channel " << tname );
-      }
-      else {
-        RH_TRACE(_eventChannelMgrLog, " : RESOLVE FAILED VIA (corbaloc), Channel " << tname );
-      }
-    }
-    else {
-      RH_TRACE(_eventChannelMgrLog, " : SEARCH FOR Channel " << tname << " FAILED");
-    }
-  }catch (const CORBA::Exception& e) {
-    if (!suppress)  RH_WARN(_eventChannelMgrLog, 
-			      "  Unable to lookup with corbaloc URI:" << tname << ", CHANNEL:" << cname << " REASON: CORBA RETURNED(" << e._name() << ")" );
-  }
 
   return event_channel._retn();
 }
