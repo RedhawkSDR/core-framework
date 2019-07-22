@@ -36,12 +36,6 @@ class FrontendComponentMapper(PullComponentMapper):
 
         return javacomp
 
-    def hasFrontendProvidesPorts(self, softpkg):
-        for port in softpkg.providesPorts():
-            if 'FRONTEND' in port.repid():
-                return True
-        return False
-
     @staticmethod
     def getImplementedInterfaces(softpkg):
         deviceinfo = set()

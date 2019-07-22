@@ -44,7 +44,14 @@ class PullComponentMapper(BaseComponentMapper):
         javacomp['interfacedeps'] = list(self.getInterfaceDependencies(softpkg))
         javacomp['interfacejars'] = self.getInterfaceJars(softpkg)
         javacomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
+        javacomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
         return javacomp
+
+    def hasFrontendProvidesPorts(self, softpkg):
+        for port in softpkg.providesPorts():
+            if 'FRONTEND' in port.repid():
+                return True
+        return False
 
     def getInterfaceDependencies(self, softpkg):
         for namespace in self.getInterfaceNamespaces(softpkg):

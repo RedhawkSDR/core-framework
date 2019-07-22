@@ -109,7 +109,46 @@ import bulkio.connection_descriptor_struct;
  */
 
 /*{% block classdeclaration %}*/
-public abstract class ${classname} extends ${superClass} {
+/*{% if component.hasfrontendprovides %}*/
+/*{%     set implementedClasses = "" %}*/
+/*{%     for port in component.ports if port is provides %}*/
+/*{%         if port.javatype == "frontend.InAnalogScanningTunerPort" and "AnalogScanningTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",AnalogScanningTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InDigitalScanningTunerPort" and "DigitalScanningTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",DigitalScanningTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InAnalogTunerPort" and "AnalogTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",AnalogTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InDigitalTunerPort" and "DigitalTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",DigitalTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InFrontendTunerPort" and "FrontendTunerDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",FrontendTunerDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InGPSPort" and "GPSDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",GPSDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InNavDataPort" and "NavDataDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",NavDataDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InRFInfoPort" and "RFInfoDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",RFInfoDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if port.javatype == "frontend.InRFSourcePort" and "RFSourceDelegate" not in implementedClasses %}*/
+/*{%             set implementedClasses = implementedClasses + ",RFSourceDelegate" %}*/
+/*{%         endif %}*/
+/*{%         if loop.last %}*/
+/*{%             set implementedClasses = implementedClasses[1:] %}*/
+public abstract class ${classname} extends ${superClass} implements ${implementedClasses}
+{
+/*{%         endif %}*/
+/*{%     endfor %}*/
+/*{% else %}*/
+public abstract class ${classname} extends ${superClass} 
+{
+/*{% endif %}*/
 /*{% endblock %}*/
     /**
      * @generated

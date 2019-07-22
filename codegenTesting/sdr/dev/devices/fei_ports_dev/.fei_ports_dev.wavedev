@@ -5,7 +5,7 @@
   </implSettings>
   <implSettings key="java">
     <value outputDir="java" template="redhawk.codegen.jinja.java.component.pull" generatorId="gov.redhawk.ide.codegen.jinja.java.JavaGenerator">
-      <properties id="java_package" value="fei_ports_comp.java"/>
+      <properties id="java_package" value="fei_ports_dev.java"/>
     </value>
   </implSettings>
   <implSettings key="python">
