@@ -33,6 +33,7 @@ class FrontendComponentMapper(PullComponentMapper):
         # Determine which FRONTEND interfaces this device implements (provides)
         javacomp['implements'] = self.getImplementedInterfaces(softpkg)
         javacomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
+        javacomp['hastunerstatusstructure'] = self.hasTunerStatusStructure(softpkg)
 
         return javacomp
 
