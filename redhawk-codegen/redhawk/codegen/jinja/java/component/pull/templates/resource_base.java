@@ -94,6 +94,12 @@ import ${portgen.package}.${portgen.className()};
 import bulkio.connection_descriptor_struct;
 /*{% endif %}*/
 
+/*{% block frontendimports %}*/
+/*{% if component.hasfrontendprovides %}*/
+import frontend.*;
+/*{% endif %}*/
+/*{% endblock %}*/
+
 /*{% block baseadditionalimports %}*/
 /*# Allow for child class imports #*/
 /*{% endblock %}*/
@@ -203,7 +209,7 @@ public abstract class ${classname} extends ${superClass}
      */
     public ${classname}()
     {
-/*{% if 'FrontendTuner' in component.implements %}*/
+/*{% if component.hastunerstatusstructure %}*/
         super(frontend_tuner_status_struct_struct.class);
 /*{% else %}*/
         super();
@@ -260,6 +266,15 @@ public abstract class ${classname} extends ${superClass}
         });
 /*{% endif %}*/
     }
+
+/*{% block getTunerStatus %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+    public CF.DataType[] getTunerStatus(final String allocation_id) throws FRONTEND.FrontendException
+    {
+        return new CF.DataType[0];
+    }
+/*{% endif %}*/
+/*{% endblock %}*/
 
     protected void setupPortLoggers() {
 /*{% for port in component.ports %}*/

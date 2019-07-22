@@ -19,8 +19,12 @@
  #*/
 //% extends "pull/resource_base.java"
 //
-/*{% block baseadditionalimports %}*/
+/*{% block frontendimports %}*/
+/*{% if component.hasfrontendprovides %}*/
 import frontend.*;
+/*{% endif %}*/
+/*{% endblock %}*/
+/*{% block baseadditionalimports %}*/
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -39,15 +43,8 @@ import CF.DevicePackage.InvalidCapacity;
 /*{%  endif %}*/
 /*{% endblock %}*/
 
-/*{% block extensions %}*/
+/*{% block getTunerStatus %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
-    protected Map<String, String> listeners = new HashMap<String, String>();
-
-    public void frontendTunerStatusChanged(final List<frontend_tuner_status_struct_struct> oldValue, final List<frontend_tuner_status_struct_struct> newValue)
-    {
-        this.tuner_allocation_ids = new ArrayList<frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>.tunerAllocationIdsStruct>(this.frontend_tuner_status.getValue().size());
-    }
-
     public CF.DataType[] getTunerStatus(final String allocation_id) throws FRONTEND.FrontendException
     {
         int tuner_id = getTunerMapping(allocation_id);
@@ -58,6 +55,17 @@ import CF.DevicePackage.InvalidCapacity;
         prop = frontend_tuner_status.getValue().get(tuner_id).toAny();
         CF.DataType[] tmpVal = (CF.DataType[]) AnyUtils.convertAny(prop);
         return tmpVal;
+    }
+/*{% endif %}*/
+/*{% endblock %}*/
+
+/*{% block extensions %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+    protected Map<String, String> listeners = new HashMap<String, String>();
+
+    public void frontendTunerStatusChanged(final List<frontend_tuner_status_struct_struct> oldValue, final List<frontend_tuner_status_struct_struct> newValue)
+    {
+        this.tuner_allocation_ids = new ArrayList<frontend.FrontendTunerDevice<frontend_tuner_status_struct_struct>.tunerAllocationIdsStruct>(this.frontend_tuner_status.getValue().size());
     }
 
     public void assignListener(final String listen_alloc_id, final String allocation_id)

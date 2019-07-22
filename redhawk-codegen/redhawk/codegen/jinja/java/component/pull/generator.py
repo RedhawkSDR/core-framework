@@ -64,7 +64,7 @@ class PullComponentGenerator(BaseComponentGenerator):
         return JavaPortMapper()
 
     def portFactory(self):
-        return JavaPortFactory()
+        return ConsolidatedPortFactory()
 
     def templates(self, component):
         # Put generated Java files in "src" subdirectory, followed by their

@@ -191,7 +191,7 @@ public class ${classname} extends ${baseclass} {
 
     public void constructor()
     {
-/*{% if 'FrontendTuner' in component.implements %}*/
+/*{% if component.hastunerstatusstructure %}*/
         /**************************************************************************
     
          For a tuner device, the structure frontend_tuner_status needs to match the number
@@ -385,113 +385,113 @@ public class ${classname} extends ${baseclass} {
     /*************************************************************
     Functions servicing the tuner control port
     *************************************************************/
-    public String getTunerType(final String allocation_id) throws FRONTEND.FrontendException
+    public String getTunerType(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerType not supported");
     }
 
-    public boolean getTunerDeviceControl(final String allocation_id) throws FRONTEND.FrontendException
+    public boolean getTunerDeviceControl(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerDeviceControl not supported");
     }
 
-    public String getTunerGroupId(final String allocation_id) throws FRONTEND.FrontendException
+    public String getTunerGroupId(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerGroupId not supported");
     }
 
-    public String getTunerRfFlowId(final String allocation_id) throws FRONTEND.FrontendException
+    public String getTunerRfFlowId(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerRfFlowId not supported");
     }
 /*{% endif %}*/
 /*{% if 'AnalogTuner' in component.implements %}*/
 
-    public void setTunerCenterFrequency(final String allocation_id, double freq) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public void setTunerCenterFrequency(final String allocation_id, double freq) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerCenterFrequency not supported");
     }
 
-    public double getTunerCenterFrequency(final String allocation_id) throws FRONTEND.FrontendException
+    public double getTunerCenterFrequency(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerCenterFrequency not supported");
     }
 
-    public void setTunerBandwidth(final String allocation_id, double bw) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public void setTunerBandwidth(final String allocation_id, double bw) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerBandwidth not supported");
     }
 
-    public double getTunerBandwidth(final String allocation_id) throws FRONTEND.FrontendException
+    public double getTunerBandwidth(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerBandwidth not supported");
     }
 
-    public void setTunerAgcEnable(final String allocation_id, boolean enable) throws FRONTEND.NotSupportedException
+    public void setTunerAgcEnable(final String allocation_id, boolean enable) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerAgcEnable not supported");
     }
 
-    public boolean getTunerAgcEnable(final String allocation_id) throws FRONTEND.NotSupportedException
+    public boolean getTunerAgcEnable(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerAgcEnable not supported");
     }
 
-    public void setTunerGain(final String allocation_id, float gain) throws FRONTEND.NotSupportedException
+    public void setTunerGain(final String allocation_id, float gain) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerGain not supported");
     }
 
-    public float getTunerGain(final String allocation_id) throws FRONTEND.NotSupportedException
+    public float getTunerGain(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerGain not supported");
     }
 
-    public void setTunerReferenceSource(final String allocation_id, int source) throws FRONTEND.NotSupportedException
+    public void setTunerReferenceSource(final String allocation_id, int source) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerReferenceSource not supported");
     }
 
-    public int getTunerReferenceSource(final String allocation_id) throws FRONTEND.NotSupportedException
+    public int getTunerReferenceSource(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerReferenceSource not supported");
     }
 
-    public void setTunerEnable(final String allocation_id, boolean enable) throws FRONTEND.FrontendException
+    public void setTunerEnable(final String allocation_id, boolean enable) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerEnable not supported");
     }
 
-    public boolean getTunerEnable(final String allocation_id) throws FRONTEND.FrontendException
+    public boolean getTunerEnable(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerEnable not supported");
     }
 /*{% endif %}*/
 /*{% if 'DigitalTuner' in component.implements %}*/
 
-    public void setTunerOutputSampleRate(final String allocation_id, double sr) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public void setTunerOutputSampleRate(final String allocation_id, double sr) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported");
     }
 
-    public double getTunerOutputSampleRate(final String allocation_id) throws FRONTEND.FrontendException
+    public double getTunerOutputSampleRate(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported");
     }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 
-    public FRONTEND.ScanningTunerPackage.ScanStatus getScanStatus(String allocation_id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public FRONTEND.ScanningTunerPackage.ScanStatus getScanStatus(String allocation_id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("getScanStatus not supported");
     }
 
-    public void setScanStartTime(String allocation_id, BULKIO.PrecisionUTCTime start_time) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public void setScanStartTime(String allocation_id, BULKIO.PrecisionUTCTime start_time) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setScanStartTime not supported");
     }
 
-    public void setScanStrategy(String allocation_id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FRONTEND.FrontendException, FRONTEND.BadParameterException
+    public void setScanStrategy(String allocation_id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("setScanStrategy not supported");
     }
@@ -499,34 +499,34 @@ public class ${classname} extends ${baseclass} {
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
 
-    public FRONTEND.GPSInfo get_gps_info(final String port_name)
+    public FRONTEND.GPSInfo get_gps_info(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_gps_info not supported");
     }
 
-    public void set_gps_info(final String port_name, final FRONTEND.GPSInfo gps_info)
+    public void set_gps_info(final String port_name, final FRONTEND.GPSInfo gps_info) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_gps_info not supported");
     }
 
-    public FRONTEND.GpsTimePos get_gps_time_pos(final String port_name)
+    public FRONTEND.GpsTimePos get_gps_time_pos(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_gps_time_pos not supported");
     }
 
-    public void set_gps_time_pos(final String port_name, final FRONTEND.GpsTimePos gps_time_pos)
+    public void set_gps_time_pos(final String port_name, final FRONTEND.GpsTimePos gps_time_pos) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_gps_time_pos not supported");
     }
 /*{% endif %}*/
 /*{% if 'NavData' in component.implements %}*/
 
-    public FRONTEND.NavigationPacket get_nav_packet(final String port_name)
+    public FRONTEND.NavigationPacket get_nav_packet(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_nav_packet not supported");
     }
 
-    public void set_nav_packet(final String port_name, final FRONTEND.NavigationPacket nav_info)
+    public void set_nav_packet(final String port_name, final FRONTEND.NavigationPacket nav_info) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_nav_packet not supported");
     }
@@ -537,44 +537,44 @@ public class ${classname} extends ${baseclass} {
     Functions servicing the RFInfo port(s)
     - port_name is the port over which the call was received
     *************************************************************/
-    public String get_rf_flow_id(final String port_name)
+    public String get_rf_flow_id(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_rf_flow_id not supported");
     }
 
-    public void set_rf_flow_id(final String port_name, final String id)
+    public void set_rf_flow_id(final String port_name, final String id) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_rf_flow_id not supported");
     }
 
-    public FRONTEND.RFInfoPkt get_rfinfo_pkt(final String port_name)
+    public FRONTEND.RFInfoPkt get_rfinfo_pkt(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_rfinfo_pkt not supported");
     }
 
-    public void set_rfinfo_pkt(final String port_name, final FRONTEND.RFInfoPkt pkt)
+    public void set_rfinfo_pkt(final String port_name, final FRONTEND.RFInfoPkt pkt) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_rfinfo_pkt not supported");
     }
 /*{% endif %}*/
 /*{% if 'RFSource' in component.implements %}*/
 
-    public FRONTEND.RFInfoPkt[] get_available_rf_inputs(final String port_name)
+    public FRONTEND.RFInfoPkt[] get_available_rf_inputs(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_available_rf_inputs not supported");
     }
 
-    public void set_available_rf_inputs(final String port_name, final FRONTEND.RFInfoPkt[] inputs)
+    public void set_available_rf_inputs(final String port_name, final FRONTEND.RFInfoPkt[] inputs) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_available_rf_inputs not supported");
     }
 
-    public FRONTEND.RFInfoPkt get_current_rf_input(final String port_name)
+    public FRONTEND.RFInfoPkt get_current_rf_input(final String port_name) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("get_current_rf_input not supported");
     }
 
-    public void set_current_rf_input(final String port_name, final FRONTEND.RFInfoPkt pkt)
+    public void set_current_rf_input(final String port_name, final FRONTEND.RFInfoPkt pkt) throws FRONTEND.NotSupportedException
     {
         throw new FRONTEND.NotSupportedException("set_current_rf_input not supported");
     }
