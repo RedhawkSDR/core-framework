@@ -73,11 +73,11 @@ if options.force and len(args) == 0:
 if options.omniEvents_cfg != None:
     omniEvents_cfg = options.omniEvents_cfg
 else:
-    ver = os.popen("rpm -qi omniEvents-server-* | grep -i version").read()
-    if "2.8" in ver:
-        omniEvents_cfg = '/var/log/omniEvents/omnievents-%s.log' % os.environ['HOSTNAME']
-    elif "2.7" in ver:
-        omniEvents_cfg = '/var/lib/omniEvents/omnievents-%s.log' % os.environ['HOSTNAME']
+    env = os.environ['HOSTNAME']
+    if os.path.isfile('/var/{0}/omniEvents/omnievents-{1}.log'.format('log',env)):
+        omniEvents_cfg = '/var/{0}/omniEvents/omnievents-{1}.log'.format('log',env)
+    elif os.path.isfile('/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',env)):
+        omniEvents_cfg = '/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',env)
     else:
         print "omniEvents rpm version 2.8 or 2.7 not found"
         sys.exit(-1)
