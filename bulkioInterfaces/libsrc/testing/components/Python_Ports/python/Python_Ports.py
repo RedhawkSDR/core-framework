@@ -58,7 +58,7 @@ class Python_Ports_i(Python_Ports_base):
                 return 0
 
             self._log.debug('SF TYPE:  {0}, DATALEN:  {1}'.format(pname, len(pkt.dataBuffer)))
-            outPort.pushPacket(pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID)
+            outPort.pushPacket(pkt[0], pkt[1], pkt[2], pkt[3])
             return 1
 
     def process(self):
