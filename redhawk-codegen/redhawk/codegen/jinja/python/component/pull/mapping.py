@@ -148,7 +148,7 @@ class PullComponentMapper(ComponentMapper):
                 classes.append({'name': 'digital_tuner_delegation', 'package': 'frontend'})
             elif 'AnalogTuner' in deviceinfo:
                 classes.append({'name': 'analog_tuner_delegation', 'package': 'frontend'})
-            else:
+            elif 'FrontendTuner' in additionalinfo:
                 classes.append({'name': 'frontend_tuner_delegation', 'package': 'frontend'})
 
         # Add additonal FRONTEND delegate interfaces

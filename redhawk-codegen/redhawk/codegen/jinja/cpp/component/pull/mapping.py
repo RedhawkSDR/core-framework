@@ -97,7 +97,7 @@ class PullComponentMapper(BaseComponentMapper):
             classes.append({'name': 'virtual frontend::digital_tuner_delegation', 'header': ''})
         elif 'AnalogTuner' in additionalinfo:
             classes.append({'name': 'virtual frontend::analog_tuner_delegation', 'header': ''})
-        else:
+        elif 'FrontendTuner' in additionalinfo:
             classes.append({'name': 'virtual frontend::frontend_tuner_delegation', 'header': ''})
 
         # Add additonal FRONTEND delegate interfaces
