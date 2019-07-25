@@ -28,7 +28,7 @@ from redhawk.codegen.jinja.java import JavaCodeGenerator, JavaTemplate
 from redhawk.codegen.jinja.java.properties import JavaPropertyMapper
 from redhawk.codegen.jinja.java.ports import PortFactoryList, JavaPortMapper
 from redhawk.codegen.jinja.java.ports.portfactory import JavaPortFactory
-from redhawk.codegen.jinja.java.ports.frontend import FrontendPortFactory
+from redhawk.codegen.jinja.java.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.java.component.base import BaseComponentGenerator
 
 from mapping import PullComponentMapper
@@ -43,7 +43,7 @@ loader = CodegenLoader(__package__,
 
 class ConsolidatedPortFactory(PortFactoryList):
     def __init__(self):
-        factories = (FrontendPortFactory(), JavaPortFactory())
+        factories = (FrontendProvidesPortFactory(), JavaPortFactory())
         super(ConsolidatedPortFactory,self).__init__(*factories)
 
 class PullComponentGenerator(BaseComponentGenerator):

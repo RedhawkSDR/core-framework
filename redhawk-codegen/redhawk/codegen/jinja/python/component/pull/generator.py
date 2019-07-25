@@ -24,7 +24,7 @@ from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, Autoco
 from redhawk.codegen.jinja.python import PythonCodeGenerator, PythonTemplate
 from redhawk.codegen.jinja.python.properties import PythonPropertyMapper
 from redhawk.codegen.jinja.ports import PortFactoryList
-from redhawk.codegen.jinja.python.ports.frontend import FrontendPortFactory
+from redhawk.codegen.jinja.python.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.python.ports import PythonPortMapper, PythonPortFactory
 
 from mapping import PullComponentMapper
@@ -39,7 +39,7 @@ loader = CodegenLoader(__package__,
 
 class ConsolidatedPortFactory(PortFactoryList):
     def __init__(self):
-        factories = (FrontendPortFactory(), PythonPortFactory())
+        factories = (FrontendProvidesPortFactory(), PythonPortFactory())
         super(ConsolidatedPortFactory,self).__init__(*factories)
 
 class PullComponentGenerator(PythonCodeGenerator):
