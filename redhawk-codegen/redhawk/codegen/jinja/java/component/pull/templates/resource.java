@@ -409,21 +409,29 @@ public class ${classname} extends ${baseclass} {
     *************************************************************/
     public String getTunerType(final String allocation_id) throws FrontendException, NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new NotSupportedException("getTunerType not supported");
     }
 
     public boolean getTunerDeviceControl(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerDeviceControl not supported");
     }
 
     public String getTunerGroupId(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerGroupId not supported");
     }
 
     public String getTunerRfFlowId(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerRfFlowId not supported");
     }
 /*{% endif %}*/
@@ -431,61 +439,85 @@ public class ${classname} extends ${baseclass} {
 
     public void setTunerCenterFrequency(final String allocation_id, double freq) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerCenterFrequency not supported");
     }
 
     public double getTunerCenterFrequency(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerCenterFrequency not supported");
     }
 
     public void setTunerBandwidth(final String allocation_id, double bw) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerBandwidth not supported");
     }
 
     public double getTunerBandwidth(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerBandwidth not supported");
     }
 
     public void setTunerAgcEnable(final String allocation_id, boolean enable) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerAgcEnable not supported");
     }
 
     public boolean getTunerAgcEnable(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerAgcEnable not supported");
     }
 
     public void setTunerGain(final String allocation_id, float gain) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerGain not supported");
     }
 
     public float getTunerGain(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerGain not supported");
     }
 
     public void setTunerReferenceSource(final String allocation_id, int source) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerReferenceSource not supported");
     }
 
     public int getTunerReferenceSource(final String allocation_id) throws FRONTEND.NotSupportedException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerReferenceSource not supported");
     }
 
     public void setTunerEnable(final String allocation_id, boolean enable) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerEnable not supported");
     }
 
     public boolean getTunerEnable(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerEnable not supported");
     }
 /*{% endif %}*/
@@ -493,11 +525,15 @@ public class ${classname} extends ${baseclass} {
 
     public void setTunerOutputSampleRate(final String allocation_id, double sr) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported");
     }
 
     public double getTunerOutputSampleRate(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported");
     }
 /*{% endif %}*/
@@ -505,16 +541,22 @@ public class ${classname} extends ${baseclass} {
 
     public FRONTEND.ScanningTunerPackage.ScanStatus getScanStatus(String allocation_id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getScanStatus not supported");
     }
 
     public void setScanStartTime(String allocation_id, BULKIO.PrecisionUTCTime start_time) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setScanStartTime not supported");
     }
 
     public void setScanStrategy(String allocation_id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException
     {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("setScanStrategy not supported");
     }
 

@@ -284,63 +284,99 @@ class ${className}(${baseClass}):
     Functions servicing the tuner control port
     *************************************************************'''
     def getTunerType(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerType not supported")
 
     def getTunerDeviceControl(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerDeviceControl not supported")
 
     def getTunerGroupId(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerGroupId not supported")
 
     def getTunerRfFlowId(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerRfFlowId not supported")
 
 #{% endif %}
 #{% if 'AnalogTuner' in component.implements %}
 
     def setTunerCenterFrequency(self,allocation_id, freq):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
 
     def getTunerCenterFrequency(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
 
     def setTunerBandwidth(self,allocation_id, bw):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
 
     def getTunerBandwidth(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
 
     def setTunerAgcEnable(self,allocation_id, enable):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
 
     def getTunerAgcEnable(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
 
     def setTunerGain(self,allocation_id, gain):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerGain not supported")
 
     def getTunerGain(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerGain not supported")
 
     def setTunerReferenceSource(self,allocation_id, source):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
 
     def getTunerReferenceSource(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
 
     def setTunerEnable(self,allocation_id, enable):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerEnable not supported")
 
     def getTunerEnable(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerEnable not supported")
 
 #{% endif %}
 #{% if 'DigitalTuner' in component.implements %}
 
     def setTunerOutputSampleRate(self,allocation_id, sr):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported")
 
     def getTunerOutputSampleRate(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
 
 #{% endif %}
@@ -360,9 +396,13 @@ class ${className}(${baseClass}):
         raise FRONTEND.NotSupportedException("getScanStatus not supported")
 
     def setScanStartTime(self, allocation_id, start_time):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setScanStartTime not supported")
 
     def setScanStrategy(self, allocation_id, scan_strategy):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("setScanStrategy not supported")
 
 #{% endif %}

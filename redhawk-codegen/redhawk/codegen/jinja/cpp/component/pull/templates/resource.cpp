@@ -385,97 +385,139 @@ int ${className}::serviceFunction()
 Functions servicing the tuner control port
 *************************************************************/
 std::string ${className}::getTunerType(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerType not supported");
 }
 
 bool ${className}::getTunerDeviceControl(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerDeviceControl not supported");
 }
 
 std::string ${className}::getTunerGroupId(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerGroupId not supported");
 }
 
 std::string ${className}::getTunerRfFlowId(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerRfFlowId not supported");
 }
 /*{% endif %}*/
 /*{% if 'AnalogTuner' in component.implements %}*/
 
 void ${className}::setTunerCenterFrequency(const std::string& allocation_id, double freq) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerCenterFrequency not supported");
 }
 
 double ${className}::getTunerCenterFrequency(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerCenterFrequency not supported");
 }
 
 void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerBandwidth not supported");
 }
 
 double ${className}::getTunerBandwidth(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerBandwidth not supported");
 }
 
 void ${className}::setTunerAgcEnable(const std::string& allocation_id, bool enable)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerAgcEnable not supported");
 }
 
 bool ${className}::getTunerAgcEnable(const std::string& allocation_id)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerAgcEnable not supported");
 }
 
 void ${className}::setTunerGain(const std::string& allocation_id, float gain)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerGain not supported");
 }
 
 float ${className}::getTunerGain(const std::string& allocation_id)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerGain not supported");
 }
 
 void ${className}::setTunerReferenceSource(const std::string& allocation_id, long source)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerReferenceSource not supported");
 }
 
 long ${className}::getTunerReferenceSource(const std::string& allocation_id)
 {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerReferenceSource not supported");
 }
 
 void ${className}::setTunerEnable(const std::string& allocation_id, bool enable) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerEnable not supported");
 }
 
 bool ${className}::getTunerEnable(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerEnable not supported");
 }
 /*{% endif %}*/
 /*{% if 'DigitalTuner' in component.implements %}*/
 
 void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, double sr) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setTunerOutputSampleRate not supported");
 }
 
 double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerOutputSampleRate not supported");
 }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getScanStatus not supported");
 }
 
 void ${className}::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setScanStartTime not supported");
 }
 
 void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setScanStrategy not supported");
 }
 /*{% endif %}*/
