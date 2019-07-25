@@ -379,7 +379,8 @@ int ${className}::serviceFunction()
     return NOOP;
 }
 /*{% block extensions %}*/
-/*{% block portFunctionDelegates %}*/
+/*{% endblock %}*/
+/*{% block fei_port_delegations %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
 /*************************************************************
 Functions servicing the tuner control port
@@ -695,5 +696,4 @@ void ${className}::set_current_rf_input(const std::string& port_name, const fron
 {
 }
 /*{% endif %}*/
-/*{% endblock %}*/
 /*{% endblock %}*/

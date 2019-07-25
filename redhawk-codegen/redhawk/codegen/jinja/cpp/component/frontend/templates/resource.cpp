@@ -120,8 +120,9 @@ bool ${className}::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, 
     return true;
 }
 /*{% endif %}*/
+/*{% endblock %}*/
 
-/*{% block portFunctionDelegates %}*/
+/*{% block fei_port_delegations %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
 /*************************************************************
 Functions servicing the tuner control port
@@ -353,5 +354,4 @@ void ${className}::set_current_rf_input(const std::string& port_name, const fron
 {
 }
 /*{% endif %}*/
-/*{% endblock %}*/
 /*{% endblock %}*/
