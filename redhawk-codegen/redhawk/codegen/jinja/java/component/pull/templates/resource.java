@@ -27,6 +27,28 @@ package ${component.package};
 
 import java.util.Properties;
 import org.ossie.component.RHLogger;
+/*{% block fei_port_imports %}*/
+/*{% if ('FrontendTuner' in component.implements) or ('GPS' in component.implements ) or ('NavData' in component.implements) or ('RFInfo' in component.implements) or ('RFSource' in component.implements) %}*/
+import FRONTEND.RFInfoPkt;
+import FRONTEND.GPSInfo;
+import FRONTEND.GpsTimePos;
+import FRONTEND.NavigationPacket;
+import FRONTEND.FrontendException;
+import FRONTEND.BadParameterException;
+import FRONTEND.CartesianPositionInfo;
+import FRONTEND.NotSupportedException;
+import FRONTEND.SensorInfo;
+import FRONTEND.VelocityInfo;
+import FRONTEND.PathDelay;
+import FRONTEND.AccelerationInfo;
+import FRONTEND.AntennaInfo;
+import FRONTEND.AttitudeInfo;
+import FRONTEND.FeedInfo;
+import FRONTEND.RFCapabilities;
+import FRONTEND.FreqRange;
+import FRONTEND.PositionInfo;
+/*{% endif %}*/
+/*{% endblock %}*/
 /*{% block mainadditionalimports %}*/
 /*# Allow for child class imports #*/
 /*{% endblock %}*/
@@ -385,9 +407,9 @@ public class ${classname} extends ${baseclass} {
     /*************************************************************
     Functions servicing the tuner control port
     *************************************************************/
-    public String getTunerType(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
+    public String getTunerType(final String allocation_id) throws FrontendException, NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("getTunerType not supported");
+        throw new NotSupportedException("getTunerType not supported");
     }
 
     public boolean getTunerDeviceControl(final String allocation_id) throws FRONTEND.FrontendException, FRONTEND.NotSupportedException
@@ -501,34 +523,94 @@ public class ${classname} extends ${baseclass} {
 
     public FRONTEND.GPSInfo get_gps_info(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_gps_info not supported");
+        GPSInfo gps_info = new GPSInfo();
+        gps_info.additional_info = new CF.DataType[0];
+        gps_info.mode = new String("");
+        gps_info.rf_flow_id = new String("");
+        gps_info.source_id = new String("");
+        gps_info.fom=1;
+        gps_info.tfom=1;
+        gps_info.datumID=1;
+        gps_info.time_offset=1.0;
+        gps_info.freq_offset=1.0;
+        gps_info.time_variance=1.0;
+        gps_info.freq_variance=1.0;
+        gps_info.satellite_count=1;
+        gps_info.snr=(float)1.0;
+        gps_info.status_message = new String("");
+        gps_info.timestamp = new BULKIO.PrecisionUTCTime();
+        gps_info.timestamp = bulkio.time.utils.now();
+        return gps_info;
     }
 
     public void set_gps_info(final String port_name, final FRONTEND.GPSInfo gps_info) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_gps_info not supported");
     }
 
     public FRONTEND.GpsTimePos get_gps_time_pos(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_gps_time_pos not supported");
+        GpsTimePos gpstimepos = new GpsTimePos();
+        gpstimepos.position = new PositionInfo();
+        gpstimepos.position.valid = true;
+        gpstimepos.position.datum = new String("DATUM_WGS84");
+        gpstimepos.position.lat = 1.0;
+        gpstimepos.position.lon = 1.0;
+        gpstimepos.position.alt = 1.0;
+        gpstimepos.timestamp = new BULKIO.PrecisionUTCTime();
+        gpstimepos.timestamp = bulkio.time.utils.now();
+        return gpstimepos;
     }
 
     public void set_gps_time_pos(final String port_name, final FRONTEND.GpsTimePos gps_time_pos) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_gps_time_pos not supported");
     }
 /*{% endif %}*/
 /*{% if 'NavData' in component.implements %}*/
 
     public FRONTEND.NavigationPacket get_nav_packet(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_nav_packet not supported");
+        NavigationPacket navpacket = new NavigationPacket();
+        navpacket.acceleration = new AccelerationInfo();
+        navpacket.acceleration.coordinate_system = new String("CS_ECF");
+        navpacket.acceleration.datum = new String("DATUM_WGS84");
+        navpacket.additional_info = new CF.DataType[0];
+        navpacket.attitude = new AttitudeInfo();
+        navpacket.cposition = new CartesianPositionInfo();
+        navpacket.cposition.datum = new String("DATUM_WGS84");
+        navpacket.position = new PositionInfo();
+        navpacket.position.datum = new String("DATUM_WGS84");
+        navpacket.rf_flow_id = new String("");
+        navpacket.source_id = new String("");
+        navpacket.timestamp = new BULKIO.PrecisionUTCTime();
+        navpacket.timestamp = bulkio.time.utils.now();
+        navpacket.velocity = new VelocityInfo();
+        navpacket.velocity.coordinate_system = new String("CS_ECF");
+        navpacket.position.valid = true;
+        navpacket.position.lat = 1.0;
+        navpacket.position.lon = 1.0;
+        navpacket.position.alt = 1.0;
+        navpacket.cposition.valid = true;
+        navpacket.cposition.x = 1.0;
+        navpacket.cposition.y = 1.0;
+        navpacket.cposition.z = 1.0;
+        navpacket.velocity.valid = true;
+        navpacket.velocity.x = 1.0;
+        navpacket.velocity.y = 1.0;
+        navpacket.velocity.z = 1.0;
+        navpacket.acceleration.valid = true;
+        navpacket.acceleration.x = 1.0;
+        navpacket.acceleration.y = 1.0;
+        navpacket.acceleration.z = 1.0;
+        navpacket.attitude.valid = true;
+        navpacket.attitude.pitch = 1.0;
+        navpacket.attitude.yaw = 1.0;
+        navpacket.attitude.roll = 1.0;
+        navpacket.velocity.datum = new String("DATUM_WGS84");
+        return navpacket;
     }
 
     public void set_nav_packet(final String port_name, final FRONTEND.NavigationPacket nav_info) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_nav_packet not supported");
     }
 /*{% endif %}*/
 /*{% if 'RFInfo' in component.implements %}*/
@@ -539,44 +621,107 @@ public class ${classname} extends ${baseclass} {
     *************************************************************/
     public String get_rf_flow_id(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_rf_flow_id not supported");
+        return new String("");
     }
 
     public void set_rf_flow_id(final String port_name, final String id) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_rf_flow_id not supported");
     }
 
     public FRONTEND.RFInfoPkt get_rfinfo_pkt(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_rfinfo_pkt not supported");
+        RFInfoPkt rfinfopkt = new RFInfoPkt();
+        rfinfopkt.rf_flow_id = new String("");
+        rfinfopkt.sensor = new SensorInfo();
+        rfinfopkt.sensor.collector = new String("");
+        rfinfopkt.sensor.antenna = new AntennaInfo();
+        rfinfopkt.sensor.antenna.description = new String("");
+        rfinfopkt.sensor.antenna.name = new String("");
+        rfinfopkt.sensor.antenna.size = new String("");
+        rfinfopkt.sensor.antenna.type = new String("");
+        rfinfopkt.sensor.feed = new FeedInfo();
+        rfinfopkt.sensor.feed.name = new String("");
+        rfinfopkt.sensor.feed.polarization = new String("");
+        rfinfopkt.sensor.feed.freq_range = new FreqRange();
+        rfinfopkt.sensor.feed.freq_range.values = new double[0];
+        rfinfopkt.sensor.mission = new String("");
+        rfinfopkt.sensor.rx = new String("");
+        rfinfopkt.ext_path_delays = new PathDelay[0];
+        rfinfopkt.capabilities = new RFCapabilities();
+        rfinfopkt.capabilities.freq_range = new FreqRange();
+        rfinfopkt.capabilities.freq_range.values = new double[0];
+        rfinfopkt.capabilities.bw_range = new FreqRange();
+        rfinfopkt.capabilities.bw_range.values = new double[0];
+        rfinfopkt.additional_info = new CF.DataType[0];
+        rfinfopkt.rf_center_freq = 1.0;
+        rfinfopkt.rf_bandwidth = 1.0;
+        rfinfopkt.if_center_freq = 1.0;
+        rfinfopkt.spectrum_inverted = false;
+        rfinfopkt.sensor.feed.freq_range.max_val = 1.0;
+        rfinfopkt.sensor.feed.freq_range.min_val = 1.0;
+        rfinfopkt.capabilities.freq_range.min_val = 1.0;
+        rfinfopkt.capabilities.freq_range.max_val = 1.0;
+        rfinfopkt.capabilities.bw_range.min_val = 1.0;
+        rfinfopkt.capabilities.bw_range.max_val = 1.0;
+        return rfinfopkt;
     }
 
     public void set_rfinfo_pkt(final String port_name, final FRONTEND.RFInfoPkt pkt) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_rfinfo_pkt not supported");
     }
 /*{% endif %}*/
 /*{% if 'RFSource' in component.implements %}*/
 
     public FRONTEND.RFInfoPkt[] get_available_rf_inputs(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_available_rf_inputs not supported");
+        RFInfoPkt[] available_inputs = new RFInfoPkt[0];
+        return available_inputs;
     }
 
     public void set_available_rf_inputs(final String port_name, final FRONTEND.RFInfoPkt[] inputs) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_available_rf_inputs not supported");
     }
 
     public FRONTEND.RFInfoPkt get_current_rf_input(final String port_name) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("get_current_rf_input not supported");
+        RFInfoPkt rfinfopkt = new RFInfoPkt();
+        rfinfopkt.rf_flow_id = new String("");
+        rfinfopkt.sensor = new SensorInfo();
+        rfinfopkt.sensor.collector = new String("");
+        rfinfopkt.sensor.antenna = new AntennaInfo();
+        rfinfopkt.sensor.antenna.description = new String("");
+        rfinfopkt.sensor.antenna.name = new String("");
+        rfinfopkt.sensor.antenna.size = new String("");
+        rfinfopkt.sensor.antenna.type = new String("");
+        rfinfopkt.sensor.feed = new FeedInfo();
+        rfinfopkt.sensor.feed.name = new String("");
+        rfinfopkt.sensor.feed.polarization = new String("");
+        rfinfopkt.sensor.feed.freq_range = new FreqRange();
+        rfinfopkt.sensor.feed.freq_range.values = new double[0];
+        rfinfopkt.sensor.mission = new String("");
+        rfinfopkt.sensor.rx = new String("");
+        rfinfopkt.ext_path_delays = new PathDelay[0];
+        rfinfopkt.capabilities = new RFCapabilities();
+        rfinfopkt.capabilities.freq_range = new FreqRange();
+        rfinfopkt.capabilities.freq_range.values = new double[0];
+        rfinfopkt.capabilities.bw_range = new FreqRange();
+        rfinfopkt.capabilities.bw_range.values = new double[0];
+        rfinfopkt.additional_info = new CF.DataType[0];
+        rfinfopkt.rf_center_freq = 1.0;
+        rfinfopkt.rf_bandwidth = 1.0;
+        rfinfopkt.if_center_freq = 1.0;
+        rfinfopkt.spectrum_inverted = false;
+        rfinfopkt.sensor.feed.freq_range.max_val = 1.0;
+        rfinfopkt.sensor.feed.freq_range.min_val = 1.0;
+        rfinfopkt.capabilities.freq_range.min_val = 1.0;
+        rfinfopkt.capabilities.freq_range.max_val = 1.0;
+        rfinfopkt.capabilities.bw_range.min_val = 1.0;
+        rfinfopkt.capabilities.bw_range.max_val = 1.0;
+        return rfinfopkt;
     }
 
     public void set_current_rf_input(final String port_name, final FRONTEND.RFInfoPkt pkt) throws FRONTEND.NotSupportedException
     {
-        throw new FRONTEND.NotSupportedException("set_current_rf_input not supported");
     }
 /*{% endif %}*/
 /*{% endblock %}*/
