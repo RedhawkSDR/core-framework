@@ -52,7 +52,7 @@ class ${className}(${baseClass}):
         similar to the following:
           self.some_port = MyPortImplementation()
 
-#{% if 'FrontendTuner' in component.implements %}
+#{% if component.hastunerstatusstructure %}
         For a tuner device, the structure frontend_tuner_status needs to match the number
         of tuners that this device controls and what kind of device it is.
         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
@@ -69,7 +69,7 @@ class ${className}(${baseClass}):
 #{% endif %}
         """
         # TODO add customization here.
-#{% if 'FrontendTuner' in component.implements %}
+#{% if component.hastunerstatusstructure %}
         self.addChannels(1, "RX_DIGITIZER");
 #{% endif %}
         
@@ -369,39 +369,36 @@ class ${className}(${baseClass}):
 #{% if 'GPS' in component.implements %}
 
     def get_gps_info(self,port_name):
-        # Example of how to build a GPSInfo data structure
-        #_time = bulkio.timestamp.now()
-        #_gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
-        raise FRONTEND.NotSupportedException("get_gps_info not supported")
+        _time = bulkio.timestamp.now()
+        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        return _gpsinfo
 
     def set_gps_info(self,port_name, gps_info):
-        raise FRONTEND.NotSupportedException("set_gps_info not supported")
+        pass
 
     def get_gps_time_pos(self,port_name):
-        # Example of how to build a GpsTimePos data structure
-        #_time = bulkio.timestamp.now()
-        #_positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
-        #_gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
-        raise FRONTEND.NotSupportedException("get_gps_time_pos not supported")
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
+        return _gpstimepos
 
     def set_gps_time_pos(self,port_name, gps_time_pos):
-        raise FRONTEND.NotSupportedException("set_gps_time_pos not supported")
+        pass
 #{% endif %}
 #{% if 'NavData' in component.implements %}
 
     def get_nav_packet(self,port_name):
-        # Example of how to build a NavigationPacket data structure
-        #_time = bulkio.timestamp.now()
-        #_positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
-        #_cartesianpos = FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
-        #_velocityinfo = FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
-        #_accelerationinfo = FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
-        #_attitudeinfo = FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
-        #_navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
-        raise FRONTEND.NotSupportedException("get_nav_packet not supported")
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _cartesianpos = FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _velocityinfo = FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _accelerationinfo = FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _attitudeinfo = FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
+        _navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
+        return _navpacket
 
     def set_nav_packet(self,port_name, nav_info):
-        raise FRONTEND.NotSupportedException("set_nav_packet not supported")
+        pass
 
 #{% endif %}
 #{% if 'RFInfo' in component.implements %}
@@ -411,44 +408,42 @@ class ${className}(${baseClass}):
     - port_name is the port over which the call was received
     *************************************************************'''
     def get_rf_flow_id(self,port_name):
-        raise FRONTEND.NotSupportedException("get_rf_flow_id not supported")
+        return ''
 
     def set_rf_flow_id(self,port_name, _id):
-        raise FRONTEND.NotSupportedException("set_rf_flow_id not supported")
+        pass
 
     def get_rfinfo_pkt(self,port_name):
-        # Example of how to build an RFInfoPkt data structure
-        #_antennainfo=FRONTEND.AntennaInfo('','','','')
-        #_freqrange=FRONTEND.FreqRange(0,0,[])
-        #_feedinfo=FRONTEND.FeedInfo('','',_freqrange)
-        #_sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        #_rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        #_rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
-        raise FRONTEND.NotSupportedException("get_rfinfo_pkt not supported")
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):
-        raise FRONTEND.NotSupportedException("set_rfinfo_pkt not supported")
+        pass
 #{% endif %}
 #{% if 'RFSource' in component.implements %}
 
     def get_available_rf_inputs(self,port_name):
-        raise FRONTEND.NotSupportedException("get_available_rf_inputs not supported")
+        return []
 
     def set_available_rf_inputs(self,port_name, inputs):
-        raise FRONTEND.NotSupportedException("set_available_rf_inputs not supported")
+        pass
 
     def get_current_rf_input(self,port_name):
-        # Example of how to build an RFInfoPkt data structure
-        #_antennainfo = FRONTEND.AntennaInfo('','','','')
-        #_freqrange = FRONTEND.FreqRange(0,0,[])
-        #_feedinfo = FRONTEND.FeedInfo('','',_freqrange)
-        #_sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        #_rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        #_rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
-        raise FRONTEND.NotSupportedException("get_current_rf_input not supported")
+        _antennainfo = FRONTEND.AntennaInfo('','','','')
+        _freqrange = FRONTEND.FreqRange(0,0,[])
+        _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
 
     def set_current_rf_input(self, port_name, pkt):
-        raise FRONTEND.NotSupportedException("set_current_rf_input not supported")
+        pass
 #{% endif %}
 #{% endblock %}
 #{% block extensions %}

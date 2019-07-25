@@ -34,6 +34,8 @@ class PullComponentMapper(ComponentMapper):
         pycomp['poaclass'] = self.poaClass(softpkg)
         pycomp['interfacedeps'] = self.getInterfaceDependencies(softpkg)
         pycomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
+        pycomp['hastunerstatusstructure'] = self.hasTunerStatusStructure(softpkg)
+        pycomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
 
         # Determine which FRONTEND interfaces this device implements (provides)
         pycomp['implements'] = self.getImplementedInterfaces(softpkg)
@@ -50,6 +52,12 @@ class PullComponentMapper(ComponentMapper):
         baseclass = softpkg.basename() + '_base'
         return {'name'  : baseclass,
                 'file'  : baseclass+'.py'}
+
+    def hasFrontendProvidesPorts(self, softpkg):
+        for port in softpkg.providesPorts():
+            if 'FRONTEND' in port.repid():
+                return True
+        return False
 
     @staticmethod
     def getImplementedInterfaces(softpkg):
@@ -74,6 +82,37 @@ class PullComponentMapper(ComponentMapper):
                 deviceinfo.add(parent)
 
         return deviceinfo
+
+    @staticmethod
+    def isTunerStatusStructure(prop):
+        if prop.name() != 'frontend_tuner_status':
+            return False
+        if prop.struct().name() != 'frontend_tuner_status_struct':
+            return False
+        fields = set(field.name() for field in prop.struct().fields())
+        if 'allocation_id_csv' not in fields:
+            return False
+        if 'bandwidth' not in fields:
+            return False
+        if 'center_frequency' not in fields:
+            return False
+        if 'enabled' not in fields:
+            return False
+        if 'group_id' not in fields:
+            return False
+        if 'rf_flow_id' not in fields:
+            return False
+        if 'sample_rate' not in fields:
+            return False
+        if 'tuner_type' not in fields:
+            return False
+        return True
+
+    def hasTunerStatusStructure(self, softpkg):
+        for prop in softpkg.getStructSequenceProperties():
+            if PullComponentMapper.isTunerStatusStructure(prop):
+                return True
+        return False
 
     @staticmethod
     def superClasses(softpkg):
