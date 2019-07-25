@@ -29,34 +29,7 @@ class FrontendComponentMapper(PullComponentMapper):
         # Defer most mapping to base class
         pycomp = super(FrontendComponentMapper,self)._mapComponent(softpkg)
 
-        # Determine which FRONTEND interfaces this device implements (provides)
-        pycomp['implements'] = self.getImplementedInterfaces(softpkg)
-
         return pycomp
-
-    @staticmethod
-    def getImplementedInterfaces(softpkg):
-        deviceinfo = set()
-
-        # Ensure that parent interfaces also gets added (so, e.g., a device
-        # with a DigitalTuner should also report that it's an AnalogTuner
-        # and FrontendTuner)
-        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
-                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
-                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
-                     'AnalogTuner': ('FrontendTuner',) }
-
-        for port in softpkg.providesPorts():
-            idl = IDLInterface(port.repid())
-            # Ignore non-FRONTEND intefaces
-            if idl.namespace() != 'FRONTEND':
-                continue
-            interface = idl.interface()
-            deviceinfo.add(interface)
-            for parent in inherits.get(interface, []):
-                deviceinfo.add(parent)
-
-        return deviceinfo
 
     @staticmethod
     def superClasses(softpkg):
@@ -66,7 +39,7 @@ class FrontendComponentMapper(PullComponentMapper):
 
         # Only plain devices are supported for FRONTEND
         if softpkg.type() == ComponentTypes.DEVICE:
-            deviceinfo = FrontendComponentMapper.getImplementedInterfaces(softpkg)
+            deviceinfo = PullComponentMapper.getImplementedInterfaces(softpkg)
             # If this device is any type of tuner, replace the Device_impl base
             # class with the FRONTEND-specific tuner device class
             if 'FrontendTuner' in deviceinfo:
@@ -78,27 +51,9 @@ class FrontendComponentMapper(PullComponentMapper):
                 # Add the most specific tuner delegate interface:
                 #   (Digital > Analog > Frontend)
                 if 'DigitalScanningTuner' in deviceinfo:
-                    classes.append({'name': 'digital_scanning_tuner_delegation', 'package': 'frontend'})
                     parent['name'] = 'FrontendScannerDevice'
                 elif 'AnalogScanningTuner' in deviceinfo:
-                    classes.append({'name': 'analog_scanning_tuner_delegation', 'package': 'frontend'})
                     parent['name'] = 'FrontendScannerDevice'
-                elif 'DigitalTuner' in deviceinfo:
-                    classes.append({'name': 'digital_tuner_delegation', 'package': 'frontend'})
-                elif 'AnalogTuner' in deviceinfo:
-                    classes.append({'name': 'analog_tuner_delegation', 'package': 'frontend'})
-                else:
-                    classes.append({'name': 'frontend_tuner_delegation', 'package': 'frontend'})
-
-            # Add additonal FRONTEND delegate interfaces
-            if 'RFInfo' in deviceinfo:
-                classes.append({'name': 'rfinfo_delegation', 'package': 'frontend'})
-            if 'RFSource' in deviceinfo:
-                classes.append({'name': 'rfsource_delegation', 'package': 'frontend'})
-            if 'GPS' in deviceinfo:
-                classes.append({'name': 'gps_delegation', 'package': 'frontend'})
-            if 'NavData' in deviceinfo:
-                classes.append({'name': 'nav_delegation', 'package': 'frontend'})
 
         return classes
 

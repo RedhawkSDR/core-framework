@@ -277,6 +277,180 @@ class ${className}(${baseClass}):
         self._baseLog.debug("process() example log message")
         return NOOP
 
+#{% block fei_port_delegations %}
+#{% if 'FrontendTuner' in component.implements %}
+    '''
+    *************************************************************
+    Functions servicing the tuner control port
+    *************************************************************'''
+    def getTunerType(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerType not supported")
+
+    def getTunerDeviceControl(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerDeviceControl not supported")
+
+    def getTunerGroupId(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerGroupId not supported")
+
+    def getTunerRfFlowId(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerRfFlowId not supported")
+
+#{% endif %}
+#{% if 'AnalogTuner' in component.implements %}
+
+    def setTunerCenterFrequency(self,allocation_id, freq):
+        raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
+
+    def getTunerCenterFrequency(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
+
+    def setTunerBandwidth(self,allocation_id, bw):
+        raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
+
+    def getTunerBandwidth(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
+
+    def setTunerAgcEnable(self,allocation_id, enable):
+        raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
+
+    def getTunerAgcEnable(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
+
+    def setTunerGain(self,allocation_id, gain):
+        raise FRONTEND.NotSupportedException("setTunerGain not supported")
+
+    def getTunerGain(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerGain not supported")
+
+    def setTunerReferenceSource(self,allocation_id, source):
+        raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
+
+    def getTunerReferenceSource(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
+
+    def setTunerEnable(self,allocation_id, enable):
+        raise FRONTEND.NotSupportedException("setTunerEnable not supported")
+
+    def getTunerEnable(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerEnable not supported")
+
+#{% endif %}
+#{% if 'DigitalTuner' in component.implements %}
+
+    def setTunerOutputSampleRate(self,allocation_id, sr):
+        raise FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported")
+
+    def getTunerOutputSampleRate(self,allocation_id):
+        raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
+
+#{% endif %}
+#{% if 'ScanningTuner' in component.implements %}
+
+    def getScanStatus(self, allocation_id):
+        # Example of how to build a ScanStatus data structure
+        #_scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(
+        #    FRONTEND.ScanningTuner.MANUAL_SCAN, 
+        #    FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
+        #    FRONTEND.ScanningTuner.TIME_BASED, 
+        #    0.0)
+        #_scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
+        #                                   start_time=bulkio.timestamp.now(),
+        #                                   center_tune_frequencies=[],
+        #                                   started=False)
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+
+    def setScanStartTime(self, allocation_id, start_time):
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+
+    def setScanStrategy(self, allocation_id, scan_strategy):
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
+
+#{% endif %}
+#{% if 'GPS' in component.implements %}
+
+    def get_gps_info(self,port_name):
+        # Example of how to build a GPSInfo data structure
+        #_time = bulkio.timestamp.now()
+        #_gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        raise FRONTEND.NotSupportedException("get_gps_info not supported")
+
+    def set_gps_info(self,port_name, gps_info):
+        raise FRONTEND.NotSupportedException("set_gps_info not supported")
+
+    def get_gps_time_pos(self,port_name):
+        # Example of how to build a GpsTimePos data structure
+        #_time = bulkio.timestamp.now()
+        #_positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        #_gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
+        raise FRONTEND.NotSupportedException("get_gps_time_pos not supported")
+
+    def set_gps_time_pos(self,port_name, gps_time_pos):
+        raise FRONTEND.NotSupportedException("set_gps_time_pos not supported")
+#{% endif %}
+#{% if 'NavData' in component.implements %}
+
+    def get_nav_packet(self,port_name):
+        # Example of how to build a NavigationPacket data structure
+        #_time = bulkio.timestamp.now()
+        #_positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        #_cartesianpos = FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        #_velocityinfo = FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        #_accelerationinfo = FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        #_attitudeinfo = FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
+        #_navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
+        raise FRONTEND.NotSupportedException("get_nav_packet not supported")
+
+    def set_nav_packet(self,port_name, nav_info):
+        raise FRONTEND.NotSupportedException("set_nav_packet not supported")
+
+#{% endif %}
+#{% if 'RFInfo' in component.implements %}
+    '''
+    *************************************************************
+    Functions servicing the RFInfo port(s)
+    - port_name is the port over which the call was received
+    *************************************************************'''
+    def get_rf_flow_id(self,port_name):
+        raise FRONTEND.NotSupportedException("get_rf_flow_id not supported")
+
+    def set_rf_flow_id(self,port_name, _id):
+        raise FRONTEND.NotSupportedException("set_rf_flow_id not supported")
+
+    def get_rfinfo_pkt(self,port_name):
+        # Example of how to build an RFInfoPkt data structure
+        #_antennainfo=FRONTEND.AntennaInfo('','','','')
+        #_freqrange=FRONTEND.FreqRange(0,0,[])
+        #_feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        #_sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        #_rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        #_rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        raise FRONTEND.NotSupportedException("get_rfinfo_pkt not supported")
+
+    def set_rfinfo_pkt(self,port_name, pkt):
+        raise FRONTEND.NotSupportedException("set_rfinfo_pkt not supported")
+#{% endif %}
+#{% if 'RFSource' in component.implements %}
+
+    def get_available_rf_inputs(self,port_name):
+        raise FRONTEND.NotSupportedException("get_available_rf_inputs not supported")
+
+    def set_available_rf_inputs(self,port_name, inputs):
+        raise FRONTEND.NotSupportedException("set_available_rf_inputs not supported")
+
+    def get_current_rf_input(self,port_name):
+        # Example of how to build an RFInfoPkt data structure
+        #_antennainfo = FRONTEND.AntennaInfo('','','','')
+        #_freqrange = FRONTEND.FreqRange(0,0,[])
+        #_feedinfo = FRONTEND.FeedInfo('','',_freqrange)
+        #_sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        #_rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        #_rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        raise FRONTEND.NotSupportedException("get_current_rf_input not supported")
+
+    def set_current_rf_input(self, port_name, pkt):
+        raise FRONTEND.NotSupportedException("set_current_rf_input not supported")
+#{% endif %}
+#{% endblock %}
 #{% block extensions %}
 #{% endblock %}
   
