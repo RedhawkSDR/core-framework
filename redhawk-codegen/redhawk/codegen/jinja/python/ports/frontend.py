@@ -34,7 +34,7 @@ class FrontendPortFactory(PortFactory):
     def generator(self, port):
         interface = IDLInterface(port.repid()).interface()
         if port.isUses():
-            return GenericUsesPortGenerator(port)
+            return GenericPortGenerator('generic.uses.py', port)
         return FrontendPortGenerator(port)
 
 class FrontendProvidesPortFactory(PortFactory):
