@@ -76,10 +76,7 @@ class FrontendComponentMapper(PullComponentMapper):
 
                     # Add the most specific tuner delegate interface:
                     #   (Digital > Analog > Frontend)
-                    if 'DigitalScanningTuner' in deviceinfo:
-                        if parent['name'] == 'frontend::FrontendTunerDevice<frontend_tuner_status_struct_struct>':
-                            parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
-                    elif 'AnalogScanningTuner' in deviceinfo:
+                    if 'DigitalScanningTuner' in deviceinfo or 'AnalogScanningTuner' in deviceinfo:
                         if parent['name'] == 'frontend::FrontendTunerDevice<frontend_tuner_status_struct_struct>':
                             parent['name'] = 'frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>'
 
