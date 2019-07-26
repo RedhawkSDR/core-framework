@@ -511,33 +511,74 @@ class InPortTest(object):
             self.failIf(packet.dataBuffer is None)
             self.assertFalse(packet.inputQueueFlushed)
 
-    def testQueueSizeMax(self):
+    def testSRIqueueBlock(self):
         """
-        Tests that the max queue size can be set to a non-default value or
-        unlimited (negative)
+        Tests that a queue can be flushed and allow packets to refill the queue, post flush.
         """
         sri = bulkio.sri.create('queue_size')
-        sri.blocking = False
+        sri.blocking = True
         self.port.pushSRI(sri)
-
-        # Set queue depth to unlimited and push a lot of packets
         self.port.setMaxQueueDepth(-1)
-        QUEUE_SIZE = 300
-        for _ in xrange(QUEUE_SIZE):
-            self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
-        self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
-        for _ in xrange(QUEUE_SIZE):
-            packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-            self.failIf(packet.dataBuffer is None)
-            self.assertFalse(packet.inputQueueFlushed)
 
+        # Push enough packets to block in one thread
+        def push_packet():
+            for ii in range(1):
+                self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
+
+        push_thread = threading.Thread(target=push_packet)
+        push_thread.setDaemon(True)
+        push_thread.start()
+        push_thread.join(1.0)
+        queue_depth = self.port.getCurrentQueueDepth()
+        self.assertEqual(1, queue_depth)
+
+        # Verify  in one thread
+        packet = self.port.getPacket()
+        self.assertEqual(packet.streamID, sri.streamID)
+
+    def testSRIqueueMax(self):
+        """
+        Tests that a queue can be flushed and allow packets to refill the queue, post flush.
+        """
+        # import pdb
+        # pdb.set_trace()
+        sri = bulkio.sri.create('queue_size')
+        sri.blocking = True
+        self.port.pushSRI(sri)
+        self.port.setMaxQueueDepth(50)
+
+        # Push enough packets to block in one thread
+        def push_packet():
+            for ii in range(102):
+                self._pushTestPacket(ii+1, bulkio.timestamp.now(), False, sri.streamID)
+        push_thread = threading.Thread(target=push_packet)
+        push_thread.setDaemon(True)
+        push_thread.start()
+        push_thread.join(1.0)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertFalse(packet.inputQueueFlushed)
+        queue_depth = self.port.getCurrentQueueDepth()
+        count = 0
+        while queue_depth != 50 and count != 10:
+            time.sleep(.5)
+            queue_depth = self.port.getCurrentQueueDepth()
+            count += 1
+        self.assertEqual(queue_depth, 50)
+
+        for ii in range(101):
+            packet = self.port.getPacket(bulkio.const.BLOCKING)
+            self.failIf(packet is None)
+            self.assertFalse(packet.inputQueueFlushed)
 
     def _pushTestPacket(self, length, time, eos, streamID):
         data = self.helper.createData(length)
         self.helper.pushPacket(self.port, data, time, eos, streamID)
 
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
+
 
 register_test('InBitPortTest', InPortTest, helper=BitTestHelper())
 register_test('InXMLPortTest', InPortTest, helper=XMLTestHelper())
