@@ -48,8 +48,7 @@ class FrontendComponentMapper(PullComponentMapper):
                         parent['name'] = 'FrontendTunerDevice'
                         parent['package'] = 'frontend'
 
-                    # Add the most specific tuner delegate interface:
-                    #   (Digital > Analog > Frontend)
+                    # Set the parent to scanner if needed
                     if 'DigitalScanningTuner' in deviceinfo or 'AnalogScanningTuner' in deviceinfo:
                         if parent['name'] == 'FrontendTunerDevice':
                             parent['name'] = 'FrontendScannerDevice'
