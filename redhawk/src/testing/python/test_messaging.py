@@ -163,29 +163,6 @@ class MessageReceiver(object):
                     return False
                 self._cond.wait(end - now)
 
-class GenericMessageReceiver(object):
-    def __init__(self):
-        self.messages = []
-        self._lock = threading.Lock()
-        self._cond = threading.Condition(self._lock)
-
-    def messageReceived(self, msgId, msgData):
-        with self._lock:
-            self.messages.append(msgData)
-            self._cond.notify()
-
-    def waitMessages(self, count, timeout):
-        end = time.time() + timeout
-        with self._lock:
-            while True:
-                if len(self.messages) >= count:
-                    return True
-                now = time.time()
-                if now >= end:
-                    return False
-                self._cond.wait(end - now)
-
-
 class MessagingTest(unittest.TestCase):
     def setUp(self):
         self._portManager = PortManager()
@@ -224,7 +201,7 @@ class MessagingTest(unittest.TestCase):
 
     def testGenericAndSpecificMessageCallback(self):
         receiver = MessageReceiver()
-        generic_receiver = GenericMessageReceiver()
+        generic_receiver = MessageReceiver()
         self._consumer.registerMessage("basic_message", BasicMessage, receiver.messageReceived)
         self._consumer.registerMessage(None, BasicMessage, generic_receiver.messageReceived)
 
