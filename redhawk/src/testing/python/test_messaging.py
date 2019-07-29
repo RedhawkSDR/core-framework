@@ -163,6 +163,28 @@ class MessageReceiver(object):
                     return False
                 self._cond.wait(end - now)
 
+class GenericMessageReceiver(object):
+    def __init__(self):
+        self.messages = []
+        self._lock = threading.Lock()
+        self._cond = threading.Condition(self._lock)
+
+    def messageReceived(self, msgId, msgData):
+        with self._lock:
+            self.messages.append(msgData)
+            self._cond.notify()
+
+    def waitMessages(self, count, timeout):
+        end = time.time() + timeout
+        with self._lock:
+            while True:
+                if len(self.messages) >= count:
+                    return True
+                now = time.time()
+                if now >= end:
+                    return False
+                self._cond.wait(end - now)
+
 
 class MessagingTest(unittest.TestCase):
     def setUp(self):
@@ -199,6 +221,30 @@ class MessagingTest(unittest.TestCase):
 
         self.assertEqual("basic_message", receiver.messages[0].getId())
         self.assertEqual(msg.value, receiver.messages[0].value)
+
+    def testGenericAndSpecificMessageCallback(self):
+        receiver = MessageReceiver()
+        generic_receiver = GenericMessageReceiver()
+        self._consumer.registerMessage("basic_message", BasicMessage, receiver.messageReceived)
+        self._consumer.registerMessage(None, BasicMessage, generic_receiver.messageReceived)
+
+        msg = BasicMessage()
+        msg.value = 1
+
+        self._supplier.sendMessage(msg)
+
+        # Unlike C++, the Python message consumer is threaded, so we need to
+        # give it some time to receive the message
+        self.failUnless(receiver.waitMessages(1, 1.0))
+        self.failUnless(generic_receiver.waitMessages(1, 1.0))
+
+        self.assertEqual("basic_message", receiver.messages[0].getId())
+        self.assertEqual(msg.value, receiver.messages[0].value)
+
+        self.assertEqual("basic_message", generic_receiver.messages[0].id)
+        self.assertEqual(1, len(generic_receiver.messages[0].value._v))
+        self.assertEqual("basic_message::value", generic_receiver.messages[0].value._v[0].id)
+        self.assertEqual(1, generic_receiver.messages[0].value._v[0].value._v)
 
     def testSendMessageConnectionId(self):
         # Create and connect a second consumer port
