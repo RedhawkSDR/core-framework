@@ -218,7 +218,7 @@ public class ${classname} extends ${baseclass} {
     
          For a tuner device, the structure frontend_tuner_status needs to match the number
          of tuners that this device controls and what kind of device it is.
-         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
      
          For example, if this device has 5 physical
          tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
