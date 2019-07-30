@@ -175,6 +175,93 @@ class InPortTest(object):
         bits_per_element = int(round(stats.bitsPerSecond / stats.elementsPerSecond))
         self.assertEqual(self.helper.BITS_PER_ELEMENT, bits_per_element)
 
+    def testStreamIds(self):
+        """
+        Tests that the same stream ID can be in consecutive streams
+        """
+        # Create a few streams, push an SRI and packet for each, and test that
+        # the statistics report the correct stream IDs
+        stream_id = 'hello'
+        stream_sri = bulkio.sri.create(stream_id)
+
+        stream_sri.mode = 0
+        self.port.pushSRI(stream_sri)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), True, stream_id)
+
+        stream_sri.mode = 1
+        self.port.pushSRI(stream_sri)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), True, stream_id)
+
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(True, packet.EOS, 'packet.EOS should be True')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(True, packet.EOS, 'packet.EOS should be True')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+
+        stream_sri.mode = 0
+        self.port.pushSRI(stream_sri)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), True, stream_id)
+
+        stream_sri.mode = 1
+        self.port.pushSRI(stream_sri)
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(True, packet.EOS, 'packet.EOS should be True')
+        self.assertEqual(0, packet.SRI.mode, 'packet.SRI should have real mode')
+
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+
+        self._pushTestPacket(50, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(50, bulkio.timestamp.now(), True, stream_id)
+
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(False, packet.EOS, 'packet.EOS should be False')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+        packet = self.port.getPacket()
+        self.assertEqual(50, len(packet.dataBuffer))
+        self.assertEqual(True, packet.EOS, 'packet.EOS should be True')
+        self.assertEqual(1, packet.SRI.mode, 'packet.SRI should have complex mode')
+
     def testStatisticsStreamIDs(self):
         """
         Tests that the stream IDs reported in statistics are correct.

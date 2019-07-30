@@ -28,6 +28,7 @@ noinst_java_JARFILES = ossie-tests.jar
 ossie_tests_jar_SOURCE = Main.java
 ossie_tests_jar_SOURCE += AllTests.java
 ossie_tests_jar_SOURCE += MessagingTest.java
+ossie_tests_jar_SOURCE += PropertyTest.java
 ossie_tests_jar_SOURCE += PortManager.java
 ossie_tests_jar_SOURCE += utils/Assert.java
 ossie_tests_jar_SOURCE += utils/ChainFilter.java

@@ -198,7 +198,7 @@ DomainManager_impl::DomainManager_impl (const char* dmdFile, const char* _rootpa
     try {
       // Create event channel  manager and register with the parent POA
       // RESOLVE -- need to add command line args to DomainManager to support EventChannel resolution
-      _eventChannelMgr = new EventChannelManager(this, true, true, true);
+        _eventChannelMgr = new EventChannelManager(this);
       std::string id = _domainName + "/EventChannelManager";
       oid = ossie::corba::activatePersistentObject(poa, _eventChannelMgr, id );
       _eventChannelMgr->setLogger(_baseLog->getChildLogger("EventChannelManager", ""));

@@ -152,6 +152,117 @@ void InPortTest<Port>::testActiveSRIs()
 }
 
 template <class Port>
+void InPortTest<Port>::testStreamIds()
+{
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(!packet);
+
+    const char* stream_id = "test_get_packet";
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    sri.mode = 0;
+    port->pushSRI(sri);
+
+    this->_pushTestPacket(50, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(50, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(50, bulkio::time::utils::now(), true, stream_id);
+
+    sri.mode = 1;
+    port->pushSRI(sri);
+
+    this->_pushTestPacket(50, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(50, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(50, bulkio::time::utils::now(), true, stream_id);
+
+    // Check result of getPacket
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 50, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+
+    sri.mode = 0;
+    port->pushSRI(sri);
+
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(100, bulkio::time::utils::now(), true, stream_id);
+    sri.mode = 1;
+    port->pushSRI(sri);
+
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, stream_id);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(0, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+
+    this->_pushTestPacket(100, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(100, bulkio::time::utils::now(), true, stream_id);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, packet->dataBuffer.size());
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT_EQUAL(1, (int) packet->SRI.mode);
+}
+
+template <class Port>
 void InPortTest<Port>::testQueueDepth()
 {
     const char* stream_id = "test_state";
