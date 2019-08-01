@@ -334,6 +334,8 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
 
         self.ecm.unregister('ecm_test2', reg.reg.reg_id)
 
+        # need to wait for channel to be deleted and cleaned up
+        time.sleep(1)
         reg = self.ecm.registerResource('ecm_test2')
         self.assertNotEqual(reg, None)
 
