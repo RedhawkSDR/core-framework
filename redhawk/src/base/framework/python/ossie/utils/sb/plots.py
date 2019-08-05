@@ -433,10 +433,11 @@ class LinePlot(LineBase):
     def _formatData(self, block, stream):
         # Bit blocks don't have a .complex attribute; default to False
         if getattr(block, 'complex', False):
-            data = block.buffer[::2]
+            data = block.buffer[1::2]   # y-axis: imaginary
+            times = block.buffer[::2] # x-axis: real
         else:
             data = block.buffer
-        times = numpy.arange(len(data)) * block.xdelta
+            times = numpy.arange(len(data)) * block.xdelta
         return times, data
 
     def _getXRange(self, sri):
@@ -525,7 +526,7 @@ class LinePSD(LineBase, PSDBase):
     def _formatData(self, block, stream):
         # Bit blocks don't have a .complex attribute; default to False
         if getattr(block, 'complex', False):
-            data = block.cxbuffer
+            data = block.cxdata
         else:
             data = block.buffer
 
@@ -933,7 +934,7 @@ class RasterPSD(RasterBase, PSDBase):
         if self._bitMode:
             data = block.buffer.unpack()
         elif block.complex:
-            data = block.cxbuffer
+            data = block.cxdata
         else:
             data = block.buffer
 
