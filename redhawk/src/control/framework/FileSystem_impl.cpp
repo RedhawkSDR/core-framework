@@ -312,10 +312,6 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
     for (fs::directory_iterator itr = fsops.begin(dirPath); itr != end_itr; fsops.increment(itr)) {
         const std::string filename = BOOST_PATH_STRING(itr->path().filename());
         if (fnmatch(searchPattern.c_str(), filename.c_str(), 0) == 0) {
-            if ((filename.length() > 0) && (filename[0] == '.') && (filename != searchPattern)) {
-                RH_TRACE(_fileSysLog, "Ignoring hidden match " << filename);
-                continue;
-            }
             RH_TRACE(_fileSysLog, "Match in list with " << filename);
             CORBA::ULong index = result->length();
             result->length(index + 1);
