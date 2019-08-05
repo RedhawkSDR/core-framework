@@ -2,19 +2,21 @@
 
 In the context of REDHAWK, a component's implementation does not need to be tied solely to a single process or thread running on a microprocessor.
 In instances where the component functionality is implemented on a different processor, like an FPGA, the role of the component process or thread is to manage the bitfile load, its properties, and its data ingress and egress.
-In the case where the data ingress or egress is to a component running outside the scope of the FPGA, the role of the component is to manage the FPGA load and provide command-and-control information to the embedded device, like where to push data to or retrieve data from.
+In the case where the data ingress or egress is between components running in the same FPGA, the role of the components is to manage the FPGA load and provide command-and-control information to the embedded device, like where to push data to or retrieve data from.
 
-While not directly supported by the code generators, BULK IO ports can be extended to provide connection information to 2 separate components supporting functionality on an FPGA load. The extended classes override the base classes' connection functionality while maintaining the status information, allowing an out-of-band connection to be established while maintaining the tooling's ability to monitor the state of the connection wherever possible.
+While not directly supported by the code generators, BULK IO ports can be extended to provide connection information to 2 separate components supporting functionality on a single FPGA load. The extended classes override the base classes' connection functionality while maintaining the status information, allowing an out-of-band connection to be established while maintaining the tooling's ability to monitor the state of the connection wherever possible.
 
-In this note, the port override necessary to support the connection between port C and port D in the following image:
+In this note, the code shows and example of the port override necessary to support the connection between port C and port D in the following image:
 
 ![Port Connection](/docs/out-of-band-connections/images/NegotiableTransport.png "Logical ports corresponding to out-of-band links")
 
 ## Extending Bulk IO ports
 
-For the purposes of this example, suppose that there is a component called **stream_out_override** that has a single output *dataFloat* port (called **dataFloat**) and another component called **stream_in_override** that has a single input *dataFloat* port (called **dataFloat**). This example shows how to modify these components such that the data exchange occurs in the FPGA rather than through the microprocessor.
+For the purposes of this example, suppose that there is a component called **stream_out_override** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **stream_in_override** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
 
-This example requires that the \*\_base files be modified on each of these components. The IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary)
+This example requires that the \*\_base files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguard these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary).
+
+Several *cout* statements are included in this code to demonstrate where in the connection process these functions are invoked. These are the locations where device-specific customiziations are meant to occur.
 
 ### The **stream_out_override** component
 
@@ -59,11 +61,11 @@ In *stream_out_override_base.h*:
 
 change:
 
-    bulkio::OutFloatPort *dataFloat;
+    bulkio::OutFloatPort *dataFloat_out;
 
 to
 
-    my_outfloat *dataFloat;
+    my_outfloat *dataFloat_out;
 
 In *stream_out_override_base.cpp*:
 
@@ -201,11 +203,11 @@ In *stream_out_override_base.cpp*:
 
 change:
 
-        dataFloat = new bulkio::OutFloatPort("dataFloat");
+        dataFloat_out = new bulkio::OutFloatPort("dataFloat_out");
 
 to
 
-        dataFloat = new my_outfloat("dataFloat");
+        dataFloat_out = new my_outfloat("dataFloat_out");
 
 In *stream_out_override.h*:
 
@@ -241,9 +243,9 @@ Implement the FPGA transport definition methods:
 
 bind the callbacks (implement in the "constructor" method):
 
-        this->dataFloat->setInitialTransportCallback(this, &stream_out_override_i::getInitialProperties);
-        this->dataFloat->setupTransportCallback(this, &stream_out_override_i::setupTranportProperties);
-        this->dataFloat->setTearDownTransportCallback(this, &stream_out_override_i::resetTransportProperties);
+        this->dataFloat_out->setInitialTransportCallback(this, &stream_out_override_i::getInitialProperties);
+        this->dataFloat_out->setupTransportCallback(this, &stream_out_override_i::setupTranportProperties);
+        this->dataFloat_out->setTearDownTransportCallback(this, &stream_out_override_i::resetTransportProperties);
 
 ### The **stream_in_override** component:
 
@@ -280,11 +282,11 @@ In the *stream_in_override_base.h* file:
 
 Change:
 
-    bulkio::InFloatPort *dataFloat;
+    bulkio::InFloatPort *dataFloat_in;
 
 to
 
-    my_infloat *dataFloat;
+    my_infloat *dataFloat_in;
 
 In the *stream_in_override_base.cpp* file:
 
@@ -358,11 +360,11 @@ In the *stream_in_override_base.cpp* file:
 
 Change:
 
-    dataFloat = new bulkio::InFloatPort("dataFloat");
+    dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
 
 to
 
-    dataFloat = new my_infloat("dataFloat");
+    dataFloat_in = new my_infloat("dataFloat_in");
 
 In the stream_in_override.h file:
 
@@ -392,8 +394,8 @@ In the stream_in_override.cpp file:
 
 bind the callbacks (implement in the "constructor" method):
 
-    this->dataFloat->setEstablishTransportCallback(this, &stream_in_override_i::getTransportProperties);
-    this->dataFloat->setTearDownTransportCallback(this, &stream_in_override_i::resetTransportProperties);
+    this->dataFloat_in->setEstablishTransportCallback(this, &stream_in_override_i::getTransportProperties);
+    this->dataFloat_in->setTearDownTransportCallback(this, &stream_in_override_i::resetTransportProperties);
 
 ## Testing the new ports
 
