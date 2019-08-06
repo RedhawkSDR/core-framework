@@ -435,11 +435,12 @@ class LinePlot(LineBase):
         # Bit blocks don't have a .complex attribute; default to False
         if getattr(block, 'complex', False):
             self._complex = True
-            data = block.buffer[1::2]   # y-axis: imaginary
-            times = block.buffer[::2] # x-axis: real
-            self._xmin = min(times)
-            self._xmax = max(times)
+            imag_data = block.buffer[1::2]   # y-axis: imaginary
+            real_data  = block.buffer[::2] # x-axis: real
+            self._xmin = min(real_data)
+            self._xmax = max(real_data)
             self._plot.set_xlim(self._xmin, self._xmax)
+            return real_data, imag_data
         else:
             data = block.buffer
             times = numpy.arange(len(data)) * block.xdelta
@@ -846,9 +847,7 @@ class RasterPlot(RasterBase):
         if self._bitMode:
             return block.buffer.unpack()
         elif block.complex:
-            real_vals = numpy.array(block.buffer[::2])
-            imag_vals = numpy.array(block.buffer[1::2])
-            return list(numpy.sqrt(real_vals**2+imag_vals**2))
+            return list(numpy.abs(block.cxdata))
         else:
             return block.buffer
 
