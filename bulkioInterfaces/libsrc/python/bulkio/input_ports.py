@@ -361,7 +361,6 @@ class InPort(object):
             queue_flushed = False
 
             if self.blocking:
-                # while len(self.queue) <= self._maxSize or self._maxSize < -1:
                 while self._maxSize >= 0 and len(self.queue) >= self._maxSize:
                     self._queueAvailable.wait()
             else:
