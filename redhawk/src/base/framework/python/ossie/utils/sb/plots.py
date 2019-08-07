@@ -469,7 +469,7 @@ class LinePlot(LineBase):
 
     @xmin.setter
     def xmin(self, xmin):
-        self._check_yrange(xmin, self._xmax)
+        self._check_xrange(xmin, self._xmax)
         self._xmin = xmin
         self._setXView(self._xmin, self._xmax)
 
@@ -1058,7 +1058,7 @@ class XYPlot(LineBase):
 
     @xmin.setter
     def xmin(self, xmin):
-        self._check_yrange(xmin, self._xmax)
+        self._check_xrange(xmin, self._xmax)
         self._xmin = xmin
         self._setXView(self._xmin, self._xmax)
 
