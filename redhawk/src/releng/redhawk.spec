@@ -43,11 +43,13 @@ Vendor:         REDHAWK
 Requires:       util-linux-ng
 Requires:       java >= 1:1.8.0
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       python-matplotlib-qt4
 Requires:       gstreamer-python
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       gstreamer1
+Requires:       python-matplotlib-qt4
 Requires:       numactl-libs
 %else
+Requires:       gstreamer
 Requires:       python-matplotlib
 %endif
 
