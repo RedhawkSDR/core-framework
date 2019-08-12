@@ -45,12 +45,64 @@ class ${className} : public ${baseClass}
         void constructor();
 
         int serviceFunction();
+
+    protected:
 /*{% if component is device %}*/
 /*{% block updateUsageState %}*/
 
-    protected:
         void updateUsageState();
 /*{% endblock %}*/
+/*{% endif %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+        std::string getTunerType(const std::string& allocation_id);
+        bool getTunerDeviceControl(const std::string& allocation_id);
+        std::string getTunerGroupId(const std::string& allocation_id);
+        std::string getTunerRfFlowId(const std::string& allocation_id);
+/*{% endif %}*/
+/*{% if 'AnalogTuner' in component.implements %}*/
+        double getTunerCenterFrequency(const std::string& allocation_id);
+        void setTunerCenterFrequency(const std::string& allocation_id, double freq);
+        double getTunerBandwidth(const std::string& allocation_id);
+        void setTunerBandwidth(const std::string& allocation_id, double bw);
+        bool getTunerAgcEnable(const std::string& allocation_id);
+        void setTunerAgcEnable(const std::string& allocation_id, bool enable);
+        float getTunerGain(const std::string& allocation_id);
+        void setTunerGain(const std::string& allocation_id, float gain);
+        long getTunerReferenceSource(const std::string& allocation_id);
+        void setTunerReferenceSource(const std::string& allocation_id, long source);
+        bool getTunerEnable(const std::string& allocation_id);
+        void setTunerEnable(const std::string& allocation_id, bool enable);
+/*{% endif %}*/
+/*{% if 'DigitalTuner' in component.implements %}*/
+        double getTunerOutputSampleRate(const std::string& allocation_id);
+        void setTunerOutputSampleRate(const std::string& allocation_id, double sr);
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+        frontend::ScanStatus getScanStatus(const std::string& allocation_id);
+        void setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time);
+        void setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy);
+/*{% endif %}*/
+/*{% if 'GPS' in component.implements %}*/
+        frontend::GPSInfo get_gps_info(const std::string& port_name);
+        void set_gps_info(const std::string& port_name, const frontend::GPSInfo &gps_info);
+        frontend::GpsTimePos get_gps_time_pos(const std::string& port_name);
+        void set_gps_time_pos(const std::string& port_name, const frontend::GpsTimePos &gps_time_pos);
+/*{% endif %}*/
+/*{% if 'NavData' in component.implements %}*/
+        frontend::NavigationPacket get_nav_packet(const std::string& port_name);
+        void set_nav_packet(const std::string& port_name, const frontend::NavigationPacket &nav_info);
+/*{% endif %}*/
+/*{% if 'RFInfo' in component.implements %}*/
+        std::string get_rf_flow_id(const std::string& port_name);
+        void set_rf_flow_id(const std::string& port_name, const std::string& id);
+        frontend::RFInfoPkt get_rfinfo_pkt(const std::string& port_name);
+        void set_rfinfo_pkt(const std::string& port_name, const frontend::RFInfoPkt& pkt);
+/*{% endif %}*/
+/*{% if 'RFSource' in component.implements %}*/
+        std::vector<frontend::RFInfoPkt> get_available_rf_inputs(const std::string& port_name);
+        void set_available_rf_inputs(const std::string& port_name, const std::vector<frontend::RFInfoPkt> &inputs);
+        frontend::RFInfoPkt get_current_rf_input(const std::string& port_name);
+        void set_current_rf_input(const std::string& port_name, const frontend::RFInfoPkt &pkt);
 /*{% endif %}*/
 /*{% block extensions %}*/
 /*{% endblock %}*/
