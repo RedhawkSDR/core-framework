@@ -52,7 +52,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         this._portLog = logger;
     }
 
-    public String getTunerType(String id) {
+    public String getTunerType(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){
@@ -60,7 +60,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
                 } else {
                     throw new RuntimeException("InFrontendTunerPort getTunerType(String id) callback delegate not defined");
                 }
-            } catch(org.omg.CORBA.SystemException e) {
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;
             } catch(Throwable e) {
                 throw new RuntimeException(e);
@@ -68,7 +68,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         }
     }
 
-    public boolean getTunerDeviceControl(String id) {
+    public boolean getTunerDeviceControl(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){
@@ -76,7 +76,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
                 } else {
                     throw new RuntimeException("InFrontendTunerPort getTunerDeviceControl(String id) callback delegate not defined");
                 }
-            } catch(org.omg.CORBA.SystemException e) {
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;
             } catch(Throwable e) {
                 throw new RuntimeException(e);
@@ -84,7 +84,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         }
     }
 
-    public String getTunerGroupId(String id) {
+    public String getTunerGroupId(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){
@@ -92,7 +92,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
                 } else {
                     throw new RuntimeException("InFrontendTunerPort getTunerGroupId(String id) callback delegate not defined");
                 }
-            } catch(org.omg.CORBA.SystemException e) {
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;
             } catch(Throwable e) {
                 throw new RuntimeException(e);
@@ -100,7 +100,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         }
     }
 
-    public String getTunerRfFlowId(String id) {
+    public String getTunerRfFlowId(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){
@@ -108,7 +108,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
                 } else {
                     throw new RuntimeException("InFrontendTunerPort getTunerRfFlowId(String id) callback delegate not defined");
                 }
-            } catch(org.omg.CORBA.SystemException e) {
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;
             } catch(Throwable e) {
                 throw new RuntimeException(e);
@@ -116,7 +116,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
         }
     }
 
-    public CF.DataType[] getTunerStatus(String id) {
+    public CF.DataType[] getTunerStatus(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
         synchronized(this.portAccess){
             try{
                 if ( delegate != null ){
@@ -124,7 +124,7 @@ public class InFrontendTunerPort extends FRONTEND.FrontendTunerPOA implements Po
                 } else {
                     throw new RuntimeException("InFrontendTunerPort getTunerStatus(String id) callback delegate not defined");
                 }
-            } catch(org.omg.CORBA.SystemException e) {
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;
             } catch(Throwable e) {
                 throw new RuntimeException(e);

@@ -119,7 +119,11 @@ import CF.InvalidObjectReference;
         System.out.println("deviceDeleteTuning(): Deallocate an allocated tuner  *********");
         return true;
     }
+/*{% endif %}*/
+/*{% endblock %}*/
 
+/*{% block fei_port_delegations %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
     /*************************************************************
     Functions servicing the tuner control port
     *************************************************************/

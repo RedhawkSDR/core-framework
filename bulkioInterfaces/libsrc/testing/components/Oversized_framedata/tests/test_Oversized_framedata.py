@@ -30,26 +30,32 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all resource implementations in Oversized_framedata"""
 
     def testConsistentSize(self):
+        """Test that subsequent timestamps differ by an integer multiple of sri.subsize.
+        """
         #######################################################################
         # Launch the resource with the default execparams
         self.launch()
-        
-        snk=sb.DataSink()
-        snk.start()
-        self.comp.connect(snk)
+
+        sink = sb.StreamSink()
+        sink.start()
+        self.comp.connect(sink)
 
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
-        
-        (retval, timestamps) = snk._sink.retrieveData(19999744)
-        self.assertEquals(timestamps[1][0]%1024,0) 
+
+        data = sink.read(eos=True)
+
+        ts_first = data.timestamps[0][1]
+        ts_last = data.timestamps[-1][1]
+        delta = int(ts_last.twsec - ts_first.twsec)
+        self.assertEquals(delta % data.sri.subsize, 0)
 
         #######################################################################
         # Simulate regular resource shutdown
-        snk.releaseObject()
+        sink.releaseObject()
         self.comp.releaseObject()
-        
+
     # TODO Add additional tests here
     #
     # See:

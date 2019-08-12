@@ -24,11 +24,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     # tearDown is run after every function preceded by "test" is executed
     
     # self.comp is a device using the sandbox API
-    # to create a data source, the package sb contains data sources like DataSource or FileSource
-    # to create a data sink, there are sinks like DataSink and FileSink
+    # to create a data source, the package sb contains sources like StreamSource or FileSource
+    # to create a data sink, there are sinks like StreamSink and FileSink
     # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
     #  src = sb.FileSource('myfile.dat')
-    #  snk = sb.DataSink()
+    #  snk = sb.StreamSink()
     #  src.connect(self.comp)
     #  self.comp.connect(snk)
     #  sb.start()
@@ -58,7 +58,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         #self.comp.start()
         
-        sink = sb.DataSink()
+        sink = sb.StreamSink()
         
                
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
@@ -79,19 +79,19 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             
         time.sleep(1)
         
-        sri = sink.sri()
+        streamData = sink.read()
+        sri = streamData.sri
         self.assertEqual(sri.streamID, allocationID)
         self.assertAlmostEqual(sri.xdelta, 1.0/2.5e6,5)
         #time.sleep(1)
 
-        data= sink.getData() 
-        self.assertTrue(len(data)>0)
+        self.assertTrue(len(streamData.data)>0)
         
         self.comp.deallocateCapacity(alloc)
         time.sleep(1)
         
-        sri = sink.sri()
-        self.assertTrue( sink.eos())
+        streamData = sink.read(eos=True)
+        self.assertTrue(streamData.eos)
 
     def testDoubleTunerAllocation(self):
         
@@ -176,7 +176,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def testValidRFInfoPacket(self):
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -201,7 +201,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def testInValidRFInfoPacket(self):
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6,rf_flow_id="invalid_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -231,7 +231,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9001e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -261,7 +261,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=100e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -291,7 +291,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9050.1e6,sr=0,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)
@@ -321,7 +321,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
         
         #Create Allocation and Sink for Tuner 1
-        sink = sb.DataSink()               
+        sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9050.1e6,sr=2.5e6,bw=0,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         self.comp.connect(sink,connectionId=allocationID)

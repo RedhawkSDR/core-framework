@@ -127,9 +127,7 @@ class Oversized_framedata_i(Oversized_framedata_base):
         self.sri = bulkio.sri.create(stream_id)
         self.sri.subsize = 1024;
         self.port_dataShort_out.pushSRI(self.sri);
-        data = range(20000000)
-        for idx in range(len(data)):
-            data[idx] = data[idx] % 1000
+        data = range(1000) * 20000
         tstamp = bulkio.timestamp.now()
         self.port_dataShort_out.pushPacket(data, tstamp, True, stream_id);
         
