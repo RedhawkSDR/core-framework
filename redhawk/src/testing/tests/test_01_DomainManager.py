@@ -30,6 +30,9 @@ import CosEventComm, CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 from ossie.cf import StandardEvent
 from ossie.events import ChannelManager
+import os
+import re
+
 
 def getChildren(parentPid):
     process_listing = commands.getoutput('ls /proc').split('\n')
@@ -251,6 +254,62 @@ class DomainManagerTest(scatest.CorbaTestCase):
             time.sleep(0.1)
         self.assertEqual(self.gotData, True)
         self._domMgr.unregisterFromEventChannel('some_id', channelName)
+
+    @scatest.requireLog4cxx        
+    def test_RestartDomainConnectEvents(self):
+        # launch DomainManager
+        self._nb_domMgr, self._domMgr = self.launchDomainManager()
+        self.assertNotEqual(self._domMgr, None)
+        # get domain name
+        domain_name = self._domMgr._get_name()
+        self.assertNotEqual( domain_name, None)
+
+        # check ODM/IDM channel
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        orig_ODM_ref = self._root.resolve(ns_ODM)
+        orig_IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(orig_ODM_ref, None)
+        self.assertNotEqual(orig_IDM_ref, None)
+
+        ## kill domain manager
+        os.kill(self._nb_domMgr.pid, signal.SIGKILL)
+        if not self.waitTermination(self._nb_domMgr, 5.0):
+            self.fail("Domain Manager Failed to Die")
+
+        # remove old log file
+        try:
+            os.remove("./sdr/domtest.log")
+        except:
+            pass
+
+        # restart domain manager
+        self._nb_domMgr, self._domMgr = self.launchDomainManager(loggingURI='file://'+os.getcwd()+'/domtest.cfg', debug=3)
+        self.assertNotEqual( self._domMgr, None )
+        # get domain name
+        domain_name = self._domMgr._get_name()
+        self.assertNotEqual( domain_name, None)
+
+        # check ODM/IDM channel
+        ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
+        ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
+        orig_ODM_ref = self._root.resolve(ns_ODM)
+        orig_IDM_ref = self._root.resolve(ns_IDM)
+        self.assertNotEqual(orig_ODM_ref, None)
+        self.assertNotEqual(orig_IDM_ref, None)
+
+        # check for failed create channel message
+        cnt=-1
+        try:
+            f=open("./sdr/domtest.log")
+            cnt=0
+            for x in f.readlines():
+                if re.search('.*[ODM|IDM] Channel create FAILED.*',x ):
+                    cnt+=1
+        except:
+            pass
+
+        self.assertEqual(cnt,0)
 
 
 class DomainManager_ApplicationInstall(scatest.CorbaTestCase):

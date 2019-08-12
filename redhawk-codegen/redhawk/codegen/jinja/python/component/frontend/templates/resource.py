@@ -105,7 +105,11 @@
         ************************************************************'''
         print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
         return True
+#{% endif %}
+#{% endblock %}
 
+#{% block fei_port_delegations %}
+#{% if 'FrontendTuner' in component.implements %}
     '''
     *************************************************************
     Functions servicing the tuner control port

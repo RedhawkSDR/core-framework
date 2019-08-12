@@ -31,7 +31,28 @@ class PullComponentMapper(BaseComponentMapper):
         cppcomp['superclasses'] = self.superClasses(softpkg)
         cppcomp['interfacedeps'] = tuple(self.getInterfaceDependencies(softpkg))
         cppcomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
+        cppcomp['implements'] = self.getImplementedInterfaces(softpkg)
         return cppcomp
+
+    @staticmethod
+    def getImplementedInterfaces(softpkg):
+        additionalinfo = set()
+        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+                     'AnalogTuner': ('FrontendTuner',) }
+
+        for port in softpkg.providesPorts():
+            idl = IDLInterface(port.repid())
+            # Ignore non-FRONTEND intefaces
+            if idl.namespace() != 'FRONTEND':
+                continue
+            interface = idl.interface()
+            additionalinfo.add(interface)
+            for parent in inherits.get(interface, []):
+                additionalinfo.add(parent)
+
+        return additionalinfo
 
     @staticmethod
     def userClass(softpkg):
@@ -65,4 +86,28 @@ class PullComponentMapper(BaseComponentMapper):
         if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
             classes.append({'name': aggregate, 'header': '<CF/AggregateDevices.h>'})
             classes.append({'name': 'AggregateDevice_impl', 'header': '<ossie/AggregateDevice_impl.h>'})
+
+        additionalinfo = PullComponentMapper.getImplementedInterfaces(softpkg)
+
+        if 'DigitalScanningTuner' in additionalinfo:
+            classes.append({'name': 'virtual frontend::digital_scanning_tuner_delegation', 'header': ''})
+        elif 'AnalogScanningTuner' in additionalinfo:
+            classes.append({'name': 'virtual frontend::analog_scanning_tuner_delegation', 'header': ''})
+        elif 'DigitalTuner' in additionalinfo:
+            classes.append({'name': 'virtual frontend::digital_tuner_delegation', 'header': ''})
+        elif 'AnalogTuner' in additionalinfo:
+            classes.append({'name': 'virtual frontend::analog_tuner_delegation', 'header': ''})
+        elif 'FrontendTuner' in additionalinfo:
+            classes.append({'name': 'virtual frontend::frontend_tuner_delegation', 'header': ''})
+
+        # Add additonal FRONTEND delegate interfaces
+        if 'RFInfo' in additionalinfo:
+            classes.append({'name': 'virtual frontend::rfinfo_delegation', 'header': ''})
+        if 'RFSource' in additionalinfo:
+            classes.append({'name': 'virtual frontend::rfsource_delegation', 'header': ''})
+        if 'GPS' in additionalinfo:
+            classes.append({'name': 'virtual frontend::gps_delegation', 'header': ''})
+        if 'NavData' in additionalinfo:
+            classes.append({'name': 'virtual frontend::nav_delegation', 'header': ''})
+
         return classes

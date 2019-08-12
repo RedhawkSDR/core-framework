@@ -78,28 +78,11 @@ ${className}::~${className}()
 
 void ${className}::constructor()
 {
+/*{% block constructorBody %}*/
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
-/*{% if 'FrontendTuner' in component.implements %}*/
-
-     For a tuner device, the structure frontend_tuner_status needs to match the number
-     of tuners that this device controls and what kind of device it is.
-     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
-     
-     For example, if this device has 5 physical
-     tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-     should look like this:
-
-     this->addChannels(3, "RX_DIGITIZER");
-     this->addChannels(2, "CHANNELIZER");
-     
-     The incoming request for tuning contains a string describing the requested tuner
-     type. The string for the request must match the string in the tuner status.
-/*{% endif %}*/
     ***********************************************************************************/
-/*{% if 'FrontendTuner' in component.implements %}*/
-    this->addChannels(1, "RX_DIGITIZER");
-/*{% endif %}*/
+/*{% endblock %}*/
 }
 
 /*{% if component is device %}*/
@@ -396,4 +379,321 @@ int ${className}::serviceFunction()
     return NOOP;
 }
 /*{% block extensions %}*/
+/*{% endblock %}*/
+/*{% block fei_port_delegations %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+/*************************************************************
+Functions servicing the tuner control port
+*************************************************************/
+std::string ${className}::getTunerType(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerType not supported");
+}
+
+bool ${className}::getTunerDeviceControl(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerDeviceControl not supported");
+}
+
+std::string ${className}::getTunerGroupId(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerGroupId not supported");
+}
+
+std::string ${className}::getTunerRfFlowId(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerRfFlowId not supported");
+}
+/*{% endif %}*/
+/*{% if 'AnalogTuner' in component.implements %}*/
+
+void ${className}::setTunerCenterFrequency(const std::string& allocation_id, double freq) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerCenterFrequency not supported");
+}
+
+double ${className}::getTunerCenterFrequency(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerCenterFrequency not supported");
+}
+
+void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerBandwidth not supported");
+}
+
+double ${className}::getTunerBandwidth(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerBandwidth not supported");
+}
+
+void ${className}::setTunerAgcEnable(const std::string& allocation_id, bool enable)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerAgcEnable not supported");
+}
+
+bool ${className}::getTunerAgcEnable(const std::string& allocation_id)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerAgcEnable not supported");
+}
+
+void ${className}::setTunerGain(const std::string& allocation_id, float gain)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerGain not supported");
+}
+
+float ${className}::getTunerGain(const std::string& allocation_id)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerGain not supported");
+}
+
+void ${className}::setTunerReferenceSource(const std::string& allocation_id, long source)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerReferenceSource not supported");
+}
+
+long ${className}::getTunerReferenceSource(const std::string& allocation_id)
+{
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerReferenceSource not supported");
+}
+
+void ${className}::setTunerEnable(const std::string& allocation_id, bool enable) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerEnable not supported");
+}
+
+bool ${className}::getTunerEnable(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerEnable not supported");
+}
+/*{% endif %}*/
+/*{% if 'DigitalTuner' in component.implements %}*/
+
+void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, double sr) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setTunerOutputSampleRate not supported");
+}
+
+double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerOutputSampleRate not supported");
+}
+/*{% endif %}*/
+/*{% if 'ScanningTuner' in component.implements %}*/
+frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getScanStatus not supported");
+}
+
+void ${className}::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setScanStartTime not supported");
+}
+
+void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("setScanStrategy not supported");
+}
+/*{% endif %}*/
+/*{% if 'GPS' in component.implements %}*/
+
+frontend::GPSInfo ${className}::get_gps_info(const std::string& port_name)
+{
+    frontend::GPSInfo gps_info;
+    gps_info.source_id="";
+    gps_info.rf_flow_id="";
+    gps_info.mode="";
+    gps_info.fom=1;
+    gps_info.tfom=1;
+    gps_info.datumID=1;
+    gps_info.time_offset=1.0;
+    gps_info.freq_offset=1.0;
+    gps_info.time_variance=1.0;
+    gps_info.freq_variance=1.0;
+    gps_info.satellite_count=1;
+    gps_info.snr=1.0;
+    gps_info.status_message="";
+    gps_info.timestamp=bulkio::time::utils::now();
+    return gps_info;
+}
+
+void ${className}::set_gps_info(const std::string& port_name, const frontend::GPSInfo &gps_info)
+{
+}
+
+frontend::GpsTimePos ${className}::get_gps_time_pos(const std::string& port_name)
+{
+    frontend::GpsTimePos gpstimepos;
+    gpstimepos.position.valid = true;
+    gpstimepos.position.datum = "DATUM_WGS84";
+    gpstimepos.position.lat = 1.0;
+    gpstimepos.position.lon = 1.0;
+    gpstimepos.position.alt = 1.0;
+    gpstimepos.timestamp = bulkio::time::utils::now();
+    return gpstimepos;
+}
+
+void ${className}::set_gps_time_pos(const std::string& port_name, const frontend::GpsTimePos &gps_time_pos)
+{
+}
+/*{% endif %}*/
+/*{% if 'NavData' in component.implements %}*/
+
+frontend::NavigationPacket ${className}::get_nav_packet(const std::string& port_name)
+{
+    frontend::NavigationPacket navpacket;
+    navpacket.source_id = "";
+    navpacket.rf_flow_id = "";
+    navpacket.position.valid = true;
+    navpacket.position.datum = "DATUM_WGS84";
+    navpacket.position.lat = 1.0;
+    navpacket.position.lon = 1.0;
+    navpacket.position.alt = 1.0;
+    navpacket.cposition.valid = true;
+    navpacket.cposition.datum = "DATUM_WGS84";
+    navpacket.cposition.x = 1.0;
+    navpacket.cposition.y = 1.0;
+    navpacket.cposition.z = 1.0;
+    navpacket.velocity.valid = true;
+    navpacket.velocity.datum = "DATUM_WGS84";
+    navpacket.velocity.coordinate_system = "CS_ECF";
+    navpacket.velocity.x = 1.0;
+    navpacket.velocity.y = 1.0;
+    navpacket.velocity.z = 1.0;
+    navpacket.acceleration.valid = true;
+    navpacket.acceleration.datum = "DATUM_WGS84";
+    navpacket.acceleration.coordinate_system = "CS_ECF";
+    navpacket.acceleration.x = 1.0;
+    navpacket.acceleration.y = 1.0;
+    navpacket.acceleration.z = 1.0;
+    navpacket.attitude.valid = true;
+    navpacket.attitude.pitch = 1.0;
+    navpacket.attitude.yaw = 1.0;
+    navpacket.attitude.roll = 1.0;
+    navpacket.timestamp = bulkio::time::utils::now();
+    return navpacket;
+}
+
+void ${className}::set_nav_packet(const std::string& port_name, const frontend::NavigationPacket &nav_info)
+{
+}
+/*{% endif %}*/
+/*{% if 'RFInfo' in component.implements %}*/
+
+/*************************************************************
+Functions servicing the RFInfo port(s)
+- port_name is the port over which the call was received
+*************************************************************/
+std::string ${className}::get_rf_flow_id(const std::string& port_name)
+{
+    return std::string("");
+}
+
+void ${className}::set_rf_flow_id(const std::string& port_name, const std::string& id)
+{
+}
+
+frontend::RFInfoPkt ${className}::get_rfinfo_pkt(const std::string& port_name)
+{
+    frontend::RFInfoPkt rfinfopkt;
+    rfinfopkt.rf_flow_id = "";
+    rfinfopkt.rf_center_freq = 1.0;
+    rfinfopkt.rf_bandwidth = 1.0;
+    rfinfopkt.if_center_freq = 1.0;
+    rfinfopkt.spectrum_inverted = false;
+    rfinfopkt.sensor.collector = "";
+    rfinfopkt.sensor.mission = "";
+    rfinfopkt.sensor.rx = "";
+    rfinfopkt.sensor.antenna.description = "";
+    rfinfopkt.sensor.antenna.name = "";
+    rfinfopkt.sensor.antenna.size = "";
+    rfinfopkt.sensor.antenna.type = "";
+    rfinfopkt.sensor.feed.name = "";
+    rfinfopkt.sensor.feed.polarization = "";
+    rfinfopkt.sensor.feed.freq_range.max_val = 1.0;
+    rfinfopkt.sensor.feed.freq_range.min_val = 1.0;
+    rfinfopkt.sensor.feed.freq_range.values.resize(0);
+    rfinfopkt.ext_path_delays.resize(0);
+    rfinfopkt.capabilities.freq_range.min_val = 1.0;
+    rfinfopkt.capabilities.freq_range.max_val = 1.0;
+    rfinfopkt.capabilities.bw_range.min_val = 1.0;
+    rfinfopkt.capabilities.bw_range.max_val = 1.0;
+    return rfinfopkt;
+}
+
+void ${className}::set_rfinfo_pkt(const std::string& port_name, const frontend::RFInfoPkt &pkt)
+{
+}
+/*{% endif %}*/
+/*{% if 'RFSource' in component.implements %}*/
+
+std::vector<frontend::RFInfoPkt> ${className}::get_available_rf_inputs(const std::string& port_name)
+{
+    std::vector<frontend::RFInfoPkt> retval;
+    return retval;
+}
+
+void ${className}::set_available_rf_inputs(const std::string& port_name, const std::vector<frontend::RFInfoPkt> &inputs)
+{
+}
+
+frontend::RFInfoPkt ${className}::get_current_rf_input(const std::string& port_name)
+{
+    frontend::RFInfoPkt rfinfopkt;
+    rfinfopkt.rf_flow_id = "";
+    rfinfopkt.rf_center_freq = 1.0;
+    rfinfopkt.rf_bandwidth = 1.0;
+    rfinfopkt.if_center_freq = 1.0;
+    rfinfopkt.spectrum_inverted = false;
+    rfinfopkt.sensor.collector = "";
+    rfinfopkt.sensor.mission = "";
+    rfinfopkt.sensor.rx = "";
+    rfinfopkt.sensor.antenna.description = "";
+    rfinfopkt.sensor.antenna.name = "";
+    rfinfopkt.sensor.antenna.size = "";
+    rfinfopkt.sensor.antenna.type = "";
+    rfinfopkt.sensor.feed.name = "";
+    rfinfopkt.sensor.feed.polarization = "";
+    rfinfopkt.sensor.feed.freq_range.max_val = 1.0;
+    rfinfopkt.sensor.feed.freq_range.min_val = 1.0;
+    rfinfopkt.sensor.feed.freq_range.values.resize(0);
+    rfinfopkt.ext_path_delays.resize(0);
+    rfinfopkt.capabilities.freq_range.min_val = 1.0;
+    rfinfopkt.capabilities.freq_range.max_val = 1.0;
+    rfinfopkt.capabilities.bw_range.min_val = 1.0;
+    rfinfopkt.capabilities.bw_range.max_val = 1.0;
+    return rfinfopkt;
+}
+
+void ${className}::set_current_rf_input(const std::string& port_name, const frontend::RFInfoPkt &pkt)
+{
+}
+/*{% endif %}*/
 /*{% endblock %}*/

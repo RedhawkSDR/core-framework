@@ -44,7 +44,71 @@ class PullComponentMapper(BaseComponentMapper):
         javacomp['interfacedeps'] = list(self.getInterfaceDependencies(softpkg))
         javacomp['interfacejars'] = self.getInterfaceJars(softpkg)
         javacomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
+        javacomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
+        javacomp['hastunerstatusstructure'] = self.hasTunerStatusStructure(softpkg)
+        javacomp['implements'] = self.getImplementedInterfaces(softpkg)
         return javacomp
+
+    @staticmethod
+    def getImplementedInterfaces(softpkg):
+        deviceinfo = set()
+
+        # Ensure that parent interfaces also gets added (so, e.g., a device
+        # with a DigitalTuner should also report that it's an AnalogTuner
+        # and FrontendTuner)
+        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+                     'AnalogTuner': ('FrontendTuner',) }
+
+        for port in softpkg.providesPorts():
+            idl = IDLInterface(port.repid())
+            # Ignore non-FRONTEND intefaces
+            if idl.namespace() != 'FRONTEND':
+                continue
+            interface = idl.interface()
+            deviceinfo.add(interface)
+            for parent in inherits.get(interface, []):
+                deviceinfo.add(parent)
+
+        return deviceinfo
+
+    @staticmethod
+    def isTunerStatusStructure(prop):
+        if prop.name() != 'frontend_tuner_status':
+            return False
+        if prop.struct().name() != 'frontend_tuner_status_struct':
+            return False
+        fields = set(field.name() for field in prop.struct().fields())
+        if 'allocation_id_csv' not in fields:
+            return False
+        if 'bandwidth' not in fields:
+            return False
+        if 'center_frequency' not in fields:
+            return False
+        if 'enabled' not in fields:
+            return False
+        if 'group_id' not in fields:
+            return False
+        if 'rf_flow_id' not in fields:
+            return False
+        if 'sample_rate' not in fields:
+            return False
+        if 'tuner_type' not in fields:
+            return False
+        return True
+
+    def hasTunerStatusStructure(self, softpkg):
+        for prop in softpkg.getStructSequenceProperties():
+            if PullComponentMapper.isTunerStatusStructure(prop):
+                return True
+        return False
+
+    def hasFrontendProvidesPorts(self, softpkg):
+        for port in softpkg.providesPorts():
+            if 'FRONTEND' in port.repid():
+                return True
+        return False
 
     def getInterfaceDependencies(self, softpkg):
         for namespace in self.getInterfaceNamespaces(softpkg):

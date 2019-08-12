@@ -535,8 +535,6 @@ class InPort(object):
                     return False
             return True
 
-        return True
-
     def _createStream(self, sri):
         with self._streamsMutex:
             if sri.streamID in self._streams:
@@ -545,7 +543,7 @@ class InPort(object):
                 self._portLog.debug("Creating pending stream '%s'", sri.streamID)
                 if not sri.streamID in self._pendingStreams:
                     self._pendingStreams[sri.streamID] = []
-                self._pendingStreams[sri.streamID].append(sri)
+                self._pendingStreams[sri.streamID].append(self._streamType(sri, self))
                 stream = None
             else:
                 # New stream
@@ -572,7 +570,7 @@ class InPort(object):
                 self._streams[streamID] = new_stream
 
         if new_stream:
-            self.streamAdded(stream);
+            self.streamAdded(new_stream);
 
     def _discardPacketsForStream(self, streamID):
         with self._dataBufferLock:

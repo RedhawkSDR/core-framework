@@ -34,6 +34,12 @@ class PullComponentMapper(ComponentMapper):
         pycomp['poaclass'] = self.poaClass(softpkg)
         pycomp['interfacedeps'] = self.getInterfaceDependencies(softpkg)
         pycomp['hasmultioutport'] = self.hasMultioutPort(softpkg)
+        pycomp['hastunerstatusstructure'] = self.hasTunerStatusStructure(softpkg)
+        pycomp['hasfrontendprovides'] = self.hasFrontendProvidesPorts(softpkg)
+
+        # Determine which FRONTEND interfaces this device implements (provides)
+        pycomp['implements'] = self.getImplementedInterfaces(softpkg)
+
         return pycomp
 
     @staticmethod
@@ -46,6 +52,67 @@ class PullComponentMapper(ComponentMapper):
         baseclass = softpkg.basename() + '_base'
         return {'name'  : baseclass,
                 'file'  : baseclass+'.py'}
+
+    def hasFrontendProvidesPorts(self, softpkg):
+        for port in softpkg.providesPorts():
+            if 'FRONTEND' in port.repid():
+                return True
+        return False
+
+    @staticmethod
+    def getImplementedInterfaces(softpkg):
+        deviceinfo = set()
+
+        # Ensure that parent interfaces also gets added (so, e.g., a device
+        # with a DigitalTuner should also report that it's an AnalogTuner
+        # and FrontendTuner)
+        inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
+                     'AnalogTuner': ('FrontendTuner',) }
+
+        for port in softpkg.providesPorts():
+            idl = IDLInterface(port.repid())
+            # Ignore non-FRONTEND intefaces
+            if idl.namespace() != 'FRONTEND':
+                continue
+            interface = idl.interface()
+            deviceinfo.add(interface)
+            for parent in inherits.get(interface, []):
+                deviceinfo.add(parent)
+
+        return deviceinfo
+
+    @staticmethod
+    def isTunerStatusStructure(prop):
+        if prop.name() != 'frontend_tuner_status':
+            return False
+        if prop.struct().name() != 'frontend_tuner_status_struct':
+            return False
+        fields = set(field.name() for field in prop.struct().fields())
+        if 'allocation_id_csv' not in fields:
+            return False
+        if 'bandwidth' not in fields:
+            return False
+        if 'center_frequency' not in fields:
+            return False
+        if 'enabled' not in fields:
+            return False
+        if 'group_id' not in fields:
+            return False
+        if 'rf_flow_id' not in fields:
+            return False
+        if 'sample_rate' not in fields:
+            return False
+        if 'tuner_type' not in fields:
+            return False
+        return True
+
+    def hasTunerStatusStructure(self, softpkg):
+        for prop in softpkg.getStructSequenceProperties():
+            if PullComponentMapper.isTunerStatusStructure(prop):
+                return True
+        return False
 
     @staticmethod
     def superClasses(softpkg):
@@ -66,6 +133,34 @@ class PullComponentMapper(ComponentMapper):
         classes = [{'name': name, 'package': package}]
         if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
             classes.append({'name': 'AggregateDevice', 'package': 'ossie.device'})
+
+        deviceinfo = PullComponentMapper.getImplementedInterfaces(softpkg)
+        # If this device is any type of tuner, replace the Device_impl base
+        # class with the FRONTEND-specific tuner device class
+        if 'FrontendTuner' in deviceinfo:
+            # Add the most specific tuner delegate interface:
+            #   (Digital > Analog > Frontend)
+            if 'DigitalScanningTuner' in deviceinfo:
+                classes.append({'name': 'digital_scanning_tuner_delegation', 'package': 'frontend'})
+            elif 'AnalogScanningTuner' in deviceinfo:
+                classes.append({'name': 'analog_scanning_tuner_delegation', 'package': 'frontend'})
+            elif 'DigitalTuner' in deviceinfo:
+                classes.append({'name': 'digital_tuner_delegation', 'package': 'frontend'})
+            elif 'AnalogTuner' in deviceinfo:
+                classes.append({'name': 'analog_tuner_delegation', 'package': 'frontend'})
+            elif 'FrontendTuner' in additionalinfo:
+                classes.append({'name': 'frontend_tuner_delegation', 'package': 'frontend'})
+
+        # Add additonal FRONTEND delegate interfaces
+        if 'RFInfo' in deviceinfo:
+            classes.append({'name': 'rfinfo_delegation', 'package': 'frontend'})
+        if 'RFSource' in deviceinfo:
+            classes.append({'name': 'rfsource_delegation', 'package': 'frontend'})
+        if 'GPS' in deviceinfo:
+            classes.append({'name': 'gps_delegation', 'package': 'frontend'})
+        if 'NavData' in deviceinfo:
+            classes.append({'name': 'nav_delegation', 'package': 'frontend'})
+
         return classes
 
     @staticmethod
