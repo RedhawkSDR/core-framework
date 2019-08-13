@@ -18,13 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
 //% extends "pull/resource_base.cpp"
-/*{% block extensions %}*/
+/*{% block implGetTunerStatus %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
-void ${className}::frontendTunerStatusChanged(const std::vector<frontend_tuner_status_struct_struct>* oldValue, const std::vector<frontend_tuner_status_struct_struct>* newValue)
-{
-    this->tuner_allocation_ids.resize(this->frontend_tuner_status.size());
-}
-
 CF::Properties* ${className}::getTunerStatus(const std::string& allocation_id)
 {
     CF::Properties* tmpVal = new CF::Properties();
@@ -37,6 +32,14 @@ CF::Properties* ${className}::getTunerStatus(const std::string& allocation_id)
 
     CF::Properties_var tmp = new CF::Properties(*tmpVal);
     return tmp._retn();
+}
+/*{% endif %}*/
+/*{% endblock %}*/
+/*{% block extensions %}*/
+/*{% if 'FrontendTuner' in component.implements %}*/
+void ${className}::frontendTunerStatusChanged(const std::vector<frontend_tuner_status_struct_struct>* oldValue, const std::vector<frontend_tuner_status_struct_struct>* newValue)
+{
+    this->tuner_allocation_ids.resize(this->frontend_tuner_status.size());
 }
 
 void ${className}::assignListener(const std::string& listen_alloc_id, const std::string& allocation_id)

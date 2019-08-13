@@ -59,6 +59,12 @@ ${statement}
 #{%   endfor %}
 #{% endfor %}
 #{% endfilter %}
+#{% block basefeiimports %}
+#{% if ('FrontendTuner' in component.implements) or ('GPS' in component.implements) or ('NavData' in component.implements) or ('RFInfo' in component.implements) or ('RFSource' in component.implements) %}
+import frontend, bulkio
+from frontend import FRONTEND
+#{% endif %}
+#{% endblock %}
 #{% block baseadditionalimports %}
 #{# Allow additional child class imports #}
 #{% endblock %}

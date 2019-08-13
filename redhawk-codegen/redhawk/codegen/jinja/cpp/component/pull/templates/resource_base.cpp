@@ -204,6 +204,16 @@ ${initializestructseq(prop)}
 }
 /*{% endblock %}*/
 
+/*{% if 'FrontendTuner' in component.implements %}*/
+/*{% block implGetTunerStatus %}*/
+CF::Properties* ${className}::getTunerStatus(const std::string& allocation_id)
+{
+    CF::Properties_var tmp = new CF::Properties();
+    return tmp._retn();
+}
+/*{% endblock %}*/
+/*{% endif %}*/
+
 /*{% block extensions %}*/
 /*# Allow for child class extensions #*/
 /*{% endblock %}*/

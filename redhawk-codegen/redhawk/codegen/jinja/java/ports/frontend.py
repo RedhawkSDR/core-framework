@@ -22,6 +22,7 @@ from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen.jinja.ports import PortGenerator
 from redhawk.codegen.jinja.ports import PortFactory
 from generator import JavaPortGenerator
+from generic import GenericUsesPortGenerator
 from redhawk.codegen.lang import java
 
 class FrontendPortFactory(PortFactory):
@@ -57,3 +58,15 @@ class FrontendPortGenerator(JavaPortGenerator):
 
     def loader(self):
         return jinja2.PackageLoader(__package__)
+
+class FrontendProvidesPortFactory(FrontendPortFactory):
+    NAMESPACE = 'FRONTEND'
+
+    def match(self, port):
+        return IDLInterface(port.repid()).namespace() == self.NAMESPACE
+
+    def generator(self, port):
+        interface = IDLInterface(port.repid()).interface()
+        if port.isUses():
+            return GenericUsesPortGenerator(port)
+        return FrontendPortGenerator(port)

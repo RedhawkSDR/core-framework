@@ -52,10 +52,10 @@ class ${className}(${baseClass}):
         similar to the following:
           self.some_port = MyPortImplementation()
 
-#{% if 'FrontendTuner' in component.implements %}
+#{% if component.hastunerstatusstructure %}
         For a tuner device, the structure frontend_tuner_status needs to match the number
         of tuners that this device controls and what kind of device it is.
-        The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RC_DIGITIZER_CHANNELIZER
+        The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
      
         For example, if this device has 5 physical
         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
@@ -69,7 +69,7 @@ class ${className}(${baseClass}):
 #{% endif %}
         """
         # TODO add customization here.
-#{% if 'FrontendTuner' in component.implements %}
+#{% if component.hastunerstatusstructure %}
         self.addChannels(1, "RX_DIGITIZER");
 #{% endif %}
         
@@ -277,6 +277,215 @@ class ${className}(${baseClass}):
         self._baseLog.debug("process() example log message")
         return NOOP
 
+#{% block fei_port_delegations %}
+#{% if 'FrontendTuner' in component.implements %}
+    '''
+    *************************************************************
+    Functions servicing the tuner control port
+    *************************************************************'''
+    def getTunerType(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerType not supported")
+
+    def getTunerDeviceControl(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerDeviceControl not supported")
+
+    def getTunerGroupId(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerGroupId not supported")
+
+    def getTunerRfFlowId(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerRfFlowId not supported")
+
+#{% endif %}
+#{% if 'AnalogTuner' in component.implements %}
+
+    def setTunerCenterFrequency(self,allocation_id, freq):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerCenterFrequency not supported")
+
+    def getTunerCenterFrequency(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerCenterFrequency not supported")
+
+    def setTunerBandwidth(self,allocation_id, bw):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerBandwidth not supported")
+
+    def getTunerBandwidth(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerBandwidth not supported")
+
+    def setTunerAgcEnable(self,allocation_id, enable):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
+
+    def getTunerAgcEnable(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
+
+    def setTunerGain(self,allocation_id, gain):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerGain not supported")
+
+    def getTunerGain(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerGain not supported")
+
+    def setTunerReferenceSource(self,allocation_id, source):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
+
+    def getTunerReferenceSource(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
+
+    def setTunerEnable(self,allocation_id, enable):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerEnable not supported")
+
+    def getTunerEnable(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerEnable not supported")
+
+#{% endif %}
+#{% if 'DigitalTuner' in component.implements %}
+
+    def setTunerOutputSampleRate(self,allocation_id, sr):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setTunerOutputSampleRate not supported")
+
+    def getTunerOutputSampleRate(self,allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
+
+#{% endif %}
+#{% if 'ScanningTuner' in component.implements %}
+
+    def getScanStatus(self, allocation_id):
+        # Example of how to build a ScanStatus data structure
+        #_scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(
+        #    FRONTEND.ScanningTuner.MANUAL_SCAN, 
+        #    FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
+        #    FRONTEND.ScanningTuner.TIME_BASED, 
+        #    0.0)
+        #_scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
+        #                                   start_time=bulkio.timestamp.now(),
+        #                                   center_tune_frequencies=[],
+        #                                   started=False)
+        raise FRONTEND.NotSupportedException("getScanStatus not supported")
+
+    def setScanStartTime(self, allocation_id, start_time):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setScanStartTime not supported")
+
+    def setScanStrategy(self, allocation_id, scan_strategy):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("setScanStrategy not supported")
+
+#{% endif %}
+#{% if 'GPS' in component.implements %}
+
+    def get_gps_info(self,port_name):
+        _time = bulkio.timestamp.now()
+        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        return _gpsinfo
+
+    def set_gps_info(self,port_name, gps_info):
+        pass
+
+    def get_gps_time_pos(self,port_name):
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
+        return _gpstimepos
+
+    def set_gps_time_pos(self,port_name, gps_time_pos):
+        pass
+#{% endif %}
+#{% if 'NavData' in component.implements %}
+
+    def get_nav_packet(self,port_name):
+        _time = bulkio.timestamp.now()
+        _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _cartesianpos = FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
+        _velocityinfo = FRONTEND.VelocityInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _accelerationinfo = FRONTEND.AccelerationInfo(False,'DATUM_WGS84','',0.0,0.0,0.0)
+        _attitudeinfo = FRONTEND.AttitudeInfo(False,0.0,0.0,0.0)
+        _navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,_time,[])
+        return _navpacket
+
+    def set_nav_packet(self,port_name, nav_info):
+        pass
+
+#{% endif %}
+#{% if 'RFInfo' in component.implements %}
+    '''
+    *************************************************************
+    Functions servicing the RFInfo port(s)
+    - port_name is the port over which the call was received
+    *************************************************************'''
+    def get_rf_flow_id(self,port_name):
+        return ''
+
+    def set_rf_flow_id(self,port_name, _id):
+        pass
+
+    def get_rfinfo_pkt(self,port_name):
+        _antennainfo=FRONTEND.AntennaInfo('','','','')
+        _freqrange=FRONTEND.FreqRange(0,0,[])
+        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
+
+    def set_rfinfo_pkt(self,port_name, pkt):
+        pass
+#{% endif %}
+#{% if 'RFSource' in component.implements %}
+
+    def get_available_rf_inputs(self,port_name):
+        return []
+
+    def set_available_rf_inputs(self,port_name, inputs):
+        pass
+
+    def get_current_rf_input(self,port_name):
+        _antennainfo = FRONTEND.AntennaInfo('','','','')
+        _freqrange = FRONTEND.FreqRange(0,0,[])
+        _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
+        _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
+        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        return _rfinfopkt
+
+    def set_current_rf_input(self, port_name, pkt):
+        pass
+#{% endif %}
+#{% endblock %}
 #{% block extensions %}
 #{% endblock %}
   

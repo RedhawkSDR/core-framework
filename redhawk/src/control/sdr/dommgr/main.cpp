@@ -363,7 +363,7 @@ int old_main(int argc, char* argv[])
     
     // Check if name service is running 
     try{
-        CosNaming::NamingContext_ptr nc = ossie::corba::InitialNamingContext();
+        CosNaming::NamingContext_ptr nc  __attribute__((unused)) = ossie::corba::InitialNamingContext(); 
     }catch (const CORBA::TRANSIENT& ex) {
         return(EXIT_FAILURE);
     }
