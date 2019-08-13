@@ -22,6 +22,7 @@
 #define REDHAWK_SHM_ENVIRONMENT_H
 
 #include <cstddef>
+#include <iostream>
 
 #include <boost/lexical_cast.hpp>
 
