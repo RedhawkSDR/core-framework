@@ -127,15 +127,6 @@ Heap::Heap(const std::string& name) :
 
 Heap::~Heap()
 {
-#if 0
-    if (redhawk::shm::Metrics::enabled) {
-        std::cout << "Heap statistics (" << _file.name() << "):" << std::endl;
-        SuperblockFile::Statistics stats = _file.getStatistics();
-        std::cout << "  Total size: " << stats.size << std::endl;
-        std::cout << "  Total superblocks: " << stats.superblocks << std::endl;
-    }
-#endif
-
     // Remove the file when the owner exits; other processes connected to the
     // same superblock file will still be able to access everything, but no new
     // connections are possible
