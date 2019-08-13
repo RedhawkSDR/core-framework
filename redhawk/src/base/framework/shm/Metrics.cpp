@@ -82,7 +82,7 @@ Metrics& Metrics::Instance()
 // Metrics::enabled variable
 bool Metrics::_initializeMetrics()
 {
-    if (!redhawk::env::getEnable("RH_SHM_METRICS", false)) {
+    if (!redhawk::env::getEnable("RH_SHMALLOC_METRICS", false)) {
         return false;
     }
     // Instantiate the singleton now (which should be process startup time) to
