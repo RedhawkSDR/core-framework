@@ -204,14 +204,9 @@ Superblock* Heap::_createSuperblock(size_t minSize)
         return 0;
     }
 
-    size_t superblock_size = redhawk::env::getVariable("RH_SHMALLOC_SUPERBLOCK_SIZE", DEFAULT_SUPERBLOCK_SIZE);
-    superblock_size = PAGE_ROUND_UP(superblock_size, MappedFile::PAGE_SIZE);
-
     // Ensure that the superblock is large enough for the request, accounting
     // for the overhead of the block metadata (roughly)
-    // TODO: Should extra large requests be handled differently? In glibc,
-    //       above a certain size it starts using mmap/munmap. As a quick "fix"
-    //       use a minimum of 2 blocks plus overhead.
+    size_t superblock_size = _superblockSize;
     minSize = (minSize + 64) * 2;
     if (minSize > superblock_size) {
         superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
@@ -224,3 +219,15 @@ Superblock* Heap::_createSuperblock(size_t minSize)
         return 0;
     }
 }
+
+size_t Heap::_initSuperblockSize()
+{
+    // We would prefer to use MappedFile::PAGE_SIZE here but the order of
+    // initialization for C++ modules is undefined, meaning it may still be 0
+    // when this function is called. Use the same system call instead.
+    static size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+    size_t superblock_size = redhawk::env::getVariable("RH_SHMALLOC_SUPERBLOCK_SIZE", DEFAULT_SUPERBLOCK_SIZE);
+    return PAGE_ROUND_UP(superblock_size, PAGE_SIZE);
+}
+
+size_t Heap::_superblockSize = Heap::_initSuperblockSize();

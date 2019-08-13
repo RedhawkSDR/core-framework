@@ -75,6 +75,9 @@ namespace redhawk {
             std::vector<PrivateHeap*> _allocs;
 
             boost::thread_specific_ptr<ThreadState> _threadState;
+
+            static size_t _initSuperblockSize();
+            static size_t _superblockSize;
         };
     }
 }
