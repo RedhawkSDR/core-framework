@@ -4,416 +4,299 @@ In the context of REDHAWK, a component's implementation does not need to be tied
 In instances where the component functionality is implemented on a different processor, like an FPGA, the role of the component process or thread is to manage the bitfile load, its properties, and its data ingress and egress.
 In the case where the data ingress or egress is between components running in the same FPGA, the role of the components is to manage the FPGA load and provide command-and-control information to the embedded device, like where to push data to or retrieve data from.
 
-While not directly supported by the code generators, BULK IO ports can be extended to provide connection information to 2 separate components supporting functionality on a single FPGA load. The extended classes override the base classes' connection functionality while maintaining the status information, allowing an out-of-band connection to be established while maintaining the tooling's ability to monitor the state of the connection wherever possible.
+Bulk IO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, the "local" transport is selected, which is defined as shared address space. The first code example shows how to create a new transport and apply it to links between components running in different processes. The second code example shows how to subclass a Bulk IO port and change the local transport to a custom one.
 
-In this note, the code shows and example of the port override necessary to support the connection between port C and port D in the following image:
+It needs to be noted that the custom transport is designed to interact with other Bulk IO ports. This means that in a component, if an out-of-band communications as well as tradition microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the Bulk IO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
 
 ![Port Connection](/docs/out-of-band-connections/images/NegotiableTransport.png "Logical ports corresponding to out-of-band links")
 
-## Extending Bulk IO ports
+## Adding transports to Bulk IO
 
-For the purposes of this example, suppose that there is a component called **stream_out_override** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **stream_in_override** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
+For the purposes of this example, suppose that there is a component called **transport_out** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **transport_out** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
+
+The pattern that is implemented in both the out (uses) and in (provides) side is to create a transport factory, which in turn is used to create a transport manager, which in turn creates the transport itself. The Bulk IO base classes exercise this pattern.
+
+In this pattern, the transport factories register statically with a transport registry. This transport registry contains all the transports that are supported. At transport negotiation time, the transport names are matched in order of their priority, from the lowest number to the highest. In this example, the "custom" transport is given a priority of 0, making it the highest priority transport, guaranteeing that it be selected if the transport is supported by both ends of the transaction.
+
+Once a matching transport has been selected, an exchange of properties is performed. The output side implements *getNegotiationProperties* to provide transport information to the input side. The input side receives these properties in its *createInputTransport* function. The response properties from the input side are retrieved through the input side's *getNegotiationProperties* function. Once the output side receives the response from the input side, the response is passed to the port through the *setNegotiationResult* function.
+
+In the example below, the properties includes ara examples only and do not need to be included in the actual implementation.
 
 This example requires that the \*\_base files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguard these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary).
 
 Several *cout* statements are included in this code to demonstrate where in the connection process these functions are invoked. These are the locations where device-specific customiziations are meant to occur.
 
-### The **stream_out_override** component
+### The **transport_out** component
 
-In *stream_out_override_base.h*:
+In this component, two files need to be modified: transport_out_base.h and transport_out_base.cpp.
 
-    // declare the port class
-    class my_outfloat : public bulkio::OutFloatPort {
+Modify transport_out_base.h to include the following class declarations:
+
+    // class implementing the custom transport
+    class CustomOutputTransport : public bulkio::OutputTransport<BULKIO::dataFloat>
+    {
     public:
-        my_outfloat(const std::string port_name) : bulkio::OutFloatPort (port_name) {};
+            typedef typename BULKIO::dataFloat::_ptr_type PtrType;
 
-        ExtendedCF::TransportInfo make_transport();
+        CustomOutputTransport(bulkio::OutPort<BULKIO::dataFloat>* parent, BULKIO::dataFloat_var port) : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
+            _port = parent;
+        };
 
-        template <class Target, class Func>
-        void setInitialTransportCallback (Target target, Func func)
+        std::string transportType() const {
+            return "custom";
+        };
+
+        virtual CF::Properties transportInfo() const
         {
-                    initial_setup_callbacks_.add(target, func);
+            redhawk::PropertyMap props;
+            props["transport_side_information"] = "outbound";
+            props["another_number"] = static_cast<short>(100);
+            return props;
         }
+        void _pushSRI(const BULKIO::StreamSRI& sri) {};
+        void _pushPacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {};
 
-        template <class Target, class Func>
-        void setupTransportCallback (Target target, Func func)
+        void disconnect()
         {
-                    setup_transport_callbacks_.add(target, func);
         }
-
-        template <class Target, class Func>
-        void setTearDownTransportCallback (Target target, Func func)
-        {
-                    teardown_callbacks_.add(target, func);
-        }
-
-        ExtendedCF::TransportInfoSequence* supportedTransports();
-        ExtendedCF::ConnectionStatusSequence* connectionStatus();
-        void connectPort(CORBA::Object_ptr object, const char* connectionId);
-        void disconnectPort(const char* connectionId);
-
-    private:
-        ossie::notification<void (bool &, CF::Properties &)> initial_setup_callbacks_;
-        ossie::notification<void (bool &, CF::Properties)> setup_transport_callbacks_;
-        ossie::notification<void (CF::Properties)> teardown_callbacks_;
-        std::map<std::string, ExtendedCF::NegotiationResult_var>connection_id_to_transport;
+        redhawk::PropertyMap  getNegotiationProperties();
+    protected:
+        bulkio::OutPort<BULKIO::dataFloat>* _port;
     };
 
-change:
-
-    bulkio::OutFloatPort *dataFloat_out;
-
-to
-
-    my_outfloat *dataFloat_out;
-
-In *stream_out_override_base.cpp*:
-
-    // define the new port class
-    ExtendedCF::TransportInfo my_outfloat::make_transport() {
-        ExtendedCF::TransportInfo transport;
-
-        // define the name of the type of transport
-        transport.transportType = "my_transport";
-
-        // add transport properties that are common to all connections with this port
-        char host[HOST_NAME_MAX+1];
-        gethostname(host, sizeof(host));
-        std::string _hostname = host;
-        CF::Properties transport_properties;
-        redhawk::PropertyMap &prop_map = redhawk::PropertyMap::cast(transport_properties);
-        prop_map["hostname"] = _hostname;
-        transport.transportProperties = transport_properties;
-        return transport;
-    }
-
-    ExtendedCF::TransportInfoSequence* my_outfloat::supportedTransports()
-    {
-        ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
-        ossie::corba::push_back(transports, make_transport());
-        return transports._retn();
-    }
-
-    ExtendedCF::ConnectionStatusSequence* my_outfloat::connectionStatus()
-    {
-        boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
-        ExtendedCF::ConnectionStatusSequence_var retVal = new ExtendedCF::ConnectionStatusSequence();
-        for (ConnectionList::iterator connection = _connections.begin(); connection != _connections.end(); ++connection) {
-            ExtendedCF::ConnectionStatus status;
-            std::string tmp_connectionId = (*connection)->connectionId;
-            status.connectionId = tmp_connectionId.c_str();
-            status.port = CORBA::Object::_duplicate((*connection)->objref);
-            status.alive = true;
-            status.transportType = make_transport().transportType;
-            status.transportInfo = connection_id_to_transport[tmp_connectionId]->properties;
-            ossie::corba::push_back(retVal, status);
-        }
-        return retVal._retn();
-    }
-
-    void my_outfloat::connectPort(CORBA::Object_ptr object, const char* connectionId)
-    {
-        // Give a specific exception message for nil
-        if (CORBA::is_nil(object)) {
-            throw CF::Port::InvalidPort(1, "Nil object reference");
-        }
-
-        // Attempt to check the type of the remote object to reject invalid
-        // types; note this does not require the lock
-        _validatePort(object);
-
-        const std::string connection_id(connectionId);
-        {
-            // Acquire the state lock before modifying the container
-            boost::mutex::scoped_lock lock(updatingPortsLock);
-
-            // Prevent duplicate connection IDs
-            if (_findConnection(connection_id) != _connections.end()) {
-                throw CF::Port::OccupiedPort();
-            }
-            ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
-
-            if (CORBA::is_nil(negotiable_port)) {
-                throw CF::Port::InvalidPort(1, "Port not negotiable");
-            }
-
-            ExtendedCF::TransportInfoSequence_var supported_transports;
-            try {
-                supported_transports = negotiable_port->supportedTransports();
-            } catch (const CORBA::Exception& exc) {
-                throw CF::Port::InvalidPort(1, "Unable to retrieve the supported transports");
-            }
-            bool found_transport = false;
-            ExtendedCF::TransportInfoSequence_var transports = supportedTransports();
-            std::string transportType(transports[0].transportType);
-            for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
-                if (transportType == static_cast<const char*>(supported_transports[index].transportType)) {
-                    found_transport = true;
-                    break;
-                }
-            }
-            if (not found_transport) {
-                throw CF::Port::InvalidPort(1, "Unable to find matching transports");
-            }
-            CF::Properties negotiation_props;
-            bool valid = false;
-            initial_setup_callbacks_(valid, negotiation_props);
-            if (not valid) {
-                throw CF::Port::InvalidPort(1, "Unable to retrieve transport parameters");
-            }
-
-            ExtendedCF::NegotiationResult_var result;
-            try {
-                result = negotiable_port->negotiateTransport("my_transport", negotiation_props);
-            } catch (const ExtendedCF::NegotiationError& exc) {
-                throw CF::Port::InvalidPort(1, "Unable to negotiate transports");
-            }
-
-            setup_transport_callbacks_(valid, result->properties);
-
-            if (not valid) {
-                negotiable_port->disconnectTransport(result->transportId);
-                throw CF::Port::InvalidPort(1, "Unable to establish the transport");
-            }
-
-            const std::string transport_id(result->transportId);
-            // store the result's transportId to disconnect later
-            connection_id_to_transport[connection_id] = result;
-        }
-        Connection* connection = _createConnection(object, connection_id);
-        _connections.push_back(connection);
-    };
-
-    void my_outfloat::disconnectPort(const char* connectionId) {
-
-        boost::mutex::scoped_lock lock(updatingPortsLock);
-        std::string connection_id(connectionId);
-
-        ConnectionList::iterator connection = _findConnection(connectionId);
-        if (connection == _connections.end()) {
-            std::string message = std::string("No connection ") + connectionId;
-            throw CF::Port::InvalidPort(2, message.c_str());
-        }
-        ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>((*connection)->objref);
-        teardown_callbacks_(connection_id_to_transport[connection_id]->properties);
-        negotiable_port->disconnectTransport(connection_id_to_transport[connection_id]->transportId);
-        connection_id_to_transport.erase(connection_id);
-        _connections.erase(connection);
-    };
-
-change:
-
-        dataFloat_out = new bulkio::OutFloatPort("dataFloat_out");
-
-to
-
-        dataFloat_out = new my_outfloat("dataFloat_out");
-
-In *stream_out_override.h*:
-
-Add these public declarations:
-
-        void getInitialProperties(bool &valid, CF::Properties &props);
-        void setupTranportProperties(bool &valid, CF::Properties props);
-        void resetTransportProperties(CF::Properties props);
-
-In *stream_out_override.cpp*:
-
-Implement the FPGA transport definition methods:
-
-    void stream_out_override_i::getInitialProperties(bool &valid, CF::Properties &props)
-    {
-        // retrieve instance-specific properties to give to the other side to establish a link
-        std::cout<<"stream_out_override getting the initial properties"<<std::endl;
-        valid = true;
-    }
-
-    void stream_out_override_i::setupTranportProperties(bool &valid, CF::Properties props)
-    {
-        // attempt to establish a link given the other side's information
-        std::cout<<"stream_out_override setting up the transport"<<std::endl;
-        valid = true;
-    }
-
-    void stream_out_override_i::resetTransportProperties(CF::Properties props)
-    {
-        std::cout<<"stream_out_override resetting the transport"<<std::endl;
-        // tear down the link described by the properties
-}
-
-bind the callbacks (implement in the "constructor" method):
-
-        this->dataFloat_out->setInitialTransportCallback(this, &stream_out_override_i::getInitialProperties);
-        this->dataFloat_out->setupTransportCallback(this, &stream_out_override_i::setupTranportProperties);
-        this->dataFloat_out->setTearDownTransportCallback(this, &stream_out_override_i::resetTransportProperties);
-
-### The **stream_in_override** component:
-
-In the *stream_in_override_base.h* file:
-
-    // declare the new port class
-    class my_infloat : public bulkio::InFloatPort {
+    // placeholder class
+    class CustomInputManager : public bulkio::InputManager<BULKIO::dataFloat> {
     public:
-        my_infloat(const std::string port_name) : bulkio::InFloatPort (port_name) {};
+            CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port) : bulkio::InputManager<BULKIO::dataFloat>(port) {};
+            std::string transportType() {
+                    return "custom";
+            }
+        bulkio::InputTransport<BULKIO::dataFloat>* createInputTransport(const std::string& transportId, const redhawk::PropertyMap& properties) {
+            return NULL;
+        }
+    };
 
-        ExtendedCF::TransportInfo make_transport();
+    // class that creates the transport instance
+    class CustomOutputManager : public bulkio::OutputManager<BULKIO::dataFloat>
+    {
+    public:
+            typedef typename BULKIO::dataFloat::_ptr_type PtrType;
+            CustomOutputManager(bulkio::OutPort<BULKIO::dataFloat>* port) : bulkio::OutputManager<BULKIO::dataFloat>(port) {};
+            virtual ~CustomOutputManager() {};
+            std::string transportType() {
+                    return "custom";
+            }
+            virtual CF::Properties transportProperties();
+            virtual CustomOutputTransport* createOutputTransport(PtrType object, const std::string& connectionId, const redhawk::PropertyMap& properties);
+            virtual redhawk::PropertyMap getNegotiationProperties(redhawk::UsesTransport* transport);
+            virtual void setNegotiationResult(redhawk::UsesTransport* transport, const redhawk::PropertyMap& properties);
+    };
 
-        template <class Target, class Func>
-        void setEstablishTransportCallback (Target target, Func func)
-        {
-            setup_callbacks_.add(target, func);
+    // class that creates transport manager instance
+    class CustomTransportFactory : public bulkio::BulkioTransportFactory<BULKIO::dataFloat> {
+    public:
+        std::string transportType() {
+            return "custom";
+        };
+        int defaultPriority() {
+            return 0;
+        };
+
+        virtual ~CustomTransportFactory() {};
+
+        bulkio::OutputManager<BULKIO::dataFloat>* createOutputManager(OutPortType* port);
+        bulkio::InputManager<BULKIO::dataFloat>* createInputManager(InPortType* port) { return NULL;};
+    };
+
+Modify transport_out_base.cpp to define these functions:
+
+    redhawk::PropertyMap CustomOutputTransport::getNegotiationProperties() {
+            std::cout<<"CustomOutputTransport::getNegotiationProperties"<<std::endl;
+            redhawk::PropertyMap props;
+            props["data_protocol"] = "hello";
+            return props;
+    }
+
+    CF::Properties CustomOutputManager::transportProperties() {
+            std::cout<<"........... CustomOutputManager::transportProperties"<<std::endl;
+        redhawk::PropertyMap props;
+            return props;
+    }
+
+    CustomOutputTransport* CustomOutputManager::createOutputTransport(PtrType object, const std::string& connectionId, const redhawk::PropertyMap& inputTransportProps)
+    {
+        return new CustomOutputTransport(this->_port, object);
+    }
+
+    redhawk::PropertyMap CustomOutputManager::getNegotiationProperties(redhawk::UsesTransport* transport) {
+            CustomOutputTransport* _transport = dynamic_cast<CustomOutputTransport*>(transport);
+        if (!_transport) {
+            throw redhawk::FatalTransportError("Invalid vita49 transport object provided.");
         }
 
-            template <class Target, class Func>
-        void setTearDownTransportCallback (Target target, Func func)
-        {
-                    teardown_callbacks_.add(target, func);
-        }
+        redhawk::PropertyMap properties;
+        properties =  _transport->getNegotiationProperties();
+        return properties;
+    }
 
-        ExtendedCF::TransportInfoSequence* supportedTransports();
-        ExtendedCF::NegotiationResult* negotiateTransport(const char* transportType, const CF::Properties& transportProperties);
-        void disconnectTransport(const char* transportId);
+    void CustomOutputManager::setNegotiationResult(redhawk::UsesTransport* transport, const redhawk::PropertyMap& properties) {
+            std::cout<<"CustomOutputManager::setNegotiationResult"<<std::endl;
+            for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
+                    std::cout<<"key (from provides): "<<it->id<<std::endl;
+            }
+    }
+
+    bulkio::OutputManager<BULKIO::dataFloat>* CustomTransportFactory::createOutputManager(OutPortType* port)
+    {
+            return new CustomOutputManager(port);
+    };
+
+Modify transport_out_base.cpp to register the transport:
+
+    static int initializeModule()
+    {
+            static CustomTransportFactory factory;
+            redhawk::TransportRegistry::RegisterTransport(&factory);
+        return 0;
+    }
+
+    static int initialized = initializeModule();
+
+### The **transport_in** component
+
+This component follows a very similar pattern to **transport_out**, providing the reciprocal functionality to **transport_out**.
+
+Modify transport_in_base.h to include the following class declarations:
+
+    // class implementing the custom transport
+    class CustomInputTransport : public bulkio::InputTransport<BULKIO::dataFloat>
+    {
+    public:
+        CustomInputTransport(bulkio::InPort<BULKIO::dataFloat>* port, const std::string& transportId) : bulkio::InputTransport<BULKIO::dataFloat>(port, transportId) {
+            _port = port;
+        };
+
+        std::string transportType() const {
+                    return "custom";
+            };
+
+        void disconnect()
+        {
+        };
+
+        redhawk::PropertyMap    getNegotiationProperties();
 
     protected:
-        ossie::notification<void (bool &, CF::Properties &)> setup_callbacks_;
-        ossie::notification<void (CF::Properties)> teardown_callbacks_;
-        std::map<std::string, ExtendedCF::NegotiationResult_var>current_transport_instances;
+
+        bulkio::InPort<BULKIO::dataFloat>* _port;
     };
 
-Change:
+    // class that creates the transport instance
+    class CustomInputManager : public bulkio::InputManager<BULKIO::dataFloat>
+    {
+    public:
+        CustomInputTransport* createInputTransport(const std::string& transportId, const redhawk::PropertyMap& properties) {
+            std::cout<<"CustomInputManager::createInputTransport"<<std::endl;
+            for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
+                    std::cout<<"key (from uses): "<<it->id<<std::endl;
+            }
+            return new CustomInputTransport(this->_port, transportId);
+        };
 
-    bulkio::InFloatPort *dataFloat_in;
+        CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port) : bulkio::InputManager<BULKIO::dataFloat>(port) {
+            _port = port;
+        };
+        redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
 
-to
+    protected:
 
-    my_infloat *dataFloat_in;
+        bulkio::InPort<BULKIO::dataFloat>* _port;
 
-In the *stream_in_override_base.cpp* file:
+        std::string transportType(){
+            return "custom";
+        };
+    ;
+    };
 
-    // define the new port class
-    ExtendedCF::TransportInfo my_infloat::make_transport() {
-        ExtendedCF::TransportInfo transport;
+    // class that creates the transport manager instance
+    class CustomTransportFactory : public bulkio::BulkioTransportFactory<BULKIO::dataFloat> //public redhawk::TransportFactory
+    {
+    public:
+        static CustomInputTransport* Create(bulkio::InFloatPort* parent, const std::string& transportId);
+            std::string repoId() {
+                return BULKIO::dataFloat::_PD_repoId;
+            };
+        std::string transportType() {
+            return "custom";
+        };
+        int defaultPriority() {
+            return 0;
+        };
 
-        // define the name of the type of transport
-        transport.transportType = "my_transport";
+        virtual ~CustomTransportFactory() {};
 
-        // add transport properties that are common to all connections with this port
-        char host[HOST_NAME_MAX+1];
-        gethostname(host, sizeof(host));
-        std::string _hostname = host;
-        CF::Properties transport_properties;
-        redhawk::PropertyMap &prop_map = redhawk::PropertyMap::cast(transport_properties);
-        prop_map["hostname"] = _hostname;
-        transport.transportProperties = transport_properties;
-        return transport;
+        bulkio::OutputManager<BULKIO::dataFloat>* createOutputManager(OutPortType* port) { return NULL;};
+        bulkio::InputManager<BULKIO::dataFloat>* createInputManager(InPortType* port);
+    };
+
+Modify transport_in_base.cpp to define these functions:
+
+    bulkio::InputManager<BULKIO::dataFloat>* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
+        return new CustomInputManager(port);
     }
 
-    ExtendedCF::TransportInfoSequence* my_infloat::supportedTransports()
-    {
-        ExtendedCF::TransportInfoSequence_var transports = new ExtendedCF::TransportInfoSequence;
-        ossie::corba::push_back(transports, make_transport());
-        return transports._retn();
+    redhawk::PropertyMap CustomInputTransport::getNegotiationProperties() {
+            std::cout<<"CustomInputTransport::getNegotiationProperties"<<std::endl;
+        redhawk::PropertyMap props;
+        props["data::requestSize"] = static_cast<CORBA::Long>(1000);
+            props["data::address"] = "0.0.0.0";
+            props["data::port"] =  static_cast<CORBA::Long>(0);
+            props["data::protocol"] = "udp";
+        return props;
     }
 
-    ExtendedCF::NegotiationResult* my_infloat::negotiateTransport(const char* transportType, const CF::Properties& transportProperties)
+    redhawk::PropertyMap CustomInputManager::getNegotiationProperties(redhawk::ProvidesTransport* providesTransport)
     {
-        boost::mutex::scoped_lock lock(_transportMutex);
-
-        // determine whether or not the requested transport is available (check just one in this case)
-        std::string str_transportType = std::string(transportType);
-        std::string local_transport = std::string(make_transport().transportType);
-        if (str_transportType != local_transport) {
-            throw ExtendedCF::NegotiationError("transport not supported");
+            CustomInputTransport* _transport = dynamic_cast<CustomInputTransport*>(providesTransport);
+        if (!_transport) {
+            throw redhawk::FatalTransportError("Invalid provides transport instance");
         }
 
-        ExtendedCF::NegotiationResult_var result = new ExtendedCF::NegotiationResult;
-
-        // generate a unique id for this transport instance
-        std::string transport_id = ossie::generateUUID();
-        result->transportId = transport_id.c_str();
-        // these properties are a response to the requester
-        result->properties = make_transport().transportProperties;
-        bool valid;
-        setup_callbacks_(valid, result->properties);
-
-        if (valid) {
-            current_transport_instances[transport_id] = result;
-            return result._retn();
-        }
-
-        ExtendedCF::NegotiationResult_var bad_result = new ExtendedCF::NegotiationResult;
-        return bad_result._retn();
+        // return data end point connection information
+        redhawk::PropertyMap properties;
+        properties =  _transport->getNegotiationProperties();
+        return properties;
     }
 
-    void my_infloat::disconnectTransport(const char* transportId)
+Modify transport_in_base.cpp to register the transport:
+
+    static int initializeModule()
     {
-        boost::mutex::scoped_lock lock(_transportMutex);
-
-        std::string transport_id = std::string(transportId);
-
-        // tear down the transport in the fpga
-        teardown_callbacks_(current_transport_instances[transport_id]->properties);
-
-        // disable the transport corresponding to transportId
-        current_transport_instances.erase(transport_id);
+            static CustomTransportFactory factory;
+            redhawk::TransportRegistry::RegisterTransport(&factory);
+        return 0;
     }
 
-Change:
-
-    dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
-
-to
-
-    dataFloat_in = new my_infloat("dataFloat_in");
-
-In the stream_in_override.h file:
-
-declare the public members:
-
-    void getTransportProperties(bool &valid, CF::Properties &props);
-    void resetTransportProperties(CF::Properties props);
-
-In the stream_in_override.cpp file:
-
-    void stream_in_override_i::getTransportProperties(bool &valid, CF::Properties &props)
-    {
-        // request transport parameters needed to receive data
-        // in this case, the parameters are appended to those passed to this function from the port
-        // set valid to false if transport cannot be supported
-        redhawk::PropertyMap &prop_map = redhawk::PropertyMap::cast(props);
-        prop_map["additional_prop"] = "hello";
-        valid = true;
-        std::cout<<"stream_in_override returning transport properties for the other side to establish a connection"<<std::endl;
-    }
-
-    void stream_in_override_i::resetTransportProperties(CF::Properties props)
-    {
-        // undo transport
-        std::cout<<"stream_in_override tearing down the transport"<<std::endl;
-    }
-
-bind the callbacks (implement in the "constructor" method):
-
-    this->dataFloat_in->setEstablishTransportCallback(this, &stream_in_override_i::getTransportProperties);
-    this->dataFloat_in->setTearDownTransportCallback(this, &stream_in_override_i::resetTransportProperties);
+    static int initialized = initializeModule();
 
 ## Testing the new ports
 
-To test the above code examples, compile and install both components (**stream_in_override** and **stream_out_override**).
+To test the above code examples, compile and install both components (**transport_out** and **transport_in**).
 
 The following Python session shows how to run the components, connect them, and verify the state of the connections:
 
     >>> from ossie.utils import sb
-    >>> src=sb.launch('stream_out_override')
-    >>> snk=sb.launch('stream_in_override')
+    >>> src=sb.launch('transport_out')
+    >>> snk=sb.launch('transport_in')
     >>> src.connect(snk)
-    stream_out_override getting the initial properties
-    stream_in_override returning transport properties for the other side to establish a connection
-    stream_out_override setting up the transport
+    CustomOutputTransport::getNegotiationProperties
+    CustomInputManager::createInputTransport
+    key (from uses): data_protocol
+    CustomInputTransport::getNegotiationProperties
+    CustomOutputManager::setNegotiationResult
+    key (from provides): data::requestSize
+    key (from provides): data::address
+    key (from provides): data::port
+    key (from provides): data::protocol
     >>> src.ports[0]._get_connectionStatus()
-    [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_4bff4ab6-6ad2-4977-a166-3ba56bfae5eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7fc73b513310>, alive=True, transportType='my_transport', transportInfo=[ossie.cf.CF.DataType(id='hostname', value=CORBA.Any(CORBA.TC_string, 'my_host.my_company.com')), ossie.cf.CF.DataType(id='additional_prop', value=CORBA.Any(CORBA.TC_string, 'hello'))])]
-    >>> src.disconnect(snk)
-    stream_out_override resetting the transport
-    stream_in_override tearing down the transport
-
-
+    [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
