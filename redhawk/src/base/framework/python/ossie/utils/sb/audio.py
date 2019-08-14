@@ -20,6 +20,7 @@
 
 import platform
 import struct
+import warnings
 
 def _deferred_imports():
     # The GStreamer (or bulkio) modules may not be installed; defer imports
@@ -194,6 +195,9 @@ class SoundSink(_SinkBase):
         self.pipeline.set_state(Gst.State.PAUSED)
 
     def _pushSRI(self, sri):
+        if sri.xdelta <= 0:
+            warnings.warn('sri.xdelta must be > 0; got:  {0}.  Setting sri.xdelta = 1.0.'.format(sri.xdelta))
+            sri.xdelta = 1.0
         sample_rate = int(1/sri.xdelta)
         if sample_rate != self.sample_rate:
             # Sample rate changed, pause playback and update caps
@@ -285,13 +289,14 @@ class SoundSink(_SinkBase):
 
         if self.translate_char_to_short:
             data = struct.unpack('%d%s' % (len(data), self.datatype), data)
-            s16_max = 2 ** (16 - 1) - 1.0
-            mult = s16_max / 127
+            S16_MAX = 2 ** (16 - 1) - 1
+            S8_MAX = 2 ** (8 - 1) - 1
+            mult = (S16_MAX + 0.0) / S8_MAX  # force floating point division
             data = [int(round(d * mult)) for d in data]
 
         dtype = self.datatype
         if dtype in ('b'):
-            # char gets tranlated to short to accommodate Gst.Buffer.new_wrapped()
+            # char gets translated to short to accommodate Gst.Buffer.new_wrapped()
             dtype = 'h'
         if dtype not in ('B'):
             # dataChar and dataOctet provide data as string; other formats require packing
