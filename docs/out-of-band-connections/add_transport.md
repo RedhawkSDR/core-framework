@@ -229,11 +229,137 @@ Modify transport_in_base.cpp and transport_out_base.cpp to register the transpor
 
     static int initialized = initializeModule();
 
-## Testing the new ports
+## Testing the new transport
 
 To test the above code examples, compile and install both components (**transport_out** and **transport_in**).
 
-The following Python session shows how to run the components, connect them, and verify the state of the connections:
+The following Python session shows how to run the components (note that shared is set to "False", forcing the components to run in different process spaces), connect them, and verify the state of the connections:
+
+    >>> from ossie.utils import sb
+    >>> src=sb.launch('transport_out', shared=False)
+    >>> snk=sb.launch('transport_in')
+    >>> src.connect(snk)
+    CustomOutputManager::transportProperties
+    CustomOutputTransport::getNegotiationProperties
+    CustomInputManager::createInputTransport
+    key (from uses): data_protocol
+    CustomInputTransport::getNegotiationProperties
+    CustomOutputManager::setNegotiationResult
+    key (from provides): data::requestSize
+    key (from provides): data::address
+    key (from provides): data::port
+    key (from provides): data::protocol
+    >>> src.ports[0]._get_connectionStatus()
+    [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
+
+## Overloading Bulk IO Ports
+
+Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the 2 components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not the optimal one. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in 2 separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
+
+For this example, assume that the components with the updated transport shown above are modified as described above. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered "local".
+
+Because the output port selects the transport to be used, the only port that needs to be overloaded is the output port, so only **transport_out** needs to be modified.
+
+### Modifications to transport_out_base.h
+
+The modifications to *transport_out_base.h* involve the declaration of the new overloaded port and the modification of the port member to the component. Luckily, the only function that needs to be overloaded is *_createLocalTransport* that, as the name implies, returns the transport to be used when both endpoints reside in the same process space.
+
+Modify *transport_out_base.h* by adding the new port declaration:
+
+    class CustomOutPort : public bulkio::OutFloatPort
+    {
+    public:
+
+        virtual ~CustomOutPort() {};
+        CustomOutPort(std::string port_name) : bulkio::OutFloatPort(port_name) {};
+        virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
+    };
+
+Change the member declaration for the port in *trasport_out_base.h* from:
+
+    CustomOutPort *dataFloat_out;
+
+to:
+
+    CustomOutPort *dataFloat_out;
+
+### Modifications to transport_out_base.cpp
+
+In *transport_out_base.cpp*, the port behavior needs to be defined and the new port class has to be instantiated.
+
+Add the following function definition in *transport_out_base.cpp*.
+
+    redhawk::UsesTransport* CustomOutPort::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId)
+    {
+    ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
+    if (!CORBA::is_nil(negotiable_port)) {
+        std::string custom_transport("custom");
+        for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
+            const std::string transport_type = (*manager)->transportType();
+            if (transport_type != custom_transport)
+                continue;
+            const redhawk::PropertyMap* transport_props;
+            ExtendedCF::TransportInfoSequence_var supported_transports = this->supportedTransports();
+            for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
+                if (custom_transport == static_cast<const char*>(supported_transports[index].transportType)) {
+                        transport_props = &redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
+                }
+            }
+            if (transport_props) {
+                BULKIO::dataFloat_var tmp_port = BULKIO::dataFloat::_narrow(object);
+                if (!tmp_port)
+                        return 0;
+                redhawk::UsesTransport* transport = (*manager)->createUsesTransport(object, connectionId, *transport_props);
+                if (!transport) {
+                        return 0;
+                }
+                redhawk::PropertyMap negotiation_props = (*manager)->getNegotiationProperties(transport);
+                ExtendedCF::NegotiationResult_var result;
+                try {
+                        result = negotiable_port->negotiateTransport(transport_type.c_str(), negotiation_props);
+                } catch (const ExtendedCF::NegotiationError& exc) {
+                        RH_ERROR(_portLog, "Error negotiating transport '" << transport_type << "': " << exc.msg);
+                        delete transport;
+                        return 0;
+                }
+                const std::string transport_id(result->transportId);
+                try {
+                        (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
+                        return transport;
+                } catch (const std::exception& exc) {
+                        RH_ERROR(_portLog, "Error completing transport '" << transport_type << "' connection: "
+                                            << exc.what());
+                } catch (...) {
+                        RH_ERROR(_portLog, "Unknown error completing transport '" << transport_type << "' connection");
+                }
+                delete transport;
+                try {
+                        RH_DEBUG(_portLog, "Undoing failed negotiation for transport '" << transport_type << "'");
+                        negotiable_port->disconnectTransport(transport_id.c_str());
+                } catch (const CORBA::Exception& exc) {
+                        RH_ERROR(_portLog, "Error undoing failed negotiation for transport '" << transport_type << "': "
+                                            << ossie::corba::describeException(exc));
+                }
+                return 0;
+            }
+        }
+    }
+    return 0;
+    }
+
+Change the following class instantiation in *transport_out_base.cpp* from:
+
+    dataFloat_out = new bulkio::OutFloatPort("dataFloat_out");
+
+to:
+
+    dataFloat_out = new CustomOutPort("dataFloat_out");
+
+## Testing the new port
+
+Like in the earlier example, compile and install **transport_out**, the only component modified for this example.
+
+The following Python session shows how to run the components (notice that shared is not set to False, running both components in the same process space), connect them, and verify the state of the connections:
 
     >>> from ossie.utils import sb
     >>> src=sb.launch('transport_out')
@@ -251,3 +377,43 @@ The following Python session shows how to run the components, connect them, and 
     key (from provides): data::protocol
     >>> src.ports[0]._get_connectionStatus()
     [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
