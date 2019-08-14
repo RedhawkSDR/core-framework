@@ -249,27 +249,27 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.mqd = numPackets-1
         
         # Create a non-blocking source
-        source = sb.DataSource(blocking=False)
+        source = sb.StreamSource()
         source.connect(self.comp)
 
         # Create a sink for the output
-        sink = sb.DataSink()
+        sink = sb.StreamSink()
         self.comp.connect(sink)
         
         # Send numPackets without starting the component, should generate a flush
-        for x in range(numPackets):
-            source.push([x])
+        for x in xrange(numPackets):
+            source.write([x])
         source.start()
-        source.push([], EOS=True)
-
-        # Ensure all packets are pushed before starting component
-        source.waitAllPacketsSent()
+        source.close()
 
         # Start the component and let the stream complete
         self.comp.start()
         sink.start()
-        data = sink.getData(eos_block=True)
-        
+        streamData = sink.read(timeout=1, eos=True)
+        data = []
+        if streamData:
+            data = streamData.data
+
         self.assertEqual(len(data), 1)
 
         source.stop()
@@ -286,29 +286,45 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         # Set the queue depth to the number of packets intending to be sent - 1
         self.comp.mqd = numPackets-1
         
-        # Create a blocking source (default behavior)
-        source = sb.DataSource()
-        source.connect(self.comp)
-        source.start()
-      
+        # Create a blocking source (non-default behavior for StreamSink)
+        # Requires a separate thread to prevent deadlock.
+        class StreamSourceThread(threading.Thread):
+            def __init__(self, parent):
+                threading.Thread.__init__(self)
+                self.src = sb.StreamSource()
+                self.src.blocking = True
+                self.src.connect(parent.comp)
+                self.src.start()
+
+            def run(self):
+                for x in range(numPackets):
+                    self.src.write([x])
+                self.src.close()
+
+            def stop(self):
+                self.src.stop()
+
+        src_thread = StreamSourceThread(self)
+
         # Create a sink for the output
-        sink = sb.DataSink()
+        sink = sb.StreamSink()
         sink.start()
         self.comp.connect(sink)
-        
+
         # Fill up the queue
-        for x in range(numPackets):
-            source.push([x])
-        source.push([], EOS=True)
-        
+        src_thread.start()
+
         # Start the component and let the stream complete
         self.comp.start()
-        data = sink.getData(eos_block=True)
-        
+        streamData = sink.read(timeout=1, eos=True)
+        data = []
+        if streamData:
+            data = streamData.data
+
         # Should not have flushed, should have gotten all packets
         self.assertEquals(len(data), numPackets)
 
-        source.stop()
+        src_thread.stop()
         sink.stop()
         self.comp.stop()
 

@@ -14,11 +14,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     # tearDown is run after every function preceded by "test" is executed
     
     # self.comp is a device using the sandbox API
-    # to create a data source, the package sb contains data sources like DataSource or FileSource
-    # to create a data sink, there are sinks like DataSink and FileSink
+    # to create a data source, the package sb contains sources like StreamSource or FileSource
+    # to create a data sink, there are sinks like StreamSink and FileSink
     # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
     #  src = sb.FileSource('myfile.dat')
-    #  snk = sb.DataSink()
+    #  snk = sb.StreamSink()
     #  src.connect(self.comp)
     #  self.comp.connect(snk)
     #  sb.start()
@@ -41,35 +41,48 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def testBasicBehavior(self):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
-        self.comp.start()
+        sb.start()
         alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='master',center_frequency=100)
         listen_alloc = frontend.createTunerListenerAllocation('master','slave')
         another_listen_alloc = frontend.createTunerListenerAllocation('master','another_slave')
         self.comp.allocateCapacity(alloc)
         self.comp.allocateCapacity(listen_alloc)
         self.comp.allocateCapacity(another_listen_alloc)
-        master=sb.DataSink()
-        slave=sb.DataSink()
-        another_slave=sb.DataSink()
+
+        master = sb.StreamSink()
+        slave = sb.StreamSink()
+        another_slave = sb.StreamSink()
         self.comp.connect(master,connectionId='master')
         self.comp.connect(slave,connectionId='slave')
         self.comp.connect(another_slave,connectionId='another_slave')
-        time.sleep(3)
+
+        time.sleep(1)
         fake_master_alloc = frontend.createTunerListenerAllocation('master','master')
         self.assertRaises(CF.Device.InvalidCapacity, self.comp.deallocateCapacity, fake_master_alloc)
         self.assertEquals(self.comp.frontend_tuner_status[0].allocation_id_csv[:6],'master')
-        self.assertEquals(master.eos(),False)
-        self.assertEquals(slave.eos(),False)
-        self.assertEquals(another_slave.eos(),False)
+
+        def get_eos(streamSink, **kwargs):
+            streamData = streamSink.read(**kwargs)
+            if streamData:
+                return streamData.eos
+            return False
+
+        self.assertEquals(get_eos(master), False)
+        self.assertEquals(get_eos(slave), False)
+        self.assertEquals(get_eos(another_slave), False)
+
         self.comp.deallocateCapacity(listen_alloc)
         time.sleep(0.5)
-        self.assertEquals(master.eos(),False)
-        self.assertEquals(slave.eos(),True)
-        self.assertEquals(another_slave.eos(),False)
+        self.assertEquals(get_eos(master), False)
+        # Save result so we dont call read() twice after eos.
+        eos_slave = get_eos(slave, timeout=1, eos=True)
+        self.assertEquals(eos_slave, True)
+        self.assertEquals(get_eos(another_slave), False)
+
         self.comp.deallocateCapacity(alloc)
-        self.assertEquals(master.eos(),True)
-        self.assertEquals(slave.eos(),True)
-        self.assertEquals(another_slave.eos(),True)
+        self.assertEquals(get_eos(master, timeout=1, eos=True), True)
+        self.assertEquals(eos_slave, True)
+        self.assertEquals(get_eos(another_slave, timeout=1, eos=True), True)
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

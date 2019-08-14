@@ -107,13 +107,13 @@ General usage examples:
     >>> start()
     >>> stop()
 
-    # Continuously pushing an array of data to a plot
-    >>> a = DataSource()
-    >>> b = LinePlot()
-    >>> a.connect(b,usesPortName='shortOut')
-    >>> data = range(1000)
+    # Push data to a plot
+    >>> src = StreamSource()
+    >>> plot = LinePlot()
+    >>> src.connect(plot, usesPortName='shortOut')
+    >>> data = range(1000) * 4
     >>> start()
-    >>> a.push(data,loop=True)
+    >>> src.write(data)
     >>> stop()
 """
 from domainless import *
