@@ -98,11 +98,16 @@ class BlueFileHelpers(unittest.TestCase):
         dataFormat, dataType = self.TYPEMAP[typecode]
         indata = [dataType(x) for x in xrange(16)]
 
-        source = sb.DataSource(dataFormat=dataFormat)
+        source = sb.StreamSource(format=dataFormat)
         sink = sb.FileSink(filename, midasFile=True)
         source.connect(sink)
         sb.start()
-        source.push(indata, complexData=complexData, EOS=True)
+        interleaved = False
+        if complexData:
+            source.complex = True
+            interleaved = True
+        source.write(indata, interleaved=interleaved)
+        source.close()
         sink.waitForEOS()
 
         hdr, outdata = bluefile.read(filename)
@@ -143,18 +148,18 @@ class BlueFileHelpers(unittest.TestCase):
         bluefile.write(filename, hdr, indata)
 
         source = sb.FileSource(filename, midasFile=True, dataFormat=dataFormat)
-        sink = sb.DataSink()
+        sink = sb.StreamSink()
         source.connect(sink)
         sb.start()
-        outdata = sink.getData(eos_block=True)
+        streamData = sink.read(eos=True)
+        outdata = streamData.data
         if complexData:
-            self.assertEqual(sink.sri().mode, 1)
-            if dataFormat in ('float', 'double'):
-                outdata = bulkio_helpers.bulkioComplexToPythonComplexList(outdata)
-            else:
-                outdata = numpy.reshape(outdata, (len(outdata)/2,2))
+            self.assertEqual(streamData.sri.mode, True)
+            if dataFormat in ('char', 'short', 'long'):
+                outdata = bulkio_helpers.pythonComplexListToBulkioComplex(outdata, itemType=int)
+                outdata = numpy.reshape(outdata, (len(outdata)/2, 2))
         else:
-            self.assertEqual(sink.sri().mode, 0)
+            self.assertEqual(streamData.sri.mode, 0)
         self.assertTrue(numpy.array_equal(indata, outdata), msg='%s != %s' % (indata, outdata))
 
     def test_FileSource(self):
@@ -372,35 +377,38 @@ class BlueFileHelpers(unittest.TestCase):
     def test_FileSinkTimecode(self):
         filename = self._tempfileName('source_timecode')
 
-        # Create a source with a known start time
-        time_in = time.time()
-        source = sb.DataSource(dataFormat='float', startTime=time_in)
+        source = sb.StreamSource(format='float')
         sink = sb.FileSink(filename, midasFile=True)
         source.connect(sink)
         sb.start()
 
-        # The data isn't important, other than to cause a pushPacket with the
-        # initial timestamp
-        source.push(range(16), EOS=True)
+        bulkio_ts = bulkio.timestamp.now()
+        source.write(range(16), time=bulkio_ts)
+        source.close()
         sink.waitForEOS()
 
-        # Read back the timecode from the output file
         hdr = bluefile.readheader(filename)
-        time_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
-        self.assertAlmostEqual(time_in, time_out,5)
+        ts_out = bluefile_helpers.j1950_to_unix(hdr['timecode'])
+
+        ts_in = bulkio_ts.twsec + bulkio_ts.tfsec
+        self.assertAlmostEqual(ts_in, ts_out, 5)
 
     def _test_FileSinkOctet(self, format):
         filename = self._tempfileName('sink_octet_' + format.lower())
 
-        source = sb.DataSource(dataFormat='octet')
+        source = sb.StreamSource(format='octet')
         sink = sb.FileSink(filename, midasFile=True)
         source.connect(sink)
         sb.start()
 
         # Push a 256-element ramp (the maximum range of octet)
         indata = range(256)
-        isComplex = bool(format[0] == 'C')
-        source.push(indata, complexData=isComplex, EOS=True)
+        interleaved = False
+        if format.startswith('C'):
+            source.sri.mode = True
+            interleaved = True
+        source.write(indata, interleaved=interleaved)
+        source.close()
         sink.waitForEOS()
 
         # Check the BLUE file format matches
