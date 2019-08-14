@@ -32,7 +32,6 @@ In each component, two files need to be modified: *_base.h and *_base.cpp, so tr
 
 Modify transport_in_base.h and transport_out_base.h to include the following class declarations:
 
-    // class implementing the input custom transport
     class CustomInputTransport : public bulkio::InputTransport<BULKIO::dataFloat>
     {
     public:
@@ -40,24 +39,33 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
             _port = port;
         };
         std::string transportType() const {
-            return "custom";
+                    return "custom";
         };
-        void disconnect() {};
+        void disconnect() {
+            std::cout<<"CustomInputTransport::disconnect"<<std::endl;
+        };
+        ~CustomInputTransport() {
+            std::cout<<"CustomInputTransport::~CustomInputTransport"<<std::endl;
+        }
         redhawk::PropertyMap    getNegotiationProperties();
 
     protected:
         bulkio::InPort<BULKIO::dataFloat>* _port;
     };
 
-    // class implementing the output custom transport
+    // class implementing the custom transport
     class CustomOutputTransport : public bulkio::OutputTransport<BULKIO::dataFloat>
     {
     public:
-        typedef typename BULKIO::dataFloat::_ptr_type PtrType;
-
-        CustomOutputTransport(bulkio::OutPort<BULKIO::dataFloat>* parent, BULKIO::dataFloat_var port) : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
+        CustomOutputTransport(bulkio::OutPort<BULKIO::dataFloat>* parent, BULKIO::dataFloat_ptr port, const std::string& connectionId) : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
             _port = parent;
+            _connectionId = connectionId;
+            _negotiable_port = ExtendedCF::NegotiableProvidesPort::_nil();
+            _transportId = "";
         };
+        ~CustomOutputTransport() {
+            std::cout<<"CustomOutputTransport::~CustomOutputTransport"<<std::endl;
+        }
         std::string transportType() const {
             return "custom";
         };
@@ -69,11 +77,46 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
         }
         void _pushSRI(const BULKIO::StreamSRI& sri) {};
         void _pushPacket(const BufferType& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {};
-        void disconnect() {};
 
+        void disconnect() {
+            std::cout<<"CustomOutputTransport::disconnect"<<std::endl;
+            if ((not _transportId.empty()) and (_negotiable_port)) {
+                    _negotiable_port->disconnectTransport(_transportId.c_str());
+            }
+        };
         redhawk::PropertyMap  getNegotiationProperties();
+        void setTransportParameters(const std::string &transportId, ExtendedCF::NegotiableProvidesPort_ptr negotiable_port) {
+            _transportId = transportId;
+            _negotiable_port = negotiable_port;
+        }
     protected:
         bulkio::OutPort<BULKIO::dataFloat>* _port;
+        ExtendedCF::NegotiableProvidesPort_ptr _negotiable_port;
+        std::string _connectionId;
+        std::string _transportId;
+    };
+
+    // class that creates the transport instance
+    class CustomInputManager : public bulkio::InputManager<BULKIO::dataFloat>
+    {
+    public:
+        CustomInputTransport* createInputTransport(const std::string& transportId, const redhawk::PropertyMap& properties) {
+            std::cout<<"CustomInputManager::createInputTransport"<<std::endl;
+            for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
+                    std::cout<<"key (from uses): "<<it->id<<std::endl;
+            }
+            return new CustomInputTransport(this->_port, transportId);
+        };
+        CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port) : bulkio::InputManager<BULKIO::dataFloat>(port) {
+            _port = port;
+        };
+        redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
+
+    protected:
+        bulkio::InPort<BULKIO::dataFloat>* _port;
+        std::string transportType(){
+            return "custom";
+        };
     };
 
     // class that creates the transport instance
@@ -90,29 +133,6 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
         virtual CustomOutputTransport* createOutputTransport(PtrType object, const std::string& connectionId, const redhawk::PropertyMap& properties);
         virtual redhawk::PropertyMap getNegotiationProperties(redhawk::UsesTransport* transport);
         virtual void setNegotiationResult(redhawk::UsesTransport* transport, const redhawk::PropertyMap& properties);
-    };
-
-    // class that creates the transport instance
-    class CustomInputManager : public bulkio::InputManager<BULKIO::dataFloat>
-    {
-    public:
-        CustomInputTransport* createInputTransport(const std::string& transportId, const redhawk::PropertyMap& properties) {
-            std::cout<<"CustomInputManager::createInputTransport"<<std::endl;
-            for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
-                std::cout<<"key (from uses): "<<it->id<<std::endl;
-            }
-            return new CustomInputTransport(this->_port, transportId);
-        };
-        CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port) : bulkio::InputManager<BULKIO::dataFloat>(port) {
-            _port = port;
-        };
-        redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
-
-    protected:
-        bulkio::InPort<BULKIO::dataFloat>* _port;
-        std::string transportType() {
-            return "custom";
-        };
     };
 
     // class that creates the transport manager instance
@@ -177,8 +197,9 @@ Modify transport_in_base.cpp and transport_out_base.cpp to define these function
         return props;
     }
 
-    CustomOutputTransport* CustomOutputManager::createOutputTransport(PtrType object, const std::string& connectionId, const redhawk::PropertyMap& inputTransportProps) {
-        return new CustomOutputTransport(this->_port, object);
+    CustomOutputTransport* CustomOutputManager::createOutputTransport(PtrType object, const std::string& connectionId, const redhawk::PropertyMap& inputTransportProps)
+    {
+        return new CustomOutputTransport(this->_port, object, connectionId);
     }
 
     redhawk::PropertyMap CustomOutputManager::getNegotiationProperties(redhawk::UsesTransport* transport) {
@@ -195,11 +216,12 @@ Modify transport_in_base.cpp and transport_out_base.cpp to define these function
     void CustomOutputManager::setNegotiationResult(redhawk::UsesTransport* transport, const redhawk::PropertyMap& properties) {
         std::cout<<"CustomOutputManager::setNegotiationResult"<<std::endl;
         for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
-            std::cout<<"key (from provides): "<<it->id<<std::endl;
+                std::cout<<"key (from provides): "<<it->id<<std::endl;
         }
     }
 
-    bulkio::OutputManager<BULKIO::dataFloat>* CustomTransportFactory::createOutputManager(OutPortType* port) {
+    bulkio::OutputManager<BULKIO::dataFloat>* CustomTransportFactory::createOutputManager(OutPortType* port)
+    {
         return new CustomOutputManager(port);
     };
 
@@ -235,6 +257,10 @@ The following Python session shows how to run the components (note that shared i
     key (from provides): data::protocol
     >>> src.ports[0]._get_connectionStatus()
     [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
+    >>> src.disconnect(snk)
+    CustomOutputTransport::disconnect
+    CustomInputTransport::~CustomInputTransport
+    CustomOutputTransport::~CustomOutputTransport
 
 ## Overloading Bulk IO Ports
 
@@ -252,9 +278,13 @@ Modify *transport_out_base.h* by adding the new port declaration:
 
     class CustomOutPort : public bulkio::OutFloatPort {
     public:
-        virtual ~CustomOutPort() {};
-        CustomOutPort(std::string port_name) : bulkio::OutFloatPort(port_name) {};
-        virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
+
+            virtual ~CustomOutPort() {};
+            CustomOutPort(std::string port_name) : bulkio::OutFloatPort(port_name) {};
+            virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
+            void disconnected();
+    protected:
+        ExtendedCF::NegotiableProvidesPort_var negotiable_port;
     };
 
 Change the member declaration for the port in *trasport_out_base.h* from:
@@ -272,7 +302,7 @@ In *transport_out_base.cpp*, the port behavior needs to be defined and the new p
 Add the following function definition in *transport_out_base.cpp*.
 
     redhawk::UsesTransport* CustomOutPort::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId) {
-        ExtendedCF::NegotiableProvidesPort_var negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
+        negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
         if (!CORBA::is_nil(negotiable_port)) {
             std::string custom_transport("custom");
             for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
@@ -289,35 +319,37 @@ Add the following function definition in *transport_out_base.cpp*.
                 if (transport_props) {
                     BULKIO::dataFloat_var tmp_port = BULKIO::dataFloat::_narrow(object);
                     if (!tmp_port)
-                        return 0;
+                            return 0;
                     redhawk::UsesTransport* transport = (*manager)->createUsesTransport(object, connectionId, *transport_props);
                     if (!transport) {
-                        return 0;
+                            return 0;
                     }
                     redhawk::PropertyMap negotiation_props = (*manager)->getNegotiationProperties(transport);
                     ExtendedCF::NegotiationResult_var result;
                     try {
-                        result = negotiable_port->negotiateTransport(transport_type.c_str(), negotiation_props);
+                            result = negotiable_port->negotiateTransport(transport_type.c_str(), negotiation_props);
                     } catch (const ExtendedCF::NegotiationError& exc) {
-                        RH_ERROR(_portLog, "Error negotiating transport '" << transport_type << "': " << exc.msg);
-                        delete transport;
-                        return 0;
+                            RH_ERROR(_portLog, "Error negotiating transport '" << transport_type << "': " << exc.msg);
+                            delete transport;
+                            return 0;
                     }
                     const std::string transport_id(result->transportId);
                     try {
-                        (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
-                        return transport;
+                            (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
+                            CustomOutputTransport *custom_transport = static_cast<CustomOutputTransport *>(transport);
+                            custom_transport->setTransportParameters(transport_id, negotiable_port);
+                            return transport;
                     } catch (const std::exception& exc) {
-                        RH_ERROR(_portLog, "Error completing transport '" << transport_type << "' connection: " << exc.what());
+                            RH_ERROR(_portLog, "Error completing transport '" << transport_type << "' connection: " << exc.what());
                     } catch (...) {
-                        RH_ERROR(_portLog, "Unknown error completing transport '" << transport_type << "' connection");
+                            RH_ERROR(_portLog, "Unknown error completing transport '" << transport_type << "' connection");
                     }
                     delete transport;
                     try {
-                        RH_DEBUG(_portLog, "Undoing failed negotiation for transport '" << transport_type << "'");
-                        negotiable_port->disconnectTransport(transport_id.c_str());
+                            RH_DEBUG(_portLog, "Undoing failed negotiation for transport '" << transport_type << "'");
+                            negotiable_port->disconnectTransport(transport_id.c_str());
                     } catch (const CORBA::Exception& exc) {
-                        RH_ERROR(_portLog, "Error undoing failed negotiation for transport '" << transport_type << "': " << ossie::corba::describeException(exc));
+                            RH_ERROR(_portLog, "Error undoing failed negotiation for transport '" << transport_type << "': " << ossie::corba::describeException(exc));
                     }
                     return 0;
                 }
@@ -356,43 +388,7 @@ The following Python session shows how to run the components (notice that shared
     key (from provides): data::protocol
     >>> src.ports[0]._get_connectionStatus()
     [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    >>> src.disconnect(snk)
+    CustomOutputTransport::disconnect
+    CustomInputTransport::~CustomInputTransport
+    CustomOutputTransport::~CustomOutputTransport
