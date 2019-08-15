@@ -6,21 +6,19 @@ In the case where the data ingress or egress is between components running in th
 
 Bulk IO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, the "local" transport is selected, which is defined as shared address space. The first code example shows how to create a new transport and apply it to links between components running in different processes. The second code example shows how to subclass a Bulk IO port and change the local transport to a custom one.
 
-It needs to be noted that the custom transport is designed to interact with other Bulk IO ports. This means that in a component, if out-of-band communications as well as tradition microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the Bulk IO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
+It needs to be noted that the custom transport is designed to interact with other Bulk IO ports. This means that in a component, if out-of-band communications as well as traditional microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the Bulk IO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
 
 ## Adding transports to Bulk IO
 
 For the purposes of this example, suppose that there is a component called **transport_out** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **transport_in** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
 
-The pattern that is implemented in both the out (uses) and in (provides) side is to create a transport factory, which in turn is used to create a transport manager, which in turn creates the transport itself. The Bulk IO base classes exercise this pattern.
+The pattern that is implemented in both the out (uses) and in (provides) side is to create a transport factory, which in turn is used to create a transport manager, which in turn creates the transport itself. The transport factory is instantiated globally, the transport manager is instantiated per port, and the transport is instantiated per connection. The Bulk IO base classes exercise this pattern.
 
 In this pattern, the transport factories register statically with a transport registry. This transport registry contains all the transports that are supported. At transport negotiation time, the transport names are matched in order of their priority, from the lowest number to the highest. In this example, the "custom" transport is given a priority of 0, making it the highest priority transport, guaranteeing that it be selected if the transport is supported by both ends of the transaction.
 
 Once a matching transport has been selected, an exchange of properties is performed. The output side implements *getNegotiationProperties* to provide transport information to the input side. The input side receives these properties in its *createInputTransport* function. The response properties from the input side are retrieved through the input side's *getNegotiationProperties* function. Once the output side receives the response from the input side, the response is passed to the port through the *setNegotiationResult* function.
 
-In the example below, the properties includes are examples only and do not need to be included in the actual implementation.
-
-This example requires that the \*\_base files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguard these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary).
+In the example below, the properties included are examples only and do not need to be included in the actual implementation.
 
 Several *cout* statements are included in this code to demonstrate where in the connection process these functions are invoked. These are the locations where device-specific customizations are meant to occur.
 
@@ -28,14 +26,16 @@ Ideally, the transport definition would be developed in a library and linked int
 
 ### Component edits
 
-In each component, two files need to be modified: *_base.h and *_base.cpp, so transport_out_base.h/transport_out_base.cpp and transport_in_base.h/transport_in_base.cpp for transport_out and transport_in, respectively.
+In each component, two files need to be modified: the component's user header and cpp files, so transport_out.h/transport_out.cpp and transport_in.h/transport_in.cpp for transport_out and transport_in, respectively.
 
-Modify transport_in_base.h and transport_out_base.h to include the following class declarations:
+Modify transport_in.h and transport_out.h to include the following class declarations:
 
+```cpp
     class CustomInputTransport : public bulkio::InputTransport<BULKIO::dataFloat>
     {
     public:
-        CustomInputTransport(bulkio::InPort<BULKIO::dataFloat>* port, const std::string& transportId) : bulkio::InputTransport<BULKIO::dataFloat>(port, transportId) {
+        CustomInputTransport(bulkio::InPort<BULKIO::dataFloat>* port, const std::string& transportId)
+          : bulkio::InputTransport<BULKIO::dataFloat>(port, transportId) {
             _port = port;
         };
         std::string transportType() const {
@@ -57,7 +57,8 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
     class CustomOutputTransport : public bulkio::OutputTransport<BULKIO::dataFloat>
     {
     public:
-        CustomOutputTransport(bulkio::OutPort<BULKIO::dataFloat>* parent, BULKIO::dataFloat_ptr port, const std::string& connectionId) : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
+        CustomOutputTransport(bulkio::OutPort<BULKIO::dataFloat>* parent, BULKIO::dataFloat_ptr port, const std::string& connectionId)
+          : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
             _port = parent;
             _connectionId = connectionId;
             _negotiable_port = ExtendedCF::NegotiableProvidesPort::_nil();
@@ -65,7 +66,7 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
         };
         ~CustomOutputTransport() {
             std::cout<<"CustomOutputTransport::~CustomOutputTransport"<<std::endl;
-        }
+        };
         std::string transportType() const {
             return "custom";
         };
@@ -100,15 +101,16 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
     class CustomInputManager : public bulkio::InputManager<BULKIO::dataFloat>
     {
     public:
+        CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port)
+          : bulkio::InputManager<BULKIO::dataFloat>(port) {
+            _port = port;
+        };
         CustomInputTransport* createInputTransport(const std::string& transportId, const redhawk::PropertyMap& properties) {
             std::cout<<"CustomInputManager::createInputTransport"<<std::endl;
             for ( redhawk::PropertyMap::const_iterator it = properties.begin(); it != properties.end(); it++) {
                     std::cout<<"key (from uses): "<<it->id<<std::endl;
             }
             return new CustomInputTransport(this->_port, transportId);
-        };
-        CustomInputManager(bulkio::InPort<BULKIO::dataFloat>* port) : bulkio::InputManager<BULKIO::dataFloat>(port) {
-            _port = port;
         };
         redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
 
@@ -123,8 +125,9 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
     class CustomOutputManager : public bulkio::OutputManager<BULKIO::dataFloat>
     {
     public:
-        typedef typename BULKIO::dataFloat::_ptr_type PtrType;
-        CustomOutputManager(bulkio::OutPort<BULKIO::dataFloat>* port) : bulkio::OutputManager<BULKIO::dataFloat>(port) {};
+        CustomOutputManager(bulkio::OutPort<BULKIO::dataFloat>* port)
+          : bulkio::OutputManager<BULKIO::dataFloat>(port) {};
+
         virtual ~CustomOutputManager() {};
         std::string transportType() {
                 return "custom";
@@ -154,9 +157,11 @@ Modify transport_in_base.h and transport_out_base.h to include the following cla
         bulkio::OutputManager<BULKIO::dataFloat>* createOutputManager(OutPortType* port);
         bulkio::InputManager<BULKIO::dataFloat>* createInputManager(InPortType* port);
     };
+```
 
-Modify transport_in_base.cpp and transport_out_base.cpp to define these functions:
+Modify transport_in.cpp and transport_out.cpp to define these functions:
 
+```cpp
     bulkio::InputManager<BULKIO::dataFloat>* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
         return new CustomInputManager(port);
     }
@@ -224,9 +229,11 @@ Modify transport_in_base.cpp and transport_out_base.cpp to define these function
     {
         return new CustomOutputManager(port);
     };
+```
 
-Modify transport_in_base.cpp and transport_out_base.cpp to register the transport:
+Modify transport_in.cpp and transport_out.cpp to register the transport:
 
+```cpp
     static int initializeModule() {
         static CustomTransportFactory factory;
         redhawk::TransportRegistry::RegisterTransport(&factory);
@@ -234,6 +241,7 @@ Modify transport_in_base.cpp and transport_out_base.cpp to register the transpor
     }
 
     static int initialized = initializeModule();
+```
 
 ## Testing the new transport
 
@@ -241,6 +249,7 @@ To test the above code examples, compile and install both components (**transpor
 
 The following Python session shows how to run the components (note that shared is set to "False", forcing the components to run in different process spaces), connect them, and verify the state of the connections:
 
+```python
     >>> from ossie.utils import sb
     >>> src=sb.launch('transport_out', shared=False)
     >>> snk=sb.launch('transport_in')
@@ -261,12 +270,15 @@ The following Python session shows how to run the components (note that shared i
     CustomOutputTransport::disconnect
     CustomInputTransport::~CustomInputTransport
     CustomOutputTransport::~CustomOutputTransport
+```
 
 ## Overloading Bulk IO Ports
 
-Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the 2 components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not the optimal one. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in two separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
+Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the two components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not the optimal one. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in two separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
 
 For this example, assume that the components with the updated transport shown above are modified as described above. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered "local".
+
+This example requires that the \*\_base files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguarding these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary).
 
 Because the output port selects the transport to be used, the only port that needs to be overloaded is the output port, so only **transport_out** needs to be modified.
 
@@ -276,24 +288,31 @@ The modifications to *transport_out_base.h* involve the declaration of the new o
 
 Modify *transport_out_base.h* by adding the new port declaration:
 
+```cpp
     class CustomOutPort : public bulkio::OutFloatPort {
     public:
-
             virtual ~CustomOutPort() {};
-            CustomOutPort(std::string port_name) : bulkio::OutFloatPort(port_name) {};
+            CustomOutPort(std::string port_name)
+              : bulkio::OutFloatPort(port_name) {};
+
             virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
             void disconnected();
     protected:
         ExtendedCF::NegotiableProvidesPort_var negotiable_port;
     };
+```
 
 Change the member declaration for the port in *transport_out_base.h* from:
 
-    CustomOutPort *dataFloat_out;
+```cpp
+    bulkio::OutFloatPort *dataFloat_out;
+```
 
 to:
 
+```cpp
     CustomOutPort *dataFloat_out;
+```
 
 ### Modifications to transport_out_base.cpp
 
@@ -301,70 +320,23 @@ In *transport_out_base.cpp*, the port behavior needs to be defined and the new p
 
 Add the following function definition in *transport_out_base.cpp*.
 
+```cpp
     redhawk::UsesTransport* CustomOutPort::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId) {
-        negotiable_port = ossie::corba::_narrowSafe<ExtendedCF::NegotiableProvidesPort>(object);
-        if (!CORBA::is_nil(negotiable_port)) {
-            std::string custom_transport("custom");
-            for (TransportManagerList::iterator manager = _transportManagers.begin(); manager != _transportManagers.end(); ++manager) {
-                const std::string transport_type = (*manager)->transportType();
-                if (transport_type != custom_transport)
-                    continue;
-                const redhawk::PropertyMap* transport_props;
-                ExtendedCF::TransportInfoSequence_var supported_transports = this->supportedTransports();
-                for (CORBA::ULong index = 0; index < supported_transports->length(); ++index) {
-                    if (custom_transport == static_cast<const char*>(supported_transports[index].transportType)) {
-                            transport_props = &redhawk::PropertyMap::cast(supported_transports[index].transportProperties);
-                    }
-                }
-                if (transport_props) {
-                    BULKIO::dataFloat_var tmp_port = BULKIO::dataFloat::_narrow(object);
-                    if (!tmp_port)
-                            return 0;
-                    redhawk::UsesTransport* transport = (*manager)->createUsesTransport(object, connectionId, *transport_props);
-                    if (!transport) {
-                            return 0;
-                    }
-                    redhawk::PropertyMap negotiation_props = (*manager)->getNegotiationProperties(transport);
-                    ExtendedCF::NegotiationResult_var result;
-                    try {
-                            result = negotiable_port->negotiateTransport(transport_type.c_str(), negotiation_props);
-                    } catch (const ExtendedCF::NegotiationError& exc) {
-                            RH_ERROR(_portLog, "Error negotiating transport '" << transport_type << "': " << exc.msg);
-                            delete transport;
-                            return 0;
-                    }
-                    const std::string transport_id(result->transportId);
-                    try {
-                            (*manager)->setNegotiationResult(transport, redhawk::PropertyMap::cast(result->properties));
-                            CustomOutputTransport *custom_transport = static_cast<CustomOutputTransport *>(transport);
-                            custom_transport->setTransportParameters(transport_id, negotiable_port);
-                            return transport;
-                    } catch (const std::exception& exc) {
-                            RH_ERROR(_portLog, "Error completing transport '" << transport_type << "' connection: " << exc.what());
-                    } catch (...) {
-                            RH_ERROR(_portLog, "Unknown error completing transport '" << transport_type << "' connection");
-                    }
-                    delete transport;
-                    try {
-                            RH_DEBUG(_portLog, "Undoing failed negotiation for transport '" << transport_type << "'");
-                            negotiable_port->disconnectTransport(transport_id.c_str());
-                    } catch (const CORBA::Exception& exc) {
-                            RH_ERROR(_portLog, "Error undoing failed negotiation for transport '" << transport_type << "': " << ossie::corba::describeException(exc));
-                    }
-                    return 0;
-                }
-            }
-        }
         return 0;
     }
+```
 
 Change the following class instantiation in *transport_out_base.cpp* from:
 
+```cpp
     dataFloat_out = new bulkio::OutFloatPort("dataFloat_out");
+```
 
 to:
 
+```cpp
     dataFloat_out = new CustomOutPort("dataFloat_out");
+```
 
 ## Testing the new port
 
@@ -372,6 +344,7 @@ Like in the earlier example, compile and install **transport_out**, the only com
 
 The following Python session shows how to run the components (notice that shared is not set to False, running both components in the same process space), connect them, and verify the state of the connections:
 
+```python
     >>> from ossie.utils import sb
     >>> src=sb.launch('transport_out')
     >>> snk=sb.launch('transport_in')
@@ -392,3 +365,4 @@ The following Python session shows how to run the components (notice that shared
     CustomOutputTransport::disconnect
     CustomInputTransport::~CustomInputTransport
     CustomOutputTransport::~CustomOutputTransport
+```
