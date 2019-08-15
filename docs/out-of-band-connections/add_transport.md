@@ -296,9 +296,6 @@ Modify *transport_out_base.h* by adding the new port declaration:
               : bulkio::OutFloatPort(port_name) {};
 
             virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId);
-            void disconnected();
-    protected:
-        ExtendedCF::NegotiableProvidesPort_var negotiable_port;
     };
 ```
 
@@ -322,6 +319,7 @@ Add the following function definition in *transport_out_base.cpp*.
 
 ```cpp
     redhawk::UsesTransport* CustomOutPort::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId) {
+        // disable the local transport and force a negotiation
         return 0;
     }
 ```
