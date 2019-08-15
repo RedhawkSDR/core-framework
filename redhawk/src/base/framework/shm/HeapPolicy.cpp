@@ -77,6 +77,12 @@ void ThreadHeapPolicy::initThreadState(ThreadState* state)
 size_t ThreadHeapPolicy::_getNumHeaps()
 {
     int cpu_count = getCpuCount();
-    int num_heaps = redhawk::env::getVariable("RH_SHMALLOC_THREAD_NUM_HEAPS", cpu_count);
+    // As a general rule of thumb, assume 1 thread per CPU, up to 8 total. This
+    // gives enough private heaps to have a low probability of inter-thread
+    // contention in the shared address space case, without splaying too much
+    // memory across a large number of private heaps with a single-threaded
+    // component that frequently stops and starts.
+    int num_heaps = std::min(cpu_count, 8);
+    num_heaps = redhawk::env::getVariable("RH_SHMALLOC_THREAD_NUM_HEAPS", num_heaps);
     return std::max(num_heaps, 1);
 }

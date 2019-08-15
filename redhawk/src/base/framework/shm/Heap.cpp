@@ -44,14 +44,14 @@ namespace redhawk {
         namespace {
             static HeapPolicy* initializePolicy()
             {
-                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_HEAP_POLICY", "cpu");
-                if (policy_type == "thread") {
-                    return new ThreadHeapPolicy;
+                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_HEAP_POLICY", "thread");
+                if (policy_type == "cpu") {
+                    return new CPUHeapPolicy;
                 } else {
-                    if (policy_type != "cpu") {
+                    if (policy_type != "thread") {
                         std::cerr << "Invalid SHM heap policy '" << policy_type << "'" << std::endl;
                     }
-                    return new CPUHeapPolicy;
+                    return new ThreadHeapPolicy;
                 }
             }
 
