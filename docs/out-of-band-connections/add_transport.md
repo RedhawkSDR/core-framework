@@ -2,15 +2,15 @@
 
 In the context of REDHAWK, a component's implementation does not need to be tied solely to a single process or thread running on a microprocessor.
 In instances where the component functionality is implemented on a different processor, like an FPGA, the role of the component process or thread is to manage the bitfile load, its properties, and its data ingress and egress.
-In the case where the data ingress or egress is between components running in the same FPGA, the role of the components is to manage the FPGA load and provide command-and-control information to the embedded device, like where to push data to or retrieve data from.
+In the case where the data ingress or egress is between components running in the same FPGA, the role of the components is to manage the FPGA load and provide command-and-control information to the embedded device, an example of which is where to push data to or retrieve data from.
 
 Bulk IO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, the "local" transport is selected, which is defined as shared address space. The first code example shows how to create a new transport and apply it to links between components running in different processes. The second code example shows how to subclass a Bulk IO port and change the local transport to a custom one.
 
-It needs to be noted that the custom transport is designed to interact with other Bulk IO ports. This means that in a component, if an out-of-band communications as well as tradition microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the Bulk IO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
+It needs to be noted that the custom transport is designed to interact with other Bulk IO ports. This means that in a component, if out-of-band communications as well as tradition microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the Bulk IO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
 
 ## Adding transports to Bulk IO
 
-For the purposes of this example, suppose that there is a component called **transport_out** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **transport_out** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
+For the purposes of this example, suppose that there is a component called **transport_out** that has a single output *dataFloat* port (called **dataFloat_out**) and another component called **transport_in** that has a single input *dataFloat* port (called **dataFloat_in**). This example shows how to modify these components such that the data exchange occurs outside the scope of the built-in Bulk IO mechanisms, like an FPGA.
 
 The pattern that is implemented in both the out (uses) and in (provides) side is to create a transport factory, which in turn is used to create a transport manager, which in turn creates the transport itself. The Bulk IO base classes exercise this pattern.
 
@@ -18,13 +18,13 @@ In this pattern, the transport factories register statically with a transport re
 
 Once a matching transport has been selected, an exchange of properties is performed. The output side implements *getNegotiationProperties* to provide transport information to the input side. The input side receives these properties in its *createInputTransport* function. The response properties from the input side are retrieved through the input side's *getNegotiationProperties* function. Once the output side receives the response from the input side, the response is passed to the port through the *setNegotiationResult* function.
 
-In the example below, the properties includes ara examples only and do not need to be included in the actual implementation.
+In the example below, the properties includes are examples only and do not need to be included in the actual implementation.
 
 This example requires that the \*\_base files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguard these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the _remove_ref member is shown as an error. To hide this error: right-click on project in "Project Explorer" and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add HAVE_OMNIORB4 as a symbol (no value necessary).
 
-Several *cout* statements are included in this code to demonstrate where in the connection process these functions are invoked. These are the locations where device-specific customiziations are meant to occur.
+Several *cout* statements are included in this code to demonstrate where in the connection process these functions are invoked. These are the locations where device-specific customizations are meant to occur.
 
-Ideally, the transport definition would be developed in a library and linked into the component, like a soft package dependency. However, for the sake of simplicity, the transport definition will be added as souce to both components in this example.
+Ideally, the transport definition would be developed in a library and linked into the component, like a soft package dependency. However, for the sake of simplicity, the transport definition will be added as source to both components in this example.
 
 ### Component edits
 
@@ -264,7 +264,7 @@ The following Python session shows how to run the components (note that shared i
 
 ## Overloading Bulk IO Ports
 
-Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the 2 components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not the optimal one. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in 2 separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
+Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the 2 components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not the optimal one. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in two separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
 
 For this example, assume that the components with the updated transport shown above are modified as described above. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered "local".
 
@@ -287,7 +287,7 @@ Modify *transport_out_base.h* by adding the new port declaration:
         ExtendedCF::NegotiableProvidesPort_var negotiable_port;
     };
 
-Change the member declaration for the port in *trasport_out_base.h* from:
+Change the member declaration for the port in *transport_out_base.h* from:
 
     CustomOutPort *dataFloat_out;
 
