@@ -14,7 +14,7 @@ For the purposes of this example, suppose that there is a component called **tra
 
 The pattern that is implemented in both the out (uses) and in (provides) side is to create a transport factory, which in turn is used to create a transport manager, which in turn creates the transport itself. The transport factory is instantiated globally, the transport manager is instantiated per port, and the transport is instantiated per connection. The Bulk IO base classes exercise this pattern.
 
-In this pattern, the transport factories register statically with a transport registry. This transport registry contains all the transports that are supported. At transport negotiation time, the transport names are matched in order of their priority, from the lowest number to the highest. In this example, the "custom" transport is given a priority of 0, making it the highest priority transport, guaranteeing that it be selected if the transport is supported by both ends of the transaction.
+In this pattern, the transport factories register statically with a transport registry. This transport registry contains all the transports that are supported. At transport negotiation time, the transport names are matched in order of their priority, from the lowest number to the highest. In this example, the "custom" transport is given a priority of 0, making it the highest priority transport, guaranteeing that it will be selected if the transport is supported by both ends of the transaction.
 
 Once a matching transport has been selected, an exchange of properties is performed. The output side implements *getNegotiationProperties* to provide transport information to the input side. The input side receives these properties in its *createInputTransport* function. The response properties from the input side are retrieved through the input side's *getNegotiationProperties* function. Once the output side receives the response from the input side, the response is passed to the port through the *setNegotiationResult* function.
 
@@ -139,7 +139,7 @@ Modify transport_in.h and transport_out.h to include the following class declara
     };
 
     // class that creates the transport manager instance
-    class CustomTransportFactory : public bulkio::BulkioTransportFactory<BULKIO::dataFloat> //public redhawk::TransportFactory
+    class CustomTransportFactory : public bulkio::BulkioTransportFactory<BULKIO::dataFloat>
     {
     public:
         static CustomInputTransport* Create(bulkio::InFloatPort* parent, const std::string& transportId);
