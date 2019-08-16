@@ -79,7 +79,7 @@ else:
     elif os.path.isfile('/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',osenv)):
         omniEvents_cfg = '/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',osenv)
     else:
-        print "omniEvents rpm version 2.8 or 2.7 not found"
+        print "Logfile corresponding to omniEvents version 2.8 or 2.7 not found"
         sys.exit(-1)
     
 if options.omniORB_cfg != None:
