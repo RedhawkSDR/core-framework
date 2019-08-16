@@ -45,12 +45,10 @@ Requires:       java >= 1:1.8.0
 
 Requires:       gstreamer-python
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       gstreamer1
 Requires:       gstreamer1-plugins-base
 Requires:       python-matplotlib-qt4
 Requires:       numactl-libs
 %else
-Requires:       gstreamer
 Requires:       gstreamer-plugins-base
 Requires:       python-matplotlib
 %endif
