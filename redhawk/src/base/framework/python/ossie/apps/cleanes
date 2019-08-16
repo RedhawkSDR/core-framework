@@ -154,6 +154,11 @@ for entry in events:
                 if len(args) == 0 or channelName in args:
                     URI = "corbaloc::"+hostname+":"+portNumber+"/"+channelName
                     obj = orb.string_to_object(URI)
+                    try:
+                        object_exists = obj._non_existent()
+                    except:
+                        print "The event channel "+channelName+" is unreachable. Is the Event Service running?"
+                        sys.exit(-1)
                     if not obj._non_existent() or options.force:
                         try:
                             channel=obj._narrow(CosEventChannelAdmin.EventChannel)
