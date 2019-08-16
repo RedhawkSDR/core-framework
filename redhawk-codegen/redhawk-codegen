@@ -333,7 +333,7 @@ if __name__ == '__main__':
                  raise SystemExit, 'Template override requires missing --impl option'
 
         # If this is a persona, verify the code type is SharedLibrary
-        if any('persona' in rt for rt in [resource_type, overrides.template]):
+        if ('persona' in implSettings.template and not overrides.template) or ((resource_type and ('persona' in resource_type)) or (overrides.template and ('persona' in overrides.template))):
             if not implementation.isModule():
                 raise SystemExit, "Persona implementation must be of code type 'SharedLibrary' (ID: %s)\n" % implId
 
