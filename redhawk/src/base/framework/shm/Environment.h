@@ -65,7 +65,7 @@ namespace redhawk {
         {
             const char* env_value = getenv(var);
             if (env_value) {
-                return (strcmp(env_value, "disable") != 0);
+                return (env_value != std::string("disable"));
             }
             return defval;
         }
