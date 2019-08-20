@@ -202,20 +202,6 @@ frontend:el7:
     local_repo: output
   <<: *rpmbuild
 
-deploy:
-  image: ${docker_registry}centos:7
-  stage: deploy
-  dependencies: []
-  before_script:
-    - echo "Deploying to $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`"
-  script:
-    - if [ -n "$jenkins_url" ]; then
-        curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
-      fi
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
-    - master
-
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
   image: ${docker_registry}centos:7
@@ -357,6 +343,9 @@ burstio:abi:
     - createrepo cf-and-deps/$arch
     - cd cf-and-deps
     - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
+  except:
+    - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 deploy-el7:
   variables:
