@@ -244,6 +244,7 @@ fi
 %{_sysconfdir}/ld.so.conf.d/redhawk.conf
 %{_sysconfdir}/bash_completion.d/nodeBooter
 
+
 %files qt-tools
 %defattr(-,root,root,-)
 %{_bindir}/qtbrowse
