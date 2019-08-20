@@ -45,40 +45,39 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
             providesPortName = "vectorIn0"):
 
         dataFormat = "double"
-        source     = sb.DataSource(dataFormat = dataFormat)
-        sink       = sb.DataSink()
+        source = sb.StreamSource(streamID=streamID, format=dataFormat)
+        sink = sb.StreamSink(format=dataFormat)
+        source.xdelta = 1.0 / sampleRate
+        source.complex = complexData
+        interleaved = False
+        if source.complex:
+            interleaved = True
+        for kw in SRIKeywords:
+            source.setKeyword(kw._name, kw._value, format=kw._format)
 
-
-        # connect source -> compoennt -> sink
-        source.connect(
-            self.comp,
-            usesPortName = source.supportedPorts[dataFormat]["portDict"]["Port Name"],
-            providesPortName = providesPortName)
-        self.comp.connect(
-            sink,
-            usesPortName = usesPortName,
-            providesPortName = sink.supportedPorts[dataFormat]["portDict"]["Port Name"])
+        # connect source -> component -> sink
+        source.connect(self.comp)
+        self.comp.connect(sink)
 
         # Start all
         source.start()
         self.comp.start()
         sink.start()
-        source.push(
-            inputData,
-            EOS         = True,
-            streamID    = streamID,
-            sampleRate  = sampleRate,
-            complexData = complexData,
-            SRIKeywords = SRIKeywords)
+
+        source.write(inputData, interleaved=interleaved)
 
         # Give the component some time to process the data
         time.sleep(pause)
-        retData = sink.getData()
+        streamData = sink.read()
+        retData = []
+        retSri = None
+        if streamData:
+            retData = streamData.data
+            retSri = streamData.sri
         self.assertEquals(retData, expectedOutput)
 
         # SRI tests
-        retSri = sink.sri()
-        self.assertEquals(sink.eos(), True)
+        self.assertEquals(streamData.eos, False)
         self.assertEquals(retSri.streamID, streamID)
 
         # sample rate is checked via Xdelta
@@ -98,6 +97,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                     break
             if not found:
                 self.fail("SRI keyword not found: " + expectedKeyword.id)
+
+        # Check for eos
+        source.close()
+        streamData = sink.read(timeout=pause, eos=True)
+        retData = []
+        retSri = None
+        if streamData:
+            retData = streamData.data
+            retSri = streamData.sri
+        self.assertEquals(streamData.eos, True)
+        self.assertEquals(retSri.streamID, streamID)
+
+        source.releaseObject()
+        sink.releaseObject()
 
     def test0_vectorData(self):
         # Launch the resource with the default execparams
@@ -133,11 +146,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
             expectedOutput = expectedOutput)
 
         # test complex IO
-        expectedOutput = copy.deepcopy(inputData)
-        index = 0
-        while index < len(inputData):
-            expectedOutput[index] += constIn0
-            index += 2
+        expectedOutput = []
+        i = 0
+        while i < len(inputData) - 1:
+            cplx = complex(inputData[i], inputData[i + 1])
+            cplx += constIn0
+            expectedOutput.append(cplx)
+            i += 2
+
         self.pushDataAndCheck(
             inputData      = inputData,
             expectedOutput = expectedOutput,
@@ -183,12 +199,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
             [complex(-1,-1), complex(0,0), complex(1,0), complex(2,2)])
 
         # test SRI keywords
+        inputData = xrange(100)
+        expectedOutput = []
+        i = 0
+        while i < len(inputData) - 1:
+            cplx = complex(inputData[i], inputData[i + 1])
+            expectedOutput.append(cplx)
+            i += 2
         SRIKeywords = [sb.io_helpers.SRIKeyword('val1', 1, 'long'),
                        sb.io_helpers.SRIKeyword('val2', 'foo', 'string')]
-        self.pushDataAndCheck(streamID    = "testSRI",
-                              sampleRate  = 50,
-                              complexData = True,
-                              SRIKeywords = SRIKeywords)
+        self.pushDataAndCheck(streamID       = "testSRI",
+                              expectedOutput = expectedOutput,
+                              sampleRate     = 50,
+                              complexData    = True,
+                              SRIKeywords    = SRIKeywords)
 
         # Simulate regular resource shutdown
         self.comp.releaseObject()

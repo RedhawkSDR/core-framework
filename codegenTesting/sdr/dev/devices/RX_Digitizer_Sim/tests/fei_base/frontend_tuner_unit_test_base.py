@@ -114,20 +114,6 @@ class FrontendTunerTests(unittest.TestCase):
     #import frontend
     #digital_tuner_idl = filter(lambda x: x[0]!='_', dir(frontend.InDigitalTunerPort))
 
-    # map data types to DataSink port names
-    port_map = {'dataShort':'shortIn',
-                'dataFloat':'floatIn',
-                'dataUlong':'uLongIn',
-                'dataDouble':'doubleIn',
-                'dataUshort':'ushortIn',
-                'dataLong':'longIn',
-                'dataUlongLong':'ulonglongIn',
-                'dataLongLong':'longlongIn',
-                'dataOctet':'octetIn',
-                'dataXML':'xmlIn',
-                'dataChar':'charIn',
-                'dataFile':'fileIn'}
-
     @classmethod
     def devicePreLaunch(self):
         pass
@@ -2244,33 +2230,33 @@ class FrontendTunerTests(unittest.TestCase):
         print 'Testing data flow on port:',comp_port_type,comp_port_name
         pp(controller)
         comp_port_obj = self.dut.getPort(str(comp_port_name))
-        dataSink1 = sb.DataSink()
-        dataSink2 = sb.DataSink()
-        dataSink3 = sb.DataSink()
-        dataSink4 = sb.DataSink()
-        dataSink1_port_obj = dataSink1.getPort(self.port_map[comp_port_type])
-        dataSink2_port_obj = dataSink2.getPort(self.port_map[comp_port_type])
-        dataSink3_port_obj = dataSink3.getPort(self.port_map[comp_port_type])
-        dataSink4_port_obj = dataSink4.getPort(self.port_map[comp_port_type])
+        format = comp_port_type[4:].lower()
+        sink1 = sb.StreamSink(format=format)
+        sink2 = sb.StreamSink(format=format)
+        sink3 = sb.StreamSink(format=format)
+        sink4 = sb.StreamSink(format=format)
 
-        #sb.start()
+        sb.start()
 
         # alloc a tuner
         controller['ALLOC_ID'] = "control:"+str(uuid.uuid4()) # unique for each loop
         tAlloc = self._generateAlloc(controller)
         pp(controller)
         pp(tAlloc)
-        comp_port_obj.connectPort(dataSink1_port_obj, controller['ALLOC_ID'])
+        self.dut.connect(sink1, connectionId=controller['ALLOC_ID'])
         self.dut_ref.allocateCapacity(tAlloc)
 
         # verify basic data flow
         print >> sys.stderr,'attempting to get data from tuner'
-        for attempt in xrange(10):
-            time.sleep(1.0)
-            data1 = dataSink1.getData()
-            print >> sys.stderr,'attempt',attempt,'len(data1)=',len(data1)
-            if len(data1)>0:
-                break
+        ts_start = time.time()
+        streamData1 = sink1.read(timeout=10)
+        ts_stop = time.time()
+        data1 = []
+        sri1 = None
+        if streamData1:
+            data1 = streamData1.data
+            sri1 = streamData1.sri
+        print >> sys.stderr, 'read() took {0}s,  len(data1) = {1}'.format(ts_stop - ts_start, len(data1))
         self.check(len(data1)>0,True,'%s: Received data from tuner allocation'%(comp_port_name))
 
         # verify SRI
@@ -2295,7 +2281,6 @@ class FrontendTunerTests(unittest.TestCase):
                 else:
                     chan_status = chan_status[0]
 
-        sri1 = dataSink1.sri()
         print 'sri1',sri1
         self.checkAlmostEqual(status['FRONTEND::tuner_status::sample_rate'], 1.0/sri1.xdelta, '%s: SRI xdelta has correct value'%(comp_port_name),places=0)
 
@@ -2344,19 +2329,19 @@ class FrontendTunerTests(unittest.TestCase):
 
         # verify multi-out port
         bad_conn_id = "bad:"+str(uuid.uuid4())
-        comp_port_obj.connectPort(dataSink2_port_obj, bad_conn_id)
-        for attempt in xrange(5):
-            time.sleep(1.0)
-            data2 = dataSink2.getData()
-            #print >> sys.stderr,'attempt',attempt,'len(data2)=',len(data2)
-            if len(data2)>0:
-                break
-        #print 'data2',len(data2)
+        self.dut.connect(sink2, connectionId=bad_conn_id)
+        ts_start = time.time()
+        streamData2 = sink2.read(timeout=5)
+        ts_stop = time.time()
+        data2 = []
+        sri2 = None
+        if streamData2:
+            data2 = streamData2.data
+            sri2 = streamData2.sri
+        #print >> sys.stderr, 'read() took {0}s,  len(data1) = {1}'.format(ts_stop - ts_start, len(data1))
         self.check(len(data2)>0,False,'%s: Did not receive data from tuner allocation with wrong alloc_id (multiport test)'%(comp_port_name))
-        sri1 = dataSink1.sri()
-        sri2 = dataSink2.sri()
         print 'sri2',sri2
-        self.check(sri1.streamID==sri2.streamID,False,'%s: Did not receive correct SRI from tuner allocation with wrong alloc_id (multiport test)'%(comp_port_name))
+        self.check(sri2 == None, True, '%s: Did not receive correct SRI from tuner allocation with wrong alloc_id (multiport test)'%(comp_port_name))
 
         if self.device_discovery[ttype] < 2:
             self.check(True,True,'%s: Cannot fully test multiport because only single %s tuner capability'%(comp_port_name,ttype),successMsg='info')
@@ -2368,19 +2353,19 @@ class FrontendTunerTests(unittest.TestCase):
             listener1 = self._generateListener(controller) # unique for each loop
             listener1['LISTENER_ID'] = "listener1:"+listener1['LISTENER_ID']
             listenerAlloc1 = self._generateListenerAlloc(listener1)
-            comp_port_obj.connectPort(dataSink3_port_obj, listener1['LISTENER_ID'])
+            self.dut.connect(sink3, connectionId=listener1['LISTENER_ID'])
             self.dut_ref.allocateCapacity(listenerAlloc1)
 
-            for attempt in xrange(5):
-                time.sleep(1.0)
-                data3 = dataSink3.getData()
-                #print >> sys.stderr,'attempt',attempt,'len(data3)=',len(data3)
-                if len(data3)>0:
-                    break
-            #print 'data3',len(data3)
+            ts_start = time.time()
+            streamData3 = sink3.read(timeout=5)
+            ts_stop = time.time()
+            data3 = []
+            sri3 = None
+            if streamData3:
+                data3 = streamData3.data
+                sri3 = streamData3.sri
+            #print >> sys.stderr, 'read() took {0}s,  len(data1) = {1}'.format(ts_stop - ts_start, len(data1))
             self.check(len(data3)>0,True,'%s: Received data from listener allocation'%(comp_port_name))
-            sri1 = dataSink1.sri()
-            sri3 = dataSink3.sri()
             print 'sri3',sri3
             self.check(sri1.streamID==sri3.streamID,True,'%s: Received correct SRI from listener allocation'%(comp_port_name))
 
@@ -2389,18 +2374,21 @@ class FrontendTunerTests(unittest.TestCase):
                 listener2 = self._generateListener(controller) # unique for each loop
                 listener2['LISTENER_ID'] = "listener2:"+listener2['LISTENER_ID']
                 listenerAlloc2 = self._generateListenerAlloc(listener2)
-                comp_port_obj.connectPort(dataSink4_port_obj, listener2['LISTENER_ID'])
+                self.dut.connect(sink4, connectionId=listener2['LISTENER_ID'])
                 self.dut_ref.allocateCapacity(listenerAlloc2)
                 time.sleep(1.0)
                 #for port_dict in port_list:
-                    #data4 = dataSink4.getData()
+                #    streamData4 = sink4.read()
+                #    if streamData4:
+                #        data4 = streamData4.data
             self.dut_ref.deallocateCapacity(listenerAlloc1)
-            self.check(dataSink3.eos(),True,'%s: Listener received EOS after deallocation of listener'%(comp_port_name))
-            self.check(dataSink1.eos(),False,'%s: Controller did not receive EOS after deallocation of listener'%(comp_port_name))
+            self.check(streamData3.eos,True,'%s: Listener received EOS after deallocation of listener'%(comp_port_name))
+            self.check(streamData1.eos,False,'%s: Controller did not receive EOS after deallocation of listener'%(comp_port_name))
             self.dut_ref.deallocateCapacity(tAlloc)
-            self.check(dataSink1.eos(),True,'%s: Controller did receive EOS after deallocation of tuner'%(comp_port_name))
+            self.check(streamData1.eos,True,'%s: Controller did receive EOS after deallocation of tuner'%(comp_port_name))
             if listener2:
-                self.check(dataSink4.eos(),True,'%s: Listener received EOS after deallocation of tuner'%(comp_port_name))
+                streamData4 = sink4.read(timeout=3, eos=True)
+                self.check(streamData4.eos,True,'%s: Listener received EOS after deallocation of tuner'%(comp_port_name))
 
     # TODO - noseify
     def testFRONTEND_3_5_TunerStatusProperties(self):
