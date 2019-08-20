@@ -426,6 +426,7 @@ class LinePlot(LineBase):
                        automatically calculated per-frame based on the data.
         """
         super(LinePlot,self).__init__(frameSize, ymin, ymax)
+        self._complex = False
 
     def _getXUnits(self):
         return BULKIO.UNITS_TIME
@@ -433,15 +434,57 @@ class LinePlot(LineBase):
     def _formatData(self, block, stream):
         # Bit blocks don't have a .complex attribute; default to False
         if getattr(block, 'complex', False):
-            data = block.buffer[::2]
+            self._complex = True
+            imag_data = block.buffer[1::2]   # y-axis: imaginary
+            real_data  = block.buffer[::2] # x-axis: real
+            self._xmin = min(real_data)
+            self._xmax = max(real_data)
+            self._plot.set_xlim(self._xmin, self._xmax)
+            return real_data, imag_data
         else:
             data = block.buffer
-        times = numpy.arange(len(data)) * block.xdelta
+            times = numpy.arange(len(data)) * block.xdelta
         return times, data
 
     def _getXRange(self, sri):
-        return 0.0, (self._frameSize-1)*sri.xdelta
+        if self._complex:
+            return self._xmin, self._xmax
+        else:
+            return 0.0, (self._frameSize-1)*sri.xdelta
 
+
+    def _check_xrange(self, xmin, xmax):
+        if xmin is None or xmax is None:
+            return
+        if xmax < xmin:
+            raise ValueError, 'X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax)
+
+    # Plot properties
+    @property
+    def xmin(self):
+        """
+        The lower bound of the X-axis.
+        """
+        return self._xmin
+
+    @xmin.setter
+    def xmin(self, xmin):
+        self._check_xrange(xmin, self._xmax)
+        self._xmin = xmin
+        self._setXView(self._xmin, self._xmax)
+
+    @property
+    def xmax(self):
+        """
+        The upper bound of the X-axis.
+        """
+        return self._xmax
+
+    @xmax.setter
+    def xmax(self, xmax):
+        self._check_xrange(self._xmin, xmax)
+        self._xmax = xmax
+        self._setXView(self._xmin, self._xmax)
 
 class PSDBase(object):
     """
@@ -525,7 +568,7 @@ class LinePSD(LineBase, PSDBase):
     def _formatData(self, block, stream):
         # Bit blocks don't have a .complex attribute; default to False
         if getattr(block, 'complex', False):
-            data = block.cxbuffer
+            data = block.cxdata
         else:
             data = block.buffer
 
@@ -804,7 +847,7 @@ class RasterPlot(RasterBase):
         if self._bitMode:
             return block.buffer.unpack()
         elif block.complex:
-            return block.buffer[::2]
+            return list(numpy.abs(block.cxdata))
         else:
             return block.buffer
 
@@ -933,7 +976,7 @@ class RasterPSD(RasterBase, PSDBase):
         if self._bitMode:
             data = block.buffer.unpack()
         elif block.complex:
-            data = block.cxbuffer
+            data = block.cxdata
         else:
             data = block.buffer
 
@@ -1015,7 +1058,7 @@ class XYPlot(LineBase):
 
     @xmin.setter
     def xmin(self, xmin):
-        self._check_yrange(xmin, self._xmax)
+        self._check_xrange(xmin, self._xmax)
         self._xmin = xmin
         self._setXView(self._xmin, self._xmax)
 
