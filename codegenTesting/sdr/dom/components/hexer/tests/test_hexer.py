@@ -12,11 +12,11 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
     # tearDown is run after every function preceded by "test" is executed
     
     # self.comp is a component using the sandbox API
-    # to create a data source, the package sb contains data sources like DataSource or FileSource
-    # to create a data sink, there are sinks like DataSink and FileSink
+    # to create a data source, the package sb contains sources like StreamSource or FileSource
+    # to create a data sink, there are sinks like StreamSink and FileSink
     # to connect the component to get data from a file, process it, and write the output to a file, use the following syntax:
     #  src = sb.FileSource('myfile.dat')
-    #  snk = sb.DataSink()
+    #  snk = sb.StreamSink()
     #  src.connect(self.comp)
     #  self.comp.connect(snk)
     #  sb.start()

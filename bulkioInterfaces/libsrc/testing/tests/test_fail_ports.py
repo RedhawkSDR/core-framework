@@ -53,11 +53,11 @@ class BaseFailPort(unittest.TestCase):
         uses_name = 'data%sOut' % format
         provides_name = 'data%sIn' % format
 
-        source = sb.DataSource()
+        source = sb.StreamSource(streamID='test_connection_fail')
         source.connect(self.comp1, providesPortName=provides_name)
         self.comp1.connect(self.comp2, usesPortName=uses_name)
 
-        sink = sb.DataSink()
+        sink = sb.StreamSink()
         self.comp1.connect(sink, usesPortName=uses_name)
 
         sb.start()
@@ -66,12 +66,11 @@ class BaseFailPort(unittest.TestCase):
         while self.comp2._process.isAlive():
             time.sleep(0.1)
 
-        source.push(data, EOS=False, streamID='test_connection_fail')
-        for ii in xrange(9):
-            source.push(data, EOS=False)
-        source.push(data, EOS=True)
+        for _ in xrange(9):
+            source.write(data)
+        source.close()
 
-        sink.getData(eos_block=True)
+        sink.read(eos=True)
 
     def testCharConnectionFail(self):
         self._testConnectionFail('Char', range(100))

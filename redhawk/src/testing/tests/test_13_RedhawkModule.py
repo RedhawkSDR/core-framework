@@ -946,11 +946,11 @@ class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
         """
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
 
-        source = sb.DataSource()
+        source = sb.StreamSource()
         self.assertRaises(NoMatchingPorts, source.connect, app)
 
-        sink = sb.DataSink()
-        self.assertRaises(NoMatchingPorts, app.connect, source)
+        sink = sb.StreamSink()
+        self.assertRaises(NoMatchingPorts, app.connect, sink)
 
 
 class DomainMgrLoggingAPI(scatest.CorbaTestCase):

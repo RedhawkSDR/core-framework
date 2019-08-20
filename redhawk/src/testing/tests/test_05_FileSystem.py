@@ -343,7 +343,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         domlistdir = "/waveforms/CommandWrapper"
 
         # use python to count number of regular files (non hidden) that are in the directory
-        dir_file_list = [x for x in os.listdir(devlistdir.replace('/ExecutableDevice_node','sdr/dev')) if x[0] != '.']
+        dir_file_list = os.listdir(devlistdir.replace('/ExecutableDevice_node','sdr/dev'))
         dir_file_list_xml = [x for x in dir_file_list if os.path.splitext(x)[1] == '.xml']
         self.assertEqual(len(dir_file_list_xml), 1)
 
