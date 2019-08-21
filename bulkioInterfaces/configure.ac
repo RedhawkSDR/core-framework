@@ -159,6 +159,7 @@ AC_CONFIG_FILES([libsrc/Makefile \
                  libsrc/bulkio.pc \
                  libsrc/testing/Makefile \
                  libsrc/testing/tests/cpp/Makefile \
+                 libsrc/testing/tests/transport_api/Makefile \
                  libsrc/testing/tests/java/Makefile \
                  libsrc/testing/components/CPP_Ports/cpp/Makefile \
                  libsrc/testing/components/Java_Ports/java/Makefile \

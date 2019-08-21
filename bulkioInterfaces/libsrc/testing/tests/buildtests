@@ -3,3 +3,4 @@
 #
 echo >&2 "$(basename $0) is deprecated; use 'make' in testing directory"
 (cd .. && make -j)
+(cd transport_api && make -j)
