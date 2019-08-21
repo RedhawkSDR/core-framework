@@ -144,7 +144,7 @@ void Custom_BulkioPacket_Base<OutPort,InPort>::CreatePorts()
 #define CREATE_TEST(x,pp)						\
     class Custom_BulkioPacket_##x##_##pp##_Test : public Custom_BulkioPacket_Base<bulkio::Out##x##Port,bulkio::In##x##Port> \
     {                                                                   \
-        typedef Custom_BulkioPacket_Base<bulkio::Out##x##Port,bulkio::In##x##Port> TestBase; \
+        typedef Custom_BulkioPacket_Base< CustomOut##x##Port,bulkio::In##x##Port> TestBase; \
         CPPUNIT_TEST_SUB_SUITE(Custom_BulkioPacket_##x##_##pp##_Test, TestBase); \
         CPPUNIT_TEST_SUITE_END();                                       \
         virtual std::string getPortName() const { return #x; };         \

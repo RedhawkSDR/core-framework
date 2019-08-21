@@ -17,6 +17,19 @@ void setUp_bulkio_test();
 void setUp_config( const std::string &cfgname="custom.udp.cfg");
 void tearDown_reset_env();
 
+
+class CustomOutFloatPort : public bulkio::OutFloatPort {
+    public:
+            virtual ~CustomOutFloatPort() {};
+            CustomOutFloatPort(std::string port_name)
+              : bulkio::OutFloatPort(port_name) {};
+
+            virtual redhawk::UsesTransport* _createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId) {
+                return 0;
+            }
+    };
+
+
 namespace {
 
   template <typename E, typename A>
