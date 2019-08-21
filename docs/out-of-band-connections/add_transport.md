@@ -8,7 +8,7 @@ BulkIO allows for the addition of transports beyond those included by default. T
 
 Note: The custom transport is designed to interact with other BulkIO ports. Therefore, in a component, if out-of-band communications as well as traditional microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. Refer to the following image, which displays the desired outcome. This option is impractical, but is necessary if the BulkIO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
 
-![Negotiable Transport Image](/images/NegotiableTransport.png)
+![Negotiable Transport Image](./images/NegotiableTransport.png)
 
 ## Adding Transports to BulkIO
 
@@ -161,7 +161,7 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
     };
 ```
 
-Modify transport_in.cpp and transport_out.cpp to define these functions:
+Modify `transport_in.cpp` and `transport_out.cpp` to define these functions:
 
 ```cpp
     bulkio::InputManager<BULKIO::dataFloat>* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
@@ -280,7 +280,7 @@ Adding transports enables the developer to customize the transport mechanism bey
 
 For this example, assume that the components with the updated transport shown in the previous example are modified as described in the example. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered "local".
 
-This example requires that the ``\*\_base` files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguarding these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the `_remove_ref member` is shown as an error. To hide this error: In the Project Explorer view, right-click the project and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add `HAVE_OMNIORB4` as a symbol (no value necessary).
+This example requires that the `\*\_base` files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguarding these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the `_remove_ref member` is shown as an error. To hide this error: In the Project Explorer view, right-click the project and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add `HAVE_OMNIORB4` as a symbol (no value necessary).
 
 Because the output port selects the transport to be used, the only port that must be overloaded is the output port, so only `transport_out` needs to be modified.
 
