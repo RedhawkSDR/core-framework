@@ -338,7 +338,7 @@ Because the output port selects the transport to be used, the only port that mus
 
 ### Modifications to `transport_out_base.h`
 
-The modifications to `transport_out_base.h` involve the declaration of the new overloaded port and the modification of the port member to the component. Luckily, the only function that needs to be overloaded is `_createLocalTransport` that, as the name implies, returns the transport to be used when both endpoints reside in the same process space.
+Modifications to `transport_out_base.h` include a port declaration inherited from the BulkIO OutFloatPort base case. This new class redefines the behavior of the _createLocalTransport method to disable the local transport when both endpoints reside in the same process space.
 
 Modify `transport_out_base.h` by adding the new port declaration:
 
@@ -353,21 +353,9 @@ Modify `transport_out_base.h` by adding the new port declaration:
     };
 ```
 
-Change the member declaration for the port in `transport_out_base.h` from:
-
-```cpp
-    bulkio::OutFloatPort *dataFloat_out;
-```
-
-to:
-
-```cpp
-    CustomOutPort *dataFloat_out;
-```
-
 ### Modifications to `transport_out_base.cpp`
 
-In `transport_out_base.cpp`, the port behavior needs to be defined and the new port class has to be instantiated.
+In `transport_out_base.cpp`, the new port behavior needs to be defined and instantiated in place of the BulkIO base class port.
 
 Add the following function definition in `transport_out_base.cpp`:
 
