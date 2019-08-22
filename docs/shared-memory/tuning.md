@@ -5,7 +5,7 @@ Memory that is allocated by one process is often deallocated by another process 
 The allocator is designed to handle frequent allocations of large memory blocks while minimizing locking contention and inter-process coordination.
 As this can lead to higher memory use, REDHAWK provides some controls that allow a system integrator to tune the shared memory allocator for their specific use case.
 
-*Note:* Shared memory tuning options are a new feature in REDHAWK 2.2.4.
+**Note:** Shared memory tuning options are a new feature in REDHAWK 2.2.4.
 Setting the environment variables described below has no effect on earlier releases of REDHAWK.
 
 ## Heaps
@@ -44,7 +44,7 @@ The following example sets the allocator policy to CPU-based:
 export RH_SHMALLOC_POLICY=cpu
 ```
 
-*Note:* REDHAWK 2.2.0 through 2.2.3 used the CPU-based policy.
+**Note:** REDHAWK 2.2.0 through 2.2.3 used the CPU-based policy.
 
 ### Thread-Based Policy
 
