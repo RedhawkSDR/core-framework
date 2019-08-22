@@ -5,6 +5,11 @@ To assist developers in determining the best performance tradeoffs for a particu
 
 _Note_: Shared memory metrics are a new feature in REDHAWK 2.2.4. Setting the environment variable described below has no effect on earlier releases of REDHAWK.
 
+## System Information
+
+REDHAWK includes a `redhawk-shminfo` program that provides general information about the system's shared memory state, including REDHAWK heaps.
+The Shared Memory Maintenance appendix of the REDHAWK manual documents its use.
+
 ## Enabling
 
 Shared memory metrics are disabled by default.
