@@ -1,12 +1,12 @@
 # Creating Connections between Components in FPGA
 
-In the context of REDHAWK, a component's implementation is not soley tied to a single process or thread running on a microprocessor, it's main functionality could be targeted for a FPGA. In the case of a single component running on a FPGA, the role of the component will manage the bitfile load, provide command-and-control information to the embedded device, and perform data ingress and egress to and from embedded hardware.  In the case where multiple components are targeted for the same FPGA, those components will manage their FPGA loads, command-and-control of their respective processing elements. and manage data ingress and egress to the embedded hardware's endpoints.  Connections, data ingress, and data egress between components on the FPGA can be managed using a custom transport layer for a REDHAWK BulkIO port.
-
-BulkIO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, the "local" transport is selected, which is defined as shared address space. The first code example shows how to create a new transport and apply it to links between components running in different processes. The second code example shows how to subclass a BulkIO port and change the local transport to a custom one.
-
-Note: The custom transport is designed to interact with other BulkIO ports. Therefore, in a component, if out-of-band communications as well as traditional microprocessor-based communications are supported, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. Refer to the following image, which displays the desired outcome. This option is impractical, but is necessary if the BulkIO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
+In the context of REDHAWK, a component's implementation is not solely tied to a single process or thread running on a microprocessor. Its main functionality could be targeted for an FPGA. In the case of a single component running on an FPGA, the role of the component is to manage the bitfile load, provide command-and-control information to the embedded device, and perform data ingress and egress to and from embedded hardware.  In the case where multiple components are targeted for the same FPGA, the role of the components is to manage their FPGA loads, provide command-and-control information to their respective processing elements, and manage data ingress and egress to the embedded hardware's endpoints.  Connections, data ingress, and data egress between components on the FPGA can be managed using a custom transport layer for a REDHAWK BulkIO port. The following image displays multiple components targeted for the same FPGA.
 
 ![Negotiable Transport Image](./images/NegotiableTransport.png)
+
+BulkIO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, a local transport is selected, which is defined as shared address space. In the following code examples, the first example demonstrates how a new transport is created and applied to links between components running in different processes. The second code example demonstrates how to subclass a BulkIO port and change the local transport to a custom one.
+
+Note: The custom transport is designed to interact with other BulkIO ports. If out-of-band communications as well as traditional microprocessor-based communications are supported in component, then data needs to be transferred both out-of-band and using the stream API in the microprocessor code. This option is impractical, but is necessary if the BulkIO port is meant to support communications with other ports supporting the custom transport as well as traditional microprocessor-based software.
 
 ## Adding Transports to BulkIO
 
@@ -285,7 +285,7 @@ Modify transport_in.cpp and transport_out.cpp to define these functions:
     };
 ```
 
-Modify transport_in.cpp and transport_out.cpp to register the transport:
+Modify `transport_in.cpp` and `transport_out.cpp` to register the transport:
 
 ```cpp
     static int initializeModule() {
@@ -301,7 +301,7 @@ Modify transport_in.cpp and transport_out.cpp to register the transport:
 
 To test the previous code examples, compile and install both components (`transport_out` and `transport_in`).
 
-The following Python session demonstrates how to run the components (Note that `shared` is set to `False`, forcing the components to run in different process spaces.), connect them, and verify the state of the connections:
+The following Python session demonstrates how to run the components, connect them, and verify the state of the connections. (Note that `shared` is set to `False`, forcing the components to run in different process spaces.)
 
 ```python
     >>> from ossie.utils import sb
@@ -330,7 +330,7 @@ The following Python session demonstrates how to run the components (Note that `
 
 Adding transports enables the developer to customize the transport mechanism beyond that provided by the REDHAWK baseline. One of the limitations of the transport mechanism addition is that if the two components are located in the same process space, the transport selection mechanism defaults to shared address space, which is optimal for threads located on the same process. However, there are instances in which this approach is not optimal. For example, some embedded hardware requires a single point of entry from the microprocessor, so all processing threads that require access to the embedded hardware through the driver must be placed in the same process space. In this case, it may be desirable for the embedded hardware resources to connect to each other directly even though the controlling software resides in two separate threads in the microprocessor. In such instances, it is necessary to overload the provided ports and change the behavior of the default transport mechanism for components that share address space.
 
-For this example, assume that the components with the updated transport shown in the previous example are modified as described in the example. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered "local".
+For this example, assume that the components with the updated transport shown in the previous example are modified as described in the example. The only additional change is to overload the required ports to select the custom transport for shared address space components; in the case of transport definition, endpoints that share the same address space are considered local.
 
 This example requires that the `\*\_base` files be modified on each of these components, so component re-generation for attributes like new properties is not possible while safeguarding these changes. Furthermore, the IDE has been updated to hide several of the CORBA base classes, so the `_remove_ref member` is shown as an error. To hide this error: In the Project Explorer view, right-click the project and select Properties->C/C++ General->Paths and Symbols->GNU C++, and add `HAVE_OMNIORB4` as a symbol (no value necessary).
 
@@ -365,11 +365,11 @@ to:
     CustomOutPort *dataFloat_out;
 ```
 
-### Modifications to transport_out_base.cpp
+### Modifications to `transport_out_base.cpp`
 
 In `transport_out_base.cpp`, the port behavior needs to be defined and the new port class has to be instantiated.
 
-Add the following function definition in `transport_out_base.cpp`.
+Add the following function definition in `transport_out_base.cpp`:
 
 ```cpp
     redhawk::UsesTransport* CustomOutPort::_createLocalTransport(PortBase* port, CORBA::Object_ptr object, const std::string& connectionId) {
@@ -394,7 +394,7 @@ to:
 
 As in the previous example, compile and install `transport_out`, the only component modified for this example.
 
-The following Python session shows how to run the components (Note that `shared` is not set to `False`; therefore, both components run in the same process space.), connect them, and verify the state of the connections:
+The following Python session demonstrates how to run the components, connect them, and verify the state of the connections. (Note that `shared` is not set to `False`; therefore, both components run in the same process space.)
 
 ```python
     >>> from ossie.utils import sb
