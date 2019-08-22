@@ -204,7 +204,7 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
     };
 ```
 
-Modify transport_in.cpp and transport_out.cpp to define these functions:
+Modify `transport_in.cpp` and `transport_out.cpp` to define these functions:
 
 ```cpp
 
@@ -338,7 +338,7 @@ Because the output port selects the transport to be used, the only port that mus
 
 ### Modifications to `transport_out_base.h`
 
-Modifications to `transport_out_base.h` include a port declaration inherited from the BulkIO OutFloatPort base case. This new class redefines the behavior of the _createLocalTransport method to disable the local transport when both endpoints reside in the same process space.
+Modifications to `transport_out_base.h` include a port declaration inherited from the BulkIO `OutFloatPort` base case. This new class redefines the behavior of the `_createLocalTransport` method to disable the local transport when both endpoints reside in the same process space.
 
 Modify `transport_out_base.h` by adding the new port declaration:
 
