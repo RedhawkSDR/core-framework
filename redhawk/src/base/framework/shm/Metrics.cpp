@@ -54,11 +54,11 @@ void Metrics::dump(std::ostream& oss)
     oss << "  Files closed: " << files_closed << std::endl;
     oss << "  Files total bytes: " << files_bytes << std::endl;
     oss << "  Heaps created: "<< heaps_created << std::endl;
-    oss << "  Private heaps created: "<< private_heaps_created << std::endl;
-    oss << "  Private heaps used: "<< private_heaps_used << std::endl;
-    oss << "  Heap allocations hot: "<< heaps_alloc_hot << std::endl;
-    oss << "  Heap allocations cold: "<< heaps_alloc_cold << std::endl;
-    oss << "  Heap allocations failed: "<< heaps_alloc_failed << std::endl;
+    oss << "  Pools created: "<< pools_created << std::endl;
+    oss << "  Pools used: "<< pools_used << std::endl;
+    oss << "  Pool allocations hot: "<< pools_alloc_hot << std::endl;
+    oss << "  Pool allocations cold: "<< pools_alloc_cold << std::endl;
+    oss << "  Pool allocations failed: "<< pools_alloc_failed << std::endl;
     oss << "  Superblocks created: " << superblocks_created << std::endl;
     oss << "  Superblocks mapped: " << superblocks_mapped << std::endl;
     oss << "  Superblocks reused: " << superblocks_reused << std::endl;

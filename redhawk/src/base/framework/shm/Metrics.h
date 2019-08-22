@@ -69,49 +69,49 @@ namespace redhawk {
             atomic_int heaps_created;
 
             /**
-             * Number of private heaps created in this process.
+             * Number of pools created in this process.
              *
-             * Private heap creation occurs at heap initialization time. No
-             * shared memory is dedicated to a private heap until it is used for
+             * Pool creation occurs at heap initialization time. No
+             * shared memory is dedicated to a pool until it is used for
              * allocation.
              */
-            atomic_int private_heaps_created;
+            atomic_int pools_created;
 
             /**
-             * Number of private heaps in use by this process.
+             * Number of pools in use by this process.
              *
-             * Indicates the actual usage pattern of private heaps.
+             * Indicates the actual usage pattern of pools.
              */
-            atomic_int private_heaps_used;
+            atomic_int pools_used;
 
             /**
-             * Number of private heap allocations that were satisfied by an
+             * Number of pool allocations that were satisfied by an
              * existing superblock.
              *
              * A high number of "hot" allocations suggests that memory is being
              * allocated efficiently. Accordingly, the virtual address space and
              * superblock file will tend to grow more slowly.
              */
-            atomic_int heaps_alloc_hot;
+            atomic_int pools_alloc_hot;
 
             /**
-             * Number of private heap allocations that required acquiring a new
+             * Number of pool allocations that required acquiring a new
              * superblock.
              *
              * A high number of "cold" allocations suggests either heavy memory
              * use or inefficient allocation of memory. The virtual address
              * space and superblock file will tend to grow more quickly.
              */
-            atomic_int heaps_alloc_cold;
+            atomic_int pools_alloc_cold;
 
             /**
-             * Number of private heap allocations that were not able to be
+             * Number of pool allocations that were not able to be
              * fulfilled.
              *
              * A failed allocation indicates that the shared memory filesystem
              * is full.
              */
-            atomic_int heaps_alloc_failed;
+            atomic_int pools_alloc_failed;
 
             // Superblock statistics
             /**

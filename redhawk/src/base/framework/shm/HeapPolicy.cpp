@@ -19,70 +19,70 @@ namespace {
 using namespace redhawk::shm;
 
 CPUHeapPolicy::CPUHeapPolicy() :
-    _cpusPerHeap(_getCpusPerHeap())
+    _cpusPerPool(_getCpusPerPool())
 {
 }
 
-int CPUHeapPolicy::getHeapCount()
+int CPUHeapPolicy::getPoolCount()
 {
-    // If CPUs per heap is not an exact divisor of the total CPUs, ensure that
+    // If CPUs per pool is not an exact divisor of the total CPUs, ensure that
     // we round up to the next integral number
-    return (getCpuCount() + _cpusPerHeap - 1) / _cpusPerHeap;
+    return (getCpuCount() + _cpusPerPool - 1) / _cpusPerPool;
 }
 
-size_t CPUHeapPolicy::getHeapAssignment(ThreadState*)
+size_t CPUHeapPolicy::getPoolAssignment(ThreadState*)
 {
     size_t cpuid = sched_getcpu();
-    return cpuid / _cpusPerHeap;
+    return cpuid / _cpusPerPool;
 }
 
-size_t CPUHeapPolicy::_getCpusPerHeap()
+size_t CPUHeapPolicy::_getCpusPerPool()
 {
-    int cpus_per_heap = redhawk::env::getVariable("RH_SHMALLOC_CPUS_PER_HEAP", 1);
-    cpus_per_heap = std::max(cpus_per_heap, 1);
+    int cpus_per_pool = redhawk::env::getVariable("RH_SHMALLOC_CPUS_PER_POOL", 1);
+    cpus_per_pool = std::max(cpus_per_pool, 1);
     int cpu_count = getCpuCount();
-    cpus_per_heap = std::min(cpu_count, cpus_per_heap);
+    cpus_per_pool = std::min(cpu_count, cpus_per_pool);
 
-    int remainder = cpu_count % cpus_per_heap;
+    int remainder = cpu_count % cpus_per_pool;
     if (remainder) {
         std::cerr << "SHM allocator: uneven distribution for CPUs ("
                   << cpu_count << " total, "
-                  << cpus_per_heap << " per heap, "
-                  << remainder << " in last heap)" << std::endl;
+                  << cpus_per_pool << " per pool, "
+                  << remainder << " in last pool)" << std::endl;
     }
-    return cpus_per_heap;
+    return cpus_per_pool;
 }
 
 ThreadHeapPolicy::ThreadHeapPolicy() :
-    _numHeaps(_getNumHeaps())
+    _numPools(_getNumPools())
 {
 }
 
-int ThreadHeapPolicy::getHeapCount()
+int ThreadHeapPolicy::getPoolCount()
 {
-    return _numHeaps;
+    return _numPools;
 }
 
-size_t ThreadHeapPolicy::getHeapAssignment(ThreadState* state)
+size_t ThreadHeapPolicy::getPoolAssignment(ThreadState* state)
 {
-    return state->heapId;
+    return state->poolId;
 }
 
 void ThreadHeapPolicy::initThreadState(ThreadState* state)
 {
     pid_t tid = syscall(SYS_gettid);
-    state->heapId = tid % _numHeaps;
+    state->poolId = tid % _numPools;
 }
 
-size_t ThreadHeapPolicy::_getNumHeaps()
+size_t ThreadHeapPolicy::_getNumPools()
 {
     int cpu_count = getCpuCount();
     // As a general rule of thumb, assume 1 thread per CPU, up to 8 total. This
-    // gives enough private heaps to have a low probability of inter-thread
-    // contention in the shared address space case, without splaying too much
-    // memory across a large number of private heaps with a single-threaded
-    // component that frequently stops and starts.
-    int num_heaps = std::min(cpu_count, 8);
-    num_heaps = redhawk::env::getVariable("RH_SHMALLOC_THREAD_NUM_HEAPS", num_heaps);
-    return std::max(num_heaps, 1);
+    // gives enough pools to have a low probability of inter-thread contention
+    // in the shared address space case, without splaying too much memory
+    // across a large number of pools with a single-threaded component that
+    // frequently stops and starts.
+    int num_pools = std::min(cpu_count, 8);
+    num_pools = redhawk::env::getVariable("RH_SHMALLOC_THREAD_NUM_POOLS", num_pools);
+    return std::max(num_pools, 1);
 }

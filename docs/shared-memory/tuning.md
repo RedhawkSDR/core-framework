@@ -11,18 +11,18 @@ Setting the environment variables described below has no effect on earlier relea
 ## Heaps
 
 Each REDHAWK process that allocates shared memory creates its own per-process heap using POSIX real-time shared memory.
-To minimize contention between threads when allocating from shared memory, heaps are subdivided into private heaps.
-Each allocation is serviced by one private heap.
+To minimize contention between threads when allocating from shared memory, heaps are subdivided into pools.
+Each allocation is serviced by one pool.
 
-The overall shared memory usage of a process is related to the sharing of private heaps across allocations.
+The overall shared memory usage of a process is related to the sharing of pools across allocations.
 Less sharing reduces contention at the cost of more shared memory usage.
 More sharing trades an increased potential for contention in order to limit shared memory usage.
 
 ### Superblocks
 
-Shared memory is dedicated to private heaps in contiguous regions called superblocks.
-The private heap may then divide a superblock into smaller blocks to satisfy allocations.
-Once a superblock has been assigned to a private heap, it remains there for lifetime of the heap.
+Shared memory is dedicated to pools in contiguous regions called superblocks.
+The pool may then divide a superblock into smaller blocks to satisfy allocations.
+Once a superblock has been assigned to a pool, it remains there for lifetime of the heap.
 
 The minimum size for superblocks can be configured with the `RH_SHMALLOC_SUPERBLOCK_SIZE` environment variable.
 A superblock can be created beyond the minimum size to accomodate large allocations.
@@ -48,32 +48,32 @@ _Note_: REDHAWK 2.2.0 through 2.2.3 used the CPU-based policy.
 
 ### Thread-Based Policy
 
-In the thread-based heap policy, each thread is assigned to a private heap based on its thread ID.
-All allocations from a thread will use the same private heap.
+In the thread-based heap policy, each thread is assigned to a pool based on its thread ID.
+All allocations from a thread will use the same pool.
 This is the default policy, but it can be explicitly configured by setting `RH_SHMALLOC_POLICY` to "thread".
 
-By default, in the thread-based policy, the heap will create one private heap per CPU, up to a maximum of 8.
-The total number of private heaps can be controlled with the `RH_SHMALLOC_THREAD_NUM_HEAPS` environment variable.
+By default, in the thread-based policy, the heap will create one pool per CPU, up to a maximum of 8.
+The total number of pools can be controlled with the `RH_SHMALLOC_THREAD_NUM_POOLS` environment variable.
 
-Using fewer private heaps may limit the total memory usage of a process by increasing the likelihood that different threads will use the same private heap.
-For legacy components that run as a single processing thread in a standalone process, setting `RH_SHMALLOC_THREAD_NUM_HEAPS` to 1 will use the least total shared memory.
+Using fewer pools may limit the total memory usage of a process by increasing the likelihood that different threads will use the same pool.
+For legacy components that run as a single processing thread in a standalone process, setting `RH_SHMALLOC_THREAD_NUM_POOLS` to 1 will use the least total shared memory.
 
 ```sh
-export RH_SHMALLOC_THREAD_NUM_HEAPS=1
+export RH_SHMALLOC_THREAD_NUM_POOLS=1
 ```
 
 ### CPU-Based Policy
 
-In the CPU-based heap policy, private heaps are assigned to one or more CPUs.
-Each allocation is handled by the private heap associated with with its current CPU.
+In the CPU-based heap policy, pools are assigned to one or more CPUs.
+Each allocation is handled by the pool associated with with its current CPU.
 To use the CPU-based policy, set `RH_SHMALLOC_POLICY` to "cpu".
 
-By default, the heap will create one private heap per CPU.
-The ratio of CPUs to private heaps can be adjusted with the `RH_SHMALLOC_CPUS_PER_HEAP` environment variable.
-The following example assigns 4 CPUs to each private heap:
+By default, the heap will create one pool per CPU.
+The ratio of CPUs to pools can be adjusted with the `RH_SHMALLOC_CPUS_PER_POOL` environment variable.
+The following example assigns 4 CPUs to each pool:
 ```sh
-export RH_SHMALLOC_CPUS_PER_HEAP=4
+export RH_SHMALLOC_CPUS_PER_POOL=4
 ```
-In a system with 16 CPUs this will create 4 private heaps, with CPUs 0 through 3 assigned to the first private heap, CPUs 4 through 7 assigned to the second, and so on.
+In a system with 16 CPUs this will create 4 pools, with CPUs 0 through 3 assigned to the first pool, CPUs 4 through 7 assigned to the second, and so on.
 
 Using the CPU policy can reduce contention with large numbers of threads, and is more likely to use nearby memory on NUMA systems.

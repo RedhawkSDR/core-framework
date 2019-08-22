@@ -38,7 +38,7 @@ namespace redhawk {
 
             shm::Superblock* last;
             int contention;
-            size_t heapId;
+            size_t poolId;
         };
     }
 }

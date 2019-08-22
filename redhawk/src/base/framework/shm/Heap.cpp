@@ -44,7 +44,7 @@ namespace redhawk {
         namespace {
             static HeapPolicy* initializePolicy()
             {
-                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_HEAP_POLICY", "thread");
+                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_POLICY", "thread");
                 if (policy_type == "cpu") {
                     return new CPUHeapPolicy;
                 } else {
@@ -67,13 +67,13 @@ bool MemoryRef::operator! () const
     return heap.empty();
 }
 
-class Heap::PrivateHeap {
+class Heap::Pool {
 public:
-    PrivateHeap(int id, Heap* heap) :
+    Pool(int id, Heap* heap) :
         _id(id),
         _heap(heap)
     {
-        RECORD_SHM_METRIC(private_heaps_created);
+        RECORD_SHM_METRIC(pools_created);
     }
 
     void* allocate(ThreadState* state, size_t bytes)
@@ -86,20 +86,20 @@ public:
                 // under the assumption that it is more likely to satisfy a
                 // future request
                 std::iter_swap(superblock, _superblocks.begin());
-                RECORD_SHM_METRIC(heaps_alloc_hot);
+                RECORD_SHM_METRIC(pools_alloc_hot);
                 return ptr;
             }
         }
 
         Superblock* superblock = _heap->_createSuperblock(bytes);
         if (superblock) {
-            RECORD_SHM_METRIC_IF(_superblocks.empty(), private_heaps_used);
+            RECORD_SHM_METRIC_IF(_superblocks.empty(), pools_used);
             _superblocks.insert(_superblocks.begin(), superblock);
-            RECORD_SHM_METRIC(heaps_alloc_cold);
+            RECORD_SHM_METRIC(pools_alloc_cold);
             return superblock->allocate(state, bytes);
         }
 
-        RECORD_SHM_METRIC(heaps_alloc_failed);
+        RECORD_SHM_METRIC(pools_alloc_failed);
         return 0;
     }
 
@@ -117,9 +117,9 @@ Heap::Heap(const std::string& name) :
     _canGrow(true)
 {
     _file.create();
-    int num_heaps = policy->getHeapCount();
-    for (int id = 0; id < num_heaps; ++id) {
-        _allocs.push_back(new PrivateHeap(id, this));
+    int num_pools = policy->getPoolCount();
+    for (int id = 0; id < num_pools; ++id) {
+        _allocs.push_back(new Pool(id, this));
     }
 
     RECORD_SHM_METRIC(heaps_created);
@@ -140,8 +140,8 @@ Heap::~Heap()
 void* Heap::allocate(size_t bytes)
 {
     ThreadState* state = _getThreadState();
-    PrivateHeap* heap = _getPrivateHeap(state);
-    return heap->allocate(state, bytes);
+    Pool* pool = _getPool(state);
+    return pool->allocate(state, bytes);
 }
 
 void Heap::deallocate(void* ptr)
@@ -170,11 +170,11 @@ const std::string& Heap::name() const
     return _file.name();
 }
 
-Heap::PrivateHeap* Heap::_getPrivateHeap(ThreadState* state)
+Heap::Pool* Heap::_getPool(ThreadState* state)
 {
-    size_t heap_id = policy->getHeapAssignment(state);
-    assert(heap_id < _allocs.size());
-    return _allocs[heap_id];
+    size_t pool_id = policy->getPoolAssignment(state);
+    assert(pool_id < _allocs.size());
+    return _allocs[pool_id];
 }
 
 ThreadState* Heap::_getThreadState()

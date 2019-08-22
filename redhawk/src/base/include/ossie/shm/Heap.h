@@ -52,7 +52,7 @@ namespace redhawk {
             const std::string& name() const;
 
         private:
-            struct PrivateHeap;
+            struct Pool;
 
             // Non-copyable, non-assignable
             Heap(const Heap&);
@@ -63,7 +63,7 @@ namespace redhawk {
 
             Superblock* _createSuperblock(size_t minSize);
 
-            PrivateHeap* _getPrivateHeap(ThreadState* state);
+            Pool* _getPool(ThreadState* state);
             ThreadState* _getThreadState();
 
             // Serializes access to all members except thread-specific data
@@ -72,7 +72,7 @@ namespace redhawk {
             SuperblockFile _file;
             bool _canGrow;
 
-            std::vector<PrivateHeap*> _allocs;
+            std::vector<Pool*> _allocs;
 
             boost::thread_specific_ptr<ThreadState> _threadState;
 
