@@ -5,7 +5,7 @@ Memory that is allocated by one process is often deallocated by another process 
 The allocator is designed to handle frequent allocations of large memory blocks while minimizing locking contention and inter-process coordination.
 As this can lead to higher memory use, REDHAWK provides some controls that allow a system integrator to tune the shared memory allocator for their specific use case.
 
-_Note_: Shared memory tuning options are a new feature in REDHAWK 2.2.4.
+*Note:* Shared memory tuning options are a new feature in REDHAWK 2.2.4.
 Setting the environment variables described below has no effect on earlier releases of REDHAWK.
 
 ## Heaps
@@ -18,25 +18,16 @@ The overall shared memory usage of a process is related to the sharing of pools 
 Less sharing reduces contention at the cost of more shared memory usage.
 More sharing trades an increased potential for contention in order to limit shared memory usage.
 
-The heap file is removed when the process which created it exits; however, heap memory is not reclaimed by the system until all attached processes have exited.
-
 ### Superblocks
 
 Shared memory is dedicated to pools in contiguous regions called superblocks.
 The pool may then divide a superblock into smaller blocks to satisfy allocations.
 Once a superblock has been assigned to a pool, it remains there for the lifetime of the heap.
 
-The minimum size of superblocks can be configured with the `RH_SHMALLOC_SUPERBLOCK_SIZE` environment variable.
+The minimum size for superblocks can be configured with the `RH_SHMALLOC_SUPERBLOCK_SIZE` environment variable.
 A superblock can be created beyond the minimum size to accomodate large allocations.
 The default minimum superblock size is 2MB.
 The value is rounded to the nearest page size for the system.
-
-To check the page size for your system:
-```sh
-getconf PAGESIZE
-```
-
-_Note_: The default superblock size is suitable for most usage patterns.
 
 ## Allocator Policy Control
 
@@ -53,7 +44,7 @@ The following example sets the allocator policy to CPU-based:
 export RH_SHMALLOC_POLICY=cpu
 ```
 
-_Note_: REDHAWK 2.2.0 through 2.2.3 used the CPU-based policy.
+*Note:* REDHAWK 2.2.0 through 2.2.3 used the CPU-based policy.
 
 ### Thread-Based Policy
 
@@ -74,7 +65,7 @@ export RH_SHMALLOC_THREAD_NUM_POOLS=1
 ### CPU-Based Policy
 
 In the CPU-based heap policy, pools are assigned to one or more CPUs.
-Each allocation is handled by the pool associated with with its current CPU.
+Each allocation is handled by the pool associated with its current CPU.
 To use the CPU-based policy, set `RH_SHMALLOC_POLICY` to "cpu".
 
 By default, the heap will create one pool per CPU.
@@ -85,4 +76,4 @@ export RH_SHMALLOC_CPUS_PER_POOL=4
 ```
 In a system with 16 CPUs this will create 4 pools, with CPUs 0 through 3 assigned to the first pool, CPUs 4 through 7 assigned to the second, and so on.
 
-Using the CPU policy can reduce contention with large numbers of threads, and is more likely to use nearby memory on NUMA systems.
+Using the CPU policy can reduce contention with large numbers of threads and is more likely to use nearby memory on NUMA systems.
