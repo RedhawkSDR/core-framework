@@ -32,5 +32,5 @@ Interprocess communication is done via FIFOs created on the local `/tmp` file
 system. To avoid polluting the file system, these files are removed once the
 communication channel is established, or the connection is canceled due to
 error. In the unlikely event that a FIFO is not removed by REDHAWK, it may be
-manually cleaned up by removing the file, which has a name with the follwing format:
+manually cleaned up by removing the file, which has a name with the following format:
 `/tmp/fifo-<pid>-<hex number>`.
