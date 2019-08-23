@@ -66,5 +66,5 @@ lib_LTLIBRARIES = lib{{component.name}}.la
 lib{{component.name}}_la_SOURCES = $(redhawk_SOURCES_auto)
 lib{{component.name}}_la_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 lib{{component.name}}_la_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) $(PROJECTDEPS_LIBS) $(INTERFACEDEPS_LIBS)
-libdir = $(prefix)/dev/devices/{{componentdir}}/cpp/.libs
+libdir = $(prefix)/dev/devices/{{componentdir}}/cpp/
 #{% endblock %}
