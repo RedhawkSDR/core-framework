@@ -159,7 +159,7 @@ A high ratio of reused to mapped superblocks suggests efficient allocation.
 Number of superblocks unmapped from this process' memory space.
 
 Currently, superblocks are never unmapped.
-This number is always be zero.
+This number is always zero.
 
 ## Heap Client Metrics
 
