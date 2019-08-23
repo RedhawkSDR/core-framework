@@ -111,21 +111,21 @@ With fewer threads, this may be inefficient; however, in a highly-threaded proce
 Number of pool allocations that were satisfied by an existing superblock.
 
 A high number of "hot" allocations suggests that memory is being allocated efficiently.
-Accordingly, the virtual address space and heap file will tend to grow more slowly.
+Accordingly, the virtual address space and heap file tends to grow more slowly.
 
 ### Pool Allocations Cold
 
 Number of pool allocations that required acquiring a new superblock.
 
 A high number of "cold" allocations suggests either heavy memory use or inefficient allocation of memory.
-The virtual address space and superblock file will tend to grow more quickly.
+The virtual address space and superblock file tends to grow more quickly.
 
 ### Pool Allocations Failed
 
 Number of pool allocations that were not able to be fulfilled.
 
 A failed allocation indicates that the shared memory filesystem is full.
-Once this occurs, the system will switch to using process-local memory and copy-in/copy-out IPC.
+Once this occurs, the system switches to using process-local memory and copy-in/copy-out IPC.
 
 ## Superblock Metrics
 
@@ -159,7 +159,7 @@ A high ratio of reused to mapped superblocks suggests efficient allocation.
 Number of superblocks unmapped from this process' memory space.
 
 Currently, superblocks are never unmapped.
-This number will always be zero.
+This number is always be zero.
 
 ## Heap Client Metrics
 
