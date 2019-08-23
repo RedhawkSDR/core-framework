@@ -13,7 +13,7 @@ For more information about using the `redhawk-shminfo` program, refer to the Sha
 ## Enabling
 
 Shared memory metrics are disabled by default.
-Metrics may be enabled by setting the environment variable `RH_SHMALLOC_METRICS` to any value except "disable".
+Metrics may be enabled by setting the environment variable `RH_SHMALLOC_METRICS` to any value except `disable`.
 A value of "1" is recommended for readability.
 
 The following example enables metrics for all REDHAWK processes launched from the current shell:

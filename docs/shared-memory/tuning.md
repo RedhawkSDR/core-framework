@@ -50,13 +50,13 @@ export RH_SHMALLOC_POLICY=cpu
 
 In the thread-based heap policy, each thread is assigned to a pool based on its thread ID.
 All allocations from a thread will use the same pool.
-This is the default policy, but it can be explicitly configured by setting `RH_SHMALLOC_POLICY` to "thread".
+This is the default policy, but it can be explicitly configured by setting `RH_SHMALLOC_POLICY` to `thread`.
 
 By default, in the thread-based policy, the heap will create one pool per CPU, up to a maximum of 8.
 The total number of pools can be controlled with the `RH_SHMALLOC_THREAD_NUM_POOLS` environment variable.
 
 Using fewer pools may limit the total memory usage of a process by increasing the likelihood that different threads will use the same pool.
-For legacy components that run as a single processing thread in a standalone process, setting `RH_SHMALLOC_THREAD_NUM_POOLS` to 1 will use the least total shared memory.
+For legacy components that run as a single processing thread in a standalone process, setting `RH_SHMALLOC_THREAD_NUM_POOLS` to `1` will use the least total shared memory.
 
 ```sh
 export RH_SHMALLOC_THREAD_NUM_POOLS=1
@@ -66,7 +66,7 @@ export RH_SHMALLOC_THREAD_NUM_POOLS=1
 
 In the CPU-based heap policy, pools are assigned to one or more CPUs.
 Each allocation is handled by the pool associated with its current CPU.
-To use the CPU-based policy, set `RH_SHMALLOC_POLICY` to "cpu".
+To use the CPU-based policy, set `RH_SHMALLOC_POLICY` to `cpu`.
 
 By default, the heap will create one pool per CPU.
 The ratio of CPUs to pools can be adjusted with the `RH_SHMALLOC_CPUS_PER_POOL` environment variable.
