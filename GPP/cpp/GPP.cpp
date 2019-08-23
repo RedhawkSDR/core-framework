@@ -2068,7 +2068,7 @@ void GPP_i::_set_vlan_property()
       // found match
       if ( nic->interface == mcastnicInterface ) {
         std::vector<std::string> values;
-        boost::split( values, nic->vlans, boost::is_any_of(std::string(",")), boost::algorithm::token_compress_on );
+        boost::algorithm::split( values, nic->vlans, boost::is_any_of(std::string(",")), boost::algorithm::token_compress_on );
         for ( size_t i=0; i< values.size(); i++){
           mcastnicVLANs.push_back( atoi(values[i].c_str()) );
         }
