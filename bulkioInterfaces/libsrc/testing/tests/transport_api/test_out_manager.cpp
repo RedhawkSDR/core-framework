@@ -30,7 +30,7 @@ template < typename PT, typename OP >
     typedef custom_transport::CustomTransportFactory FACTORY;
     typedef bulkio::OutputManager< PT >              OM;
     typedef bulkio::OutputTransport< PT >            TRANSPORT_BASE;
-    typedef bulkio::OutputTransport< PT >            TRANSPORT;
+    typedef custom_transport::CustomOutputTransport  TRANSPORT;
 
     CPPUNIT_TEST_SUITE( Test_Manager_Base );
     CPPUNIT_TEST( test_transport_type );
@@ -104,7 +104,6 @@ void Test_Manager_Base< PT, OP >::setUp_post()
 {
     factory = new FACTORY();
     port= new OP("outport");
-    //manager=dynamic_cast< custom_transport::CustomOutputManager * >(factory->createOutputManager( port ));
     manager=factory->createOutputManager( port );
     transport=0;
     custom_transport=0;
@@ -212,8 +211,8 @@ void Test_Manager_Base< PT, OP >::test_create_transport_normal()
     TRANSPORT_BASE *exp_t=0;
     CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE( "create transport failed", CPPUNIT_ASSERT( exp_t != transport ) );
 
-    //custom_transport=dynamic_cast< custom_transport::CustomOutputTransport * >(transport);
-    custom_transport=transport;
+    // down cast for specialize api
+    custom_transport=dynamic_cast< TRANSPORT * >(transport);
     TRANSPORT   *exp_p=0;
     CPPUNIT_ASSERT_ASSERTION_FAIL_MESSAGE( "custom out transport failed ", CPPUNIT_ASSERT_EQUAL( exp_p, custom_transport ) );
 
@@ -267,8 +266,7 @@ void Test_Manager_Base< PT, OP >::test_get_negotiation_props()
     TRANSPORT_BASE *exp_t=0;
     CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE( "create transport failed", CPPUNIT_ASSERT( exp_t != transport ) );
 
-    //custom_transport=dynamic_cast< custom_transport::CustomOutputTransport * >(transport);
-    custom_transport=transport;
+    custom_transport=dynamic_cast< TRANSPORT * >(transport);
     TRANSPORT   *exp_p=0;
     CPPUNIT_ASSERT_ASSERTION_FAIL_MESSAGE( "Custom Out Transport Failed ", CPPUNIT_ASSERT_EQUAL( exp_p, custom_transport ) );
 
@@ -301,8 +299,7 @@ void Test_Manager_Base< PT, OP >::test_set_negotiation_results()
     TRANSPORT_BASE *exp_t=0;
     CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE( "create transport failed", CPPUNIT_ASSERT( exp_t != transport ) );
 
-    //    custom_transport=dynamic_cast< custom_transport::CustomOutputTransport * >(transport);
-    custom_transport=transport;
+    custom_transport=dynamic_cast< TRANSPORT * >(transport);
     TRANSPORT   *exp_p=0;
     CPPUNIT_ASSERT_ASSERTION_FAIL_MESSAGE( "Custom Out Transport Failed ", CPPUNIT_ASSERT_EQUAL( exp_p, custom_transport ) );
 }

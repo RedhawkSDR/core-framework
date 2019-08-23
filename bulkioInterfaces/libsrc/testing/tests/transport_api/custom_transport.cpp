@@ -172,11 +172,11 @@ namespace custom_transport {
      *
      */
 
-    bulkio::InputManager<BULKIO::dataFloat>* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
+    CustomInputManager* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
         return new CustomInputManager(port);
     }
 
-    bulkio::OutputManager<BULKIO::dataFloat>* CustomTransportFactory::createOutputManager(OutPortType* port)
+    CustomOutputManager* CustomTransportFactory::createOutputManager(OutPortType* port)
     {
         return new CustomOutputManager(port);
     };

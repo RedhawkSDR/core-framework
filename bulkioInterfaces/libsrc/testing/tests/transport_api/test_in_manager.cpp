@@ -202,7 +202,7 @@ void Test_Manager_Base< PT, IP >::test_create_transport_good()
     TRANSPORT_BASE *exp_t=0;
     CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE( "create transport failed", CPPUNIT_ASSERT( exp_t != transport ) );
 
-    custom_transport=dynamic_cast< custom_transport::CustomInputTransport * >(transport);
+    custom_transport=dynamic_cast< TRANSPORT * >(transport);
     TRANSPORT   *exp_p=0;
     CPPUNIT_ASSERT_ASSERTION_FAIL_MESSAGE( "Custom Out Transport Failed ", CPPUNIT_ASSERT_EQUAL( exp_p, custom_transport ) );
 
@@ -254,7 +254,7 @@ void Test_Manager_Base< PT, IP >::test_get_negotiation_props()
     TRANSPORT_BASE *exp_t=0;
     CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE( "create transport failed", CPPUNIT_ASSERT( exp_t != transport ) );
 
-    custom_transport=dynamic_cast< custom_transport::CustomInputTransport * >(transport);
+    custom_transport=dynamic_cast< TRANSPORT * >(transport);
     TRANSPORT   *exp_p=0;
     CPPUNIT_ASSERT_ASSERTION_FAIL_MESSAGE( "Custom Out Transport Failed ", CPPUNIT_ASSERT_EQUAL( exp_p, custom_transport ) );
 

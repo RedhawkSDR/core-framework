@@ -44,8 +44,11 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
 
         CustomInputTransport(bulkio::InPort<BULKIO::dataFloat>* port,
                              const std::string& transportId,
-                             const redhawk::PropertyMap &props )
+                             const redhawk::PropertyMap &usesTransportProps )
           : bulkio::InputTransport<BULKIO::dataFloat>(port, transportId) {
+
+          // save off source end point description
+          _usesTransportProps = usesTransportProps;
         };
 
         virtual ~CustomInputTransport() {
@@ -59,22 +62,17 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
         redhawk::PropertyMap    getNegotiationProperties();
 
         /**
-          Control interface used by port to start the transport.
+          Control interface used by port when a connectPort occurs to start the transport after the negotiation has completed.
          */
         void startTransport() {
            RH_NL_INFO("custom.transport", "CustomInputTransport::startTransport");
         };
 
         /**
-          Control interface used by port to stop the transport.
+          Control interface used by port when a disconnectPort occurs to stop the transport.
          */
         void stopTransport() {
            RH_NL_INFO("custom.transport", "CustomInputTransport::stopTransport");
-        };
-
-
-        void disconnect() {
-             RH_NL_INFO("custom.transport", "CustomInputTransport::disconnect");
         };
 
         protected:
@@ -82,6 +80,9 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
           redhawk::PropertyMap  _getExtendedStatistics() {
               return redhawk::PropertyMap();
           }
+
+        private:
+           redhawk::PropertyMap     _usesTransportProps;
     };
 
     // class implementing the custom output transport
@@ -96,8 +97,6 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
           : bulkio::OutputTransport<BULKIO::dataFloat>(parent, port) {
             _connectionId = connectionId;
             _inProps = props;
-            _negotiable_port = ExtendedCF::NegotiableProvidesPort::_nil();
-            _transportId = "";
         };
 
         virtual ~CustomOutputTransport() {
@@ -123,17 +122,11 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
             // perform disconnection
         };
 
-        void setTransportParameters(const std::string &transportId, ExtendedCF::NegotiableProvidesPort_ptr negotiable_port) {
-            _transportId = transportId;
-            _negotiable_port = negotiable_port;
-        }
-
         redhawk::PropertyMap  getNegotiationProperties();
 
     protected:
         std::string _connectionId;
         redhawk::PropertyMap  _inProps;
-        ExtendedCF::NegotiableProvidesPort_ptr _negotiable_port;
     };
 
     // manager class that creates input transport layer for a negotiable port
@@ -199,8 +192,8 @@ Modify `transport_in.h` and `transport_out.h` to include the following class dec
 
         virtual ~CustomTransportFactory() {};
 
-        bulkio::OutputManager<BULKIO::dataFloat>* createOutputManager(OutPortType* port);
-        bulkio::InputManager<BULKIO::dataFloat>* createInputManager(InPortType* port);
+        CustomOutputManager* createOutputManager(OutPortType* port);
+        CustomInputManager* createInputManager(InPortType* port);
     };
 ```
 
@@ -231,7 +224,7 @@ Modify `transport_in.cpp` and `transport_out.cpp` to define these functions:
         return properties;
     }
 
-    bulkio::InputManager<BULKIO::dataFloat>* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
+    CustomInputManager* CustomTransportFactory::createInputManager(bulkio::InPort<BULKIO::dataFloat>* port) {
         return new CustomInputManager(port);
     }
 
@@ -279,7 +272,7 @@ Modify `transport_in.cpp` and `transport_out.cpp` to define these functions:
         }
     }
 
-    bulkio::OutputManager<BULKIO::dataFloat>* CustomTransportFactory::createOutputManager(OutPortType* port)
+    CustomOutputManger* CustomTransportFactory::createOutputManager(OutPortType* port)
     {
         return new CustomOutputManager(port);
     };

@@ -39,6 +39,8 @@ namespace custom_transport
                          const redhawk::PropertyMap &usesTransportProps )
 
         : bulkio::InputTransport<BULKIO::dataFloat>(port, transportId) {
+
+            _usesTransportProps = usesTransportProps;
         };
 
         virtual ~CustomInputTransport() {
@@ -70,6 +72,9 @@ namespace custom_transport
         redhawk::PropertyMap  _getExtendedStatistics() {
             return redhawk::PropertyMap();
         }
+
+    private:
+        redhawk::PropertyMap _usesTransportProps;
     };
 
     // class implementing the custom transport
@@ -171,8 +176,8 @@ namespace custom_transport
 
         virtual ~CustomTransportFactory() {};
 
-        bulkio::OutputManager<BULKIO::dataFloat>* createOutputManager(OutPortType* port);
-        bulkio::InputManager<BULKIO::dataFloat>* createInputManager(InPortType* port);
+        CustomOutputManager* createOutputManager(OutPortType* port);
+        CustomInputManager* createInputManager(InPortType* port);
     };
 
 };
