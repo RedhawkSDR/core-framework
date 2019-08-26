@@ -357,6 +357,9 @@ burstio:abi:
     - createrepo cf-and-deps/$arch
     - cd cf-and-deps
     - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
+  except:
+    - master
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 deploy-el7:
   variables:
