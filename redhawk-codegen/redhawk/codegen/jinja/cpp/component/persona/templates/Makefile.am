@@ -29,13 +29,8 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 #{% block binInfo %}
 ossieName = {{component.name}}
-#{% if component.impl.module %}
 libdir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
 lib_LTLIBRARIES = {{component.name}}.la
-#{% else %}
-bindir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/{{outputdir}}/
-bin_PROGRAMS = {{executable}}
-#{% endif %}
 #{% endblock %}
 
 #{% block xmlInfo %}
@@ -43,8 +38,6 @@ xmldir = $(prefix)/{{component.sdrpath}}/{{componentdir}}/
 dist_xml_DATA = {{component.profile.values()|relpath(outputdir)|join(' ')}}
 #{% endblock %}
 
-#{% if component.impl.module %}
-#{% set solib = component.impl.entrypoint|relpath(outputdir) %}
 .PHONY: convenience-link clean-convenience-link
 
 all-local : convenience-link
@@ -56,7 +49,6 @@ convenience-link : {{component.name}}.la
 clean-convenience-link:
 	@rm -f {{component.name}}.so
 
-#{% endif %}
 #{% block distClean %}
 distclean-local:
 	rm -rf m4
@@ -83,15 +75,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 {{component.name}}_la_SOURCES = $(redhawk_SOURCES_auto)
-#{% if component.impl.module %}
 {{component.name}}_la_LIBADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#{% else %}
-{{component.name}}_la_LDADD = $(SOFTPKG_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-#{% endif %}
 {{component.name}}_la_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-#{% if component.impl.module %}
 {{component.name}}_la_LDFLAGS = -shared -module -export-dynamic -export-symbols-regex 'make_component' -avoid-version $(redhawk_LDFLAGS_auto)
-#{% else %}
-{{component.name}}_la_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) $(PROJECTDEPS_LIBS) $(INTERFACEDEPS_LIBS)
-#{% endif %}
 #{% endblock %}
