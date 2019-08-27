@@ -31,6 +31,7 @@
 
 #include "Superblock.h"
 #include "atomic_counter.h"
+#include "Metrics.h"
 
 using namespace redhawk::shm;
 
@@ -184,6 +185,8 @@ void SuperblockFile::create()
     void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
     _header = new (base) Header;
     _attached = true;
+
+    RECORD_SHM_METRIC(files_created);
 }
 
 void SuperblockFile::open(bool attach)
@@ -216,6 +219,8 @@ void SuperblockFile::open(bool attach)
         _header->refcount.increment();
         _attached = true;
     }
+
+    RECORD_SHM_METRIC(files_opened);
 }
 
 void SuperblockFile::close()
@@ -232,6 +237,8 @@ void SuperblockFile::close()
     _file.close();
 
     _header = 0;
+
+    RECORD_SHM_METRIC(files_closed);
 }
 
 Superblock* SuperblockFile::getSuperblock(size_t offset)
@@ -239,6 +246,7 @@ Superblock* SuperblockFile::getSuperblock(size_t offset)
     // Check if the superblock is already mapped
     SuperblockMap::iterator existing = _superblocks.find(offset);
     if (existing != _superblocks.end()) {
+        RECORD_SHM_METRIC(superblocks_reused);
         return existing->second;
     }
 
@@ -255,6 +263,8 @@ Superblock* SuperblockFile::createSuperblock(size_t bytes)
     void* base = _file.map(total_size, MappedFile::READWRITE, current_offset);
     Superblock* superblock = new (base) Superblock(_file.name(), current_offset, bytes);
     _superblocks[superblock->offset()] = superblock;
+    RECORD_SHM_METRIC(superblocks_created);
+    RECORD_SHM_METRIC_ADD(files_bytes, total_size);
     return superblock;
 }
 
@@ -289,6 +299,7 @@ Superblock* SuperblockFile::_mapSuperblock(size_t offset)
     superblock = reinterpret_cast<Superblock*>(base);
 
     // Store mapping
+    RECORD_SHM_METRIC(superblocks_mapped);
     _superblocks[superblock->offset()] = superblock;
     return superblock;
 }
