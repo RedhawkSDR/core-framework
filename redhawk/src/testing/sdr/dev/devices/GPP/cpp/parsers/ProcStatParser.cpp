@@ -68,7 +68,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
     data.time_stamp = time(NULL);
     while (  std::getline( procstat_file, line ) ) {
       std::vector<std::string> values;
-      boost::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
+      boost::algorithm::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
       DEBUG(std::cout << " line: " << line << std::endl);
 
       try {

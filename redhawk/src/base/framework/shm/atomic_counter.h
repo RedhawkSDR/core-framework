@@ -57,12 +57,12 @@ public:
         return *this;
     }
 
-    counter_type increment()
+    counter_type increment(counter_type count=1)
     {
 #ifdef __ATOMIC_RELAXED
-        return __atomic_add_fetch(&_value, 1, __ATOMIC_RELAXED);
+        return __atomic_add_fetch(&_value, count, __ATOMIC_RELAXED);
 #else
-        return __sync_add_and_fetch(&_value, 1);
+        return __sync_add_and_fetch(&_value, count);
 #endif
     }
 

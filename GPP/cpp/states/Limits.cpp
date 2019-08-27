@@ -83,7 +83,7 @@ void SysLimits::update_state()
     std::string line;
     while ( std::getline( file_nr, line ) ) {
       std::vector<std::string> values;
-      boost::split( values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
+      boost::algorithm::split( values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
       DEBUG(" values: " << values.size() << "  file-nr line: " << line  );
         
       if ( values.size() > 2 ) {
@@ -106,7 +106,7 @@ void SysLimits::update_state()
     std::string line;
     while ( std::getline( sys_threads_max, line ) ) {
       std::vector<std::string> values;
-      boost::split( values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
+      boost::algorithm::split( values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
       DEBUG( " sys-kernel-threads-max line: " << line  );
         
       if ( values.size() > 0 ) {
@@ -125,7 +125,7 @@ void SysLimits::update_state()
     std::string line = utils::popen("ps -eo nlwp | tail -n +2 | awk '{ num_threads += $1 } END { print num_threads }' ", true);
     if ( line != "ERROR" ) {
       std::vector<std::string> values;
-      boost::split(values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
+      boost::algorithm::split(values, line, boost::is_any_of(std::string(" \t")), boost::algorithm::token_compress_on );
       DEBUG(" system active threads: " << line);
       if ( values.size() > 0 ) {
         try {
@@ -183,7 +183,7 @@ void ProcessLimits::update_state()
       std::string line;
       while ( std::getline( status_file, line ) ) {
         std::vector<std::string> values;
-        boost::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
+        boost::algorithm::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
         DEBUG( " line: " << line  );
           
         if ( values.size() > 1 && boost::starts_with( values[0], "Threads:" ) ) {

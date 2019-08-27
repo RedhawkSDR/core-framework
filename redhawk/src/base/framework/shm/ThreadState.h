@@ -21,6 +21,8 @@
 #ifndef REDHAWK_THREADSTATE_H
 #define REDHAWK_THREADSTATE_H
 
+#include <cstddef>
+
 namespace redhawk {
 
     namespace shm {
@@ -36,6 +38,7 @@ namespace redhawk {
 
             shm::Superblock* last;
             int contention;
+            size_t poolId;
         };
     }
 }
