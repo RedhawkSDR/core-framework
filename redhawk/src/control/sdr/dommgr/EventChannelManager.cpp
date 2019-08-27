@@ -653,7 +653,22 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       int tries = retries;
       CosEventChannelAdmin::ConsumerAdmin_var consumer_admin;
       std::string _channel_name(req.channel_name);
-      ossie::events::EventChannel_var channel = _get(_channel_name);
+      ossie::events::EventChannel_var channel = ossie::events::EventChannel::_nil();
+      try  {
+          channel = _get(_channel_name);
+      }
+      catch( const CF::EventChannelManager::ChannelDoesNotExist &e) {
+          try  {
+              channel = _create(_channel_name);
+          }
+          catch(...) {
+              throw (CF::EventChannelManager::OperationFailed());
+          }
+      }
+      if ( CORBA::is_nil(channel)) {
+          throw (CF::EventChannelManager::OperationFailed());
+      }
+
       do
       {
           try {
@@ -742,7 +757,21 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       CosEventChannelAdmin::SupplierAdmin_var supplier_admin;
       ossie::events::PublisherReg_ptr reg = new ossie::events::PublisherReg();
       std::string _channel_name(req.channel_name);
-      ossie::events::EventChannel_var channel = _get(_channel_name);
+      ossie::events::EventChannel_var channel = ossie::events::EventChannel::_nil();
+      try  {
+          channel = _get(_channel_name);
+      }
+      catch( const CF::EventChannelManager::ChannelDoesNotExist &e) {
+          try  {
+              channel = _create(_channel_name);
+          }
+          catch(...) {
+              throw (CF::EventChannelManager::OperationFailed());
+          }
+      }
+      if ( CORBA::is_nil(channel)) {
+          throw (CF::EventChannelManager::OperationFailed());          
+      }
       do
       {
           try {

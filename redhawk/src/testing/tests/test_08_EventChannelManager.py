@@ -20,12 +20,17 @@
 
 import unittest
 from _unitTestHelpers import scatest
-from omniORB import URI, any
+from omniORB import CORBA, URI, any
 from ossie.cf import CF
 from ossie.properties import *
 from ossie.events import Manager
+from ossie.events.Publisher import Receiver as DisconnectReceiver
 import threading
 import time
+import CosEventComm,CosEventComm__POA
+import CosEventChannelAdmin
+import traceback
+
 
 class EventChannelManager(scatest.CorbaTestCase):
     def setUp(self):
@@ -414,3 +419,87 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         em_pub_2.push(any.to_any(['hello']))
         time.sleep(1)
         self.assertEquals(em_sub_2.getData()._v, ['hello'])
+        
+    def test_ECM_RegisterConsumerNonExistentChannel(self):
+
+        # test setup starts up domain and connects to event channel manager 
+
+        # event channel context 
+        orb=CORBA.ORB_init()
+        cname='testchannel'
+        curi="corbaname::#"+self._domMgr._get_name()+'/'+cname
+        
+        # check channel does not exist
+        try:
+            c=orb.string_to_object(curi)
+            self.ecm.forceRelease(cname)            
+        except:
+            pass
+
+        # create EventRegistration and call registerConsumer
+        try:
+            _consumer = ossie.events.Receiver()
+            evt_reg = CF.EventChannelManager.EventRegistration(channel_name = cname, reg_id = 'my_reg_id')
+            reg = self.ecm.registerConsumer(_consumer, evt_reg)
+        except:
+            self.fail("EventChannelManager RegisterConsumer failed for non-existent channel, " + cname)
+
+        # verify returned channel is valid
+        self.assertNotEqual(reg.channel, None, "registerConsumer returned empty Event Channel.")
+        tch = reg.channel._narrow(CosEventChannelAdmin.EventChannel)
+        self.assertNotEqual(tch, None, "Event Channel was not created")
+
+        # verify channel is in event service
+        try:
+            c=orb.string_to_object(curi)            
+        except:
+            self.fail("Event channel (testchannel) does not exist")
+
+        # cleanup
+        try:
+            self.ecm.forceRelease(cname)
+        except:
+            pass
+
+    def test_ECM_RegisterPublisherNonExistentChannel(self):
+        
+        # test setup starts up domain and connects to event channel manager
+
+        # event channel context 
+        orb=CORBA.ORB_init()
+        cname='testchannel'
+        curi="corbaname::#"+self._domMgr._get_name()+'/'+cname
+        
+        # check channel does not exist
+        try:
+            c=orb.string_to_object(curi)
+            self.ecm.forceRelease(cname)                        
+        except:
+            pass
+
+        # create EventRegistration and call registerPublisher        
+        try:
+            _supplier = DisconnectReceiver()
+            evt_reg = CF.EventChannelManager.EventRegistration(channel_name = cname, reg_id = 'my_reg_id')
+            reg = self.ecm.registerPublisher(evt_reg, _supplier)
+        except:
+            self.fail("EventChannelManager RegisterPublisher failed for non-existent channel, " + cname)
+
+        # verify returned channel is valid            
+        self.assertNotEqual(reg.channel, None, "registerPublisher returned empty Event Channel.")
+        tch = reg.channel._narrow(CosEventChannelAdmin.EventChannel)
+        self.assertNotEqual(tch, None, "Event Channel was not created")
+
+        # verify channel is in event service
+        try:
+            c=orb.string_to_object(curi)            
+        except:
+            self.fail("Event channel (testchannel) does not exist")
+
+            # cleanup
+        try:
+            self.ecm.forceRelease(cname)
+        except:
+            pass
+
+        

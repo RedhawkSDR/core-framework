@@ -1750,6 +1750,16 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, self._domMgr.createApplication, sad_file, 'fail', [], [])
 
+    def test_BadCompositeDevice(self):
+        '''
+        One programmable and one persona (shared library) in the node.  The persona is not part
+        of a composite device relationship and should fail to load leaving us with 1 device on
+        startup, the programmable.
+        '''
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/BadPersonaNode/DeviceManager.dcd.xml")
+        self.assertNotEqual(devMgr, None)
+        num_devices = 1
+        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_devices)
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):
     def setUp(self):
