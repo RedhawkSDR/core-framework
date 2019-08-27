@@ -272,7 +272,7 @@ Modify `transport_in.cpp` and `transport_out.cpp` to define these functions:
         }
     }
 
-    CustomOutputManger* CustomTransportFactory::createOutputManager(OutPortType* port)
+    CustomOutputManager* CustomTransportFactory::createOutputManager(OutPortType* port)
     {
         return new CustomOutputManager(port);
     };
@@ -304,7 +304,7 @@ The following Python session demonstrates how to run the components, connect the
     CustomOutputManager::transportProperties
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
-    CustomInputManger, key (from uses): data_protocol
+    CustomInputManager, key (from uses): data_protocol
     CustomInputTransport::getNegotiationProperties
     CustomOutputManager::setNegotiationResult
     CustomOutputManager, key (from provides): data::requestSize
