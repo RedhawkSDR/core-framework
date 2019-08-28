@@ -303,7 +303,6 @@ fi
 %{_libdir}/libossielogcfg.*a
 %{_libdir}/libossielogcfg.so
 %{_libdir}/pkgconfig/ossie.pc
-%{_sysconfdir}/bash_completion.d/nodeBooter
 
 
 %post
