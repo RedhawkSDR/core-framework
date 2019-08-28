@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
   static struct option long_options[] =
     {
       /* These options set a flag. */
+      { "with-xunit", required_argument, 0, 'x' },
       {"verbose", no_argument,       &verbose_flag, 1 },
       {"brief",   no_argument,       &verbose_flag, 0 },
       {"suite",  required_argument, 0, 's'},
@@ -53,8 +54,9 @@ int main(int argc, char* argv[])
     };
   /* getopt_long stores the option index here. */
   int option_index = 0;
+  const char *xunit_file=0;
 
-  while (( c = getopt_long (argc, argv, "s:l:t:vbh", long_options, &option_index)) != -1 ) {
+  while (( c = getopt_long (argc, argv, "s:l:t:vbhx:", long_options, &option_index)) != -1 ) {
     switch (c) {
     case 0:
       /* If this option set a flag, do nothing else now. */
@@ -79,6 +81,11 @@ int main(int argc, char* argv[])
       printf ("option -l with value `%s'\n", optarg);
       cfgname=optarg;
       break;
+      
+    case 'x':
+        xunit_file = optarg;
+        break;
+      
 
     case '?':
     default:
@@ -88,6 +95,7 @@ int main(int argc, char* argv[])
       std::cout << "        option   --logcfg <logging properties>     - logging config file" << std::endl;
       std::cout << "        option   --verbose  - turns on debug message" << std::endl;
       std::cout << "        option   --brief  - turns off debug message" << std::endl;
+      std::cout << "        option   --with-xunit - save xunit xml result file" << std::endl;
       exit(-1);
     }
   }
@@ -140,7 +148,13 @@ int main(int argc, char* argv[])
   controller.addListener ( &result );
   CppUnit::TextUi::TestRunner *runner = new CppUnit::TextUi::TestRunner;
 
-  ofstream xmlout ( "../cppunit-results.xml" );
+  std::string ofile="../transportapi-results.xml";
+  if (xunit_file) {
+      // Write XML output file to specified file
+      ofile=xunit_file;
+  }
+  
+  ofstream xmlout ( ofile.c_str() );
   CppUnit::XmlOutputter xmlOutputter ( &result, xmlout );
   CppUnit::CompilerOutputter compilerOutputter ( &result, std::cerr );
 
