@@ -332,6 +332,11 @@ if __name__ == '__main__':
            else :
                  raise SystemExit, 'Template override requires missing --impl option'
 
+        # If this is a persona, verify the code type is SharedLibrary
+        if ('persona' in implSettings.template and not overrides.template) or ((resource_type and ('persona' in resource_type)) or (overrides.template and ('persona' in overrides.template))):
+            if not implementation.isModule():
+                raise SystemExit, "Persona implementation must be of code type 'SharedLibrary' (ID: %s)\n" % implId
+
         # Get generation settings, from a combination of the command line and (optionally)
         # the .wavedev configuration file; the former has higher precedence.
         implSettings = settings.get(implId, ImplementationSettings())
