@@ -21,6 +21,8 @@
 #ifndef ENDPOINTS_H
 #define ENDPOINTS_H
 
+#include <boost/scoped_ptr.hpp>
+
 #include "connectionSupport.h"
 
 namespace ossie {

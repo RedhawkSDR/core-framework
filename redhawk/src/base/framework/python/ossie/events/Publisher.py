@@ -76,7 +76,6 @@ class Receiver(CosEventComm__POA.PushSupplier):
                     self._cond.wait()
         finally:
             self._cond.release()
-        
 
 class DefaultReceiver(Receiver):
     def __init__(self,parent):

@@ -1511,17 +1511,17 @@ class EventChannelManager(CorbaObject):
            consumer is an event consumer (i.e.: ossie.events.Receiver)
            req is an EventRegistration (i.e.: CF.EventRegistration)
         '''
-        if hassattr(consumer, '_this'):
+        if hasattr(consumer, '_this'):
             return self.ref.registerConsumer(consumer._this(), req)
         return self.ref.registerConsumer(consumer, req)
 
     def registerPublisher(self, req, disconnectReceiver):
         '''
            req is an EventRegistration (i.e.: CF.EventRegistration)
-           disconnectReceiver is an optional event consumer (i.e.: ossie.events.Receiver)
+           disconnectReceiver an event disconnect receiver
         '''
-        #if hassattr(disconnectReceiver, '_this'):
-        #    return self.ref.registerPublisher(req, disconnectReceiver._this())
+        if hasattr(disconnectReceiver, '_this'):
+            return self.ref.registerPublisher(req, disconnectReceiver._this())        
         return self.ref.registerPublisher(req, disconnectReceiver)
 
 class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):

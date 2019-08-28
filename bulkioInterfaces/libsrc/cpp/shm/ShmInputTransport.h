@@ -21,8 +21,11 @@
 #ifndef __bulkio_shminputtransport_h
 #define __bulkio_shminputtransport_h
 
+#include <boost/thread.hpp>
+
 #include <ossie/PropertyMap.h>
 #include <ossie/ProvidesPort.h>
+#include <ossie/shm/HeapClient.h>
 
 #include <BulkioTransport.h>
 
@@ -47,6 +50,12 @@ namespace bulkio {
                                                                const redhawk::PropertyMap& properties);
 
         virtual redhawk::PropertyMap getNegotiationProperties(redhawk::ProvidesTransport* providesTransport);
+
+        void* fetchShmRef(const redhawk::shm::MemoryRef& ref);
+
+    private:
+        boost::mutex _mutex;
+        redhawk::shm::HeapClient _heapClient;
     };
 }
 

@@ -19,6 +19,7 @@
 */
 
 #include <boost/filesystem.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "ComponentHost.h"
 
