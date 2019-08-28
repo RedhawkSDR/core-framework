@@ -301,6 +301,11 @@ namespace frontend {
         private:
             // this will be overridden by the generated base class once all ports are known
             virtual void construct();
+
+	protected:
+            virtual void _deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+            virtual bool _removeTunerMapping(size_t tuner_id, std::string allocation_id);
+            virtual bool _removeTunerMapping(size_t tuner_id);            
     };
 
     /*
