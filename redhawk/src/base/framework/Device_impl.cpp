@@ -1328,7 +1328,7 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
 
     Device_impl* device = ctor(devMgr_ior, id, label, profile, composite_device);
     
-    if ( !skip_run ) {
+    if ( !skip_run or composite_device != 0 ) {
         // assign logging context to the resource..to support logging interface
         device->saveLoggingContext( logcfg_uri, debug_level, ctx );
     }
