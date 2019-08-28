@@ -26,7 +26,9 @@ from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.java import JavaCodeGenerator, JavaTemplate
 from redhawk.codegen.jinja.java.properties import JavaPropertyMapper
-from redhawk.codegen.jinja.java.ports import JavaPortMapper, JavaPortFactory
+from redhawk.codegen.jinja.java.ports import PortFactoryList, JavaPortMapper
+from redhawk.codegen.jinja.java.ports.portfactory import JavaPortFactory
+from redhawk.codegen.jinja.java.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.java.component.base import BaseComponentGenerator
 
 from mapping import PullComponentMapper
@@ -38,6 +40,11 @@ if not '__package__' in locals():
 loader = CodegenLoader(__package__,
                        {'base': 'redhawk.codegen.jinja.java.component.base',
                         'common': 'redhawk.codegen.jinja.common'})
+
+class ConsolidatedPortFactory(PortFactoryList):
+    def __init__(self):
+        factories = (FrontendProvidesPortFactory(), JavaPortFactory())
+        super(ConsolidatedPortFactory,self).__init__(*factories)
 
 class PullComponentGenerator(BaseComponentGenerator):
     # Need to keep use_jni, auto_start and queued_ports to handle legacy options
@@ -57,7 +64,7 @@ class PullComponentGenerator(BaseComponentGenerator):
         return JavaPortMapper()
 
     def portFactory(self):
-        return JavaPortFactory()
+        return ConsolidatedPortFactory()
 
     def templates(self, component):
         # Put generated Java files in "src" subdirectory, followed by their

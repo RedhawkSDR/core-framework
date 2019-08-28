@@ -22,6 +22,7 @@
 #include "Block.h"
 #include "ThreadState.h"
 #include "offset_ptr.h"
+#include "Metrics.h"
 
 #include <ossie/shm/MappedFile.h>
 #include <ossie/BufferManager.h>
@@ -112,6 +113,7 @@ void* Superblock::attach(size_t offset)
         throw std::bad_alloc();
     }
     block->incref();
+    RECORD_SHM_METRIC(blocks_attached);
     return block->data();
 }
 
@@ -125,9 +127,11 @@ void Superblock::deallocate(void* ptr)
 
     Block* block = Block::from_pointer(ptr);
     assert(block->valid());
+    RECORD_SHM_METRIC(blocks_released);
     if (block->decref() == 0) {
         Superblock* superblock = block->getSuperblock();
         superblock->_deallocate(block);
+        RECORD_SHM_METRIC(blocks_destroyed);
     }
 }
 
@@ -385,6 +389,7 @@ void* Superblock::allocate(ThreadState* thread, size_t bytes)
 #endif
     _used += block->byteSize();
 
+    RECORD_SHM_METRIC(blocks_created);
     return block->data();
 }
 

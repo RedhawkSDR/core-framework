@@ -18,14 +18,16 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #}
 #% extends "pull/resource_base.py"
-#{% block baseadditionalimports %}
+#{% block basefeiimports %}
 import frontend
-from omniORB import any as _any
-#{% if 'FrontendTuner' in component.implements %}
 from frontend import FRONTEND
+#{% if 'FrontendTuner' in component.implements %}
 from ossie.properties import struct_to_props
 BOOLEAN_VALUE_HERE=False
 #{% endif %}
+#{% endblock %}
+#{% block baseadditionalimports %}
+from omniORB import any as _any
 #{% endblock %}
 #{% block extensions %}
 #{% for prop in component.properties if prop.name == "frontend_tuner_status" %}

@@ -23,6 +23,8 @@ from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.python import PythonCodeGenerator, PythonTemplate
 from redhawk.codegen.jinja.python.properties import PythonPropertyMapper
+from redhawk.codegen.jinja.ports import PortFactoryList
+from redhawk.codegen.jinja.python.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.python.ports import PythonPortMapper, PythonPortFactory
 
 from mapping import PullComponentMapper
@@ -34,6 +36,11 @@ if not '__package__' in locals():
 loader = CodegenLoader(__package__,
                        {'common': 'redhawk.codegen.jinja.common',
                         'base':   'redhawk.codegen.jinja.python.component.base'})
+
+class ConsolidatedPortFactory(PortFactoryList):
+    def __init__(self):
+        factories = (FrontendProvidesPortFactory(), PythonPortFactory())
+        super(ConsolidatedPortFactory,self).__init__(*factories)
 
 class PullComponentGenerator(PythonCodeGenerator):
     # Need to keep auto_start and queued_ports to handle legacy options
@@ -53,7 +60,7 @@ class PullComponentGenerator(PythonCodeGenerator):
         return PythonPortMapper()
 
     def portFactory(self):
-        return PythonPortFactory()
+        return ConsolidatedPortFactory()
 
     def templates(self, component):
         templates = [

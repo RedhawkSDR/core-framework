@@ -52,9 +52,11 @@ except:
     pass
 
 def _initSourceAndSink(dataFormat):
-
-    source = sb.DataSource(dataFormat = dataFormat)
-    sink   = sb.DataSink()
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+        warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+        source = sb.DataSource(dataFormat=dataFormat)
+        sink = sb.DataSink()
 
     usesPortName = source.supportedPorts[dataFormat]["portDict"]["Port Name"]
     providesPortName = sink.supportedPorts[dataFormat]["portDict"]["Port Name"]
@@ -912,7 +914,9 @@ class SBTestTest(scatest.CorbaTestCase):
         from ossie.utils.model import NoMatchingPorts
         c = sb.launch('sdds_src')
         self.assertNotEquals(c, None)
-        snk = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            snk = sb.DataSink()
         self.assertRaises(NoMatchingPorts, c.connect,snk)
 
 
@@ -1905,15 +1909,20 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(receivedData, originalData)
 
     def test_DataSourceWithFormatConnect(self):
-        src = sb.DataSource(dataFormat='short')
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='short')
+            sink = sb.DataSink()
         try:
             src.connect(sink)
         except Exception, e:
             self.fail('Automatic connect failed for source that had dataFormat passed in')
       
     def test_DataSourceAndSink(self):
-        dummySource = sb.DataSource()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            dummySource = sb.DataSource()
         supportedPorts = dummySource.supportedPorts
 
         self._pushSRIThroughSourceAndSink()
@@ -1976,8 +1985,10 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(len(tstamps), 2)
 
     def test_XMLDataSource(self):
-        source = sb.DataSource(dataFormat='xml')
-        datasink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(dataFormat='xml')
+            datasink = sb.DataSink()
         source.connect(datasink)
         sb.start()
 
@@ -2040,7 +2051,9 @@ class BulkioTest(unittest.TestCase):
         Verify that DataSource sends EOS properly for pushes that exceed
         bytesPerPush.
         """
-        source = sb.DataSource(dataFormat='float', bytesPerPush=1024)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(dataFormat='float', bytesPerPush=1024)
         sink = sb.DataSink()
         source.connect(sink)
         sb.start()
@@ -2069,8 +2082,11 @@ class BulkioTest(unittest.TestCase):
         _startTime = 10
         _sampleRate = 100
         _xdelta = 1/_sampleRate
-        source = sb.DataSource(startTime=_startTime)
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(startTime=_startTime)
+            sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
         
@@ -2097,8 +2113,11 @@ class BulkioTest(unittest.TestCase):
         Verify that DataSource handles integer values for sampleRate when
         updating the timestamp for pushes that exceed bytesPerPush
         """
-        source = sb.DataSource(startTime=0.0, bytesPerPush=4096)
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(startTime=0.0, bytesPerPush=4096)
+            sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
 
@@ -2124,8 +2143,11 @@ class BulkioTest(unittest.TestCase):
         """
         _timeout = 1
         _startTime = 10
-        source = sb.DataSource(startTime=_startTime)
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(startTime=_startTime)
+            sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
 
@@ -2224,8 +2246,11 @@ class BulkioTest(unittest.TestCase):
         _timeout = 1
         _startTime = 10
         _sampleRate = 1.0
-        source = sb.DataSource(startTime=_startTime)
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(startTime=_startTime)
+            sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
 
@@ -2345,8 +2370,11 @@ class BulkioTest(unittest.TestCase):
         self._fileSourceThrottle(infile, 1500)
 
     def test_DataSourceThrottle(self):
-        src = sb.DataSource(dataFormat='float', throttle=True)
-        snk = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='float', throttle=True)
+            snk = sb.DataSink()
         src.connect(snk)
         sb.start()
         _sampleRate = 500
@@ -2391,8 +2419,11 @@ class BulkioTest(unittest.TestCase):
             self.sri = _H
 
     def test_CustomDataSink(self):
-        src = sb.DataSource(dataFormat='float')
-        snk = sb.DataSink(sinkClass=self.customSink)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='float')
+            snk = sb.DataSink(sinkClass=self.customSink)
         src.connect(snk)
         sb.start()
         src.push([1,2,3,4,5],sampleRate=100)
@@ -2405,8 +2436,11 @@ class BulkioTest(unittest.TestCase):
     def test_DataSourceSRI(self):
         _timeout = 1
         _startTime = 10
-        source = sb.DataSource(startTime=_startTime)
-        sink = sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            source = sb.DataSource(startTime=_startTime)
+            sink = sb.DataSink()
         source.connect(sink, usesPortName='floatOut')
         sb.start()
 
@@ -2523,8 +2557,11 @@ class BulkioTest(unittest.TestCase):
 
 
     def test_DataSinkSubsize(self):
-        src=sb.DataSource(dataFormat='short',subsize=5)
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='short', subsize=5)
+            snk = sb.DataSink()
         src.connect(snk)
         sb.start()
         src.push([1,2,3,4,5,6,7,8,9,10], EOS=True)
@@ -2542,8 +2579,11 @@ class BulkioTest(unittest.TestCase):
         _subsize = 10
         _frames = 4
         inData = range(_subsize * _frames)
-        src=sb.DataSource(dataFormat='short',subsize=_subsize)
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='short', subsize=_subsize)
+            snk = sb.DataSink()
         sb.start()
         src.connect(snk)
         src.push(inData,EOS=True,complexData=True)
@@ -2556,8 +2596,11 @@ class BulkioTest(unittest.TestCase):
         _subsize = 10
         _frames = 4
         inData = range(_subsize * _frames)
-        src=sb.DataSource(dataFormat='short',subsize=_subsize)
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='short', subsize=_subsize)
+            snk = sb.DataSink()
         sb.start()
         src.connect(snk)
         src.push(inData,complexData=True)
@@ -2569,8 +2612,11 @@ class BulkioTest(unittest.TestCase):
         self.assertEqual(len(recData[0]),_subsize*2)
 
     def test_DataSinkChar(self):
-        src=sb.DataSource(dataFormat='char')
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='char')
+            snk = sb.DataSink()
         src.connect(snk)
         sb.start()
         indata = range(16)
@@ -2586,8 +2632,11 @@ class BulkioTest(unittest.TestCase):
         return list(struct.pack('%dB' % len(data), *data))
 
     def test_DataSinkOctet(self):
-        src=sb.DataSource(dataFormat='octet')
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='octet')
+            snk = sb.DataSink()
         src.connect(snk)
         sb.start()
         indata = range(16)
@@ -2602,8 +2651,11 @@ class BulkioTest(unittest.TestCase):
     def test_DataSinkCharSubsize(self):
         subsize = 8
         frames = 4
-        src=sb.DataSource(dataFormat='char',subsize=subsize)
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='char', subsize=subsize)
+            snk = sb.DataSink()
         src.connect(snk)
         sb.start()
         src.push(range(subsize*frames), EOS=True)
@@ -2616,8 +2668,11 @@ class BulkioTest(unittest.TestCase):
             self.assertEquals(len(frame), subsize)
 
     def test_DataSinkCharSignedData(self):
-        src=sb.DataSource(dataFormat='char')
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='char')
+            snk = sb.DataSink()
         src.connect(snk,usesPortName='charOut', providesPortName='charIn')
         sb.start()
         data=[0, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]
@@ -2629,8 +2684,11 @@ class BulkioTest(unittest.TestCase):
         self.assertEquals(data,outdata)
 
     def test_DataSinkOctetSignedData(self):
-        src=sb.DataSource(dataFormat='octet')
-        snk=sb.DataSink()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'DataSink is deprecated, use StreamSink instead')
+            warnings.filterwarnings('ignore', 'DataSource is deprecated, use StreamSource')
+            src = sb.DataSource(dataFormat='octet')
+            snk = sb.DataSink()
         src.connect(snk,usesPortName='octetOut', providesPortName='octetIn')
         sb.start()
         data=[0, 1, 2, 3, 4, 5, -1, -2, -3, -4, -5]

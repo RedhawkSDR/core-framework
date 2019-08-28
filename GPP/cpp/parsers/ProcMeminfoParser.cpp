@@ -68,7 +68,7 @@ void   ProcMeminfoParser::parse( ProcMeminfo::Contents & data )
     std::string line;
     while (  std::getline( procmeminfo_file, line ) ) {
       std::vector<std::string> values;
-      boost::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
+      boost::algorithm::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
       DEBUG(std::cout << " line(tokens) " << values.size() << ":" << line << std::endl);
 
       // key:  value [unit]

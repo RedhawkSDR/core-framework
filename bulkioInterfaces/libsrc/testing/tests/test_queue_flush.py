@@ -38,11 +38,12 @@ class Test_QueueFlush(unittest.TestCase):
     def test_cpp_flush(self):
         comp = sb.launch('../components/sri_changed_cpp/sri_changed_cpp.spd.xml')
         self.assertNotEqual(comp,None)
-        source=sb.DataSource(blocking=False)
+        source = sb.StreamSource()
         source.connect(comp)
         source.start()
-        for i in range(1000):
-            source.push(range(100))
+        data = range(100)
+        for _ in range(1000):
+            source.write(data)
         comp.start()
         time.sleep(1)
         self.assertEquals(comp.verified,True)

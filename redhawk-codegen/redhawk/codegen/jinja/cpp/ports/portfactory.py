@@ -31,7 +31,7 @@ from burstio import BurstioPortFactory
 class CppPortFactory(PortFactoryList):
     def __init__(self):
         factories = (FrontendOutputPortFactory(), BulkioPortFactory(), BurstioPortFactory(), PropertyEventPortGenerator,
-                     MessagePortFactory(), GenericPortFactory())
+                     MessagePortFactory(), FrontendPortFactory(), GenericPortFactory())
         super(CppPortFactory,self).__init__(*factories)
 
 class FEIPortFactory(PortFactoryList):

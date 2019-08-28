@@ -57,7 +57,7 @@ EnvironmentPathParser::merge_front( const std::string& path )
 void
 EnvironmentPathParser::from_string( const std::string& path )
 {
-    boost::split( paths, path, boost::is_any_of(std::string(":")), boost::algorithm::token_compress_on );
+    boost::algorithm::split( paths, path, boost::is_any_of(std::string(":")), boost::algorithm::token_compress_on );
     strip_empty_paths();
 }
 
@@ -70,5 +70,5 @@ EnvironmentPathParser::strip_empty_paths()
 std::string
 EnvironmentPathParser::to_string() const
 {
-    return boost::join( paths, ":" );
+    return boost::algorithm::join( paths, ":" );
 }

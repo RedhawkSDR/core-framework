@@ -24,6 +24,7 @@
 
 #include <string>
 #include <map>
+#include <boost/scoped_ptr.hpp>
 #include "Logging_impl.h"
 #include "Port_impl.h"
 #include "LifeCycle_impl.h"
