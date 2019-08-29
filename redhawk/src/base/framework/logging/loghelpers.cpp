@@ -126,7 +126,7 @@ namespace ossie {
         ossie::logging::LogConfigFactory logcfg_factory = (ossie::logging::LogConfigFactory) dlsym(log_library, "logcfg_factory");
         const char* dlsym_error = dlerror();
         if (dlsym_error) {
-          RH_NL_ERROR( "ossie.logging", "Cannot file logcfg_factory symbol in libossielogcfg.so library: " << dlsym_error);
+          RH_NL_ERROR( "ossie.logging", "Cannot find logcfg_factory symbol in libossielogcfg.so library: " << dlsym_error);
           throw 2;
         }
         _logcfg.factory=logcfg_factory;
