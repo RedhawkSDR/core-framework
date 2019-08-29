@@ -1074,7 +1074,7 @@ namespace ossie {
         std::cerr <<"ERROR: Logging configure, exception:" << e.what() << std::endl;
        }
       catch(...){
-         std::cerr <<" ossie::logging::Configure ExceException during configuration url:" << logcfgUri << std::endl;
+         std::cerr <<" ossie::logging::Configure Exception during configuration url:" << logcfgUri << std::endl;
        }
 
       if ( logLevel > -1 ) {
