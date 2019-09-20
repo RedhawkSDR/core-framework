@@ -20,11 +20,10 @@
 #
 
 from base_ports  import *
-from  bulkio import *
-from ossie.cf import CF
-from omniORB import any
+# from  bulkio import *
+# from ossie.cf import CF
+# from omniORB import any
 from ossie.utils import sb
-import os, time
 
 
 class Test_SADxml(unittest.TestCase):
@@ -49,7 +48,8 @@ class Test_SADxml(unittest.TestCase):
             sad = sb.generateSADXML("testsadxml")
         except:
             self.fail("Generate SAD raised exception")
-        print sad
+        self.assertEqual(sad.find("StreamSource"), -1, "Found StreamSource in SAD")
+        self.assertEqual(sad.find("StreamSink"), -1, "Found StreamSink in SAD")
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
