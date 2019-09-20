@@ -19,10 +19,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from base_ports  import *
-# from  bulkio import *
-# from ossie.cf import CF
-# from omniORB import any
+from base_ports import *
 from ossie.utils import sb
 
 
