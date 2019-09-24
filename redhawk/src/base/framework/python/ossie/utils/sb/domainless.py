@@ -356,7 +356,6 @@ def generateSADXML(waveform_name):
     '''
     generate a SAD XML string describing the current sandbox
     '''
-    import re
     import ossie.utils.redhawk.sad_template as sad_template
     if _DEBUG == True:
         print "generateSadFileString(): generating SAD XML string for given waveform name " + str(waveform_name)
@@ -373,8 +372,8 @@ def generateSADXML(waveform_name):
     spdFileIds = {}
     for component in sandbox.getComponents():
         # Exclude local input file , output file , and output array components from the sad file
-        if not re.match(".*local component.*", str(component) ) : continue
-
+        if not isinstance(component, ossie.utils.model.ComponentBase):
+            continue
         relativePathIndex = component._profile.find("/components")
         if relativePathIndex != -1:
             relativePathFilename = component._profile[relativePathIndex:]
@@ -410,7 +409,8 @@ def generateSADXML(waveform_name):
         uses_inst_name = uses_name.split('/')[0]
         uses_inst_id = None
         for component in sandbox.getComponents():
-            if not re.match(".*local component.*", str(component)): continue
+            if not isinstance(component, ossie.utils.model.ComponentBase):
+                continue
             if component._instanceName == uses_inst_name:
                 if component._refid[:3] == 'DCE':
                     comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
@@ -431,7 +431,8 @@ def generateSADXML(waveform_name):
             provides_name = provides_side.getName().split('/')[0]
         provides_inst_id = None
         for component in sandbox.getComponents():
-            if not re.match(".*local component.*", str(component)): continue
+            if not isinstance(component, ossie.utils.model.ComponentBase):
+                continue
             if component._instanceName == provides_name:
                 if component._refid[:3] == 'DCE':
                     comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]

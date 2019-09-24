@@ -21,6 +21,7 @@
 
 from base_ports import *
 from ossie.utils import sb
+import traceback
 
 
 class Test_SADxml(unittest.TestCase):
@@ -44,6 +45,7 @@ class Test_SADxml(unittest.TestCase):
         try:
             sad = sb.generateSADXML("testsadxml")
         except:
+	    traceback.print_exc()
             self.fail("Generate SAD raised exception")
         self.assertEqual(sad.find("StreamSource"), -1, "Found StreamSource in SAD")
         self.assertEqual(sad.find("StreamSink"), -1, "Found StreamSink in SAD")
