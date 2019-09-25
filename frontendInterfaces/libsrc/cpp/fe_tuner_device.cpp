@@ -488,6 +488,7 @@ namespace frontend {
             this->tuner_allocation_ids.resize(this->frontend_tuner_status.size());
         }
         RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
+        exclusive_lock lock(allocation_id_mapping_lock);        
         checkValidIds(capacities);
         CORBA::ULong ii;
         try{
@@ -504,9 +505,6 @@ namespace frontend {
                         RH_INFO(_deviceLog,"allocateCapacity: ALLOCATION_ID ALREADY IN USE: [" << frontend_tuner_allocation.allocation_id << "]");
                         throw AllocationAlreadyExists("ALLOCATION_ID ALREADY IN USE", capacities);
                     }
-
-                    // Check if available tuner
-                    exclusive_lock lock(allocation_id_mapping_lock);
 
                     // Next, try to allocate a new tuner
                     for (size_t tuner_id = 0; tuner_id < tuner_allocation_ids.size(); tuner_id++) {
@@ -540,7 +538,10 @@ namespace frontend {
                             frontend_tuner_status[tuner_id].center_frequency = frontend_tuner_allocation.center_frequency;
                             frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate;
                             // device control
-                            if(!tuner_allocation_ids[tuner_id].control_allocation_id.empty() || !callDeviceSetTuning(tuner_id)){
+                            bool allocated =!(tuner_allocation_ids[tuner_id].control_allocation_id.empty());
+                            bool deviceSet=false;
+                            if ( !allocated ) { deviceSet = callDeviceSetTuning(tuner_id); };
+                            if ( allocated || !deviceSet ) {
                                 if (frontend_tuner_status[tuner_id].bandwidth == frontend_tuner_allocation.bandwidth)
                                     frontend_tuner_status[tuner_id].bandwidth = orig_bw;
                                 if (frontend_tuner_status[tuner_id].center_frequency == frontend_tuner_allocation.center_frequency)
@@ -548,8 +549,15 @@ namespace frontend {
                                 if (frontend_tuner_status[tuner_id].sample_rate == frontend_tuner_allocation.sample_rate)
                                     frontend_tuner_status[tuner_id].sample_rate = orig_sr;
                                 // either not available or didn't succeed setting tuning, try next tuner
-                                RH_DEBUG(_deviceLog,
-                                    "allocateCapacity: Tuner["<<tuner_id<<"] is either not available or didn't succeed while setting tuning ");
+                                if ( allocated ) {
+                                    RH_TRACE(_deviceLog,
+                                        "allocateCapacity: Tuner["<<tuner_id<<"] not available");
+                                    continue;
+                                }
+                                if ( !deviceSet ) {
+                                    RH_DEBUG(_deviceLog,
+                                             "allocateCapacity: Tuner["<<tuner_id<<"] didn't succeed while setting tuning ");
+                                }
                                 continue;
                             }
                             tuner_allocation_ids[tuner_id].control_allocation_id = frontend_tuner_allocation.allocation_id;
@@ -632,8 +640,6 @@ namespace frontend {
                         throw CF::Device::InvalidCapacity("MISSING LISTENER ALLOCATION ID", capacities);
                     }
 
-                    exclusive_lock lock(allocation_id_mapping_lock);
-
                     // Check if listener allocation ID has already been used
                     if(getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0){
                         RH_INFO(_deviceLog,"allocateCapacity: LISTENER ALLOCATION ID ALREADY IN USE: [" << frontend_listener_allocation.listener_allocation_id << "]");
@@ -669,7 +675,7 @@ namespace frontend {
         }
         catch(const std::logic_error &e) {
             try {
-                deallocateCapacity(capacities);
+                _deallocateCapacity(capacities);
             } catch ( ... ) {}
             return false;
         }
@@ -680,19 +686,19 @@ namespace frontend {
         }
         catch(CF::Device::InvalidCapacity &e) {
             try {
-                deallocateCapacity(capacities);
+                _deallocateCapacity(capacities);
             } catch ( ... ) {}
             throw e;
         }
         catch(FRONTEND::BadParameterException &e) {
             try {
-                deallocateCapacity(capacities);
+                _deallocateCapacity(capacities);
             } catch ( ... ) {}
             return false;
         }
         catch(...){
             try {
-                deallocateCapacity(capacities);
+                _deallocateCapacity(capacities);
             } catch ( ... ) {}
             throw;
         };
@@ -731,8 +737,16 @@ namespace frontend {
         }
     }
 
+        
     template < typename TunerStatusStructType >
     void FrontendTunerDevice<TunerStatusStructType>::deallocateCapacity(const CF::Properties & capacities)
+    throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
+        exclusive_lock lock(allocation_id_mapping_lock);
+        _deallocateCapacity(capacities);
+    }
+    
+    template < typename TunerStatusStructType >
+    void FrontendTunerDevice<TunerStatusStructType>::_deallocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
         RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
         for (CORBA::ULong ii = 0; ii < capacities.length(); ++ii) {
@@ -765,12 +779,12 @@ namespace frontend {
                     }
                     if(tuner_allocation_ids[tuner_id].control_allocation_id == frontend_tuner_allocation.allocation_id){
                         enableTuner(tuner_id, false);
-                        removeTunerMapping(tuner_id);
+                        _removeTunerMapping(tuner_id);
                         frontend_tuner_status[tuner_id].allocation_id_csv = createAllocationIdCsv(tuner_id);
                     }
                     else {
                         // send EOS to listener connection only
-                        removeTunerMapping(tuner_id,frontend_tuner_allocation.allocation_id);
+                        _removeTunerMapping(tuner_id,frontend_tuner_allocation.allocation_id);
                         frontend_tuner_status[tuner_id].allocation_id_csv = createAllocationIdCsv(tuner_id);
                     }
                 }
@@ -785,7 +799,7 @@ namespace frontend {
                         throw CF::Device::InvalidCapacity("Controlling allocation id cannot be used as a listener id", capacities);
                     }
                     // send EOS to listener connection only
-                    removeTunerMapping(tuner_id,frontend_listener_allocation.listener_allocation_id);
+                    _removeTunerMapping(tuner_id,frontend_listener_allocation.listener_allocation_id);
                     frontend_tuner_status[tuner_id].allocation_id_csv = createAllocationIdCsv(tuner_id);
                 }
                 else {
@@ -911,9 +925,15 @@ namespace frontend {
             }
         }
     }
+
+        template < typename TunerStatusStructType >
+    bool FrontendTunerDevice<TunerStatusStructType>::removeTunerMapping(size_t tuner_id, std::string allocation_id) {
+            exclusive_lock lock(allocation_id_mapping_lock);
+            return _removeTunerMapping(tuner_id, allocation_id);
+        }
     
     template < typename TunerStatusStructType >
-    bool FrontendTunerDevice<TunerStatusStructType>::removeTunerMapping(size_t tuner_id, std::string allocation_id) {
+    bool FrontendTunerDevice<TunerStatusStructType>::_removeTunerMapping(size_t tuner_id, std::string allocation_id) {
         RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
         removeListener(allocation_id);
         sendEOS(allocation_id);
@@ -925,20 +945,24 @@ namespace frontend {
                 ++it;
             }
         }
-        exclusive_lock lock(allocation_id_mapping_lock);
         if(allocation_id_to_tuner_id.erase(allocation_id) > 0)
             return true;
         return false;
     }
-    
+
     template < typename TunerStatusStructType >
     bool FrontendTunerDevice<TunerStatusStructType>::removeTunerMapping(size_t tuner_id) {
+        exclusive_lock lock(allocation_id_mapping_lock);
+        return  _removeTunerMapping(tuner_id);
+    }
+    
+    template < typename TunerStatusStructType >
+    bool FrontendTunerDevice<TunerStatusStructType>::_removeTunerMapping(size_t tuner_id) {
         RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
         deviceDeleteTuning(frontend_tuner_status[tuner_id], tuner_id);
         removeAllocationIdRouting(tuner_id);
 
         long cnt = 0;
-        exclusive_lock lock(allocation_id_mapping_lock);
         string_number_mapping::iterator it = allocation_id_to_tuner_id.begin();
         while(it != allocation_id_to_tuner_id.end()){
             if(it->second == tuner_id){

@@ -57,12 +57,20 @@ cd cpp
 ./runtests $with_xunit
 cd -
 
+
 #
 # Run Python unit tests with XML output
 #
 # NOTE: virtualenv aliases python in the shell, so it's necessary to explicitly
 # run runtests.py via python
 (cd python && ./runtests.py -x)
+
+#
+#  Run transport api unit tests
+#
+cd transport_api
+./runtests $with_xunit
+cd -
 
 #
 # Resource level unit tests

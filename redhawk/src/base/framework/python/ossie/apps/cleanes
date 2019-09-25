@@ -73,7 +73,14 @@ if options.force and len(args) == 0:
 if options.omniEvents_cfg != None:
     omniEvents_cfg = options.omniEvents_cfg
 else:
-    omniEvents_cfg = '/var/lib/omniEvents/omnievents-%s.log' % os.environ['HOSTNAME']
+    osenv = os.environ['HOSTNAME']
+    if os.path.isfile('/var/{0}/omniEvents/omnievents-{1}.log'.format('log',osenv)):
+        omniEvents_cfg = '/var/{0}/omniEvents/omnievents-{1}.log'.format('log',osenv)
+    elif os.path.isfile('/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',osenv)):
+        omniEvents_cfg = '/var/{0}/omniEvents/omnievents-{1}.log'.format('lib',osenv)
+    else:
+        print "Logfile corresponding to omniEvents version 2.8 or 2.7 not found"
+        sys.exit(-1)
     
 if options.omniORB_cfg != None:
     omniORB_cfg = options.omniORB_cfg
@@ -147,7 +154,12 @@ for entry in events:
                 if len(args) == 0 or channelName in args:
                     URI = "corbaloc::"+hostname+":"+portNumber+"/"+channelName
                     obj = orb.string_to_object(URI)
-                    if not obj._non_existent or options.force:
+                    try:
+                        object_exists = obj._non_existent()
+                    except:
+                        print "The event channel "+channelName+" is unreachable. Is the Event Service running?"
+                        sys.exit(-1)
+                    if not obj._non_existent() or options.force:
                         try:
                             channel=obj._narrow(CosEventChannelAdmin.EventChannel)
                             print "Destroying Channel", channelName
