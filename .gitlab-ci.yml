@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
-  redhawk_version: '2.2.3'
+  redhawk_version: '2.2.4'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   redhawk_branch: 'develop-2.2'

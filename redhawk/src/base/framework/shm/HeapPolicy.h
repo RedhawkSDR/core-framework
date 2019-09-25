@@ -8,6 +8,8 @@ namespace redhawk {
         class HeapPolicy
         {
         public:
+            virtual ~HeapPolicy() { }
+
             virtual int getPoolCount() = 0;
 
             virtual size_t getPoolAssignment(ThreadState* state) = 0;
