@@ -35,6 +35,7 @@
 #include <unistd.h>
 
 #include <boost/thread.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #define PAGE_ROUND_DOWN(x,p) ((x/p)*p)
 #define PAGE_ROUND_UP(x,p) (((x+p-1)/p)*p)

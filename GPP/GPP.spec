@@ -31,8 +31,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           GPP
-Version:        2.2.3
-Release:        1%{?dist}
+Version:        2.2.4
+Release:        3%{?dist}
 Summary:        REDHAWK GPP
 
 Group:          Applications/Engineering

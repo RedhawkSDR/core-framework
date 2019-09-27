@@ -2,6 +2,7 @@ Makefile
 Makefile.in
 .deps
 .dirstamp
+.idea
 .libs
 *.lo
 *.la

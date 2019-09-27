@@ -644,7 +644,7 @@ class FrontendTunerDevice(Device):
         for prop_key in propdict:
             if prop_key != "FRONTEND::tuner_allocation" and prop_key != "FRONTEND::listener_allocation":
                 raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
-            self._props[prop_key] = propdict[prop_key]
+
 
     def allocateCapacity(self, properties):
         self._deviceLog.debug("allocateCapacity(%s)", properties)
@@ -714,7 +714,7 @@ class FrontendTunerDevice(Device):
                         self.frontend_tuner_status[tuner_id].center_frequency = frontend_tuner_allocation.center_frequency
                         self.frontend_tuner_status[tuner_id].bandwidth = frontend_tuner_allocation.bandwidth
                         self.frontend_tuner_status[tuner_id].sample_rate = frontend_tuner_allocation.sample_rate
-                        if self.supports_scan and self._has_scanner:
+                        if self.supports_scan and scanner_prop:
                             if not self.deviceSetTuningScan(frontend_tuner_allocation, scanner_prop, self.frontend_tuner_status[tuner_id], tuner_id):
                                 # either not available or didn't succeed setting tuning, try next tuner
                                 self._deviceLog.debug("allocate_frontend_tuner_allocation: Tuner["+str(tuner_id)+"] didn't succeed while setting tuning ")
@@ -1194,5 +1194,4 @@ class FrontendScannerDevice(FrontendTunerDevice):
                 raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
             if prop_key == "FRONTEND::scanner_allocation":
                 self._has_scanner = True
-            self._props[prop_key] = propdict[prop_key]
 

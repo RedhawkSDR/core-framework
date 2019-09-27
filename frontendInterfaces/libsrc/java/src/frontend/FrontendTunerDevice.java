@@ -483,34 +483,36 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             throw new InvalidState(invalidState);
         }
 
-        checkValidIds(capacities);
+        synchronized(allocation_id_to_tuner_id) {
+            checkValidIds(capacities);
 
-        // Check for obviously invalid properties up front.
-        validateAllocProps(capacities);
+            // Check for obviously invalid properties up front.
+            validateAllocProps(capacities);
 
-        for (DataType cap : capacities) {
-            final IProperty property = this.propSet.get(cap.id);
-            property.configure(cap.value);
-        }
-
-        for (DataType cap : capacities) {
-            final IProperty property = this.propSet.get(cap.id);
-            if (cap.id.equals("FRONTEND::tuner_allocation")) {
-                try {
-                    return allocateTuner(frontend_tuner_allocation.getValue());
-                } catch (CF.DevicePackage.InvalidCapacity e) {
-                    throw e;
-                } catch (Exception e) {
-                    return false;
-                }
+            // apply all allocations to local object
+            for (DataType cap : capacities) {
+                final IProperty property = this.propSet.get(cap.id);
+                property.configure(cap.value);
             }
-            if (cap.id.equals("FRONTEND::listener_allocation")) {
-                try {
-                    return allocateListener(frontend_listener_allocation.getValue());
-                } catch (CF.DevicePackage.InvalidCapacity e) {
-                    throw e;
-                } catch (Exception e) {
-                    return false;
+
+            for (DataType cap : capacities) {
+                if (cap.id.equals("FRONTEND::tuner_allocation")) {
+                    try {
+                        return allocateTuner(frontend_tuner_allocation.getValue());
+                    } catch (CF.DevicePackage.InvalidCapacity e) {
+                        throw e;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+                if (cap.id.equals("FRONTEND::listener_allocation")) {
+                    try {
+                        return allocateListener(frontend_listener_allocation.getValue());
+                    } catch (CF.DevicePackage.InvalidCapacity e) {
+                        throw e;
+                    } catch (Exception e) {
+                        return false;
+                    }
                 }
             }
         }
@@ -536,15 +538,18 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
 
         final ArrayList<DataType> invalidProps = new ArrayList<DataType>();
         for (DataType cap : capacities) {
-            final IProperty property = this.propSet.get(cap.id);
             if (cap.id.equals("FRONTEND::tuner_allocation")) {
-                frontend_tuner_allocation.configure(cap.value);
-                deallocateTuner(frontend_tuner_allocation.getValue());
+                synchronized(allocation_id_to_tuner_id){
+                    frontend_tuner_allocation.configure(cap.value);                    
+                    deallocateTuner(frontend_tuner_allocation.getValue());
+                }
             }
             if (cap.id.equals("FRONTEND::listener_allocation")) {
                 try {
-                    frontend_listener_allocation.configure(cap.value);
-                    deallocateListener(frontend_listener_allocation.getValue());
+                    synchronized(allocation_id_to_tuner_id) {
+                        frontend_listener_allocation.configure(cap.value);
+                        deallocateListener(frontend_listener_allocation.getValue());
+                    }
                 } catch (CF.DevicePackage.InvalidCapacity e) {
                     invalidProps.add(cap);
                 }
@@ -929,13 +934,13 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
                 iter.remove();
             }
         }
-        //synchronized(allocation_id_mapping_lock){
+        synchronized(allocation_id_to_tuner_id){        
             if (allocation_id_to_tuner_id.containsKey(allocation_id)){
                 allocation_id_to_tuner_id.remove(allocation_id);
                 return true;
             }
             return false;
-        //}
+        }
     }
 
     protected boolean removeTunerMapping(int tuner_id){
@@ -944,7 +949,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         removeAllocationIdRouting(tuner_id);
 
         int cnt = 0;
-        //synchronized(allocation_id_mapping_lock){
+        synchronized(allocation_id_to_tuner_id){
             if (allocation_id_to_tuner_id.containsValue(tuner_id)){
                 Iterator<Map.Entry<String,Integer>> iter = allocation_id_to_tuner_id.entrySet().iterator();
                 while (iter.hasNext()) {
@@ -959,7 +964,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
             }
             tuner_allocation_ids.get(tuner_id).reset();
             return cnt > 0;
-        //}
+        }
     }
 
     protected void assignListener(final String listen_alloc_id, final String alloc_id){
