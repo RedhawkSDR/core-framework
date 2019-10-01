@@ -17,12 +17,11 @@ from ossie import iterators
 
 from ossie.utils import weakobj
 import gc
-from ossie import gcpoa
+from ossie import gcpoa, corbatest
 
 class deviterator(iterators.Iterator, CF__POA.DeviceLocationIterator):
     def __init__(self, _list=[]):
-        blank = CF.AllocationManager.DeviceLocationType("", [], None, None)
-        iterators.Iterator.__init__(self, _list, blank)
+        iterators.Iterator.__init__(self, CF.AllocationManager.DeviceLocationType, _list)
 
 class allocmgr_svc(CF__POA.AllocationManager):
 
@@ -55,7 +54,7 @@ class allocmgr_svc(CF__POA.AllocationManager):
     def listDevices(self, deviceScope, count):
         devlist = []
         blank = CF.AllocationManager.DeviceLocationType("", [], None, None)
-        deviter = iterators.get_list(10, self.device_list, deviterator, blank)
+        deviter = iterators.get_list_iterator(self.device_list, deviterator, blank, 0.2)
         devlist = deviter.next_n(count)[1]
         return devlist, deviter
 
