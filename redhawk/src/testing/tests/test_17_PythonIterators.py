@@ -42,17 +42,31 @@ class Iterators(unittest.TestCase):
         return int(mem)
 
     def test_iterators(self):
-        print self.get_memory_size(self.svc._pid)
+        mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
-        print self.get_memory_size(self.svc._pid)
-        time.sleep(1)
-        print self.get_memory_size(self.svc._pid)
+        mem_2 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_1<mem_2, True)
+
+        time.sleep(1.5)
+
+        mem_3 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_3<mem_2, True)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
-        print self.get_memory_size(self.svc._pid)
-        time.sleep(1)
-        print self.get_memory_size(self.svc._pid)
+        mem_4 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_2, mem_4)
+        self.assertEquals(mem_3<mem_4, True)
+
+        time.sleep(1.5)
+
+        mem_5 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_5<mem_4, True)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
-        print self.get_memory_size(self.svc._pid)
-        time.sleep(1)
-        print self.get_memory_size(self.svc._pid)
+        mem_6 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_4, mem_6)
+        self.assertEquals(mem_5<mem_6, True)
+
+        time.sleep(1.5)
+
+        mem_7 = self.get_memory_size(self.svc._pid)
+        self.assertEquals(mem_7<mem_6, True)
