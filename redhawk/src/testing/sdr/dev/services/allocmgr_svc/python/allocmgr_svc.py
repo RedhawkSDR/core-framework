@@ -16,12 +16,17 @@ from ossie.cf import CF__POA
 from ossie import iterators
 
 from ossie.utils import weakobj
-import gc
-from ossie import gcpoa, corbatest
+
+import copy
+from ossie import gcpoa, iterators
 
 class deviterator(iterators.Iterator, CF__POA.DeviceLocationIterator):
     def __init__(self, _list=[]):
         iterators.Iterator.__init__(self, CF.AllocationManager.DeviceLocationType, _list)
+
+class allociterator(iterators.Iterator, CF__POA.AllocationStatusIterator):
+    def __init__(self, _list=[]):
+        iterators.Iterator.__init__(self, CF.AllocationManager.AllocationStatusType, _list)
 
 class allocmgr_svc(CF__POA.AllocationManager):
 
@@ -43,9 +48,18 @@ class allocmgr_svc(CF__POA.AllocationManager):
         self._baseLog = logging.getLogger(self.name)
         self._log = logging.getLogger(self.name)
         self.number_devs = 50000
+
         self.device_list = []
+        blank_devicelocationtype = iterators.construct(CF.AllocationManager.DeviceLocationType)
         for dev_idx in range(self.number_devs):
-            self.device_list.append(CF.AllocationManager.DeviceLocationType("", [], None, None))
+            self.device_list.append(copy.deepcopy(blank_devicelocationtype))
+
+        self.allocation_list = []
+        updated_allocationstatustype = iterators.construct(CF.AllocationManager.AllocationStatusType)
+        updated_allocationstatustype.allocationID = 'sample_id'
+        for dev_idx in range(20):
+            self.allocation_list.append(copy.deepcopy(updated_allocationstatustype))
+
         self.deviters = []
 
     def terminateService(self):
@@ -53,8 +67,7 @@ class allocmgr_svc(CF__POA.AllocationManager):
 
     def listDevices(self, deviceScope, count):
         devlist = []
-        blank = CF.AllocationManager.DeviceLocationType("", [], None, None)
-        deviter = iterators.get_list_iterator(self.device_list, deviterator, blank, 0.2)
+        deviter = iterators.get_list_iterator(self.device_list, deviterator, 0.2)
         devlist = deviter.next_n(count)[1]
         return devlist, deviter
 
@@ -78,7 +91,10 @@ class allocmgr_svc(CF__POA.AllocationManager):
         pass
 
     def listAllocations(self, allocScope, how_many):
-        pass
+        alloclist = []
+        allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
+        alloclist = allociter.next_n(how_many)[1]
+        return alloclist, allociter
 
     def _get_allDevices(self):
         # TODO

@@ -41,7 +41,23 @@ class Iterators(unittest.TestCase):
         mem = mem_content.split(' ')[0]
         return int(mem)
 
-    def test_iterators(self):
+    def test_iter_count(self):
+        alloclist, allociter = self.svc.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 1)
+        self.assertEquals(len(alloclist), 1)
+        allocstatus, alloclist = allociter.next_n(10)
+        self.assertEquals(len(alloclist), 10)
+        self.assertEquals(allocstatus, True)
+        allocstatus, allocvalue = allociter.next_one()
+        self.assertEquals(allocvalue.allocationID, "sample_id")
+        self.assertEquals(allocstatus, True)
+        allocstatus, alloclist = allociter.next_n(10)
+        self.assertEquals(len(alloclist), 8)
+        self.assertEquals(allocstatus, True)
+        allocstatus, alloclist = allociter.next_n(10)
+        self.assertEquals(len(alloclist), 0)
+        self.assertEquals(allocstatus, False)
+
+    def test_mem_dealloc(self):
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
