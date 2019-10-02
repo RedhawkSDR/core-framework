@@ -42,6 +42,7 @@ class Iterators(unittest.TestCase):
         return int(mem)
 
     def test_iter_count(self):
+        # the list of allocations in the service is 20 allocations long
         alloclist, allociter = self.svc.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 1)
         self.assertEquals(len(alloclist), 1)
         allocstatus, alloclist = allociter.next_n(10)
@@ -58,6 +59,7 @@ class Iterators(unittest.TestCase):
         self.assertEquals(allocstatus, False)
 
     def test_mem_dealloc(self):
+        # the list of allocations in the service is 50000 devices long
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
