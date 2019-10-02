@@ -35,7 +35,7 @@ class Iterators(unittest.TestCase):
         sb.release()
     
     def get_memory_size(self, _pid):
-        fp=open('/proc/'+str(self.svc._pid)+'/statm', 'r')
+        fp=open('/proc/'+str(_pid)+'/statm', 'r')
         mem_content = fp.read()
         fp.close()
         mem = mem_content.split(' ')[0]
