@@ -23,12 +23,14 @@ from omniORB import CORBA, PortableServer, PortableServer__POA
 
 class SingletonThread(threading.Thread):
     __instance = None
+    instanceMutex_ = threading.Lock()
 
     @staticmethod 
     def getInstance():
         """ Static access method. """
-        if SingletonThread.__instance == None:
-            SingletonThread()
+        with SingletonThread.instanceMutex_:
+            if SingletonThread.__instance == None:
+                SingletonThread()
         return SingletonThread.__instance
 
     def __init__(self, delay):
@@ -36,7 +38,6 @@ class SingletonThread(threading.Thread):
         self.setDaemon(True)
         self._delay = delay
         self.contexts = []
-        self.instanceMutex_ = threading.Lock()
         self.stop_signal = threading.Event()
         if SingletonThread.__instance != None:
             raise Exception("SingletonThread is a singleton")
@@ -57,9 +58,8 @@ class SingletonThread(threading.Thread):
 
     def run(self):
         while not self.stop_signal.isSet():
-            with self.instanceMutex_:
-                for context in self.contexts:
-                    context.gc_sweep()
+            for context in self.contexts:
+                context.gc_sweep()
             time.sleep(self._delay)
 
 class POACreator(PortableServer__POA.AdapterActivator):
