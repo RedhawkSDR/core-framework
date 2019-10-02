@@ -13,9 +13,6 @@ from omniORB import CORBA, URI, PortableServer
 
 from ossie.cf import CF
 from ossie.cf import CF__POA
-from ossie import iterators
-
-from ossie.utils import weakobj
 
 import copy
 from ossie import gcpoa, iterators
