@@ -88,7 +88,7 @@ class Iterator:
 
     def next_n(self, how_many):
         if self.offset_ >= len(self.list_):
-            return False, self.empty_object_
+            return False, []
 
         how_many = min(how_many, len(self.list_)-self.offset_)
         ret_list = self.list_[self.offset_:self.offset_+how_many]
@@ -99,9 +99,9 @@ class Iterator:
     def destroy():
         pass
 
-def get_list_iterator(items, clazz, empty_object=None, ttl=60):
+def get_list_iterator(items, clazz, ttl=60):
     if len(items) == 0:
-        return clazz()._this()
+        return None
 
     _iter = clazz(items)
 
