@@ -53,7 +53,7 @@ class SingletonThread(threading.Thread):
         try:
             self.contexts.remove(context)
         except:
-            print '...... unable to remove context'
+            print 'Unable to remove context'
 
     def run(self):
         while not self.stop_signal.isSet():
@@ -81,22 +81,6 @@ class POACreator(PortableServer__POA.AdapterActivator):
             return True
 
         return False
-
-#GCServantLocator::GCServantLocator()
-#{
-    #ossie::GCThread::add(this);
-#}
-
-#GCServantLocator::~GCServantLocator()
-#{
-    #ossie::GCThread::release(this);
-
-    #// Release GC reference for any remaining servants; there is no need for
-    #// the mutex because there can be no more calls to gc_sweep()
-    #for (ServantMap::iterator iter = activeMap_.begin(); iter != activeMap_.end(); ++iter) {
-        #iter->second.servant->_remove_ref();
-    #}
-#}
 
 class ServantEntry:
     def __init__(self, servant, ttl, destroy, last_access):
@@ -128,8 +112,7 @@ class GCServantLocator(PortableServer__POA.ServantLocator, GCContext):
             servant = self.activeMap_[oid].servant
             if self.activeMap_[oid].destroy == operation:
                 self.activeMap_.pop(oid)
-            #else:
-                #servant._add_ref()
+
             self.activeMap_[oid].last_access = time.time()
             return servant, the_cookie
 
