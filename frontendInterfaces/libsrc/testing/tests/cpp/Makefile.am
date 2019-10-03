@@ -24,4 +24,4 @@ check_PROGRAMS = $(TESTS)
 Frontend_SOURCES = main.cpp
 Frontend_SOURCES += ValidateRequest.cpp Ports.cpp
 Frontend_CXXFLAGS = -I../../../cpp/ $(redhawk_INCLUDES_auto) $(BULKIO_CFLAGS) $(BOOST_CPPFLAGS) $(OSSIE_CFLAGS) $(CPPUNIT_CFLAGS)
-Frontend_LDADD = -L../../.. -lfrontend-@FRONTEND_API_VERSION@ $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OSSIE_LIBS) $(CPPUNIT_LIBS) $(LOG4CXX_LIBS)
+Frontend_LDADD = -L../../.. -lfrontend $(BULKIO_LIBS) $(BOOST_LDFLAGS) $(BOOST_SYSTEM_LIB) $(OSSIE_LIBS) $(CPPUNIT_LIBS) $(LOG4CXX_LIBS)

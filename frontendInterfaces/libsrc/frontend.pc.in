@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: frontend
 Description: FRONTEND base class library
 Requires: frontendInterfaces >= @PACKAGE_VERSION@
-Version: @FRONTEND_API_VERSION@
-Libs: -L${libdir} -lfrontend-@FRONTEND_API_VERSION@
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lfrontend
 Cflags: -I${includedir}/frontend

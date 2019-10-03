@@ -31,11 +31,11 @@ AUTOMAKE_OPTIONS = subdir-objects
 ## to provide a way for the user to supply additional arguments.
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-lib_LTLIBRARIES = libfrontend-@FRONTEND_API_VERSION@.la
-libfrontend_@FRONTEND_API_VERSION@_la_LDFLAGS = -version-info $(FRONTEND_SO_VERSION)
-libfrontend_@FRONTEND_API_VERSION@_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS) $(top_builddir)/libfrontendInterfaces.la
+lib_LTLIBRARIES = libfrontend.la
+libfrontend_la_LDFLAGS = -version-info $(FRONTEND_SO_VERSION)
+libfrontend_la_LIBADD = $(BULKIO_LIBS) $(OSSIE_LIBS) $(top_builddir)/libfrontendInterfaces.la
 
-libfrontend_@FRONTEND_API_VERSION@_la_SOURCES = \
+libfrontend_la_SOURCES = \
     cpp/fe_port_impl.cpp \
     cpp/fe_rfsource_port_impl.cpp \
     cpp/fe_tuner_device.cpp
@@ -68,7 +68,7 @@ library_include_HEADERS = \
 ## shipped with the source tarball.
 #frontend_libincludedir = $(libdir)/frontend-$(FRONTEND_API_VERSION)/include
 
-libfrontend_@FRONTEND_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libfrontend_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
 SUBDIRS = . testing/tests/cpp
 

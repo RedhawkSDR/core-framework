@@ -25,7 +25,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <values>
       <value>libbulkio.so</value>
       <value>libburstio.so</value>
-      <value>libfrontend-2.5.so</value>
+      <value>libfrontend.so</value>
     </values>
     <kind kindtype="property"/>
     <action type="external"/>

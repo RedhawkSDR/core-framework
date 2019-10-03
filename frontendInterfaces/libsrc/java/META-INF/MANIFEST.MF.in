@@ -1,7 +1,7 @@
 Bundle-ManifestVersion: 2
 Bundle-Name: FRONTEND Base Class Library
 Bundle-SymbolicName: frontend
-Bundle-Version: @FRONTEND_API_VERSION@
+Bundle-Version: @PACKAGE_VERSION@
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-Vendor: REDHAWK
 Import-Package: FRONTEND,
