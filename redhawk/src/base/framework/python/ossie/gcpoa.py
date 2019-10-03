@@ -23,43 +23,45 @@ from omniORB import CORBA, PortableServer, PortableServer__POA
 
 class SingletonThread(threading.Thread):
     __instance = None
-    instanceMutex_ = threading.Lock()
+    _instanceMutex = threading.Lock()
 
     @staticmethod 
     def getInstance():
         """ Static access method. """
-        with SingletonThread.instanceMutex_:
+        with SingletonThread._instanceMutex:
             if SingletonThread.__instance == None:
                 SingletonThread()
         return SingletonThread.__instance
 
     def __init__(self, delay):
+        if SingletonThread.__instance != None:
+            raise Exception("SingletonThread is a singleton")
+        SingletonThread.__instance = self
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self._delay = delay
         self.contexts = []
         self.stop_signal = threading.Event()
-        if SingletonThread.__instance != None:
-            raise Exception("SingletonThread is a singleton")
-        else:
-            SingletonThread.__instance = self
 
     def stop(self):
         self.stop_signal.set()
 
     def addContext(self, context):
-        self.contexts.append(context)
+        with SingletonThread._instanceMutex:
+            self.contexts.append(context)
 
     def releaseContext(self, context):
-        try:
-            self.contexts.remove(context)
-        except:
-            print 'Unable to remove context'
+        with SingletonThread._instanceMutex:
+            try:
+                self.contexts.remove(context)
+            except:
+                print 'Unable to remove context'
 
     def run(self):
         while not self.stop_signal.isSet():
-            for context in self.contexts:
-                context.gc_sweep()
+            with SingletonThread._instanceMutex:
+                for context in self.contexts:
+                    context.gc_sweep()
             time.sleep(self._delay)
 
 class POACreator(PortableServer__POA.AdapterActivator):
@@ -89,11 +91,7 @@ class ServantEntry:
         self.destroy = destroy
         self.last_access = last_access
 
-class GCContext:
-    def gc_sweep(self):
-        pass
-
-class GCServantLocator(PortableServer__POA.ServantLocator, GCContext):
+class GCServantLocator(PortableServer__POA.ServantLocator):
     def __init__(self):
         self.activeMap_ = {}
         self.activeMapMutex_ = threading.Lock()
@@ -137,15 +135,16 @@ class GCServantLocator(PortableServer__POA.ServantLocator, GCContext):
                 self.activeMap_.pop(key)
 
 def createGCPOA(parent, name):
-    policy_list = []
-    policy_list.append(parent.create_servant_retention_policy(PortableServer.NON_RETAIN))
-    policy_list.append(parent.create_request_processing_policy(PortableServer.USE_SERVANT_MANAGER))
+    policy_list = [
+        parent.create_servant_retention_policy(PortableServer.NON_RETAIN), 
+        parent.create_request_processing_policy(PortableServer.USE_SERVANT_MANAGER)
+    ]
 
     poa_mgr = parent.the_POAManager
     poa = parent.create_POA(name, poa_mgr, policy_list)
 
-    for ii in range(len(policy_list)):
-        policy_list[ii].destroy()
+    for policy in policy_list:
+        policy.destroy()
 
     manager = GCServantLocator()
     manager_ref = manager._this()

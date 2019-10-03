@@ -54,7 +54,10 @@ class allocmgr_svc(CF__POA.AllocationManager):
         self.allocation_list = []
         updated_allocationstatustype = iterators.construct(CF.AllocationManager.AllocationStatusType)
         updated_allocationstatustype.allocationID = 'sample_id'
+        source_count = 0
         for dev_idx in range(20):
+            source_count += 1
+            updated_allocationstatustype.sourceID = str(source_count)
             self.allocation_list.append(copy.deepcopy(updated_allocationstatustype))
 
         self.deviters = []
@@ -64,7 +67,8 @@ class allocmgr_svc(CF__POA.AllocationManager):
 
     def listDevices(self, deviceScope, count):
         devlist = []
-        deviter = iterators.get_list_iterator(self.device_list, deviterator, 0.2)
+        #deviter = iterators.get_list_iterator(self.device_list, deviterator, 0.2)
+        deviter = deviterator.get_list_iterator(self.device_list, 0.2)
         if deviter == None:
             return [], None
         devlist = deviter.next_n(count)[1]
@@ -91,7 +95,8 @@ class allocmgr_svc(CF__POA.AllocationManager):
 
     def listAllocations(self, allocScope, how_many):
         alloclist = []
-        allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
+        #allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
+        allociter = allociterator.get_list_iterator(self.allocation_list, 0.2)
         if allociter == None:
             return [], None
         alloclist = allociter.next_n(how_many)[1]

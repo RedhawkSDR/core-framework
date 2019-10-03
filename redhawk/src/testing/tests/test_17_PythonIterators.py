@@ -45,14 +45,18 @@ class Iterators(unittest.TestCase):
         # the list of allocations in the service is 20 allocations long
         alloclist, allociter = self.svc.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 1)
         self.assertEquals(len(alloclist), 1)
+        self.assertEquals(alloclist[0].sourceID, "1")
         allocstatus, alloclist = allociter.next_n(10)
         self.assertEquals(len(alloclist), 10)
+        self.assertEquals(alloclist[9].sourceID, "11")
         self.assertEquals(allocstatus, True)
         allocstatus, allocvalue = allociter.next_one()
         self.assertEquals(allocvalue.allocationID, "sample_id")
+        self.assertEquals(allocvalue.sourceID, "12")
         self.assertEquals(allocstatus, True)
         allocstatus, alloclist = allociter.next_n(10)
         self.assertEquals(len(alloclist), 8)
+        self.assertEquals(alloclist[-1].sourceID, "20")
         self.assertEquals(allocstatus, True)
         allocstatus, alloclist = allociter.next_n(10)
         self.assertEquals(len(alloclist), 0)
@@ -88,25 +92,39 @@ class Iterators(unittest.TestCase):
         mem_2 = self.get_memory_size(self.svc._pid)
         self.assertEquals(mem_1<mem_2, True)
 
-        time.sleep(1.5)
-
+        timeout = 5
+        time.sleep(1)
         mem_3 = self.get_memory_size(self.svc._pid)
+        begin_time = time.time()
+        while not (mem_3<mem_2) and time.time() - begin_time < timeout:
+            time.sleep(0.5)
+            mem_3 = self.get_memory_size(self.svc._pid)
+
         self.assertEquals(mem_3<mem_2, True)
+
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         mem_4 = self.get_memory_size(self.svc._pid)
         self.assertEquals(mem_2, mem_4)
         self.assertEquals(mem_3<mem_4, True)
 
-        time.sleep(1.5)
-
+        time.sleep(1)
         mem_5 = self.get_memory_size(self.svc._pid)
+        begin_time = time.time()
+        while not (mem_5<mem_4) and time.time() - begin_time < timeout:
+            time.sleep(0.5)
+            mem_5 = self.get_memory_size(self.svc._pid)
+
         self.assertEquals(mem_5<mem_4, True)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         mem_6 = self.get_memory_size(self.svc._pid)
         self.assertEquals(mem_4, mem_6)
         self.assertEquals(mem_5<mem_6, True)
 
-        time.sleep(1.5)
-
+        time.sleep(1)
         mem_7 = self.get_memory_size(self.svc._pid)
+        begin_time = time.time()
+        while not (mem_7<mem_6) and time.time() - begin_time < timeout:
+            time.sleep(0.5)
+            mem_7 = self.get_memory_size(self.svc._pid)
+
         self.assertEquals(mem_7<mem_6, True)
