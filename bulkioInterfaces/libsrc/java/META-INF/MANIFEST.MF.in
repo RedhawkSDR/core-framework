@@ -1,8 +1,8 @@
 Bundle-ManifestVersion: 2
 Bundle-Name: BULKIO Base Class Library
 Bundle-SymbolicName: bulkio
-Bundle-Version: @BULKIO_API_VERSION@
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-Version: @PACKAGE_VERSION@
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-Vendor: REDHAWK
 Import-Package: BULKIO,
  CF,

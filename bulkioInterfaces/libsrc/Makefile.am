@@ -31,10 +31,10 @@ AUTOMAKE_OPTIONS = subdir-objects
 ## to provide a way for the user to supply additional arguments.
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-lib_LTLIBRARIES = libbulkio-@BULKIO_API_VERSION@.la
-libbulkio_@BULKIO_API_VERSION@_la_LDFLAGS = -version-info $(BULKIO_SO_VERSION)
+lib_LTLIBRARIES = libbulkio.la
+libbulkio_la_LDFLAGS = -version-info $(BULKIO_SO_VERSION)
 
-libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
+libbulkio_la_SOURCES = \
     cpp/bulkio.cpp \
     cpp/bulkio_in_port.cpp \
     cpp/bulkio_in_stream.cpp \
@@ -94,9 +94,9 @@ library_include_HEADERS = cpp/include/bulkio/bulkio.h \
 ## shipped with the source tarball.
 #bulkio_libincludedir = $(libdir)/bulkio-$(BULKIO_API_VERSION)/include
 
-libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I $(srcdir)/cpp -I $(srcdir)/cpp/include/bulkio -DLOGGING $(BULKIOINTERFACES_CFLAGS) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libbulkio_la_CXXFLAGS = -Wall -I $(srcdir)/cpp -I $(srcdir)/cpp/include/bulkio -DLOGGING $(BULKIOINTERFACES_CFLAGS) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
-libbulkio_@BULKIO_API_VERSION@_la_LIBADD = $(top_builddir)/libbulkioInterfaces.la
+libbulkio_la_LIBADD = $(top_builddir)/libbulkioInterfaces.la
 
 ###############################################################################
 # Python
