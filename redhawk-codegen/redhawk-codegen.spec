@@ -23,7 +23,7 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.3.0
+Version:        3.0.0
 Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
@@ -101,4 +101,3 @@ rm -rf $RPM_BUILD_ROOT
 
 * Thu May 21 2015 - 2.0.0-2
 - Update python-jinja2 package for el7
-
