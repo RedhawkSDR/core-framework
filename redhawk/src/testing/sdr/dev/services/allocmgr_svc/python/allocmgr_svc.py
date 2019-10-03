@@ -65,6 +65,8 @@ class allocmgr_svc(CF__POA.AllocationManager):
     def listDevices(self, deviceScope, count):
         devlist = []
         deviter = iterators.get_list_iterator(self.device_list, deviterator, 0.2)
+        if deviter == None:
+            return [], None
         devlist = deviter.next_n(count)[1]
         return devlist, deviter
 
@@ -90,6 +92,8 @@ class allocmgr_svc(CF__POA.AllocationManager):
     def listAllocations(self, allocScope, how_many):
         alloclist = []
         allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
+        if allociter == None:
+            return [], None
         alloclist = allociter.next_n(how_many)[1]
         return alloclist, allociter
 
