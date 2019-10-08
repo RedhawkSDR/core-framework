@@ -142,7 +142,7 @@ def setIDE_REF(ref):
 
 def getIDE_REF():
     return IDE_REF
-    
+
 def _populateFromExternalNC():
     global _currentState
     _currentState['Components Running'] = {}
@@ -152,7 +152,7 @@ def _populateFromExternalNC():
         # Instantiate local Component instances of Component running in IDE sandbox
         for resc in resources:
             comp = Component(componentDescriptor=resc.profile,instanceName=resc.resource._get_identifier(),refid=resc.resource._get_identifier(),autoKick=False,componentObj=resc.resource)
-            _currentState['Components Running'][comp._instanceName] = comp 
+            _currentState['Components Running'][comp._instanceName] = comp
 
         # Determine current connection state of components running
         for component in _currentState['Components Running'].values():
@@ -160,13 +160,13 @@ def _populateFromExternalNC():
                 if port._direction == "Uses" and hasattr(port,"_get_connections"):
                     for connection in port._get_connections():
                         connectionId = connection.connectionId
-                        connectionProvidesPortObj = connection.port 
+                        connectionProvidesPortObj = connection.port
                         _currentState['Component Connections'][connectionId] = {}
                         _currentState['Component Connections'][connectionId]['Uses Component'] = component
                         _currentState['Component Connections'][connectionId]['Uses Port Name'] = port._name
                         for entry in component._usesPortDict.values():
                             if entry['Port Name'] == port._name:
-                                _currentState['Component Connections'][connectionId]['Uses Port Interface'] = entry['Port Interface'] 
+                                _currentState['Component Connections'][connectionId]['Uses Port Interface'] = entry['Port Interface']
                                 break
                         # Loop over all components to find a matching port
                         for providesComponent in _currentState['Components Running'].values():
@@ -178,7 +178,7 @@ def _populateFromExternalNC():
                                             _currentState['Component Connections'][connectionId]['Provides Port Name'] = providesPort._name
                                             for entry in providesComponent._providesPortDict.values():
                                                 if entry['Port Name'] == providesPort._name:
-                                                    _currentState['Component Connections'][connectionId]['Provides Port Interface'] = entry['Port Interface'] 
+                                                    _currentState['Component Connections'][connectionId]['Provides Port Interface'] = entry['Port Interface']
                                                     break
 
 # Initialize globals
@@ -264,7 +264,7 @@ def IDELocation(location=None):
                     if _DEBUG:
                          print "IDELocation(): setting RH_IDE environment variable " + str(location)
         if not foundIDE:
-            print "IDELocation(): ERROR - invalid location passed in, must give absolute path " + str(location) 
+            print "IDELocation(): ERROR - invalid location passed in, must give absolute path " + str(location)
         if _DEBUG:
             print "IDELocation(): setting RH_IDE environment variable " + str(location)
             return str(location)
@@ -283,8 +283,8 @@ def redirectSTDOUT(filename):
             try:
                 f = open(filename,'w')
                 # Send stdout and stderr to provided filename
-                sys.stdout = f 
-                sys.stderr = f 
+                sys.stdout = f
+                sys.stderr = f
             except Exception, e:
                 print "redirectSTDOUT(): ERROR - Unable to open file " + str(filename) + " for writing stdout and stderr " + str(e)
     elif type(filename) == cStringIO.OutputType:
@@ -293,7 +293,7 @@ def redirectSTDOUT(filename):
     else:
         print 'redirectSTDOUT(): failed to redirect stdout/stderr to ' + str(filename)
         print 'redirectSTDOUT(): argument must be: string filename, cStringIO.StringIO object'
-        
+
 def show():
     '''
     Show current list of components running and component connections
@@ -320,7 +320,7 @@ def show():
     for connectionid, uses, provides in ConnectionManager.instance().getConnections().values():
         print "%s [%s] -> %s [%s]" % (uses.getName(), uses.getInterface(),
                                       provides.getName(), provides.getInterface())
-    
+
     print "\n"
     print "Event Channels:"
     print "--------------"
@@ -367,34 +367,32 @@ def generateSADXML(waveform_name):
     with_name = with_id.replace('@__NAME__@',waveform_name)
     # Loop over components to define individual componentfile and componentplacement entries
     componentfiles = ''
-    partitioning = '' 
+    partitioning = ''
     assemblycontroller = ''
     spdFileIds = {}
     for component in sandbox.getComponents():
         # Exclude local input file , output file , and output array components from the sad file
-        if component._instanceName.find("__localFileSource") == -1 and \
-           component._instanceName.find("__localFileSink") == -1 and \
-           component._instanceName.find("__localDataSource") == -1 and \
-           component._instanceName.find("__localDataSink") == -1:
-            relativePathIndex = component._profile.find("/components")
-            if relativePathIndex != -1:
-                relativePathFilename = component._profile[relativePathIndex:]
-            else:
-                relativePathFilename = component._profile
-            if relativePathFilename in spdFileIds:
-                spdFileId = spdFileIds[relativePathFilename]
-            else:
-                spdFileId = '%s_%s' % (component._spd.get_name(), str(uuid4()))
-                spdFileIds[relativePathFilename] = spdFileId
-                componentfiles += Sad_template.componentfile.replace('@__SPDFILE__@',relativePathFilename)
-                componentfiles = componentfiles.replace('@__SPDFILEID__@', spdFileId)
-            partitioning += Sad_template.componentplacement.replace('@__COMPONENTNAME__@',component._instanceName)
-            partitioning = partitioning.replace('@__COMPONENTINSTANCE__@',component._refid)
-            partitioning = partitioning.replace('@__SPDFILEID__@', spdFileId)
+        if not isinstance(component, ossie.utils.model.ComponentBase):
+            continue
+        relativePathIndex = component._profile.find("/components")
+        if relativePathIndex != -1:
+            relativePathFilename = component._profile[relativePathIndex:]
+        else:
+            relativePathFilename = component._profile
+        if relativePathFilename in spdFileIds:
+            spdFileId = spdFileIds[relativePathFilename]
+        else:
+            spdFileId = '%s_%s' % (component._spd.get_name(), str(uuid4()))
+            spdFileIds[relativePathFilename] = spdFileId
+            componentfiles += Sad_template.componentfile.replace('@__SPDFILE__@',relativePathFilename)
+            componentfiles = componentfiles.replace('@__SPDFILEID__@', spdFileId)
+        partitioning += Sad_template.componentplacement.replace('@__COMPONENTNAME__@',component._instanceName)
+        partitioning = partitioning.replace('@__COMPONENTINSTANCE__@',component._refid)
+        partitioning = partitioning.replace('@__SPDFILEID__@', spdFileId)
 
-            # Set Assembly Controller to first component in list
-            if not assemblycontroller:
-                assemblycontroller = Sad_template.assemblycontroller.replace('@__COMPONENTINSTANCE__@',component._refid)
+        # Set Assembly Controller to first component in list
+        if not assemblycontroller:
+            assemblycontroller = Sad_template.assemblycontroller.replace('@__COMPONENTINSTANCE__@',component._refid)
     with_componentfiles = with_name.replace('@__COMPONENTFILE__@',componentfiles)
     with_partitioning = with_componentfiles.replace('@__COMPONENTPLACEMENT__@',partitioning)
     with_ac = with_partitioning.replace('@__ASSEMBLYCONTROLLER__@', assemblycontroller)
@@ -411,6 +409,8 @@ def generateSADXML(waveform_name):
         uses_inst_name = uses_name.split('/')[0]
         uses_inst_id = None
         for component in sandbox.getComponents():
+            if not isinstance(component, ossie.utils.model.ComponentBase):
+                continue
             if component._instanceName == uses_inst_name:
                 if component._refid[:3] == 'DCE':
                     comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
@@ -431,6 +431,8 @@ def generateSADXML(waveform_name):
             provides_name = provides_side.getName().split('/')[0]
         provides_inst_id = None
         for component in sandbox.getComponents():
+            if not isinstance(component, ossie.utils.model.ComponentBase):
+                continue
             if component._instanceName == provides_name:
                 if component._refid[:3] == 'DCE':
                     comprefid = component._refid.split(':')[0]+':'+component._refid.split(':')[1]
@@ -570,13 +572,13 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
 
                     # create map of clean keys to overloaded keys
                     _keys = {}
-                    translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_" 
+                    translation = 48*"_"+_string.digits+7*"_"+_string.ascii_uppercase+6*"_"+_string.ascii_lowercase+133*"_"
                     for _key in overload.value:
                         _keys[_key.translate(translation)] = _key
 
                     # for each simple entry in the struct
                     for simple in entry.valueType:
-                        
+
                         # get id to use for override
                         if len(simple) == 3:
                             # no name specified in prf, use id value
@@ -716,7 +718,7 @@ def loadSADFile(filename, props={}):
         log.debug("waveform ID '%s'", sad.get_id())
         log.debug("waveform name '%s'", sad.get_name())
         waveform_modifier = ':'+sad.get_name()
-        validRequestedComponents = {} 
+        validRequestedComponents = {}
         # Loop over each <componentfile> entry to determine SPD filenames and which components are kickable
         for component in sad.componentfiles.get_componentfile():
             log.debug("COMPONENT FILE localfile '%s'", component.get_localfile().get_name())
@@ -820,7 +822,7 @@ def loadSADFile(filename, props={}):
                 if properties != None:
                     simples = properties.get_simpleref()
                 else:
-                    simples = [] 
+                    simples = []
                 simple_exec_vals = {}
                 for simple in simples:
                     if not (simple.refid in execprops):
@@ -1086,7 +1088,7 @@ def loadSADFile(filename, props={}):
                 if _DEBUG:
                     print "OverLoad Assembly Controller ", (sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
                 overloadProperty(sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
-            
+
         launchedComponents = []
     except Exception as e:
         msg=" ERROR - Failed to load sad file: " + str(filename) + " REASON: " + str(e)
