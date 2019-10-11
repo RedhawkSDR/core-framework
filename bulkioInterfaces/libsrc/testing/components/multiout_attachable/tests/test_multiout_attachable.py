@@ -182,12 +182,22 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     def checkSRIReceived(self, ports, numSRIs=1, sriFields=None):
         for port in ports:
             timeout = 10
-            while len(port._get_attachedSRIs()) < numSRIs:
+            len_attachedSRIs = 0
+            try:
+                len_attachedSRIs = len(port._get_attachedSRIs())
+            except:
+                pass
+            while len_attachedSRIs < numSRIs:
                 time.sleep(1)
                 timeout -= 1
                 if timeout == 0:
                     self.assertTrue(False, "Timed-out waiting to receive new SRI")
                     break
+                try:
+                    len_attachedSRIs = len(port._get_attachedSRIs())
+                except:
+                    pass
+
             timeout = 10
             if sriFields:
                 for key,val in sriFields.items():
@@ -196,15 +206,16 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                         try:
                             attachedSRIs = port._get_attachedSRIs()
                             self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
-                            break
+                            if getattr(attachedSRIs[0],key) == val:
+                                break # leave the while loop
+                            else:
+                                time.sleep(1) # key is not there
                         except:
-                            time.sleep(1)
-                    while getattr(port._get_attachedSRIs()[0],key) != val:
-                        time.sleep(1)
+                            time.sleep(1) # _get_attachedSRIs call failed
                         timeout -= 1
                         if timeout == 0:
                             break
-    
+
     def waitForPacketIngestion(self, component, count, timeout=10, delay=0.5):
         now = time.time()
         endTime = now+timeout
