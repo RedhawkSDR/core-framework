@@ -22,7 +22,7 @@
 from setuptools import setup
 
 setup(name='bulkio',
-      version='2.2.4',
+      version='2.2.5',
       description='Python Classes for REDHAWK BULKIO Interfaces',
       packages=['bulkio',
                 'bulkio.sandbox'],

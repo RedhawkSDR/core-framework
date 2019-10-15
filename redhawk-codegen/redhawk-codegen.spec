@@ -23,8 +23,8 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.2.4
-Release:        3%{?dist}
+Version:        2.2.5
+Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
 Group:          Applications/Engineering
