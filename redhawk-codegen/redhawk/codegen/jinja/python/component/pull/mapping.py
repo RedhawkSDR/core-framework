@@ -59,6 +59,12 @@ class PullComponentMapper(ComponentMapper):
                 return True
         return False
 
+    #def listChildren(self, softpkg):
+        #children = []
+        #for child in softpkg.children():
+            #children.append(child)
+        #return children
+
     @staticmethod
     def getImplementedInterfaces(softpkg):
         deviceinfo = set()

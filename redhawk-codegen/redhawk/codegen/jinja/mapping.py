@@ -301,6 +301,12 @@ class ComponentMapper(SoftpkgMapper):
         component.update(self._mapComponent(softpkg))
         return component
 
+    def listChildren(self, softpkg):
+        children = []
+        for child in softpkg.children():
+            children.append(child)
+        return children
+
     def _mapComponent(self, softpkg):
         return {}
 

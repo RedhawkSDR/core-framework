@@ -53,6 +53,15 @@ class SdrRoot(object):
             log.trace("Softpkg '%s' has no PRF", spd.get_name())
             prf = None
 
+        if spd.get_child():
+            for child in spd.get_child():
+                pass
+                #print child
+                #print child.get_name()
+                #print dir(child)
+                #print child.get_childPropertyFile().get_localfile().get_name()
+                #print child.get_childDescriptorFile().get_localfile().get_name()
+
         return spd, scd, prf
 
     def _getObjectType(self, scd):

@@ -27,6 +27,9 @@ import shutil
 from redhawk.codegen import utils
 from redhawk.codegen import versions
 
+from redhawk.codegen.generate import importTemplate
+from redhawk.codegen.model.softpkg import SoftPkg
+
 from environment import CodegenEnvironment
 
 class Generator(object):
@@ -37,6 +40,7 @@ class Generator(object):
             crcs={},
             variant="",
             header=None,
+            children=[],
             **options):
 
         self.outputdir = outputdir
@@ -44,6 +48,8 @@ class Generator(object):
         if variant != "":
             variant = "_" + variant
         self.variant = variant
+        self.children = children
+        self.childTemplates = {}
         self.parseopts(**options)
 
         # Read MD5 sums for testing file changes.
@@ -78,6 +84,8 @@ class Generator(object):
         # Save the header (if given)
         self.header = header
 
+        self.setupChildren()
+
     def parseopts(self):
         """
         Parse additional options passed to the constructor. Subclasses should
@@ -85,15 +93,27 @@ class Generator(object):
         """
         pass
 
+    def setupChildren(self):
+        for child in self.children:
+            childvalue = child.getElementsByTagName('childvalue')[0]
+            self.childTemplates.update({str(child.getAttribute('name')):{'generator':importTemplate(childvalue.getAttribute('template'))}})
+
     def loader(self, component):
         raise NotImplementedError, 'CodeGenerator.loader'
 
     def templates(self, component):
         raise NotImplementedError, 'CodeGenerator.templates'
 
+    def templatesChildren(self, component):
+        return []
+
+    def allTemplates(self, component):
+        templates = self.templates(component)+self.templatesChildren(component)
+        return templates
+
     def filenames(self, softpkg):
         component = self.map(softpkg)
-        return [t.filename for t in self.templates(component)]
+        return [t.filename for t in self.allTemplates(component)]
 
     def trackedFiles(self):
         """
@@ -128,7 +148,7 @@ class Generator(object):
         stale = set(self.trackedFiles())
         files = []
         # Check state of files that would be generated
-        for template in self.templates(component):
+        for template in self.allTemplates(component):
             if template.filename in stale:
                 stale.remove(template.filename)
             info = { 'filename': template.filename,
@@ -169,7 +189,15 @@ class Generator(object):
         if filenames:
             stale.intersection_update(filenames)
 
-        for template in self.templates(component):
+        for _template in self.allTemplates(component):
+            isChild = False
+            childName = None
+            if type(_template) == dict:
+                template = _template[_template.keys()[0]]
+                isChild = True
+                childName = _template.keys()[0]
+            else:
+                template = _template
             # Mark the current template as seen so it will not be deleted,
             # regardless of whether it gets generated
             if template.filename in stale:
@@ -205,8 +233,12 @@ class Generator(object):
                 # Start with the template-specific context, then add the mapped
                 # component and a reference to this generator with known names.
                 context = template.context()
-                context['component'] = component
-                context['generator'] = self
+                if isChild:
+                    context['component'] = component['children'][childName]
+                    context['generator'] = self.childTemplates[childName]['generator']
+                else:
+                    context['component'] = component
+                    context['generator'] = self
                 context['versions'] = versions
 
                 # Evaluate the template in streaming mode (rather than all at
@@ -339,6 +371,20 @@ class CodeGenerator(Generator):
             portfactory = self.portFactory()
             ports = self.portMapper().mapPorts(softpkg, portfactory)
             component.update(ports)
+
+        for _child in softpkg.children():
+            self.childTemplates[_child['name']].update({'scd':_child['scd'], 'prf':_child['prf']})
+
+        component['children'] = {}
+
+        for _child_key in self.childTemplates:
+            _childspd = SoftPkg(None, name=_child_key, prfFile=self.childTemplates[_child_key]['prf'], scdFile=self.childTemplates[_child_key]['scd'])
+            childcomponent = compmapper.mapComponent(_childspd)
+            component['children'][_child_key] = childcomponent
+            childprops = propmapper.mapProperties(_childspd)
+            component['children'][_child_key].update(childprops)
+            childports = self.portMapper().mapPorts(_childspd, portfactory)
+            component['children'][_child_key].update(childports)
 
         return component
 

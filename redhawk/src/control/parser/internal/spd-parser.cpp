@@ -50,6 +50,7 @@ std::auto_ptr<ossie::SPD> ossie::internalparser::parseSPD(std::istream& input) t
         ::spd::implRef_pimpl implRef_p;
         ::spd::propertyRef_pimpl propertyRef_p;
         ::spd::usesDevice_pimpl usesDevice_p;
+        ::spd::child_pimpl child_p;
         ::spd::aepcompliance_pimpl aepcompliance_p;
         ::spd::simpleref_pimpl simpleref_p;
         ::spd::simplesequenceref_pimpl simplesequenceref_p;
@@ -67,6 +68,7 @@ std::auto_ptr<ossie::SPD> ossie::internalparser::parseSPD(std::istream& input) t
                            descriptor_p,
                            implementation_p,
                            usesDevice_p,
+                           child_p,
                            string_p,
                            string_p,
                            string_p,

@@ -37,6 +37,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 			<xs:element name="descriptor" type="descriptor" minOccurs="0"/>
 			<xs:element name="implementation" type="implementation" maxOccurs="unbounded"/>
 			<xs:element name="usesdevice" type="usesDevice" minOccurs="0" maxOccurs="unbounded" ecore:name="usesDevice"/>
+                        <xs:element name="child" type="child" minOccurs="0" maxOccurs="unbounded"/>
 		</xs:sequence>
 		<xs:attribute ecore:id="true" name="id" use="required" type="xs:string"/>
 		<xs:attribute name="name" use="required" type="xs:string"/>
@@ -207,4 +208,21 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 			<xs:element name="value" type="xs:string" maxOccurs="unbounded"/>
 		</xs:sequence>
 	</xs:complexType>
+        <xs:complexType name="childPropertyFile">
+                <xs:sequence>
+                        <xs:element name="localfile" type="localFile" ecore:name="localFile"/>
+                </xs:sequence>
+        </xs:complexType>
+        <xs:complexType name="childDescriptorFile">
+                <xs:sequence>
+                        <xs:element name="localfile" type="localFile" ecore:name="localFile"/>
+                </xs:sequence>
+        </xs:complexType>
+        <xs:complexType name="child">
+            <xs:sequence>
+                <xs:element name="childPropertyFile" type="childPropertyFile"/>
+                <xs:element name="childDescriptorFile" type="childDescriptorFile"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string"/>
+        </xs:complexType>
 </xs:schema>

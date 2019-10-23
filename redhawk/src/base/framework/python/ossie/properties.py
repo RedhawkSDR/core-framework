@@ -33,6 +33,7 @@ import StringIO
 import types
 import struct
 import inspect
+import copy
 from ossie.utils import rhtime
 
 # numpy types to Corba Type codes
@@ -1686,7 +1687,7 @@ class PropertyStorage:
         for name in dir(type(self.__resource)):
             attr = getattr(type(self.__resource), name)
             if isinstance(attr, _property):
-                self._addProperty(attr)
+                self._addProperty(copy.deepcopy(attr))
 
     def _addProperty(self, property):
         property.sendPropertyChangeEvent = self.__propertyChangeEvent

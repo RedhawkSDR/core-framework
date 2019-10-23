@@ -103,30 +103,72 @@ def resolveSoftPkgDeps(spd=None, root_impl=None):
 
 
 class SoftPkg(object):
-    def __init__(self, spdFile):
-        self.__spdFile = os.path.basename(spdFile)
-        self.__spd = ossie.parsers.spd.parse(spdFile)
-        self.__softpkgdeps = resolveSoftPkgDeps(self.__spd)
-        self.__impls = dict((impl.id_, Implementation(impl)) for impl in self.__spd.implementation)
+    def __init__(self, spdFile=None, name=None, prfFile=None, scdFile=None):
+        if spdFile:
+            self.__spdFile = os.path.basename(spdFile)
+            self.__spd = ossie.parsers.spd.parse(spdFile)
+            self.__softpkgdeps = resolveSoftPkgDeps(self.__spd)
+            self.__impls = dict((impl.id_, Implementation(impl)) for impl in self.__spd.implementation)
+            self.__path = os.path.dirname(os.path.abspath(spdFile))
 
-        self.__path = os.path.dirname(os.path.abspath(spdFile))
+            if self.__spd.get_descriptor():
+                self.__scdFile = self.__spd.descriptor.localfile.name
+                self.__desc = SoftwareComponent(os.path.join(self.__path, self.__scdFile))
+            else:
+                self.__scdFile = None
+                self.__desc = None
 
-        if self.__spd.get_descriptor():
-            self.__scdFile = self.__spd.descriptor.localfile.name
-            self.__desc = SoftwareComponent(os.path.join(self.__path, self.__scdFile))
-        else:
-            self.__scdFile = None
-            self.__desc = None
-
-        if self.__spd.get_propertyfile():
-            self.__prfFile = self.__spd.propertyfile.localfile.name
-            if os.path.exists(os.path.join(self.__path, self.__prfFile)):
-                self.__props = properties.parse(os.path.join(self.__path, self.__prfFile))
+            if self.__spd.get_propertyfile():
+                self.__prfFile = self.__spd.propertyfile.localfile.name
+                if os.path.exists(os.path.join(self.__path, self.__prfFile)):
+                    self.__props = properties.parse(os.path.join(self.__path, self.__prfFile))
+                else:
+                    self.__props = []
             else:
                 self.__props = []
+                self.__prfFile = None
+
+            self.__children = []
+            if self.__spd.get_child():
+                for child in self.__spd.get_child():
+                    self.__children.append({'name':child.get_name(), 'prf':child.get_childPropertyFile().get_localfile().get_name(), 'scd':child.get_childDescriptorFile().get_localfile().get_name()})
         else:
-            self.__props = []
-            self.__prfFile = None
+            self.__spdFile = None
+            class tmpSPD:
+                def __init__(self):
+                    pass
+
+            self.__spd = tmpSPD()
+            self.__spd.name = name
+            self.__spd.version = None
+            self.__spd.description = ''
+            self.__softpkgdeps = []
+            self.__impls = {}
+            self.__path = None
+
+            if scdFile:
+                self.__path = os.path.dirname(os.path.abspath(scdFile))
+                self.__scdFile = scdFile
+                self.__desc = SoftwareComponent(os.path.join(self.__path, self.__scdFile))
+            else:
+                self.__scdFile = None
+                self.__desc = None
+
+            if prfFile:
+                self.__path = os.path.dirname(os.path.abspath(prfFile))
+                self.__prfFile = prfFile
+                if os.path.exists(os.path.join(self.__path, self.__prfFile)):
+                    self.__props = properties.parse(os.path.join(self.__path, self.__prfFile))
+                else:
+                    self.__props = []
+            else:
+                self.__props = []
+                self.__prfFile = None
+
+            self.__children = []
+
+    def children(self):
+        return self.__children
 
     def spdFile(self):
         return self.__spdFile
@@ -198,7 +240,9 @@ class SoftPkg(object):
         return self.__impls.values()
 
     def getImplementation(self, implId):
-        return self.__impls[implId]
+        if self.__impls.has_key(implId):
+            return self.__impls[implId]
+        return None
 
     def hasPorts(self):
         return len(self.ports()) > 0

@@ -24,8 +24,8 @@
 // programs without any restrictions.
 //
 
-#ifndef CXX___XML_XSD_SPD_PIMPL_H
-#define CXX___XML_XSD_SPD_PIMPL_H
+#ifndef CXX______XML_XSD_SPD_PIMPL_H
+#define CXX______XML_XSD_SPD_PIMPL_H
 
 #include "spd-pskel.h"
 #include <ossie/logging/rh_logger.h>
@@ -34,7 +34,7 @@ namespace spd
 {
   extern rh_logger::LoggerPtr parserLog;
 
-  class softPkg_pimpl: public softPkg_pskel
+  class softPkg_pimpl: public virtual softPkg_pskel
   {
     public:
     virtual void
@@ -50,7 +50,7 @@ namespace spd
     description (const ::std::string&);
 
     virtual void
-    propertyfile (const std::string&);
+    propertyfile (const ::std::string&);
 
     virtual void
     descriptor (const ::std::string&);
@@ -60,6 +60,9 @@ namespace spd
 
     virtual void
     usesdevice (const ossie::UsesDevice&);
+
+    virtual void
+    child ();
 
     virtual void
     id (const ::std::string&);
@@ -89,7 +92,7 @@ namespace spd
     virtual void
     name (const ::std::string&);
 
-    virtual ::std::string 
+    virtual ::std::string
     post_localFile ();
 
     public:
@@ -108,7 +111,7 @@ namespace spd
     virtual void
     type (const ::std::string&);
 
-    virtual std::string 
+    virtual ::std::string
     post_propertyFile ();
     
     private:
@@ -227,13 +230,24 @@ namespace spd
     priority (unsigned long long);
 
     virtual void
-    type (ossie::SPD::Code::CodeType);
+    type (::ossie::SPD::Code::CodeType);
 
     virtual ossie::SPD::Code
     post_code ();
 
     private:
     std::auto_ptr<ossie::SPD::Code> code;
+  };
+
+  class codeFileType_pimpl: public virtual codeFileType_pskel,
+    public ::xml_schema::nmtoken_pimpl
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual ::ossie::SPD::Code::CodeType
+    post_codeFileType ();
   };
 
   class compiler_pimpl: public virtual compiler_pskel
@@ -327,7 +341,7 @@ namespace spd
 
     virtual void
     softpkgref (const ossie::SPD::SoftPkgRef& ref);
- 
+
     virtual void
     propertyref (const ossie::PropertyRef&);
 
@@ -473,17 +487,6 @@ namespace spd
     post_aepcompliance ();
   };
 
-  class codeFileType_pimpl: public virtual codeFileType_pskel,
-    public ::xml_schema::nmtoken_pimpl
-  {
-    public:
-    virtual void
-    pre ();
-
-    virtual ossie::SPD::Code::CodeType
-    post_codeFileType ();
-  };
-
   class simpleref_pimpl: public virtual simpleref_pskel
   {
     public:
@@ -550,7 +553,7 @@ namespace spd
     pre ();
 
     virtual void
-      structvalue (const ossie::ComponentPropertyMap & );
+    structvalue (const ossie::ComponentPropertyMap&);
 
     virtual void
     refid (const ::std::string&);
@@ -597,6 +600,50 @@ namespace spd
     ::std::vector<std::string> values;
   };
 
+  class childPropertyFile_pimpl: public virtual childPropertyFile_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    localfile (const ::std::string&);
+
+    virtual void
+    post_childPropertyFile ();
+  };
+
+  class childDescriptorFile_pimpl: public virtual childDescriptorFile_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    localfile (const ::std::string&);
+
+    virtual void
+    post_childDescriptorFile ();
+  };
+
+  class child_pimpl: public virtual child_pskel
+  {
+    public:
+    virtual void
+    pre ();
+
+    virtual void
+    childPropertyFile ();
+
+    virtual void
+    childDescriptorFile ();
+
+    virtual void
+    name (const ::std::string&);
+
+    virtual void
+    post_child ();
+  };
 }
 
-#endif // CXX___XML_XSD_SPD_PIMPL_H
+#endif // CXX______XML_XSD_SPD_PIMPL_H

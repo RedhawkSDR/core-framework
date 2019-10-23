@@ -81,10 +81,15 @@ implementation (const ossie::SPD::Implementation& implementation)
 }
 
 void softPkg_pimpl::
-usesdevice (const ossie::UsesDevice& usesdev)
+usesdevice (const ossie::UsesDevice& usesdevice)
 {
-    RH_TRACE(spd::parserLog, "softpkg usesdev " << usesdev)
-    _spd->usesDevice.push_back(usesdev);
+    RH_TRACE(spd::parserLog, "softpkg usesdev " << usesdevice)
+    _spd->usesDevice.push_back(usesdevice);
+}
+
+void softPkg_pimpl::
+child ()
+{
 }
 
 void softPkg_pimpl::
@@ -157,11 +162,11 @@ localfile (const ::std::string& localfile)
 void propertyFile_pimpl::
 type (const ::std::string& type)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
-std::string propertyFile_pimpl::
+::std::string propertyFile_pimpl::
 post_propertyFile ()
 {
     return propertyfile;
@@ -218,8 +223,8 @@ localfile (const ::std::string& localfile)
 void descriptor_pimpl::
 name (const ::std::string& name)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
 ::std::string descriptor_pimpl::
@@ -372,7 +377,7 @@ priority (unsigned long long priority)
 }
 
 void code_pimpl::
-type (ossie::SPD::Code::CodeType type1)
+type (::ossie::SPD::Code::CodeType type1)
 {
     RH_TRACE(spd::parserLog, "code type " << type1)
     code->type = type1;
@@ -384,6 +389,32 @@ post_code ()
   RH_TRACE(spd::parserLog, "code post " << *code)
   assert(code.get() != 0);
   return *code;
+}
+
+// codeFileType_pimpl
+//
+
+void codeFileType_pimpl::
+pre ()
+{
+}
+
+::ossie::SPD::Code::CodeType codeFileType_pimpl::
+post_codeFileType ()
+{
+    const std::string& type = post_nmtoken();
+    if (type == "Executable") {
+        return ossie::SPD::Code::EXECUTABLE;
+    } else if (type == "SharedLibrary") {
+        return ossie::SPD::Code::SHARED_LIBRARY;
+    } else if (type == "KernelModule") {
+        return ossie::SPD::Code::KERNEL_MODULE;
+    } else if (type == "Driver") {
+        return ossie::SPD::Code::DRIVER;
+    } else {
+        RH_WARN(spd::parserLog, "Invalid code type '" << type << "'");
+        return ossie::SPD::Code::NONE;
+    }
 }
 
 // compiler_pimpl
@@ -424,15 +455,15 @@ pre ()
 void programmingLanguage_pimpl::
 name (const ::std::string& name)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
 void programmingLanguage_pimpl::
 version (const ::std::string& version)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
 void programmingLanguage_pimpl::
@@ -451,8 +482,8 @@ pre ()
 void humanLanguage_pimpl::
 name (const ::std::string& name)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
 void humanLanguage_pimpl::
@@ -531,28 +562,28 @@ propertyref (const ossie::PropertyRef& ref)
 }
 
 void dependency_pimpl::
-simpleref (const ossie::SimplePropertyRef& ref)
+simpleref (const ossie::SimplePropertyRef & ref)
 {
     RH_TRACE(spd::parserLog, "simple property ref dep: " << ref);
     _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
-simplesequenceref (const ossie::SimpleSequencePropertyRef& ref)
+simplesequenceref (const ossie::SimpleSequencePropertyRef & ref)
 {
     RH_TRACE(spd::parserLog, "simple sequence property ref dep: " << ref);
     _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
-structref (const ossie::StructPropertyRef& ref)
+structref (const ossie::StructPropertyRef & ref)
 {
     RH_TRACE(spd::parserLog, "struct property ref dep: " << ref);
     _ref.reset(new ossie::PropertyRef(ref));
 }
 
 void dependency_pimpl::
-structsequenceref (const ossie::StructSequencePropertyRef& ref)
+structsequenceref (const ossie::StructSequencePropertyRef & ref)
 {
     RH_TRACE(spd::parserLog, "struct sequence property ref dep: " << ref);
     _ref.reset(new ossie::PropertyRef(ref));
@@ -561,8 +592,8 @@ structsequenceref (const ossie::StructSequencePropertyRef& ref)
 void dependency_pimpl::
 type (const ::std::string& type)
 {
-  // TODO
-  //
+// TODO
+//
 }
 
 ossie::DependencyRef* dependency_pimpl::
@@ -690,25 +721,25 @@ propertyref (const ossie::PropertyRef& propertyRef)
 }
 
 void usesDevice_pimpl::
-simpleref (const ossie::SimplePropertyRef& propertyRef)
+simpleref (const ossie::SimplePropertyRef & propertyRef)
 {
     _uses->dependencies.push_back(propertyRef.clone());
 }
 
 void usesDevice_pimpl::
-simplesequenceref (const ossie::SimpleSequencePropertyRef& propertyRef)
+simplesequenceref (const ossie::SimpleSequencePropertyRef & propertyRef)
 {
     _uses->dependencies.push_back(propertyRef.clone());
 }
 
 void usesDevice_pimpl::
-structref (const ossie::StructPropertyRef& propertyRef)
+structref (const ossie::StructPropertyRef & propertyRef)
 {
     _uses->dependencies.push_back(propertyRef.clone());
 }
 
 void usesDevice_pimpl::
-structsequenceref (const ossie::StructSequencePropertyRef& propertyRef)
+structsequenceref (const ossie::StructSequencePropertyRef & propertyRef)
 {
     _uses->dependencies.push_back(propertyRef.clone());
 }
@@ -733,50 +764,6 @@ post_usesDevice ()
     return *_uses;
 }
 
-// aepcompliance_pimpl
-//
-
-void aepcompliance_pimpl::
-pre ()
-{
-}
-
-void aepcompliance_pimpl::
-post_aepcompliance ()
-{
-  const ::std::string& v (post_nmtoken ());
-  (void)v;
-
-  // TODO
-  //
-}
-
-// codeFileType_pimpl
-//
-
-void codeFileType_pimpl::
-pre ()
-{
-}
-
-ossie::SPD::Code::CodeType codeFileType_pimpl::
-post_codeFileType ()
-{
-    const std::string& type = post_nmtoken();
-    if (type == "Executable") {
-        return ossie::SPD::Code::EXECUTABLE;
-    } else if (type == "SharedLibrary") {
-        return ossie::SPD::Code::SHARED_LIBRARY;
-    } else if (type == "KernelModule") {
-        return ossie::SPD::Code::KERNEL_MODULE;
-    } else if (type == "Driver") {
-        return ossie::SPD::Code::DRIVER;
-    } else {
-        RH_WARN(spd::parserLog, "Invalid code type '" << type << "'");
-        return ossie::SPD::Code::NONE;
-    }
-}
-
 // simpleref_pimpl
 //
 
@@ -798,7 +785,7 @@ value (const ::std::string& value)
     simple._value = value;
 }
 
-const ossie::SimplePropertyRef& simpleref_pimpl::
+const ossie::SimplePropertyRef & simpleref_pimpl::
 post_simpleref ()
 {
     return simple;
@@ -826,7 +813,7 @@ refid (const ::std::string& refid)
     simpleseq._id = refid;
 }
 
-const ossie::SimpleSequencePropertyRef& simplesequenceref_pimpl::
+const ossie::SimpleSequencePropertyRef & simplesequenceref_pimpl::
 post_simplesequenceref ()
 {
     return simpleseq;
@@ -843,13 +830,13 @@ pre ()
 }
 
 void structref_pimpl::
-simpleref (const ossie::SimplePropertyRef& simpleref)
+simpleref (const ossie::SimplePropertyRef & simpleref)
 {
   structref._values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
 }
 
 void structref_pimpl::
-simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
+simplesequenceref (const ossie::SimpleSequencePropertyRef & simplesequenceref)
 {
   structref._values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
 }
@@ -860,7 +847,7 @@ refid (const ::std::string& refid)
   structref._id = refid;
 }
 
-const ossie::StructPropertyRef &structref_pimpl::
+const ossie::StructPropertyRef & structref_pimpl::
 post_structref ()
 {
   return structref;
@@ -878,7 +865,6 @@ pre ()
 
 void structsequenceref_pimpl::
 structvalue (const ossie::ComponentPropertyMap & value)
-
 {
   structsequenceref._values.push_back(value);
 }
@@ -889,7 +875,7 @@ refid (const ::std::string& refid)
   structsequenceref._id = refid;
 }
 
-const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
+const ossie::StructSequencePropertyRef & structsequenceref_pimpl::
 post_structsequenceref ()
 {
   return structsequenceref;
@@ -905,18 +891,18 @@ pre ()
 }
 
 void structvalue_pimpl::
-simpleref (const ossie::SimplePropertyRef& simpleref)
+simpleref (const ossie::SimplePropertyRef & simpleref)
 {
   values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
 }
 
 void structvalue_pimpl::
-simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
+simplesequenceref (const ossie::SimpleSequencePropertyRef & simplesequenceref)
 {
   values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
 }
 
-const ossie::ComponentPropertyMap& structvalue_pimpl::
+const ossie::ComponentPropertyMap & structvalue_pimpl::
 post_structvalue ()
 {
   return values;
@@ -941,5 +927,93 @@ value (const ::std::string& value)
 post_values ()
 {
     return values;
+}
+
+// childPropertyFile_pimpl
+//
+
+void childPropertyFile_pimpl::
+pre ()
+{
+}
+
+void childPropertyFile_pimpl::
+localfile (const ::std::string& localfile)
+{
+// TODO
+//
+}
+
+void childPropertyFile_pimpl::
+post_childPropertyFile ()
+{
+}
+
+// childDescriptorFile_pimpl
+//
+
+void childDescriptorFile_pimpl::
+pre ()
+{
+}
+
+void childDescriptorFile_pimpl::
+localfile (const ::std::string& localfile)
+{
+// TODO
+//
+}
+
+void childDescriptorFile_pimpl::
+post_childDescriptorFile ()
+{
+}
+
+// child_pimpl
+//
+
+void child_pimpl::
+pre ()
+{
+}
+
+void child_pimpl::
+childPropertyFile ()
+{
+}
+
+void child_pimpl::
+childDescriptorFile ()
+{
+}
+
+void child_pimpl::
+name (const ::std::string& name)
+{
+// TODO
+//
+}
+
+void child_pimpl::
+post_child ()
+{
+}
+
+// aepcompliance_pimpl
+//
+
+void aepcompliance_pimpl::
+pre ()
+{
+}
+
+void aepcompliance_pimpl::
+post_aepcompliance ()
+{
+const ::std::string& v (post_nmtoken ());
+  (void)v;
+
+// TODO
+//
 }
 

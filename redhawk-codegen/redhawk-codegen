@@ -294,8 +294,9 @@ if __name__ == '__main__':
         crcs=toplevelCRCs,
         variant=variant,
         header=header)
+
     generators.append(('Component '+softpkg.name(), projectGenerator))
-    
+
     if softpkg.type() != ComponentTypes.SHAREDPACKAGE:
         # Generate unit tests
         from redhawk.codegen.jinja.unitTests.resource import sca
@@ -303,7 +304,6 @@ if __name__ == '__main__':
         generators.append(('Tests '+softpkg.name(), generator))
 
     # Set up generation for each requested implementation.
-    
     for implementation in softpkg.implementations():
         implId = implementation.identifier()
 
@@ -389,6 +389,8 @@ if __name__ == '__main__':
         if not implName:
             implName = implId
 
+        children = implSettings.children
+
         generator = package.factory(
             implId = implId,
             outputdir = implOutputDir,
@@ -396,6 +398,7 @@ if __name__ == '__main__':
             crcs = implSettings.generatedFileCRCs,
             variant = variant,
             header = header,
+            children = children,
             **implSettings.properties)
 
         # Add this generator to the top-level project generator, so that it can
@@ -416,8 +419,9 @@ if __name__ == '__main__':
                 implFiles = filelist[path]
             else:
                 implFiles = []
-            
+
             print header
+
             generated, skipped = generator.generate(softpkg, *implFiles)
             for filename, verb in skipped:
                 print >>sys.stderr, 'WARNING:', os.path.join(path, filename), 'has been modified or is a user file that must be explicitly updated, use -f to', verb
