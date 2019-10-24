@@ -33,6 +33,7 @@ class PythonCodeGenerator(CodeGenerator):
             return templates
 
         for child_key in component['children']:
-            templates.append({child_key: PythonTemplate('resource.py', component['children'][child_key]['userclass']['file'], userfile=True)})
-            templates.append({child_key: PythonTemplate('resource_base.py', component['children'][child_key]['baseclass']['file'])})
+            templates.append({child_key: PythonTemplate('resource.py', child_key+'/'+component['children'][child_key]['userclass']['file'], userfile=True)})
+            templates.append({child_key: PythonTemplate('base/__init__.py', child_key+'/__init__.py')})
+            templates.append({child_key: PythonTemplate('resource_base.py', child_key+'/'+component['children'][child_key]['baseclass']['file'])})
         return templates
