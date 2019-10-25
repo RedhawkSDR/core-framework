@@ -28,7 +28,7 @@
 #{% filter lines|unique(keep_blank_lines=true)|join('\n') %}
 from ossie.cf import CF
 from ossie.cf import CF__POA
-from ossie.utils import uuid
+from ossie.utils import uuid, model
 
 #{% for parent in component.superclasses %}
 from ${parent.package} import ${parent.name}
@@ -168,7 +168,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
                     parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_name)))
                     parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('none')))
                     parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(resource.__orb__.object_to_string(self._devMgr.ref))))
-                    parameters.append(CF.DataType('DEVICE_ID', _any.to_any('DCE:123')))
+                    parameters.append(CF.DataType('DEVICE_ID', _any.to_any('DCE:'+model._uuidgen())))
 
                     execparams = {}
                     for param in parameters:
