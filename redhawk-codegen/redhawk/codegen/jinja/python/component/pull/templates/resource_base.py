@@ -126,8 +126,14 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for prop in component.properties if prop.inherited and prop.pyvalue %}
             self.${prop.pyname} = ${prop.pyvalue}
 #{% endfor %}
+            self._parentInstance = None
 #{% if component.children|length != 0 %}
             self.childDevices = []
+#{% endif %}
+
+#{% if component.isChild %}
+        def setParentInstance(self, _pI):
+            self._parentInstance = _pI
 #{% endif %}
 
         def start(self):
@@ -185,7 +191,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 
                     mod = __import__(device_name)
                     kclass = getattr(mod, device_name+'_i')
-                    device_object = local_start_device(kclass, execparams)
+                    device_object = local_start_device(kclass, execparams, parent_instance=self)
                     self.childDevices.append(device_object)
             finally:
                 self._cmdLock.release()
@@ -264,7 +270,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% endblock %}
 
 #{% if component.children|length != 0 %}
-def local_start_device(deviceclass, execparams, interactive_callback=None, thread_policy=None,loggerName=None, skip_run=False):
+def local_start_device(deviceclass, execparams, interactive_callback=None, thread_policy=None,loggerName=None, skip_run=False, parent_instance=None):
     interactive = False
 
     ossie.device._checkForRequiredParameters(execparams)
@@ -315,7 +321,10 @@ def local_start_device(deviceclass, execparams, interactive_callback=None, threa
 
             objectActivated = True
             obj = devicePOA.servant_to_id(component_Obj)
+            if parent_instance:
+                component_Obj.setParentInstance(parent_instance)
             component_Obj.initialize()
+
             return component_Obj
 
         except SystemExit:
