@@ -377,6 +377,8 @@ class CodeGenerator(Generator):
 
         component['children'] = {}
 
+        component['isChild'] = False
+
         for _child_key in self.childTemplates:
             _childspd = SoftPkg(None, name=_child_key, prfFile=self.childTemplates[_child_key]['prf'], scdFile=self.childTemplates[_child_key]['scd'])
             childcomponent = compmapper.mapComponent(_childspd)
@@ -385,6 +387,7 @@ class CodeGenerator(Generator):
             component['children'][_child_key].update(childprops)
             childports = self.portMapper().mapPorts(_childspd, portfactory)
             component['children'][_child_key].update(childports)
+            component['children'][_child_key]['isChild'] = True
 
         return component
 

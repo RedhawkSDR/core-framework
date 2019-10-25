@@ -70,11 +70,13 @@ class ${className}(${baseClass}):
         """
         # TODO add customization here.
 #{% if component.hastunerstatusstructure %}
-        self.addChannels(1, "RX_DIGITIZER");
+        self.addChannels(1, "RX_DIGITIZER")
+#{% else %}
+        pass
 #{% endif %}
-        
+
 #{% block updateUsageState %}
-#{% if component is device %}
+#{% if component is device %} 
     def updateUsageState(self):
         """
         This is called automatically after allocateCapacity or deallocateCapacity are called.
@@ -489,12 +491,14 @@ class ${className}(${baseClass}):
 #{% block extensions %}
 #{% endblock %}
   
+#{% if not component.isChild %}
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-#{% if component is device %}
+#{%   if component is device %}
     logging.debug("Starting Device")
     start_device(${className})
-#{% else %}
+#{%   else %}
     logging.debug("Starting Component")
     start_component(${className})
+#{%   endif %}
 #{% endif %}
