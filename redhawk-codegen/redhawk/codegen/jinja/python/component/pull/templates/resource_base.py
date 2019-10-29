@@ -127,13 +127,19 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             self.${prop.pyname} = ${prop.pyvalue}
 #{% endfor %}
             self._parentInstance = None
-#{% if component.children|length != 0 %}
             self.childDevices = []
-#{% endif %}
 
 #{% if component.isChild %}
         def setParentInstance(self, _pI):
             self._parentInstance = _pI
+
+        def addChild(self, name):
+            if not self._parentInstance:
+                raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
+
+            child_device = self._parentInstance.addChild(name)
+            self.childDevices.append(child_device)
+            return child_device
 #{% endif %}
 
         def start(self):
