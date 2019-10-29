@@ -1312,11 +1312,11 @@ def _getDevMgr(execparams, orb):
 
 def _getParentAggregateDevice(execparams, orb):
     # get parent aggregate device if applicable
+    parentdev_ref = None
     if execparams.has_key("COMPOSITE_DEVICE_IOR"):
-        parentdev = orb.string_to_object(execparams["COMPOSITE_DEVICE_IOR"])
-        parentdev_ref = parentdev._narrow(CF.AggregateDevice)
-    else:
-        parentdev_ref = None
+        if execparams["COMPOSITE_DEVICE_IOR"]:
+            parentdev = orb.string_to_object(execparams["COMPOSITE_DEVICE_IOR"])
+            parentdev_ref = parentdev._narrow(CF.AggregateDevice)
 
     return parentdev_ref
 
