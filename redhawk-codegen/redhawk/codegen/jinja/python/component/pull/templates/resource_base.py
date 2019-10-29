@@ -33,11 +33,6 @@ from ossie.utils import uuid, model
 #{% for parent in component.superclasses %}
 from ${parent.package} import ${parent.name}
 #{% endfor %}
-#{% if component.children|length != 0 %}
-import ossie
-from ossie import resource
-import sys, os
-#{% endif %}
 from ossie.threadedcomponent import *
 #{% if component.properties|test('simple') is sometimes(true) %}
 from ossie.properties import simple_property
@@ -73,7 +68,11 @@ from frontend import FRONTEND
 #{% block baseadditionalimports %}
 #{# Allow additional child class imports #}
 #{% endblock %}
-
+#{% if component.isChild %}
+from ossie.componentfamily import ComponentFamily
+#{% elif component.children|length != 0 %}
+from ossie.componentfamily import ComponentParent
+#{% endif %}
 #{% if component.children %}
 #{%   for childname, childcomponent in component.children.items() %}
 import ${childname}
@@ -88,7 +87,13 @@ class enums:
     ${properties.enumvalues(prop)|indent(4)}
 
 #{% endfor %}
-class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ThreadedComponent):
+#% set baseClassComponent = "ThreadedComponent"
+#{% if component.isChild %}
+#%    set baseClassComponent = "ThreadedComponent, ComponentFamily"
+#{% elif component.children|length != 0 %}
+#%    set baseClassComponent = "ThreadedComponent, ComponentParent"
+#{% endif %}
+class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ${baseClassComponent}):
         # These values can be altered in the __init__ of your derived class
 
         PAUSE = 0.0125 # The amount of time to sleep if process return NOOP
@@ -132,14 +137,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% if component.isChild %}
         def setParentInstance(self, _pI):
             self._parentInstance = _pI
-
-        def addChild(self, name):
-            if not self._parentInstance:
-                raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
-
-            child_device = self._parentInstance.addChild(name)
-            self.childDevices.append(child_device)
-            return child_device
 #{% endif %}
 
         def start(self):
@@ -164,45 +161,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             except Exception:
                 self._baseLog.exception("Error stopping")
             ${superclass}.releaseObject(self)
-
-#{% if component.children|length != 0 %}
-        def addChild(self, name):
-            device_object = None
-            try:
-                self._cmdLock.acquire()
-                with ossie.device.envState():
-                    if type(name) == str:
-                        device_name = name
-                    else:
-                        device_name = name.__name__
-                    parameters = []
-                    parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(resource.__orb__.object_to_string(self._idm_publisher.channel))))
-                    parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_name)))
-                    parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('none')))
-                    parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(resource.__orb__.object_to_string(self._devMgr.ref))))
-                    parameters.append(CF.DataType('DEVICE_ID', _any.to_any('DCE:'+model._uuidgen())))
-
-                    execparams = {}
-                    for param in parameters:
-                        if param.value.value() != None:
-                            # SR:453 indicates that an InvalidParameters exception should be
-                            # raised if the input parameter is not of a string type; however,
-                            # version 2.2.2 of the SCA spec is less strict in its wording. For
-                            # our part, as long as the value can be stringized, it is accepted,
-                            # to allow component developers to use more specific types.
-                            try:
-                                execparams[str(param.id)] = str(param.value.value())
-                            except:
-                                raise CF.ExecutableDevice.InvalidParameters([param])
-
-                    mod = __import__(device_name)
-                    kclass = getattr(mod, device_name+'_i')
-                    device_object = local_start_device(kclass, execparams, parent_instance=self)
-                    self.childDevices.append(device_object)
-            finally:
-                self._cmdLock.release()
-            return device_object
-#{% endif %}
 
         ######################################################################
         # PORTS
@@ -274,71 +232,3 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% block extensions %}
 #{# Allow for child class extensions #}
 #{% endblock %}
-
-#{% if component.children|length != 0 %}
-def local_start_device(deviceclass, execparams, interactive_callback=None, thread_policy=None,loggerName=None, skip_run=False, parent_instance=None):
-    interactive = False
-
-    ossie.device._checkForRequiredParameters(execparams)
-
-    try:
-        try:
-            orb = ossie.resource.createOrb()
-            ossie.resource.__orb__ = orb
-
-            ## sets up backwards compat logging 
-            ossie.resource.configureLogging(execparams, loggerName, orb)
-
-            devicePOA = ossie.resource.getPOA(orb, thread_policy, "devicePOA")
-
-            devMgr = ossie.device._getDevMgr(execparams, orb)
-
-            parentdev_ref = ossie.device._getParentAggregateDevice(execparams, orb)
-
-            # Configure logging (defaulting to INFO level).
-            label = execparams.get("DEVICE_LABEL", "")
-            id = execparams.get("DEVICE_ID", "")
-            log_config_uri = execparams.get("LOGGING_CONFIG_URI", None)
-            debug_level = execparams.get("DEBUG_LEVEL", None)
-            if debug_level != None: debug_level = int(debug_level)
-            dpath=execparams.get("DOM_PATH", "")
-            category=loggerName
-            try:
-              if not category and label != "": category=label.rsplit("_", 1)[0]
-            except:
-                pass 
-            ctx = ossie.logger.DeviceCtx( label, id, dpath )
-            ossie.logger.Configure( log_config_uri, debug_level, ctx, category )
-
-            component_Obj = deviceclass(devMgr, 
-                                        execparams["DEVICE_ID"], 
-                                        execparams["DEVICE_LABEL"], 
-                                        execparams["PROFILE_NAME"],
-                                        parentdev_ref,
-                                        execparams)
-            devicePOA.activate_object(component_Obj)
-
-            idm_channel_ior=execparams.get("IDM_CHANNEL_IOR",None)
-            registrar_ior=execparams.get("DEVICE_MGR_IOR",None)
-            component_Obj.postConstruction( registrar_ior, idm_channel_ior )
-
-            # set logging context for resource to supoprt CF::Logging
-            component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )
-
-            objectActivated = True
-            obj = devicePOA.servant_to_id(component_Obj)
-            if parent_instance:
-                component_Obj.setParentInstance(parent_instance)
-            component_Obj.initialize()
-
-            return component_Obj
-
-        except SystemExit:
-            pass
-        except KeyboardInterrupt:
-            pass
-        except:
-            traceback.print_exc()
-    finally:
-        pass
-#{% endif %}
