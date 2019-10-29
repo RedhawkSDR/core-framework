@@ -1596,6 +1596,83 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       throw(CF::InvalidObjectReference(eout.str().c_str()));
   } 
 
+
+  //Get properties from SPD
+  std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
+  std::string spd_id;
+  if (not spdFile.empty()) {
+    std::string spd_name = spdinfo->getName();
+    spd_id = spdinfo->getID();
+    std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
+    RH_INFO(this->_baseLog, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
+
+
+    //
+    // call resource's initializeProperties method to handle any properties required for construction
+    //
+    if (spdinfo->isConfigurable ()) {
+        try {
+        //
+        RH_DEBUG(this->_baseLog, "Initialize properties for spd/device label: " << spd_name << "/" << deviceLabel);
+        const CF::Properties cprops = spdinfo->getNonNilConstructProperties();
+        for (unsigned int j = 0; j < cprops.length (); j++) {
+            RH_DEBUG(this->_baseLog, "initializeProperties prop id " << cprops[j].id );
+        }
+        // Try to set the initial values for the component's properties
+        registeringDevice->initializeProperties(cprops);
+        } catch(CF::PropertySet::InvalidConfiguration& e) {
+        std::ostringstream eout;
+        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been initialized correctly; "
+            << "Call to initializeProperties() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+        } catch(CF::PropertySet::PartialConfiguration& e) {
+        std::ostringstream eout;
+        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+            << "Call to initializeProperties() resulted in PartialConfiguration exception.";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+        } catch ( std::exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initalizeProperties for  "<<deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+        } catch ( const CORBA::Exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initializeProperties for "<<deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+        } catch( ... ) {
+        std::ostringstream eout;
+        eout << "Failed to initialize device properties: '";
+        eout << deviceLabel << "' with device id: '" << spd_id;
+        eout << "'initializeProperties' failed with Unknown Exception" << "Device registration with Device Manager failed ";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+        }
+    }
+
+    RH_DEBUG(this->_baseLog, "Initializing device " << deviceLabel << " on Device Manager " << _label);
+    try {
+        registeringDevice->initialize();
+    } catch (CF::LifeCycle::InitializeError& ex) {
+        std::ostringstream eout;
+        eout << "Device "<< deviceLabel << " threw a CF::LifeCycle::InitializeError exception"<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( std::exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch ( const CORBA::Exception& ex ) {
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    }
+  }
+
   // This lock needs to be here because we add the device to
   // the registeredDevices list at the top...therefore
   // getting the registeredDevices attribute could
@@ -1611,111 +1688,40 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   {
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
-  //Get properties from SPD
-  std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
-  std::string spd_name = spdinfo->getName();
-  std::string spd_id = spdinfo->getID();
-  std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
-  RH_INFO(this->_baseLog, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
-
-
-  //
-  // call resource's initializeProperties method to handle any properties required for construction
-  //
-  if (spdinfo->isConfigurable ()) {
-    try {
-      //
-      RH_DEBUG(this->_baseLog, "Initialize properties for spd/device label: " << spd_name << "/" << deviceLabel);
-      const CF::Properties cprops = spdinfo->getNonNilConstructProperties();
-      for (unsigned int j = 0; j < cprops.length (); j++) {
-        RH_DEBUG(this->_baseLog, "initializeProperties prop id " << cprops[j].id );
-      }
-      // Try to set the initial values for the component's properties
-      registeringDevice->initializeProperties(cprops);
-    } catch(CF::PropertySet::InvalidConfiguration& e) {
-      std::ostringstream eout;
-      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been initialized correctly; "
-           << "Call to initializeProperties() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
-      RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-    } catch(CF::PropertySet::PartialConfiguration& e) {
-      std::ostringstream eout;
-      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
-           << "Call to initializeProperties() resulted in PartialConfiguration exception.";
-      RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+  if (not spdFile.empty()) {
+    //configure properties
+    try {  
+        RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);
+        const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
+        RH_TRACE(this->_baseLog, "Listing configuration properties");
+        for (unsigned int j=0; j<cprops.length(); j++) {
+        RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
+        }
+        if (cprops.length() != 0)
+            registeringDevice->configure (cprops);
+    } catch (CF::PropertySet::PartialConfiguration& ex) {
+        std::ostringstream eout;
+        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+            << "Call to configure() resulted in PartialConfiguration exception.";
+        RH_ERROR(this->_baseLog, eout.str())
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
+    } catch (CF::PropertySet::InvalidConfiguration& ex) {
+        std::ostringstream eout;
+        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+            << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch ( std::exception& ex ) {
-      std::ostringstream eout;
-      eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initalizeProperties for  "<<deviceLabel<<". Device registration with Device Manager failed";
-      RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+        std::ostringstream eout;
+        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
     } catch ( const CORBA::Exception& ex ) {
-      std::ostringstream eout;
-      eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initializeProperties for "<<deviceLabel<<". Device registration with Device Manager failed";
-      RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-    } catch( ... ) {
-      std::ostringstream eout;
-      eout << "Failed to initialize device properties: '";
-      eout << deviceLabel << "' with device id: '" << spd_id;
-      eout << "'initializeProperties' failed with Unknown Exception" << "Device registration with Device Manager failed ";
-      RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+        std::ostringstream eout;
+        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
+        RH_ERROR(this->_baseLog, eout.str());
+        throw(CF::InvalidObjectReference(eout.str().c_str()));
     }
-  }
-
-  RH_DEBUG(this->_baseLog, "Initializing device " << deviceLabel << " on Device Manager " << _label);
-  try {
-    registeringDevice->initialize();
-  } catch (CF::LifeCycle::InitializeError& ex) {
-    std::ostringstream eout;
-    eout << "Device "<< deviceLabel << " threw a CF::LifeCycle::InitializeError exception"<<". Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( std::exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( const CORBA::Exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  }
-
-  //configure properties
-  try {  
-    RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);
-      const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
-    RH_TRACE(this->_baseLog, "Listing configuration properties");
-    for (unsigned int j=0; j<cprops.length(); j++) {
-      RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
-    }
-    if (cprops.length() != 0)
-        registeringDevice->configure (cprops);
-  } catch (CF::PropertySet::PartialConfiguration& ex) {
-    std::ostringstream eout;
-    eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
-         << "Call to configure() resulted in PartialConfiguration exception.";
-    RH_ERROR(this->_baseLog, eout.str())
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch (CF::PropertySet::InvalidConfiguration& ex) {
-    std::ostringstream eout;
-    eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
-         << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( std::exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } catch ( const CORBA::Exception& ex ) {
-    std::ostringstream eout;
-    eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-    RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
   }
 
   // Register the device with the Device manager, unless it is already
@@ -1739,25 +1745,25 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     return;
   }
 
-  // If this Device Manager is registered with a Domain Manager, register
-  // the new device with the Domain Manager
-  if (_adminState == DEVMGR_REGISTERED) { 
-      try {
-          RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
-          _dmnMgr->registerDevice (registeringDevice, myObj);
-      } catch( CF::DomainManager::RegisterError& e ) {
-          RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e.msg);
-      } catch ( std::exception& ex ) {
-          RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
-              } catch( const CORBA::Exception& e ) {
-          RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e._name());
-      }
-  } else {
-      RH_WARN(this->_baseLog, "Skipping DomainManager registerDevice because the device manager isn't registered")
+    // If this Device Manager is registered with a Domain Manager, register
+    // the new device with the Domain Manager
+    if (_adminState == DEVMGR_REGISTERED) { 
+        try {
+            RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
+            _dmnMgr->registerDevice (registeringDevice, myObj);
+        } catch( CF::DomainManager::RegisterError& e ) {
+            RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e.msg);
+        } catch ( std::exception& ex ) {
+            RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
+                } catch( const CORBA::Exception& e ) {
+            RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e._name());
         }
+    } else {
+        RH_WARN(this->_baseLog, "Skipping DomainManager registerDevice because the device manager isn't registered")
+    }
 
-  RH_TRACE(this->_baseLog, "Done registering device " << deviceLabel);
-  allregistered = verifyAllRegistered();
+    RH_TRACE(this->_baseLog, "Done registering device " << deviceLabel);
+    allregistered = verifyAllRegistered();
   }
   if (allregistered) {
       startOrder();

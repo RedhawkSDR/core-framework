@@ -2577,6 +2577,11 @@ void DomainManager_impl::parseDeviceProfile (ossie::DeviceNode& node)
     CF::FileSystem_var devMgrFS = node.devMgr.deviceManager->fileSys();
 
     // Parse and cache the device's SPD
+    if (node.softwareProfile.empty()) {
+        RH_INFO(this->_baseLog, "Device " << node.identifier << " does not have an SPD file (assuming it is a child device)");
+        return;
+    }
+
     RH_TRACE(this->_baseLog, "Parsing SPD for device " << node.identifier);
     try {
         File_stream spd(devMgrFS, node.softwareProfile.c_str());
