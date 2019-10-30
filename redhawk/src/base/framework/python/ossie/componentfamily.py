@@ -8,6 +8,7 @@ class ComponentFamily:
     def __init__(self):
         self._parentInstance = None
         self.childDevices = []
+        self.childDeviceCount = {}
 
     def addChild(self, child):
         if not self._parentInstance:
@@ -28,11 +29,15 @@ class ComponentParent(ComponentFamily):
                 else:
                     device_name = child.__name__
                 parameters = []
+                if not self.childDeviceCount.has_key(device_name):
+                    self.childDeviceCount[device_name] = 0
+                self.childDeviceCount[device_name] += 1
+                device_label = device_name+'_'+str(self.childDeviceCount[device_name])
                 parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._idm_publisher.channel))))
-                parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_name)))
+                parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_label)))
                 parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('')))
                 parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._devMgr.ref))))
-                parameters.append(CF.DataType('DEVICE_ID', _any.to_any('DCE:'+model._uuidgen())))
+                parameters.append(CF.DataType('DEVICE_ID', _any.to_any(self._id+':'+device_label)))
 
                 execparams = {}
                 for param in parameters:
