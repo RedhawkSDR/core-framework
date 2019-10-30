@@ -112,6 +112,11 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             Component.__init__(self, identifier, execparams, loggerName=loggerName)
 #{% endif %}
             ThreadedComponent.__init__(self)
+#{% if component.isChild %}
+            ComponentFamily.__init__(self)
+#{% elif component.children|length != 0 %}
+            ComponentParent.__init__(self)
+#{% endif %}
 
 #{% if 'FrontendTuner' in component.implements %}
             self.listeners={}
