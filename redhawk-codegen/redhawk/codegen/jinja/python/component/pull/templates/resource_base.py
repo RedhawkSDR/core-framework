@@ -136,8 +136,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% for prop in component.properties if prop.inherited and prop.pyvalue %}
             self.${prop.pyname} = ${prop.pyvalue}
 #{% endfor %}
-            self._parentInstance = None
-            self.childDevices = []
 
 #{% if component.isChild %}
         def setParentInstance(self, _pI):
