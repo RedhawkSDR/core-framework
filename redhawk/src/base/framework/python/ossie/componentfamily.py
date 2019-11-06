@@ -1,5 +1,6 @@
 
 import ossie
+import traceback
 from ossie.cf import CF
 from omniORB import any as _any
 from ossie.utils import model
@@ -7,8 +8,8 @@ from ossie.utils import model
 class ComponentFamily:
     def __init__(self):
         self._parentInstance = None
-        self._childDevices = []
-        self._childDeviceCount = {}
+        self._familyDevices = []
+        self._familyDeviceCount = {}
 
     def addChild(self, child):
         if not self._parentInstance:
@@ -30,16 +31,17 @@ class ComponentParent(ComponentFamily):
                 else:
                     device_name = child.__name__
                 parameters = []
-                if not parent._childDeviceCount.has_key(device_name):
-                    parent._childDeviceCount[device_name] = 0
-                parent._childDeviceCount[device_name] += 1
-                device_name_count = device_name+'_'+str(parent._childDeviceCount[device_name])
+                if not parent._familyDeviceCount.has_key(device_name):
+                    parent._familyDeviceCount[device_name] = 0
+                parent._familyDeviceCount[device_name] += 1
+                device_name_count = device_name+'_'+str(parent._familyDeviceCount[device_name])
                 device_label = parent._label+':'+device_name_count
                 parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._idm_publisher.channel))))
                 parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_label)))
                 parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('')))
                 parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._devMgr.ref))))
                 parameters.append(CF.DataType('DEVICE_ID', _any.to_any(parent._id+':'+device_name_count)))
+                parameters.append(CF.DataType('COMPOSITE_DEVICE_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._this()))))
 
                 execparams = {}
                 for param in parameters:
@@ -57,7 +59,7 @@ class ComponentParent(ComponentFamily):
                 mod = __import__(device_name)
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
-                parent._childDevices.append(device_object)
+                parent._familyDevices.append(device_object)
         finally:
             self._cmdLock.release()
         return device_object
