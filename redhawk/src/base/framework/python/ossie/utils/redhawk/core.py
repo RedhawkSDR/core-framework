@@ -1048,7 +1048,16 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             instanceName = '%s/%s' % (self.name, device._get_label())
             refid = device._get_identifier()
             implId = self.ref.getComponentImplementationId(refid)
-            spd, scd, prf = _readProfile(profile, self.fs)
+            parentProfile = None
+            device_name = ''
+            if not profile:
+                try:
+                    parentProfile = device._get_compositeDevice()._get_softwareProfile()
+                    device_name = device._get_label()
+                    device_name = device_name.split(':')[-1].split('_')[0]
+                except:
+                    pass
+            spd, scd, prf = _readProfile(profile, self.fs, device_name, parentProfile)
             return createDevice(profile, spd, scd, prf, deviceRef, instanceName, refid, implId, self.__idmListener)
         except _CORBA.Exception:
             log.warn('Ignoring inaccessible device')

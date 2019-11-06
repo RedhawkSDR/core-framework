@@ -127,25 +127,48 @@ def _getFileContents(filename, fileSystem):
     finally:
         fileObj.close()
 
-def _readProfile(spdFilename, fileSystem):
-    spdContents = _getFileContents(spdFilename, fileSystem)
-    spd = _parsers.SPDParser.parseString(spdContents)
+def _readProfile(spdFilename, fileSystem, device_name='', parentSpd=None):
+    if spdFilename:
+        spdContents = _getFileContents(spdFilename, fileSystem)
+        spd = _parsers.SPDParser.parseString(spdContents)
 
-    xmldir = _os.path.dirname(spdFilename)
-    if spd.get_descriptor():
-        scdFilename = _os.path.join(xmldir, str(spd.get_descriptor().get_localfile().get_name()))
-        scdContents = _getFileContents(scdFilename, fileSystem)
-        scd = _parsers.SCDParser.parseString(scdContents)
+        xmldir = _os.path.dirname(spdFilename)
+        if spd.get_descriptor():
+            scdFilename = _os.path.join(xmldir, str(spd.get_descriptor().get_localfile().get_name()))
+            scdContents = _getFileContents(scdFilename, fileSystem)
+            scd = _parsers.SCDParser.parseString(scdContents)
+        else:
+            scd = None
+
+        if spd.get_propertyfile():
+            prfFilename = _os.path.join(xmldir, str(spd.get_propertyfile().get_localfile().get_name()))
+            prfContents = _getFileContents(prfFilename, fileSystem)
+            prf = _parsers.PRFParser.parseString(prfContents)
+        else:
+            prf = None
     else:
+        spdContents = _getFileContents(parentSpd, fileSystem)
+        spd = _parsers.SPDParser.parseString(spdContents)
+
+        xmldir = _os.path.dirname(parentSpd)
         scd = None
-
-    if spd.get_propertyfile():
-        prfFilename = _os.path.join(xmldir, str(spd.get_propertyfile().get_localfile().get_name()))
-        prfContents = _getFileContents(prfFilename, fileSystem)
-        prf = _parsers.PRFParser.parseString(prfContents)
-    else:
         prf = None
-    
+        for child in spd.get_child():
+            if child.get_name() == device_name:
+                if child.get_childDescriptorFile():
+                    scdFilename = _os.path.join(xmldir, str(child.get_childDescriptorFile().get_localfile().get_name()))
+                    scdContents = _getFileContents(scdFilename, fileSystem)
+                    scd = _parsers.SCDParser.parseString(scdContents)
+                else:
+                    scd = None
+
+                if child.get_childPropertyFile():
+                    prfFilename = _os.path.join(xmldir, str(child.get_childPropertyFile().get_localfile().get_name()))
+                    prfContents = _getFileContents(prfFilename, fileSystem)
+                    prf = _parsers.PRFParser.parseString(prfContents)
+                else:
+                    prf = None
+
     return spd, scd, prf
 
 def _formatSimple(prop, value, id):
