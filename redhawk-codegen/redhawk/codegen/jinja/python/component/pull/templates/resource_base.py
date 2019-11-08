@@ -69,9 +69,9 @@ from frontend import FRONTEND
 #{# Allow additional child class imports #}
 #{% endblock %}
 #{% if component.isChild %}
-from ossie.componentfamily import ComponentFamily
+from ossie.componentfamily import DynamicComponent
 #{% elif component.children|length != 0 %}
-from ossie.componentfamily import ComponentParent
+from ossie.componentfamily import DynamicComponentParent
 #{% endif %}
 #{% if component.children %}
 #{%   for childname, childcomponent in component.children.items() %}
@@ -89,9 +89,9 @@ class enums:
 #{% endfor %}
 #% set baseClassComponent = "ThreadedComponent"
 #{% if component.isChild %}
-#%    set baseClassComponent = "ThreadedComponent, ComponentFamily"
+#%    set baseClassComponent = "ThreadedComponent, DynamicComponent"
 #{% elif component.children|length != 0 %}
-#%    set baseClassComponent = "ThreadedComponent, ComponentParent"
+#%    set baseClassComponent = "ThreadedComponent, DynamicComponentParent"
 #{% endif %}
 class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ${baseClassComponent}):
         # These values can be altered in the __init__ of your derived class
@@ -113,9 +113,9 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 #{% endif %}
             ThreadedComponent.__init__(self)
 #{% if component.isChild %}
-            ComponentFamily.__init__(self)
+            DynamicComponent.__init__(self)
 #{% elif component.children|length != 0 %}
-            ComponentParent.__init__(self)
+            DynamicComponentParent.__init__(self)
 #{% endif %}
 
 #{% if 'FrontendTuner' in component.implements %}

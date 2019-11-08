@@ -5,21 +5,24 @@ from ossie.cf import CF
 from omniORB import any as _any
 from ossie.utils import model
 
-class ComponentFamily:
+class DynamicComponent:
     def __init__(self):
         self._parentInstance = None
-        self._familyDevices = []
-        self._familyDeviceCount = {}
+        self._dynamicComponents = []
+        self._dynamicComponentCount = {}
 
-    def addChild(self, child):
+    def addInstance(self, child):
         if not self._parentInstance:
             raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
 
-        child_device = self._parentInstance.addChild(child, self)
+        child_device = self._parentInstance.addInstance(child, self)
         return child_device
 
-class ComponentParent(ComponentFamily):
-    def addChild(self, child, parent=None):
+class DynamicComponentParent(DynamicComponent):
+    def removeInstance(self, child):
+        pass
+
+    def addInstance(self, child, parent=None):
         if not parent:
             parent = self
         device_object = None
@@ -31,10 +34,10 @@ class ComponentParent(ComponentFamily):
                 else:
                     device_name = child.__name__
                 parameters = []
-                if not parent._familyDeviceCount.has_key(device_name):
-                    parent._familyDeviceCount[device_name] = 0
-                parent._familyDeviceCount[device_name] += 1
-                device_name_count = device_name+'_'+str(parent._familyDeviceCount[device_name])
+                if not parent._dynamicComponentCount.has_key(device_name):
+                    parent._dynamicComponentCount[device_name] = 0
+                parent._dynamicComponentCount[device_name] += 1
+                device_name_count = device_name+'_'+str(parent._dynamicComponentCount[device_name])
                 device_label = parent._label+':'+device_name_count
                 parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._idm_publisher.channel))))
                 parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_label)))
@@ -59,7 +62,7 @@ class ComponentParent(ComponentFamily):
                 mod = __import__(device_name)
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
-                parent._familyDevices.append(device_object)
+                parent._dynamicComponents.append(device_object)
         finally:
             self._cmdLock.release()
         return device_object
