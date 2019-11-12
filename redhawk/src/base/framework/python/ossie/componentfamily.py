@@ -12,7 +12,7 @@ class DynamicComponentRegistry:
         if self.__components.has_key(component):
             return
         self.__components[component] = parent
-    def unregister(self, component)
+    def unregister(self, component):
         if self.__components.has_key(component):
             self.__components.pop(component)
 
