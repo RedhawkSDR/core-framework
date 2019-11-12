@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" mode="readonly" name="device_kind" type="string">
+    <description>This specifies the device kind</description>
+    <value>FRONTEND::TUNER</value>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <simple id="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb" mode="readonly" name="device_model" type="string">
+    <description> This specifies the specific device</description>
+    <kind kindtype="allocation"/>
+    <action type="eq"/>
+  </simple>
+  <structsequence id="FRONTEND::tuner_status" mode="readonly" name="frontend_tuner_status">
+    <description>Status of each tuner, including entries for both allocated and un-allocated tuners. Each entry represents a single tuner.</description>
+    <struct id="FRONTEND::tuner_status_struct" name="frontend_tuner_status_struct">
+      <simple id="FRONTEND::tuner_status::allocation_id_csv" name="allocation_id_csv" type="string">
+        <description>Comma separated list of current Allocation IDs.</description>
+      </simple>
+      <simple id="FRONTEND::tuner_status::bandwidth" name="bandwidth" type="double">
+        <description>Current bandwidth in Hz</description>
+        <units>Hz</units>
+      </simple>
+      <simple id="FRONTEND::tuner_status::center_frequency" name="center_frequency" type="double">
+        <description>Current center frequency in Hz.</description>
+        <units>Hz</units>
+      </simple>
+      <simple id="FRONTEND::tuner_status::enabled" name="enabled" type="boolean">
+        <description>Indicates if tuner is enabled, in reference to the output state of the tuner.</description>
+      </simple>
+      <simple id="FRONTEND::tuner_status::group_id" name="group_id" type="string">
+        <description>Unique ID that specifies a group of Device.</description>
+      </simple>
+      <simple id="FRONTEND::tuner_status::rf_flow_id" name="rf_flow_id" type="string">
+        <description>Specifies a certain RF flow to allocate against.</description>
+      </simple>
+      <simple id="FRONTEND::tuner_status::sample_rate" name="sample_rate" type="double">
+        <description>Current sample rate in samples per second.</description>
+        <units>sps</units>
+      </simple>
+      <simple id="FRONTEND::tuner_status::tuner_type" name="tuner_type" type="string">
+        <description>Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZIER_CHANNELIZER</description>
+      </simple>
+    </struct>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+  <struct id="FRONTEND::listener_allocation" mode="writeonly" name="frontend_listener_allocation">
+    <description>Allocation structure to acquire &quot;listener&quot; capability on a tuner based off a previous allocation. &quot;Listeners&quot; have the ability to receive the data but can not modify the settings of the tuner.</description>
+    <simple id="FRONTEND::listener_allocation::existing_allocation_id" name="existing_allocation_id" type="string">
+      <description>Allocation ID for an existing allocation. Could be either control or listener.</description>
+    </simple>
+    <simple id="FRONTEND::listener_allocation::listener_allocation_id" name="listener_allocation_id" type="string">
+      <description>New Listener ID</description>
+    </simple>
+    <configurationkind kindtype="allocation"/>
+  </struct>
+  <struct id="FRONTEND::tuner_allocation" mode="writeonly" name="frontend_tuner_allocation">
+    <description>Allocation structure to acquire capability on a tuner based off tuner settings</description>
+    <simple id="FRONTEND::tuner_allocation::tuner_type" name="tuner_type" type="string">
+      <description>Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGTIZIER_CHANNELIZER</description>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::allocation_id" name="allocation_id" type="string">
+      <description>The allocation_id set by the caller. Used by the caller to reference the allocation uniquely</description>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::center_frequency" name="center_frequency" type="double">
+      <description>Requested center frequency</description>
+      <units>Hz</units>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::bandwidth" name="bandwidth" type="double">
+      <description>Requested bandwidth (+/- the tolerance)</description>
+      <units>Hz</units>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::bandwidth_tolerance" name="bandwidth_tolerance" type="double">
+      <description>Allowable Percent above requested bandwidth  (ie - 100 would be up to twice)</description>
+      <units>percent</units>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::sample_rate" name="sample_rate" type="double">
+      <description>Requested sample rate (+/- the tolerance). This can be ignored for such devices as analog tuners</description>
+      <units>Hz</units>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::sample_rate_tolerance" name="sample_rate_tolerance" type="double">
+      <description>Allowable Percent above requested sample rate (ie - 100 would be up to twice)</description>
+      <units>percent</units>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::device_control" name="device_control" type="boolean">
+      <description>True: Has control over the device to make changes
+False: Does not need control and can just attach to any currently tasked device that satisfies the parameters (essentually a listener)</description>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::group_id" name="group_id" type="string">
+      <description>Unique identifier that specifies the group a device must be in. Must match group_id on the device</description>
+    </simple>
+    <simple id="FRONTEND::tuner_allocation::rf_flow_id" name="rf_flow_id" type="string">
+      <description>Optional. Specifies the RF flow of a specific input source to allocate against. If left empty, it will match all FrontEnd devices.</description>
+    </simple>
+    <configurationkind kindtype="allocation"/>
+  </struct>
+</properties>

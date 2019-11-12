@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:646ea61b-b3e5-49a8-8387-3ccffed300ab" name="wb_receiver" type="2.2.3">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="wb_receiver.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="wb_receiver.scd.xml"/>
+  </descriptor>
+  <!--child name="wb_tuner">
+    <childPropertyFile>
+        <localfile name="wb_tuner.prf.xml"/>
+    </childPropertyFile>
+    <childDescriptorFile>
+        <localfile name="wb_tuner.scd.xml"/>
+    </childDescriptorFile>
+  </child>
+  <child name="nb_tuner">
+    <childPropertyFile>
+        <localfile name="nb_tuner.prf.xml"/>
+    </childPropertyFile>
+    <childDescriptorFile>
+        <localfile name="nb_tuner.scd.xml"/>
+    </childDescriptorFile>
+  </child-->
+  <implementation id="python">
+    <description>The implementation contains descriptive information about the template for a software resource.</description>
+    <code type="Executable">
+      <localfile name="python"/>
+      <entrypoint>python/wb_receiver.py</entrypoint>
+    </code>
+    <programminglanguage name="Python"/>
+    <humanlanguage name="EN"/>
+    <runtime name="python" version="2.6.6"/>
+    <os name="Linux"/>
+  </implementation>
+  <child name="supersimple">
+    <childPropertyFile>
+        <localfile name="supersimple.prf.xml"/>
+    </childPropertyFile>
+    <childDescriptorFile>
+        <localfile name="supersimple.scd.xml"/>
+    </childDescriptorFile>
+  </child>
+  <child name="anothersimple">
+    <childPropertyFile>
+        <localfile name="anothersimple.prf.xml"/>
+    </childPropertyFile>
+    <childDescriptorFile>
+        <localfile name="anothersimple.scd.xml"/>
+    </childDescriptorFile>
+  </child>
+</softpkg>
