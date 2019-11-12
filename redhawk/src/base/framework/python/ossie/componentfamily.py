@@ -5,34 +5,52 @@ from ossie.cf import CF
 from omniORB import any as _any
 from ossie.utils import model
 
+class DynamicComponentRegistry:
+    def __init__(self):
+        self.__components = {}
+    def register(self, component, parent):
+        if self.__components.has_key(component):
+            return
+        self.__components[component] = parent
+    def unregister(self, component)
+        if self.__components.has_key(component):
+            self.__components.pop(component)
+
 class DynamicComponent:
     def __init__(self):
         self._parentInstance = None
         self._dynamicComponents = []
         self._dynamicComponentCount = {}
 
-    def addInstance(self, child):
+    def removeInstance(self, instance):
+        pass
+
+    def addInstance(self, instance):
         if not self._parentInstance:
             raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
 
-        child_device = self._parentInstance.addInstance(child, self)
-        return child_device
+        instance_device = self._parentInstance.addInstance(instance, self)
+        return instance_device
 
 class DynamicComponentParent(DynamicComponent):
-    def removeInstance(self, child):
+    def __init__(self):
+        DynamicComponent.__init__(self)
+        self.__dynamicComponentRegistry = []
+
+    def removeInstance(self, instance):
         pass
 
-    def addInstance(self, child, parent=None):
+    def addInstance(self, instance, parent=None):
         if not parent:
             parent = self
         device_object = None
         try:
             self._cmdLock.acquire()
             with ossie.device.envState():
-                if type(child) == str:
-                    device_name = child
+                if type(instance) == str:
+                    device_name = instance
                 else:
-                    device_name = child.__name__
+                    device_name = instance.__name__
                 parameters = []
                 if not parent._dynamicComponentCount.has_key(device_name):
                     parent._dynamicComponentCount[device_name] = 0
@@ -63,6 +81,7 @@ class DynamicComponentParent(DynamicComponent):
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
                 parent._dynamicComponents.append(device_object)
+                self.__dynamicComponentRegistry.append(device_object, parent)
         finally:
             self._cmdLock.release()
         return device_object
