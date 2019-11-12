@@ -35,7 +35,6 @@ class wb_receiver_i(wb_receiver_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(1, "RX_DIGITIZER")
         retval_super = self.addInstance(supersimple)
         retval_another = self.addInstance(anothersimple)
         retval_super.abc = 'foobar'

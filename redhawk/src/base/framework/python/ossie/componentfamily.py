@@ -81,7 +81,8 @@ class DynamicComponentParent(DynamicComponent):
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
                 parent._dynamicComponents.append(device_object)
-                self.__dynamicComponentRegistry.append(device_object, parent)
+                #self.__dynamicComponentRegistry.append(device_object, parent)
+                self.__dynamicComponentRegistry.append(device_object)
         finally:
             self._cmdLock.release()
         return device_object

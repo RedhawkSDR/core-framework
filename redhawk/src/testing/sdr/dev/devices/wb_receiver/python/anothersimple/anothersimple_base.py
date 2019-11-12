@@ -14,8 +14,6 @@ from ossie.properties import simple_property
 import Queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 import bulkio
-import frontend
-from frontend import FRONTEND
 from omniORB import any as _any
 from ossie.componentfamily import DynamicComponent
 

@@ -16,17 +16,7 @@
     <supportsinterface repid="IDL:CF/Logging:1.0" supportsname="Logging"/>
     <supportsinterface repid="IDL:CF/LogEventConsumer:1.0" supportsname="LogEventConsumer"/>
     <supportsinterface repid="IDL:CF/LogConfiguration:1.0" supportsname="LogConfiguration"/>
-    <ports>
-      <provides repid="IDL:FRONTEND/RFInfo:1.0" providesname="RFInfo_in">
-        <porttype type="data"/>
-      </provides>
-      <provides repid="IDL:FRONTEND/DigitalScanningTuner:1.0" providesname="DigitalTuner_in">
-        <porttype type="control"/>
-      </provides>
-      <uses repid="IDL:FRONTEND/RFInfo:1.0" usesname="RFInfo_out">
-        <porttype type="data"/>
-      </uses>
-    </ports>
+    <ports/>
   </componentfeatures>
   <interfaces>
     <interface name="Device" repid="IDL:CF/Device:1.0">
@@ -55,24 +45,5 @@
     </interface>
     <interface name="LogEventConsumer" repid="IDL:CF/LogEventConsumer:1.0"/>
     <interface name="LogConfiguration" repid="IDL:CF/LogConfiguration:1.0"/>
-    <interface name="RFInfo" repid="IDL:FRONTEND/RFInfo:1.0"/>
-    <interface name="ScanningTuner" repid="IDL:FRONTEND/ScanningTuner:1.0"/>
-    <interface name="FrontendTuner" repid="IDL:FRONTEND/FrontendTuner:1.0"/>
-    <interface name="AnalogTuner" repid="IDL:FRONTEND/AnalogTuner:1.0">
-      <inheritsinterface repid="IDL:FRONTEND/FrontendTuner:1.0"/>
-    </interface>
-    <interface name="DigitalTuner" repid="IDL:FRONTEND/DigitalTuner:1.0">
-      <inheritsinterface repid="IDL:FRONTEND/AnalogTuner:1.0"/>
-    </interface>
-    <interface name="DigitalScanningTuner" repid="IDL:FRONTEND/DigitalScanningTuner:1.0">
-      <inheritsinterface repid="IDL:FRONTEND/ScanningTuner:1.0"/>
-      <inheritsinterface repid="IDL:FRONTEND/DigitalTuner:1.0"/>
-    </interface>
-    <interface name="ProvidesPortStatisticsProvider" repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
-    <interface name="updateSRI" repid="IDL:BULKIO/updateSRI:1.0"/>
-    <interface name="dataShort" repid="IDL:BULKIO/dataShort:1.0">
-      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
-      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
-    </interface>
   </interfaces>
 </softwarecomponent>
