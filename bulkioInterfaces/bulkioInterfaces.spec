@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        2.3.0
+Version:        3.0.0
 Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
@@ -117,4 +117,3 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 - Add URL for website
 - Change group to a standard one, per Fedora
 - Quiet the file unpack
-
