@@ -62,6 +62,17 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
 
     def test_launch(self):
         dom=redhawk.attach()
-        print dom
+
+        self.assertEquals(len(dom.devices), 8)
+        devices = ['wb_receiver_1:supersimple_1:anothersimple_1', 
+                   'wb_receiver_1:supersimple_1:anothersimple_2', 
+                   'wb_receiver_1:supersimple_1', 
+                   'wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1', 
+                   'wb_receiver_1:anothersimple_1', 
+                   'wb_receiver_1:anothersimple_1:anothersimple_2', 
+                   'wb_receiver_1:anothersimple_1:anothersimple_1', 
+                   'wb_receiver_1']
         for dev in dom.devices:
-            print dev.label
+            self.assertTrue(dev.label in devices)
+            devices.pop(devices.index(dev.label))
+
