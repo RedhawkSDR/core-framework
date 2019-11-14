@@ -35,7 +35,7 @@ class DynamicComponent:
 class DynamicComponentParent(DynamicComponent):
     def __init__(self):
         DynamicComponent.__init__(self)
-        self.__dynamicComponentRegistry = []
+        self.__dynamicComponentRegistry = DynamicComponentRegistry()
 
     def removeInstance(self, instance):
         pass
@@ -81,8 +81,7 @@ class DynamicComponentParent(DynamicComponent):
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
                 parent._dynamicComponents.append(device_object)
-                #self.__dynamicComponentRegistry.append(device_object, parent)
-                self.__dynamicComponentRegistry.append(device_object)
+                self.__dynamicComponentRegistry.register(device_object, parent)
         finally:
             self._cmdLock.release()
         return device_object
