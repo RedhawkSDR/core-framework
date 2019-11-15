@@ -31,6 +31,24 @@ import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin
 import traceback
 
+class DisconnectReceiver(CosEventComm__POA.PushSupplier):
+    def __init__(self):
+        self.disconnect=False
+        pass
+
+    def disconnect_push_supplier(self):
+        self.disconnect=True
+
+class SimpleConsumer(CosEventComm__POA.PushConsumer):
+    def __init__(self):
+        self.disconnect=False
+        pass
+
+    def push(self, data_obj):
+        self.data = data_object
+
+    def disconnect_push_consumer(self):
+        self.disconnect=True
 
 class EventChannelManager(scatest.CorbaTestCase):
     def setUp(self):
@@ -356,6 +374,30 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         self.ecm.release( 'ecm_test' )
 
         self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, 'ecm_test')
+
+    def test_ECM_EmptyChannelName(self):
+
+        reg=CF.EventChannelManager.EventRegistration("", "test-blank-channel")
+
+        # test channel name blank
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.create, '')
+
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.get, '')
+
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.createForRegistrations, '')
+
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerResource, reg )
+
+        c=SimpleConsumer()
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerConsumer,c._this(), reg )
+
+        d=DisconnectReceiver()
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerPublisher, reg, d._this() )
+
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.release, '')
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.forceRelease, '')
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.markForRegistrations, '')
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.unregister, reg)
 
     def test_EM_selfUnregister(self):
         
