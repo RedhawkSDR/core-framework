@@ -89,21 +89,15 @@ Resource_impl* DynamicComponentParent::addInstance(std::string instance_name, Dy
     std::string device_name_count = device_name_count_stream.str();
     std::string device_label = ossie::corba::returnString(parent->_base_device->label())+":"+device_name_count;
     std::string device_id = ossie::corba::returnString(parent->_base_device->identifier())+":"+device_name_count;
-    std::vector< std::string > parameters;
+    std::map< std::string, std::string > parameters;
 
     CORBA::ORB_ptr orb = ossie::corba::Orb();
-    parameters.push_back("IDM_CHANNEL_IOR");
-    parameters.push_back(_base_device->getIDM());
-    parameters.push_back("DEVICE_LABEL");
-    parameters.push_back(device_label.c_str());
-    parameters.push_back("PROFILE_NAME");
-    parameters.push_back("");
-    parameters.push_back("DEVICE_MGR_IOR");
-    parameters.push_back(orb->object_to_string(_base_device->getDeviceManager()->getRef()));
-    parameters.push_back("DEVICE_ID");
-    parameters.push_back(device_id.c_str());
-    parameters.push_back("COMPOSITE_DEVICE_IOR");
-    parameters.push_back(orb->object_to_string(_base_device->_this()));
+    parameters["IDM_CHANNEL_IOR"] = _base_device->getIDM();
+    parameters["DEVICE_LABEL"] = device_label.c_str();
+    parameters["PROFILE_NAME"] = "";
+    parameters["DEVICE_MGR_IOR"] = orb->object_to_string(_base_device->getDeviceManager()->getRef());
+    parameters["DEVICE_ID"] = device_id.c_str();
+    parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
     /*mod = __import__(device_name)
     kclass = getattr(mod, device_name+'_i')
@@ -113,7 +107,7 @@ Resource_impl* DynamicComponentParent::addInstance(std::string instance_name, Dy
     return device_object;
 }
 
-void DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::vector< std::string > &parameters)
+void DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
 {
     /*char* devMgr_ior = 0;
     char* id = 0;
@@ -154,7 +148,8 @@ void DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, Dyn
             idm_channel_ior = argv[++i];
         } else if (strcmp("COMPOSITE_DEVICE_IOR", argv[i]) == 0) {
             composite_device = argv[++i];
-        } else if (strcmp("LOGGING_CONFIG_URI", argv[i]) == 0) {
+        } else if (strcmp("LOGGING_CONFIG_    const CF::DeviceManager_ptr devmgr();
+URI", argv[i]) == 0) {
             logging_config_uri = argv[++i];
         } else if (strcmp("DEBUG_LEVEL", argv[i]) == 0) {
             debug_level = atoi(argv[++i]);
@@ -163,7 +158,8 @@ void DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, Dyn
         } else if (strcmp("USESIGFD", argv[i]) == 0){
             enablesigfd = true;
         } else if (strcmp("SKIP_RUN", argv[i]) == 0){
-            skip_run = true;
+            skip_run = true;    const CF::DeviceManager_ptr devmgr();
+
             i++;             // skip flag has bogus argument need to skip over so execparams is processed correctly
         } else if (i > 0) {  // any other argument besides the first one is part of the execparams
             std::string paramName = argv[i];
