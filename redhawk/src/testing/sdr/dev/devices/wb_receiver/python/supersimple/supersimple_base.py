@@ -39,9 +39,6 @@ class supersimple_base(CF__POA.Device, Device, ThreadedComponent, DynamicCompone
             self.port_bar = bulkio.OutFloatPort("bar")
             self.port_bar._portLog = self._baseLog.getChildLogger('bar', 'ports')
 
-        def setParentInstance(self, _pI):
-            self._parentInstance = _pI
-
         def start(self):
             Device.start(self)
             ThreadedComponent.startThread(self, pause=self.PAUSE)

@@ -137,11 +137,6 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             self.${prop.pyname} = ${prop.pyvalue}
 #{% endfor %}
 
-#{% if component.isChild %}
-        def setParentInstance(self, _pI):
-            self._parentInstance = _pI
-#{% endif %}
-
         def start(self):
             ${superclass}.start(self)
             ThreadedComponent.startThread(self, pause=self.PAUSE)

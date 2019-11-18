@@ -25,6 +25,9 @@ class DynamicComponent:
     def removeInstance(self, instance):
         pass
 
+    def setParentInstance(self, _pI):
+        self._parentInstance = _pI
+
     def addInstance(self, instance):
         if not self._parentInstance:
             raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
