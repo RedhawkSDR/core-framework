@@ -49,6 +49,7 @@ pkginclude_HEADERS = AggregateDevice_impl.h \
              AnyUtils.h \
              RedhawkDefs.h \
              ProcessThread.h \
+             DynamicComponent.h \
              ThreadedComponent.h \
              Containers.h \
              exceptions.h \

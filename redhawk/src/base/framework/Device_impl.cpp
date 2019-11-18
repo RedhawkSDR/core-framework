@@ -166,6 +166,7 @@ void  Device_impl::postConstruction (std::string &profile,
   // resolves Domain and Device Manger relationships
   setAdditionalParameters(profile, registrar_ior, nic);
 
+  _idm_channel_ior = idm_channel_ior;
   // establish IDM Channel connectivity
   connectIDMChannel( idm_channel_ior );
 

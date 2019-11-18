@@ -90,6 +90,19 @@ public:
 
     void setLogger(rh_logger::LoggerPtr logptr);
 
+    std::string getIDM() {
+        return _idm_channel_ior;
+    };
+
+    // Generic implementation of start_device, taking a function pointer to
+    // a component constructor (via make_device).
+    typedef boost::function<Device_impl* (char*, char*, char*, char*, char*)> ctor_type;
+
+    // Return a container with a pointer to the Device Manager hosting this Device
+    redhawk::DeviceManagerContainer* getDeviceManager() {
+        return this->_devMgr;
+    }
+
 protected:
     // Admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
     CF::Device::AdminType _adminState;
@@ -103,6 +116,8 @@ protected:
     std::string _label;
     // String pointer to this child's parent (empty string otherwise
     std::string _compositeDev_ior;
+
+    std::string _idm_channel_ior;
 
     enum AnyComparisonType {
         FIRST_BIGGER,
@@ -226,11 +241,6 @@ protected:
         }
     }
 
-    // Return a container with a pointer to the Device Manager hosting this Device
-    redhawk::DeviceManagerContainer* getDeviceManager() {
-        return this->_devMgr;
-    }
-
     rh_logger::LoggerPtr _deviceLog;
 
 private:
@@ -250,9 +260,6 @@ private:
         }
         return device;
     }
-    // Generic implementation of start_device, taking a function pointer to
-    // a component constructor (via make_device).
-    typedef boost::function<Device_impl* (char*, char*, char*, char*, char*)> ctor_type;
     static void start_device(ctor_type ctor, struct sigaction sa, int argc, char* argv[]);
     void initResources(char*, char*, char*, char*);
     // Check for valid allocation properties
