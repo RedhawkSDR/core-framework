@@ -31,14 +31,6 @@ import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin
 import traceback
 
-class DisconnectReceiver(CosEventComm__POA.PushSupplier):
-    def __init__(self):
-        self.disconnect=False
-        pass
-
-    def disconnect_push_supplier(self):
-        self.disconnect=True
-
 class SimpleConsumer(CosEventComm__POA.PushConsumer):
     def __init__(self):
         self.disconnect=False

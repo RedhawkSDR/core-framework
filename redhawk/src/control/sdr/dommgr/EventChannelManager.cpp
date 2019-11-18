@@ -1198,7 +1198,6 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
   //
   try {
     RH_TRACE(_eventChannelMgrLog, " : Trying InitRef Lookup " << fqn);
-    RH_TRACE(_eventChannelMgrLog, " : goober Trying InitRef Lookup " << fqn);
     CORBA::Object_var obj = _orbCtx.orb->resolve_initial_references(fqn.c_str());
     if ( CORBA::is_nil(obj) == false ){
       event_channel = ossie::events::EventChannel::_narrow(obj);
