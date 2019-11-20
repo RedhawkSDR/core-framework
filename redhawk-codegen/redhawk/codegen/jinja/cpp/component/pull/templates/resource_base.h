@@ -36,13 +36,18 @@
 /*{% block includeExtentions %}*/
 /*# Allow for child template extensions #*/
 /*{% endblock %}*/
+/*{% if component.isChild %}*/
+#include <ossie/DynamicComponent.h>
+/*{% elif component.children|length != 0 %}*/
+#include <ossie/DynamicComponent.h>
+/*{% endif %}*/
 
 /*{% filter lines|unique|join('\n') %}*/
 /*{%   for portgen in component.portgenerators if portgen.header() %}*/
 #include ${portgen.header()}
 /*{%   endfor %}*/
 /*{% endfilter %}*/
-/*{% if "struct_props.h" in generator.sourceFiles(component) %}*/
+/*{% if component.structdefs|length != 0 %}*/
 #include "struct_props.h"
 /*{% endif %}*/
 /*{% endblock %}*/
