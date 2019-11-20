@@ -102,6 +102,14 @@ public:
     redhawk::DeviceManagerContainer* getDeviceManager() {
         return this->_devMgr;
     }
+    //
+    // call after device has been created and assigned exec params
+    //
+    virtual void  postConstruction( std::string &softwareProfile,
+                                    std::string &registrar_ior,
+                                    const std::string &idm_channel_ior="",
+                                    const std::string &nic="",
+                                    const int  sigfd=-1 );
 
 protected:
     // Admin state (LOCKED, SHUTTING_DOWN, UNLOCKED)
@@ -131,14 +139,6 @@ protected:
     CF::DeviceManager_ptr _deviceManager;
     redhawk::events::PublisherPtr  idm_publisher;
     int                            sig_fd;
-    //
-    // call after device has been created and assigned exec params
-    //
-    virtual void  postConstruction( std::string &softwareProfile,
-                                    std::string &registrar_ior,
-                                    const std::string &idm_channel_ior="",
-                                    const std::string &nic="",
-                                    const int  sigfd=-1 );
     // resolve domain context for this device, what domain and device manager am I associated with
     void  resolveDomainContext();
 
