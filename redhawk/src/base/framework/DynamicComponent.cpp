@@ -37,13 +37,13 @@ void DynamicComponent::setParentInstance(DynamicComponent *parent)
     _parentInstance = parent;
 }
 
-Resource_impl* DynamicComponent::addInstance(std::string instance_name)
+Resource_impl* DynamicComponent::addInstance(Device_impl::ctor_type ctor, std::string instance_name)
 {
     if (this->_parentInstance == NULL) {
         throw std::runtime_error("No parent device set, setParentInstance should have been invoked on device deployment");
     }
 
-    Resource_impl* instance_device = this->_parentInstance->addInstance(instance_name);//, self)
+    Resource_impl* instance_device = this->_parentInstance->addInstance(ctor, instance_name);//, self)
     return  instance_device;
 }
 
@@ -71,7 +71,7 @@ void DynamicComponentParent::removeInstance(Resource_impl* instance)
 {
 }
 
-Resource_impl* DynamicComponentParent::addInstance(std::string instance_name, DynamicComponent *parent)
+Resource_impl* DynamicComponentParent::addInstance(Device_impl::ctor_type ctor, std::string instance_name, DynamicComponent *parent)
 {
     SCOPED_LOCK(dynamicComponentDeploymentLock);
 
@@ -94,91 +94,41 @@ Resource_impl* DynamicComponentParent::addInstance(std::string instance_name, Dy
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     parameters["IDM_CHANNEL_IOR"] = _base_device->getIDM();
     parameters["DEVICE_LABEL"] = device_label.c_str();
-    parameters["PROFILE_NAME"] = "";
+    //parameters["PROFILE_NAME"] = "";
     parameters["DEVICE_MGR_IOR"] = orb->object_to_string(_base_device->getDeviceManager()->getRef());
     parameters["DEVICE_ID"] = device_id.c_str();
     parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
-    /*mod = __import__(device_name)
-    kclass = getattr(mod, device_name+'_i')
-    device_object = self.local_start_device(kclass, this, argc, argv)
-    parent._dynamicComponents.append(device_object)
+    device_object = this->local_start_device(ctor, parent, parameters);
+
+    /*parent._dynamicComponents.append(device_object)
     self.__dynamicComponentRegistry.register(device_object, parent)*/
     return device_object;
 }
 
-void DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
+Resource_impl* DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
 {
-    /*char* devMgr_ior = 0;
-    char* id = 0;
-    char* label = 0;
-    char* profile = 0;
-    //char* idm_channel_ior = 0;
-    std::string idm_channel_ior("");
-    char* composite_device = 0;
-    const char* logging_config_uri = 0;
+    char* devMgr_ior = (char *)parameters["DEVICE_MGR_IOR"].c_str();
+    char* id = (char *)parameters["DEVICE_ID"].c_str();
+    char* label = (char *)parameters["DEVICE_LABEL"].c_str();
+    std::string idm_channel_ior = parameters["IDM_CHANNEL_IOR"];
+    char* composite_device = (char *)parameters["COMPOSITE_DEVICE_IOR"].c_str();
+    std::string s_profile;
+    char* profile = (char *)s_profile.c_str();
+
+    std::string logging_config_uri;
     int debug_level = -1; // use log level from configuration file 
-    std::string logcfg_uri("");
-    std::string log_dpath("");
-    std::string log_id("");
-    std::string log_label("");
-    bool skip_run = false;
-    bool enablesigfd=false;
+    std::string logcfg_uri;
+    std::string log_dpath;
 
-    for (int index = 1; index < argc; ++index) {
-        if (std::string(argv[index]) == std::string("-i")) {
-            std::cout<<"Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"<<std::endl;
-            exit(-1);
-        }
-    }
-
-    std::map<std::string, char*> execparams;
-    for (int i = 0; i < argc; i++) {
-        if (strcmp("DEVICE_MGR_IOR", argv[i]) == 0) {
-            devMgr_ior = argv[++i];
-        } else if (strcmp("PROFILE_NAME", argv[i]) == 0) {
-            profile = argv[++i];
-        } else if (strcmp("DEVICE_ID", argv[i]) == 0) {
-            id = argv[++i];
-            log_id = id;
-        } else if (strcmp("DEVICE_LABEL", argv[i]) == 0) {
-            label = argv[++i];
-            log_label = label;
-        } else if (strcmp("IDM_CHANNEL_IOR", argv[i]) == 0) {
-            idm_channel_ior = argv[++i];
-        } else if (strcmp("COMPOSITE_DEVICE_IOR", argv[i]) == 0) {
-            composite_device = argv[++i];
-        } else if (strcmp("LOGGING_CONFIG_    const CF::DeviceManager_ptr devmgr();
-URI", argv[i]) == 0) {
-            logging_config_uri = argv[++i];
-        } else if (strcmp("DEBUG_LEVEL", argv[i]) == 0) {
-            debug_level = atoi(argv[++i]);
-        } else if (strcmp("DOM_PATH", argv[i]) == 0) {
-            log_dpath = argv[++i];
-        } else if (strcmp("USESIGFD", argv[i]) == 0){
-            enablesigfd = true;
-        } else if (strcmp("SKIP_RUN", argv[i]) == 0){
-            skip_run = true;    const CF::DeviceManager_ptr devmgr();
-
-            i++;             // skip flag has bogus argument need to skip over so execparams is processed correctly
-        } else if (i > 0) {  // any other argument besides the first one is part of the execparams
-            std::string paramName = argv[i];
-            execparams[paramName] = argv[++i];
-        }
-    }
-
-    std::string logname = log_label+".system.Device";
+    std::string logname = parameters["DEVICE_LABEL"]+".system.Device";
 
     // check if logging config URL was specified...
-    if ( logging_config_uri ) logcfg_uri=logging_config_uri;
+    if ( not logging_config_uri.empty() )
+        logcfg_uri=logging_config_uri;
 
     // setup logging context for this resource
-    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceCtx( log_label, log_id, log_dpath ) );
-
-    if ((devMgr_ior == 0) || (id == 0) || (profile == 0) || (label == 0)) {
-        RH_NL_FATAL(logname, "Per SCA specification SR:478, DEVICE_MGR_IOR, PROFILE_NAME, DEVICE_ID, and DEVICE_LABEL must be provided");
-        exit(-1);
-    }
+    ossie::logging::ResourceCtxPtr ctx( new ossie::logging::DeviceCtx( label, id, log_dpath ) );
 
     RH_NL_DEBUG(logname, "Identifier = " << id << "Label = " << label << " Profile = " << profile << " IOR = " << devMgr_ior);
 
@@ -187,15 +137,12 @@ URI", argv[i]) == 0) {
     // assign logging context to the resource..to support logging interface
     device->saveLoggingContext( logcfg_uri, debug_level, ctx );
 
-    // setting all the execparams passed as argument, this method resides in the Resource_impl class
-    device->setExecparamProperties(execparams);
-
     //perform post construction operations for the device
-    std::string tmp_devMgr_ior = devMgr_ior;
-    std::string tmp_profile = profile;
-    std::string nic = "";
+    std::string nic;
+    std::string s_devMgr_ior = parameters["DEVICE_MGR_IOR"];
     int sig_fd=-1;
-    device->postConstruction( tmp_profile, tmp_devMgr_ior, idm_channel_ior, nic, sig_fd);*/
+    device->postConstruction( s_profile, s_devMgr_ior, idm_channel_ior, nic, sig_fd);
+    return device;
 }
 
 DynamicComponentParent::~DynamicComponentParent()

@@ -32,7 +32,7 @@ public:
     DynamicComponent(Device_impl* base_device);
     void setParentInstance(DynamicComponent *parent);
     void removeInstance(Resource_impl* instance);
-    Resource_impl* addInstance(std::string instance_name);
+    Resource_impl* addInstance(Device_impl::ctor_type ctor, std::string instance_name);
     ~DynamicComponent();
 
     std::vector<Resource_impl*> _dynamicComponents;
@@ -47,8 +47,8 @@ class DynamicComponentParent : public DynamicComponent {
 public:
     DynamicComponentParent(Device_impl* base_device);
     void removeInstance(Resource_impl* instance);
-    Resource_impl* addInstance(std::string instance_name, DynamicComponent *parent=NULL);
-    void local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters);
+    Resource_impl* addInstance(Device_impl::ctor_type ctor, std::string instance_name, DynamicComponent *parent=NULL);
+    Resource_impl* local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters);
     ~DynamicComponentParent();
 
 protected:
