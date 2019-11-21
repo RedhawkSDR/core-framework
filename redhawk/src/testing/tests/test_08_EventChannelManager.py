@@ -367,16 +367,16 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
 
         self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, 'ecm_test')
 
-    def test_ECM_EmptyChannelName(self):
+    def _test_ECM_InvalidChannelName(self, invalid_name ):
 
         reg=CF.EventChannelManager.EventRegistration("", "test-blank-channel")
 
         # test channel name blank
-        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.create, '')
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.create, invalid_name)
 
-        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.get, '')
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.get, invalid_name)
 
-        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.createForRegistrations, '')
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.createForRegistrations, invalid_name)
 
         self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerResource, reg )
 
@@ -386,11 +386,24 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         d=DisconnectReceiver()
         self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerPublisher, reg, d._this() )
 
-        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.release, '')
-        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.forceRelease, '')
-        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.markForRegistrations, '')
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.release, invalid_name)
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.forceRelease, invalid_name)
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.markForRegistrations, invalid_name)
         self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.unregister, reg)
 
+
+    def test_ECM_InvalidChannelNames(self):
+        
+        self._test_ECM_InvalidChannelName('')
+        self._test_ECM_InvalidChannelName('.badname')
+        self._test_ECM_InvalidChannelName('badname.')
+        self._test_ECM_InvalidChannelName('bad.name')
+        self._test_ECM_InvalidChannelName('.badname.')
+        self._test_ECM_InvalidChannelName(':badname')
+        self._test_ECM_InvalidChannelName('badname:')
+        self._test_ECM_InvalidChannelName('bad:name')
+        self._test_ECM_InvalidChannelName(':bad:name:')
+        
     def test_EM_selfUnregister(self):
         
         class domContainer:
