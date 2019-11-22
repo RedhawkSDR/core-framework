@@ -33,7 +33,16 @@ public:
     void setHost(Device_impl* base_device);
     void setParentInstance(DynamicComponent *parent);
     void removeInstance(Device_impl* instance);
-    Device_impl* addInstance(Device_impl::ctor_type ctor, std::string instance_name);
+    template<class T>
+    Device_impl* addInstance(T dev_class, std::string instance_name)
+    {
+        if (this->_parentInstance == NULL) {
+            throw std::runtime_error("No parent device set, setParentInstance should have been invoked on device deployment");
+        }
+
+        Device_impl* instance_device = this->_parentInstance->addInstance(dev_class, instance_name);
+        return  instance_device;
+    };
     ~DynamicComponent();
 
     std::vector<Device_impl*> _dynamicComponents;

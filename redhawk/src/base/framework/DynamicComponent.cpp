@@ -41,30 +41,8 @@ void DynamicComponent::setParentInstance(DynamicComponent *parent)
     _parentInstance = parent;
 }
 
-Device_impl* DynamicComponent::addInstance(Device_impl::ctor_type ctor, std::string instance_name)
-{
-    if (this->_parentInstance == NULL) {
-        throw std::runtime_error("No parent device set, setParentInstance should have been invoked on device deployment");
-    }
-
-    Device_impl* instance_device = this->_parentInstance->addInstance(ctor, instance_name);//, self)
-    return  instance_device;
-}
-
 void DynamicComponent::removeInstance(Device_impl* instance)
 {
-    /*unsigned int devSeqLength = _devices->length();
-
-    for (unsigned int i = 0; i < devSeqLength; i++) {
-        if (!strcmp(associatedDevice->identifier(), (*_devices)[i]->identifier())) {
-            for (unsigned int j = i + 1; j < devSeqLength; j++) {
-                (*_devices)[j-1] = (*_devices)[j];
-            }
-            _devices->length(devSeqLength - 1);
-        }
-    }
-
-    return;*/
 }
 
 DynamicComponentParent::DynamicComponentParent()
@@ -111,6 +89,7 @@ Device_impl* DynamicComponentParent::create_device_instance(Device_impl::ctor_ty
     std::string s_devMgr_ior = parameters["DEVICE_MGR_IOR"];
     int sig_fd=-1;
     device->postConstruction( s_profile, s_devMgr_ior, idm_channel_ior, nic, sig_fd);
+    device->initialize();
     return device;
 }
 
