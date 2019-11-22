@@ -21,10 +21,9 @@
 
 #include "ossie/DynamicComponent.h"
 
-DynamicComponent::DynamicComponent(Device_impl* base_device)
+DynamicComponent::DynamicComponent()
 {
     _parentInstance = NULL;
-    _base_device = base_device;
 }
 
 DynamicComponent::~DynamicComponent()
@@ -32,22 +31,27 @@ DynamicComponent::~DynamicComponent()
     //delete _devices;
 }
 
+void DynamicComponent::setHost(Device_impl* base_device)
+{
+    _base_device = base_device;
+}
+
 void DynamicComponent::setParentInstance(DynamicComponent *parent)
 {
     _parentInstance = parent;
 }
 
-Resource_impl* DynamicComponent::addInstance(Device_impl::ctor_type ctor, std::string instance_name)
+Device_impl* DynamicComponent::addInstance(Device_impl::ctor_type ctor, std::string instance_name)
 {
     if (this->_parentInstance == NULL) {
         throw std::runtime_error("No parent device set, setParentInstance should have been invoked on device deployment");
     }
 
-    Resource_impl* instance_device = this->_parentInstance->addInstance(ctor, instance_name);//, self)
+    Device_impl* instance_device = this->_parentInstance->addInstance(ctor, instance_name);//, self)
     return  instance_device;
 }
 
-void DynamicComponent::removeInstance(Resource_impl* instance)
+void DynamicComponent::removeInstance(Device_impl* instance)
 {
     /*unsigned int devSeqLength = _devices->length();
 
@@ -63,50 +67,15 @@ void DynamicComponent::removeInstance(Resource_impl* instance)
     return;*/
 }
 
-DynamicComponentParent::DynamicComponentParent(Device_impl* base_device) : DynamicComponent(base_device)
+DynamicComponentParent::DynamicComponentParent()
 {
 }
 
-void DynamicComponentParent::removeInstance(Resource_impl* instance)
+void DynamicComponentParent::removeInstance(Device_impl* instance)
 {
 }
 
-Resource_impl* DynamicComponentParent::addInstance(Device_impl::ctor_type ctor, std::string instance_name, DynamicComponent *parent)
-{
-    SCOPED_LOCK(dynamicComponentDeploymentLock);
-
-    if (parent==NULL)
-        parent = this;
-
-    Resource_impl* device_object = NULL;
-
-    if (parent->_dynamicComponentCount.find(instance_name) == parent->_dynamicComponentCount.end())
-        parent->_dynamicComponentCount[instance_name] = 0;
-    parent->_dynamicComponentCount[instance_name] += 1;
-
-    std::ostringstream device_name_count_stream;
-    device_name_count_stream << instance_name << "_" << parent->_dynamicComponentCount[instance_name];
-    std::string device_name_count = device_name_count_stream.str();
-    std::string device_label = ossie::corba::returnString(parent->_base_device->label())+":"+device_name_count;
-    std::string device_id = ossie::corba::returnString(parent->_base_device->identifier())+":"+device_name_count;
-    std::map< std::string, std::string > parameters;
-
-    CORBA::ORB_ptr orb = ossie::corba::Orb();
-    parameters["IDM_CHANNEL_IOR"] = _base_device->getIDM();
-    parameters["DEVICE_LABEL"] = device_label.c_str();
-    //parameters["PROFILE_NAME"] = "";
-    parameters["DEVICE_MGR_IOR"] = orb->object_to_string(_base_device->getDeviceManager()->getRef());
-    parameters["DEVICE_ID"] = device_id.c_str();
-    parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
-
-    device_object = this->local_start_device(ctor, parent, parameters);
-
-    /*parent._dynamicComponents.append(device_object)
-    self.__dynamicComponentRegistry.register(device_object, parent)*/
-    return device_object;
-}
-
-Resource_impl* DynamicComponentParent::local_start_device(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
+Device_impl* DynamicComponentParent::create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
 {
     char* devMgr_ior = (char *)parameters["DEVICE_MGR_IOR"].c_str();
     char* id = (char *)parameters["DEVICE_ID"].c_str();
