@@ -243,7 +243,7 @@ protected:
 
     rh_logger::LoggerPtr _deviceLog;
 
-private:
+public:
     // Adapter template function for device constructors. This is the only part of
     // device creation that requires type-specific knowledge.
     template <class T>
@@ -260,6 +260,8 @@ private:
         }
         return device;
     }
+
+private:
     static void start_device(ctor_type ctor, struct sigaction sa, int argc, char* argv[]);
     void initResources(char*, char*, char*, char*);
     // Check for valid allocation properties
