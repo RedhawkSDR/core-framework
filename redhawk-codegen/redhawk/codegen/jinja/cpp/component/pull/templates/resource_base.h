@@ -50,10 +50,22 @@
 /*{% if component.structdefs|length != 0 %}*/
 #include "struct_props.h"
 /*{% endif %}*/
+/*{% if component.children %}*/
+/*{%    for childname, childcomponent in component.children.items() %}*/
+#include "${childname}/${childname}.h"
+/*{%    endfor %}*/
+/*{% endif %}*/
 /*{% endblock %}*/
 /*{% block defines %}*/
 /*# Allow child templates to add #define statements #*/
 /*{% endblock %}*/
+/*{% if component.isChild %}*/
+/*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponent" %}*/
+/*{% elif component.children|length != 0 %}*/
+/*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponentParent" %}*/
+/*{% else %}*/
+/*{%    set baseClassComponent = ", protected ThreadedComponent" %}*/
+/*{% endif %}*/
 
 /*{% from "properties/properties.cpp" import enumvalues %}*/
 /*{% for prop in component.properties if prop.enums %}*/
@@ -67,7 +79,7 @@ namespace enums {
 /*{%   endif %}*/
 /*{% endfor %}*/
 /*{% block classPrototype %}*/
-class ${className} : public ${component.superclasses|join(', public ', attribute='name')}, protected ThreadedComponent
+class ${className} : public ${component.superclasses|join(', public ', attribute='name')}${baseClassComponent}
 /*{% endblock %}*/
 {
 /*{% for portgen in component.portgenerators if portgen.hasDeclaration() %}*/
