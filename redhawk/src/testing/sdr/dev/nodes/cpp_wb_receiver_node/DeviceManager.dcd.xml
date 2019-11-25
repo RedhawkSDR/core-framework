@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
-<deviceconfiguration id="DCE:b4a97558-9668-4478-9eea-de61e21e1e9e" name="vts_py">
+<deviceconfiguration id="DCE:b4a97558-9668-4478-9eea-de61e21e1e9e" name="wb_receiver_node">
   <devicemanagersoftpkg>
     <localfile name="/mgr/DeviceManager.spd.xml"/>
   </devicemanagersoftpkg>
   <componentfiles>
     <componentfile id="wb_receiver_b6b6b38a-09a2-421a-a239-72bbfc38c823" type="SPD">
-      <localfile name="/devices/wb_receiver/wb_receiver.spd.xml"/>
+      <localfile name="/devices/cpp_wb_receiver/cpp_wb_receiver.spd.xml"/>
     </componentfile>
   </componentfiles>
   <partitioning>
     <componentplacement>
       <componentfileref refid="wb_receiver_b6b6b38a-09a2-421a-a239-72bbfc38c823"/>
-      <compositepartofdevice refid="vts_py:array_receiver_1"/>
-      <componentinstantiation id="vts_py:wb_receiver_1" startorder="1">
-        <usagename>wb_receiver_1</usagename>
+      <componentinstantiation id="cpp_wb_receiver_1" startorder="0">
+        <usagename>cpp_wb_receiver_1</usagename>
       </componentinstantiation>
     </componentplacement>
   </partitioning>

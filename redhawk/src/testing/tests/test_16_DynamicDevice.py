@@ -74,3 +74,35 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
             self.assertTrue(dev.label in devices)
             devices.pop(devices.index(dev.label))
 
+
+class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/cpp_wb_receiver_node/DeviceManager.dcd.xml")
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+
+    def tearDown(self):
+        # Do all application shutdown before calling the base class tearDown,
+        # or failures will probably occur.
+        redhawk.core._cleanUpLaunchedApps()
+        scatest.CorbaTestCase.tearDown(self)
+        # need to let event service clean up event channels...... 
+        # cycle period is 10 milliseconds
+        time.sleep(0.1)
+        redhawk.setTrackApps(False)
+
+    def test_cpp_launch(self):
+        print self._rhDom.devices
+        self.assertEquals(len(self._rhDom.devices), 8)
+        devices = ['cpp_wb_receiver_1:supersimple_1:anothersimple_1', 
+                   'cpp_wb_receiver_1:supersimple_1:anothersimple_2', 
+                   'cpp_wb_receiver_1:supersimple_1', 
+                   'cpp_wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1', 
+                   'cpp_wb_receiver_1:anothersimple_1', 
+                   'cpp_wb_receiver_1:anothersimple_1:anothersimple_2', 
+                   'cpp_wb_receiver_1:anothersimple_1:anothersimple_1', 
+                   'cpp_wb_receiver_1']
+        for dev in self._rhDom.devices:
+            self.assertTrue(dev.label in devices)
+            devices.pop(devices.index(dev.label))
+
