@@ -43,8 +43,6 @@ public:
             tmp_parent = this;
         }
 
-        Device_impl* device_object = NULL;
-
         if (tmp_parent->_dynamicComponentCount.find(instance_name) == tmp_parent->_dynamicComponentCount.end())
             tmp_parent->_dynamicComponentCount[instance_name] = 0;
         tmp_parent->_dynamicComponentCount[instance_name] += 1;
@@ -63,7 +61,7 @@ public:
         parameters["DEVICE_ID"] = device_id.c_str();
         parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
-        device_object = this->dynamic_start_device(dev_class, parameters);
+        Device_impl* device_object = this->dynamic_start_device(dev_class, parameters);
         DynamicComponent* base_dev = dynamic_cast<DynamicComponent*>(device_object);
         base_dev->setParentInstance(tmp_parent);
 
