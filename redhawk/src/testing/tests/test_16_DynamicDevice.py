@@ -47,7 +47,7 @@ import traceback
 class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
     def setUp(self):
         domBooter, self._domMgr = self.launchDomainManager()
-        devBooter, self._devMgr = self.launchDeviceManager("/nodes/single_dev/DeviceManager.dcd.xml")
+        devBooter, self._devMgr = self.launchDeviceManager("/nodes/wb_receiver_node/DeviceManager.dcd.xml")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
 
     def tearDown(self):
