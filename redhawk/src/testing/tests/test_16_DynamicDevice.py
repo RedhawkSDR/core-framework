@@ -119,5 +119,4 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
         for dev in self._rhDom.devices:
             dev.start()
 
-        raw_input('press any key')
-
+        time.sleep(1)

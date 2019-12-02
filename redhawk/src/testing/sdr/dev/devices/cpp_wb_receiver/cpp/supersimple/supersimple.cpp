@@ -47,6 +47,16 @@ void supersimple_i::constructor()
 
     anothersimple_i* super_another_child_1 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name, this));
     anothersimple_i* super_another_child_2 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name, this));
+    bool both_correct = true;
+    if (super_another_child_1 == NULL)
+        both_correct = false;
+    if (super_another_child_2 == NULL)
+        both_correct = false;
+    if (not both_correct) {
+        std::cout<<"============ they did not deploy correctly"<<std::endl;
+    } else {
+        std::cout<<"============ they deployed correctly"<<std::endl;
+    }
 }
 
 /**************************************************************************
