@@ -19,7 +19,6 @@ supersimple_i::supersimple_i(char *devMgr_ior, char *id, char *lbl, char *sftwrP
 supersimple_i::supersimple_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev) :
     supersimple_base(devMgr_ior, id, lbl, sftwrPrfl, compDev)
 {
-    std::cout<<"hello"<<std::endl;
 }
 
 supersimple_i::supersimple_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities) :
@@ -41,7 +40,6 @@ void supersimple_i::constructor()
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
-    std::cout<<"constructor"<<std::endl;
     anothersimple_i *another_devicePtr = 0;
     std::string anothersimple_name("anothersimple");
 

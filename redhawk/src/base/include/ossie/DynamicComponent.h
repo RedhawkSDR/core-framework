@@ -70,13 +70,8 @@ public:
         return device_object;
     };
 
-    //Device_impl* create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters);
     Device_impl* create_device_instance(Device_impl::ctor_type ctor, std::map< std::string, std::string > &parameters);
 
-    /*template<class T>
-    Device_impl* dynamic_start_device(T** devPtr, DynamicComponent* parent, std::map< std::string, std::string > &parameters) {
-        return create_device_instance(boost::bind(&Device_impl::make_device<T>,boost::ref(*devPtr),_1,_2,_3,_4,_5), parent, parameters);
-    }*/
     template<class T>
     Device_impl* dynamic_start_device(T** devPtr, std::map< std::string, std::string > &parameters) {
         return create_device_instance(boost::bind(&Device_impl::make_device<T>,boost::ref(*devPtr),_1,_2,_3,_4,_5), parameters);

@@ -38,7 +38,6 @@ void DynamicComponent::setHost(Device_impl* base_device)
 
 void DynamicComponent::setParentInstance(DynamicComponent *parent)
 {
-    std::cout<<"............. setting parent instance"<<std::endl;
     _parentInstance = parent;
 }
 
@@ -46,7 +45,6 @@ void DynamicComponent::removeInstance(Device_impl* instance)
 {
 }
 
-//Device_impl* DynamicComponent::create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
 Device_impl* DynamicComponent::create_device_instance(Device_impl::ctor_type ctor, std::map< std::string, std::string > &parameters)
 {
     char* devMgr_ior = (char *)parameters["DEVICE_MGR_IOR"].c_str();
