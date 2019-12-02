@@ -15,7 +15,7 @@ import Queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 import bulkio
 from omniORB import any as _any
-from ossie.componentfamily import DynamicComponent
+from ossie.dynamiccomponent import DynamicComponent
 
 class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, ThreadedComponent, DynamicComponent):
         # These values can be altered in the __init__ of your derived class

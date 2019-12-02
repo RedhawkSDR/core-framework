@@ -21,7 +21,7 @@ from ossie.cf import ExtendedCF__POA
 from ossie.properties import struct_to_props
 BOOLEAN_VALUE_HERE=False
 from omniORB import any as _any
-from ossie.componentfamily import DynamicComponent
+from ossie.dynamiccomponent import DynamicComponent
 import supersimple
 import anothersimple
 
