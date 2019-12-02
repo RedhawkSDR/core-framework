@@ -45,15 +45,7 @@ void DynamicComponent::removeInstance(Device_impl* instance)
 {
 }
 
-DynamicComponentParent::DynamicComponentParent()
-{
-}
-
-void DynamicComponentParent::removeInstance(Device_impl* instance)
-{
-}
-
-Device_impl* DynamicComponentParent::create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
+Device_impl* DynamicComponent::create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters)
 {
     char* devMgr_ior = (char *)parameters["DEVICE_MGR_IOR"].c_str();
     char* id = (char *)parameters["DEVICE_ID"].c_str();
@@ -91,8 +83,4 @@ Device_impl* DynamicComponentParent::create_device_instance(Device_impl::ctor_ty
     device->postConstruction( s_profile, s_devMgr_ior, idm_channel_ior, nic, sig_fd);
     device->initialize();
     return device;
-}
-
-DynamicComponentParent::~DynamicComponentParent()
-{
 }

@@ -34,49 +34,32 @@ public:
     void setParentInstance(DynamicComponent *parent);
     void removeInstance(Device_impl* instance);
     template<class T>
-    Device_impl* addInstance(T dev_class, std::string instance_name)
-    {
-        if (this->_parentInstance == NULL) {
-            throw std::runtime_error("No parent device set, setParentInstance should have been invoked on device deployment");
-        }
-
-        Device_impl* instance_device = this->_parentInstance->addInstance(dev_class, instance_name);
-        return  instance_device;
-    };
-    ~DynamicComponent();
-
-    std::vector<Device_impl*> _dynamicComponents;
-    std::map<std::string, int> _dynamicComponentCount;
-    Device_impl* _base_device;
-
-protected:
-    DynamicComponent *_parentInstance;
-};
-
-class DynamicComponentParent : public DynamicComponent {
-public:
-    DynamicComponentParent();
-    void removeInstance(Device_impl* instance);
-
-    template<class T>
-    Device_impl* addInstance(T dev_class, std::string instance_name, DynamicComponent *parent=NULL)
+    Device_impl* addInstance(T dev_class, std::string instance_name, DynamicComponent *parent=NULL, std::string baseName=std::string())
     {
         SCOPED_LOCK(dynamicComponentDeploymentLock);
 
-        if (parent==NULL)
-            parent = this;
+        std::string new_name = ossie::corba::returnString(_base_device->label())+":"+baseName;
+
+        DynamicComponent *tmp_parent = parent;
+        if (this->_parentInstance != NULL) {
+            Device_impl* instance_device = this->_parentInstance->addInstance(dev_class, instance_name, this, new_name);
+            return  instance_device;
+        }
+        tmp_parent = this;
 
         Device_impl* device_object = NULL;
 
-        if (parent->_dynamicComponentCount.find(instance_name) == parent->_dynamicComponentCount.end())
-            parent->_dynamicComponentCount[instance_name] = 0;
-        parent->_dynamicComponentCount[instance_name] += 1;
+        if (tmp_parent->_dynamicComponentCount.find(instance_name) == tmp_parent->_dynamicComponentCount.end())
+            tmp_parent->_dynamicComponentCount[instance_name] = 0;
+        tmp_parent->_dynamicComponentCount[instance_name] += 1;
 
         std::ostringstream device_name_count_stream;
-        device_name_count_stream << instance_name << "_" << parent->_dynamicComponentCount[instance_name];
+        device_name_count_stream << instance_name << "_" << tmp_parent->_dynamicComponentCount[instance_name];
         std::string device_name_count = device_name_count_stream.str();
-        std::string device_label = ossie::corba::returnString(parent->_base_device->label())+":"+device_name_count;
-        std::string device_id = ossie::corba::returnString(parent->_base_device->identifier())+":"+device_name_count;
+        std::string device_label = new_name+device_name_count;
+        std::string device_id = ossie::corba::returnString(tmp_parent->_base_device->identifier())+":"+device_name_count;
+        /*std::string device_label = ossie::corba::returnString(tmp_parent->_base_device->label())+":"+device_name_count;
+        std::string device_id = ossie::corba::returnString(tmp_parent->_base_device->identifier())+":"+device_name_count;*/
         std::map< std::string, std::string > parameters;
 
         CORBA::ORB_ptr orb = ossie::corba::Orb();
@@ -86,22 +69,32 @@ public:
         parameters["DEVICE_ID"] = device_id.c_str();
         parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
-        device_object = this->dynamic_start_device(dev_class, parent, parameters);
+        device_object = this->dynamic_start_device(dev_class, tmp_parent, parameters);
+        DynamicComponent* base_dev = dynamic_cast<DynamicComponent*>(device_object);
 
+        std::cout<<"...... call setParentInstance"<<std::endl;
+        base_dev->setParentInstance(tmp_parent);
+
+        std::cout<<"...... done parent addInstance"<<std::endl;
         return device_object;
     };
 
     Device_impl* create_device_instance(Device_impl::ctor_type ctor, DynamicComponent* parent, std::map< std::string, std::string > &parameters);
-
-    ~DynamicComponentParent();
 
     template<class T>
     Device_impl* dynamic_start_device(T** devPtr, DynamicComponent* parent, std::map< std::string, std::string > &parameters) {
         return create_device_instance(boost::bind(&Device_impl::make_device<T>,boost::ref(*devPtr),_1,_2,_3,_4,_5), parent, parameters);
     }
 
+    ~DynamicComponent();
+
+    std::vector<Device_impl*> _dynamicComponents;
+    std::map<std::string, int> _dynamicComponentCount;
+    Device_impl* _base_device;
+
 protected:
     boost::mutex dynamicComponentDeploymentLock;
+    DynamicComponent *_parentInstance;
 };
 
 #endif	/* DYNAMICCOMPONENT_H */

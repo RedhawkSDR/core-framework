@@ -24,7 +24,6 @@ class anothersimple_base : public Device_impl, protected ThreadedComponent, publ
         void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
 
         void loadProperties();
-        void removeAllocationIdRouting(const size_t tuner_id);
 
     protected:
         // Member variables exposed as properties

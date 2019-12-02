@@ -12,7 +12,7 @@
   <partitioning>
     <componentplacement>
       <componentfileref refid="wb_receiver_b6b6b38a-09a2-421a-a239-72bbfc38c823"/>
-      <componentinstantiation id="cpp_wb_receiver_1" startorder="0">
+      <componentinstantiation id="wb_receiver_node:cpp_wb_receiver_1" startorder="0">
         <usagename>cpp_wb_receiver_1</usagename>
       </componentinstantiation>
     </componentplacement>

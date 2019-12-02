@@ -70,9 +70,13 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
                    'wb_receiver_1:anothersimple_1:anothersimple_2', 
                    'wb_receiver_1:anothersimple_1:anothersimple_1', 
                    'wb_receiver_1']
+
         for dev in self._rhDom.devices:
             self.assertTrue(dev.label in devices)
             devices.pop(devices.index(dev.label))
+
+        for dev in self._rhDom.devices:
+            print '++++++++++++++++++++', dev._get_identifier()
 
 
 class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
@@ -93,6 +97,10 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
 
     def test_cpp_launch(self):
         print self._rhDom.devices
+
+        for dev in self._rhDom.devices:
+            print '++++++++++++++++++++', dev._get_identifier()
+
         self.assertEquals(len(self._rhDom.devices), 8)
         devices = ['cpp_wb_receiver_1:supersimple_1:anothersimple_1', 
                    'cpp_wb_receiver_1:supersimple_1:anothersimple_2', 
@@ -102,6 +110,7 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
                    'cpp_wb_receiver_1:anothersimple_1:anothersimple_2', 
                    'cpp_wb_receiver_1:anothersimple_1:anothersimple_1', 
                    'cpp_wb_receiver_1']
+
         for dev in self._rhDom.devices:
             self.assertTrue(dev.label in devices)
             devices.pop(devices.index(dev.label))

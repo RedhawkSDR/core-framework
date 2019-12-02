@@ -107,8 +107,3 @@ void anothersimple_base::loadProperties()
                 "property");
 
 }
-
-
-void anothersimple_base::removeAllocationIdRouting(const size_t tuner_id) {
-}
-

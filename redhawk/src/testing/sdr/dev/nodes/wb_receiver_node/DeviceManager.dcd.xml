@@ -12,8 +12,7 @@
   <partitioning>
     <componentplacement>
       <componentfileref refid="wb_receiver_b6b6b38a-09a2-421a-a239-72bbfc38c823"/>
-      <compositepartofdevice refid="vts_py:array_receiver_1"/>
-      <componentinstantiation id="vts_py:wb_receiver_1" startorder="1">
+      <componentinstantiation id="vts_py:wb_receiver_1" startorder="0">
         <usagename>wb_receiver_1</usagename>
       </componentinstantiation>
     </componentplacement>
