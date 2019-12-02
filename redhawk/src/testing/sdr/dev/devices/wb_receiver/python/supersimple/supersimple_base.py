@@ -7,7 +7,7 @@ from ossie.cf import CF
 from ossie.cf import CF__POA
 from ossie.utils import uuid, model
 
-from ossie.device import Device
+from ossie.device import AggregateDevice, Device
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
@@ -17,7 +17,7 @@ import bulkio
 from omniORB import any as _any
 from ossie.componentfamily import DynamicComponent
 
-class supersimple_base(CF__POA.Device, Device, ThreadedComponent, DynamicComponent):
+class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, ThreadedComponent, DynamicComponent):
         # These values can be altered in the __init__ of your derived class
 
         PAUSE = 0.0125 # The amount of time to sleep if process return NOOP
@@ -26,6 +26,7 @@ class supersimple_base(CF__POA.Device, Device, ThreadedComponent, DynamicCompone
 
         def __init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams):
             Device.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams)
+            AggregateDevice.__init__(self)
             ThreadedComponent.__init__(self)
             DynamicComponent.__init__(self)
 

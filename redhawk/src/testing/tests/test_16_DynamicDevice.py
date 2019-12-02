@@ -76,7 +76,7 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
             devices.pop(devices.index(dev.label))
 
         for dev in self._rhDom.devices:
-            print '++++++++++++++++++++', dev._get_identifier(), dev._get_label()
+            print '++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label()
 
 
 class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):

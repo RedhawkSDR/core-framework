@@ -21,27 +21,13 @@ class DynamicComponent:
         self._parentInstance = None
         self._dynamicComponents = []
         self._dynamicComponentCount = {}
+        self.__dynamicComponentRegistry = DynamicComponentRegistry()
 
     def removeInstance(self, instance):
         pass
 
     def setParentInstance(self, _pI):
         self._parentInstance = _pI
-
-    def addInstance(self, instance):
-        if not self._parentInstance:
-            raise Exception('No parent device set, setParentInstance should have been invoked on device deployment')
-
-        instance_device = self._parentInstance.addInstance(instance, self)
-        return instance_device
-
-class DynamicComponentParent(DynamicComponent):
-    def __init__(self):
-        DynamicComponent.__init__(self)
-        self.__dynamicComponentRegistry = DynamicComponentRegistry()
-
-    def removeInstance(self, instance):
-        pass
 
     def addInstance(self, instance, parent=None):
         if not parent:

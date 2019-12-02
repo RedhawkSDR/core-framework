@@ -21,11 +21,11 @@ from ossie.cf import ExtendedCF__POA
 from ossie.properties import struct_to_props
 BOOLEAN_VALUE_HERE=False
 from omniORB import any as _any
-from ossie.componentfamily import DynamicComponentParent
+from ossie.componentfamily import DynamicComponent
 import supersimple
 import anothersimple
 
-class wb_receiver_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, ThreadedComponent, DynamicComponentParent):
+class wb_receiver_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, ThreadedComponent, DynamicComponent):
         # These values can be altered in the __init__ of your derived class
 
         PAUSE = 0.0125 # The amount of time to sleep if process return NOOP
@@ -36,7 +36,7 @@ class wb_receiver_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, Th
             Device.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams)
             AggregateDevice.__init__(self)
             ThreadedComponent.__init__(self)
-            DynamicComponentParent.__init__(self)
+            DynamicComponent.__init__(self)
 
             self.listeners={}
             # self.auto_start is deprecated and is only kept for API compatibility
