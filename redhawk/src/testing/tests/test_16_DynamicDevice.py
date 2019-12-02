@@ -116,3 +116,8 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
             self.assertTrue(dev.label in devices)
             devices.pop(devices.index(dev.label))
 
+        for dev in self._rhDom.devices:
+            dev.start()
+
+        raw_input('press any key')
+

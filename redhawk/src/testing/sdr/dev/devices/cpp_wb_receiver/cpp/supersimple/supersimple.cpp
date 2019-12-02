@@ -9,6 +9,8 @@
 
 #include "supersimple.h"
 
+#include <anothersimple/anothersimple.h>
+
 PREPARE_LOGGING(supersimple_i)
 
 supersimple_i::supersimple_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
@@ -311,6 +313,18 @@ void supersimple_i::updateUsageState()
 int supersimple_i::serviceFunction()
 {
     RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
+    
+    std::cout<<"these are the devices "<<this->_identifier<<" owns"<<std::endl;
+    for (unsigned int i=0; i<_dynamicComponents.size(); i++) {
+        anothersimple_i* base_dev = dynamic_cast<anothersimple_i*>(_dynamicComponents[i]);
+        std::cout<<"  "<<_dynamicComponents[i]->_identifier;
+        if (base_dev == NULL) {
+            std::cout<<" it did not narrow correctly";
+        } else {
+            std::cout<<" it narrowed correctly";
+        }
+        std::cout<<std::endl;
+    }
     
     return NOOP;
 }

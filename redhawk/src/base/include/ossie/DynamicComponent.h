@@ -62,6 +62,7 @@ public:
         parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
         Device_impl* device_object = this->dynamic_start_device(dev_class, parameters);
+        _dynamicComponents.push_back(device_object);
         DynamicComponent* base_dev = dynamic_cast<DynamicComponent*>(device_object);
         base_dev->setParentInstance(tmp_parent);
 

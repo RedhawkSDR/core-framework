@@ -7,8 +7,6 @@
 #include <ossie/ThreadedComponent.h>
 #include <ossie/DynamicComponent.h>
 
-#include <anothersimple/anothersimple.h>
-
 #define BOOL_VALUE_HERE 0
 
 class supersimple_base : public Device_impl, public virtual POA_CF::AggregatePlainDevice, public AggregateDevice_impl, protected ThreadedComponent, public virtual DynamicComponent
