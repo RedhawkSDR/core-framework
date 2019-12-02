@@ -71,9 +71,82 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
                    'wb_receiver_1:anothersimple_1:anothersimple_1', 
                    'wb_receiver_1']
 
+        dev_ids = ['wb_receiver_node:wb_receiver_1:supersimple_1:anothersimple_1', 
+                   'wb_receiver_node:wb_receiver_1:supersimple_1:anothersimple_2', 
+                   'wb_receiver_node:wb_receiver_1:supersimple_1', 
+                   'wb_receiver_node:wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1', 
+                   'wb_receiver_node:wb_receiver_1:anothersimple_1', 
+                   'wb_receiver_node:wb_receiver_1:anothersimple_1:anothersimple_2', 
+                   'wb_receiver_node:wb_receiver_1:anothersimple_1:anothersimple_1', 
+                   'wb_receiver_node:wb_receiver_1']
+
         for dev in self._rhDom.devices:
             self.assertTrue(dev.label in devices)
+            self.assertTrue(dev.identifier in dev_ids)
             devices.pop(devices.index(dev.label))
+            dev_ids.pop(dev_ids.index(dev.identifier))
+
+        parent = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'wb_receiver_1':
+                parent = dev
+                break
+
+        super_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'wb_receiver_1:supersimple_1':
+                super_1 = dev
+                break
+
+        another_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'wb_receiver_1:anothersimple_1':
+                another_1 = dev
+                break
+
+        grandchild_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'wb_receiver_1:anothersimple_1:anothersimple_2':
+                grandchild_1 = dev
+                break
+
+        self.assertNotEqual(parent, None)
+        self.assertNotEqual(super_1, None)
+        self.assertNotEqual(another_1, None)
+        self.assertNotEqual(grandchild_1, None)
+
+        self.assertEqual(len(parent.ref.devices), 2)
+        self.assertEqual(len(super_1.ref.devices), 2)
+        self.assertEqual(len(another_1.ref.devices), 2)
+        self.assertEqual(len(grandchild_1.ref.devices), 1)
+
+        dev_count = 0
+        for dev in self._rhDom.devices:
+            if dev.label == 'wb_receiver_1':
+                self.assertEqual(dev.compositeDevice, None)
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:supersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:supersimple_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1:supersimple_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:supersimple_1:anothersimple_2':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1:supersimple_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:anothersimple_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1:anothersimple_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:anothersimple_1:anothersimple_2':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1:anothersimple_1')
+                dev_count += 1
+            if dev.label == 'wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'wb_receiver_1:anothersimple_1:anothersimple_2')
+                dev_count += 1
+        self.assertEqual(dev_count, 8)
 
         for dev in self._rhDom.devices:
             print '++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label()
@@ -112,11 +185,84 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
                    'cpp_wb_receiver_1:anothersimple_1:anothersimple_1', 
                    'cpp_wb_receiver_1']
 
+        dev_ids = ['cpp_wb_receiver_node:cpp_wb_receiver_1:supersimple_1:anothersimple_1', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:supersimple_1:anothersimple_2', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:supersimple_1', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:anothersimple_1', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:anothersimple_1:anothersimple_2', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1:anothersimple_1:anothersimple_1', 
+                   'cpp_wb_receiver_node:cpp_wb_receiver_1']
+
         for dev in self._rhDom.devices:
             self.assertTrue(dev.label in devices)
+            self.assertTrue(dev.identifier in dev_ids)
             devices.pop(devices.index(dev.label))
+            dev_ids.pop(dev_ids.index(dev.identifier))
+
+        parent = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'cpp_wb_receiver_1':
+                parent = dev
+                break
+
+        super_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'cpp_wb_receiver_1:supersimple_1':
+                super_1 = dev
+                break
+
+        another_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1':
+                another_1 = dev
+                break
+
+        grandchild_1 = None
+        for dev in self._rhDom.devices:
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1:anothersimple_2':
+                grandchild_1 = dev
+                break
+
+        self.assertNotEqual(parent, None)
+        self.assertNotEqual(super_1, None)
+        self.assertNotEqual(another_1, None)
+        self.assertNotEqual(grandchild_1, None)
+
+        self.assertEqual(len(parent.ref.devices), 2)
+        self.assertEqual(len(super_1.ref.devices), 2)
+        self.assertEqual(len(another_1.ref.devices), 2)
+        self.assertEqual(len(grandchild_1.ref.devices), 1)
+
+        dev_count = 0
+        for dev in self._rhDom.devices:
+            if dev.label == 'cpp_wb_receiver_1':
+                self.assertEqual(dev.compositeDevice, None)
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:supersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:supersimple_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1:supersimple_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:supersimple_1:anothersimple_2':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1:supersimple_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1:anothersimple_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1:anothersimple_2':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1:anothersimple_1')
+                dev_count += 1
+            if dev.label == 'cpp_wb_receiver_1:anothersimple_1:anothersimple_2:anothersimple_1':
+                self.assertEqual(dev.compositeDevice.label, 'cpp_wb_receiver_1:anothersimple_1:anothersimple_2')
+                dev_count += 1
+        self.assertEqual(dev_count, 8)
 
         for dev in self._rhDom.devices:
             dev.start()
 
-        time.sleep(1)
+        time.sleep(0.2)
