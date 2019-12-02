@@ -12,6 +12,7 @@
 
 supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl),
+    AggregateDevice_impl(),
     ThreadedComponent()
 {
     construct();
@@ -19,6 +20,7 @@ supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *
 
 supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, char *compDev) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl, compDev),
+    AggregateDevice_impl(),
     ThreadedComponent()
 {
     construct();
@@ -26,6 +28,7 @@ supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *
 
 supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl, capacities),
+    AggregateDevice_impl(),
     ThreadedComponent()
 {
     construct();
@@ -33,6 +36,7 @@ supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *
 
 supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl, capacities, compDev),
+    AggregateDevice_impl(),
     ThreadedComponent()
 {
     construct();

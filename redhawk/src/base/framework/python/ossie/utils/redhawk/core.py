@@ -1052,7 +1052,13 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             device_name = ''
             if not profile:
                 try:
-                    parentProfile = device._get_compositeDevice()._get_softwareProfile()
+                    parent_dev = device._get_compositeDevice()
+                    while True:
+                        parentProfile = parent_dev._get_softwareProfile()
+                        if not parentProfile:
+                            parent_dev = parent_dev._get_compositeDevice()
+                        else:
+                            break
                     device_name = device._get_label()
                     device_name = device_name.split(':')[-1].split('_')[0]
                 except:

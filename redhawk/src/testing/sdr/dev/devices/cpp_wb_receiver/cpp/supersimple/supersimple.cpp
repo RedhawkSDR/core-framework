@@ -42,6 +42,11 @@ void supersimple_i::constructor()
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
     std::cout<<"constructor"<<std::endl;
+    anothersimple_i *another_devicePtr = 0;
+    std::string anothersimple_name("anothersimple");
+
+    anothersimple_i* super_another_child_1 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name, this));
+    anothersimple_i* super_another_child_2 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name, this));
 }
 
 /**************************************************************************

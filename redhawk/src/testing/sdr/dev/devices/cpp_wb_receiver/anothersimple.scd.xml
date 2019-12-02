@@ -5,6 +5,7 @@
   <componentrepid repid="IDL:CF/Device:1.0"/>
   <componenttype>device</componenttype>
   <componentfeatures>
+    <supportsinterface repid="IDL:CF/AggregateDevice:1.0" supportsname="AggregateDevice"/>
     <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>
     <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
     <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>

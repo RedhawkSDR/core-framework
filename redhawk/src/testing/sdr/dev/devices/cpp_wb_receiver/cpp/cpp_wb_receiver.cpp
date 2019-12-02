@@ -62,13 +62,13 @@ void cpp_wb_receiver_i::constructor()
     std::string anothersimple_name("anothersimple");
     std::map< std::string, std::string > parameters;
 
-    std::cout<<"addInstance (1)"<<std::endl;
-    supersimple_i* super_1 = dynamic_cast<supersimple_i*>(this->addInstance(&super_devicePtr, supersimple_name, this));
-    std::cout<<"addInstance (2)"<<std::endl;
-    anothersimple_i* another_1 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name, this));
-    std::cout<<"addInstance (3)"<<std::endl;
-    anothersimple_i* another_grandchild_1 = dynamic_cast<anothersimple_i*>(another_1->addInstance(&another_devicePtr, anothersimple_name));
-    std::cout<<"done addInstance"<<std::endl;
+    supersimple_i* super_1 = dynamic_cast<supersimple_i*>(this->addInstance(&super_devicePtr, supersimple_name));
+    anothersimple_i* another_1 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name));
+
+    anothersimple_i* another_grandchild_1 = dynamic_cast<anothersimple_i*>(another_1->addInstance(&another_devicePtr, anothersimple_name, another_1));
+    anothersimple_i* another_grandchild_2 = dynamic_cast<anothersimple_i*>(another_1->addInstance(&another_devicePtr, anothersimple_name, another_1));
+
+    anothersimple_i* another_greatgrandchild_1 = dynamic_cast<anothersimple_i*>(another_grandchild_2->addInstance(&another_devicePtr, anothersimple_name, another_grandchild_2));
 }
 
 /***********************************************************************************************

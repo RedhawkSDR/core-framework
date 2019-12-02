@@ -3,12 +3,13 @@
 
 #include <boost/thread.hpp>
 #include <ossie/Device_impl.h>
+#include <ossie/AggregateDevice_impl.h>
 #include <ossie/ThreadedComponent.h>
 #include <ossie/DynamicComponent.h>
 
 #define BOOL_VALUE_HERE 0
 
-class anothersimple_base : public Device_impl, protected ThreadedComponent, public virtual DynamicComponent
+class anothersimple_base : public Device_impl, public virtual POA_CF::AggregatePlainDevice, public AggregateDevice_impl, protected ThreadedComponent, public virtual DynamicComponent
 {
     public:
         anothersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl);
