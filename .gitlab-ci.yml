@@ -75,70 +75,6 @@ stages:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
-redhawk:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk
-    specfile: src/releng/redhawk.spec
-    local_repo: ""
-  <<: *rpmbuild
-
-redhawk-codegen:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk-codegen
-    local_repo: ""
-  <<: *rpmbuild
-
-bulkio:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: bulkioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-gpp:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: GPP
-    local_repo: output
-  <<: *rpmbuild
-
-burstio:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: burstioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-frontend:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: frontendInterfaces
-    version: $fei_version
-    local_repo: output
-  <<: *rpmbuild
-
 redhawk:el7:
   stage: package-redhawk-codegen
   variables:
@@ -289,6 +225,8 @@ test-trigger:release:
     paths:
       - $rpm_name-abi-results.txt
     expire_in: 30 days
+  except:
+    - /^fei_3.0\/.*$?
 
 redhawk:abi:
   variables:
@@ -372,17 +310,4 @@ deploy-el7:
     - frontend:el7
     - gpp:el7
     - redhawk-codegen:el7
-  <<: *s3
-
-deploy-el6:
-  variables:
-    dist: el6
-    arch: x86_64
-  dependencies:
-    - redhawk:el6
-    - bulkio:el6
-    - burstio:el6
-    - frontend:el6
-    - gpp:el6
-    - redhawk-codegen:el6
   <<: *s3
