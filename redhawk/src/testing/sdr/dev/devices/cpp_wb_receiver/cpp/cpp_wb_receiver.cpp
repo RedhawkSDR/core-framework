@@ -56,19 +56,17 @@ void cpp_wb_receiver_i::constructor()
      The incoming request for tuning contains a string describing the requested tuner
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
-    supersimple_i *super_devicePtr = 0;
-    anothersimple_i *another_devicePtr = 0;
     std::string supersimple_name("supersimple");
     std::string anothersimple_name("anothersimple");
     std::map< std::string, std::string > parameters;
 
-    supersimple_i* super_1 = dynamic_cast<supersimple_i*>(this->addInstance(&super_devicePtr, supersimple_name));
-    anothersimple_i* another_1 = dynamic_cast<anothersimple_i*>(this->addInstance(&another_devicePtr, anothersimple_name));
+    supersimple_i* super_1 = dynamic_cast<supersimple_i*>(this->addInstance<supersimple_i>(supersimple_name));
+    anothersimple_i* another_1 = dynamic_cast<anothersimple_i*>(this->addInstance<anothersimple_i>(anothersimple_name));
 
-    anothersimple_i* another_grandchild_1 = dynamic_cast<anothersimple_i*>(another_1->addInstance(&another_devicePtr, anothersimple_name, another_1));
-    anothersimple_i* another_grandchild_2 = dynamic_cast<anothersimple_i*>(another_1->addInstance(&another_devicePtr, anothersimple_name, another_1));
+    anothersimple_i* another_grandchild_1 = dynamic_cast<anothersimple_i*>(another_1->addInstance<anothersimple_i>(anothersimple_name));
+    anothersimple_i* another_grandchild_2 = dynamic_cast<anothersimple_i*>(another_1->addInstance<anothersimple_i>(anothersimple_name));
 
-    anothersimple_i* another_greatgrandchild_1 = dynamic_cast<anothersimple_i*>(another_grandchild_2->addInstance(&another_devicePtr, anothersimple_name, another_grandchild_2));
+    anothersimple_i* another_greatgrandchild_1 = dynamic_cast<anothersimple_i*>(another_grandchild_2->addInstance<anothersimple_i>(anothersimple_name));
 }
 
 /***********************************************************************************************
