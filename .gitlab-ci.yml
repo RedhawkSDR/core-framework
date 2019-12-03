@@ -226,7 +226,7 @@ test-trigger:release:
       - $rpm_name-abi-results.txt
     expire_in: 30 days
   except:
-    - /^fei_3.0\/.*$?
+    - /^fei_3\.0\/.*$/
 
 redhawk:abi:
   variables:
