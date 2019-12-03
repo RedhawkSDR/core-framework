@@ -2,7 +2,9 @@
 .libs/
 .jars/
 .idlj/
+m4/
 *.jar
+*.la
 *.lo
 *.o
 Makefile
@@ -19,7 +21,6 @@ configure
 depcomp
 frontendInterfaces.pc
 install-sh
-libfrontendInterfaces.la
 libtool
 ltmain.sh
 missing
@@ -29,4 +30,3 @@ test-driver
 /libsrc/cpp/.dirstamp
 /libsrc/java/META-INF/MANIFEST.MF
 /libsrc/frontend.pc
-/libsrc/libfrontend-*.la

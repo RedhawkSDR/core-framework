@@ -18,6 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+ACLOCAL_AMFLAGS = -I m4 -I ${OSSIEHOME}/share/aclocal/ossie
+
 ###############################################################################
 # CONFIGURE YOUR INTERFACES LIBRARY HERE
 #
@@ -132,6 +134,7 @@ PY_IDL_INCLUDES := -I idl
 $(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
 	$(AM_v_at)mkdir -p $(PY_SRC_OUT_DIR)
 	$(AM_v_gen)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
+	$(AM_V_at)touch $@
 
 setup.py: Makefile.am
 # Build up a setup.py line-by-line
