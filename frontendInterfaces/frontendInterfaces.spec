@@ -41,10 +41,10 @@ Group:          REDHAWK/Interfaces
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-Requires:       redhawk >= 2.3.0
-Requires:       bulkioInterfaces >= 2.3.0
-BuildRequires:  redhawk-devel >= 2.3.0
-BuildRequires:  bulkioInterfaces >= 2.3.0
+Requires:       redhawk >= 3.0.0
+Requires:       bulkioInterfaces >= 3.0.0
+BuildRequires:  redhawk-devel >= 3.0.0
+BuildRequires:  bulkioInterfaces >= 3.0.0
 BuildRequires:  cppunit-devel
 
 %description
@@ -77,7 +77,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_libdir}/libfrontendInterfaces.*
 %{_libdir}/pkgconfig/frontendInterfaces.pc
 %{_includedir}/frontend
-%{_libdir}/libfrontend-*
+%{_libdir}/libfrontend.*
 %{_libdir}/pkgconfig/frontend.pc
 %if 0%{?rhel} >= 6
 %{_prefix}/lib/python/frontendInterfaces-%{version}-py%{python_version}.egg-info

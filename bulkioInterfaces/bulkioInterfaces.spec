@@ -72,7 +72,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_includedir}/bulkio
 %{_includedir}/ossie/BULKIO
 %{_libdir}/libbulkioInterfaces.*
-%{_libdir}/libbulkio-*
+%{_libdir}/libbulkio.*
 %{_libdir}/pkgconfig/bulkio.pc
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
