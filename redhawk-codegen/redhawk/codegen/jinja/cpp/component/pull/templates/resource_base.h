@@ -38,7 +38,7 @@
 /*{% endblock %}*/
 /*{% if component.isChild %}*/
 #include <ossie/DynamicComponent.h>
-/*{% elif component.children|length != 0 %}*/
+/*{% elif component.isParent %}*/
 #include <ossie/DynamicComponent.h>
 /*{% endif %}*/
 
@@ -61,7 +61,7 @@
 /*{% endblock %}*/
 /*{% if component.isChild %}*/
 /*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponent" %}*/
-/*{% elif component.children|length != 0 %}*/
+/*{% elif component.isParent %}*/
 /*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponentParent" %}*/
 /*{% else %}*/
 /*{%    set baseClassComponent = ", protected ThreadedComponent" %}*/

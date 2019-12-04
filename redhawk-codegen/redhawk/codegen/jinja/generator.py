@@ -377,9 +377,11 @@ class CodeGenerator(Generator):
 
         component['children'] = {}
 
+        component['isParent'] = False
         component['isChild'] = False
 
         for _child_key in self.childTemplates:
+            component['isParent'] = True
             _childspd = SoftPkg(None, name=_child_key, prfFile=self.childTemplates[_child_key]['prf'], scdFile=self.childTemplates[_child_key]['scd'])
             childcomponent = compmapper.mapComponent(_childspd)
             component['children'][_child_key] = childcomponent

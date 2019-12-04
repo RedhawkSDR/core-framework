@@ -167,6 +167,9 @@ class PullComponentMapper(ComponentMapper):
         if 'NavData' in deviceinfo:
             classes.append({'name': 'nav_delegation', 'package': 'frontend'})
 
+        if 'NavData' in deviceinfo:
+            classes.append({'name': 'nav_delegation', 'package': 'frontend'})
+
         return classes
 
     @staticmethod

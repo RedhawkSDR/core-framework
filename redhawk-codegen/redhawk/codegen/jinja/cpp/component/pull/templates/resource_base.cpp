@@ -116,7 +116,7 @@ ${className}::${className}(const char *uuid, const char *label) :
 /*{% endif %}*/
 /*{% if component.isChild %}*/
     this->setHost(this);
-/*{% elif component.children|length != 0 %}*/
+/*{% elif component.isParent %}*/
     this->setHost(this);
 /*{% endif %}*/
 /*{% endblock %}*/

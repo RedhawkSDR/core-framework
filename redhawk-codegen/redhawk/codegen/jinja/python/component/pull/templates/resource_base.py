@@ -68,10 +68,8 @@ from frontend import FRONTEND
 #{% block baseadditionalimports %}
 #{# Allow additional child class imports #}
 #{% endblock %}
-#{% if component.isChild %}
+#{% if component.isChild or component.isParent %}
 from ossie.componentfamily import DynamicComponent
-#{% elif component.children|length != 0 %}
-from ossie.componentfamily import DynamicComponentParent
 #{% endif %}
 #{% if component.children %}
 #{%   for childname, childcomponent in component.children.items() %}
@@ -88,10 +86,8 @@ class enums:
 
 #{% endfor %}
 #% set baseClassComponent = "ThreadedComponent"
-#{% if component.isChild %}
+#{% if component.isChild or component.isParent %}
 #%    set baseClassComponent = "ThreadedComponent, DynamicComponent"
-#{% elif component.children|length != 0 %}
-#%    set baseClassComponent = "ThreadedComponent, DynamicComponentParent"
 #{% endif %}
 class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ${baseClassComponent}):
         # These values can be altered in the __init__ of your derived class
@@ -112,10 +108,8 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             Component.__init__(self, identifier, execparams, loggerName=loggerName)
 #{% endif %}
             ThreadedComponent.__init__(self)
-#{% if component.isChild %}
+#{% if component.isChild or component.isParent %}
             DynamicComponent.__init__(self)
-#{% elif component.children|length != 0 %}
-            DynamicComponentParent.__init__(self)
 #{% endif %}
 
 #{% if 'FrontendTuner' in component.implements %}
@@ -158,7 +152,9 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
                 self.stop()
             except Exception:
                 self._baseLog.exception("Error stopping")
+#{% if not component.isChild %}
             ${superclass}.releaseObject(self)
+#{% endif %}
 
         ######################################################################
         # PORTS
