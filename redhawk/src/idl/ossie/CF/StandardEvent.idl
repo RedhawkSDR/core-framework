@@ -35,6 +35,7 @@ module StandardEvent {
         SHUTTING_DOWN,
         ENABLED,
         DISABLED,
+        ERROR,
         IDLE,
         ACTIVE,
         BUSY

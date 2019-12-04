@@ -285,6 +285,10 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         dom_id = devMgr._get_registeredDevices()[0].query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(devmgr_id, devMgr._get_identifier())
         self.assertEqual(dom_id, domMgr._get_identifier())
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ENABLED)
+        devMgr._get_registeredDevices()[0].start()
+        time.sleep(0.5)
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ERROR)
 
     def test_pyDevBasic(self):
         nodebooter, domMgr = self.launchDomainManager()
@@ -295,6 +299,10 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         dom_id = devMgr._get_registeredDevices()[0].query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(devmgr_id, devMgr._get_identifier())
         self.assertEqual(dom_id, domMgr._get_identifier())
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ENABLED)
+        devMgr._get_registeredDevices()[0].start()
+        time.sleep(0.5)
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ERROR)
 
     @scatest.requireJava
     def test_javaDevBasic(self):
@@ -306,6 +314,10 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         dom_id = devMgr._get_registeredDevices()[0].query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
         self.assertEqual(devmgr_id, devMgr._get_identifier())
         self.assertEqual(dom_id, domMgr._get_identifier())
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ENABLED)
+        devMgr._get_registeredDevices()[0].start()
+        time.sleep(0.5)
+        self.assertEqual(devMgr._get_registeredDevices()[0].operationalState, CF.Device.ERROR)
 
     def test_cppDevDomainless(self):
         dev = sb.launch('sdr/dev/devices/cpp_dev/cpp_dev.spd.xml')

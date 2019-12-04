@@ -217,7 +217,9 @@ void cpp_dev_i::updateUsageState()
 int cpp_dev_i::serviceFunction()
 {
     LOG_DEBUG(cpp_dev_i, "serviceFunction() example log message");
-    
+
+    this->_operationalState = CF::Device::ERROR;
+
     return NOOP;
 }
 

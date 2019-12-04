@@ -305,12 +305,14 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     }
 
     // Verify that the device is in a valid state
-    if (!isUnlocked() || isDisabled()) {
+    if (!isUnlocked() || isDisabled() || isError()) {
         const char* invalidState;
         if (isLocked()) {
             invalidState = "LOCKED";
         } else if (isDisabled()) {
             invalidState = "DISABLED";
+        } else if (isError()) {
+            invalidState = "ERROR";
         } else {
             invalidState = "SHUTTING_DOWN";
         }
@@ -521,10 +523,12 @@ void Device_impl::deallocateCapacity (const CF::Properties& capacities)
 throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
 {
     // Verify that the device is in a valid state
-    if (isLocked() || isDisabled()) {
+    if (isLocked() || isDisabled() || isError()) {
         const char* invalidState;
         if (isLocked()) {
             invalidState = "LOCKED";
+        } else if (isError()) {
+            invalidState = "ERROR";
         } else {
             invalidState = "DISABLED";
         }
@@ -1035,6 +1039,16 @@ bool Device_impl::isLocked ()
 bool Device_impl::isDisabled ()
 {
     if (_operationalState == CF::Device::DISABLED) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+bool Device_impl::isError ()
+{
+    if (_operationalState == CF::Device::ERROR) {
         return true;
     } else {
         return false;

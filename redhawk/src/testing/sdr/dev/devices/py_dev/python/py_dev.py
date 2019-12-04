@@ -136,6 +136,7 @@ class py_dev_i(py_dev_base):
 
         # TODO fill in your code here
         self._log.debug("process() example log message")
+        self._operationalState = CF.Device.ERROR
         return NOOP
         
   

@@ -220,6 +220,8 @@ public class java_dev extends java_dev_base {
     protected int serviceFunction() {
         logger.debug("serviceFunction() example log message");
 
+        this.operationState = CF.DevicePackage.OperationalType.ERROR;
+
         return NOOP;
     }
 

@@ -81,6 +81,8 @@ public:
     bool isLocked ();
     // Returns true if the Device is a disabled state
     bool isDisabled ();
+    // Returns true if the Device is an error state
+    bool isError ();
     // Returns true if the Device is a busy state
     bool isBusy ();
     // Returns true if the Device is an idle state

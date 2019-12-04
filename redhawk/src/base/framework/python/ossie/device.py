@@ -692,6 +692,10 @@ class Device(resource.Resource):
         if self._operationalState == CF.Device.ENABLED: return True
         return False
 
+    def isError(self):
+        if self._operationalState == CF.Device.ERROR: return True
+        return False
+
     def isDisabled(self):
         if self._operationalState == CF.Device.DISABLED: return True
         return False

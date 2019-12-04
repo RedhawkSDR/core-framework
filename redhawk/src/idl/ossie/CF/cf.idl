@@ -959,7 +959,8 @@ module CF {
       /* This enumeration type defines a Device's operational states. The operational state indicates whether or not the object is functioning. */
       enum OperationalType {
         ENABLED,
-        DISABLED
+        DISABLED,
+        ERROR
       };
       /* This enumeration type defines the Device's usage states. */
       enum UsageType {

@@ -542,12 +542,14 @@ public abstract class Device extends Resource implements DeviceOperations {
         }
 
         // Verify that the device is in a valid state
-        if (!isUnlocked() || isDisabled()) {
+        if (!isUnlocked() || isDisabled() || isError()) {
             String invalidState;
             if (isLocked()) {
                 invalidState = "LOCKED";
             } else if (isDisabled()) {
                 invalidState = "DISABLED";
+            } else if (isError()) {
+                invalidState = "ERROR";
             } else {
                 invalidState = "SHUTTING_DOWN";
             }
@@ -990,6 +992,9 @@ public abstract class Device extends Resource implements DeviceOperations {
             case OperationalType._ENABLED:
                 current_state = StateChangeType.ENABLED;
                 break;
+            case OperationalType._ERROR:
+                current_state = StateChangeType.ERROR;
+                break;
             }
 
             switch (newOperationState.value()){
@@ -998,6 +1003,9 @@ public abstract class Device extends Resource implements DeviceOperations {
                 break;
             case OperationalType._ENABLED:
                 new_state = StateChangeType.ENABLED;
+                break;
+            case OperationalType._ERROR:
+                new_state = StateChangeType.ERROR;
                 break;
             }
 
@@ -1043,6 +1051,15 @@ public abstract class Device extends Resource implements DeviceOperations {
      */
     public boolean isDisabled() {
         return operationState.equals(OperationalType.DISABLED);
+    }
+
+    /**
+     * Returns whether this device's operational state is ERROR
+     *
+     * @returns true if operational state is ERROR, false otherwise
+     */
+    public boolean isError() {
+        return operationState.equals(OperationalType.ERROR);
     }
 }
 
