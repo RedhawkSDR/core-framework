@@ -5,7 +5,7 @@
 # Source: None
 from ossie.cf import CF
 from ossie.cf import CF__POA
-from ossie.utils import uuid, model
+from ossie.utils import uuid
 
 from ossie.device import AggregateDevice, Device
 from ossie.threadedcomponent import *
