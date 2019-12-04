@@ -90,7 +90,7 @@ public:
 
     void setLogger(rh_logger::LoggerPtr logptr);
 
-    std::string getIDM() {
+    std::string getIDMIOR() {
         return _idm_channel_ior;
     };
 

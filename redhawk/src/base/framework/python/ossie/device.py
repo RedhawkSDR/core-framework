@@ -298,12 +298,10 @@ class Device(resource.Resource):
         self.__initialize()
 
     def releaseObject(self):
-        print 'releaseObject (1)'
         self._resourceLog.debug("releaseObject()")
         if self._adminState == CF.Device.UNLOCKED:
             self._adminState = CF.Device.SHUTTING_DOWN
 
-        print 'releaseObject (2)'
         try:
             # release all of the child devices
             # if they have included the AggregateDeviceMixIn
@@ -325,18 +323,15 @@ class Device(resource.Resource):
         except Exception, e:
             raise CF.LifeCycle.ReleaseError(str(e))
 
-        print 'releaseObject (3)'
         self._adminState = CF.Device.LOCKED
         try:
             self._cmdLock.release()
         except:
             pass
-        print 'releaseObject (4)'
         try:
             resource.Resource.releaseObject(self)
         except:
             self._resourceLog.error("failed releaseObject()")
-        print 'releaseObject (5)'
 
     ###########################################
     # CF::Device

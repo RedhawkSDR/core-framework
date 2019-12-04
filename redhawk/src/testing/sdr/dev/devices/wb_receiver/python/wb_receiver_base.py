@@ -55,15 +55,12 @@ class wb_receiver_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, Th
                 raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
 
         def releaseObject(self):
-            print '........... start releasing objects'
-            print '=============== wb_receiver releaseObject', self._id
             try:
                 self.stop()
             except Exception:
                 self._baseLog.exception("Error stopping")
             for device in self._dynamicComponents:
                 device.releaseObject()
-            print '........... done releasing objects'
             Device.releaseObject(self)
 
         ######################################################################

@@ -50,7 +50,7 @@ public:
         std::map< std::string, std::string > parameters;
 
         CORBA::ORB_ptr orb = ossie::corba::Orb();
-        parameters["IDM_CHANNEL_IOR"] = _base_device->getIDM();
+        parameters["IDM_CHANNEL_IOR"] = _base_device->getIDMIOR();
         parameters["DEVICE_LABEL"] = device_label.c_str();
         parameters["DEVICE_MGR_IOR"] = orb->object_to_string(_base_device->getDeviceManager()->getRef());
         parameters["DEVICE_ID"] = device_id.c_str();

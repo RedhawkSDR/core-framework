@@ -18,31 +18,9 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest
 from _unitTestHelpers import scatest
 import time
-import contextlib
-import cStringIO
-import tempfile
-import re
-import resource
-import sys as _sys
-from omniORB import CORBA
-from omniORB import any as _any
-from xml.dom import minidom
-import os as _os
-import Queue
-import StringIO
-from ossie.cf import CF
 from ossie.utils import redhawk
-from ossie.utils import type_helpers
-from ossie.utils import rhconnection
-from ossie.utils import allocations
-from ossie.utils import sb
-from ossie.utils.model import NoMatchingPorts
-from ossie.events import Subscriber, Publisher
-from ossie.cf import CF
-import traceback
 
 class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
     def setUp(self):
