@@ -50,11 +50,12 @@ class anothersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, 
                 raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
 
         def releaseObject(self):
+            print '=============== anothersimple releaesObject', self._id
             try:
                 self.stop()
             except Exception:
                 self._baseLog.exception("Error stopping")
-            Device.releaseObject(self)
+            #Device.releaseObject(self)
 
         ######################################################################
         # PORTS
