@@ -114,9 +114,7 @@ ${className}::${className}(const char *uuid, const char *label) :
 
     this->addPropertyListener(connectionTable, this, &${className}::connectionTableChanged);
 /*{% endif %}*/
-/*{% if component.isChild %}*/
-    this->setHost(this);
-/*{% elif component.isParent %}*/
+/*{% if component.isChild or component.isParent %}*/
     this->setHost(this);
 /*{% endif %}*/
 /*{% endblock %}*/

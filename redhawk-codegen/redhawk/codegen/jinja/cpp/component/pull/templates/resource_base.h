@@ -59,10 +59,8 @@
 /*{% block defines %}*/
 /*# Allow child templates to add #define statements #*/
 /*{% endblock %}*/
-/*{% if component.isChild %}*/
+/*{% if component.isChild or component.isParent %}*/
 /*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponent" %}*/
-/*{% elif component.isParent %}*/
-/*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponentParent" %}*/
 /*{% else %}*/
 /*{%    set baseClassComponent = ", protected ThreadedComponent" %}*/
 /*{% endif %}*/
