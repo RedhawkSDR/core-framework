@@ -69,7 +69,7 @@ from frontend import FRONTEND
 #{# Allow additional child class imports #}
 #{% endblock %}
 #{% if component.isChild or component.isParent %}
-from ossie.componentfamily import DynamicComponent
+from ossie.dynamiccomponent import DynamicComponent
 #{% endif %}
 #{% if component.children %}
 #{%   for childname, childcomponent in component.children.items() %}
