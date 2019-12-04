@@ -28,7 +28,7 @@
 #{% filter lines|unique(keep_blank_lines=true)|join('\n') %}
 from ossie.cf import CF
 from ossie.cf import CF__POA
-from ossie.utils import uuid, model
+from ossie.utils import uuid
 
 #{% for parent in component.superclasses %}
 from ${parent.package} import ${parent.name}

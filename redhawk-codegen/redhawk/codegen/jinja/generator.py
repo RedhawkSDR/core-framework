@@ -192,7 +192,7 @@ class Generator(object):
         for _template in self.allTemplates(component):
             isChild = False
             childName = None
-            if type(_template) == dict:
+            if isinstance(_template, dict):
                 template = _template[_template.keys()[0]]
                 isChild = True
                 childName = _template.keys()[0]
