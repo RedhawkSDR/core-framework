@@ -24,7 +24,7 @@ class supersimple_i(supersimple_base):
         """
         # TODO add customization here.
         print 'parent:', self._parentInstance
-        retval_another = self.addInstance(anothersimple)
+        retval_another = self.addChild(anothersimple)
         print 'supersimple parent children:', self._parentInstance._dynamicComponents
         print 'supersimple children:', self._dynamicComponents
         stuff = dir(self._dynamicComponents[0])
@@ -36,7 +36,7 @@ class supersimple_i(supersimple_base):
         print self._dynamicComponents[0]._name
         retval_another.defg = 'qed'
         print 'retval_another', retval_another.query([])
-        yet_retval_another = self.addInstance(anothersimple)
+        yet_retval_another = self.addChild(anothersimple)
         print self._dynamicComponents[0]._id
         print self._dynamicComponents[0]._get_label()
         print self._dynamicComponents[0]._name

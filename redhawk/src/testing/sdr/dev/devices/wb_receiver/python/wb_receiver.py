@@ -35,13 +35,13 @@ class wb_receiver_i(wb_receiver_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        retval_super = self.addInstance(supersimple)
-        retval_another = self.addInstance(anothersimple)
+        retval_super = self.addChild(supersimple)
+        retval_another = self.addChild(anothersimple)
         retval_super.abc = 'foobar'
         retval_another.defg = 'hello'
-        grandchild = retval_another.addInstance(anothersimple)
-        grandchild_2 = retval_another.addInstance(anothersimple)
-        greatgrandchild = grandchild_2.addInstance(anothersimple)
+        grandchild = retval_another.addChild(anothersimple)
+        grandchild_2 = retval_another.addChild(anothersimple)
+        greatgrandchild = grandchild_2.addChild(anothersimple)
         print 'retval_super', retval_super.query([])
         print 'retval_another', retval_another.query([])
         print 'wb_receiver:', self._dynamicComponents

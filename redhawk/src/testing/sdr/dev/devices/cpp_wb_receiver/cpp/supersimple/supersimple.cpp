@@ -44,8 +44,8 @@ void supersimple_i::constructor()
     ***********************************************************************************/
     std::string anothersimple_name("anothersimple");
 
-    anothersimple_i* super_another_child_1 = dynamic_cast<anothersimple_i*>(this->addInstance<anothersimple_i>(anothersimple_name));
-    anothersimple_i* super_another_child_2 = dynamic_cast<anothersimple_i*>(this->addInstance<anothersimple_i>(anothersimple_name));
+    anothersimple_i* super_another_child_1 = this->addChild<anothersimple_i>(anothersimple_name);
+    anothersimple_i* super_another_child_2 = this->addChild<anothersimple_i>(anothersimple_name);
     bool both_correct = true;
     if (super_another_child_1 == NULL)
         both_correct = false;

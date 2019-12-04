@@ -34,7 +34,7 @@ public:
     void setParentInstance(DynamicComponent *parent);
     void removeInstance(Device_impl* instance);
     template<class T>
-    Device_impl* addInstance(std::string instance_name)
+    T* addChild(std::string instance_name)
     {
         SCOPED_LOCK(dynamicComponentDeploymentLock);
 
@@ -56,8 +56,8 @@ public:
         parameters["DEVICE_ID"] = device_id.c_str();
         parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());
 
-        Device_impl* device_object = this->dynamic_start_device<T>(parameters);
-        _dynamicComponents.push_back(device_object);
+        T* device_object = this->dynamic_start_device<T>(parameters);
+        _dynamicComponents.push_back((Device_impl*)device_object);
         DynamicComponent* base_dev = dynamic_cast<DynamicComponent*>(device_object);
         base_dev->setParentInstance(this);
 
@@ -67,9 +67,11 @@ public:
     Device_impl* create_device_instance(Device_impl::ctor_type ctor, std::map< std::string, std::string > &parameters);
 
     template<class T>
-    Device_impl* dynamic_start_device(std::map< std::string, std::string > &parameters) {
+    T* dynamic_start_device(std::map< std::string, std::string > &parameters) {
         T* devPtr = 0;
-        return create_device_instance(boost::bind(&Device_impl::make_device<T>,boost::ref(devPtr),_1,_2,_3,_4,_5), parameters);
+        Device_impl* new_dev = create_device_instance(boost::bind(&Device_impl::make_device<T>,boost::ref(devPtr),_1,_2,_3,_4,_5), parameters);
+        devPtr = dynamic_cast<T*>(new_dev);
+        return devPtr;
     }
 
     ~DynamicComponent();

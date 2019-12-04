@@ -29,9 +29,7 @@ class DynamicComponent:
     def setParentInstance(self, _pI):
         self._parentInstance = _pI
 
-    def addInstance(self, instance, parent=None):
-        if not parent:
-            parent = self
+    def addChild(self, instance, instanceName=None):
         device_object = None
         try:
             self._cmdLock.acquire()
@@ -41,16 +39,16 @@ class DynamicComponent:
                 else:
                     device_name = instance.__name__
                 parameters = []
-                if not parent._dynamicComponentCount.has_key(device_name):
-                    parent._dynamicComponentCount[device_name] = 0
-                parent._dynamicComponentCount[device_name] += 1
-                device_name_count = device_name+'_'+str(parent._dynamicComponentCount[device_name])
-                device_label = parent._label+':'+device_name_count
+                if not self._dynamicComponentCount.has_key(device_name):
+                    self._dynamicComponentCount[device_name] = 0
+                self._dynamicComponentCount[device_name] += 1
+                device_name_count = device_name+'_'+str(self._dynamicComponentCount[device_name])
+                device_label = self._label+':'+device_name_count
                 parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._idm_publisher.channel))))
                 parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_label)))
                 parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('')))
                 parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._devMgr.ref))))
-                parameters.append(CF.DataType('DEVICE_ID', _any.to_any(parent._id+':'+device_name_count)))
+                parameters.append(CF.DataType('DEVICE_ID', _any.to_any(self._id+':'+device_name_count)))
                 parameters.append(CF.DataType('COMPOSITE_DEVICE_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._this()))))
 
                 execparams = {}
@@ -69,8 +67,8 @@ class DynamicComponent:
                 mod = __import__(device_name)
                 kclass = getattr(mod, device_name+'_i')
                 device_object = self.local_start_device(kclass, execparams, parent_instance=self)
-                parent._dynamicComponents.append(device_object)
-                self.__dynamicComponentRegistry.register(device_object, parent)
+                self._dynamicComponents.append(device_object)
+                self.__dynamicComponentRegistry.register(device_object, self)
         finally:
             self._cmdLock.release()
         return device_object

@@ -60,13 +60,29 @@ void cpp_wb_receiver_i::constructor()
     std::string anothersimple_name("anothersimple");
     std::map< std::string, std::string > parameters;
 
-    supersimple_i* super_1 = dynamic_cast<supersimple_i*>(this->addInstance<supersimple_i>(supersimple_name));
-    anothersimple_i* another_1 = dynamic_cast<anothersimple_i*>(this->addInstance<anothersimple_i>(anothersimple_name));
+    supersimple_i* super_1 = this->addChild<supersimple_i>(supersimple_name);
+    anothersimple_i* another_1 = this->addChild<anothersimple_i>(anothersimple_name);
 
-    anothersimple_i* another_grandchild_1 = dynamic_cast<anothersimple_i*>(another_1->addInstance<anothersimple_i>(anothersimple_name));
-    anothersimple_i* another_grandchild_2 = dynamic_cast<anothersimple_i*>(another_1->addInstance<anothersimple_i>(anothersimple_name));
+    anothersimple_i* another_grandchild_1 = another_1->addChild<anothersimple_i>(anothersimple_name);
+    anothersimple_i* another_grandchild_2 = another_1->addChild<anothersimple_i>(anothersimple_name);
 
-    anothersimple_i* another_greatgrandchild_1 = dynamic_cast<anothersimple_i*>(another_grandchild_2->addInstance<anothersimple_i>(anothersimple_name));
+    anothersimple_i* another_greatgrandchild_1 = another_grandchild_2->addChild<anothersimple_i>(anothersimple_name);
+    bool all_correct = true;
+    if (super_1 == NULL)
+        all_correct = false;
+    if (another_1 == NULL)
+        all_correct = false;
+    if (another_grandchild_1 == NULL)
+        all_correct = false;
+    if (another_grandchild_2 == NULL)
+        all_correct = false;
+    if (another_greatgrandchild_1 == NULL)
+        all_correct = false;
+    if (not all_correct) {
+        std::cout<<"============ they did not deploy correctly"<<std::endl;
+    } else {
+        std::cout<<"============ they deployed correctly"<<std::endl;
+    }
 }
 
 /***********************************************************************************************
