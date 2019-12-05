@@ -69,6 +69,10 @@ public:
     void adminState (CF::Device::AdminType _adminType) throw (CORBA::SystemException);
     void deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
     CORBA::Boolean allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
+
+    CF::Device::Allocations* allocate (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
+    void deallocate (const char* capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
+
     void configure (const CF::Properties& configProperties) throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
     // resolve domain awareness
     void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, const std::string &nic);
@@ -128,6 +132,8 @@ protected:
     std::string _compositeDev_ior;
 
     std::string _idm_channel_ior;
+
+    std::map<std::string, redhawk::PropertyMap> _allocationTracker;
 
     enum AnyComparisonType {
         FIRST_BIGGER,

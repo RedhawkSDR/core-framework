@@ -57,6 +57,8 @@ class alloc_test_i(alloc_test_base):
         return True
     
     def dealloc_callback(self, value):
+        if value == 5:
+            value = 7
         self.callback_value = value
 
     def process(self):

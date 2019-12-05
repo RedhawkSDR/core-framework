@@ -292,16 +292,24 @@ Device_impl::~Device_impl ()
 
 }
 
-/* Alternate implementation*/
-CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity)
+CF::Device::Allocations* Device_impl::allocate (const CF::Properties& capacities)
+throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
 {
-    RH_TRACE(_deviceLog, "in allocateCapacity");
+    RH_TRACE(_deviceLog, "in allocate");
+    CF::Device::Allocations_var result = new CF::Device::Allocations();
 
     if (capacities.length() == 0) {
         // Nothing to do, return
         RH_TRACE(_deviceLog, "no capacities to configure.");
-        return true;
+        std::string allocation_id = ossie::generateUUID();
+        result->length(1);
+        result[0].device_ref = CF::Device::_duplicate(this->_this());
+        result[0].data_port = CORBA::Object::_nil();
+        result[0].control_port = CORBA::Object::_nil();
+        result[0].allocated = capacities;
+        result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
+        _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
+        return result._retn();
     }
 
     // Verify that the device is in a valid state
@@ -320,11 +328,73 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
         throw CF::Device::InvalidState(invalidState);
     }
 
+    bool retval;
     if (useNewAllocation) {
-        return allocateCapacityNew(capacities);
+        retval = allocateCapacityNew(capacities);
     } else {
-        return allocateCapacityLegacy(capacities);
+        retval = allocateCapacityLegacy(capacities);
     }
+
+    if (retval) {
+        result->length(1);
+        std::string allocation_id = ossie::generateUUID();
+        result->length(1);
+        result[0].device_ref = CF::Device::_duplicate(this->_this());
+        result[0].data_port = CORBA::Object::_nil();
+        result[0].control_port = CORBA::Object::_nil();
+        result[0].allocated = capacities;
+        result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
+        _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
+    }
+
+    return result._retn();
+}
+
+void Device_impl::deallocate (const char* alloc_id)
+throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
+{
+    // Verify that the device is in a valid state
+    if (isLocked() || isDisabled() || isError()) {
+        const char* invalidState;
+        if (isLocked()) {
+            invalidState = "LOCKED";
+        } else if (isError()) {
+            invalidState = "ERROR";
+        } else {
+            invalidState = "DISABLED";
+        }
+        RH_DEBUG(_deviceLog, "Cannot deallocate capacity: System is " << invalidState);
+        throw CF::Device::InvalidState(invalidState);
+    }
+
+    std::string _alloc_id = ossie::corba::returnString(alloc_id);
+
+    std::map<std::string, redhawk::PropertyMap>::iterator it;
+    for (it = _allocationTracker.begin(); it != _allocationTracker.end(); it++) {
+        if (it->first == _alloc_id) {
+            if (useNewAllocation) {
+                deallocateCapacityNew(it->second);
+            } else {
+                deallocateCapacityLegacy(it->second);
+            }
+            return;
+        }
+    }
+
+    CF::Properties invalidProps;
+    throw CF::Device::InvalidCapacity("Capacities do not match allocated ones", invalidProps);
+}
+
+/* Alternate implementation*/
+CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
+throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity)
+{
+    RH_TRACE(_deviceLog, "in allocateCapacity");
+    CF::Device::Allocations_var result = this->allocate(capacities);
+    if (result->length() == 0) {
+        return false;
+    }
+    return true;
 }
 
 void Device_impl::validateCapacities (const CF::Properties& capacities)
@@ -536,11 +606,16 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
         throw CF::Device::InvalidState(invalidState);
     }
 
-    if (useNewAllocation) {
-        deallocateCapacityNew(capacities);
-    } else {
-        deallocateCapacityLegacy(capacities);
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
+    std::map<std::string, redhawk::PropertyMap>::iterator it;
+    for (it = _allocationTracker.begin(); it != _allocationTracker.end(); it++) {
+        const redhawk::PropertyMap& it_props = redhawk::PropertyMap::cast(it->second);
+        if (it_props == props) {
+            this->deallocate(CORBA::string_dup(it->first.c_str()));
+            return;
+        }
     }
+    throw CF::Device::InvalidCapacity("Capacities do not match allocated ones", capacities);
 }
 
 void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)

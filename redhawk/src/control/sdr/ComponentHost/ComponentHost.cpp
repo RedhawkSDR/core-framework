@@ -88,6 +88,16 @@ void ComponentHost::deallocateCapacity(const CF::Properties& capacites)
 {
 }
 
+CF::Device::Allocations* ComponentHost::allocate (const CF::Properties& capacities)
+{
+    CF::Device::Allocations_var result = new CF::Device::Allocations();
+    return result._retn();
+}
+
+void ComponentHost::deallocate (const char* capacities)
+{
+}
+
 CF::Device::UsageType ComponentHost::usageState()
 {
     return CF::Device::IDLE;

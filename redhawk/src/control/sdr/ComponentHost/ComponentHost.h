@@ -42,6 +42,8 @@ namespace redhawk {
         // Device functions
         virtual CORBA::Boolean allocateCapacity(const CF::Properties& capacities);
         virtual void deallocateCapacity(const CF::Properties& capacites);
+        virtual CF::Device::Allocations* allocate (const CF::Properties& capacities);
+        virtual void deallocate (const char* capacities);
         virtual CF::Device::UsageType usageState();
         virtual CF::Device::AdminType adminState();
         virtual void adminState(CF::Device::AdminType state);

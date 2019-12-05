@@ -31,6 +31,7 @@ except:
 
 import ossie.resource as resource
 import ossie.utils
+from ossie.utils.sca.base import uuidgen
 import ossie.logger
 from  ossie.events import Publisher
 from  ossie.events import  Manager
@@ -204,6 +205,7 @@ class Device(resource.Resource):
         self._idm_publisher = None
         self._cmdLock = threading.RLock()
         self._allocationCallbacks = {}
+        self._allocationTracker = {}
 
         self.__initialize()
     
@@ -436,6 +438,28 @@ class Device(resource.Resource):
         raise NotImplementedError
             
             
+    def allocate(self, properties):
+        self._deviceLog.debug("allocate(%s)", properties)
+        # Validate
+        self._validateAllocProps(properties)
+        # Consume
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+        try:
+            retval = self._allocateCapacities(propdict)
+            alloc_id = uuidgen()
+            self._allocationTracker[alloc_id] = properties
+            return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+        except CF.Device.InvalidCapacity:
+            raise # re-raise valid exceptions
+        except CF.Device.InvalidState:
+            raise  # re-raise valid exceptions
+        except Exception, e:
+            self._deviceLog.exception("Unexpected error in _allocateCapacities: %s", str(e))
+            return []
+
     def allocateCapacity(self, properties):
         """
         Takes the list of properties and turns it into a dictionary.  If the 
@@ -451,23 +475,10 @@ class Device(resource.Resource):
             otherwise
         """
         self._deviceLog.debug("allocateCapacity(%s)", properties)
-        # Validate
-        self._validateAllocProps(properties)
-        # Consume
-        propdict = {}
-        for prop in properties:
-            propdef = self._props.getPropDef(prop.id)
-            propdict[prop.id] = propdef._fromAny(prop.value)
-        try:
-            retval = self._allocateCapacities(propdict)
-            return retval
-        except CF.Device.InvalidCapacity:
-            raise # re-raise valid exceptions
-        except CF.Device.InvalidState:
-            raise  # re-raise valid exceptions
-        except Exception, e:
-            self._deviceLog.exception("Unexpected error in _allocateCapacities: %s", str(e))
+        retval = self.allocate(properties)
+        if len(retval) == 0:
             return False
+        return True
 
 
     def _deallocateCapacities(self, propDict):
@@ -511,6 +522,26 @@ class Device(resource.Resource):
         if deallocate:
             deallocate(value)
 
+    def deallocate(self, alloc_id):
+        # Consume
+        properties = self._allocationTracker[alloc_id]
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        self._capacityLock.acquire()
+        try:
+            self._deallocateCapacities(propdict)
+        finally:
+            self._allocationTracker.pop(alloc_id)
+            self._capacityLock.release()
+
+        # Update usage state
+        self.updateUsageState()
+
+        self._deviceLog.debug("deallocateCapacity() -->")
+
     def deallocateCapacity(self, properties):
         """
         Takes the list of properties and turns it into a dictionary.  If the 
@@ -523,24 +554,30 @@ class Device(resource.Resource):
             None
         """
         self._deviceLog.debug("deallocateCapacity(%s)", properties)
+        if not (self.isEnabled() and self.isUnLocked()):
+            raise CF.Device.InvalidState("Cannot deallocate capacity. System is not DISABLED and UNLOCKED")
+
         # Validate
         self._validateAllocProps(properties)
-        # Consume
-        propdict = {}
-        for prop in properties:
-            propdef = self._props.getPropDef(prop.id)
-            propdict[prop.id] = propdef._fromAny(prop.value)
-
-        self._capacityLock.acquire()
-        try:
-            self._deallocateCapacities(propdict)
-        finally:
-            self._capacityLock.release()
-
-        # Update usage state
-        self.updateUsageState()
-
-        self._deviceLog.debug("deallocateCapacity() -->")
+        for prop_key in self._allocationTracker:
+            props = self._allocationTracker[prop_key]
+            if len(properties) == 0 and len(props) == 0:
+                self.deallocate(prop_key)
+                return
+            found = False
+            for prop in props:
+                found = False
+                for _prop in properties:
+                    if _prop.id == prop.id:
+                        found = True
+                        break
+                if not found:
+                    break
+            if not found:
+                continue
+            self.deallocate(prop_key)
+            return
+        raise CF.Device.InvalidCapacity("Allocation for capacity not found", properties)
 
     def _get_usageState(self):
         return self._usageState

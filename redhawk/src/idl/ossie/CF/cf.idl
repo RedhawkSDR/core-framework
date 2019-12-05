@@ -988,7 +988,26 @@ module CF {
                                in CF::Properties capacities
                                )
         raises (CF::Device::InvalidCapacity, CF::Device::InvalidState);
-    };
+
+        struct Allocation {
+            CF::Device device_ref;      // device that satisfied the allocation (the allocation could have been delegated)
+            Object data_port;           // data port (provides for TX, uses for RX)
+            Object control_port;        // control port - object ref
+            CF::Properties allocated;   // what allocation values the device met
+            string alloc_id;            // unique identifier (used to deallocate)
+        };
+        /* Unbounded sequence of CF DataType(s) */
+        typedef sequence <Allocation> Allocations;
+        /* The allocate operation provides the mechanism to request and allocate capacity and obtain a response with device-specific information regarding the allocation
+           The return value is a sequence of Allocation structures; these allocations are all related. For example, allocating a set of n apertures results in a sequence
+           of n Allocation structures. A single call to the operation allocate is to satisfy a single allocation */
+        Allocations allocate (in CF::Properties capacities)
+            raises (CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity);
+
+        void deallocate (in string alloc_id)
+            raises (CF::Device::InvalidCapacity, CF::Device::InvalidState);
+
+        };
     /* The ApplicationRegistrar interface provides the registration structure into the Application. */
     interface ApplicationRegistrar : CosNaming::NamingContext {
       /* This attribute is the Application onto which the Component is registering. */
