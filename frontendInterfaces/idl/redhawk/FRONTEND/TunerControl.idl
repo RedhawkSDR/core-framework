@@ -52,27 +52,29 @@ module FRONTEND {
                     - mode || FRONTEND::scanner_allocation::mode || enum string || SPAN_SCAN or DISCRETE_SCAN
                     - control_mode || FRONTEND::scanner_allocation::control_mode || enum string|| TIME_BASED or SAMPLE_BASED
                     - control_limit || FRONTEND::scanner_allocation::control_limit || double || Either the fastest hop rate (TIME_BASED) or shortest set of samples (SAMPLE_BASED) that the scanner is expected to support. In samples, the number that will be needed before the next retune, equivalent to control_limit >= sample_rate/(max_settle_time+min_dwell_time) is met before the next retune
-			(3) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
-					but can not modify the settings of the tuner	       
-					Name || ID || Type || Description
-					- existing_allocation_id || FRONTEND::listener_allocation::existing_allocation_id || string || Allocation ID for an existing allocation. Could be either control or listener
-					- listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
-			(4) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
-					Name || ID || Type || Description
-					- tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
-					- allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
-					- center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
-					- bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
-					- sample_rate || FRONTEND::tuner_status::sample_rate || double || Current sample rate in Hz. This can be ignored for such devices as analog tuners
-					- group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
-					- rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
-					- enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
-				If the tuner_type is of type RX_SCANNER_DIGITIZER, the following optional fields are required as part of FRONTEND::tuner_status:
-					- scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
-					- supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
-					
-		Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
-		include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
+            (3) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
+                    but can not modify the settings of the tuner
+                    Name || ID || Type || Description
+                    - existing_allocation_id || FRONTEND::listener_allocation::existing_allocation_id || string || Allocation ID for an existing allocation. Could be either control or listener
+                    - listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
+            (4) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
+                    Name || ID || Type || Description
+                    - tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
+                    - allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
+                    - center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
+                    - bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
+                    - sample_rate || FRONTEND::tuner_status::sample_rate || double || Current sample rate in Hz. This can be ignored for such devices as analog tuners
+                    - group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
+                    - rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
+                    - enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
+                If the tuner_type is of type RX_SCANNER_DIGITIZER, the following optional fields are required as part of FRONTEND::tuner_status:
+                    - scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
+                    - supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
+            (5) Additional allocation property (not a structure) to acquire an arbitrary number of coherent feeds (i.e.: an array) that all meet the tuner allocation criteria. Must be used in conjunction with FRONTEND::tuner_allocation. May be used in conjuntion with FRONTEND::scanner_allocation
+                    Name || ID || Type || Description
+                    - FRONTEND::coherent_feeds  || FRONTEND::coherent_feeds || string sequence || rf_flow_id for request feeds. Use an empty string when the aperture name does not matter. The number of feeds allocated is the same as the number of strings in the sequence
+        Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
+        include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
 		
 		
 		Tuner Types:
