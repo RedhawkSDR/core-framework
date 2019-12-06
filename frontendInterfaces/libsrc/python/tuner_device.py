@@ -632,9 +632,6 @@ class FrontendTunerDevice(Device):
         finally:
             self.allocation_id_mapping_lock.release()
 
-    def allocateCapacity(self, capacities):
-        return False
-
     def _checkValidIds(self, propdict):
         self._has_scanner = False
         for prop_key in propdict:

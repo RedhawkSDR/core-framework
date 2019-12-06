@@ -284,8 +284,8 @@ module FRONTEND {
     const string FE_TUNER_DEVICE_KIND = "FRONTEND::TUNER";
 
     /** Output format for digital tuners */
-    const long REFERNCE_SOURCE_INTERNAL = 0; 
-    const long REFERNCE_SOURCE_EXTERNAL = 1; 
+    const long REFERENCE_SOURCE_INTERNAL = 0; 
+    const long REFERENCE_SOURCE_EXTERNAL = 1; 
 
     /** --- Tuner Types - Expandable list of supported FE types --- */
     const string TUNER_TYPE_TX = "TX"; 
