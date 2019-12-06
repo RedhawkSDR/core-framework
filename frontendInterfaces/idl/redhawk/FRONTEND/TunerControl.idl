@@ -26,88 +26,254 @@
 
 module FRONTEND {
 
-	/**
-		Mandated Structures and Ports:
-		------------------------------
-		Frontend mandates four property structures outside of normal REDHAWK properties of "device_kind" and "device_model" :
-			(1) FRONTEND::tuner_allocation  - allocation structure to acquire capability on a tuner based off tuner settings. 	       
-					Name || ID || Type || Description
-					- tuner_type || FRONTEND::tuner_allocation::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
-					- allocation_id || FRONTEND::tuner_allocation::allocation_id || string || The allocation_id set by the caller. Used by the caller to reference the device uniquely
-					- center_frequency || FRONTEND::tuner_allocation::center_frequency || double || Requested center frequency in Hz
-					- bandwidth || FRONTEND::tuner_allocation::bandwidth || double || Requested Bandwidth in Hz
-					- bandwidth_tolerance || FRONTEND::tuner_allocation::bandwidth_tolerance || double || Allowable Percent above requested bandwidth (ie - 100 would be up to twice)
-					- sample_rate || FRONTEND::tuner_allocation::sample_rate || double || Requested sample rate in Hz. This can be ignored for such devices as analog tuners
-					- sample_rate_tolerance	|| FRONTEND::tuner_allocation::sample_rate_tolerance || double || Allowable Percent above requested sample rate (ie - 100 would be up to twice)
-					- device_control || FRONTEND::tuner_allocation::device_control || boolean || True: Has control over the device to make changes. False: Does not need control and can just attach 
-					        to any currently tasked device that satisfies the parameters (essentually a listener)
-					- group_id || FRONTEND::tuner_allocation::group_id || string || Unique identifier that specifies a group of device. Must match group_id on the device
-					- rf_flow_id || FRONTEND::tuner_allocation::rf_flow_id || string || Optional. Specifies a certain RF flow to allocate against. If left empty, it will match all frontend devices. 
+    /**
+        Allocation call
+        ---------------
+        Capacity allocations for FEI 3.0 are to be made through the allocate() 
+        method. If the allocation is successful, this method returns 
+        information regarding the allocation, simplifying multiple aspects of 
+        FEI management
+        
+        Mandated Structures and Ports:
+        ------------------------------
+        Frontend mandates four property structures outside of normal REDHAWK 
+        properties of "device_kind" and "device_model" :
+            (1) FRONTEND::tuner_allocation  - allocation structure to acquire 
+            (capability on a tuner based off tuner settings. 	       
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                    - tuner_type 
+                        || FRONTEND::tuner_allocation::tuner_type 
+                        || string 
+                        || Example Tuner Types: TX, RX, CHANNELIZER, DDC, 
+                            DUC, RX_DIGITIZER, RX_SCANNER_DIGITIZER
+                    - allocation_id 
+                        || FRONTEND::tuner_allocation::allocation_id 
+                        || string 
+                        || The allocation_id set by the caller. Used by the 
+                            caller to reference the device uniquely
+                    - center_frequency 
+                        || FRONTEND::tuner_allocation::center_frequency 
+                        || double 
+                        || Requested center frequency in Hz
+                    - bandwidth 
+                        || FRONTEND::tuner_allocation::bandwidth 
+                        || double 
+                        || Requested Bandwidth in Hz
+                    - bandwidth_tolerance 
+                        || FRONTEND::tuner_allocation::bandwidth_tolerance 
+                        || double 
+                        || Allowable Percent above requested bandwidth 
+                            (ie - 100 would be up to twice)
+                    - sample_rate 
+                        || FRONTEND::tuner_allocation::sample_rate 
+                        || double 
+                        || Requested sample rate in Hz. This can be ignored 
+                            for such devices as analog tuners
+                    - sample_rate_tolerance	
+                        || FRONTEND::tuner_allocation::sample_rate_tolerance 
+                        || double 
+                        || Allowable Percent above requested sample rate 
+                            (ie - 100 would be up to twice)
+                    - device_control 
+                        || FRONTEND::tuner_allocation::device_control 
+                        || boolean 
+                        || Value ignored - this is deprecated
+                    - group_id 
+                        || FRONTEND::tuner_allocation::group_id 
+                        || string 
+                        || Unique identifier that specifies a group of device. 
+                            Must match group_id on the device
+                    - rf_flow_id 
+                        || FRONTEND::tuner_allocation::rf_flow_id 
+                        || string 
+                        || Optional. Specifies a certain RF flow to allocate 
+                            against. If left empty, it will match all frontend 
+                            devices. 
             (2) FRONTEND::scanner_allocation
-                  Allocation structure to acquire capability on a scanning tuner (must be used in conjunction with FRONTEND::tuner_allocation).
-                  Note that the allocation does not contain enough information to setup the scan strategy. Once the device is allocated, the strategy must be set through the control API
-                    Name || ID || Type || Description
-                    - min_freq || FRONTEND::scanner_allocation::min_freq || double || Requested lower edge of the scanning band
-                    - max_freq || FRONTEND::scanner_allocation::max_freq || double || Requested upper edge of the scanning band
-                    - mode || FRONTEND::scanner_allocation::mode || enum string || SPAN_SCAN or DISCRETE_SCAN
-                    - control_mode || FRONTEND::scanner_allocation::control_mode || enum string|| TIME_BASED or SAMPLE_BASED
-                    - control_limit || FRONTEND::scanner_allocation::control_limit || double || Either the fastest hop rate (TIME_BASED) or shortest set of samples (SAMPLE_BASED) that the scanner is expected to support. In samples, the number that will be needed before the next retune, equivalent to control_limit >= sample_rate/(max_settle_time+min_dwell_time) is met before the next retune
-            (3) FRONTEND::listener_allocation  - additional allocation structure to acquire "listener" capability on a tuner based off a previous allocation. "Listeners" have the ability to receive the data 
-                    but can not modify the settings of the tuner
-                    Name || ID || Type || Description
-                    - existing_allocation_id || FRONTEND::listener_allocation::existing_allocation_id || string || Allocation ID for an existing allocation. Could be either control or listener
-                    - listener_allocation_id || FRONTEND::listener_allocation::listener_allocation_id || string || New Listener ID 
-            (4) FRONTEND::tuner_status  - a struct sequence containing the status of all tuners. There are optional and required fields for this structure. The required fields are listed below:
-                    Name || ID || Type || Description
-                    - tuner_type || FRONTEND::tuner_status::tuner_type || string || Example Tuner Types: TX, RX, CHANNELIZER, DDC, RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, RX_SCANNER_DIGITIZER
-                    - allocation_id_csv || FRONTEND::tuner_status::allocation_id_csv || string || Comma seperated list of currrent allocation ids, both control and listeners.
-                    - center_frequency || FRONTEND::tuner_status::center_frequency || double || Current center frequency in Hz
-                    - bandwidth || FRONTEND::tuner_status::bandwidth || double || Current Bandwidth in Hz
-                    - sample_rate || FRONTEND::tuner_status::sample_rate || double || Current sample rate in Hz. This can be ignored for such devices as analog tuners
-                    - group_id || FRONTEND::tuner_status::group_id || string || Unique identifier that specifies a group of device.
-                    - rf_flow_id || FRONTEND::tuner_status::rf_flow_id || string || Specifies a certain RF flow to allocate against.
-                    - enabled || FRONTEND::tuner_status::enabled || boolean || True is tuner is enabled. Can be allocated but disabled 
-                If the tuner_type is of type RX_SCANNER_DIGITIZER, the following optional fields are required as part of FRONTEND::tuner_status:
-                    - scan_mode_enabled || FRONTEND::tuner_status::scan_mode_enabled || boolean || True is scan mode is enabled. False is Manual Tune is enabled 
-                    - supports_scan || FRONTEND::tuner_status::supports_scan || boolean || True if scan is supported
-            (5) Additional allocation property (not a structure) to acquire an arbitrary number of coherent feeds (i.e.: an array) that all meet the tuner allocation criteria. Must be used in conjunction with FRONTEND::tuner_allocation. May be used in conjuntion with FRONTEND::scanner_allocation
-                    Name || ID || Type || Description
-                    - FRONTEND::coherent_feeds  || FRONTEND::coherent_feeds || string sequence || rf_flow_id for request feeds. Use an empty string when the aperture name does not matter. The number of feeds allocated is the same as the number of strings in the sequence
-        Usual port additions include a input (provides) port for the tuner control as well as an output (uses) BULKIO data port that follows the naming convention [interface]_[in/out]. Examples
-        include dataShort_out, dataSDDS_out,  dataOctet_in, and DigitalTuner_in.
-		
-		
-		Tuner Types:
-		------------
-		Frontend devices are seperated in several tuner types based on functionality. The base supported types are listed below but can be extended (ie - new types can be created)
-		to satisfy ones CONOP.	
-			- TX: Transmitter (input digital, output analog) 
-			- RX: Analog Receiver (input analog, output analog) 
-			- RX_DIGITIZER: Digital Receiver (input analog, output digital) 
-			- CHANNELIZER: Accepts digitized wideband and provides DDC's (allocation against a channelizer ensures that the input port is not shared)  
-			- DDC: Digital Down Converter. Channel that is extracted from a wider bandwidth (ie - Channelizer). Similar to a RX_DIGITIZER but often much cheaper.
-			- RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER and CHANNELIZER combo. The reason they are combined is because they are a single device that cannot operate 
-			 		independetly (ie - RX_DIGITIZER can not output full-rate or the CHANNELIZER can not accept external input)
+                  Allocation structure to acquire capability on a scanning tuner 
+                    (must be used in conjunction with FRONTEND::tuner_allocation).
+                  Note that the allocation does not contain enough information 
+                    to setup the scan strategy. Once the device is allocated, 
+                    the strategy must be set through the control API
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                    - min_freq 
+                        || FRONTEND::scanner_allocation::min_freq 
+                        || double 
+                        || Requested lower edge of the scanning band
+                    - max_freq 
+                        || FRONTEND::scanner_allocation::max_freq 
+                        || double 
+                        || Requested upper edge of the scanning band
+                    - mode 
+                        || FRONTEND::scanner_allocation::mode 
+                        || enum string 
+                        || SPAN_SCAN or DISCRETE_SCAN
+                    - control_mode 
+                        || FRONTEND::scanner_allocation::control_mode 
+                        || enum string
+                        || TIME_BASED or SAMPLE_BASED
+                    - control_limit 
+                        || FRONTEND::scanner_allocation::control_limit 
+                        || double 
+                        || Either the fastest hop rate (TIME_BASED) or shortest 
+                            set of samples (SAMPLE_BASED) that the scanner is 
+                            expected to support. In samples, the number that 
+                            will be needed before the next retune, equivalent 
+                            to control_limit >= sample_rate/(max_settle_time+min_dwell_time) 
+                            is met before the next retune
+            (3) Additional allocation property (not a structure) to acquire 
+                an arbitrary number of coherent feeds (i.e.: an array) that all 
+                meet the tuner allocation criteria. Must be used in conjunction 
+                with FRONTEND::tuner_allocation. May be used in conjuntion with 
+                FRONTEND::scanner_allocation
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                    - FRONTEND::coherent_feeds  
+                        || FRONTEND::coherent_feeds 
+                        || string sequence 
+                        || rf_flow_id for request feeds. Use an empty string 
+                            when the aperture name does not matter. The number 
+                            of feeds allocated is the same as the number of 
+                            strings in the sequence
+            (4) FRONTEND::tuner_status - a struct sequence containing the 
+                status of all tuners. There are optional and required fields 
+                for this structure. The required fields are listed below:
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                    - tuner_type 
+                        || FRONTEND::tuner_status::tuner_type 
+                        || string 
+                        || Example Tuner Types: TX, RX, CHANNELIZER, DDC, 
+                            RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, 
+                            RX_SCANNER_DIGITIZER
+                    - allocation_id_csv 
+                        || FRONTEND::tuner_status::allocation_id_csv 
+                        || string 
+                        || allocation id (no longer a csv)
+                    - center_frequency 
+                        || FRONTEND::tuner_status::center_frequency 
+                        || double 
+                        || Current center frequency in Hz
+                    - bandwidth 
+                        || FRONTEND::tuner_status::bandwidth 
+                        || double 
+                        || Current Bandwidth in Hz
+                    - sample_rate 
+                        || FRONTEND::tuner_status::sample_rate 
+                        || double 
+                        || Current sample rate in Hz. This can be ignored for 
+                            such devices as analog tuners
+                    - group_id 
+                        || FRONTEND::tuner_status::group_id 
+                        || string 
+                        || Unique identifier that specifies a group of device.
+                    - rf_flow_id 
+                        || FRONTEND::tuner_status::rf_flow_id 
+                        || string 
+                        || Specifies a certain RF flow to allocate against.
+                    - enabled 
+                        || FRONTEND::tuner_status::enabled 
+                        || boolean 
+                        || True is tuner is enabled. Can be allocated but 
+                            disabled 
+                If the tuner_type is of type RX_SCANNER_DIGITIZER, the 
+                    following optional fields are required as part of 
+                    FRONTEND::tuner_status:
+                    - scan_mode_enabled 
+                        || FRONTEND::tuner_status::scan_mode_enabled 
+                        || boolean 
+                        || True is scan mode is enabled. False is Manual 
+                            Tune is enabled 
+                    - supports_scan 
+                        || FRONTEND::tuner_status::supports_scan 
+                        || boolean 
+                        || True if scan is supported
+            (5) ****** DEPRECATED ******  FRONTEND::listener_allocation
+                this allocation is no longer needed
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                     - existing_allocation_id 
+                        || FRONTEND::listener_allocation::existing_allocation_id 
+                        || string 
+                        || ignored
+                     - listener_allocation_id 
+                        || FRONTEND::listener_allocation::listener_allocation_id 
+                        || string 
+                        || ignored
+        Usual port additions include a input (provides) port for the tuner 
+            control as well as a BULKIO data port that follows the naming 
+            convention [interface]_[in/out]. Examples include dataShort_out, 
+            dataSDDS_out,  dataOctet_in, and DigitalTuner_in
+
+        Tuner Types:
+        ------------
+        Frontend devices are seperated in several tuner types based on 
+            functionality. The base supported types are listed below but
+            can be extended (ie - new types can be created) to satisfy
+            one's CONOP
+            - TX: Transmitter (input digital, output analog) 
+            - RX: Analog Receiver (input analog, output analog) 
+            - RX_DIGITIZER: Digital Receiver (input analog, output digital)
+            - CHANNELIZER: (digital input, digital output) Accepts digitized 
+                wideband and provides DDC's (allocation against a channelizer 
+                ensures that the input port is not shared)  
+            - DDC: Digital Down Converter. Channel that is extracted from a 
+                wider bandwidth (ie - CHANNELIZER or RX_DIGITIZER)
+            - DUC: Digital Up Converter. Channel that is aggregated to a wider 
+                bandwidth (ie - TX)
+            - ****** DEPRECATED ****** RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER 
+                and CHANNELIZER combo. The reason they are combined is because 
+                they are a single device that cannot operate independetly. For
+                example, and RX_DIGITIZER can not output full-rate or the 
+                CHANNELIZER cannot accept external input
             - RX_SCANNER_DIGITIZER: Frequency scanning digitizer
-			
-			
-			
-		Allocation ID:
-		--------------
-		This interface introduces the concept of an allocation id. An allocation id is a unique identifier given to the tuner (channel) in a device at allocation time. For the 
-		life of that allocation, that specific tuner is referenced by that unique allocation id. When that tuner is no longer needed, a deallocation occurs on that allocation id, 
-		thus freeing the tuner. 
-		
-		
-		
-		Data Egress:
-		------------
-		Multi-tuner frontend devices requires customization of the output port. In this case, data from all tuners are sent out a single output port named "data[Type]_out" (ie - dataShort_out). Since there
-		are multiple streams going out of the port, data is routed based off the streams "allocation_id" and the ports "connection_id". For example, lets say you have 3 tuners allocated with the respective 
-		allocation id's: allocID_1, allocID_2, and allocID_3. Now lets say you want to make a connection to the device and get the second tuners data. What you would have to do is to connect to the data[Type]_out 
-		port with the connection_id set to "allocID_2". 
-	
-	*/
+
+        Allocation ID:
+        --------------
+        This interface introduces the concept of an allocation id. An 
+        allocation id is a unique identifier given to the tuner (channel) in a 
+        device at allocation time. For the life of that allocation, that 
+        specific tuner is referenced by that unique allocation id. When that 
+        tuner is no longer needed, a deallocation occurs on that allocation id,
+        thus freeing the tuner. There is a one-to-one relationship between a 
+        tuner and an allocation.
+
+        Data Ingress/Egress:
+        ------------
+        Multi-tuner frontend devices are implemented as a single device. This
+        device is of type RX_DIGITIZER if connected to an RF feed or 
+        CHANNELIZER if given digitized data. In this device, each narrowband 
+        independent tuner is implemented as a child device of type DDC. The 
+        child device is programmatically launched by the parent device through 
+        the addChild method; for an example, see the generated code. 
+        Allocations to the parent device for narrowband channels are delegated 
+        to a child device; if the child device accepts the allocation request, 
+        that child device's tuner output is the output from the allocation.
+        This behavior removes the need for FEI 2.0's listener allocations.
+
+        If the parent device has an output Bulk IO port, that output is for its 
+        wideband digitized data (if available).
+
+        To request a narrowband feed, use DDC as the tuner_type in the 
+        allocation structure. To request a wideband feed, use RX_DIGITIZER or 
+        CHANNELIZER
+
+        The same parent/child concept applies to transmit operations. The 
+        parent device (of type TX) launches DUC children to transmit data.
+
+        */
 
 
     /***********************/
