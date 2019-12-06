@@ -395,6 +395,8 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
     def test_ECM_InvalidChannelNames(self):
         
         self._test_ECM_InvalidChannelName('')
+        self._test_ECM_InvalidChannelName('\"\"')
+        self._test_ECM_InvalidChannelName('\'\'')
         self._test_ECM_InvalidChannelName('.badname')
         self._test_ECM_InvalidChannelName('badname.')
         self._test_ECM_InvalidChannelName('bad.name')

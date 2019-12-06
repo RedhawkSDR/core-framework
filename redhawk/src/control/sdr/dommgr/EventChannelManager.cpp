@@ -1384,7 +1384,11 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
 /*
  */
   bool EventChannelManager::_validateChannelName( const std::string &cname ) {
-    if ( cname != "" && cname.find(":") == std::string::npos ) {
+    if ( cname != "" &&
+         cname != "\'\'" &&
+         cname != "\"\"" &&
+         cname.find(".") == std::string::npos &&
+         cname.find(":") == std::string::npos ) {
       return true;
     }
     else {
