@@ -287,40 +287,41 @@ module FRONTEND {
     const long REFERNCE_SOURCE_INTERNAL = 0; 
     const long REFERNCE_SOURCE_EXTERNAL = 1; 
 
-	/** --- Tuner Types - Expandable list of supported FE types --- */
-	const string TUNER_TYPE_TX = "TX"; 
-	const string TUNER_TYPE_RX = "RX"; 
-	const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
+    /** --- Tuner Types - Expandable list of supported FE types --- */
+    const string TUNER_TYPE_TX = "TX"; 
+    const string TUNER_TYPE_RX = "RX"; 
+    const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
     const string TUNER_TYPE_RX_SCANNER_DIGITIZER = "RX_SCANNER_DIGITIZER"; 
-	const string TUNER_TYPE_CHANNELIZER = "CHANNELIZER"; 
-	const string TUNER_TYPE_DDC = "DDC"; 
-	const string TUNER_TYPE_RX_DIGITIZER_CHANNELIZER = "RX_DIGITIZER_CHANNELIZER"; 
-	
+    const string TUNER_TYPE_CHANNELIZER = "CHANNELIZER"; 
+    const string TUNER_TYPE_DDC = "DDC"; 
+    const string TUNER_TYPE_DUC = "DUC"; 
+    const string TUNER_TYPE_RX_DIGITIZER_CHANNELIZER = "RX_DIGITIZER_CHANNELIZER"; // deprecated
+
     /*************************/
     /***      INTERFACE      */
     /*************************/
-    
+
     interface FrontendTuner
     {
-    	/** Get the type of tuner (ie- RX or DDC) associated with this allocation id*/
-    	string getTunerType(in string id)
-    		raises (FrontendException, BadParameterException, NotSupportedException);
-    	
-    	/** Returns whether this allocation id has control (modification privledges) over the tuner*/
-    	boolean getTunerDeviceControl(in string id)
-    		raises (FrontendException, BadParameterException, NotSupportedException);
-    	
-    	/** Retrieves the group id (may be empty) for this allocation id */
-    	string getTunerGroupId(in string id)
-    		raises (FrontendException, BadParameterException, NotSupportedException);
-    		
-    	/** Retrieves the rf flow id (may be empty) for this allocation id */
-    	string getTunerRfFlowId(in string id)
-    		raises (FrontendException, BadParameterException, NotSupportedException);
-    	
-    	/** Key/Value pair of entire tuner status structure */
-    	CF::Properties getTunerStatus(in string id) 
-    		raises (FrontendException, BadParameterException, NotSupportedException);
+        /** Get the type of tuner (ie- RX or DDC) associated with this allocation id*/
+        string getTunerType(in string id)
+            raises (FrontendException, BadParameterException, NotSupportedException);
+        
+        /** Returns whether this allocation id has control (modification privledges) over the tuner*/
+        boolean getTunerDeviceControl(in string id)
+            raises (FrontendException, BadParameterException, NotSupportedException);
+        
+        /** Retrieves the group id (may be empty) for this allocation id */
+        string getTunerGroupId(in string id)
+            raises (FrontendException, BadParameterException, NotSupportedException);
+            
+        /** Retrieves the rf flow id (may be empty) for this allocation id */
+        string getTunerRfFlowId(in string id)
+            raises (FrontendException, BadParameterException, NotSupportedException);
+        
+        /** Key/Value pair of entire tuner status structure */
+        CF::Properties getTunerStatus(in string id) 
+            raises (FrontendException, BadParameterException, NotSupportedException);
     };
     
     
