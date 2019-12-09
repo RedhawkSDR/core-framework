@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <sstream>
 #include <vector>
+#include <cctype>
+#include <algorithm>
 #include <uuid/uuid.h>
 #include <boost/thread/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -1381,14 +1383,20 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
   }
 
 
+
 /*
  */
   bool EventChannelManager::_validateChannelName( const std::string &cname ) {
-    if ( cname != "" &&
-         cname != "\'\'" &&
-         cname != "\"\"" &&
-         cname.find(".") == std::string::npos &&
-         cname.find(":") == std::string::npos ) {
+
+    // remove all white space...
+    std::string tmp(cname);
+    tmp.erase(std::remove_if(tmp.begin(),tmp.end(), ::isspace),tmp.end());
+    if ( tmp.size() != 0 &&
+         tmp != "" &&
+         tmp != "\'\'" &&
+         tmp != "\"\"" &&
+         tmp.find(".") == std::string::npos &&
+         tmp.find(":") == std::string::npos ) {
       return true;
     }
     else {
