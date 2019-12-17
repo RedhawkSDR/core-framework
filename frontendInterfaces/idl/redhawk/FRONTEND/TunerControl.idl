@@ -52,8 +52,8 @@ module FRONTEND {
                     - allocation_id 
                         || FRONTEND::tuner_allocation::allocation_id 
                         || string 
-                        || The allocation_id set by the caller. Used by the 
-                            caller to reference the device uniquely
+                        || The allocation_id requested by the caller.
+                            The actual allocation_id returned may be different
                     - center_frequency 
                         || FRONTEND::tuner_allocation::center_frequency 
                         || double 
@@ -180,7 +180,7 @@ module FRONTEND {
                     - rf_flow_id 
                         || FRONTEND::tuner_status::rf_flow_id 
                         || string 
-                        || Specifies a certain RF flow to allocate against.
+                        || Specifies the RF flow id initially allocated against
                     - enabled 
                         || FRONTEND::tuner_status::enabled 
                         || boolean 
