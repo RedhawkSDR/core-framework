@@ -523,21 +523,36 @@ class FrontendTunerDevice(Device):
         self.allocation_id_mapping_lock = threading.RLock()
         self.supports_scan = False
 
-    def deallocateCapacity(self, properties):
-        """
-        Takes the list of properties and turns it into a dictionary.  If the 
-        device has a deallocateCapacities(propDict) method it is invoked.
-        
-        Input:
-            <properties>    A list of CF.DataType properties to allocate
-            
-        Output:
-            None
-        """
-        self._deviceLog.debug("deallocateCapacity(%s)", properties)
-        # Validate
+    def allocate(self, properties):
+        self._deviceLog.debug("allocateCapacity(%s)", properties)
+
         self._validateAllocProps(properties)
-        # Consume
+
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        self._checkValidIds(propdict)
+        scanner_prop = None
+        if propdict.has_key('FRONTEND::scanner_allocation'):
+            scanner_prop = propdict['FRONTEND::scanner_allocation']
+
+        if propdict.has_key('FRONTEND::tuner_allocation'):
+            retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
+            if retval:
+                alloc_id = uuidgen()
+                self._allocationTracker[alloc_id] = properties
+                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+            else:
+                return []
+        if propdict.has_key('FRONTEND::listener_allocation'):
+            return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+
+        raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
+
+    def deallocate(self, alloc_id):
+        properties = self._allocationTracker[alloc_id]
         propdict = {}
         for prop in properties:
             propdef = self._props.getPropDef(prop.id)
@@ -552,18 +567,67 @@ class FrontendTunerDevice(Device):
                 prop.value._v += [CF.DataType(id='FRONTEND::tuner_allocation::device_control',value=any.to_any(None))]
                 prop.value._v += [CF.DataType(id='FRONTEND::tuner_allocation::group_id',value=any.to_any(None))]
                 prop.value._v += [CF.DataType(id='FRONTEND::tuner_allocation::rf_flow_id',value=any.to_any(None))]
-            if prop.id == 'FRONTEND::listener_allocation' and len(prop.value._v) == 1:
-                prop.value._v += [CF.DataType(id='FRONTEND::listener_allocation::existing_allocation_id',value=any.to_any(None))]
             propdict[prop.id] = propdef._fromAny(prop.value)
 
         self._capacityLock.acquire()
         try:
             self._deallocateCapacities(propdict)
         finally:
+            self._allocationTracker.pop(alloc_id)
             self._capacityLock.release()
 
         # Update usage state
         self._usageState = self.updateUsageState()
+
+    def deallocateCapacity(self, properties):
+        """
+        Takes the list of properties and turns it into a dictionary.  If the 
+        device has a deallocateCapacities(propDict) method it is invoked.
+        
+        Input:
+            <properties>    A list of CF.DataType properties to allocate
+            
+        Output:
+            None
+        """
+        self._deviceLog.debug("deallocateCapacity(%s)", properties)
+        # Validate
+        self._validateAllocProps(properties)
+        request_allocation_id = None
+        for _prop in properties:
+            if _prop.id != 'FRONTEND::tuner_allocation':
+                continue
+            for _sub_prop in _prop.value._v:
+                if _sub_prop.id != 'FRONTEND::tuner_allocation::allocation_id':
+                    continue
+                request_allocation_id = _sub_prop.value._v
+                break
+        if request_allocation_id:
+            for prop_key in self._allocationTracker:
+                props = self._allocationTracker[prop_key]
+                if len(properties) == 0 and len(props) == 0:
+                    self.deallocate(prop_key)
+                    return
+                found = False
+                for prop in props:
+                    found = False
+                    if prop.id != 'FRONTEND::tuner_allocation':
+                        continue
+                    for _req_prop in prop.value._v:
+                        if _sub_prop.id != 'FRONTEND::tuner_allocation::allocation_id':
+                            continue
+                        request_allocation_id = _sub_prop.value._v
+                        break
+                        if request_allocation_id == allocation_id:
+                            found = True
+                            break
+                    if found:
+                        break
+                if not found:
+                    continue
+                self.deallocate(prop_key)
+                return
+        raise CF.Device.InvalidCapacity("Allocation for capacity not found", properties)
 
         self._deviceLog.debug("deallocateCapacity() -->")
 
@@ -641,29 +705,6 @@ class FrontendTunerDevice(Device):
         for prop_key in propdict:
             if prop_key != "FRONTEND::tuner_allocation" and prop_key != "FRONTEND::listener_allocation":
                 raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
-
-
-    def allocateCapacity(self, properties):
-        self._deviceLog.debug("allocateCapacity(%s)", properties)
-
-        self._validateAllocProps(properties)
-
-        propdict = {}
-        for prop in properties:
-            propdef = self._props.getPropDef(prop.id)
-            propdict[prop.id] = propdef._fromAny(prop.value)
-
-        self._checkValidIds(propdict)
-        scanner_prop = None
-        if propdict.has_key('FRONTEND::scanner_allocation'):
-            scanner_prop = propdict['FRONTEND::scanner_allocation']
-
-        if propdict.has_key('FRONTEND::tuner_allocation'):
-            return self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
-        if propdict.has_key('FRONTEND::listener_allocation'):
-            return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
-
-        raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
 
     def _allocate_frontend_tuner_allocation(self, frontend_tuner_allocation, scanner_prop = None):
         exception_raised = False
