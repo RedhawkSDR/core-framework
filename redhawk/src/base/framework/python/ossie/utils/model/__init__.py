@@ -1052,6 +1052,26 @@ class Device(Resource):
             pydoc.pager(destfile.getvalue())
             destfile.close()
 
+    def allocate(self, properties):
+        if self.ref:
+            return self.ref.allocate(properties)
+
+    def deallocate(self, alloc_id):
+        if self.ref:
+            self.ref.deallocate(alloc_id)
+
+    def _get_devices(self):
+        if not hasattr(self.ref, "_get_devices"):
+            raise RuntimeError("This device does not support the aggregate device interface")
+        if self.ref:
+            return self.ref._get_devices()
+        else:
+            return []
+
+    @property
+    def devices(self):
+        return self._get_devices()
+
 class LoadableDevice(Device):
     def load(self, fs, fileName, loadKind):
         if self.ref:
