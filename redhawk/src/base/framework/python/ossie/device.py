@@ -449,9 +449,12 @@ class Device(resource.Resource):
             propdict[prop.id] = propdef._fromAny(prop.value)
         try:
             retval = self._allocateCapacities(propdict)
-            alloc_id = uuidgen()
-            self._allocationTracker[alloc_id] = properties
-            return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+            if retval:
+                alloc_id = uuidgen()
+                self._allocationTracker[alloc_id] = properties
+                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+            else:
+                return []
         except CF.Device.InvalidCapacity:
             raise # re-raise valid exceptions
         except CF.Device.InvalidState:
@@ -571,7 +574,7 @@ class Device(resource.Resource):
                     if _prop.id == prop.id:
                         found = True
                         break
-                if not found:
+                if found:
                     break
             if not found:
                 continue
