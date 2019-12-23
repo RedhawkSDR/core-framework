@@ -36,7 +36,7 @@ public:
     template<class T>
     T* addChild(std::string instance_name)
     {
-        SCOPED_LOCK(dynamicComponentDeploymentLock);
+        SCOPED_LOCK(_dynamicComponentDeploymentLock);
 
         if (this->_dynamicComponentCount.find(instance_name) == this->_dynamicComponentCount.end())
             this->_dynamicComponentCount[instance_name] = 0;
@@ -81,7 +81,7 @@ public:
     Device_impl* _base_device;
 
 protected:
-    boost::mutex dynamicComponentDeploymentLock;
+    boost::mutex _dynamicComponentDeploymentLock;
     DynamicComponent *_parentInstance;
 };
 

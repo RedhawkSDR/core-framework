@@ -3,6 +3,7 @@ import ossie
 import traceback
 from ossie.cf import CF
 from omniORB import any as _any
+import threading
 
 class DynamicComponentRegistry:
     def __init__(self):
@@ -20,6 +21,7 @@ class DynamicComponent:
         self._dynamicComponents = []
         self._dynamicComponentCount = {}
         self.__dynamicComponentRegistry = DynamicComponentRegistry()
+        self._dynamicComponentDeploymentLock = threading.RLock()
 
     def removeInstance(self, instance):
         pass
@@ -30,7 +32,7 @@ class DynamicComponent:
     def addChild(self, instance, instanceName=None):
         device_object = None
         try:
-            self._cmdLock.acquire()
+            self._dynamicComponentDeploymentLock.acquire()
             with ossie.device.envState():
                 if isinstance(instance, basestring):
                     device_name = instance
@@ -68,7 +70,7 @@ class DynamicComponent:
                 self._dynamicComponents.append(device_object)
                 self.__dynamicComponentRegistry.register(device_object, self)
         finally:
-            self._cmdLock.release()
+            self._dynamicComponentDeploymentLock.release()
         return device_object
 
     def local_start_device(self, deviceclass, execparams, interactive_callback=None, thread_policy=None,loggerName=None, skip_run=False, parent_instance=None):
