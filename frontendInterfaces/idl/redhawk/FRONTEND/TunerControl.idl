@@ -43,7 +43,7 @@ module FRONTEND {
                     Name 
                         || ID 
                         || Type 
-                        || Description
+                        || Des****** DEPRECATED ******  cription
                     - tuner_type 
                         || FRONTEND::tuner_allocation::tuner_type 
                         || string 
@@ -198,7 +198,29 @@ module FRONTEND {
                         || FRONTEND::tuner_status::supports_scan 
                         || boolean 
                         || True if scan is supported
-            (5) ****** DEPRECATED ******  FRONTEND::listener_allocation
+            (6) FRONTEND::transmitter_allocation
+                this allocation is no longer needed
+                    Name 
+                        || ID 
+                        || Type 
+                        || Description
+                     - min_freq
+                        || FRONTEND::transmitter_allocation::min_freq 
+                        || double 
+                        || In Hz. Requested lower edge of the transmit range
+                     - max_freq
+                        || FRONTEND::transmitter_allocation::max_freq 
+                        || double 
+                        || In Hz. Requested upper edge of the transmit range
+                     - control_limit
+                        || FRONTEND::transmitter_allocation::control_limit 
+                        || double 
+                        || In seconds. control_limit >= max_settle_time+min_dwell_time is met before the next retune
+                     - max_power
+                        || FRONTEND::transmitter_allocation::max_power 
+                        || double 
+                        || In Watts. max_power => transmitted burst power (-1 for ignore)
+            (6) ****** DEPRECATED ******  FRONTEND::listener_allocation
                 this allocation is no longer needed
                     Name 
                         || ID 
@@ -482,6 +504,23 @@ module FRONTEND {
   interface DigitalScanningTuner : ScanningTuner, DigitalTuner
   {
   };
+
+    struct TransmitStatusType {
+        string                      stream_id;
+        string                      allocation_id;
+        CF::UTCTime                 timestamp;
+        unsigned long long          total_samples;  // number of samples transmitted from this stream id; resets to 0 when >= max Ulonglong
+        unsigned long long          total_bursts;   // number of bursts transmitted (pushPacket calls) from this stream id; resets to 0 when >= max Ulonglong
+        boolean                     transmitting;   // true when currently transmitting, false when no queued data to transmit
+        CF::DeviceStatusCodeType    status;         // device status
+        double                      settling_time;  // this is the hardware's current re-tune settling time
+        unsigned long               queued_bursts;  // number of bursts that are yet to be transmitted (current queue size)
+    };
+
+    interface TransmitDeviceStatus : CF::DeviceStatus {
+        // triggers for status message: change in status, change in transmitting, or queued_bursts increases or becomes zero
+        void transmitStatusChanged(in TransmitStatusType status);
+    };
   
 };
 #endif

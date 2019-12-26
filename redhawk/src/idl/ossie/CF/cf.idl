@@ -930,6 +930,7 @@ module CF {
       void stop ()
         raises (CF::Resource::StopError);
     };
+
     /* The Device interface defines additional capabilities and attributes for any logical Device in the domain. */
     interface Device : Resource {
       /* This exception indicates that the device is not capable of the behavior being attempted due to the state the Device is in. */
@@ -1008,6 +1009,7 @@ module CF {
             raises (CF::Device::InvalidCapacity, CF::Device::InvalidState);
 
         };
+
     /* The ApplicationRegistrar interface provides the registration structure into the Application. */
     interface ApplicationRegistrar : CosNaming::NamingContext {
       /* This attribute is the Application onto which the Component is registering. */

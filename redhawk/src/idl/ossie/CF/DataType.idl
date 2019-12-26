@@ -46,6 +46,31 @@ module CF {
     };
     typedef sequence <UTCTime> UTCTimeSequence;
 
+    enum DeviceStatusCodeType {
+        DEV_OK,                             // device operating normally
+        DEV_UNDERFLOW,                      // not enough data to fill the needed time
+        DEV_OVERFLOW,                       // hardware cannot transmit the data at the rate requested
+        DEV_INSUFFICIENT_SETTLING_TIME,     // time difference between end of last transmit and new transmit with a tune is insufficient
+        DEV_MISSED_TRANSMIT_WINDOW,         // transmit could not begin at the requested time
+        DEV_INVALID_TRANSMIT_TIME_OVERLAP,  // the timestamp for the last sample in the previous packet is after the timestamp for the first sample in the current packet
+        DEV_INVALID_HARDWARE_STATE,         // hardware state is invalid (e.g.: configuration placed hardware in an invalid state)
+        DEV_HARDWARE_FAILURE                // general hardware failure
+    };
+
+    // generic device status
+    struct DeviceStatusType {
+        string                      allocation_id;
+        CF::UTCTime                 timestamp;
+        CF::DeviceStatusCodeType    status;         // device status
+        string                      message;        // status-specific message
+        CF::Properties              props;          // status-specific properties
+    };
+
+    interface DeviceStatus {
+        // triggers for status message: change in status
+        void statusChanged(in DeviceStatusType status);
+    };
+
 };
 
 #endif
