@@ -521,6 +521,32 @@ module FRONTEND {
         // triggers for status message: change in status, change in transmitting, or queued_bursts increases or becomes zero
         void transmitStatusChanged(in TransmitStatusType status);
     };
-  
+
+    interface TransmitControl : DigitalTuner {
+        struct TransmitParameters {
+            string  stream_id;          // if empty string, then applies to all streams
+            boolean ignore_timestamp;   // set to true for continuous data. Insufficient data will cause an UNDERFLOW error
+            boolean ignore_error;       // set to true to ignore error states and just transmit
+            double  tx_power;           // -1 for don't care
+            double  max_timing_error;   // how much deviation (over/under) before MISSED_TRANSMIT_WINDOW is set as the error code; -1 for don't care
+            // time for the burst transmission is the bulk io timestamp, unless ignore_timestamp is true; then data is sent as soon as it is available
+            // center frequency for the burst transmission is CHAN_RF keyword in SRI
+            // duration of the burst is the length of the packet * the sampling period (in SRI)
+        };
+
+        /* reset allocation(s):
+              - remove error codes
+              - empty the transmit queue
+              - reset total_samples count
+              - reset total_bursts count */
+        void reset()
+            raises (FRONTEND::FrontendException);
+
+        void setTransmitParameters(in TransmitParameters transmit_parameters)
+            raises (FRONTEND::FrontendException, FRONTEND::BadParameterException);
+
+        TransmitParameters getTransmitParameters()
+            raises (FRONTEND::FrontendException);
+    };
 };
 #endif
