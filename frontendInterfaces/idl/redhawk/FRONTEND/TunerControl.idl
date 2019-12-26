@@ -534,12 +534,13 @@ module FRONTEND {
             // duration of the burst is the length of the packet * the sampling period (in SRI)
         };
 
-        /* reset allocation(s):
-              - remove error codes
-              - empty the transmit queue
-              - reset total_samples count
-              - reset total_bursts count */
-        void reset()
+        // reset allocation(s):
+        //    - remove error codes
+        //    - empty the transmit queue
+        //    - reset total_samples count
+        //    - reset total_bursts count
+        // if stream_id == "", the reset applies to all streams
+        void reset(in string stream_id)
             raises (FRONTEND::FrontendException);
 
         void setTransmitParameters(in TransmitParameters transmit_parameters)
