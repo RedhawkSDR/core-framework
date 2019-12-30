@@ -65,6 +65,7 @@ import CF.DevicePackage.InvalidCapacity;
 import CF.DevicePackage.InvalidState;
 import CF.DevicePackage.OperationalType;
 import CF.DevicePackage.UsageType;
+import CF.DevicePackage.Allocation;
 import CF.LifeCyclePackage.ReleaseError;
 import CF.PropertySetPackage.InvalidConfiguration;
 import CF.PropertySetPackage.PartialConfiguration;
@@ -523,6 +524,14 @@ public abstract class Device extends Resource implements DeviceOperations {
         }
     }
 
+
+    public void deallocate(String alloc_id) throws InvalidCapacity, InvalidState {
+    }
+
+    public CF.DevicePackage.Allocation[] allocate(DataType[] capacities) throws InvalidCapacity, InvalidState {
+        Allocation[] retval = null;
+        return retval;
+    }
 
     /**
      * Attempts to allocate a list of capacities on a device
