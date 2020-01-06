@@ -43,17 +43,12 @@ module FRONTEND {
                     Name 
                         || ID 
                         || Type 
-                        || Des****** DEPRECATED ******  cription
+                        || Description
                     - tuner_type 
                         || FRONTEND::tuner_allocation::tuner_type 
                         || string 
-                        || Example Tuner Types: TX, RX, CHANNELIZER, DDC, 
-                            DUC, RX_DIGITIZER, RX_SCANNER_DIGITIZER
-                    - allocation_id 
-                        || FRONTEND::tuner_allocation::allocation_id 
-                        || string 
-                        || The allocation_id requested by the caller.
-                            The actual allocation_id returned may be different
+                        || Example Tuner Types: TX, RX, RX_ARRAY, TX_ARRAY, 
+                            RDC, TDC, RX_DIGITIZER
                     - center_frequency 
                         || FRONTEND::tuner_allocation::center_frequency 
                         || double 
@@ -153,11 +148,10 @@ module FRONTEND {
                     - tuner_type 
                         || FRONTEND::tuner_status::tuner_type 
                         || string 
-                        || Example Tuner Types: TX, RX, CHANNELIZER, DDC, 
-                            RX_DIGITIZER, RX_DIGITIZER_CHANNELIZER, 
-                            RX_SCANNER_DIGITIZER
-                    - allocation_id_csv 
-                        || FRONTEND::tuner_status::allocation_id_csv 
+                        || Example Tuner Types: TX, RX, TX_ARRAY, RX_ARRAY, 
+                            TDC, RDC, RX_DIGITIZER
+                    - allocation_id_csv
+                        || FRONTEND::tuner_status::allocation_id_csv
                         || string 
                         || allocation id (no longer a csv)
                     - center_frequency 
@@ -186,7 +180,7 @@ module FRONTEND {
                         || boolean 
                         || True is tuner is enabled. Can be allocated but 
                             disabled 
-                If the tuner_type is of type RX_SCANNER_DIGITIZER, the 
+                If the tuner supports scanning, the 
                     following optional fields are required as part of 
                     FRONTEND::tuner_status:
                     - scan_mode_enabled 
@@ -245,55 +239,36 @@ module FRONTEND {
             functionality. The base supported types are listed below but
             can be extended (ie - new types can be created) to satisfy
             one's CONOP
-            - TX: Transmitter (input digital, output analog) 
-            - RX: Analog Receiver (input analog, output analog) 
-            - RX_DIGITIZER: Digital Receiver (input analog, output digital)
-            - CHANNELIZER: (digital input, digital output) Accepts digitized 
-                wideband and provides DDC's (allocation against a channelizer 
-                ensures that the input port is not shared)  
-            - DDC: Digital Down Converter. Channel that is extracted from a 
+            - TX: Transmitter (analog input, analog output)
+            - RX: Analog Receiver (analog input, analog output)
+            - RX_DIGITIZER: Digital Receiver (analog input, digital output)
+            - RDC: Receive Digital Channel (single digital output). Channel that is extracted from a 
+                receiver (e.g.: RX, or RX_DIGITIZER)
+            - TDC: Transmit Digital Channel (single digital input). Channel that is transmitted (e.g.: TX)
+            - TX_ARRAY: Aggregation of coherent transmitters
+            - RX_ARRAY: Aggregation of coherent receivers
+            - ****** DEPRECATED ****** DDC: Digital Down Converter. Channel that is extracted from a 
                 wider bandwidth (ie - CHANNELIZER or RX_DIGITIZER)
-            - DUC: Digital Up Converter. Channel that is aggregated to a wider 
-                bandwidth (ie - TX)
             - ****** DEPRECATED ****** RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER 
                 and CHANNELIZER combo. The reason they are combined is because 
                 they are a single device that cannot operate independetly. For
                 example, and RX_DIGITIZER can not output full-rate or the 
                 CHANNELIZER cannot accept external input
-            - RX_SCANNER_DIGITIZER: Frequency scanning digitizer
+            - ****** DEPRECATED ****** CHANNELIZER: (digital input, digital output) Accepts digitized 
+                wideband and provides DDC's (allocation against a channelizer 
+                ensures that the input port is not shared)  
+            - ****** DEPRECATED ****** RX_SCANNER_DIGITIZER: Frequency scanning digitizer
 
         Allocation ID:
         --------------
-        This interface introduces the concept of an allocation id. An 
-        allocation id is a unique identifier given to the tuner (channel) in a 
-        device at allocation time. For the life of that allocation, that 
-        specific tuner is referenced by that unique allocation id. When that 
-        tuner is no longer needed, a deallocation occurs on that allocation id,
-        thus freeing the tuner. There is a one-to-one relationship between a 
-        tuner and an allocation.
+        The allocation id is contained in the allocation response.
 
         Data Ingress/Egress:
         ------------
-        Multi-tuner frontend devices are implemented as a single device. This
-        device is of type RX_DIGITIZER if connected to an RF feed or 
-        CHANNELIZER if given digitized data. In this device, each narrowband 
-        independent tuner is implemented as a child device of type DDC. The 
-        child device is programmatically launched by the parent device through 
-        the addChild method; for an example, see the generated code. 
-        Allocations to the parent device for narrowband channels are delegated 
-        to a child device; if the child device accepts the allocation request, 
-        that child device's tuner output is the output from the allocation.
-        This behavior removes the need for FEI 2.0's listener allocations.
-
-        If the parent device has an output Bulk IO port, that output is for its 
-        wideband digitized data (if available).
-
-        To request a narrowband feed, use DDC as the tuner_type in the 
-        allocation structure. To request a wideband feed, use RX_DIGITIZER or 
-        CHANNELIZER
-
-        The same parent/child concept applies to transmit operations. The 
-        parent device (of type TX) launches DUC children to transmit data.
+        Devices contain a single data input or output:
+        - RX_DIGITIZER: single wideband output; may not be suitable for processing
+        - RDC: single output
+        - TDC: single input
 
         */
 
