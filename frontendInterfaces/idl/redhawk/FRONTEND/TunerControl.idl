@@ -543,6 +543,24 @@ module FRONTEND {
         void reset(in string stream_id)
             raises (FRONTEND::FrontendException);
 
+        // do not transmit the given stream id
+        // queue the transmission until the stream id is allowed again
+        //  return false if the stream id does not exist
+        //  return true if the stream id exists
+        boolean hold(in string stream_id)
+            raises (FRONTEND::FrontendException);
+
+        // list the stream ids that are currently in a "hold" state
+        CF::StringSequence held()
+            raises (FRONTEND::FrontendException);
+
+        // allow the given stream id to transmit
+        // if the transmission is queued, immediately transmit if timestamp is zero or set to ignore
+        //  return false if the stream id does not exist
+        //  return true if the stream id exists
+        boolean allow(in string stream_id)
+            raises (FRONTEND::FrontendException);
+
         void setTransmitParameters(in TransmitParameters transmit_parameters)
             raises (FRONTEND::FrontendException, FRONTEND::BadParameterException);
 
