@@ -34,6 +34,7 @@
 #include "bulkio_typetraits.h"
 #include "bulkio_datatransfer.h"
 #include "bulkio_in_stream.h"
+#include "bulkio_streamqueue.h"
 #include "bulkio_callbacks.h"
 
 namespace bulkio {

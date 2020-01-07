@@ -71,6 +71,7 @@ library_include_HEADERS = cpp/include/bulkio/bulkio.h \
 	cpp/include/bulkio/bulkio_traits.h \
 	cpp/include/bulkio/bulkio_in_port.h \
 	cpp/include/bulkio/bulkio_in_stream.h \
+        cpp/include/bulkio/bulkio_streamqueue.h \
 	cpp/include/bulkio/bulkio_out_port.h \
 	cpp/include/bulkio/bulkio_out_stream.h \
 	cpp/include/bulkio/bulkio_attachable_base.h \
