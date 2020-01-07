@@ -4,26 +4,42 @@ namespace bulkio {
     template <class T_port, typename T_data>
     class streamQueue
     {
+    public:
+
+        class txBlock : public T_port::StreamType::DataBlockType {
+        public:
+            explicit txBlock(const bulkio::StreamDescriptor& sri, const redhawk::shared_buffer<T_data>& buffer) : T_port::StreamType::DataBlockType(sri, buffer){
+                delegated_constructor();
+            };
+            txBlock() {
+                delegated_constructor();
+            }
+            double getCenterFrequency() {
+                return center_frequency;
+            }
+        protected:
+            void delegated_constructor(bool valid=false) {
+                center_frequency = 0;
+            }
+            double center_frequency;
+        };
+
     protected:
         class Record {
         public:
-            Record(std::string _s, short _p, BULKIO::PrecisionUTCTime _t, redhawk::shared_buffer<T_data> _b) {
+            Record(std::string _s, short _p, BULKIO::PrecisionUTCTime _t, txBlock _b) {
                 Stream_id = _s;
                 Priority = _p;
                 Timestamp = _t;
-                Buffer = _b;
+                Block = _b;
             }
             std::string Stream_id;
             short Priority;
             BULKIO::PrecisionUTCTime Timestamp;
-            redhawk::shared_buffer<T_data> Buffer;
+            txBlock Block;
         };
+
     public:
-
-        class txBlock : public bulkio::SampleDataBlock<typename bulkio::NativeTraits<T_port>::NativeType> {
-            double center_frequency;
-        };
-
         streamQueue(bool ignore_timestamp=false, bool ignore_error=false) {
             _ignore_timestamp = false;
             _ignore_error = false;
@@ -94,6 +110,8 @@ namespace bulkio {
         }
 
         void verifyTimes(BULKIO::PrecisionUTCTime now) {
+            if (TimeZero(now))
+                return;
             typename std::deque<Record>::iterator it = transmit_queue.begin();
             std::vector<std::string> error_stream_ids;
             while (it != transmit_queue.end()) {
@@ -126,22 +144,23 @@ namespace bulkio {
         void ingestStreams(BULKIO::PrecisionUTCTime now) {
             boost::mutex::scoped_lock lock(queuesMutex);
             while (true) {  // loop until no streams are available
-                typename T_port::StreamType inputStream = _port->getCurrentStream();
-                std::string stream_id = ossie::corba::returnString(inputStream.sri().streamID);
+                typename T_port::StreamType inputStream = _port->getCurrentStream(0);
                 if (!inputStream) { // No streams are available
                     break;
                 }
+                std::string stream_id = ossie::corba::returnString(inputStream.sri().streamID);
                 short priority = 0;
                 typename T_port::StreamType::DataBlockType block = inputStream.read();
+                txBlock tx_block(block.sri(), block.buffer());
                 if (!block) { // No data available
                     if (inputStream.eos()) {
                     }
                     continue;
                 }
                 if (held_queue.find(stream_id) == held_queue.end()) {
-                    transmit_queue.push_back(Record(stream_id, priority, block.getStartTime(), block.buffer()));
+                    transmit_queue.push_back(Record(stream_id, priority, block.getStartTime(), tx_block));
                 } else {
-                    held_queue[stream_id].push_back(Record(stream_id, priority, block.getStartTime(), block.buffer()));
+                    held_queue[stream_id].push_back(Record(stream_id, priority, block.getStartTime(), tx_block));
                 }
             }
             std::sort(transmit_queue.begin(), transmit_queue.end(), CompareRecords);
@@ -150,7 +169,12 @@ namespace bulkio {
 
         txBlock getNextBlock(BULKIO::PrecisionUTCTime now, bool blocking=false) {
             verifyTimes(now);
-
+            txBlock retval;
+            if (not transmit_queue.empty()) {
+                retval = transmit_queue.front().Block;
+                transmit_queue.pop_front();
+            }
+            return retval;
         };
 
     protected:
