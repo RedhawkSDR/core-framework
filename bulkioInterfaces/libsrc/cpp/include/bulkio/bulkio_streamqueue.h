@@ -5,7 +5,7 @@
 
 #define MAXIMUM_SLEEP_MICROSECONDS 10000 // 10 milliseconds
 
-template <class T_port, typename T_data>
+template <class T_port>
 class streamQueue
 {
 public:
