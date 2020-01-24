@@ -95,6 +95,18 @@ namespace bulkio    {
 
 }  // namespace bulkio
 
+#define FOREACH_INPUT_NUMERIC_PORT(x)   \
+    x(bulkio::InCharPort);              \
+    x(bulkio::InOctetPort);             \
+    x(bulkio::InShortPort);             \
+    x(bulkio::InUShortPort);            \
+    x(bulkio::InLongPort);              \
+    x(bulkio::InULongPort);             \
+    x(bulkio::InLongLongPort);          \
+    x(bulkio::InULongLongPort);         \
+    x(bulkio::InFloatPort);             \
+    x(bulkio::InDoublePort);
+
 #define FOREACH_NUMERIC_PORT_TYPE(x) \
     x(BULKIO::dataChar);             \
     x(BULKIO::dataOctet);            \

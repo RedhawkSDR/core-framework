@@ -43,6 +43,7 @@ libbulkio_la_SOURCES = \
     cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
     cpp/bulkio_stream.cpp \
+    cpp/bulkio_streamqueue.cpp \
     cpp/bulkio_time_helpers.cpp \
     cpp/bulkio_time_operators.cpp \
     cpp/bulkio_datablock.cpp \
