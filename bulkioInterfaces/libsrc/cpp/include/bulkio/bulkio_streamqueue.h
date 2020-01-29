@@ -82,7 +82,7 @@ namespace bulkio {
 
         void ingestStreams(BULKIO::PrecisionUTCTime& now, double timeout=0);
 
-        DataBlockType getNextBlock(BULKIO::PrecisionUTCTime now, double timeout=0, double future_window=100e-6);
+        DataBlockType getNextBlock(BULKIO::PrecisionUTCTime now, double timeout=0, double future_window=1e-3);
 
     protected:
         static bool TimeZero(const BULKIO::PrecisionUTCTime& a) {

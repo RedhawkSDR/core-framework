@@ -205,7 +205,7 @@ namespace bulkio {
         typename streamQueue<T_port>::DataBlockType retval;
         double _timeout = 0;
         double orig_timeout = timeout;
-        double half_future_window_us = future_window * 5e7;
+        double half_future_window_us = future_window * 1e6 * 0.5;
         bool breakout = false;
 
         before_ingest_time = bulkio::time::utils::now()+fixed_time_offset;

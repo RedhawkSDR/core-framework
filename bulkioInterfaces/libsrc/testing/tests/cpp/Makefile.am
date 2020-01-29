@@ -26,6 +26,7 @@ Bulkio_SOURCES += Bulkio_MultiOut_Port.cpp
 Bulkio_SOURCES += DataBlockTest.h DataBlockTest.cpp
 Bulkio_SOURCES += InPortTest.h InPortTest.cpp
 Bulkio_SOURCES += InStreamTest.h InStreamTest.cpp
+Bulkio_SOURCES += InStreamQueueTest.h InStreamQueueTest.cpp
 Bulkio_SOURCES += OutPortTest.h OutPortTest.cpp
 Bulkio_SOURCES += OutStreamTest.h OutStreamTest.cpp
 Bulkio_SOURCES += LocalTest.h LocalTest.cpp
