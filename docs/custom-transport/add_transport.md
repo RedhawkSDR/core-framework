@@ -301,7 +301,7 @@ The following Python session demonstrates how to run the components, connect the
     >>> src=sb.launch('transport_out', shared=False)
     >>> snk=sb.launch('transport_in')
     >>> src.connect(snk)
-    CustomOutputManager::transportProperties
+    CustomInputTransport::startTransport
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
     CustomInputManager, key (from uses): data_protocol
@@ -382,7 +382,7 @@ The following Python session demonstrates how to run the components, connect the
     >>> src=sb.launch('transport_out')
     >>> snk=sb.launch('transport_in')
     >>> src.connect(snk)
-    CustomOutputManager::transportProperties
+    CustomInputTransport::startTransport
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
     key (from uses): data_protocol
