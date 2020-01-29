@@ -28,14 +28,14 @@ class fei_synctest_i(fei_synctest_base):
         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
         should look like this:
 
-        self.addChannels(3, "RX_DIGITIZER");
-        self.addChannels(2, "CHANNELIZER");
+        self.addChannels(3, "RX_DIGITIZER")
+        self.addChannels(2, "CHANNELIZER")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(self.tuners, "RX_DIGITIZER");
+        self.addChannels(self.tuners, "RX_DIGITIZER")
         
     def process(self):
         """
@@ -111,7 +111,7 @@ class fei_synctest_i(fei_synctest_base):
             type MessageEvent, create the following code:
         
             msg_out = fei_synctest_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
     
@@ -119,9 +119,9 @@ class fei_synctest_i(fei_synctest_base):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -171,7 +171,7 @@ class fei_synctest_i(fei_synctest_base):
             # This example assumes that the device has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the device
+            # The mapping between the port and the class is found in the device
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude

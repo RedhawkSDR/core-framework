@@ -106,7 +106,7 @@ class struct_override_i(struct_override_base):
             type MessageEvent, create the following code:
         
             msg_out = struct_override_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Device Manager and Domain Manager:
     
@@ -114,9 +114,9 @@ class struct_override_i(struct_override_base):
         the Device Manager are available to the Device.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Device Manager:
-            devmgr = self.getDeviceManager().getRef();
+            devmgr = self.getDeviceManager().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -138,7 +138,7 @@ class struct_override_i(struct_override_base):
             # This example assumes that the component has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the component
+            # The mapping between the port and the class is found in the component
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude
@@ -158,7 +158,7 @@ class struct_override_i(struct_override_base):
                 
             # NOTE: You must make at least one valid pushSRI call
             if packet.sriChanged:
-                self.port_dataFloat_out.pushSRI(packet.SRI);
+                self.port_dataFloat_out.pushSRI(packet.SRI)
 
             self.port_dataFloat_out.pushPacket(outData, packet.T, packet.EOS, packet.streamID)
             return NORMAL
