@@ -212,7 +212,8 @@ namespace bulkio {
         while (true) {
             ingestStreams(before_ingest_time, _timeout);
             double current_time_diff = (bulkio::time::utils::now()+fixed_time_offset) - initial_time;
-            if ((current_time_diff > timeout) and (timeout != 0)) { // we've hit a timeout condition; leave now
+            if ((current_time_diff > timeout) and (timeout > 0)) { // we've hit a timeout condition; leave now
+                // the assumption here is that this is not the first iteration of the loop
                 break;
             }
             if (not transmit_queue.empty()) {
@@ -238,16 +239,37 @@ namespace bulkio {
                 transmit_queue.pop_front();
                 break;
             } else {    // transmit queue is emtpy
-                double ingest_time = (bulkio::time::utils::now()+fixed_time_offset) - before_ingest_time;
-                _timeout = (ingest_time > future_window*0.75)?future_window*0.5:ingest_time*0.5;
-                if (_timeout < 1e9) {
-                    _timeout = future_window*0.75;
+                if (current_time_diff > timeout) { // we've hit a timeout condition; leave now
+                    // this break is here for the case where there is no data and a timeout needs to happen
+                    break;
                 }
-                double current_time_diff = (bulkio::time::utils::now()+fixed_time_offset) - initial_time;
-                if (current_time_diff > (orig_timeout-_timeout)) {
-                    _timeout = orig_timeout-current_time_diff-future_window;
-                    if (_timeout<0) {
-                        _timeout = 0;
+                double ingest_time = 0;
+                double current_time_diff = 0;
+                if (future_window > 0) {
+                    ingest_time = (bulkio::time::utils::now()+fixed_time_offset) - before_ingest_time;
+                    _timeout = (ingest_time > future_window*0.75)?future_window*0.5:ingest_time*0.5;
+                    if (_timeout < 1e-6) {
+                        _timeout = future_window*0.75;
+                    }
+                    current_time_diff = (bulkio::time::utils::now()+fixed_time_offset) - initial_time;
+                    if (current_time_diff > (orig_timeout-_timeout)) {
+                        _timeout = orig_timeout-current_time_diff-future_window;
+                        if (_timeout<0) {
+                            _timeout = 0;
+                        }
+                    }
+                } else {
+                    ingest_time = (bulkio::time::utils::now()+fixed_time_offset) - before_ingest_time;
+                    _timeout = ingest_time*0.5;
+                    if (_timeout < 1e-6) {
+                        _timeout = 1e-6;
+                    }
+                    current_time_diff = (bulkio::time::utils::now()+fixed_time_offset) - initial_time;
+                    if (current_time_diff > (orig_timeout-_timeout)) {
+                        _timeout = orig_timeout-current_time_diff;
+                        if (_timeout<0) {
+                            _timeout = 0;
+                        }
                     }
                 }
                 before_ingest_time = (bulkio::time::utils::now()+fixed_time_offset);

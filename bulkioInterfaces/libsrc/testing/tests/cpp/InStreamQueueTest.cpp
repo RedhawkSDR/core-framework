@@ -23,6 +23,25 @@
 
 template <class Port>
 bool InStreamQueueTest<Port>::checkTimeWindow(const BULKIO::PrecisionUTCTime &packet_time, const BULKIO::PrecisionUTCTime &time_start, const BULKIO::PrecisionUTCTime &right_now, double offset, double window) {
+    if (window < 0) { // do not queue
+        double short_time = 1e-3;
+        // check that the time different between the test start and when the packet is received is very short
+        if (not(right_now-time_start < short_time)) {
+            std::cout<<"fail (1) "<<right_now-time_start<<" "<<offset<<" "<<window<<std::endl;
+            return false;
+        }
+        // check the that time between receiving the packet and the packet's nominal time is within the error window
+        if (not(packet_time-right_now > offset-short_time)) {
+            std::cout<<"fail (3) "<<packet_time-right_now<<" "<<window<<std::endl;
+            return false;
+        }
+        // check the that time for receiving the packet is less than the packet's nominal time
+        if (not(right_now < packet_time)) {
+            std::cout<<"fail (4) "<<right_now<<" "<<packet_time<<std::endl;
+            return false;
+        }
+        return true;
+    }
     // check that the time different between the test start and when the packet is received is within the error limit of the offset
     if (not(right_now-time_start > offset-window)) {
         std::cout<<"fail (1) "<<right_now-time_start<<" "<<offset<<" "<<window<<std::endl;
@@ -57,11 +76,11 @@ void InStreamQueueTest<Port>::testBaselineQueueTest()
     port->pushSRI(sri);
     BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
     size_t length = 16;
-    double time_offset = 0.65;
+    double time_offset = 0.13;
     this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
 
-    double timeout = 1;
-    double time_window = 20000e-6;
+    double timeout = 0.2;
+    double time_window = 4000e-6;
     DataBlockType block = queue.getNextBlock(ts_now, timeout, time_window);
 
     CPPUNIT_ASSERT(block);
@@ -71,10 +90,10 @@ void InStreamQueueTest<Port>::testBaselineQueueTest()
 
     // push a packet with a future timestamp beyond the timeout
     ts_now = bulkio::time::utils::now();
-    time_offset = 0.65;
+    time_offset = 0.13;
     this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
 
-    timeout = 0.5;
+    timeout = 0.1;
     block = queue.getNextBlock(ts_now, timeout, time_window);
     BULKIO::PrecisionUTCTime time_check = bulkio::time::utils::now();
 
@@ -102,10 +121,10 @@ void InStreamQueueTest<Port>::testShortWindowQueue()
     port->pushSRI(sri);
     BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
     size_t length = 16;
-    double time_offset = 0.65;
+    double time_offset = 0.065;
     this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
 
-    double timeout = 1;
+    double timeout = 0.1;
     double time_window = 200e-6;
 
     // inaccuracies in the OS require a wider window
@@ -119,10 +138,10 @@ void InStreamQueueTest<Port>::testShortWindowQueue()
 
     // push a packet with a future timestamp beyond the timeout
     ts_now = bulkio::time::utils::now();
-    time_offset = 0.65;
+    time_offset = 0.065;
     this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
 
-    timeout = 0.5;
+    timeout = 0.05;
     block = queue.getNextBlock(ts_now, timeout, time_window);
     BULKIO::PrecisionUTCTime time_check = bulkio::time::utils::now();
 
@@ -137,6 +156,53 @@ void InStreamQueueTest<Port>::testShortWindowQueue()
     CPPUNIT_ASSERT_EQUAL(length, block.size());
     right_now = bulkio::time::utils::now();
     CPPUNIT_ASSERT(checkTimeWindow(block.getStartTime(), ts_now, right_now, time_offset, measure_time_window));
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testImmediateQueue()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create("stream_1");
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, timeout, time_window);
+
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    BULKIO::PrecisionUTCTime right_now = bulkio::time::utils::now();
+    CPPUNIT_ASSERT(checkTimeWindow(block.getStartTime(), ts_now, right_now, time_offset, measure_time_window));
+
+    // push a packet with a future timestamp beyond the timeout
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    timeout = 0.05;
+    block = queue.getNextBlock(ts_now, timeout, time_window);
+    BULKIO::PrecisionUTCTime time_check = bulkio::time::utils::now();
+
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    right_now = bulkio::time::utils::now();
+    CPPUNIT_ASSERT(checkTimeWindow(block.getStartTime(), ts_now, right_now, time_offset, measure_time_window));
+
+    BULKIO::PrecisionUTCTime pre_timeout = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, timeout, time_window);
+    BULKIO::PrecisionUTCTime post_timeout = bulkio::time::utils::now();
+    CPPUNIT_ASSERT(post_timeout-pre_timeout > timeout * 0.9);
+    CPPUNIT_ASSERT(post_timeout-pre_timeout < timeout * 1.1);
 }
 
 #define CREATE_QUEUE_TEST(x, BASE)                                            \
