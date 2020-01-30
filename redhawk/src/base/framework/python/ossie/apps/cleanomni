@@ -45,7 +45,11 @@ if __name__ == '__main__':
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="print the cleanup progress", default=False)
 
     options, args = parser.parse_args()
-    
+
+    # Keep a tally of when important commands fail, ignoring failures that
+    # shouldn't affect the reset
+    errors = 0
+
     if os.geteuid() != 0:
         print "This script must be run with root privileges"
         sys.exit(-1)
@@ -90,7 +94,14 @@ if __name__ == '__main__':
     retval=commands.getstatusoutput('[ -d /var/log/omniEvents ] && rm -rf /var/log/omniEvents/*')
     if options.verbose:
         print "Starting omniNames"
-    retval=os.system('/sbin/service omniNames start')
+    status, output = commands.getstatusoutput('/sbin/service omniNames start')
+    if status:
+        print output
+        errors += 1
     if options.verbose:
         print "Starting omniEvents"
-    retval=commands.getstatusoutput('/sbin/service omniEvents start')
+    status, output = commands.getstatusoutput('/sbin/service omniEvents start')
+    if status:
+        print output
+        errors += 1
+    raise SystemExit(errors)
