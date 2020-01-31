@@ -179,7 +179,8 @@ void InStreamQueueTest<Port>::testQueueExpired()
     BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
     size_t length = 16;
     double time_offset = 0.065;
-    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+    BULKIO::PrecisionUTCTime first_time = ts_now+time_offset;
+    this->_pushTestPacket(length, first_time, false, sri.streamID);
 
     double timeout = 0.1;
     double time_window = -1;
@@ -189,11 +190,19 @@ void InStreamQueueTest<Port>::testQueueExpired()
 
     CPPUNIT_ASSERT(!block);
     CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_MISSED_TRANSMIT_WINDOW);
+
+    std::ostringstream first_time_str;
+    first_time_str<<first_time;
+    CPPUNIT_ASSERT(error_status[0].message.find(first_time_str.str()) != std::string::npos);
+
+    queue.reset();
 
     // push a packet with a future timestamp beyond the timeout
     ts_now = bulkio::time::utils::now();
     time_offset = 0.065;
-    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+    BULKIO::PrecisionUTCTime second_time = ts_now+time_offset;
+    this->_pushTestPacket(length, second_time, false, sri.streamID);
 
     timeout = 0.05;
     offset_time = ts_now+time_offset*2;
@@ -201,6 +210,30 @@ void InStreamQueueTest<Port>::testQueueExpired()
 
     CPPUNIT_ASSERT(!block);
     CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_MISSED_TRANSMIT_WINDOW);
+
+    std::ostringstream second_time_str;
+    second_time_str<<second_time;
+    CPPUNIT_ASSERT(error_status[0].message.find(second_time_str.str()) != std::string::npos);
+
+    // push a packet with a future timestamp beyond the timeout without reset
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    BULKIO::PrecisionUTCTime third_time = ts_now+time_offset;
+    this->_pushTestPacket(length, third_time, false, sri.streamID);
+
+    timeout = 0.05;
+    offset_time = ts_now+time_offset*2;
+    block = queue.getNextBlock(offset_time, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_MISSED_TRANSMIT_WINDOW);
+
+    std::ostringstream third_time_str;
+    third_time_str<<third_time;
+    CPPUNIT_ASSERT(error_status[0].message.find(third_time_str.str()) == std::string::npos);
+    CPPUNIT_ASSERT(error_status[0].message.find(second_time_str.str()) != std::string::npos);
 }
 
 template <class Port>
@@ -268,17 +301,30 @@ void InStreamQueueTest<Port>::testTimeOverlap()
     BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
     size_t old_length = 1600;
     double time_offset = 0.065;
-    this->_pushTestPacket(old_length, ts_now+time_offset, false, sri.streamID);
+
+    BULKIO::PrecisionUTCTime first_time = ts_now+time_offset;
+    BULKIO::PrecisionUTCTime second_time = ts_now+time_offset+(old_length*sri.xdelta)/2.0;
+
+    this->_pushTestPacket(old_length, first_time, false, sri.streamID);
     size_t length = 1000;
-    this->_pushTestPacket(length, ts_now+time_offset+(old_length*sri.xdelta)/2.0, false, sri.streamID);
+    this->_pushTestPacket(length, second_time, false, sri.streamID);
+
+    std::ostringstream first_time_str;
+    std::ostringstream second_time_str;
+    first_time_str<<first_time;
+    second_time_str<<second_time;
 
     double timeout = 0.1;
     double time_window = -1;
 
     DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
 
-    CPPUNIT_ASSERT(error_status.size()==1);
     CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP);
+    size_t first_location = error_status[0].message.find(first_time_str.str());
+    size_t second_location = error_status[0].message.find(second_time_str.str());
+    CPPUNIT_ASSERT(first_location<second_location);
 }
 
 #define CREATE_QUEUE_TEST(x, BASE)                                            \

@@ -128,6 +128,7 @@ namespace bulkio {
         boost::mutex::scoped_lock lock(queuesMutex);
         transmit_queue.clear();
         held_queue.clear();
+        error_streams.clear();
     }
 
     template <class T_port>
@@ -153,8 +154,9 @@ namespace bulkio {
                     double offset = (it-1)->Block.sri().xdelta * (it-1)->Block.buffer().size();
                     if ((it-1)->Timestamp+offset >= it->Timestamp) {
                         error_streams[it->Stream_id].stream_id = it->Stream_id;
+                        BULKIO::PrecisionUTCTime new_time = (it-1)->Timestamp+(it-1)->Block.sri().xdelta*(it-1)->Block.buffer().size();
                         std::ostringstream message;
-                        message<<"Overlapping timestamps. "<<(it-1)->Timestamp<<" with xdelta "<<(it-1)->Block.sri().xdelta<<" and length "<<(it-1)->Block.buffer().size()<<" is beyond "<<it->Timestamp;
+                        message<<"Overlapping timestamps. "<<(it-1)->Timestamp<<" with xdelta "<<(it-1)->Block.sri().xdelta<<" and length "<<(it-1)->Block.buffer().size()<<" has the implied end timestamp of "<<new_time<<", which is beyond "<<it->Timestamp<<" on stream id '"<<it->Stream_id<<"'";
                         error_streams[it->Stream_id].message = message.str();
                         error_streams[it->Stream_id].code = CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP;
                     }
@@ -162,7 +164,9 @@ namespace bulkio {
                 }
                 if ((not found_error) and (it->Timestamp < now)) {
                     error_streams[it->Stream_id].stream_id = it->Stream_id;
-                    error_streams[it->Stream_id].message = "Data packet expired";
+                    std::ostringstream message;
+                    message<<"Data packet expired for packet with timestamp "<<it->Timestamp<<" on stream id '"<<it->Stream_id<<"'";
+                    error_streams[it->Stream_id].message = message.str();
                     error_streams[it->Stream_id].code = CF::DEV_MISSED_TRANSMIT_WINDOW;
                 }
             }
