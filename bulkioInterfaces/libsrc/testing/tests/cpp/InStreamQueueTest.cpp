@@ -116,6 +116,55 @@ void InStreamQueueTest<Port>::testBaselineQueueTest()
 }
 
 template <class Port>
+void InStreamQueueTest<Port>::testRetune()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create("stream_1");
+    double f1 = 1e6;
+    double xdelta = 1e-6;
+    sri.xdelta = xdelta;
+    redhawk::PropertyMap& new_keywords = redhawk::PropertyMap::cast(sri.keywords);
+    new_keywords["CHAN_RF"] = f1;
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+    usleep(xdelta*1e6*length*100);  // prevent timestamp overlap error
+
+    // push a packet with a future timestamp beyond the timeout
+    BULKIO::PrecisionUTCTime second_ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    double f2 = 2e6;
+    new_keywords["CHAN_RF"] = f2;
+    port->pushSRI(sri);
+    this->_pushTestPacket(length, second_ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = 200e-6;
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    CPPUNIT_ASSERT_EQUAL(f1, queue.getCenterFrequency(block));
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    CPPUNIT_ASSERT_EQUAL(f2, queue.getCenterFrequency(block));
+    CPPUNIT_ASSERT(error_status.size()==0);
+}
+
+template <class Port>
 void InStreamQueueTest<Port>::testShortWindowQueue()
 {
     bulkio::streamQueue<Port> queue;

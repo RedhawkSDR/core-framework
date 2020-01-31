@@ -74,7 +74,11 @@ namespace bulkio {
 
     template <class T_port>
     double streamQueue<T_port>::getCenterFrequency(typename streamQueue<T_port>::DataBlockType &block) {
-        return 0;
+        const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(block.sri().keywords);
+        if (keywords.find("CHAN_RF") != keywords.end()) {
+            return keywords["CHAN_RF"].toDouble();
+        }
+        return -1;
     }
 
     template <class T_port>
