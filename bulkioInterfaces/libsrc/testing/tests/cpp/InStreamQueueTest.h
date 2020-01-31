@@ -32,6 +32,7 @@ class InStreamQueueTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testBaselineQueueTest);
     CPPUNIT_TEST(testShortWindowQueue);
     CPPUNIT_TEST(testImmediateQueue);
+    CPPUNIT_TEST(testQueueExpired);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -39,6 +40,7 @@ public:
     void testBaselineQueueTest();
     void testShortWindowQueue();
     void testImmediateQueue();
+    void testQueueExpired();
 
     bool checkTimeWindow(const BULKIO::PrecisionUTCTime &packet_time, const BULKIO::PrecisionUTCTime &time_start, const BULKIO::PrecisionUTCTime &right_now, double offsets, double window);
 

@@ -32,6 +32,14 @@
 #include <boost/thread/shared_mutex.hpp>
 
 namespace bulkio {
+
+    class StreamStatus {
+    public:
+        std::string stream_id;
+        CF::DeviceStatusCodeType code;
+        std::string message;
+    };
+
     template <class T_port>
     class streamQueue
     {
@@ -66,25 +74,25 @@ namespace bulkio {
 
         void update_ignore_error(bool ignore_error);
 
-        void throw_stream_error(std::string stream_id, std::string message);
-
         double getCenterFrequency(DataBlockType &block);
 
         std::vector<std::string> held();
 
         bool hold(std::string stream_id);
 
-        bool allow(std::string stream_id);
+        bool allow(const std::string &stream_id);
 
         void reset();
 
+        void reset(const std::string &stream_id);
+
+        DataBlockType getNextBlock(BULKIO::PrecisionUTCTime &now, std::vector<bulkio::StreamStatus> &error_status, double timeout=0, double future_window=1e-3);
+
+    protected:
         void verifyTimes(BULKIO::PrecisionUTCTime now);
 
         void ingestStreams(BULKIO::PrecisionUTCTime& now, double timeout=0);
 
-        DataBlockType getNextBlock(BULKIO::PrecisionUTCTime now, double timeout=0, double future_window=1e-3);
-
-    protected:
         static bool TimeZero(const BULKIO::PrecisionUTCTime& a) {
             if ((a.tfsec == 0) and (a.twsec == 0))
                 return true;
@@ -116,6 +124,7 @@ namespace bulkio {
         boost::mutex queuesMutex;
         std::deque<Record> transmit_queue;
         std::map<std::string, std::deque<Record> > held_queue;
+        std::map<std::string, StreamStatus> error_streams;
         BULKIO::PrecisionUTCTime before_ingest_time;
         double sleep_overhead;
     };

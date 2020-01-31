@@ -73,10 +73,6 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::throw_stream_error(std::string stream_id, std::string message) {
-    }
-
-    template <class T_port>
     double streamQueue<T_port>::getCenterFrequency(typename streamQueue<T_port>::DataBlockType &block) {
         return 0;
     }
@@ -115,7 +111,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    bool streamQueue<T_port>::allow(std::string stream_id) {
+    bool streamQueue<T_port>::allow(const std::string &stream_id) {
         boost::mutex::scoped_lock lock(queuesMutex);
         bool retval = false;
         if (held_queue.find(stream_id) != held_queue.end()) {
@@ -135,34 +131,52 @@ namespace bulkio {
     }
 
     template <class T_port>
+    void streamQueue<T_port>::reset(const std::string &stream_id) {
+        boost::mutex::scoped_lock lock(queuesMutex);
+        transmit_queue.clear();
+        held_queue.clear();
+    }
+
+    template <class T_port>
     void streamQueue<T_port>::verifyTimes(BULKIO::PrecisionUTCTime now) {
         if (TimeZero(now))
             return;
         typename std::deque<Record>::iterator it = transmit_queue.begin();
-        std::vector<std::string> error_stream_ids;
         while (it != transmit_queue.end()) {
             if (TimeZero(it->Timestamp)) {
                 continue;
             }
             // no sense in checking the timestamp if the stream id has already been flagged
+            if (error_streams.find(it->Stream_id) == error_streams.end()) {
+                if (it->Timestamp < now) {
+                    error_streams[it->Stream_id].stream_id = it->Stream_id;
+                    error_streams[it->Stream_id].message = "Data packet expired";
+                    error_streams[it->Stream_id].code = CF::DEV_MISSED_TRANSMIT_WINDOW;
+                }
+            }
+/*            // no sense in checking the timestamp if the stream id has already been flagged
             if (std::find(error_stream_ids.begin(), error_stream_ids.end(), it->Stream_id) == error_stream_ids.end()) {
                 if (it->Timestamp < now) {
                     error_stream_ids.push_back(it->Stream_id);
                 }
-            }
+            }*/
             it++;
         }
-        for (std::vector<std::string>::iterator str_id=error_stream_ids.begin(); str_id!=error_stream_ids.end(); str_id++) {
-            if (held_queue.erase(*str_id) == 0) {   // if nothing was erased from held_queue, there might be something in transmit_queue
-                it = transmit_queue.end();
-                it--;
-                do {
-                    if (it->Stream_id == *str_id) {
-                        it = transmit_queue.erase(it);
-                    } else {
-                        it--;
-                    }
-                } while (it != transmit_queue.begin());
+        //for (std::vector<std::string>::iterator str_id=error_stream_ids.begin(); str_id!=error_stream_ids.end(); str_id++) {
+        for (std::map<std::string, StreamStatus>::iterator iter = error_streams.begin(); iter != error_streams.end(); iter++) {
+            std::string str_id = iter->first;
+            if (held_queue.erase(str_id) == 0) {   // if nothing was erased from held_queue, there might be something in transmit_queue
+                if (not transmit_queue.empty()) {
+                    it = transmit_queue.end();
+                    it--;
+                    do {
+                        if (it->Stream_id == str_id) {
+                            it = transmit_queue.erase(it);
+                        } else {
+                            it--;
+                        }
+                    } while (it != transmit_queue.begin());
+                }
             }
         }
     }
@@ -190,13 +204,14 @@ namespace bulkio {
                 held_queue[stream_id].push_back(Record(stream_id, priority, block.getStartTime(), block));
             }
         }
-        if (transmit_updated)
+        if (transmit_updated) {
             std::sort(transmit_queue.begin(), transmit_queue.end(), CompareRecords);
+        }
         verifyTimes(now);
     }
 
     template <class T_port>
-    typename streamQueue<T_port>::DataBlockType streamQueue<T_port>::getNextBlock(BULKIO::PrecisionUTCTime now, double timeout, double future_window) {
+    typename streamQueue<T_port>::DataBlockType streamQueue<T_port>::getNextBlock(BULKIO::PrecisionUTCTime &now, std::vector<bulkio::StreamStatus> &error_status, double timeout, double future_window) {
         boost::mutex::scoped_lock lock(queuesMutex);
         BULKIO::PrecisionUTCTime initial_time = bulkio::time::utils::now();
         double fixed_time_offset = now - initial_time;
@@ -274,6 +289,9 @@ namespace bulkio {
                 }
                 before_ingest_time = (bulkio::time::utils::now()+fixed_time_offset);
             }
+        }
+        for (std::map<std::string, StreamStatus>::iterator iter = error_streams.begin(); iter != error_streams.end(); ++iter) {
+            error_status.push_back(iter->second);
         }
         return retval;
     }
