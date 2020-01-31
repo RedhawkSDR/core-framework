@@ -134,8 +134,17 @@ namespace bulkio {
     template <class T_port>
     void streamQueue<T_port>::reset(const std::string &stream_id) {
         boost::mutex::scoped_lock lock(queuesMutex);
-        transmit_queue.clear();
-        held_queue.clear();
+        typename std::deque<Record>::iterator it = transmit_queue.end();
+        it--;
+        while (it > transmit_queue.begin()) {
+            if (it->Stream_id == stream_id) {
+                it = transmit_queue.erase(it);
+            } else {
+                it--;
+            }
+        }
+        held_queue.erase(stream_id);
+        error_streams.erase(stream_id);
     }
 
     template <class T_port>

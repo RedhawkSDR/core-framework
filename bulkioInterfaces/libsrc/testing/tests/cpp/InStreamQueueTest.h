@@ -34,6 +34,7 @@ class InStreamQueueTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testImmediateQueue);
     CPPUNIT_TEST(testQueueExpired);
     CPPUNIT_TEST(testTimeOverlap);
+    CPPUNIT_TEST(testMultiStreamError);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -43,6 +44,7 @@ public:
     void testImmediateQueue();
     void testQueueExpired();
     void testTimeOverlap();
+    void testMultiStreamError();
 
     bool checkTimeWindow(const BULKIO::PrecisionUTCTime &packet_time, const BULKIO::PrecisionUTCTime &time_start, const BULKIO::PrecisionUTCTime &right_now, double offsets, double window);
 
