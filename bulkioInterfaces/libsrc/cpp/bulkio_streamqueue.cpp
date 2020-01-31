@@ -147,19 +147,25 @@ namespace bulkio {
                 continue;
             }
             // no sense in checking the timestamp if the stream id has already been flagged
+            bool found_error = false;
             if (error_streams.find(it->Stream_id) == error_streams.end()) {
-                if (it->Timestamp < now) {
+                if (it != transmit_queue.begin()) {
+                    double offset = (it-1)->Block.sri().xdelta * (it-1)->Block.buffer().size();
+                    if ((it-1)->Timestamp+offset >= it->Timestamp) {
+                        error_streams[it->Stream_id].stream_id = it->Stream_id;
+                        std::ostringstream message;
+                        message<<"Overlapping timestamps. "<<(it-1)->Timestamp<<" with xdelta "<<(it-1)->Block.sri().xdelta<<" and length "<<(it-1)->Block.buffer().size()<<" is beyond "<<it->Timestamp;
+                        error_streams[it->Stream_id].message = message.str();
+                        error_streams[it->Stream_id].code = CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP;
+                    }
+                    found_error = true;
+                }
+                if ((not found_error) and (it->Timestamp < now)) {
                     error_streams[it->Stream_id].stream_id = it->Stream_id;
                     error_streams[it->Stream_id].message = "Data packet expired";
                     error_streams[it->Stream_id].code = CF::DEV_MISSED_TRANSMIT_WINDOW;
                 }
             }
-/*            // no sense in checking the timestamp if the stream id has already been flagged
-            if (std::find(error_stream_ids.begin(), error_stream_ids.end(), it->Stream_id) == error_stream_ids.end()) {
-                if (it->Timestamp < now) {
-                    error_stream_ids.push_back(it->Stream_id);
-                }
-            }*/
             it++;
         }
         //for (std::vector<std::string>::iterator str_id=error_stream_ids.begin(); str_id!=error_stream_ids.end(); str_id++) {
@@ -169,13 +175,13 @@ namespace bulkio {
                 if (not transmit_queue.empty()) {
                     it = transmit_queue.end();
                     it--;
-                    do {
+                    while ((it >= transmit_queue.begin()) and (not transmit_queue.empty())) {
                         if (it->Stream_id == str_id) {
                             it = transmit_queue.erase(it);
                         } else {
                             it--;
                         }
-                    } while (it != transmit_queue.begin());
+                    }
                 }
             }
         }
@@ -213,6 +219,7 @@ namespace bulkio {
     template <class T_port>
     typename streamQueue<T_port>::DataBlockType streamQueue<T_port>::getNextBlock(BULKIO::PrecisionUTCTime &now, std::vector<bulkio::StreamStatus> &error_status, double timeout, double future_window) {
         boost::mutex::scoped_lock lock(queuesMutex);
+        error_status.clear();
         BULKIO::PrecisionUTCTime initial_time = bulkio::time::utils::now();
         double fixed_time_offset = now - initial_time;
         initial_time += fixed_time_offset;
@@ -259,7 +266,7 @@ namespace bulkio {
                     break;
                 }
                 double ingest_time = 0;
-                double current_time_diff = 0;
+                current_time_diff = 0;
                 if (future_window > 0) {
                     ingest_time = (bulkio::time::utils::now()+fixed_time_offset) - before_ingest_time;
                     _timeout = (ingest_time > future_window*0.75)?future_window*0.5:ingest_time*0.5;

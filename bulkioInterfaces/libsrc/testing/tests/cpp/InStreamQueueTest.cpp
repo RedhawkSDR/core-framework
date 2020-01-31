@@ -197,7 +197,6 @@ void InStreamQueueTest<Port>::testQueueExpired()
 
     timeout = 0.05;
     offset_time = ts_now+time_offset*2;
-    error_status.clear();
     block = queue.getNextBlock(offset_time, error_status, timeout, time_window);
 
     CPPUNIT_ASSERT(!block);
@@ -253,6 +252,33 @@ void InStreamQueueTest<Port>::testImmediateQueue()
     CPPUNIT_ASSERT(post_timeout-pre_timeout > timeout * 0.9);
     CPPUNIT_ASSERT(post_timeout-pre_timeout < timeout * 1.1);
     CPPUNIT_ASSERT(error_status.size()==0);
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testTimeOverlap()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create("stream_1");
+    sri.xdelta = 0.001;
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t old_length = 1600;
+    double time_offset = 0.065;
+    this->_pushTestPacket(old_length, ts_now+time_offset, false, sri.streamID);
+    size_t length = 1000;
+    this->_pushTestPacket(length, ts_now+time_offset+(old_length*sri.xdelta)/2.0, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(!block);
 }
 
 #define CREATE_QUEUE_TEST(x, BASE)                                            \
