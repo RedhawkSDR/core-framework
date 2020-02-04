@@ -158,6 +158,7 @@ namespace bulkio {
         typename std::deque<Record>::iterator it = transmit_queue.begin();
         while (it != transmit_queue.end()) {
             if (TimeZero(it->Timestamp)) {
+                it++;
                 continue;
             }
             // no sense in checking the timestamp if the stream id has already been flagged

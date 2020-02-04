@@ -217,6 +217,54 @@ void InStreamQueueTest<Port>::testShortWindowQueue()
 }
 
 template <class Port>
+void InStreamQueueTest<Port>::testZeroSend()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    // push a packet with a zero timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create("stream_1");
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    ts_now.twsec = 0;
+    ts_now.tfsec = 0;
+    size_t length = 16;
+    this->_pushTestPacket(length, ts_now, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = 200e-6;
+
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    timeout = 0.05;
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    BULKIO::PrecisionUTCTime time_check = bulkio::time::utils::now();
+
+    // make sure the queue times out without returning a block
+    CPPUNIT_ASSERT(time_check-ts_now >= timeout);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    ts_now.twsec = 0;
+    ts_now.tfsec = 0;
+    // push a packet with a zero timestamp
+    this->_pushTestPacket(length, ts_now, false, sri.streamID);
+
+    ts_now = bulkio::time::utils::now();
+    timeout = 0.05;
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(block);
+    CPPUNIT_ASSERT_EQUAL(length, block.size());
+    CPPUNIT_ASSERT(error_status.size()==0);
+}
+
+template <class Port>
 void InStreamQueueTest<Port>::testQueueExpired()
 {
     bulkio::streamQueue<Port> queue;
