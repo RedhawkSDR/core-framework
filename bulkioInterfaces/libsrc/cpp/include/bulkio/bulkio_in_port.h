@@ -260,6 +260,15 @@ namespace bulkio {
      * @returns  Input stream ready for reading on success.
      * @returns  Null input stream if timeout expires or port is stopped.
      */
+    //QueueType getQueue(float timeout=bulkio::Const::BLOCKING);
+
+    /**
+     * @brief  Gets the stream that should be used for the next basic read.
+     * @param timeout  Seconds to wait for a stream; a negative value waits
+     *                 indefinitely.
+     * @returns  Input stream ready for reading on success.
+     * @returns  Null input stream if timeout expires or port is stopped.
+     */
     StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
 
     /**
@@ -482,6 +491,8 @@ namespace bulkio {
     // Native type mapping of TransportType
     //
     typedef typename NativeTraits<PortType>::NativeType NativeType;
+
+    //typedef typename InPort<PortType>::StreamType QueueType;
 
     typedef typename InPort<PortType>::StreamType StreamType;
 

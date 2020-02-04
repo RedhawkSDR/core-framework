@@ -54,7 +54,7 @@ bool InStreamQueueTest<Port>::checkTimeWindow(const BULKIO::PrecisionUTCTime &pa
         return false;
     }
     // check the that time between receiving the packet and the packet's nominal time is within the error window
-    if (not(packet_time-right_now < window)) {
+    if (not(packet_time-right_now < window+not_rtos_timing_error)) {
         std::cout<<"fail (3b) "<<packet_time-right_now<<" "<<window<<std::endl;
         return false;
     }
@@ -521,6 +521,208 @@ void InStreamQueueTest<Port>::testImmediateQueue()
     CPPUNIT_ASSERT(post_timeout-pre_timeout > timeout * 0.9);
     CPPUNIT_ASSERT(post_timeout-pre_timeout < timeout * 1.1);
     CPPUNIT_ASSERT(error_status.size()==0);
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testQuickTimeout()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    std::string stream_id = "stream_1";
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    queue.hold(stream_id);
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    // push a packet with a future timestamp beyond the timeout
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    CPPUNIT_ASSERT(queue.held().size()==1);
+    CPPUNIT_ASSERT(queue.held()[0]==stream_id);
+
+    queue.allow(stream_id);
+
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_MISSED_TRANSMIT_WINDOW);
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testQuickIgnoreError()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    std::string stream_id = "stream_1";
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    queue.hold(stream_id);
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    // push a packet with a future timestamp beyond the timeout
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    CPPUNIT_ASSERT(queue.held().size()==1);
+    CPPUNIT_ASSERT(queue.held()[0]==stream_id);
+
+    queue.update_ignore_error(true);
+    queue.allow(stream_id);
+
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP);
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testQuickIgnoreErrorAndTimestamp()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    std::string stream_id = "stream_1";
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    queue.hold(stream_id);
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    // push a packet with a future timestamp beyond the timeout
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    CPPUNIT_ASSERT(queue.held().size()==1);
+    CPPUNIT_ASSERT(queue.held()[0]==stream_id);
+
+    queue.update_ignore_error(true);
+    queue.update_ignore_timestamp(true);
+    queue.allow(stream_id);
+
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==0);
+    CPPUNIT_ASSERT(block);
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==0);
+    CPPUNIT_ASSERT(block);
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==0);
+    CPPUNIT_ASSERT(!block);
+}
+
+template <class Port>
+void InStreamQueueTest<Port>::testQuick()
+{
+    bulkio::streamQueue<Port> queue;
+    queue.update_port(port);
+    std::vector<bulkio::StreamStatus> error_status;
+
+    std::string stream_id = "stream_1";
+    // push a packet with a future timestamp
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    BULKIO::PrecisionUTCTime ts_now = bulkio::time::utils::now();
+    size_t length = 16;
+    double time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    double timeout = 0.1;
+    double time_window = -1;
+
+    queue.hold(stream_id);
+
+    // inaccuracies in the OS require a wider window
+    double measure_time_window = time_window*2;
+    DataBlockType block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    // push a packet with a future timestamp beyond the timeout
+    ts_now = bulkio::time::utils::now();
+    time_offset = 0.065;
+    this->_pushTestPacket(length, ts_now+time_offset, false, sri.streamID);
+
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status.size()==0);
+
+    CPPUNIT_ASSERT(queue.held().size()==1);
+    CPPUNIT_ASSERT(queue.held()[0]==stream_id);
+
+    queue.allow(stream_id);
+
+    ts_now = bulkio::time::utils::now();
+    block = queue.getNextBlock(ts_now, error_status, timeout, time_window);
+    CPPUNIT_ASSERT(error_status.size()==1);
+    CPPUNIT_ASSERT(!block);
+    CPPUNIT_ASSERT(error_status[0].code==CF::DEV_MISSED_TRANSMIT_WINDOW);
 }
 
 template <class Port>

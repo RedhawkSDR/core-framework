@@ -164,18 +164,20 @@ namespace bulkio {
             bool found_error = false;
             if (error_streams.find(it->Stream_id) == error_streams.end()) {
                 if (it != transmit_queue.begin()) {
-                    double offset = (it-1)->Block.sri().xdelta * (it-1)->Block.buffer().size();
-                    if ((it-1)->Timestamp+offset >= it->Timestamp) {
-                        error_streams[it->Stream_id].stream_id = it->Stream_id;
-                        BULKIO::PrecisionUTCTime new_time = (it-1)->Timestamp+(it-1)->Block.sri().xdelta*(it-1)->Block.buffer().size();
-                        std::ostringstream message;
-                        message<<"Overlapping timestamps. "<<(it-1)->Timestamp<<" with xdelta "<<(it-1)->Block.sri().xdelta<<" and length "<<(it-1)->Block.buffer().size()<<" has the implied end timestamp of "<<new_time<<", which is beyond "<<it->Timestamp<<" on stream id '"<<it->Stream_id<<"'";
-                        error_streams[it->Stream_id].message = message.str();
-                        error_streams[it->Stream_id].code = CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP;
+                    if (not _ignore_timestamp) {
+                        double offset = (it-1)->Block.sri().xdelta * (it-1)->Block.buffer().size();
+                        if ((it-1)->Timestamp+offset >= it->Timestamp) {
+                            error_streams[it->Stream_id].stream_id = it->Stream_id;
+                            BULKIO::PrecisionUTCTime new_time = (it-1)->Timestamp+(it-1)->Block.sri().xdelta*(it-1)->Block.buffer().size();
+                            std::ostringstream message;
+                            message<<"Overlapping timestamps. "<<(it-1)->Timestamp<<" with xdelta "<<(it-1)->Block.sri().xdelta<<" and length "<<(it-1)->Block.buffer().size()<<" has the implied end timestamp of "<<new_time<<", which is beyond "<<it->Timestamp<<" on stream id '"<<it->Stream_id<<"'";
+                            error_streams[it->Stream_id].message = message.str();
+                            error_streams[it->Stream_id].code = CF::DEV_INVALID_TRANSMIT_TIME_OVERLAP;
+                            found_error = true;
+                        }
                     }
-                    found_error = true;
                 }
-                if ((not found_error) and (it->Timestamp < now)) {
+                if ((not found_error) and (it->Timestamp < now) and (not _ignore_error)) {
                     error_streams[it->Stream_id].stream_id = it->Stream_id;
                     std::ostringstream message;
                     message<<"Data packet expired for packet with timestamp "<<it->Timestamp<<" on stream id '"<<it->Stream_id<<"'";
