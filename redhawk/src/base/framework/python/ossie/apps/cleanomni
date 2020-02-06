@@ -94,14 +94,10 @@ if __name__ == '__main__':
     retval=commands.getstatusoutput('[ -d /var/log/omniEvents ] && rm -rf /var/log/omniEvents/*')
     if options.verbose:
         print "Starting omniNames"
-    status, output = commands.getstatusoutput('/sbin/service omniNames start')
-    if status:
-        print output
+    if os.system('/sbin/service omniNames start'):
         errors += 1
     if options.verbose:
         print "Starting omniEvents"
-    status, output = commands.getstatusoutput('/sbin/service omniEvents start')
-    if status:
-        print output
+    if os.system('/sbin/service omniEvents start'):
         errors += 1
     raise SystemExit(errors)
