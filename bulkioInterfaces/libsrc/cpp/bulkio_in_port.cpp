@@ -1209,6 +1209,7 @@ namespace bulkio {
     InPort<PortType>(port_name, logger, compareSri, newStreamCB),
     _queue()
   {
+      _queue.update_port(this);
   }
 
   template <typename PortType>
@@ -1218,6 +1219,7 @@ namespace bulkio {
     InPort<PortType>(port_name, LOGGER_PTR(), compareSri, newStreamCB),
     _queue()
   {
+      _queue.update_port(this);
   }
 
   template <typename PortType>
@@ -1225,6 +1227,7 @@ namespace bulkio {
     InPort<PortType>(port_name, LOGGER_PTR()),
     _queue()
   {
+      _queue.update_port(this);
   }
 
   template <typename PortType>
