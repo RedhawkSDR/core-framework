@@ -25,15 +25,7 @@
 namespace bulkio {
 
     /*template <class T_port>
-    streamQueue<T_port>::Record::Record(std::string _s, short _p, BULKIO::PrecisionUTCTime _t, typename streamQueue<T_port>::DataBlockType &_b) {
-        Stream_id = _s;
-        Priority = _p;
-        Timestamp = _t;
-        Block = _b;
-    }*/
-
-    template <class T_port>
-    streamQueue<T_port>::streamQueue(bool ignore_timestamp, bool ignore_error) {
+    StreamQueue<T_port>::StreamQueue() {
         _ignore_timestamp = false;
         _ignore_error = false;
         _port = NULL;
@@ -58,22 +50,22 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::update_port(T_port* port) {
+    void StreamQueue<T_port>::update_port(T_port* port) {
         _port = port;
     }
 
     template <class T_port>
-    void streamQueue<T_port>::update_ignore_timestamp(bool ignore_timestamp) {
+    void StreamQueue<T_port>::update_ignore_timestamp(bool ignore_timestamp) {
         _ignore_timestamp = ignore_timestamp;
     }
 
     template <class T_port>
-    void streamQueue<T_port>::update_ignore_error(bool ignore_error) {
+    void StreamQueue<T_port>::update_ignore_error(bool ignore_error) {
         _ignore_error = ignore_error;
     }
 
     template <class T_port>
-    double streamQueue<T_port>::getCenterFrequency(typename streamQueue<T_port>::DataBlockType &block) {
+    double StreamQueue<T_port>::getCenterFrequency(typename StreamQueue<T_port>::DataBlockType &block) {
         const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(block.sri().keywords);
         if (keywords.find("CHAN_RF") != keywords.end()) {
             return keywords["CHAN_RF"].toDouble();
@@ -82,7 +74,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    std::vector<std::string> streamQueue<T_port>::held() {
+    std::vector<std::string> StreamQueue<T_port>::held() {
         boost::mutex::scoped_lock lock(queuesMutex);
         std::vector<std::string> stream_ids;
         typename std::map<std::string, std::deque<Record> >::iterator it;
@@ -93,7 +85,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    bool streamQueue<T_port>::hold(std::string stream_id) {
+    bool StreamQueue<T_port>::hold(std::string stream_id) {
         boost::mutex::scoped_lock lock(queuesMutex);
         bool retval = false;
         if (held_queue.find(stream_id) == held_queue.end()) {
@@ -115,7 +107,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    bool streamQueue<T_port>::allow(const std::string &stream_id) {
+    bool StreamQueue<T_port>::allow(const std::string &stream_id) {
         boost::mutex::scoped_lock lock(queuesMutex);
         bool retval = false;
         if (held_queue.find(stream_id) != held_queue.end()) {
@@ -128,7 +120,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::reset() {
+    void StreamQueue<T_port>::reset() {
         boost::mutex::scoped_lock lock(queuesMutex);
         transmit_queue.clear();
         held_queue.clear();
@@ -136,7 +128,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::reset(const std::string &stream_id) {
+    void StreamQueue<T_port>::reset(const std::string &stream_id) {
         boost::mutex::scoped_lock lock(queuesMutex);
         typename std::deque<Record>::iterator it = transmit_queue.end();
         it--;
@@ -152,7 +144,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::verifyTimes(BULKIO::PrecisionUTCTime now) {
+    void StreamQueue<T_port>::verifyTimes(BULKIO::PrecisionUTCTime now) {
         if (TimeZero(now))
             return;
         typename std::deque<Record>::iterator it = transmit_queue.begin();
@@ -208,7 +200,7 @@ namespace bulkio {
     }
 
     template <class T_port>
-    void streamQueue<T_port>::ingestStreams(BULKIO::PrecisionUTCTime& now, double timeout) {
+    void StreamQueue<T_port>::ingestStreams(BULKIO::PrecisionUTCTime& now, double timeout) {
         bool transmit_updated = false;
         while (true) {  // loop until no streams are available
             typename T_port::StreamType inputStream = _port->getCurrentStream(timeout);
@@ -216,7 +208,7 @@ namespace bulkio {
                 break;
             }
             std::string stream_id = ossie::corba::returnString(inputStream.sri().streamID);
-            typename streamQueue<T_port>::DataBlockType block = inputStream.read();
+            typename StreamQueue<T_port>::DataBlockType block = inputStream.read();
             if (inputStream.eos()) {
             }
             if (!block) { // No data available
@@ -237,14 +229,14 @@ namespace bulkio {
     }
 
     template <class T_port>
-    typename streamQueue<T_port>::DataBlockType streamQueue<T_port>::getNextBlock(BULKIO::PrecisionUTCTime &now, std::vector<bulkio::StreamStatus> &error_status, double timeout, double future_window) {
+    typename StreamQueue<T_port>::DataBlockType StreamQueue<T_port>::getNextBlock(BULKIO::PrecisionUTCTime &now, std::vector<bulkio::StreamStatus> &error_status, double timeout, double future_window) {
         boost::mutex::scoped_lock lock(queuesMutex);
         error_status.clear();
         BULKIO::PrecisionUTCTime initial_time = bulkio::time::utils::now();
         double fixed_time_offset = now - initial_time;
         initial_time += fixed_time_offset;
 
-        typename streamQueue<T_port>::DataBlockType retval;
+        typename StreamQueue<T_port>::DataBlockType retval;
         double _timeout = 0;
         double orig_timeout = timeout;
         double half_future_window_us = future_window * 1e6 * 0.5;
@@ -260,7 +252,7 @@ namespace bulkio {
             }
             if (not transmit_queue.empty()) {
                 if (future_window > 0) { // future_window < 0 means "just give me the front of the queue
-                    typename streamQueue<T_port>::DataBlockType inspect_block = transmit_queue.front().Block;
+                    typename StreamQueue<T_port>::DataBlockType inspect_block = transmit_queue.front().Block;
                     double block_timediff = inspect_block.getStartTime() - (bulkio::time::utils::now()+fixed_time_offset);
                     if (block_timediff > future_window+sleep_overhead) { // the time different is not quite there yet
                         long int sleep_time = (block_timediff-future_window)*1e6;
@@ -323,8 +315,13 @@ namespace bulkio {
         return retval;
     }
 
-#define INSTANTIATE_TEMPLATE(x) template class streamQueue<x>;
+#define INSTANTIATE_QUEUE_TEMPLATE(x) template class bulkio::StreamQueue< InNumericPort<x> >;
 
-FOREACH_INPUT_NUMERIC_PORT(INSTANTIATE_TEMPLATE);
+    FOREACH_NUMERIC_PORT_TYPE(INSTANTIATE_QUEUE_TEMPLATE);*/
+
+    //template class bulkio::StreamQueue< InNumericPort<BULKIO::dataFloat> >;
+/*#define INSTANTIATE_TEMPLATE(x) template class StreamQueue<x>;
+
+FOREACH_INPUT_NUMERIC_PORT(INSTANTIATE_TEMPLATE);*/
 
 }

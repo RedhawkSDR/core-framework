@@ -260,15 +260,6 @@ namespace bulkio {
      * @returns  Input stream ready for reading on success.
      * @returns  Null input stream if timeout expires or port is stopped.
      */
-    //QueueType getQueue(float timeout=bulkio::Const::BLOCKING);
-
-    /**
-     * @brief  Gets the stream that should be used for the next basic read.
-     * @param timeout  Seconds to wait for a stream; a negative value waits
-     *                 indefinitely.
-     * @returns  Input stream ready for reading on success.
-     * @returns  Null input stream if timeout expires or port is stopped.
-     */
     StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
 
     /**
@@ -498,6 +489,8 @@ namespace bulkio {
 
     typedef typename InPort<PortType>::StreamList StreamList;
 
+    typedef StreamQueue< InNumericPort<PortType> > StreamQueueType;
+
     //
     // InNumericPort - creates a provides port that can accept data vectors from a source
     //
@@ -530,6 +523,8 @@ namespace bulkio {
     // Stream-based input API
     //
 
+    StreamQueueType& getQueue();
+
     StreamList pollStreams(float timeout);
     StreamList pollStreams(StreamList& pollset, float timeout);
 
@@ -539,6 +534,9 @@ namespace bulkio {
   protected:
     // Shared buffer type used for local transfers
     typedef typename InPort<PortType>::BufferType BufferType;
+
+    //StreamQueue< InNumericPort<PortType> > _queue;
+    StreamQueueType _queue;
 
     typedef InPort<PortType> super;
     using super::packetWaiters;

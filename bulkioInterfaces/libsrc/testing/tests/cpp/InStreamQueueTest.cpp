@@ -69,7 +69,7 @@ bool InStreamQueueTest<Port>::checkTimeWindow(const BULKIO::PrecisionUTCTime &pa
 template <class Port>
 void InStreamQueueTest<Port>::testBaselineQueueTest()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -118,7 +118,7 @@ void InStreamQueueTest<Port>::testBaselineQueueTest()
 template <class Port>
 void InStreamQueueTest<Port>::testRetune()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -167,7 +167,7 @@ void InStreamQueueTest<Port>::testRetune()
 template <class Port>
 void InStreamQueueTest<Port>::testShortWindowQueue()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -219,7 +219,7 @@ void InStreamQueueTest<Port>::testShortWindowQueue()
 template <class Port>
 void InStreamQueueTest<Port>::testZeroSend()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -267,7 +267,7 @@ void InStreamQueueTest<Port>::testZeroSend()
 template <class Port>
 void InStreamQueueTest<Port>::testQueueExpired()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -369,7 +369,7 @@ void InStreamQueueTest<Port>::testQueueExpired()
 template <class Port>
 void InStreamQueueTest<Port>::testMultiStreamError()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -523,7 +523,7 @@ void InStreamQueueTest<Port>::testMultiStreamError()
 template <class Port>
 void InStreamQueueTest<Port>::testImmediateQueue()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -574,7 +574,7 @@ void InStreamQueueTest<Port>::testImmediateQueue()
 template <class Port>
 void InStreamQueueTest<Port>::testQuickTimeout()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -622,7 +622,7 @@ void InStreamQueueTest<Port>::testQuickTimeout()
 template <class Port>
 void InStreamQueueTest<Port>::testQuickIgnoreError()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -671,7 +671,7 @@ void InStreamQueueTest<Port>::testQuickIgnoreError()
 template <class Port>
 void InStreamQueueTest<Port>::testQuickIgnoreErrorAndTimestamp()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -728,7 +728,7 @@ void InStreamQueueTest<Port>::testQuickIgnoreErrorAndTimestamp()
 template <class Port>
 void InStreamQueueTest<Port>::testQuick()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 
@@ -776,7 +776,7 @@ void InStreamQueueTest<Port>::testQuick()
 template <class Port>
 void InStreamQueueTest<Port>::testTimeOverlap()
 {
-    bulkio::streamQueue<Port> queue;
+    bulkio::StreamQueue<Port> queue;
     queue.update_port(port);
     std::vector<bulkio::StreamStatus> error_status;
 

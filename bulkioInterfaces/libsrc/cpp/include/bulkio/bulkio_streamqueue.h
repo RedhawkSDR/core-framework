@@ -24,6 +24,7 @@
 #include "bulkio_base.h"
 #include "bulkio_time_operators.h"
 #include <ossie/CorbaUtils.h>
+#include <ossie/PropertyMap.h>
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -41,7 +42,7 @@ namespace bulkio {
     };
 
     template <class T_port>
-    class streamQueue
+    class StreamQueue
     {
     public:
         typedef typename T_port::StreamType::DataBlockType DataBlockType;
@@ -66,7 +67,7 @@ namespace bulkio {
         };
 
     public:
-        streamQueue(bool ignore_timestamp=false, bool ignore_error=false);
+        StreamQueue();
 
         void update_port(T_port* port);
 
