@@ -28,39 +28,39 @@ bool InStreamQueueTest<Port>::checkTimeWindow(const BULKIO::PrecisionUTCTime &pa
         double short_time = 1e-3;
         // check that the time different between the test start and when the packet is received is very short
         if (not(right_now-time_start < short_time)) {
-            std::cout<<"fail (1a) "<<right_now-time_start<<" "<<short_time<<" "<<offset<<" "<<window<<std::endl;
+            //std::cout<<"fail (no window 1) "<<right_now-time_start<<" "<<short_time<<" "<<offset<<" "<<window<<std::endl;
             return false;
         }
         // check the that time between receiving the packet and the packet's nominal time is within the error window
         if (not(packet_time-right_now >= offset-short_time)) {
-            std::cout<<"fail (3a) "<<packet_time-right_now<<" "<<offset<<" "<<short_time<<std::endl;
+            //std::cout<<"fail (no window 2) "<<packet_time-right_now<<" "<<offset<<" "<<short_time<<std::endl;
             return false;
         }
         // check the that time for receiving the packet is less than the packet's nominal time
         if (not(right_now < packet_time)) {
-            std::cout<<"fail (4a) "<<right_now<<" "<<packet_time<<std::endl;
+            //std::cout<<"fail (no window 3) "<<right_now<<" "<<packet_time<<std::endl;
             return false;
         }
         return true;
     }
     // check that the time different between the test start and when the packet is received is within the error limit of the offset
     if (not(right_now-time_start+not_rtos_timing_error >= offset-window)) {
-        std::cout<<"fail (1b) "<<right_now-time_start<<" "<<offset<<" "<<window<<std::endl;
+        //std::cout<<"fail (1) "<<right_now-time_start<<" "<<offset<<" "<<window<<std::endl;
         return false;
     }
     // check that the time different between the test start and when the packet is less than the offset
     if (not(right_now-time_start < offset)) {
-        std::cout<<"fail (2b) "<<right_now-time_start<<" "<<right_now<<" "<<time_start<<" "<<offset<<std::endl;
+        //std::cout<<"fail (2) "<<right_now-time_start<<" "<<right_now<<" "<<time_start<<" "<<offset<<std::endl;
         return false;
     }
     // check the that time between receiving the packet and the packet's nominal time is within the error window
     if (not(packet_time-right_now < window+not_rtos_timing_error)) {
-        std::cout<<"fail (3b) "<<packet_time-right_now<<" "<<window<<std::endl;
+        //std::cout<<"fail (3) "<<packet_time-right_now<<" "<<window<<std::endl;
         return false;
     }
     // check the that time for receiving the packet is less than the packet's nominal time
     if (not(right_now < packet_time)) {
-        std::cout<<"fail (4b) "<<right_now<<" "<<packet_time<<std::endl;
+        //std::cout<<"fail (4) "<<right_now<<" "<<packet_time<<std::endl;
         return false;
     }
     return true;
