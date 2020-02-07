@@ -235,7 +235,7 @@ module FRONTEND {
 
         Tuner Types:
         ------------
-        Frontend devices are seperated in several tuner types based on 
+        Frontend devices are separated in several tuner types based on 
             functionality. The base supported types are listed below but
             can be extended (ie - new types can be created) to satisfy
             one's CONOP
