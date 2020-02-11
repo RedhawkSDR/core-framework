@@ -97,25 +97,67 @@ class PersonaTest(scatest.CorbaTestCase):
         self.checkRegisteredDevices(4)
         self.allocate()
 
-    def test_Persona_log(self):
-        fpath_log = '/var/tmp/Persona.log'  # depends on its setting in the log config file
-        self._tempfiles.append(fpath_log)
-        self._delete_temp_files()  # ensure no leftover log file exists
-        self.launchNode('test_Persona_log', loggingURI='dev/nodes/test_Persona_log/Persona.cfg')
+    def _test_Persona_log(self, fpath_log, log_level):
+        self.launchNode('test_Persona_log', debug=log_level, loggingURI='dev/nodes/test_Persona_log/Persona.cfg')
+        found_prog_dbg = False
+        found_pers_dbg = False
+        found_prog_inf = False
+        found_pers_inf = False
+        # These regexes must match the format defined in the log config file.
+        re_prog_dbg = r'^.{20}' + r'{}'.format('DEBUG ProgrammableDevice_1')
+        re_pers_dbg = r'^.{20}' + r'{}'.format('DEBUG PersonaDevice_1')
+        re_prog_inf = r'^.{20}' + r'{}'.format('INFO  ProgrammableDevice_1')
+        re_pers_inf = r'^.{20}' + r'{}'.format('INFO  PersonaDevice_1')
         time_limit = 5
         start = time.time()
-        found_log_entry_prog_device = False
-        found_log_entry_pers_device = False
-        regexp_prog = r'^.{26}' + r'{}'.format('ProgrammableDevice_1')  # depends on its setting in the log config file
-        regexp_pers = r'^.{26}' + r'{}'.format('PersonaDevice_1')  # depends on its setting in the log config file
-        while not (found_log_entry_prog_device and found_log_entry_pers_device):
+        while not (found_prog_inf and found_pers_inf):
             if time.time() > start + time_limit:
                 break
-            found_log_entry_prog_device = is_regexp_in_file_lines(fpath_log, regexp_prog)
-            found_log_entry_pers_device = is_regexp_in_file_lines(fpath_log, regexp_pers)
+            found_prog_dbg = is_regexp_in_file_lines(fpath_log, re_prog_dbg)
+            found_pers_dbg = is_regexp_in_file_lines(fpath_log, re_pers_dbg)
+            found_prog_inf = is_regexp_in_file_lines(fpath_log, re_prog_inf)
+            found_pers_inf = is_regexp_in_file_lines(fpath_log, re_pers_inf)
             time.sleep(0.1)
-        self.assertTrue(found_log_entry_prog_device)
-        self.assertTrue(found_log_entry_pers_device)
+        return found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf
+
+    def test_Persona_log_1(self):
+        """
+        Check that for both ProgrammableDevice and PersonaDevice:
+        - a FileAppender is created via logging config file
+        - log messages are written to the FileAppender's output File
+        - the `-debug` flag of nodeBooter's command line affects the log level
+
+        The tests are simplified by knowing what log messages will occur, and their order.
+        For both ProgrammableDevice and PersonaDevice, several DEBUG messages happen first,
+        followed by these INFO messages:
+            for ProgrammableDevice_1:
+                yyyy-mm-dd hh:mm:ss INFO  ProgrammableDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:ProgrammableDevice_1 Requesting IDM CHANNEL IDM_Channel
+            for PersonaDevice_1:
+                yyyy-mm-dd hh:mm:ss INFO  PersonaDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:PersonaDevice_1 Requesting IDM CHANNEL IDM_Channel
+        """
+        fpath_log = '/var/tmp/Persona.log'  # Must match what is defined in log config file.
+        self._tempfiles.append(fpath_log)
+        self._delete_temp_files()  # ensure no leftover log file exists
+
+        log_level = 4  # DEBUG
+        found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf = self._test_Persona_log(fpath_log, log_level=log_level)
+        self.assertTrue(found_prog_dbg)
+        self.assertTrue(found_pers_dbg)
+        self.assertTrue(found_prog_inf)
+        self.assertTrue(found_pers_inf)
+
+    def test_Persona_log_2(self):
+        """ See doc string for test_Persona_log_1(). """
+        fpath_log = '/var/tmp/Persona.log'  # Must match what is defined in log config file.
+        self._tempfiles.append(fpath_log)
+        self._delete_temp_files()  # ensure no leftover log file exists
+
+        log_level = 3  # INFO
+        found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf = self._test_Persona_log(fpath_log, log_level=log_level)
+        self.assertFalse(found_prog_dbg)
+        self.assertFalse(found_pers_dbg)
+        self.assertTrue(found_prog_inf)
+        self.assertTrue(found_pers_inf)
 
 class PPTest(scatest.CorbaTestCase):
     def setUp(self):
