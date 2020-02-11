@@ -197,6 +197,54 @@ template<> inline short StructProperty<frontend::frontend_listener_allocation_st
     }
 }
 
+inline bool operator>>= (const CORBA::Any& a, frontend::frontend_transmitter_allocation_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("FRONTEND::transmitter_allocation::min_freq")) {
+        if (!(props["FRONTEND::transmitter_allocation::min_freq"] >>= s.min_freq)) return false;
+    }
+    if (props.contains("FRONTEND::transmitter_allocation::max_freq")) {
+        if (!(props["FRONTEND::transmitter_allocation::max_freq"] >>= s.max_freq)) return false;
+    }
+    if (props.contains("FRONTEND::transmitter_allocation::control_limit")) {
+        if (!(props["FRONTEND::transmitter_allocation::control_limit"] >>= s.control_limit)) return false;
+    }
+    if (props.contains("FRONTEND::transmitter_allocation::max_power")) {
+        if (!(props["FRONTEND::transmitter_allocation::max_power"] >>= s.max_power)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const frontend::frontend_transmitter_allocation_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["FRONTEND::transmitter_allocation::min_freq"] = s.min_freq;
+ 
+    props["FRONTEND::transmitter_allocation::max_freq"] = s.max_freq;
+ 
+    props["FRONTEND::transmitter_allocation::control_limit"] = s.control_limit;
+ 
+    props["FRONTEND::transmitter_allocation::max_power"] = s.max_power;
+    a <<= props;
+}
+
+inline bool operator== (const frontend::frontend_transmitter_allocation_struct& s1, const frontend::frontend_transmitter_allocation_struct& s2) {
+    if (s1.min_freq!=s2.min_freq)
+        return false;
+    if (s1.max_freq!=s2.max_freq)
+        return false;
+    if (s1.control_limit!=s2.control_limit)
+        return false;
+    if (s1.max_power!=s2.max_power)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const frontend::frontend_transmitter_allocation_struct& s1, const frontend::frontend_transmitter_allocation_struct& s2) {
+    return !(s1==s2);
+}
+
 inline bool operator>>= (const CORBA::Any& a, frontend::default_frontend_tuner_status_struct_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;

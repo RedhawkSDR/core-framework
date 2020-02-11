@@ -48,6 +48,7 @@ class FrontendComponentGenerator(PullComponentGenerator):
                                        'frontend_tuner_allocation',
                                        'frontend_listener_allocation',
                                        'frontend_scanner_allocation',
+                                       'frontend_transmitter_allocation',
                                        'frontend_tuner_status'):
                     prop['inherited'] = True
         return component

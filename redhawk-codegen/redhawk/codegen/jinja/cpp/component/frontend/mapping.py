@@ -96,6 +96,7 @@ class FrontendPropertyMapper(CppPropertyMapper):
     FRONTEND_BUILTINS = (
         'FRONTEND::tuner_allocation',
         'FRONTEND::listener_allocation',
+        'FRONTEND::transmitter_allocation',
         'FRONTEND::scanner_allocation'
     )
 

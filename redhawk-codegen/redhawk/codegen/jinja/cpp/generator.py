@@ -33,7 +33,6 @@ class CppCodeGenerator(CodeGenerator):
         for _template in self.templatesChildren(component):
             child = _template.keys()[0]
             template = _template.values()[0]
-            print 'template.filename', template.filename
             filename, ext = os.path.splitext(template.filename)
             if ext in ('.h', '.cpp'):
                 yield template.filename

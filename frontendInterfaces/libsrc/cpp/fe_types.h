@@ -187,7 +187,26 @@ namespace frontend {
         std::string existing_allocation_id;
         std::string listener_allocation_id;
     };
-    
+
+    struct frontend_transmitter_allocation_struct {
+        frontend_transmitter_allocation_struct ()
+        {
+        }
+
+        static std::string getId() {
+            return std::string("FRONTEND::transmitter_allocation");
+        }
+
+        static const char* getFormat() {
+            return "dddd";
+        }
+
+        double min_freq;
+        double max_freq;
+        double control_limit;
+        double max_power;
+    };
+
     struct default_frontend_tuner_status_struct_struct {
         default_frontend_tuner_status_struct_struct ()
         {
