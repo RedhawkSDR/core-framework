@@ -63,7 +63,7 @@ To create a default configuration file for JacORB, copy its properties template 
 
 ```sh
 mkdir -p $OSSIEHOME/etc/
-cp /usr/share/java/jacorb-3.9/etc/jacorb_properties.template $OSSIEHOME/etc/jacorb.properties`
+cp /usr/share/java/jacorb-3.9/etc/jacorb_properties.template $OSSIEHOME/etc/jacorb.properties
 ```
 
 ### Logging Output
