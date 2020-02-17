@@ -98,6 +98,15 @@ class PersonaTest(scatest.CorbaTestCase):
         self.allocate()
 
     def _test_Persona_log(self, fpath_log, log_level):
+        """
+        These checks are simplified by knowing what log messages will occur, and their order.
+        For both ProgrammableDevice and PersonaDevice, several DEBUG messages happen first,
+        followed closely by these INFO messages:
+            for ProgrammableDevice_1:
+                yyyy-mm-dd hh:mm:ss INFO  ProgrammableDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:ProgrammableDevice_1 Requesting IDM CHANNEL IDM_Channel
+            for PersonaDevice_1:
+                yyyy-mm-dd hh:mm:ss INFO  PersonaDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:PersonaDevice_1 Requesting IDM CHANNEL IDM_Channel
+        """
         self.launchNode('test_Persona_log', debug=log_level, loggingURI='dev/nodes/test_Persona_log/Persona.cfg')
         found_prog_dbg = False
         found_pers_dbg = False
@@ -120,20 +129,11 @@ class PersonaTest(scatest.CorbaTestCase):
             time.sleep(0.1)
         return found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf
 
-    def test_Persona_log_1(self):
+    def test_Persona_log_config_file(self):
         """
         Check that for both ProgrammableDevice and PersonaDevice:
         - a FileAppender is created via logging config file
-        - log messages are written to the FileAppender's output File
-        - the `-debug` flag of nodeBooter's command line affects the log level
-
-        The tests are simplified by knowing what log messages will occur, and their order.
-        For both ProgrammableDevice and PersonaDevice, several DEBUG messages happen first,
-        followed by these INFO messages:
-            for ProgrammableDevice_1:
-                yyyy-mm-dd hh:mm:ss INFO  ProgrammableDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:ProgrammableDevice_1 Requesting IDM CHANNEL IDM_Channel
-            for PersonaDevice_1:
-                yyyy-mm-dd hh:mm:ss INFO  PersonaDevice_1.system.Device:1188 - DEV-ID:test_Persona_cpp_log_debug:PersonaDevice_1 Requesting IDM CHANNEL IDM_Channel
+        - log messages are written to the FileAppender's output file
         """
         fpath_log = '/var/tmp/Persona.log'  # Must match what is defined in log config file.
         self._tempfiles.append(fpath_log)
@@ -146,8 +146,11 @@ class PersonaTest(scatest.CorbaTestCase):
         self.assertTrue(found_prog_inf)
         self.assertTrue(found_pers_inf)
 
-    def test_Persona_log_2(self):
-        """ See doc string for test_Persona_log_1(). """
+    def test_Persona_log_nodebooter_commandline(self):
+        """
+        Check that for both ProgrammableDevice and PersonaDevice:
+        - the `-debug` flag of nodeBooter's command line affects the log level
+        """
         fpath_log = '/var/tmp/Persona.log'  # Must match what is defined in log config file.
         self._tempfiles.append(fpath_log)
         self._delete_temp_files()  # ensure no leftover log file exists
