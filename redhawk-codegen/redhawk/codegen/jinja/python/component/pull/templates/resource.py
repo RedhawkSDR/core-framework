@@ -61,8 +61,8 @@ class ${className}(${baseClass}):
         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
         should look like this:
 
-        self.addChannels(3, "RX_DIGITIZER");
-        self.addChannels(2, "CHANNELIZER");
+        self.addChannels(3, "RX_DIGITIZER")
+        self.addChannels(2, "CHANNELIZER")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
@@ -70,7 +70,7 @@ class ${className}(${baseClass}):
         """
         # TODO add customization here.
 #{% if component.hastunerstatusstructure %}
-        self.addChannels(1, "RX_DIGITIZER");
+        self.addChannels(1, "RX_DIGITIZER")
 #{% endif %}
         
 #{% block updateUsageState %}
@@ -165,7 +165,7 @@ class ${className}(${baseClass}):
             type MessageEvent, create the following code:
         
             msg_out = ${className}.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
 #{% if component is device %}
     Accessing the Application and Domain Manager:
@@ -174,9 +174,9 @@ class ${className}(${baseClass}):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
 #{% else %}
     Accessing the Device Manager and Domain Manager:
     
@@ -184,9 +184,9 @@ class ${className}(${baseClass}):
         the Device Manager are available to the Device.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Device Manager:
-            devmgr = self.getDeviceManager().getRef();
+            devmgr = self.getDeviceManager().getRef()
 #{% endif %}
         Properties:
         
@@ -239,7 +239,7 @@ class ${className}(${baseClass}):
             # This example assumes that the ${artifactType} has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the ${artifactType}
+            # The mapping between the port and the class is found in the ${artifactType}
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude

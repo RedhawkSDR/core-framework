@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <sstream>
 #include <vector>
+#include <cctype>
+#include <algorithm>
 #include <uuid/uuid.h>
 #include <boost/thread/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -319,8 +321,12 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
 	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
-    return _create( channel_name );
-    
+    try{
+      return _create( channel_name );
+    }
+    catch(const CF::EventChannelManager::InvalidChannelName&){
+      throw(CF::EventChannelManager::OperationFailed());
+    }
   }
 
 
@@ -332,8 +338,11 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
 	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
-    return _create( channel_name );
-    
+    try{
+      return _create( channel_name );
+    }catch(const CF::EventChannelManager::InvalidChannelName&){
+      throw(CF::EventChannelManager::OperationFailed());
+    }
   }
 
 ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &channel_name) 
@@ -343,8 +352,12 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
-    return _get( channel_name );
-    
+    try{
+      return _get( channel_name );
+    }catch(const CF::EventChannelManager::InvalidChannelName&){
+      throw(CF::EventChannelManager::OperationFailed());
+    }    
+
   }
 
 
@@ -356,8 +369,11 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
-    return _get( channel_name );
-    
+    try{
+      return _get( channel_name );
+    }catch(const CF::EventChannelManager::InvalidChannelName&){
+      throw(CF::EventChannelManager::OperationFailed());
+    }        
   }
 
 
@@ -368,13 +384,19 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
-    return _create( channel_name, true );
+    try {
+      return _create( channel_name, true );
+    }
+    catch(CF::EventChannelManager::InvalidChannelName&){
+      throw(CF::EventChannelManager::OperationFailed());
+    }
     
   }
 
 
   ossie::events::EventChannel_ptr EventChannelManager::_create( const std::string &channel_name, const bool autoRelease) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable )
@@ -386,7 +408,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw ( CF::EventChannelManager::InvalidChannelName());
+      throw (CF::EventChannelManager::InvalidChannelName());
     }
 
     //
@@ -439,7 +461,8 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
   }
 
   ossie::events::EventChannel_ptr EventChannelManager::_get( const std::string &channel_name ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelDoesNotExist, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable )
@@ -472,6 +495,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     if ( _enable_ns_resolution ) {
       RH_TRACE(_eventChannelMgrLog, " Checking NamingService for:" << fqn );
       event_channel = _resolve_ns( cname, fqn, _domain_context );
+
       if ( !CORBA::is_nil(event_channel) ) {
           return(ossie::events::EventChannel::_duplicate(event_channel));
       }
@@ -485,7 +509,8 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel, 
                                    const std::string &channel_name, 
                                    const std::string &fqn_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+  throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable )
@@ -600,7 +625,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw ( CF::EventChannelManager::InvalidChannelName());
+      throw (CF::EventChannelManager::InvalidChannelName());
     }
     //
     // check if a registration record exists for this channel .. 
@@ -1193,15 +1218,18 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
    */
 
   if ( !found ) {
-    CosNaming::Name_var boundName = ossie::corba::stringToName(fqn);
     try {
-      CosNaming::NamingContext_ptr context = ossie::corba::ResolveNamingContextPath( nc_name );
+      CosNaming::Name_var boundName = ossie::corba::stringToName(fqn);
+      CosNaming::NamingContext_var context = ossie::corba::ResolveNamingContextPath( nc_name );
       if ( !CORBA::is_nil(context) ) {
         CORBA::Object_var obj = context->resolve(boundName);
         RH_TRACE(_eventChannelMgrLog, " : FOUND EXISTING (NamingService - domain/domain.channel), Channel/FQN " << cname  << "/" << fqn );
         event_channel = ossie::events::EventChannel::_narrow(obj);
         found = true;
       }
+    } catch(const CosNaming::NamingContext::InvalidName&e) {
+      RH_ERROR(_eventChannelMgrLog, "Invalid channel name: <" << fqn << ">" );
+      throw(CF::EventChannelManager::InvalidChannelName());
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1212,15 +1240,18 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
   }
 
   if ( !found ) {
-    CosNaming::Name_var boundName = ossie::corba::stringToName(cname);
     try {
-      CosNaming::NamingContext_ptr context = ossie::corba::ResolveNamingContextPath( nc_name );
+      CosNaming::Name_var boundName = ossie::corba::stringToName(cname);      
+      CosNaming::NamingContext_var context = ossie::corba::ResolveNamingContextPath( nc_name );
       if ( !CORBA::is_nil(context) ) {
         CORBA::Object_var obj = context->resolve(boundName);
         RH_TRACE(_eventChannelMgrLog, " : FOUND EXISTING (NamingService - domaincontext/channel ), Channel/FQN " << cname  << "/" << fqn );
         event_channel = ossie::events::EventChannel::_narrow(obj);
         found = true;
       }
+    } catch(const CosNaming::NamingContext::InvalidName&e) {
+      RH_ERROR(_eventChannelMgrLog, "Invalid channel name: <" << cname << ">" );
+      throw(CF::EventChannelManager::InvalidChannelName());
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1232,8 +1263,8 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
 
 
   if ( !found ) {
-    CosNaming::Name_var boundName = ossie::corba::stringToName(fqn);
     try {
+      CosNaming::Name_var boundName = ossie::corba::stringToName(fqn);
       CosNaming::NamingContext_ptr context = ossie::corba::ResolveNamingContextPath("");
       if ( !CORBA::is_nil(context) ) {
         CORBA::Object_var obj = context->resolve(boundName);
@@ -1241,6 +1272,8 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
         event_channel = ossie::events::EventChannel::_narrow(obj);
         found = true;
       }
+    } catch(const CosNaming::NamingContext::InvalidName&e) {
+      throw(CF::EventChannelManager::InvalidChannelName());
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1350,10 +1383,20 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
   }
 
 
+
 /*
  */
   bool EventChannelManager::_validateChannelName( const std::string &cname ) {
-    if ( cname.find(":") == std::string::npos ) {
+
+    // remove all white space...
+    std::string tmp(cname);
+    tmp.erase(std::remove_if(tmp.begin(),tmp.end(), ::isspace),tmp.end());
+    if ( tmp.size() != 0 &&
+         tmp != "" &&
+         tmp != "\'\'" &&
+         tmp != "\"\"" &&
+         tmp.find(".") == std::string::npos &&
+         tmp.find(":") == std::string::npos ) {
       return true;
     }
     else {
