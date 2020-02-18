@@ -29,6 +29,7 @@ ln -s /usr/share/java/jacorb-3.9/lib/slf4j-*.jar $OSSIEHOME/lib/
 ## Configuring Java
 
 The Java Runtime Environment (JRE) uses an optional property file to set CORBA ORB configuration options, including which ORB implementation to use.
+
 1. Log in as root user and create a file, `$JAVA_HOME/jre/lib/orb.properties`, with the following contents:
 
 ```ini
@@ -63,7 +64,8 @@ All other settings are obtained from the JacORB properties file. To create a def
 ```sh
 mkdir -p $OSSIEHOME/etc/
 ```
- 2. Copy the JacORB properties template file into `$OSSIEHOME/etc`:
+
+2. Copy the JacORB properties template file into `$OSSIEHOME/etc`:
 
 ```sh
 cp /usr/share/java/jacorb-3.9/etc/jacorb_properties.template $OSSIEHOME/etc/jacorb.properties
