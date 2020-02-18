@@ -32,7 +32,7 @@ The Java Runtime Environment (JRE) uses an optional property file to set CORBA O
 
 1. Log in as root user and create a file, `$JAVA_HOME/jre/lib/orb.properties`, with the following contents:
 
-```ini
+```properties
 org.omg.CORBA.ORBClass=org.jacorb.orb.ORB
 org.omg.CORBA.ORBSingletonClass=org.jacorb.orb.ORBSingleton
 jacorb.config.dir=/usr/local/redhawk/core/etc
@@ -41,7 +41,7 @@ jacorb.config.dir=/usr/local/redhawk/core/etc
 Setting the configuration directory to `$OSSIEHOME/etc` is optional.
 However, placing JacORB configuration files in a REDHAWK-specific location makes them portable across different versions of Java.
 
-2. Ensure that all users have read permissions on the `orb.properties` file:
+2. Ensure that all users have read permissions on the `orb.properties` file.
 
 ```sh
 chmod a+r $JAVA_HOME/jre/lib/orb.properties
@@ -65,7 +65,7 @@ All other settings are obtained from the JacORB properties file. To create a def
 mkdir -p $OSSIEHOME/etc/
 ```
 
-2. Copy the JacORB properties template file into `$OSSIEHOME/etc`:
+2. Copy the JacORB properties template file into `$OSSIEHOME/etc`.
 
 ```sh
 cp /usr/share/java/jacorb-3.9/etc/jacorb_properties.template $OSSIEHOME/etc/jacorb.properties
@@ -77,12 +77,12 @@ The default logging configuration for JacORB enables messages at `INFO` or highe
 This setting produces a large number of messages to the console that are not necessary in normal operation.
 To reduce the logging level and eliminate `INFO` messages at component startup, edit `jacorb.properties` and change:
 
-```ini
+```properties
 #jacorb.log.default.verbosity=3
 ```
 
 to:
 
-```ini
+```properties
 jacorb.log.default.verbosity=2
 ```
