@@ -93,9 +93,9 @@ SystemMonitor::report()
     sys_limit_state_->update();
     const ProcMeminfo::Contents &mem_stats = mem_usage_state_->get();
     report_.virtual_memory_total = mem_stats.at("MemTotal")+ mem_stats.at("SwapTotal");
-    report_.virtual_memory_free =  mem_stats.at("MemFree") + mem_stats.at("SwapFree");
+    report_.virtual_memory_free =  mem_stats.at("MemAvailable") + mem_stats.at("SwapFree");
     report_.physical_memory_total = mem_stats.at("MemTotal");
-    report_.physical_memory_free = mem_stats.at("MemFree");
+    report_.physical_memory_free = mem_stats.at("MemAvailable");
   }
   catch(...){
     report_.virtual_memory_total = (info.totalram+info.totalswap) * info.mem_unit;
