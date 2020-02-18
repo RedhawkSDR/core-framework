@@ -71,7 +71,7 @@ class Iterators(unittest.TestCase):
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
         mem_2 = self.get_memory_size(self.svc._pid)
-        self.assertEquals(mem_1<mem_2, True)
+        self.assertGreater(mem_2, mem_1)
 
         devstatus, devlist = deviter.next_n(20)
         self.assertEquals(len(devlist), 20)
@@ -80,7 +80,7 @@ class Iterators(unittest.TestCase):
         time.sleep(1.5)
 
         mem_3 = self.get_memory_size(self.svc._pid)
-        self.assertEquals(mem_3<mem_2, True)
+        self.assertGreater(mem_2, mem_3)
 
         self.assertRaises(CORBA.OBJECT_NOT_EXIST, deviter.next_n, 10)
 
@@ -93,7 +93,7 @@ class Iterators(unittest.TestCase):
         # mem_2: memory after an iterator is created
         mem_2 = self.get_memory_size(self.svc._pid)
         # check that the iterator required new memory
-        self.assertTrue(mem_2 > mem_1)
+        self.assertGreater(mem_2, mem_1)
 
         time.sleep(1) # wait for the iterator to expire
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
