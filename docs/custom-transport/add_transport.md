@@ -304,6 +304,7 @@ The following Python session demonstrates how to run the components, connect the
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
     CustomInputManager, key (from uses): data_protocol
+    CustomInputTransport::startTransport
     CustomInputTransport::getNegotiationProperties
     CustomOutputManager::setNegotiationResult
     CustomOutputManager, key (from provides): data::requestSize
