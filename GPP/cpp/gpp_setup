@@ -387,11 +387,28 @@ class DeviceManagerProfile(BaseConfigurator):
             else:
                 self.gpp_path = os.path.join(self.nodedir, "GPP")
 
+    def _get_meminfo(self):
+        meminfo = {}
+        with open('/proc/meminfo', 'r') as fp:
+            for line in fp:
+                name, value = line.split()[:2]
+                name = name.rstrip(':')
+                meminfo[name] = int(value)
+        return meminfo
+
+    def _gather_default_thresholds(self):
+        # Set the default memory threshold to 20% of the total physical memory
+        # capped to 6 GB. Note that MemTotal is in KB, threshold is in MB.
+        meminfo = self._get_meminfo()
+        mem_threshold_limit = 6*1024*1024  # 6GB in KB
+        mem_threshold = min(0.2 * meminfo['MemTotal'], mem_threshold_limit)
+        self.props['thresholds']['mem_free'] = int(mem_threshold / 1024)
 
     def generate(self):
         if not self.options.silent:
             self._log.debug("Generating...")
         self._gather_system_information()
+        self._gather_default_thresholds()
         self._gather_mcastnic_information()
         self._createDeviceManagerProfile()
         if not self.options.silent:
