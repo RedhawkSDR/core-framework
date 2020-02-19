@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(frontendInterfaces, 2.4.6)
+AC_INIT(frontendInterfaces, 2.4.8)
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
@@ -41,7 +41,7 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.3])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.6])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 # If you depend on other IDL modules, such as CF or BULKIO add them here

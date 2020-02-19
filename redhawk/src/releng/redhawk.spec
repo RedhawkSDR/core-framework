@@ -28,7 +28,7 @@ Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
 
 Name:           redhawk
-Version:        2.2.3
+Version:        2.2.6
 Release:        1%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
@@ -43,11 +43,13 @@ Vendor:         REDHAWK
 Requires:       util-linux-ng
 Requires:       java >= 1:1.8.0
 
-%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       python-matplotlib-qt4
 Requires:       gstreamer-python
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
+Requires:       gstreamer1-plugins-base
+Requires:       python-matplotlib-qt4
 Requires:       numactl-libs
 %else
+Requires:       gstreamer-plugins-base
 Requires:       python-matplotlib
 %endif
 
@@ -194,7 +196,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 # -r is system account, -f is force (ignore already exists)
 groupadd -r -f redhawk
 if ! id redhawk &> /dev/null; then
-  # -r is system account, -s is shell, -M is don't create home dir, 
+  # -r is system account, -s is shell, -M is don't create home dir,
   # -d is the home directory, -c is comment, -n is don't create group,
   # -g is group name/id
   /usr/sbin/useradd -r -s /sbin/nologin -M -d /var/redhawk \
@@ -240,6 +242,7 @@ fi
 %{_sysconfdir}/profile.d/redhawk.csh
 %{_sysconfdir}/profile.d/redhawk.sh
 %{_sysconfdir}/ld.so.conf.d/redhawk.conf
+%{_sysconfdir}/bash_completion.d/nodeBooter
 
 %files qt-tools
 %defattr(-,root,root,-)
@@ -300,7 +303,6 @@ fi
 %{_libdir}/libossielogcfg.*a
 %{_libdir}/libossielogcfg.so
 %{_libdir}/pkgconfig/ossie.pc
-%{_sysconfdir}/bash_completion.d/nodeBooter
 
 
 %post

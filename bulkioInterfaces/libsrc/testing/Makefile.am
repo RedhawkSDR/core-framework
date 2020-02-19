@@ -32,3 +32,4 @@ SUBDIRS += components/Oversized_framedata/java
 SUBDIRS += devices/dev_src/java devices/dev_snk/java
 endif
 SUBDIRS += tests/cpp
+SUBDIRS += tests/transport_api

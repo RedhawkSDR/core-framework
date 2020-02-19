@@ -51,7 +51,7 @@ ProcStatFileParser::parse_fields(std::istream& istr, ProcStatFileData& data)
 	{
 		std::getline( istr, line );
 		std::vector<std::string> values;
-		boost::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
+		boost::algorithm::split( values, line, boost::is_any_of(std::string(" ")), boost::algorithm::token_compress_on );
 
 		try
 		{

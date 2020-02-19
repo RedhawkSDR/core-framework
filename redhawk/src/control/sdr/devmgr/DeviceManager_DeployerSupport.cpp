@@ -191,8 +191,13 @@ void DeviceManager_impl::createDeviceThread(
 
     // Logic for persona devices
     // check is parent exists and if the code type is "SharedLibrary"
-    if (componentPlacement.isCompositePartOf() && isSharedLibrary) {
-   
+    if (isSharedLibrary) {
+        if (!componentPlacement.isCompositePartOf()) {
+            std::ostringstream emsg;
+            emsg << "Failed to deploy '" << usageName << "': Shared library device is not part of a composite device.";
+            RH_ERROR(this->_baseLog, emsg.str());
+            return;
+        }
         // Locate the parent device via the IOR
         CORBA::Object_var _aggDev_obj = ossie::corba::Orb()->string_to_object(compositeDeviceIOR.c_str());
         if (CORBA::is_nil(_aggDev_obj)) {

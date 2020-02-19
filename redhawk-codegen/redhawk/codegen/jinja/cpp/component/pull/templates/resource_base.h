@@ -96,6 +96,10 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
         void loadProperties();
 /*{% endblock %}*/
 /*{% block extendedPublic %}*/
+/*{%   if 'FrontendTuner' in component.implements %}*/
+
+        virtual CF::Properties* getTunerStatus(const std::string& allocation_id);
+/*{%   endif %}*/
 /*{% endblock extendedPublic %}*/
 
     protected:

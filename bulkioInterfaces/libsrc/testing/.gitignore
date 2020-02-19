@@ -12,3 +12,4 @@ devices/dev_snk/java/bin/
 devices/dev_src/java/bin/
 tests/cpp/Bulkio
 tests/cpp/test-driver
+tests/transport_api/test_transport

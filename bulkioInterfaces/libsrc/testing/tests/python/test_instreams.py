@@ -241,7 +241,32 @@ class BufferedInStreamTest(InStreamTest):
         block = stream.read(1)
         self.failUnless(not block)
         self.failUnless(stream.eos())
-        
+
+    def testStreamAPIMultiStream(self):
+        sri = bulkio.sri.create('my_stream')
+        self.port.pushSRI(sri)
+        self._pushTestPacket(10, bulkio.timestamp.now(), False, sri.streamID)
+        self._pushTestPacket(10, bulkio.timestamp.now(), True, sri.streamID)
+
+        self.port.pushSRI(sri)
+        self._pushTestPacket(10, bulkio.timestamp.now(), False, sri.streamID)
+
+        stream = self.port.getStream(sri.streamID)
+        block = stream.read()
+        self.failIf(not block)
+        self.assertEqual(10, len(block.buffer))
+        block = stream.read()
+        self.failIf(not block)
+        self.assertEqual(10, len(block.buffer))
+        self.assertEqual(stream.eos(), True)
+
+        self._pushTestPacket(10, bulkio.timestamp.now(), True, sri.streamID)
+
+        stream = self.port.getStream(sri.streamID)
+        block = stream.read(10)
+        self.failIf(not block)
+        self.assertEqual(10, len(block.buffer))
+
     def testSizedTryreadEmptyEos(self):
         stream_id = "tryread_empty_eos"
 

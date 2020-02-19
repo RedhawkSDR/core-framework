@@ -22,6 +22,9 @@
 #include "Superblock.h"
 #include "Block.h"
 #include "ThreadState.h"
+#include "HeapPolicy.h"
+#include "Metrics.h"
+#include "Environment.h"
 
 #include <stdexcept>
 #include <cstring>
@@ -32,31 +35,50 @@
 #include <unistd.h>
 
 #include <boost/thread.hpp>
-
-using namespace redhawk::shm;
+#include <boost/scoped_ptr.hpp>
 
 #define PAGE_ROUND_DOWN(x,p) ((x/p)*p)
 #define PAGE_ROUND_UP(x,p) (((x+p-1)/p)*p)
+
+namespace redhawk {
+    namespace shm {
+        namespace {
+            static HeapPolicy* initializePolicy()
+            {
+                std::string policy_type = redhawk::env::getVariable("RH_SHMALLOC_POLICY", "thread");
+                if (policy_type == "cpu") {
+                    return new CPUHeapPolicy;
+                } else {
+                    if (policy_type != "thread") {
+                        std::cerr << "Invalid SHM heap policy '" << policy_type << "'" << std::endl;
+                    }
+                    return new ThreadHeapPolicy;
+                }
+            }
+
+            static boost::scoped_ptr<HeapPolicy> policy(initializePolicy());
+        }
+    }
+}
+
+using namespace redhawk::shm;
 
 bool MemoryRef::operator! () const
 {
     return heap.empty();
 }
 
-class Heap::PrivateHeap {
+class Heap::Pool {
 public:
-    PrivateHeap(int id, Heap* heap) :
+    Pool(int id, Heap* heap) :
         _id(id),
         _heap(heap)
     {
+        RECORD_SHM_METRIC(pools_created);
     }
 
-    void* allocate(size_t bytes)
+    void* allocate(ThreadState* state, size_t bytes)
     {
-        // NB: Thread-specific state may not be needed with per-CPU private
-        //     heaps; it is maintained here to avoid modifying the superblock
-        //     API (for now)
-        ThreadState* state = _heap->_getThreadState();
         boost::mutex::scoped_lock lock(_mutex);
         for (SuperblockList::iterator superblock = _superblocks.begin(); superblock != _superblocks.end(); ++superblock) {
             void* ptr = (*superblock)->allocate(state, bytes);
@@ -65,16 +87,20 @@ public:
                 // under the assumption that it is more likely to satisfy a
                 // future request
                 std::iter_swap(superblock, _superblocks.begin());
+                RECORD_SHM_METRIC(pools_alloc_hot);
                 return ptr;
             }
         }
 
         Superblock* superblock = _heap->_createSuperblock(bytes);
         if (superblock) {
+            RECORD_SHM_METRIC_IF(_superblocks.empty(), pools_used);
             _superblocks.insert(_superblocks.begin(), superblock);
+            RECORD_SHM_METRIC(pools_alloc_cold);
             return superblock->allocate(state, bytes);
         }
 
+        RECORD_SHM_METRIC(pools_alloc_failed);
         return 0;
     }
 
@@ -92,10 +118,12 @@ Heap::Heap(const std::string& name) :
     _canGrow(true)
 {
     _file.create();
-    int nprocs = sysconf(_SC_NPROCESSORS_CONF);
-    for (int id = 0; id < nprocs; ++id) {
-        _allocs.push_back(new PrivateHeap(id, this));
+    int num_pools = policy->getPoolCount();
+    for (int id = 0; id < num_pools; ++id) {
+        _allocs.push_back(new Pool(id, this));
     }
+
+    RECORD_SHM_METRIC(heaps_created);
 }
 
 Heap::~Heap()
@@ -108,17 +136,13 @@ Heap::~Heap()
     } catch (const std::exception&) {
         // It may have been removed from another context, nothing else to do
     }
-
-#ifdef HEAP_DEBUG
-    std::cout << _superblocks.size() << " superblocks" << std::endl;
-    std::cout << _file.size() << " total bytes" << std::endl;
-#endif
 }
 
 void* Heap::allocate(size_t bytes)
 {
-    PrivateHeap* heap = _getPrivateHeap();
-    return heap->allocate(bytes);
+    ThreadState* state = _getThreadState();
+    Pool* pool = _getPool(state);
+    return pool->allocate(state, bytes);
 }
 
 void Heap::deallocate(void* ptr)
@@ -147,19 +171,20 @@ const std::string& Heap::name() const
     return _file.name();
 }
 
-Heap::PrivateHeap* Heap::_getPrivateHeap()
+Heap::Pool* Heap::_getPool(ThreadState* state)
 {
-    size_t cpuid = sched_getcpu();
-    assert(cpuid < _allocs.size());
-    return _allocs[cpuid];
+    size_t pool_id = policy->getPoolAssignment(state);
+    assert(pool_id < _allocs.size());
+    return _allocs[pool_id];
 }
 
 ThreadState* Heap::_getThreadState()
 {
     ThreadState* state = _threadState.get();
     if (!state) {
-        state = new ThreadState();
+        state = new ThreadState;
         _threadState.reset(state);
+        policy->initThreadState(state);
     }
     return state;
 }
@@ -171,26 +196,9 @@ Superblock* Heap::_createSuperblock(size_t minSize)
         return 0;
     }
 
-    size_t superblock_size = DEFAULT_SUPERBLOCK_SIZE;
-    const char* superblock_size_env = getenv("SUPERBLOCK_SIZE");
-    if (superblock_size_env) {
-        char* end;
-        superblock_size = strtoll(superblock_size_env, &end, 10);
-        if ((superblock_size == 0) || (*end != '\0')) {
-            std::cerr << "Invalid superblock size, using default" << std::endl;
-            superblock_size = DEFAULT_SUPERBLOCK_SIZE;
-        } else {
-            // Shared memory should be allocated along page boundaries
-            superblock_size = PAGE_ROUND_UP(superblock_size, MappedFile::PAGE_SIZE);
-            std::cout << "Using superblock size " << superblock_size << std::endl;
-        }
-    }
-
     // Ensure that the superblock is large enough for the request, accounting
     // for the overhead of the block metadata (roughly)
-    // TODO: Should extra large requests be handled differently? In glibc,
-    //       above a certain size it starts using mmap/munmap. As a quick "fix"
-    //       use a minimum of 2 blocks plus overhead.
+    size_t superblock_size = _superblockSize;
     minSize = (minSize + 64) * 2;
     if (minSize > superblock_size) {
         superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
@@ -203,3 +211,15 @@ Superblock* Heap::_createSuperblock(size_t minSize)
         return 0;
     }
 }
+
+size_t Heap::_initSuperblockSize()
+{
+    // We would prefer to use MappedFile::PAGE_SIZE here but the order of
+    // initialization for C++ modules is undefined, meaning it may still be 0
+    // when this function is called. Use the same system call instead.
+    static size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+    size_t superblock_size = redhawk::env::getVariable("RH_SHMALLOC_SUPERBLOCK_SIZE", DEFAULT_SUPERBLOCK_SIZE);
+    return PAGE_ROUND_UP(superblock_size, PAGE_SIZE);
+}
+
+size_t Heap::_superblockSize = Heap::_initSuperblockSize();

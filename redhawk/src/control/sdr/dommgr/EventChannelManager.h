@@ -45,11 +45,7 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   //
   // CTOR to instantiate the EventChannelManager implementation
   //
-#ifdef CPPUNIT_TEST
-  EventChannelManager ( const bool useFQN=true, const bool enableNS=false, const bool allowES=false );
-#else
-  EventChannelManager (DomainManager_impl* domainManager, const bool useFQN=true, const bool enableNS=false, const bool allowES = false );
-#endif
+  EventChannelManager (DomainManager_impl* domainManager);
 
   virtual ~EventChannelManager();
 
@@ -114,7 +110,8 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   void restore( ossie::events::EventChannel_ptr channel, 
                 const std::string &channel_name, 
                 const std::string &fqn_name )
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );    
@@ -254,6 +251,13 @@ class EventChannelManager: public virtual EventChannelManagerBase {
         _eventChannelMgrLog = logptr;
     };
 
+    void setNameServiceResolution( const bool onoff ) {
+        _enable_ns_resolution=onoff;
+    }
+    bool getNameServiceResolution() {
+        return _enable_ns_resolution;
+    }
+
   private:
 
   // type definitions
@@ -280,12 +284,11 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   ossie::corba::OrbContext                         _orbCtx;
   //  Handle to factory interface to create EventChannels
   ossie::events::EventChannelFactory_var            _event_channel_factory;
-  // if enabled, events will show up in the NamingService
-  bool                                            _use_naming_service;
+  
+  // enable naming service resolution for finding event channels
+  bool                                            _enable_ns_resolution;
   // use fully qualified domain names when creating channels.
   bool                                           _use_fqn;
-  // allow event service to resolve channels
-  bool                                           _allow_es_resolve;
   // default polling period to assign to a channel
   int64_t                                        _default_poll_period;
   // synchronize access to member variables
@@ -315,13 +318,15 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _get( const std::string &channel_name )
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelDoesNotExist, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _create( const std::string &channel_name, const bool autoRelease=false )  
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
@@ -334,20 +339,11 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 
   ossie::events::EventChannel_ptr        _createChannel( const std::string &channel_name, 
                                                         const std::string &fqn,
-                                                        const std::string &nc_name="",
-                                                        const bool require_ns = false )  
+                                                         const std::string &nc_name="" )
     throw ( CF::EventChannelManager::ChannelAlreadyExists, 
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );
-
-
-  /*
-     Resolve event channel via EventService resolution methods
-   */
-  ossie::events::EventChannel_ptr        _resolve_es( const std::string &cname,  
-                                                     const std::string &fqn,
-                                                     const bool suppress=true );
 
   /*
      Resolve the request to look up an EventChannel using the cname and nc_name

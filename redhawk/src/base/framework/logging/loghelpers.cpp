@@ -126,7 +126,7 @@ namespace ossie {
         ossie::logging::LogConfigFactory logcfg_factory = (ossie::logging::LogConfigFactory) dlsym(log_library, "logcfg_factory");
         const char* dlsym_error = dlerror();
         if (dlsym_error) {
-          RH_NL_ERROR( "ossie.logging", "Cannot file logcfg_factory symbol in libossielogcfg.so library: " << dlsym_error);
+          RH_NL_ERROR( "ossie.logging", "Cannot find logcfg_factory symbol in libossielogcfg.so library: " << dlsym_error);
           throw 2;
         }
         _logcfg.factory=logcfg_factory;
@@ -1074,7 +1074,7 @@ namespace ossie {
         std::cerr <<"ERROR: Logging configure, exception:" << e.what() << std::endl;
        }
       catch(...){
-         std::cerr <<" ossie::logging::Configure ExceException during configuration url:" << logcfgUri << std::endl;
+         std::cerr <<" ossie::logging::Configure Exception during configuration url:" << logcfgUri << std::endl;
        }
 
       if ( logLevel > -1 ) {

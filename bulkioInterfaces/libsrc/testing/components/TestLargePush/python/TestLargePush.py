@@ -42,7 +42,7 @@ class TestLargePush_i(TestLargePush_base):
         TestLargePush_base.initialize(self)
 
     def process(self):
-        outData     = [0 for x in range(self.numSamples)]
+        outData     = [0] * self.numSamples
         T           = bulkio.timestamp.create()
         EOS         = True
         streamID    = "test"

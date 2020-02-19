@@ -22,15 +22,18 @@
 #include <ossie/shm/Heap.h>
 
 #include "Superblock.h"
+#include "Metrics.h"
 
 using namespace redhawk::shm;
 
 HeapClient::HeapClient()
 {
+    RECORD_SHM_METRIC(clients_created);
 }
 
 HeapClient::~HeapClient()
 {
+    RECORD_SHM_METRIC(clients_destroyed);
     detach();
 }
 
