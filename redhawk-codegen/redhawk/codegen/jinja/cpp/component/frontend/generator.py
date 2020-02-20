@@ -37,13 +37,12 @@ loader = CodegenLoader(__package__,
                         'properties'     : 'redhawk.codegen.jinja.cpp.properties'})
 
 class FrontendComponentGenerator(PullComponentGenerator):
-    def map(self, softpkg):
-        component = super(FrontendComponentGenerator,self).map(softpkg)
-        if 'FrontendTuner' in component['implements']:
+    def _updateInheritedProperties(self, _component):
+        if 'FrontendTuner' in _component['implements']:
             # For FEI tuner devices, disable member variable generation for
             # properties that are inherited from frontend::FrontendTunerDevice
             # base class
-            for prop in component['properties']:
+            for prop in _component['properties']:
                 if prop['cppname'] in ('device_kind', 'device_model',
                                        'frontend_tuner_allocation',
                                        'frontend_listener_allocation',
@@ -51,6 +50,14 @@ class FrontendComponentGenerator(PullComponentGenerator):
                                        'frontend_transmitter_allocation',
                                        'frontend_tuner_status'):
                     prop['inherited'] = True
+
+    def map(self, softpkg):
+        component = super(FrontendComponentGenerator,self).map(softpkg)
+        self._updateInheritedProperties(component)
+
+        for _child_key in component['children']:
+            self._updateInheritedProperties(component['children'][_child_key])
+
         return component
 
     def loader(self, component):
