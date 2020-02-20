@@ -183,6 +183,7 @@ namespace frontend {
             std::string device_model;
             frontend::frontend_tuner_allocation_struct frontend_tuner_allocation;
             frontend::frontend_listener_allocation_struct frontend_listener_allocation;
+            frontend::frontend_transmitter_allocation_struct frontend_transmitter_allocation;
             std::vector<TunerStatusStructType> frontend_tuner_status;
 
             virtual bool callDeviceSetTuning(size_t tuner_id);
