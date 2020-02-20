@@ -482,6 +482,61 @@ namespace frontend {
     }
 
     template < typename TunerStatusStructType >
+    CF::Device::Allocations* FrontendTunerDevice<TunerStatusStructType>::allocate (const CF::Properties& capacities)
+    throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
+    {
+        RH_TRACE(_deviceLog, "in allocate");
+        CF::Device::Allocations_var result = new CF::Device::Allocations();
+
+        if (capacities.length() == 0) {
+            // Nothing to do, return
+            RH_TRACE(_deviceLog, "no capacities to configure.");
+            std::string allocation_id = ossie::generateUUID();
+            result->length(1);
+            result[0].device_ref = CF::Device::_duplicate(this->_this());
+            result[0].data_port = CORBA::Object::_nil();
+            result[0].control_port = CORBA::Object::_nil();
+            result[0].allocated = capacities;
+            result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
+            _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
+            return result._retn();
+        }
+
+        // Verify that the device is in a valid state
+        if (!isUnlocked() || isDisabled() || isError()) {
+            const char* invalidState;
+            if (isLocked()) {
+                invalidState = "LOCKED";
+            } else if (isDisabled()) {
+                invalidState = "DISABLED";
+            } else if (isError()) {
+                invalidState = "ERROR";
+            } else {
+                invalidState = "SHUTTING_DOWN";
+            }
+            RH_DEBUG(_deviceLog, "Cannot allocate capacity: System is " << invalidState);
+            throw CF::Device::InvalidState(invalidState);
+        }
+
+        bool retval;
+        retval = allocateCapacity(capacities);
+
+        if (retval) {
+            result->length(1);
+            std::string allocation_id = ossie::generateUUID();
+            result->length(1);
+            result[0].device_ref = CF::Device::_duplicate(this->_this());
+            result[0].data_port = CORBA::Object::_nil();
+            result[0].control_port = CORBA::Object::_nil();
+            result[0].allocated = capacities;
+            result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
+            _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
+        }
+
+        return result._retn();
+    }
+
+    template < typename TunerStatusStructType >
     CORBA::Boolean FrontendTunerDevice<TunerStatusStructType>::allocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
         if (this->tuner_allocation_ids.size() != this->frontend_tuner_status.size()) {
@@ -737,7 +792,38 @@ namespace frontend {
         }
     }
 
-        
+    template < typename TunerStatusStructType >
+    void FrontendTunerDevice<TunerStatusStructType>::deallocate (const char* alloc_id)
+    throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
+    {
+        // Verify that the device is in a valid state
+        if (isLocked() || isDisabled() || isError()) {
+            const char* invalidState;
+            if (isLocked()) {
+                invalidState = "LOCKED";
+            } else if (isError()) {
+                invalidState = "ERROR";
+            } else {
+                invalidState = "DISABLED";
+            }
+            RH_DEBUG(_deviceLog, "Cannot deallocate capacity: System is " << invalidState);
+            throw CF::Device::InvalidState(invalidState);
+        }
+
+        std::string _alloc_id = ossie::corba::returnString(alloc_id);
+
+        std::map<std::string, redhawk::PropertyMap>::iterator it;
+        for (it = _allocationTracker.begin(); it != _allocationTracker.end(); it++) {
+            if (it->first == _alloc_id) {
+                deallocateCapacity(it->second);
+                return;
+            }
+        }
+
+        CF::Properties invalidProps;
+        throw CF::Device::InvalidCapacity("Capacities do not match allocated ones", invalidProps);
+    }
+
     template < typename TunerStatusStructType >
     void FrontendTunerDevice<TunerStatusStructType>::deallocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
