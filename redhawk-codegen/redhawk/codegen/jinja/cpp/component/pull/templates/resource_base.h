@@ -48,7 +48,12 @@
 /*{%   endfor %}*/
 /*{% endfilter %}*/
 /*{% if component.structdefs|length != 0 %}*/
+/*{%   if component.isChild %}*/
+#include "${component.name}_struct_props.h"
+#include "../struct_props.h"
+/*{%   else %}*/
 #include "struct_props.h"
+/*{%   endif %}*/
 /*{% endif %}*/
 /*{% if component.children %}*/
 /*{%    for childname, childcomponent in component.children.items() %}*/

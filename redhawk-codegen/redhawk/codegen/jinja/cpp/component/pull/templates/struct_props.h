@@ -21,8 +21,13 @@
 /*# Allow child templates to include license #*/
 /*{% endblock %}*/
 /*{% block header %}*/
+/*{%   if component.isChild %}*/
+#ifndef ${component.name}_STRUCTPROPS_H
+#define ${component.name}_STRUCTPROPS_H
+/*{%   else %}*/
 #ifndef STRUCTPROPS_H
 #define STRUCTPROPS_H
+/*{%   endif %}*/
 
 /*******************************************************************************************
 
@@ -53,7 +58,7 @@ typedef bulkio::connection_descriptor_struct connection_descriptor_struct;
 
 /*{% block struct %}*/
 /*{% from "properties/properties.cpp" import structdef with context %}*/
-/*{% for struct in component.structdefs if not struct.builtin %}*/
+/*{% for struct in component.structdefs if (not struct.builtin and (not (struct.parentonly and component.isChild))) %}*/
 ${structdef(struct)}
 
 /*{% endfor %}*/

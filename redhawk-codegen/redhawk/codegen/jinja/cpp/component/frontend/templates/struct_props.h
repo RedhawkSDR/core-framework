@@ -21,7 +21,9 @@
 
 /*{% block includes %}*/
 ${super()}
+/*{%   if component.isParent %}*/
 /*{% if 'FrontendTuner' in component.implements %}*/
 #include <frontend/fe_tuner_struct_props.h>
 /*{% endif %}*/
+/*{%   endif %}*/
 /*{% endblock %}*/

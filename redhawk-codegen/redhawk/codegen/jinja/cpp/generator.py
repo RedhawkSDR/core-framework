@@ -48,5 +48,5 @@ class CppCodeGenerator(CodeGenerator):
             templates.append({child_key: CppTemplate('resource_base.cpp', child_key+'/'+component['children'][child_key]['baseclass']['file'])})
             templates.append({child_key: CppTemplate('resource_base.h', child_key+'/'+component['children'][child_key]['baseclass']['header'])})
             if component['children'][child_key]['structdefs']:
-                templates.append({child_key: CppTemplate('struct_props.h', child_key+'/struct_props.h')})
+                templates.append({child_key: CppTemplate('struct_props.h', child_key+'/'+child_key+'_struct_props.h')})
         return templates

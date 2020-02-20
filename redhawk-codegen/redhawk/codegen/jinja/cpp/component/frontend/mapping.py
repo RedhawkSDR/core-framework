@@ -100,10 +100,18 @@ class FrontendPropertyMapper(CppPropertyMapper):
         'FRONTEND::scanner_allocation'
     )
 
+    FRONTEND_PARENTONLY = (
+        'FRONTEND::tuner_allocation',
+        'FRONTEND::listener_allocation',
+        'FRONTEND::transmitter_allocation',
+        'FRONTEND::scanner_allocation'
+    )
+
     def mapStructProperty(self, prop, fields):
         cppprop = super(FrontendPropertyMapper,self).mapStructProperty(prop, fields)
         if prop.identifier() == 'FRONTEND::tuner_status_struct':
             cppprop['baseclass'] = 'frontend::default_frontend_tuner_status_struct_struct'
+            cppprop['parentonly'] = True
             for field in fields:
                 if field['cppname'] in self.TUNER_STATUS_BASE_FIELDS:
                     field['inherited'] = True
