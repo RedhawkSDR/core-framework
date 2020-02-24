@@ -491,15 +491,29 @@ namespace frontend {
         if (capacities.length() == 0) {
             // Nothing to do, return
             RH_TRACE(_deviceLog, "no capacities to configure.");
-            std::string allocation_id = ossie::generateUUID();
-            result->length(1);
-            result[0].device_ref = CF::Device::_duplicate(this->_this());
-            result[0].data_port = CORBA::Object::_nil();
-            result[0].control_port = CORBA::Object::_nil();
-            result[0].allocated = capacities;
-            result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
-            _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
             return result._retn();
+        }
+
+        std::string allocation_id = ossie::generateUUID();
+        const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
+        CF::Properties local_capacities;
+        redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
+        local_props = props;
+
+        if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
+            redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+            if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
+                std::string requested_alloc = tuner_alloc["FRONTEND::tuner_allocation::allocation_id"].toString();
+                if (not requested_alloc.empty()) {
+                    if (_allocationTracker.find(requested_alloc) == _allocationTracker.end()) {
+                        allocation_id = requested_alloc;
+                    } else {
+                        allocation_id = "_"+allocation_id;
+                        allocation_id = requested_alloc+allocation_id;
+                    }
+                    tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
+                }
+            }
         }
 
         // Verify that the device is in a valid state
@@ -519,18 +533,16 @@ namespace frontend {
         }
 
         bool retval;
-        retval = allocateCapacity(capacities);
+        retval = allocateCapacity(local_capacities);
 
         if (retval) {
-            result->length(1);
-            std::string allocation_id = ossie::generateUUID();
             result->length(1);
             result[0].device_ref = CF::Device::_duplicate(this->_this());
             result[0].data_port = CORBA::Object::_nil();
             result[0].control_port = CORBA::Object::_nil();
-            result[0].allocated = capacities;
+            result[0].allocated = local_capacities;
             result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
-            _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
+            _allocationTracker[allocation_id] = props;
         }
 
         return result._retn();
