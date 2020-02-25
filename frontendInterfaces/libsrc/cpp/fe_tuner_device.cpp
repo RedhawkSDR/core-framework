@@ -828,6 +828,7 @@ namespace frontend {
         for (it = _allocationTracker.begin(); it != _allocationTracker.end(); it++) {
             if (it->first == _alloc_id) {
                 deallocateCapacity(it->second);
+                _allocationTracker.erase(it);
                 return;
             }
         }
