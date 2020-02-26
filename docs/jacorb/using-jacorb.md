@@ -38,7 +38,7 @@ org.omg.CORBA.ORBSingletonClass=org.jacorb.orb.ORBSingleton
 jacorb.config.dir=/usr/local/redhawk/core/etc
 ```
 
-  + Setting the configuration directory to `$OSSIEHOME/etc` is optional.
+&ensp;&ensp;&ensp; Setting the configuration directory to `$OSSIEHOME/etc` is optional.
 However, placing JacORB configuration files in a REDHAWK-specific location makes them portable across different versions of Java.
 
 2. Ensure that all users have read permissions on the `orb.properties` file.
