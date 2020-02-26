@@ -77,12 +77,12 @@ The default logging configuration for JacORB enables messages at `INFO` or highe
 This setting produces a large number of messages to the console that are not necessary in normal operation.
 To reduce the logging level and eliminate `INFO` messages at component startup, edit `jacorb.properties` and change:
 
-    ```properties
-    #jacorb.log.default.verbosity=3
-    ```
+```properties
+#jacorb.log.default.verbosity=3
+```
 
 to:
 
-    ```properties
-    jacorb.log.default.verbosity=2
-    ```
+```properties
+jacorb.log.default.verbosity=2
+```
