@@ -12,7 +12,7 @@ No changes to components are required when following these procedures.
 1. Download JacORB from the [JacORB website](https://www.jacorb.org) or a trusted location.
 Then, extract the archive in a location that is accessible to all users.
 
-  The following examples assume that you have downloaded JacORB 3.9 to `/tmp` and are installing to `/usr/share/java`.
+   The following examples assume that you have downloaded JacORB 3.9 to `/tmp` and are installing to `/usr/share/java`.
 
 ```sh
 cd /usr/share/java
@@ -38,7 +38,7 @@ org.omg.CORBA.ORBSingletonClass=org.jacorb.orb.ORBSingleton
 jacorb.config.dir=/usr/local/redhawk/core/etc
 ```
 
-  Setting the configuration directory to `$OSSIEHOME/etc` is optional.
+   Setting the configuration directory to `$OSSIEHOME/etc` is optional.
 However, placing JacORB configuration files in a REDHAWK-specific location makes them portable across different versions of Java.
 
 2. Ensure that all users have read permissions on the `orb.properties` file.
