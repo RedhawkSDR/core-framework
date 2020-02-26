@@ -33,11 +33,13 @@ The Java Runtime Environment (JRE) uses an optional property file to set CORBA O
 1. Log in as root user and create a file, `$JAVA_HOME/jre/lib/orb.properties`, with the following contents:
 
     ```properties
+    org.omg.CORBA.ORBClass=org.jacorb.orb.ORB
     org.omg.CORBA.ORBSingletonClass=org.jacorb.orb.ORBSingleton
     jacorb.config.dir=/usr/local/redhawk/core/etc
     ```
 
-    Setting the configuration directory to `$OSSIEHOME/etc` is optional. However, placing JacORB configuration files in a REDHAWK-specific location makes them portable across different versions of Java.
+    Setting the configuration directory to `$OSSIEHOME/etc` is optional.
+    However, placing JacORB configuration files in a REDHAWK-specific location makes them portable across different versions of Java.
 
 2. Ensure that all users have read permissions on the `orb.properties` file.
 
