@@ -1518,7 +1518,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         if self.close(value_1, value_2, margin):
             return
         if msg is None:
-            msg = '{} != {} within {}%'.format(value_1, value_2, margin*100)
+            msg = '{0} != {1} within {2}%'.format(value_1, value_2, margin*100)
         self.fail(msg)
 
     def testMonitorComponents(self):
