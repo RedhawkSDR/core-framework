@@ -929,7 +929,7 @@ void GPP_i::_loadAvgThresholdStateChanged(ThresholdMonitor* monitor)
 
 bool GPP_i::_freeMemThresholdCheck(ThresholdMonitor* monitor)
 {
-    int64_t mem_free = system_monitor->get_mem_free();
+    int64_t mem_free = system_monitor->get_phys_free();
     RH_TRACE(_baseLog, "Update free memory threshold monitor, threshold=" << modified_thresholds.mem_free
              << " measured=" << mem_free);
     return (mem_free < modified_thresholds.mem_free);
@@ -937,7 +937,7 @@ bool GPP_i::_freeMemThresholdCheck(ThresholdMonitor* monitor)
 
 void GPP_i::_freeMemThresholdStateChanged(ThresholdMonitor* monitor)
 {
-    _sendThresholdMessage(monitor, system_monitor->get_mem_free(), modified_thresholds.mem_free);
+    _sendThresholdMessage(monitor, system_monitor->get_phys_free(), modified_thresholds.mem_free);
 }
 
 bool GPP_i::_threadThresholdCheck(ThresholdMonitor* monitor)
@@ -1154,8 +1154,8 @@ void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemExc
   //
   // memory capacity tracking attributes
   //
-  memInitVirtFree=rpt.virtual_memory_free;  // assume current state to be total available
-  int64_t init_mem_free = (int64_t) memInitVirtFree;
+  memInitFree=rpt.physical_memory_free;  // assume current state to be total available
+  int64_t init_mem_free = (int64_t) memInitFree;
   if (!thresholds.ignore && thresholds.mem_free >= 0) {
       memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(thresholds.mem_free*thresh_mem_free_units) )/ (double)init_mem_free;
       if (memInitCapacityPercent < 0.0) {
@@ -1231,7 +1231,7 @@ void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_str
         if (ov.mem_free != nv.mem_free) {
             RH_DEBUG(_baseLog, __FUNCTION__ << " THRESHOLDS.MEM_FREE CHANGED  old/new " << ov.mem_free << "/" << nv.mem_free);
         }
-        int64_t init_mem_free = (int64_t) memInitVirtFree;
+        int64_t init_mem_free = (int64_t) memInitFree;
         // type cast required for correct calc on 32bit os
         memInitCapacityPercent  =  (double)( (int64_t)init_mem_free - (int64_t)(nv.mem_free*thresh_mem_free_units) )/ (double) init_mem_free;
         if ( memInitCapacityPercent < 0.0 )  memInitCapacityPercent = 100.0;
@@ -1803,7 +1803,7 @@ void GPP_i::updateUsageState()
   double sys_idle = system_monitor->get_idle_percent();
   double sys_idle_avg = system_monitor->get_idle_average();
   double sys_load = system_monitor->get_loadavg();
-  int64_t mem_free = system_monitor->get_mem_free();
+  int64_t mem_free = system_monitor->get_phys_free();
   
   // get reservation state
   double max_allowable_load =  utilization[0].maximum;
@@ -2781,7 +2781,7 @@ void GPP_i::update()
     loadAverage.fivemin = rpt.load.five_min;
     loadAverage.fifteenmin = rpt.load.fifteen_min;
 
-    memFree = rpt.virtual_memory_free / mem_free_units;
+    memFree = rpt.physical_memory_free / mem_free_units;
     RH_TRACE(_baseLog, __FUNCTION__ << "Memory : " << std::endl << 
               " sys_monitor.vit_total: " << rpt.virtual_memory_total  << std::endl << 
               " sys_monitor.vit_free: " << rpt.virtual_memory_free  << std::endl << 
