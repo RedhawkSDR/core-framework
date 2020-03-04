@@ -129,6 +129,7 @@ class PersonaTest(scatest.CorbaTestCase):
             time.sleep(0.1)
         return found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf
 
+    @scatest.requireLog4cxx
     def test_Persona_log_config_file(self):
         """
         Check that for both ProgrammableDevice and PersonaDevice:
@@ -146,6 +147,7 @@ class PersonaTest(scatest.CorbaTestCase):
         self.assertTrue(found_prog_inf)
         self.assertTrue(found_pers_inf)
 
+    @scatest.requireLog4cxx
     def test_Persona_log_nodebooter_commandline(self):
         """
         Check that for both ProgrammableDevice and PersonaDevice:
