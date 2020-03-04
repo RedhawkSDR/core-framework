@@ -164,6 +164,10 @@ protected:
     Device_impl::AnyComparisonType compareAnyToZero (CORBA::Any& first);
     Device_impl::AnyComparisonType compareAnys (CORBA::Any& first, CORBA::Any& second);
     std::string _devMgr_ior;
+    void setDataPort(CORBA::Object_ptr dataPort);
+    void setControlPort(CORBA::Object_ptr controlPort);
+    CORBA::Object_var _dataPort;
+    CORBA::Object_var _controlPort;
 
     // Change the value of _usageState
     void setUsageState (CF::Device::UsageType newUsageState);

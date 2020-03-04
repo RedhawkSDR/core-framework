@@ -87,6 +87,8 @@ void Device_impl::initResources (char* devMgr_ior, char* _id,
     sig_fd=-1;
 
     useNewAllocation = false;
+    this->_dataPort = CORBA::Object::_nil();
+    this->_controlPort = CORBA::Object::_nil();
     this->_devMgr = NULL;
     setLogger(this->_baseLog->getChildLogger("Device", "system"));
 }
@@ -292,6 +294,16 @@ Device_impl::~Device_impl ()
 
 }
 
+void Device_impl::setDataPort(CORBA::Object_ptr dataPort)
+{
+    this->_dataPort = CORBA::Object::_duplicate(dataPort);
+}
+
+void Device_impl::setControlPort(CORBA::Object_ptr controlPort)
+{
+    this->_controlPort = CORBA::Object::_duplicate(controlPort);
+}
+
 CF::Device::Allocations* Device_impl::allocate (const CF::Properties& capacities)
 throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
 {
@@ -341,7 +353,13 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
         result->length(1);
         result[0].device_ref = CF::Device::_duplicate(this->_this());
         result[0].data_port = CORBA::Object::_nil();
+        if (not CORBA::is_nil(this->_dataPort)) {
+            result[0].data_port = CORBA::Object::_duplicate(this->_dataPort);
+        }
         result[0].control_port = CORBA::Object::_nil();
+        if (not CORBA::is_nil(this->_controlPort)) {
+            result[0].control_port = CORBA::Object::_duplicate(this->_controlPort);
+        }
         result[0].allocated = capacities;
         result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
         _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
