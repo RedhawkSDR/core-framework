@@ -699,7 +699,7 @@ namespace frontend {
                     // if we made it here, we failed to find an available tuner
                     std::ostringstream eout;
                     eout<<"allocateCapacity: NO AVAILABLE TUNER. Make sure that the device has an initialized frontend_tuner_status";
-                    RH_INFO(_deviceLog, eout.str());
+                    RH_DEBUG(_deviceLog, eout.str());
                     throw std::logic_error(eout.str().c_str());
                     
                 } else if (id == "FRONTEND::listener_allocation") {
