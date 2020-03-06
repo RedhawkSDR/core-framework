@@ -115,6 +115,8 @@ class FrontendPropertyMapper(CppPropertyMapper):
             for field in fields:
                 if field['cppname'] in self.TUNER_STATUS_BASE_FIELDS:
                     field['inherited'] = True
+        if prop.identifier() == 'device_characteristics':
+            cppprop['parentonly'] = True
         elif prop.identifier() in self.FRONTEND_BUILTINS:
             cppprop['builtin'] = True
         return cppprop
