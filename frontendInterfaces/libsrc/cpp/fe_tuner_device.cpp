@@ -500,6 +500,12 @@ namespace frontend {
         redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
         local_props = props;
 
+        if (local_props.find("FRONTEND::coherent_feeds") != local_props.end()) {
+            // needs to be handled by the implementation
+            // also requires feedback, so can't be handled by allocateCapacity
+            local_props.erase("FRONTEND::coherent_feeds");
+        }
+
         if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
             redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
             if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
