@@ -65,6 +65,31 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.deallocateCapacity([a])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
 
+    def testTunerFrameworkCall(self):
+        #######################################################################
+        # test the allocate api over allocateCapacity
+        self.comp.start()
+        self.comp.stop()
+        a=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
+        b=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='2',returnDict=False)
+        c=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='3',returnDict=False)
+        a_bad=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
+        a_bad.id = 'foo'
+        self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
+        retval_a = self.comp.allocate([a])
+        self.assertEquals(len(retval_a), 1)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        retval_b = self.comp.allocate([b])
+        self.assertEquals(len(retval_b), 1)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        retval_c = self.comp.allocate([c])
+        self.assertEquals(len(retval_c), 0)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        self.comp.deallocate(retval_b[0].alloc_id)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.comp.deallocate(retval_a[0].alloc_id)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
+
     def testRFInfo(self):
         _port = None
         for port in self.comp.ports:
