@@ -948,6 +948,23 @@ void DeviceManager_impl::postConstructor (
     const std::vector<ossie::DevicePlacement>& componentPlacements = node_dcd.getComponentPlacements();
     RH_TRACE(this->_baseLog, "ComponentPlacement size is " << componentPlacements.size())
 
+    // determine start order 
+    for(std::vector<ossie::DevicePlacement>::const_iterator cP = componentPlacements.begin(); cP!=componentPlacements.end(); cP++) {
+      if (cP->getInstantiations()[0].startOrder.isSet()) {
+        int cP_order = *(cP->getInstantiations()[0].startOrder.get());
+        std::string cP_id(cP->getInstantiations()[0].getID());
+        std::vector<std::pair<std::string, int> >::iterator _o=start_order.begin();
+        for ( ; _o!=start_order.end(); _o++) {
+          if (_o->second >= cP_order) {
+            start_order.insert(_o, std::make_pair(cP_id, cP_order));
+            break;
+          }
+        }
+        if (_o == start_order.end())
+        start_order.push_back(std::make_pair(cP_id, cP_order));
+      }
+    }
+      
     ////////////////////////////////////////////////////////////////////////////
     // Split component placements by compositePartOf tag
     //      The following logic exists below:
@@ -1838,10 +1855,26 @@ void DeviceManager_impl::deleteFileSystems()
 
 void DeviceManager_impl::stopOrder()
 {
+
+  // copy lists to start, we can't lock list during start if resource has issues
+  DeviceList _devices;
+  ServiceList _services;
+  {
+    boost::recursive_mutex::scoped_lock _l(registeredDevicesmutex);
+    std::copy( _registeredDevices.begin(),
+               _registeredDevices.end(),
+               std::back_inserter(_devices)
+               );
+    std::copy( _registeredServices.begin(),
+               _registeredServices.end(),
+               std::back_inserter(_services)
+               );
+  }
+  
     unsigned long timeout = 3; // seconds;
     for (std::vector<std::pair<std::string, int> >::reverse_iterator item=start_order.rbegin(); item!=start_order.rend();++item) {
         bool started = false;
-        for(DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); ++_dev) {
+        for(DeviceList::iterator _dev=_devices.begin(); _dev!=_devices.end(); ++_dev) {
             if ((*_dev)->identifier == item->first) {
                 try {
                     omniORB::setClientCallTimeout((*_dev)->device, timeout * 1000);
@@ -1854,7 +1887,7 @@ void DeviceManager_impl::stopOrder()
         }
         if (started)
             continue;
-        for(ServiceList::iterator _svc=_registeredServices.begin(); _svc!=_registeredServices.end(); ++_svc) {
+        for(ServiceList::iterator _svc=_services.begin(); _svc!=_services.end(); ++_svc) {
             if ((*_svc)->identifier == item->first) {
                 try {
                     CF::Resource_ptr res = CF::Resource::_narrow((*_svc)->service);
@@ -1867,6 +1900,31 @@ void DeviceManager_impl::stopOrder()
                 break;
             }
         }
+    }
+
+    // stop non-DCD devices and services (pid==0)
+    for(DeviceList::iterator _dev=_devices.begin(); _dev!=_devices.end(); ++_dev) {
+      if ((*_dev)->pid == 0) {
+        try {
+          omniORB::setClientCallTimeout((*_dev)->device, timeout * 1000);
+          (*_dev)->device->stop();
+        } catch ( ... ) {
+        }
+      }
+    }
+
+    for(ServiceList::iterator _svc=_services.begin(); _svc!=_services.end(); ++_svc) {
+      if ((*_svc)->pid == 0) {
+        try {
+          CF::Resource_ptr res = CF::Resource::_narrow((*_svc)->service);
+          if (not CORBA::is_nil(res)) {
+            omniORB::setClientCallTimeout(res, timeout * 1000);
+            res->stop();
+          }
+        }
+        catch ( ... ) {
+        }
+      }
     }
 }
 
@@ -2365,68 +2423,139 @@ bool DeviceManager_impl::verifyAllRegistered() {
 
 void DeviceManager_impl::startOrder()
 {
-    const std::vector<ossie::DevicePlacement>& componentPlacements = node_dcd.getComponentPlacements();
-    for(std::vector<ossie::DevicePlacement>::const_iterator cP = componentPlacements.begin(); cP!=componentPlacements.end(); cP++) {
-        if (cP->getInstantiations()[0].startOrder.isSet()) {
-            int cP_order = *(cP->getInstantiations()[0].startOrder.get());
-            std::string cP_id(cP->getInstantiations()[0].getID());
-            std::vector<std::pair<std::string, int> >::iterator _o=start_order.begin();
-            for ( ; _o!=start_order.end(); _o++) {
-                if (_o->second >= cP_order) {
-                    start_order.insert(_o, std::make_pair(cP_id, cP_order));
-                    break;
-                }
-            }
-            if (_o == start_order.end())
-                start_order.push_back(std::make_pair(cP_id, cP_order));
+  // copy lists to start, we can't lock list during start if resource has issues
+  DeviceList _devices;
+  ServiceList _services;
+  {
+    boost::recursive_mutex::scoped_lock _l(registeredDevicesmutex);
+    std::copy( _registeredDevices.begin(),
+               _registeredDevices.end(),
+               std::back_inserter(_devices)
+               );
+    std::copy( _registeredServices.begin(),
+               _registeredServices.end(),
+               std::back_inserter(_services)
+               );
+  }
+    
+  for (std::vector<std::pair<std::string, int> >::iterator item=start_order.begin(); item!=start_order.end();item++) {
+    bool started = false;
+    for (DeviceList::iterator dev=_devices.begin(); dev!=_devices.end(); dev++) {
+      if ((*dev)->identifier == item->first) {
+        try {
+          if ( !(*dev)->started ) {
+            RH_INFO(this->_baseLog, "Starting device " << (*dev)->label);
+            (*dev)->device->start();
+            (*dev)->started=true;
+          }
+        } catch (const CF::Resource::StartError& exc) {
+          RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: " << exc.msg);
+        } catch (const CORBA::SystemException& exc) {
+          RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: "
+                   << ossie::corba::describeException(exc));
         }
+        started = true;
+        break;
+      }
     }
-    for (std::vector<std::pair<std::string, int> >::iterator item=start_order.begin(); item!=start_order.end();item++) {
-        bool started = false;
-        for (DeviceList::iterator dev=_registeredDevices.begin(); dev!=_registeredDevices.end(); dev++) {
-            if ((*dev)->identifier == item->first) {
-                RH_TRACE(this->_baseLog, "Starting device " << (*dev)->label);
-                try {
-                    (*dev)->device->start();
-                } catch (const CF::Resource::StartError& exc) {
-                    RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: " << exc.msg);
-                } catch (const CORBA::SystemException& exc) {
-                    RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: "
-                              << ossie::corba::describeException(exc));
-                }
-                started = true;
-                break;
-            }
+    if (started)
+      continue;
+    for (ServiceList::iterator svc=_services.begin(); svc!=_services.end(); svc++) {        
+      if ((*svc)->identifier == item->first) {
+        const std::string& identifier = (*svc)->identifier;
+        CORBA::Object_ptr obj = (*svc)->service;
+        if (!(obj->_is_a(CF::Resource::_PD_repoId))) {
+          RH_WARN(this->_baseLog, "Service " << identifier
+                  << " has a startorder value but does not inherit from Resource");
+          break;
         }
-        if (started)
-            continue;
-        for (ServiceList::iterator svc=_registeredServices.begin(); svc!=_registeredServices.end(); svc++) {
-            if ((*svc)->identifier == item->first) {
-                const std::string& identifier = (*svc)->identifier;
-                RH_TRACE(this->_baseLog, "Starting service " << identifier);
-                CORBA::Object_ptr obj = (*svc)->service;
-                if (!(obj->_is_a(CF::Resource::_PD_repoId))) {
-                    RH_WARN(this->_baseLog, "Service " << identifier
-                             << " has a startorder value but does not inherit from Resource");
-                    break;
-                }
-                CF::Resource_var res = ossie::corba::_narrowSafe<CF::Resource>(obj);
-                if (CORBA::is_nil(res)) {
-                    RH_ERROR(this->_baseLog, "Service " << identifier << " cannot be narrowed to Resource");
-                    break;
-                }
-                try {
-                    res->start();
-                } catch (const CF::Resource::StartError& exc) {
-                    RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: " << exc.msg);
-                } catch (const CORBA::SystemException& exc) {
-                    RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: "
-                              << ossie::corba::describeException(exc));
-                }
-                break;
-            }
+        CF::Resource_var res = ossie::corba::_narrowSafe<CF::Resource>(obj);
+        if (CORBA::is_nil(res)) {
+          RH_ERROR(this->_baseLog, "Service " << identifier << " cannot be narrowed to Resource");
+          break;
         }
+        try {
+          if ( !(*svc)->started ) {
+            RH_INFO(this->_baseLog, "Starting service " << identifier);            
+            res->start();
+            (*svc)->started=true;
+          }
+        } catch (const CF::Resource::StartError& exc) {
+          RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: " << exc.msg);
+        } catch (const CORBA::SystemException& exc) {
+          RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: "
+                   << ossie::corba::describeException(exc));
+        }
+        break;
+      }
     }
+  }
+
+  // try and start devices/services not found in the DCD (pid==0)
+  for (DeviceList::iterator dev=_devices.begin(); dev!=_devices.end(); dev++) {
+    if ((*dev)->pid == 0 ) {
+        try {
+          if ( !(*dev)->started ) {
+            RH_INFO(this->_baseLog, "Starting non-DCD device " << (*dev)->label);
+            (*dev)->device->start();
+            (*dev)->started=true;
+          }
+        } catch (const CF::Resource::StartError& exc) {
+          RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: " << exc.msg);
+        } catch (const CORBA::SystemException& exc) {
+          RH_ERROR(this->_baseLog, "Device " << (*dev)->label << " failed to start: "
+                   << ossie::corba::describeException(exc));
+        }
+      }
+    }
+
+  for (ServiceList::iterator svc=_services.begin(); svc!=_services.end(); svc++) {
+    if ((*svc)->pid == 0 ) {
+      const std::string& identifier = (*svc)->identifier;
+      CORBA::Object_ptr obj = (*svc)->service;
+      if (!(obj->_is_a(CF::Resource::_PD_repoId))) {
+        continue;
+      }
+      CF::Resource_var res = ossie::corba::_narrowSafe<CF::Resource>(obj);
+      if (CORBA::is_nil(res)) {
+        RH_ERROR(this->_baseLog, "Non-DCD Service " << identifier << " cannot be narrowed to Resource");
+        continue;
+      }
+      try {
+        if ( !(*svc)->started ) {
+          RH_INFO(this->_baseLog, "Starting non-DCD service " << identifier);            
+          res->start();
+          (*svc)->started=true;
+        }
+      } catch (const CF::Resource::StartError& exc) {
+        RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: " << exc.msg);
+      } catch (const CORBA::SystemException& exc) {
+        RH_ERROR(this->_baseLog, "Service " << identifier << " failed to start: "
+                 << ossie::corba::describeException(exc));
+      }
+    }
+  }
+      
+
+  // copy back started state to our _registeredXXX set... the _registeredXXX lists can change
+  {
+    boost::recursive_mutex::scoped_lock _l(registeredDevicesmutex);
+    
+    for (ServiceList::iterator svc1=_services.begin(); svc1!=_services.end(); svc1++) {            
+      for (ServiceList::iterator svc2=_registeredServices.begin(); svc2!=_registeredServices.end(); svc2++) {
+        if ( (*svc1)->identifier == (*svc2)->identifier )
+          (*svc2)->started=(*svc1)->started;
+      }
+    }
+
+    for (DeviceList::iterator dev1=_devices.begin(); dev1!=_devices.end(); dev1++) {            
+      for (DeviceList::iterator dev2=_registeredDevices.begin(); dev2!=_registeredDevices.end(); dev2++) {
+        if ( (*dev1)->identifier == (*dev2)->identifier )
+          (*dev2)->started=(*dev1)->started;
+      }
+    }    
+  }
+  
 }
 
 /*

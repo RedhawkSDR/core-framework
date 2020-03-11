@@ -287,7 +287,7 @@ class GPP_i : public GPP_base
           uint64_t                                            mem_cap_units;
           int64_t                                             memCapacityThreshold;
           double                                              memInitCapacityPercent;
-          uint64_t                                            memInitVirtFree;
+          uint64_t                                            memInitFree;
           float                                               idle_capacity_modifier;
           CpuList                                             wl_cpus;            // list of allowable cpus to run on .... empty == all, derived from affnity blacklist property and host machine
           CpuList                                             bl_cpus;            // list of blacklist cpus to avoid
