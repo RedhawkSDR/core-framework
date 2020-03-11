@@ -301,10 +301,10 @@ The following Python session demonstrates how to run the components, connect the
     >>> src=sb.launch('transport_out', shared=False)
     >>> snk=sb.launch('transport_in')
     >>> src.connect(snk)
-    CustomOutputManager::transportProperties
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
     CustomInputManager, key (from uses): data_protocol
+    CustomInputTransport::startTransport
     CustomInputTransport::getNegotiationProperties
     CustomOutputManager::setNegotiationResult
     CustomOutputManager, key (from provides): data::requestSize
@@ -382,16 +382,16 @@ The following Python session demonstrates how to run the components, connect the
     >>> src=sb.launch('transport_out')
     >>> snk=sb.launch('transport_in')
     >>> src.connect(snk)
-    CustomOutputManager::transportProperties
     CustomOutputTransport::getNegotiationProperties
     CustomInputManager::createInputTransport
-    key (from uses): data_protocol
+    CustomInputManager, key (from uses): data_protocol
+    CustomInputTransport::startTransport
     CustomInputTransport::getNegotiationProperties
     CustomOutputManager::setNegotiationResult
-    key (from provides): data::requestSize
-    key (from provides): data::address
-    key (from provides): data::port
-    key (from provides): data::protocol
+    CustomOutputManager, key (from provides): data::requestSize
+    CustomOutputManager, key (from provides): data::address
+    CustomOutputManager, key (from provides): data::port
+    CustomOutputManager, key (from provides): data::protocol
     >>> src.ports[0]._get_connectionStatus()
     [ossie.cf.ExtendedCF.ConnectionStatus(connectionId='DCE_66bd31e4-3cab-452b-8c21-6c3a2bc165eb', port=<bulkio.bulkioInterfaces.BULKIO.internal._objref_dataFloatExt object at 0x7f55d294f990>, alive=True, transportType='custom', transportInfo=[ossie.cf.CF.DataType(id='transport_side_information', value=CORBA.Any(CORBA.TC_string, 'outbound')), ossie.cf.CF.DataType(id='another_number', value=CORBA.Any(CORBA.TC_short, 100))])]
     >>> src.disconnect(snk)

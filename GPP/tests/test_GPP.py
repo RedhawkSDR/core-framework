@@ -1514,9 +1514,12 @@ class ComponentTests_SystemReservations(DomainSupport):
             return True
         return False
 
-    def float_eq(self, a,b,eps=0.0000001):
-        return abs(a-b) < eps
-
+    def assertClose(self, value_1, value_2, margin = 0.01, msg=None):
+        if self.close(value_1, value_2, margin):
+            return
+        if msg is None:
+            msg = '{0} != {1} within {2}%'.format(value_1, value_2, margin*100)
+        self.fail(msg)
 
     def testMonitorComponents(self):
         self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
@@ -1578,7 +1581,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
         
         time.sleep(1)
         
@@ -1597,7 +1600,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
         #print "After App1 Create subnow(sub) " , sub_now, " sys_load", system_load_now, " sys_load_base ", system_load_base, " comp_load ", comp_load, " subscribed(base) ", subscribed, " extra ", extra_reservation, " res per", res_per_comp, " idle cap mod ", idle_cap_mod 
-        self.assertEquals(self.close(sub_now, extra_reservation), True)
+        self.assertClose(sub_now, extra_reservation)
 
         app_2=self.dom.createApplication('/waveforms/busy_w/busy_w.sad.xml','busy_w',[])
         time.sleep(wait_amount)
@@ -1607,7 +1610,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         sub_now_pre = base_util['subscribed']
         comp_load = base_util['component_load']
         #print "After App2 Create subnow(sub) " , sub_now, " sys_load", system_load_now, " sys_load_base ", system_load_base, " comp_load ", comp_load, " subscribed(base) ", subscribed, " extra ", extra_reservation, " res per", res_per_comp, " idle cap mod ", idle_cap_mod 
-        self.assertEquals(self.close(sub_now, extra_reservation+res_per_comp), True)
+        self.assertClose(sub_now, extra_reservation+res_per_comp)
 
         app_1.start()
         time.sleep(wait_amount)
@@ -1619,9 +1622,9 @@ class ComponentTests_SystemReservations(DomainSupport):
         gpp_state =  self.comp._get_usageState()
         #print "state:", gpp_state
         if comp_load > extra_reservation :
-            self.assertEqual(self.close(sub_now-comp_load,res_per_comp), True)
+            self.assertClose(sub_now-comp_load,res_per_comp)
         else:
-            self.assertEqual(self.close(sub_now, extra_reservation+res_per_comp), True)
+            self.assertClose(sub_now, extra_reservation+res_per_comp)
 
         app_2.start()
         time.sleep(wait_amount)
@@ -1647,15 +1650,15 @@ class ComponentTests_SystemReservations(DomainSupport):
         #print "After Stop Both subnow(sub) " , sub_now, " sys_load", system_load_now, " sys_load_base ", system_load_base, " comp_load ", comp_load, " subscribed(base) ", subscribed, " extra ", extra_reservation, " res per", res_per_comp, " idle cap mod ", idle_cap_mod 
         gpp_state =  self.comp._get_usageState()
         #print "state:", gpp_state
-        self.assertEquals(self.close(sub_now, extra_reservation+res_per_comp ), True)
-        self.assertEquals(self.float_eq(sub_now_pre, sub_now, eps=.01), True)
+        self.assertClose(sub_now, extra_reservation+res_per_comp )
+        self.assertAlmostEquals(sub_now_pre, sub_now, 2)
 
     def _verifyReservations(self, extra, application, wait_amount):
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
         system_load_now = base_util['system_load']
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
-        self.assertEquals(self.close(sub_now, extra), True)
+        self.assertClose(sub_now, extra)
         self.assertEquals(comp_load, 0)
 
         application.start()
@@ -1664,8 +1667,8 @@ class ComponentTests_SystemReservations(DomainSupport):
         system_load_now = base_util['system_load']
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
-        self.assertEquals(self.close(sub_now, extra), True)
-        self.assertEquals(self.close(comp_load, 2, margin=0.1), True)
+        self.assertClose(sub_now, extra)
+        self.assertClose(comp_load, 2, margin=0.1)
 
         application.stop()
         time.sleep(wait_amount)
@@ -1673,7 +1676,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         system_load_now = base_util['system_load']
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
-        self.assertEquals(self.close(sub_now, extra), True)
+        self.assertClose(sub_now, extra)
         self.assertEquals(comp_load, 0)
 
     def testAppReservation(self):
@@ -1691,7 +1694,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
 
         time.sleep(1)
 
@@ -1729,7 +1732,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
 
         time.sleep(1)
 
@@ -1759,7 +1762,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
 
         time.sleep(1)
 
@@ -1790,7 +1793,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
 
         time.sleep(1)
 
@@ -1821,7 +1824,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         upper_capacity = cpus - (cpus * (cpu_thresh/100))
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 4
         time.sleep(wait_amount)
-        self.assertEquals(self.close(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum']), True)
+        self.assertClose(upper_capacity, self.dom.devMgrs[0].devs[0].utilization[0]['maximum'])
 
         time.sleep(1)
 
