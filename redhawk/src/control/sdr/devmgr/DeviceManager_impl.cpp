@@ -2929,16 +2929,14 @@ bool DeviceManager_impl::allChildrenExited ()
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
-    unsigned int non_zero_svcs = 0;
     for(unsigned int i=0; i<_registeredServices.size(); i++) {
         if (_registeredServices[i]->pid != 0) {
-            non_zero_svcs++;
+            return false;
         }
     }
 
     if ((_pendingDevices.size() == 0) && (_registeredDevices.size() == 0) &&
-        (_pendingServices.size() == 0) && (non_zero_svcs == 0)
-        ) {
+        (_pendingServices.size() == 0)) {
         return true;
     }
 
