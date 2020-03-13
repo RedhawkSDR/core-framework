@@ -269,6 +269,15 @@ class fei_exception_through_i(fei_exception_through_base):
     *************************************************************
     Functions servicing the tuner control port
     *************************************************************'''
+    def getScanStatus(self, allocation_id):
+        return self.port_DigitalTuner_out.getScanStatus(allocation_id)
+
+    def setScanStartTime(self,allocation_id, start_time):
+        self.port_DigitalTuner_out.setScanStartTime(allocation_id, start_time)
+
+    def setScanStrategy(self,allocation_id, scan_strategy):
+        self.port_DigitalTuner_out.setScanStrategy(allocation_id, scan_strategy)
+
     def getTunerType(self,allocation_id):
         return self.port_DigitalTuner_out.getTunerType(allocation_id)
 
