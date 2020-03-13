@@ -63,7 +63,7 @@ class fei_exc_src_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delega
             self.auto_start = False
             # Instantiate the default implementations for all ports on this device
             self.port_RFInfo_in = frontend.InRFInfoPort("RFInfo_in", self)
-            self.port_DigitalTuner_in = frontend.InDigitalTunerPort("DigitalTuner_in", self)
+            self.port_DigitalTuner_in = frontend.InDigitalScanningTunerPort("DigitalTuner_in", self)
             self.port_GPS_in = frontend.InGPSPort("GPS_in", self)
             self.port_NavData_in = frontend.InNavDataPort("NavData_in", self)
             self.port_RFSource_in = frontend.InRFSourcePort("RFSource_in", self)

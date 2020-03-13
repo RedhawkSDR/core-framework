@@ -253,6 +253,17 @@ class fei_exc_src_i(fei_exc_src_base):
     *************************************************************
     Functions servicing the tuner control port
     *************************************************************'''
+    def getScanStatus(self, id):
+        _strat = FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, 1.0, FRONTEND.ScanningTuner.TIME_BASED, 0.1)
+        _time = bulkio.timestamp.now()
+        return FRONTEND.ScanningTuner.ScanStatus(_strat, _time, [], False)
+
+    def setScanStartTime(self, id, start_time):
+        pass
+
+    def setScanStrategy(self, id, scan_strategy):
+        pass
+
     def getTunerType(self,allocation_id):
         return ""
 
