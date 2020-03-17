@@ -95,7 +95,11 @@ BuildRequires: {{impl.buildrequires|join(' ')}}
 # Implementation {{impl.id}}
 pushd {{impl.outputdir}}
 ./reconf
+#{$   if impl.module $}
+%define _libdir %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{impl.outputdir}}
+#{$   else $}
 %define _bindir %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{impl.outputdir}}
+#{$   endif $}
 %configure
 make %{?_smp_mflags}
 popd
@@ -109,7 +113,11 @@ rm -rf $RPM_BUILD_ROOT
 #{$ for impl in component.implementations $}
 # Implementation {{impl.id}}
 pushd {{impl.outputdir}}
+#{$   if impl.module $}
+%define _libdir %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{impl.outputdir}}
+#{$   else $}
 %define _bindir %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{impl.outputdir}}
+#{$   endif $}
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 #{$ endfor $}
