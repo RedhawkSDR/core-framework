@@ -20,8 +20,10 @@
 
 import unittest, os
 import shutil
+import threading, time
 from _unitTestHelpers import scatest
 from ossie.cf import CF
+from ossie.utils import redhawk
 
 class FileManagerTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -647,3 +649,64 @@ class FileManagerTest(scatest.CorbaTestCase):
             self.assertRaises(CF.InvalidFileName, fileMgr.exists, os.path.join(dirname, 'testfile'))
         finally:
             os.rmdir(testdir)
+
+class ThreadedListWorker:
+    def __init__(self, dommgr, basedir, data_signal, debug=False, num=None):
+        self.data_signal = data_signal
+        self.dommgr = dommgr
+        self.basedir = basedir
+        self.process_thread = threading.Thread(target=self.Process)
+
+    def Process(self):
+        self.data_signal.wait()
+        number_files = -1
+        while number_files != 0:
+            try:
+                number_files = len(self.dommgr._get_fileMgr().list(self.basedir+'/'))
+            except CF.FileException, e:
+                # this happens when $SDRROOT/dom/tmp (self.basedir) is deleted
+                if e.errorNumber != CF.CF_EEXIST:
+                    raise
+                number_files = 0
+
+class ThreadedDeleteWorker:
+    def __init__(self, dommgr, basedir, data_signal, debug=False, num=None):
+        self.data_signal = data_signal
+        self.dommgr = dommgr
+        self.basedir = basedir
+        self.process_thread = threading.Thread(target=self.Process)
+
+    def Process(self):
+        testdir = os.path.join(scatest.getSdrPath(), 'dom/' + self.basedir)
+        self.data_signal.wait()
+        shutil.rmtree(testdir, ignore_errors=True)
+
+class FileAccessTest(scatest.CorbaTestCase):
+    def setUp(self):
+        domBooter, self._domMgr = self.launchDomainManager()
+        self._rhDom = redhawk.attach(scatest.getTestDomainName())
+        self.basedir = '/tmp'
+        self.data_signal = threading.Event()
+
+    def tearDown(self):
+        testdir = os.path.join(scatest.getSdrPath(), 'dom/' + self.basedir)
+        shutil.rmtree(testdir, ignore_errors=True)
+
+    def test_deleteFiles(self):
+        self.assertNotEqual(self._domMgr, None)
+        fileMgr = self._domMgr._get_fileMgr()
+        files = fileMgr.list('/')
+        number_dirs = len(files)
+        fileMgr.mkdir(self.basedir)
+        number_files = 6000
+        for i in range(number_files):
+            fileMgr.mkdir(self.basedir+'/hello_'+str(i))
+        list_worker = ThreadedListWorker(self._domMgr, self.basedir, self.data_signal)
+        delete_worker = ThreadedDeleteWorker(self._domMgr, self.basedir, self.data_signal)
+        list_worker.process_thread.start()
+        delete_worker.process_thread.start()
+        time.sleep(0.5)
+        self.data_signal.set()
+        time.sleep(2)
+        files = fileMgr.list('/')
+        self.assertEqual(len(files), number_dirs)
