@@ -262,6 +262,7 @@ GPP_i::component_description::component_description() :
   app_started(false),
   reservation(-1.0),
   terminated(false),
+  reaped(false),
   pstat_idx(0)
 { memset(pstat_history, 0, sizeof(pstat_history) ); }
 
@@ -273,6 +274,7 @@ GPP_i::component_description::component_description( const std::string &appId) :
   app_started(false),
   reservation(-1.0),
   terminated(false),
+  reaped(false),
   pstat_idx(0)
 { memset(pstat_history, 0, sizeof(pstat_history) ); }
 
@@ -1736,12 +1738,29 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
 {
     RH_TRACE(this->_baseLog, " Terminate request, processID: " << processId);
     try {
+      component_description comp;
       markPidTerminated( processId );
-      ExecutableDevice_impl::terminate(processId);
+      comp = getComponentDescription(processId);
+      if (!comp.reaped) {
+        ExecutableDevice_impl::terminate(processId);
+      }
     }
     catch(...){
     }
     removeProcess(processId);
+}
+
+void GPP_i::_reap_child(const int pid) {
+
+    try {
+        // mark component as reaped
+        markPidReaped( pid );
+    } catch ( ... ) {
+    }
+
+    // Ensure that if the process created a shared memory heap, it gets removed
+    // to avoid wasting shared memory
+    _cleanupProcessShm(pid);
 }
 
 bool GPP_i::_component_cleanup(const int pid, const int status)
@@ -1766,12 +1785,6 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
             sendChildNotification(comp.identifier, comp.appName);
         }
     }
-
-    removeProcess(pid);
-
-    // Ensure that if the process created a shared memory heap, it gets removed
-    // to avoid wasting shared memory
-    _cleanupProcessShm(pid);
 
     return true;
 }
@@ -2852,7 +2865,8 @@ int GPP_i::sigchld_handler(int sig)
           int status;
           pid_t child_pid;
           bool reap=false;
-          while( (child_pid = waitpid(-1, &status, WNOHANG)) > 0 ) {
+          _reap_child(si.ssi_pid);
+          while( (child_pid = waitpid(si.ssi_pid, &status, WNOHANG)) > 0 ) {
             RH_TRACE(this->_baseLog, "WAITPID died , pid .................................." << child_pid);
             if ( (uint)child_pid == si.ssi_pid ) reap=true;
             _component_cleanup( child_pid, status );
@@ -2957,7 +2971,9 @@ std::vector<int> GPP_i::getPids()
     ReadLock lock(pidLock);
     std::vector<int> keys;
     for (ProcessList::iterator it=pids.begin();it!=pids.end();it++) {
-        keys.push_back(it->pid);
+        if ((not it->terminated) and (not it->reaped)) {
+            keys.push_back(it->pid);
+        }
     }
     return keys;
 }
@@ -2996,15 +3012,25 @@ void GPP_i::markPidTerminated( const int pid)
 {
     ReadLock lock(pidLock);
     ProcessList:: iterator it = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
-    if (it == pids.end()) return;
+    if (it == pids.end())
+        throw std::invalid_argument("pid not found");
     RH_DEBUG(this->_baseLog, " Mark For Termination: "  <<  it->pid << "  APP:" << it->appName );
     it->app_started= false;
     it->terminated = true;
 }
 
+void GPP_i::markPidReaped( const int pid)
+{
+    ReadLock lock(pidLock);
+    ProcessList:: iterator it = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
+    if (it == pids.end())
+        throw std::invalid_argument("pid not found");
+    RH_DEBUG(this->_baseLog, " Mark For Reaping: "  <<  it->pid << "  APP:" << it->appName );
+    it->reaped = true;
+}
+
 void GPP_i::removeProcess(int pid)
 {
-
   {
     WriteLock wlock(pidLock);
     ProcessList:: iterator result = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );

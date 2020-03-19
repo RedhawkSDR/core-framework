@@ -159,6 +159,7 @@ class GPP_i : public GPP_base
           float       reservation;
           float       core_usage;
           bool        terminated;
+          bool        reaped;
           uint64_t    pstat_history[pstat_history_len];
           uint8_t     pstat_idx;
           std::vector<int> pids;
@@ -229,6 +230,7 @@ class GPP_i : public GPP_base
           std::vector<int> getPids();
           component_description getComponentDescription(int pid);
           void                  markPidTerminated(const int pid );
+          void                  markPidReaped(const int pid );
 
 
           void  set_resource_affinity( const CF::Properties& options,
@@ -316,6 +318,7 @@ class GPP_i : public GPP_base
           void  _setBusyReason(const std::string& resource, const std::string& message);
 
           bool  _component_cleanup( const int pid, const int exit_status );
+          void _reap_child(const int pid);
 
           //
           // setup execution partitions for launching components
