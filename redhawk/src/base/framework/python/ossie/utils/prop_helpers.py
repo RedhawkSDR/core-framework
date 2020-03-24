@@ -406,91 +406,26 @@ class Property(object):
         type = str(self.compRef._getPropType(sprop))
         return defVal, values, type, kinds, enums
 
+    def _api(self, destfile):
+        # Basic default/current value for simple/simplesequence
+        print >>destfile, "% -*s %s" % (17, "Default Value:", self.defValue)
+        if self._checkRead():
+            print >>destfile, "% -*s %s" % (17, "Value: ", self.queryValue())
+
     def api(self, destfile=None):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
             destfile = cStringIO.StringIO()
 
-        kinds = []
         print >>destfile, "\nProperty\n--------"
-        print >>destfile, "% -*s %s" % (17,"ID:",self.id)
-        print >>destfile, "% -*s %s" % (17,"Type:",self.type)
-        simpleOrSequence = False
-        if self.type != "structSeq" and self.type != "struct":
-            simpleOrSequence = True
-            print >>destfile, "% -*s %s" % (17,"Default Value:", self.defValue)
-            if self.mode != "writeonly":
-                print >>destfile, "% -*s %s" % (17,"Value: ", self.queryValue())
-            try:
-                if self._enums != None:
-                    print >>destfile, "% -*s %s" % (17,"Enumumerations:", self._enums)
-            except:
-                simpleOrSequence = True
-        if self.type != "struct":
-            print >>destfile, "% -*s %s" % (17,"Action:", self.action) 
-        print >>destfile, "% -*s %s" % (17,"Mode: ", self.mode)
-
-        if self.type == "struct":
-            structTable = TablePrinter('Name','Data Type','Default Value', 'Current Value','Enumerations')
-            structTable.limit_column(1,20)
-            structTable.limit_column(2,15)
-            structTable.limit_column(3,15)
-            structTable.limit_column(4,40)
-            for prop in self.compRef._prf.get_struct():
-                if prop.id_ == self.id:
-                    first = True
-                    for sprop in prop.get_simple():
-                        defVal,value, type, kinds,enums = self._getStructsSimpleProps(sprop,prop)
-                        structTable.append(sprop.get_id(),type,str(defVal),str(value),enums)
-                        if first:
-                            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-                            first = False
-                    for sprop in prop.get_simplesequence():
-                        defVal,values,type,kinds,enums = self._getStructsSimpleSeqProps(sprop, prop)
-                        structTable.append(sprop.get_id(),type,defVal,values,enums)
-                        if first:
-                            print >>destfile, "% -*s %s" % (17,"Kinds: ",', '.join(kinds))
-                            first = False
-            structTable.write()
-        elif self.type == "sequence":
-            print >>destfile, "sequence: ",type(self)
-
-        elif self.type == "structSeq":
-            structNum = -1
-            structTable = TablePrinter('Name','Data Type')
-            structTable.limit_column(1,35)
-            for prop in self.compRef._prf.get_structsequence():
-                for kind in prop.get_configurationkind():
-                    kinds.append(kind.get_kindtype())
-                if prop.id_ == self.id and prop.get_struct() != None:
-                    for prop in prop.get_struct().get_simple():
-                        structTable.append(prop.id_, prop.get_type())
-                    for prop in prop.get_struct().get_simplesequence():
-                        structTable.append(prop.id_, prop.get_type())
-            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
-            print >>destfile, "\nStruct\n======"
-            structTable.write()
-
-            simpleTable = TablePrinter('Index','Name','Value')
-            simpleTable.limit_column(1,30)
-            simpleTable.limit_column(2,35)
-            for i in self.compRef._properties:
-                if i.type == "structSeq" and self.mode != "writeonly":
-                    for s in i:
-                        structNum +=1
-                        for key in s.keys():
-                            simpleTable.append(str(structNum),key,str(s[key]))
-            if self.mode != "writeonly":
-                print >>destfile, "\nSimple Properties\n================="
-                simpleTable.write()
-
-        elif simpleOrSequence:
-            for prop in self.compRef._prf.get_simple() + self.compRef._prf.get_simplesequence():
-                if prop.id_ == self.id:
-                    for kind in prop.get_kind():
-                        kinds.append(kind.get_kindtype())
-            print >>destfile, "% -*s %s" % (17,"Kinds: ", ', '.join(kinds))
+        print >>destfile, "% -*s %s" % (17, "ID:", self.id)
+        print >>destfile, "% -*s %s" % (17, "Type:", self.type)
+        print >>destfile, "% -*s %s" % (17, "Mode:", self.mode)
+        print >>destfile, "% -*s %s" % (17, "Kinds: ", ', '.join(self.kinds))
+        if 'allocation' in self.kinds:
+            print >>destfile, "% -*s %s" % (17, "Action:", self.action) 
+        self._api(destfile)
 
         if localdef_dest:
             pydoc.pager(destfile.getvalue())
@@ -786,6 +721,11 @@ class simpleProperty(Property):
              return self._enums.get(value)
          raise EnumValueError(self.id, value, self._enums)
 
+    def _api(self, destfile):
+        if self._enums != None:
+            print >>destfile, "% -*s %s" % (17, "Enumerations:", self._enums)
+        Property._api(self, destfile)
+
     @property
     def structRef(self):
         if self._isNested():
@@ -865,7 +805,7 @@ class simpleProperty(Property):
 
     def enums(self):
         print self._enums
-        
+
     def __getattr__(self, name):
         # If attribute is not found on simpleProperty, defer to the value; this
         # allows things like '.real' and '.imag', or string methods to work
@@ -1154,6 +1094,24 @@ class structProperty(Property):
         else:
             return None
 
+    def _api(self, destfile):
+        structTable = TablePrinter('Name', 'Data Type', 'Default Value', 'Current Value', 'Enumerations')
+        structTable.limit_column(1, 20)
+        structTable.limit_column(2, 15)
+        structTable.limit_column(3, 15)
+        structTable.limit_column(4, 40)
+        for prop_id, prop in self.members.iteritems():
+            if self._checkRead():
+                value = prop.queryValue()
+            else:
+                value = None
+            enums = getattr(prop, '_enums', None)
+            if enums is None:
+                enums = ''
+            structTable.append(prop_id, prop.type, str(prop.defValue), str(value), enums)
+        print >>destfile, "\nStruct\n======"
+        structTable.write(destfile)
+
     @property
     def structSeqRef(self):
         # DEPRECATED: used when the struct is part of a struct sequence
@@ -1353,6 +1311,24 @@ class structSequenceProperty(sequenceProperty):
 
         # Configure the complete, updated struct sequence.
         self._configureValue(results)
+
+    def _api(self, destfile):
+        structTable = TablePrinter('Name', 'Data Type')
+        structTable.limit_column(1, 35)
+        for prop_id, prop in self.structDef.members.iteritems():
+            structTable.append(prop_id, prop.type)
+        print >>destfile, "\nStruct\n======"
+        structTable.write(destfile)
+
+        simpleTable = TablePrinter('Index', 'Name', 'Value')
+        simpleTable.limit_column(1, 30)
+        simpleTable.limit_column(2, 35)
+        if self._checkRead():
+            for index, dict_ in enumerate(self):
+                for k, v in dict_.items():
+                    simpleTable.append(str(index), str(k), str(v))
+            print >>destfile, '\nValues\n======'
+            simpleTable.write(destfile)
 
     def fromAny(self, value):
         '''

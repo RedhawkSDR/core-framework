@@ -225,13 +225,15 @@ class PortSupplier(object):
             localdef_dest = True
             destfile = cStringIO.StringIO()
 
-        print >>destfile, "Provides (Input) Ports =============="
+        print >>destfile, 'Provides (Input) Ports'
+        print >>destfile, '======================'
         self._showPorts(self._providesPortDict, destfile=destfile)
-        print >>destfile, "\n"
+        print >>destfile
 
-        print >>destfile, "Uses (Output) Ports =============="
+        print >>destfile, 'Uses (Output) Ports'
+        print >>destfile, '==================='
         self._showPorts(self._usesPortDict, destfile=destfile)
-        print >>destfile, "\n"
+        print >>destfile
 
         if localdef_dest:
             pydoc.pager(destfile.getvalue())
@@ -562,7 +564,8 @@ class PropertySet(object):
             extId, propId = externalPropInfo
             table.enable_header(False)
         else:
-            print >>destfile, "Properties =============="
+            print >>destfile, 'Properties'
+            print >>destfile, '=========='
         for prop in properties:
             if externalPropInfo:
                 # Searching for a particular external property
@@ -1009,7 +1012,8 @@ class Device(Resource):
             localdef_dest = True
             destfile = cStringIO.StringIO()
 
-        print >>destfile, 'Allocation Properties ======'
+        print >>destfile, 'Allocation Properties'
+        print >>destfile, '====================='
         if not self._allocProps:
             print >>destfile, 'None'
             return
