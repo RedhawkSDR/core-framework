@@ -928,6 +928,20 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
 
+    def test_allocMgrListAllocationsDefaults(self):
+        """
+        Tests default arguments to listAllocations()
+        """
+        prop = allocations.createProps({'si_prop':3})
+        request = self.am.createRequest('first', prop)
+        response = self.am.allocate([request])
+        self.assertEquals(len(response), 1)
+        # Default arguments are a scope of all allocations and count of 0,
+        # which yields an empty list and an iterator
+        allocs, iterator = self.am.listAllocations()
+        self.assertEquals(len(allocs), 0)
+        self.failIf(iterator is None)
+
 class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
     def setUp(self):
         domBooter, self._domMgr = self.launchDomainManager()

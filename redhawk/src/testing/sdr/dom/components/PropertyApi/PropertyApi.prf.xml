@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <struct id="struct_a" mode="readwrite" name="struct_a">
+    <simple id="struct_a::simple_a" name="simple_a" type="string">
+      <value>simp_a</value>
+    </simple>
+    <simplesequence id="struct_a::simpseq_a1" mode="readwrite" name="simpseq_a1" type="string">
+      <values>
+        <value>a1_1</value>
+        <value>a2_2</value>
+      </values>
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simplesequence>
+    <simplesequence id="struct_a::simpseq_a2" mode="readwrite" name="simpseq_a2" type="string">
+      <kind kindtype="property"/>
+      <action type="external"/>
+    </simplesequence>
+    <configurationkind kindtype="property"/>
+  </struct>
+  <structsequence id="struct_seq_b" mode="readwrite" name="struct_seq_b">
+    <struct id="struct_seq_b::struct_b" name="struct_b">
+      <simple id="struct_seq_b::simple_b" name="simple_b" type="string">
+        <value>simp_b</value>
+      </simple>
+      <simplesequence id="struct_seq_b::simp_seq_b1" mode="readwrite" name="simp_seq_b1" type="string">
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simplesequence>
+      <simplesequence id="struct_seq_b::simp_seq_b2" mode="readwrite" name="simp_seq_b2" type="string">
+        <values>
+          <value>b2_1</value>
+          <value>b2_2</value>
+        </values>
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simplesequence>
+    </struct>
+    <structvalue>
+      <simpleref refid="struct_seq_b::simple_b" value="simp_b"/>
+      <simplesequenceref refid="struct_seq_b::simp_seq_b1">
+        <values>
+          <value></value>
+        </values>
+      </simplesequenceref>
+      <simplesequenceref refid="struct_seq_b::simp_seq_b2">
+        <values>
+          <value>b2_1</value>
+          <value>b2_2</value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+  <simplesequence id="simp_seq_c" mode="readwrite" name="simp_seq_c" type="string">
+    <values>
+      <value>c_1</value>
+      <value>c_2</value>
+    </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <simplesequence id="simp_seq_d" mode="readwrite" name="simp_seq_d" type="string">
+    <values>
+      <value>d_1</value>
+      <value>d_2</value>
+    </values>
+    <kind kindtype="property"/>
+    <action type="external"/>
+  </simplesequence>
+  <structsequence id="struct_seq_e" mode="readwrite" name="struct_seq_e">
+    <struct id="struct_seq_e::struct_e" name="struct_e">
+      <simple id="struct_seq_e::simple_e" name="simple_e" type="string">
+        <value>simp_e</value>
+      </simple>
+      <simplesequence id="struct_seq_e::simpseq_e1" mode="readwrite" name="simpseq_e1" type="string">
+        <values>
+          <value>e1_1</value>
+          <value>e1_2</value>
+        </values>
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simplesequence>
+      <simplesequence id="struct_seq_e::simpseq_e2" mode="readwrite" name="simpseq_e2" type="string">
+        <kind kindtype="property"/>
+        <action type="external"/>
+      </simplesequence>
+    </struct>
+    <structvalue>
+      <simpleref refid="struct_seq_e::simple_e" value="simp_e"/>
+      <simplesequenceref refid="struct_seq_e::simpseq_e1">
+        <values>
+          <value>e1_1</value>
+          <value>e1_2</value>
+        </values>
+      </simplesequenceref>
+      <simplesequenceref refid="struct_seq_e::simpseq_e2">
+        <values>
+          <value></value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <structvalue>
+      <simpleref refid="struct_seq_e::simple_e" value="simp_e"/>
+      <simplesequenceref refid="struct_seq_e::simpseq_e1">
+        <values>
+          <value>e1_1</value>
+          <value>e1_2</value>
+        </values>
+      </simplesequenceref>
+      <simplesequenceref refid="struct_seq_e::simpseq_e2">
+        <values>
+          <value></value>
+        </values>
+      </simplesequenceref>
+    </structvalue>
+    <configurationkind kindtype="property"/>
+  </structsequence>
+</properties>
