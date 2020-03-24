@@ -779,6 +779,7 @@ namespace frontend {
             {};
     };
 
+    template<typename PortType_var, typename PortType>
     class OutDigitalScanningTunerPortT : public OutDigitalTunerPortT<PortType_var, PortType>
     {
         public:
