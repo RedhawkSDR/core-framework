@@ -46,13 +46,13 @@ class fei_exc_src_i(fei_exc_src_base):
         For example, if this device has 5 physical
         tuners, each an RX_DIGITIZER, then the code in the construct function should look like this:
 
-        self.setNumChannels(5, "RX_DIGITIZER");
+        self.setNumChannels(5, "RX_DIGITIZER")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.setNumChannels(1, "RX_DIGITIZER");
+        self.setNumChannels(1, "RX_DIGITIZER")
         self.rf_info_list=None
         self.rf_idx=0
         
@@ -118,7 +118,7 @@ class fei_exc_src_i(fei_exc_src_base):
             type MessageEvent, create the following code:
         
             msg_out = fei_exc_src_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
     
@@ -126,9 +126,9 @@ class fei_exc_src_i(fei_exc_src_base):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -167,7 +167,7 @@ class fei_exc_src_i(fei_exc_src_base):
             # This example assumes that the device has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the device
+            # The mapping between the port and the class is found in the device
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude
@@ -187,7 +187,7 @@ class fei_exc_src_i(fei_exc_src_base):
                 
             # NOTE: You must make at least one valid pushSRI call
             if packet.sriChanged:
-                self.port_dataFloat_out.pushSRI(packet.SRI);
+                self.port_dataFloat_out.pushSRI(packet.SRI)
 
             self.port_dataFloat_out.pushPacket(outData, packet.T, packet.EOS, packet.streamID)
             return NORMAL
@@ -253,6 +253,20 @@ class fei_exc_src_i(fei_exc_src_base):
     *************************************************************
     Functions servicing the tuner control port
     *************************************************************'''
+    def getScanStatus(self, id):
+        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), FRONTEND.ScanningTuner.TIME_BASED, 123.0)
+        _scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
+                                           start_time=bulkio.timestamp.now(),
+                                           center_tune_frequencies=[],
+                                           started=False)
+        return _scan_status
+
+    def setScanStartTime(self, id, start_time):
+        pass
+
+    def setScanStrategy(self, id, scan_strategy):
+        pass
+
     def getTunerType(self,allocation_id):
         return ""
 

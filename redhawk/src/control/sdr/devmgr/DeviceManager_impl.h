@@ -151,6 +151,16 @@ private:
         std::string IOR;
         CF::Device_var device;
         pid_t pid;
+        bool started;
+
+    DeviceNode():
+      identifier(""),
+        label(""),
+        IOR(""),
+        device(CF::Device::_nil()),
+        pid(0),
+        started(false)
+      {};
     };
 
     struct ServiceNode{
@@ -159,6 +169,15 @@ private:
         std::string IOR;
         CORBA::Object_var service;
         pid_t pid;
+        bool started;
+    ServiceNode():
+      identifier(""),
+        label(""),
+        IOR(""),
+        service(CORBA::Object::_nil()),
+        pid(0),
+        started(false)
+      {};      
     };
     
     DomainCheckThread *DomainWatchThread;
@@ -352,7 +371,7 @@ private:
     void registerRogueDevice (CF::Device_ptr registeringDevice);
 
     // this mutex is used for synchronizing _registeredDevices, _pendingDevices, and _registeredServices
-    boost::recursive_mutex registeredDevicesmutex;  
+    boost::recursive_mutex registeredDevicesmutex;
     boost::condition_variable_any pendingDevicesEmpty;
     void increment_registeredDevices(CF::Device_ptr registeringDevice);
     void increment_registeredServices(CORBA::Object_ptr registeringService, 

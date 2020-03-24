@@ -31,6 +31,16 @@ import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin
 import traceback
 
+class SimpleConsumer(CosEventComm__POA.PushConsumer):
+    def __init__(self):
+        self.disconnect=False
+        pass
+
+    def push(self, data_obj):
+        self.data = data_object
+
+    def disconnect_push_consumer(self):
+        self.disconnect=True
 
 class EventChannelManager(scatest.CorbaTestCase):
     def setUp(self):
@@ -357,6 +367,50 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
 
         self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, 'ecm_test')
 
+    def _test_ECM_InvalidChannelName(self, invalid_name ):
+
+        reg=CF.EventChannelManager.EventRegistration("", "test-blank-channel")
+
+        # test channel name blank
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.create, invalid_name)
+
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.get, invalid_name)
+
+        self.assertRaises( CF.EventChannelManager.OperationFailed, self.ecm.ref.createForRegistrations, invalid_name)
+
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerResource, reg )
+
+        c=SimpleConsumer()
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerConsumer,c._this(), reg )
+
+        d=DisconnectReceiver()
+        self.assertRaises( CF.EventChannelManager.InvalidChannelName, self.ecm.ref.registerPublisher, reg, d._this() )
+
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.release, invalid_name)
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.forceRelease, invalid_name)
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.markForRegistrations, invalid_name)
+        self.assertRaises( CF.EventChannelManager.ChannelDoesNotExist, self.ecm.ref.unregister, reg)
+
+
+    def test_ECM_InvalidChannelNames(self):
+        
+        self._test_ECM_InvalidChannelName('')
+        self._test_ECM_InvalidChannelName('\"\"')
+        self._test_ECM_InvalidChannelName('\'\'')
+        self._test_ECM_InvalidChannelName('\"          \"')
+        self._test_ECM_InvalidChannelName('              ')
+        self._test_ECM_InvalidChannelName('\t\n\r\f\v ')
+        self._test_ECM_InvalidChannelName('\"          \"')
+        self._test_ECM_InvalidChannelName('\"\t\n\r\f\v\t\"')
+        self._test_ECM_InvalidChannelName('.badname')
+        self._test_ECM_InvalidChannelName('badname.')
+        self._test_ECM_InvalidChannelName('bad.name')
+        self._test_ECM_InvalidChannelName('.badname.')
+        self._test_ECM_InvalidChannelName(':badname')
+        self._test_ECM_InvalidChannelName('badname:')
+        self._test_ECM_InvalidChannelName('bad:name')
+        self._test_ECM_InvalidChannelName(':bad:name:')
+        
     def test_EM_selfUnregister(self):
         
         class domContainer:

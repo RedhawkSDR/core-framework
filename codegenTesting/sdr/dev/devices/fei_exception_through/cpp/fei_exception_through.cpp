@@ -366,6 +366,21 @@ bool fei_exception_through_i::deviceSetTuning(const frontend::frontend_tuner_all
     ************************************************************/
     return true;
 }
+
+bool fei_exception_through_i::deviceSetTuningScan(const frontend::frontend_tuner_allocation_struct &request, const frontend::frontend_scanner_allocation_struct &scan_request, frontend_tuner_status_struct_struct &fts, size_t tuner_id){
+    /************************************************************
+    modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
+      At a minimum, bandwidth, center frequency, and sample_rate have to be set
+      If the device is tuned to exactly what the request was, the code should be:
+        fts.bandwidth = request.bandwidth;
+        fts.center_frequency = request.center_frequency;
+        fts.sample_rate = request.sample_rate;
+
+    return true if the tuning succeeded, and false if it failed
+    ************************************************************/
+    return true;
+}
+
 bool fei_exception_through_i::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, size_t tuner_id) {
     /************************************************************
     modify fts, which corresponds to this->frontend_tuner_status[tuner_id]
@@ -377,6 +392,26 @@ bool fei_exception_through_i::deviceDeleteTuning(frontend_tuner_status_struct_st
 /*************************************************************
 Functions servicing the tuner control port
 *************************************************************/
+frontend::ScanStatus fei_exception_through_i::getScanStatus(const std::string& allocation_id) {
+    std::string _allocation_id(allocation_id);
+    const FRONTEND::ScanningTuner::ScanStatus_var retval = this->DigitalTuner_out->getScanStatus(_allocation_id);
+    frontend::ScanSpanRanges freqs;
+    frontend::SpanStrategy* _strat = new frontend::SpanStrategy(freqs);
+    frontend::ScanStatus tmpval(_strat);
+    return tmpval;
+}
+
+void fei_exception_through_i::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
+    std::string _allocation_id(allocation_id);
+    return this->DigitalTuner_out->setScanStartTime(_allocation_id, start_time);
+}
+
+void fei_exception_through_i::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
+    std::string _allocation_id(allocation_id);
+    FRONTEND::ScanningTuner::ScanStrategy* tmpVal = new FRONTEND::ScanningTuner::ScanStrategy();
+    this->DigitalTuner_out->setScanStrategy(_allocation_id, *tmpVal);
+}
+
 std::string fei_exception_through_i::getTunerType(const std::string& allocation_id) {
 	std::string _allocation_id(allocation_id);
 	return this->DigitalTuner_out->getTunerType(_allocation_id);

@@ -1253,16 +1253,13 @@ class AllocationManager(CorbaObject):
                 raise
         return retval
 
-    def listAllocations( self, allocationScope=ALL_DEVICES, count=0 ):
-        retval = ([],None)
-        if self.ref:
-            try:
-                retval = self.ref.listAllocations( allocationScope, count )
-                if len(retval) > 1 and retval[1]:
-                   return ( retval[0], IteratorContainer("AllocationsList", retval[1]) )
-            except:
-                raise
-        return retval
+    def listAllocations( self, allocationScope=ALL_ALLOCATIONS, count=0 ):
+        if not self.ref:
+            return [], None
+        allocs, iterator = self.ref.listAllocations(allocationScope, count)
+        if iterator:
+            iterator = IteratorContainer("AllocationsList", iterator)
+        return allocs, iterator
 
 class ConnectionManager(CorbaObject):
 
@@ -2382,7 +2379,3 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
 
     def __serviceRemovedEvent(self, event):
         self.serviceUnregistered(event.sourceName)
-
-
-
-

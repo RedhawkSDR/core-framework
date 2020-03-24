@@ -91,7 +91,7 @@ class py_i(py_base):
             type MessageEvent, create the following code:
         
             msg_out = type(self.my_msg)()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
         Properties:
         
@@ -114,7 +114,7 @@ class py_i(py_base):
             # This example assumes that the component has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the component
+            # The mapping between the port and the class is found in the component
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude
@@ -134,7 +134,7 @@ class py_i(py_base):
                 
             # NOTE: You must make at least one valid pushSRI call
             if sriChanged:
-                self.port_dataFloat_out.pushSRI(sri);
+                self.port_dataFloat_out.pushSRI(sri)
 
             self.port_dataFloat_out.pushPacket(outData, T, EOS, streamID)
             return NORMAL

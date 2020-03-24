@@ -1436,10 +1436,8 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
 
     Device_impl* device = ctor(devMgr_ior, id, label, profile, composite_device);
     
-    if ( !skip_run ) {
-        // assign logging context to the resource..to support logging interface
-        device->saveLoggingContext( logcfg_uri, debug_level, ctx );
-    }
+    // assign logging context to the resource..to support logging interface
+    device->saveLoggingContext( logcfg_uri, debug_level, ctx );
 
     // setting all the execparams passed as argument, this method resides in the Resource_impl class
     device->setExecparamProperties(execparams);

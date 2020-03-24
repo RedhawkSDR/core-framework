@@ -316,6 +316,10 @@ class SBTestTest(scatest.CorbaTestCase):
         sb.release()
         sb.setDEBUG(False)
         os.environ['SDRROOT'] = globalsdrRoot
+        try:
+            os.remove(self.tmpfile)
+        except:
+            pass
 
     def test_catalog(self):
         # Store orig sdrroot
@@ -1801,6 +1805,47 @@ class SBTestTest(scatest.CorbaTestCase):
         comp1 = sb.launch('BasicShared')
         comp2 = sb.launch('BasicShared', shared=False)
         self.assertNotEqual(int(comp1.pid), int(comp2.pid))
+
+    def test_propertyApi(self):
+        self.tmpfile = tempfile.mktemp()
+        comp = sb.launch('PropertyApi')
+        with open(self.tmpfile, 'w') as fp:
+            comp.api(destfile=fp)
+        content = open(self.tmpfile).read()
+        self.assertTrue('dataFloat_in' in content)
+        self.assertTrue('dataFloat_out' in content)
+        self.assertTrue("['c_1'," in content)
+        self.assertTrue("['a1_1'," in content)
+
+        with open(self.tmpfile, 'w') as fp:
+            comp.struct_a.api(destfile=fp)
+        content = open(self.tmpfile).read()
+        self.assertTrue("['a1_1', " in content)
+
+        with open(self.tmpfile, 'w') as fp:
+            comp.simp_seq_c.api(destfile=fp)
+        content = open(self.tmpfile).read()
+        self.assertTrue("['c_1'," in content)
+
+        with open(self.tmpfile, 'w') as fp:
+            comp.struct_seq_b.api(destfile=fp)
+        content = open(self.tmpfile).read()
+        self.assertTrue('struct_seq_b::simple_b' in content)
+        self.assertTrue('struct_seq_b::simp_seq_b2' in content)
+        self.assertTrue("['b2_1'," in content)
+        self.assertTrue('simp_b' in content)
+        self.assertTrue("['e1_1'," not in content)
+        self.assertTrue('simp_e' not in content)
+
+        dict_ = {'simple_b': 'simp_b', 'simp_seq_b1': ['b1_99'], 'simp_seq_b2': ['b2_99']}
+        comp.struct_seq_b.append(dict_)
+        dict_ = {'simple_e': 'simp_e', 'simpseq_e1': ['e1_99'], 'simpseq_e2': ['e2_99']}
+        comp.struct_seq_e.append(dict_)
+        with open(self.tmpfile, 'w') as fp:
+            comp.struct_seq_b.api(destfile=fp)
+        content = open(self.tmpfile).read()
+        self.assertTrue('b1_99' in content)
+        self.assertTrue('e1_99' not in content)
 
 
 class Test_DataSDDSSource(unittest.TestCase):

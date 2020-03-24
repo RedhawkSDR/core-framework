@@ -110,7 +110,8 @@ class EventChannelManager: public virtual EventChannelManagerBase {
   void restore( ossie::events::EventChannel_ptr channel, 
                 const std::string &channel_name, 
                 const std::string &fqn_name )
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );    
@@ -317,13 +318,15 @@ class EventChannelManager: public virtual EventChannelManagerBase {
 	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _get( const std::string &channel_name )
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelDoesNotExist, 
 	    CF::EventChannelManager::OperationFailed, 
 	    CF::EventChannelManager::OperationNotAllowed,
 	    CF::EventChannelManager::ServiceUnavailable );
 
   ossie::events::EventChannel_ptr _create( const std::string &channel_name, const bool autoRelease=false )  
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
+    throw ( CF::EventChannelManager::InvalidChannelName,
+            CF::EventChannelManager::ChannelAlreadyExists, 
             CF::EventChannelManager::OperationFailed, 
             CF::EventChannelManager::OperationNotAllowed,
             CF::EventChannelManager::ServiceUnavailable );

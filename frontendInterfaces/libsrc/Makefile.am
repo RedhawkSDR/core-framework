@@ -107,6 +107,7 @@ AnalogScanningTunerDelegate.java \
 InDigitalTunerPort.java \
 InDigitalScanningTunerPort.java \
 OutDigitalTunerPort.java \
+OutDigitalScanningTunerPort.java \
 DigitalTunerDelegate.java \
 DigitalScanningTunerDelegate.java \
 InFrontendTunerPort.java \

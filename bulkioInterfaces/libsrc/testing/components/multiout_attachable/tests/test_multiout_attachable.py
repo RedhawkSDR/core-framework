@@ -28,6 +28,8 @@ from ossie.utils import sb
 import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 from ossie.utils.testing import main as _ossie_test_main
+import omniORB
+from omniORB import CORBA
 
 
 from ossie.utils.sandbox import debugger
@@ -179,32 +181,59 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, num)
         self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, num)
 
+    def checkTimeoutException(self, port, initial_length):
+        len_attachedSRIs = initial_length
+        try:
+            len_attachedSRIs = len(port._get_attachedSRIs())
+        except Exception, e:
+            if type(e) == CORBA.COMM_FAILURE:
+                if e.minor != omniORB.COMM_FAILURE_WaitingForReply and e.completed != CORBA.COMPLETED_MAYBE:
+                    raise(e)
+            else:
+                raise(e)
+        return len_attachedSRIs
+
     def checkSRIReceived(self, ports, numSRIs=1, sriFields=None):
         for port in ports:
             timeout = 10
-            while len(port._get_attachedSRIs()) < numSRIs:
+            len_attachedSRIs = 0
+            len_attachedSRIs = self.checkTimeoutException(port, len_attachedSRIs)
+            while len_attachedSRIs < numSRIs:
                 time.sleep(1)
                 timeout -= 1
                 if timeout == 0:
                     self.assertTrue(False, "Timed-out waiting to receive new SRI")
                     break
+                len_attachedSRIs = self.checkTimeoutException(port, len_attachedSRIs)
+
             timeout = 10
             if sriFields:
-                for key,val in sriFields.items():
-                    time_begin = time.time()
-                    while time.time()-time_begin < 10:
-                        try:
-                            attachedSRIs = port._get_attachedSRIs()
-                            self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
+                time_begin = time.time()
+                while time.time()-time_begin < 10:
+                    try:
+                        attachedSRIs = port._get_attachedSRIs()
+                        self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
+                        all_fields = True
+                        for key,val in sriFields.items():
+                            if getattr(attachedSRIs[0],key) == val:
+                                continue
+                            else:
+                                all_fields = False
+                        if not all_fields:
+                            time.sleep(1) # key is not there
+                        else:
                             break
-                        except:
-                            time.sleep(1)
-                    while getattr(port._get_attachedSRIs()[0],key) != val:
-                        time.sleep(1)
-                        timeout -= 1
-                        if timeout == 0:
-                            break
-    
+                    except Exception, e:
+                        if type(e) == CORBA.COMM_FAILURE:
+                            if e.minor != omniORB.COMM_FAILURE_WaitingForReply and e.completed != CORBA.COMPLETED_MAYBE:
+                                raise(e)
+                        else:
+                            raise(e)
+                        time.sleep(1) # _get_attachedSRIs call failed
+                    timeout -= 1
+                    if timeout == 0:
+                        break
+
     def waitForPacketIngestion(self, component, count, timeout=10, delay=0.5):
         now = time.time()
         endTime = now+timeout
