@@ -39,13 +39,13 @@ with this program.  If not, see http://www.gnu.org/licenses/.
       <provides repid="IDL:FRONTEND/RFInfo:1.0" providesname="RFInfo_in">
         <porttype type="data"/>
       </provides>
-      <provides repid="IDL:FRONTEND/DigitalTuner:1.0" providesname="DigitalTuner_in">
+      <provides repid="IDL:FRONTEND/DigitalScanningTuner:1.0" providesname="DigitalTuner_in">
         <porttype type="control"/>
       </provides>
       <uses repid="IDL:BULKIO/dataDouble:1.0" usesname="dataDouble_out">
         <porttype type="data"/>
       </uses>
-      <uses repid="IDL:FRONTEND/DigitalTuner:1.0" usesname="DigitalTuner_out"/>
+      <uses repid="IDL:FRONTEND/DigitalScanningTuner:1.0" usesname="DigitalTuner_out"/>
       <uses repid="IDL:FRONTEND/RFInfo:1.0" usesname="RFInfo_out"/>
       <provides repid="IDL:FRONTEND/GPS:1.0" providesname="GPS_in"/>
       <provides repid="IDL:FRONTEND/NavData:1.0" providesname="NavData_in"/>

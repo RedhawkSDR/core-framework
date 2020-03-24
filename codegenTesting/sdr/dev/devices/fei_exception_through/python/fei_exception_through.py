@@ -238,6 +238,24 @@ class fei_exception_through_i(fei_exception_through_base):
         print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
         return True
 
+    def deviceSetTuningScan(self, request, scan_alloc, fts, tuner_id):
+        '''
+        ************************************************************
+        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth = request.bandwidth
+        fts.center_frequency = request.center_frequency
+        fts.sample_rate = request.sample_rate
+        
+        return True if the tuning succeeded, and False if it failed
+        ************************************************************'''
+        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        return True
+
     def deviceDeleteTuning(self, fts, tuner_id):
         '''
         ************************************************************
@@ -251,6 +269,15 @@ class fei_exception_through_i(fei_exception_through_base):
     *************************************************************
     Functions servicing the tuner control port
     *************************************************************'''
+    def getScanStatus(self, allocation_id):
+        return self.port_DigitalTuner_out.getScanStatus(allocation_id)
+
+    def setScanStartTime(self,allocation_id, start_time):
+        self.port_DigitalTuner_out.setScanStartTime(allocation_id, start_time)
+
+    def setScanStrategy(self,allocation_id, scan_strategy):
+        self.port_DigitalTuner_out.setScanStrategy(allocation_id, scan_strategy)
+
     def getTunerType(self,allocation_id):
         return self.port_DigitalTuner_out.getTunerType(allocation_id)
 

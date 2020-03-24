@@ -118,7 +118,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
         _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
         _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
-        
+        _strat = FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.DISCRETE_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(discrete_freq_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.1)
+
+        DigitalTuner_in.ref.getScanStatus('hello')
+        DigitalTuner_in.ref.setScanStartTime('hello', _time)
+        DigitalTuner_in.ref.setScanStrategy('hello', _strat)
         DigitalTuner_in.ref.getTunerType('hello')
         DigitalTuner_in.ref.getTunerDeviceControl('hello')
         DigitalTuner_in.ref.getTunerGroupId('hello')
@@ -159,6 +163,9 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         exception = (CORBA.COMM_FAILURE, CORBA.TRANSIENT)
 
+        self.assertRaises(exception, DigitalTuner_in.ref.getScanStatus, 'hello')
+        self.assertRaises(exception, DigitalTuner_in.ref.setScanStartTime, 'hello', _time)
+        self.assertRaises(exception, DigitalTuner_in.ref.setScanStrategy, 'hello', _strat)
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerType, 'hello')
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerDeviceControl, 'hello')
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerGroupId, 'hello')

@@ -691,6 +691,64 @@ namespace frontend {
             {};
     };
 
+    template<typename PortType_var, typename PortType>
+    class OutDigitalScanningTunerPortT : public OutDigitalTunerPortT<PortType_var, PortType>
+    {
+        public:
+            OutDigitalScanningTunerPortT(std::string port_name) : OutDigitalTunerPortT<PortType_var, PortType>(port_name)
+            {};
+            ~OutDigitalScanningTunerPortT(){};
+
+            void setScanStartTime(const std::string &id, const BULKIO::PrecisionUTCTime& start_time, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->setScanStartTime(id.c_str(), start_time);
+                    }
+                }
+                return;
+            };
+            void setScanStrategy(const std::string &id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->setScanStrategy(id.c_str(), scan_strategy);
+                    }
+                }
+                return;
+            };
+            FRONTEND::ScanningTuner::ScanStatus* getScanStatus(const std::string &id, const std::string __connection_id__ = "") {
+                FRONTEND::ScanningTuner::ScanStatus_var retval;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->getScanStatus(id.c_str());
+                    }
+                }
+                return retval._retn();
+            };
+    };
+    // ----------------------------------------------------------------------------------------
+    // OutDigitalTunerPort declaration
+    // ----------------------------------------------------------------------------------------
+    class OutDigitalScanningTunerPort : public OutDigitalScanningTunerPortT<FRONTEND::DigitalScanningTuner_var,FRONTEND::DigitalScanningTuner> {
+        public:
+            OutDigitalScanningTunerPort(std::string port_name) : OutDigitalScanningTunerPortT<FRONTEND::DigitalScanningTuner_var,FRONTEND::DigitalScanningTuner>(port_name)
+            {};
+    };
+
 } // end of frontend namespace
 
 
