@@ -113,10 +113,10 @@ class PersonaTest(scatest.CorbaTestCase):
         found_prog_inf = False
         found_pers_inf = False
         # These regexes must match the format defined in the log config file.
-        re_prog_dbg = r'^.{20}' + r'{}'.format('DEBUG ProgrammableDevice_1')
-        re_pers_dbg = r'^.{20}' + r'{}'.format('DEBUG PersonaDevice_1')
-        re_prog_inf = r'^.{20}' + r'{}'.format('INFO  ProgrammableDevice_1')
-        re_pers_inf = r'^.{20}' + r'{}'.format('INFO  PersonaDevice_1')
+        re_prog_dbg = r'^.{20}' + r'{0}'.format('DEBUG ProgrammableDevice_1')
+        re_pers_dbg = r'^.{20}' + r'{0}'.format('DEBUG PersonaDevice_1')
+        re_prog_inf = r'^.{20}' + r'{0}'.format('INFO  ProgrammableDevice_1')
+        re_pers_inf = r'^.{20}' + r'{0}'.format('INFO  PersonaDevice_1')
         time_limit = 5
         start = time.time()
         while not (found_prog_inf and found_pers_inf):
@@ -129,6 +129,7 @@ class PersonaTest(scatest.CorbaTestCase):
             time.sleep(0.1)
         return found_prog_dbg, found_pers_dbg, found_prog_inf, found_pers_inf
 
+    @scatest.requireLog4cxx
     def test_Persona_log_config_file(self):
         """
         Check that for both ProgrammableDevice and PersonaDevice:
@@ -146,6 +147,7 @@ class PersonaTest(scatest.CorbaTestCase):
         self.assertTrue(found_prog_inf)
         self.assertTrue(found_pers_inf)
 
+    @scatest.requireLog4cxx
     def test_Persona_log_nodebooter_commandline(self):
         """
         Check that for both ProgrammableDevice and PersonaDevice:
