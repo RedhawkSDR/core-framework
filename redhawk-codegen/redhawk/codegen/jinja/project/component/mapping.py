@@ -43,4 +43,5 @@ class ComponentProjectMapper(ProjectMapper):
         impldict = {}
         impldict['requires'] = generator.rpmRequires()
         impldict['buildrequires'] = generator.rpmBuildRequires()
+        impldict['module'] = impl.isModule()
         return impldict
