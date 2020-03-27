@@ -142,7 +142,7 @@ class SandboxResource(ComponentBase, SandboxMixin):
             localdef_dest = True
             destfile = cStringIO.StringIO()
 
-        print >>destfile, "Component [" + str(self._componentName) + "]:"
+        print >>destfile, "Component [" + str(self._componentName) + "]:\n"
         PortSupplier.api(self, destfile=destfile)
         PropertySet.api(self, destfile=destfile)
 

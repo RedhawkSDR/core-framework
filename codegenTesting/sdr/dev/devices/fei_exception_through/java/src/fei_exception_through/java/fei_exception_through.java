@@ -365,6 +365,24 @@ public class fei_exception_through extends fei_exception_through_base {
         System.out.println("deviceSetTuning(): Evaluate whether or not a tuner is added  *********");
         return true;
     }
+    public boolean deviceSetTuningScan(final frontend.FETypes.frontend_tuner_allocation_struct request, final frontend.FETypes.frontend_scanner_allocation_struct scan_request, frontend_tuner_status_struct_struct fts, int tuner_id)
+    {
+        /************************************************************
+        modify fts, which corresponds to this.frontend_tuner_status.getValue().get(tuner_id)
+        
+        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
+        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
+        if the tuned values match the requested values, the code would look like this:
+        
+        fts.bandwidth.setValue(request.bandwidth.getValue());
+        fts.center_frequency.setValue(request.center_frequency.getValue());
+        fts.sample_rate.setValue(request.sample_rate.getValue());
+        
+        return true if the tuning succeeded, and false if it failed
+        ************************************************************/
+        System.out.println("deviceSetTuning(): Evaluate whether or not a tuner is added  *********");
+        return true;
+    }
     public boolean deviceDeleteTuning(frontend_tuner_status_struct_struct fts, int tuner_id)
     {
         /************************************************************
@@ -373,6 +391,33 @@ public class fei_exception_through extends fei_exception_through_base {
         ************************************************************/
         System.out.println("deviceDeleteTuning(): Deallocate an allocated tuner  *********");
         return true;
+    }
+
+    public void setScanStrategy(final String allocation_id, final FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy)
+    {
+        try {
+            this.port_DigitalTuner_out.setScanStrategy(allocation_id, scan_strategy);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
+    }
+
+    public void setScanStartTime(final String allocation_id, BULKIO.PrecisionUTCTime start_time)
+    {
+        try {
+            this.port_DigitalTuner_out.setScanStartTime(allocation_id, start_time);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
+    }
+
+    public FRONTEND.ScanningTunerPackage.ScanStatus getScanStatus(final String allocation_id)
+    {
+        try {
+            return this.port_DigitalTuner_out.getScanStatus(allocation_id);
+        } catch (PortCallError e) {
+            throw new RuntimeException("Port call error: "+e.getMessage());
+        }
     }
 
     public String getTunerType(final String allocation_id)
