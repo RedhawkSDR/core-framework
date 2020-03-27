@@ -403,7 +403,8 @@ void GPP_i::_init() {
   user_id = s.str();
   n_reservations =0;
   sig_fd = -1;
-
+  _forkMsg=FORK_GO;
+  
   //
   // io redirection for child processes
   //
@@ -1443,7 +1444,6 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
 
 
 
-
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
@@ -1589,7 +1589,34 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 	    }
 	}
     }
-    
+
+#if 0
+    // check to make sure we can fork incase of pid resuse
+    {
+        redhawk::signal<int>::waiter check(&_forkReady,0.0);
+        redhawk::signal<int>::signal_set msg;
+        msg.insert(GPP_i::FORK_WAIT);
+        if ( check.wait(msg) ) {
+            redhawk::signal<int>::waiter ready(&_forkReady,1.5);            
+            redhawk::signal<int>::signal_set msg;
+            msg.insert(GPP_i::FORK_GO);
+            if ( !ready.wait(msg) ) {            
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to request fork operation");
+            }
+        }
+    }
+#endif
+    {
+        SCOPED_LOCK(_forkLock);
+        boost::system_time const timeout=boost::get_system_time();
+        if ( _forkReady.timed_wait( __slock, timeout, check_fork_msg(*this,FORK_WAIT)) ) {
+            boost::system_time const timeout=boost::get_system_time() + boost::posix_time::milliseconds(1500);
+            if ( !_forkReady.timed_wait( __slock, timeout, check_fork_msg(*this,FORK_GO)) ) {
+                throw CF::ExecutableDevice::ExecuteFail(CF::CF_EPERM, "Failure to request fork operation");                    
+            }
+        }
+    }
+            
     // fork child process
     int pid = fork();
 
@@ -1631,7 +1658,10 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
       pthread_mutex_init(load_execute_lock.native_handle(),0);
       
       // set the forked component as the process group leader
-      setpgid(getpid(), 0);
+      if ( setpgid(getpid(), 0) != 0 ) {
+          int e=errno;
+          RH_WARN(__logger,  "SETPGID failed for pid " << getpid() << " errno: " << e );
+      }
 
       // apply io redirection for stdout and stderr
       if ( _handle_io_redirects ) {
@@ -1738,9 +1768,7 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
 {
     RH_TRACE(this->_baseLog, " Terminate request, processID: " << processId);
     try {
-      component_description comp;
-      markPidTerminated( processId );
-      comp = getComponentDescription(processId);
+      component_description comp = markPidTerminated( processId );
       if (!comp.reaped) {
         ExecutableDevice_impl::terminate(processId);
       }
@@ -1754,20 +1782,21 @@ void GPP_i::_reap_child(const int pid) {
 
     try {
         // mark component as reaped
-        markPidReaped( pid );
+        RH_INFO(this->_baseLog, " (_reap_child) pid " << pid );
+        component_description c=markPidReaped( pid );
+        RH_INFO(this->_baseLog, " (_reap_child) completed pid " << pid );
     } catch ( ... ) {
+        RH_INFO(this->_baseLog, " (_reap_child) threw not found exception: pid " << pid );        
     }
 
-    // Ensure that if the process created a shared memory heap, it gets removed
-    // to avoid wasting shared memory
-    _cleanupProcessShm(pid);
 }
 
 bool GPP_i::_component_cleanup(const int pid, const int status)
 {
     component_description comp;
     try {
-        comp = getComponentDescription(pid);
+        //comp = getComponentDescription(pid);
+        comp = markPidReaped(pid);
     } catch (...) {
         // pass.. could be a pid from and popen or system commands..
         return false;
@@ -1785,6 +1814,12 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
             sendChildNotification(comp.identifier, comp.appName);
         }
     }
+
+    removeProcess(pid);
+
+    // Ensure that if the process created a shared memory heap, it gets removed
+    // to avoid wasting shared memory
+    _cleanupProcessShm(pid);
 
     return true;
 }
@@ -2861,18 +2896,29 @@ int GPP_i::sigchld_handler(int sig)
         //  will issue a notification event message for non domain terminated resources.. ie. segfaults..
         //
         if ( si.ssi_signo == SIGCHLD) {
-          RH_TRACE(this->_baseLog, "Child died , pid .................................." << si.ssi_pid);
+          RH_INFO(this->_baseLog, "Child died , pid .................................." << si.ssi_pid);
           int status;
           pid_t child_pid;
           bool reap=false;
-          _reap_child(si.ssi_pid);
-          while( (child_pid = waitpid(si.ssi_pid, &status, WNOHANG)) > 0 ) {
-            RH_TRACE(this->_baseLog, "WAITPID died , pid .................................." << child_pid);
-            if ( (uint)child_pid == si.ssi_pid ) reap=true;
-            _component_cleanup( child_pid, status );
+          //_forkReady.notify(GPP_i::FORK_WAIT);
+          {
+              SCOPED_LOCK(_forkLock);
+              _forkMsg = FORK_WAIT;
+              _forkReady.notify_all();
+          }
+          while((child_pid = waitpid(-1, &status, WNOHANG)) > 0 ) {
+              RH_TRACE(this->_baseLog, "WAITPID died , pid .................................." << child_pid);
+              if ( (uint)child_pid == si.ssi_pid ) reap=true;
+              _component_cleanup( child_pid, status );
           }
           if ( !reap ) {
-            _component_cleanup( si.ssi_pid, status );
+              _component_cleanup( si.ssi_pid, status );
+          }          
+          //_forkReady.notify(GPP_i::FORK_GO);
+          {
+              SCOPED_LOCK(_forkLock);
+              _forkMsg = FORK_GO;
+              _forkReady.notify_all();
           }
         }
         else {
@@ -3008,7 +3054,7 @@ GPP_i::component_description GPP_i::getComponentDescription(int pid)
     return *it;
 }
 
-void GPP_i::markPidTerminated( const int pid)
+GPP_i::component_description  GPP_i::markPidTerminated(const int pid)
 {
     ReadLock lock(pidLock);
     ProcessList:: iterator it = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
@@ -3017,9 +3063,10 @@ void GPP_i::markPidTerminated( const int pid)
     RH_DEBUG(this->_baseLog, " Mark For Termination: "  <<  it->pid << "  APP:" << it->appName );
     it->app_started= false;
     it->terminated = true;
+    return *it;
 }
 
-void GPP_i::markPidReaped( const int pid)
+GPP_i::component_description GPP_i::markPidReaped(const int pid)
 {
     ReadLock lock(pidLock);
     ProcessList:: iterator it = std::find_if( pids.begin(), pids.end(), std::bind2nd( FindPid(), pid ) );
@@ -3027,6 +3074,7 @@ void GPP_i::markPidReaped( const int pid)
         throw std::invalid_argument("pid not found");
     RH_DEBUG(this->_baseLog, " Mark For Reaping: "  <<  it->pid << "  APP:" << it->appName );
     it->reaped = true;
+    return *it;
 }
 
 void GPP_i::removeProcess(int pid)

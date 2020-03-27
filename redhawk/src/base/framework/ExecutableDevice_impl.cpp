@@ -465,10 +465,14 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
 
   // go ahead and terminate the process
   pid_t pgroup = getpgid(processId);
+  if ( processId != pgroup || pgroup == -1 ) {
+      RH_WARN(_executabledeviceLog,"Process Group Mistmatch pid/group " << processId << "/" << pgroup << " (errno:" << errno << " ) , terminate aborted" );
+      return;
+  }
   bool processes_dead = false;
   for (std::vector< std::pair< int, float > >::iterator _signal=_signals.begin();!processes_dead &&_signal!=_signals.end();_signal++) {
     int retval = killpg(pgroup, _signal->first);
-    RH_TRACE(_executabledeviceLog,"Intitial Process Termination pid/group " << processId << "/" << pgroup << "   RET= " << retval);
+    RH_TRACE(_executabledeviceLog,"Initial Process Termination pid/group " << processId << "/" << pgroup << "   RET= " << retval);
     if ( retval == -1 && errno == EPERM ) {
       RH_ERROR(_executabledeviceLog,"Error sending pid/group " << processId << "/" <<  pgroup);
       continue;
