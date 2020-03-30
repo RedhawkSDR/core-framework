@@ -333,7 +333,6 @@ class GPP_i : public GPP_base
           void  _setBusyReason(const std::string& resource, const std::string& message);
 
           bool  _component_cleanup( const int pid, const int exit_status );
-          void _reap_child(const int pid);
 
           //
           // setup execution partitions for launching components

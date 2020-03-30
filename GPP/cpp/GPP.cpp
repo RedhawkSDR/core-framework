@@ -1762,18 +1762,6 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
     removeProcess(processId);
 }
 
-void GPP_i::_reap_child(const int pid) {
-
-    try {
-        // mark component as reaped
-        RH_INFO(this->_baseLog, " (_reap_child) pid " << pid );
-        component_description c=markPidReaped( pid );
-        RH_INFO(this->_baseLog, " (_reap_child) completed pid " << pid );
-    } catch ( ... ) {
-        RH_INFO(this->_baseLog, " (_reap_child) threw not found exception: pid " << pid );        
-    }
-
-}
 
 bool GPP_i::_component_cleanup(const int pid, const int status)
 {
