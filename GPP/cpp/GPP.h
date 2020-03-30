@@ -33,7 +33,6 @@
 #include "reports/SystemMonitorReporting.h"
 #include "NicFacade.h"
 #include "ossie/Events.h"
-#include "ossie/signalling.h"
 
 class ThresholdMonitor;
 class NicFacade;
@@ -285,7 +284,6 @@ class GPP_i : public GPP_base
 	  int                                                 epfd;
           bool                                                _handle_io_redirects;
           std::string                                         _componentOutputLog;
-          //redhawk::signal<int>                                _forkReady;
           boost::mutex                                        _forkLock;
           boost::condition_variable                           _forkReady;
           volatile fork_msg                                   _forkMsg;
