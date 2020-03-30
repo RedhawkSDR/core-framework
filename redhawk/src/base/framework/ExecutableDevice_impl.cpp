@@ -466,7 +466,7 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
   // go ahead and terminate the process
   pid_t pgroup = getpgid(processId);
   if ( processId != pgroup || pgroup == -1 ) {
-      RH_WARN(_executabledeviceLog,"Process Group Mistmatch pid/group " << processId << "/" << pgroup << " (errno:" << errno << " ) , terminate aborted" );
+      RH_WARN(_executabledeviceLog,"Process Group Mismatch pid/group " << processId << "/" << pgroup << " (errno:" << errno << " ) , terminate aborted" );
       return;
   }
   bool processes_dead = false;
