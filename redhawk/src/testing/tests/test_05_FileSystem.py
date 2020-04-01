@@ -697,6 +697,9 @@ class FileAccessTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
         files = fileMgr.list('/')
+        total_dirs = []
+        for _file in files:
+            total_dirs.append(_file.name)
         number_dirs = len(files)
         fileMgr.mkdir(self.basedir)
         number_files = 6000
@@ -710,4 +713,9 @@ class FileAccessTest(scatest.CorbaTestCase):
         self.data_signal.set()
         time.sleep(2)
         files = fileMgr.list('/')
+        final_dirs = []
+        for _file in files:
+            final_dirs.append(_file.name)
+        for entry in final_dirs:
+            self.assertTrue(entry in total_dirs)
         self.assertEqual(len(files), number_dirs)
