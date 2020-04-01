@@ -651,8 +651,9 @@ class FileManagerTest(scatest.CorbaTestCase):
             os.rmdir(testdir)
 
 class ThreadedListWorker:
-    def __init__(self, dommgr, basedir, data_signal, debug=False, num=None):
+    def __init__(self, dommgr, basedir, data_signal, feedback_signal, debug=False, num=None):
         self.data_signal = data_signal
+        self.feedback_signal = feedback_signal
         self.dommgr = dommgr
         self.basedir = basedir
         self.process_thread = threading.Thread(target=self.Process)
@@ -668,10 +669,12 @@ class ThreadedListWorker:
                 if e.errorNumber != CF.CF_EEXIST:
                     raise
                 number_files = 0
+        self.feedback_signal.set()
 
 class ThreadedDeleteWorker:
-    def __init__(self, dommgr, basedir, data_signal, debug=False, num=None):
+    def __init__(self, dommgr, basedir, data_signal, feedback_signal, debug=False, num=None):
         self.data_signal = data_signal
+        self.feedback_signal = feedback_signal
         self.dommgr = dommgr
         self.basedir = basedir
         self.process_thread = threading.Thread(target=self.Process)
@@ -680,6 +683,7 @@ class ThreadedDeleteWorker:
         testdir = os.path.join(scatest.getSdrPath(), 'dom/' + self.basedir)
         self.data_signal.wait()
         shutil.rmtree(testdir, ignore_errors=True)
+        self.feedback_signal.set()
 
 class FileAccessTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -687,6 +691,8 @@ class FileAccessTest(scatest.CorbaTestCase):
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
         self.basedir = '/tmp'
         self.data_signal = threading.Event()
+        self.delete_feedback_signal = threading.Event()
+        self.read_feedback_signal = threading.Event()
 
     def tearDown(self):
         testdir = os.path.join(scatest.getSdrPath(), 'dom/' + self.basedir)
@@ -697,25 +703,18 @@ class FileAccessTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
         files = fileMgr.list('/')
-        total_dirs = []
-        for _file in files:
-            total_dirs.append(_file.name)
         number_dirs = len(files)
         fileMgr.mkdir(self.basedir)
         number_files = 6000
         for i in range(number_files):
             fileMgr.mkdir(self.basedir+'/hello_'+str(i))
-        list_worker = ThreadedListWorker(self._domMgr, self.basedir, self.data_signal)
-        delete_worker = ThreadedDeleteWorker(self._domMgr, self.basedir, self.data_signal)
+        list_worker = ThreadedListWorker(self._domMgr, self.basedir, self.data_signal, self.read_feedback_signal)
+        delete_worker = ThreadedDeleteWorker(self._domMgr, self.basedir, self.data_signal, self.delete_feedback_signal)
         list_worker.process_thread.start()
         delete_worker.process_thread.start()
         time.sleep(0.5)
         self.data_signal.set()
-        time.sleep(2)
+        self.delete_feedback_signal.wait()
+        self.read_feedback_signal.wait()
         files = fileMgr.list('/')
-        final_dirs = []
-        for _file in files:
-            final_dirs.append(_file.name)
-        for entry in final_dirs:
-            self.assertTrue(entry in total_dirs)
         self.assertEqual(len(files), number_dirs)
