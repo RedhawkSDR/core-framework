@@ -35,8 +35,19 @@ void StreamSRITest::testCompare()
     BULKIO::StreamSRI B = bulkio::sri::create();
     BULKIO::StreamSRI C = bulkio::sri::create();
 
-    C.streamID = std::string("No Match").c_str();
+    CPPUNIT_ASSERT_MESSAGE("Identical SRIs should compare equal",
+                           bulkio::sri::DefaultComparator(A, B));
 
-    CPPUNIT_ASSERT(bulkio::sri::DefaultComparator(A, B));
-    CPPUNIT_ASSERT(!bulkio::sri::DefaultComparator(A, C));
+    C.streamID = std::string("No Match").c_str();
+    CPPUNIT_ASSERT_MESSAGE("SRIs with different streamIDs should compare unequal",
+                           ! bulkio::sri::DefaultComparator(A, C));
+
+    C.streamID = A.streamID;
+    CPPUNIT_ASSERT_MESSAGE("Identical SRIs should compare equal (restored streamID)",
+                           bulkio::sri::DefaultComparator(A, B));
+
+    A.blocking = false;
+    C.blocking = true;
+    CPPUNIT_ASSERT_MESSAGE("SRIs with different blocking should compare unequal",
+                           ! bulkio::sri::DefaultComparator(A, C));
 }

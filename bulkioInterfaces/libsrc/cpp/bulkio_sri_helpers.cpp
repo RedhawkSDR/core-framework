@@ -50,6 +50,8 @@ bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI 
         return false;
     if (SRI_1.mode != SRI_2.mode)
         return false;
+    if (SRI_1.blocking != SRI_2.blocking)
+        return false;
     if (strcmp(SRI_1.streamID, SRI_2.streamID) != 0)
         return false;
     if (!compareKeywords(SRI_1.keywords, SRI_2.keywords))
