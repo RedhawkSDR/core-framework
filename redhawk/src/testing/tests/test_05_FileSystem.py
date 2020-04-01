@@ -691,6 +691,7 @@ class FileAccessTest(scatest.CorbaTestCase):
     def tearDown(self):
         testdir = os.path.join(scatest.getSdrPath(), 'dom/' + self.basedir)
         shutil.rmtree(testdir, ignore_errors=True)
+        scatest.CorbaTestCase.tearDown(self)
 
     def test_deleteFiles(self):
         self.assertNotEqual(self._domMgr, None)
