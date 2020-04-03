@@ -159,6 +159,7 @@ class GPP_i : public GPP_base
           float       reservation;
           float       core_usage;
           bool        terminated;
+          bool        reaped;
           uint64_t    pstat_history[pstat_history_len];
           uint8_t     pstat_idx;
           std::vector<int> pids;
@@ -183,6 +184,18 @@ class GPP_i : public GPP_base
 
         protected:
 
+        enum fork_msg { FORK_GO=1, FORK_WAIT=2 };
+        
+        struct check_fork_msg {
+        check_fork_msg( GPP_i &gpp, const GPP_i::fork_msg &msg ):
+            _gpp(gpp),
+            _msg(msg) {};
+            bool operator() () const {
+                return ( _gpp._forkMsg == _msg);
+            };
+            GPP_i &_gpp;
+            GPP_i::fork_msg _msg;
+        };
         
           struct LoadCapacity {
             float max;
@@ -228,7 +241,8 @@ class GPP_i : public GPP_base
 
           std::vector<int> getPids();
           component_description getComponentDescription(int pid);
-          void                  markPidTerminated(const int pid );
+          component_description markPidTerminated(const int pid);
+          component_description markPidReaped(const int pid);
 
 
           void  set_resource_affinity( const CF::Properties& options,
@@ -270,6 +284,9 @@ class GPP_i : public GPP_base
 	  int                                                 epfd;
           bool                                                _handle_io_redirects;
           std::string                                         _componentOutputLog;
+          boost::mutex                                        _forkLock;
+          boost::condition_variable                           _forkReady;
+          volatile fork_msg                                   _forkMsg;
 
           Lock                                                nicLock;
           NicFacadePtr                                        nic_facade;
