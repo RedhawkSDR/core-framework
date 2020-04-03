@@ -210,11 +210,7 @@ void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, do
     if (sr<0) throw FRONTEND::BadParameterException("Sample rate cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
     this->frontend_tuner_status[0].sample_rate = sr;
-}    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-
+}
 
 double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     return frontend_tuner_status[0].sample_rate;
