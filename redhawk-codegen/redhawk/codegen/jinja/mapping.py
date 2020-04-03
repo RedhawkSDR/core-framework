@@ -190,6 +190,9 @@ class SoftpkgMapper(object):
             component['profile']['scd'] = softpkg.scdFile()
         if softpkg.prfFile():
             component['profile']['prf'] = softpkg.prfFile()
+        for child in softpkg.children():
+            component['profile'][child['name']+'prf'] = child['prf']
+            component['profile'][child['name']+'scd'] = child['scd']
 
         return component
 
