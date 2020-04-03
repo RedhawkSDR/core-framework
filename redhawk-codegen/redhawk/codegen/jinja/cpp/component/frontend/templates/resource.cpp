@@ -128,63 +128,41 @@ bool ${className}::deviceDeleteTuning(frontend_tuner_status_struct_struct &fts, 
 Functions servicing the tuner control port
 *************************************************************/
 std::string ${className}::getTunerType(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].tuner_type;
+    return frontend_tuner_status[0].tuner_type;
 }
 
 bool ${className}::getTunerDeviceControl(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if (getControlAllocationId(idx) == allocation_id)
-        return true;
-    return false;
+    return true;
 }
 
 std::string ${className}::getTunerGroupId(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].group_id;
+    return frontend_tuner_status[0].group_id;
 }
 
 std::string ${className}::getTunerRfFlowId(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].rf_flow_id;
+    return frontend_tuner_status[0].rf_flow_id;
 }
 /*{% endif %}*/
 /*{% if 'AnalogTuner' in component.implements %}*/
 
 void ${className}::setTunerCenterFrequency(const std::string& allocation_id, double freq) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
     if (freq<0) throw FRONTEND::BadParameterException("Center frequency cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
-    this->frontend_tuner_status[idx].center_frequency = freq;
+    this->frontend_tuner_status[0].center_frequency = freq;
 }
 
 double ${className}::getTunerCenterFrequency(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].center_frequency;
+    return frontend_tuner_status[0].center_frequency;
 }
 
 void ${className}::setTunerBandwidth(const std::string& allocation_id, double bw) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
     if (bw<0) throw FRONTEND::BadParameterException("Bandwidth cannot be less than 0");
     // set hardware to new value. Raise an exception if it's not possible
-    this->frontend_tuner_status[idx].bandwidth = bw;
+    this->frontend_tuner_status[0].bandwidth = bw;
 }
 
 double ${className}::getTunerBandwidth(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].bandwidth;
+    return frontend_tuner_status[0].bandwidth;
 }
 
 void ${className}::setTunerAgcEnable(const std::string& allocation_id, bool enable)
@@ -218,112 +196,74 @@ long ${className}::getTunerReferenceSource(const std::string& allocation_id)
 }
 
 void ${className}::setTunerEnable(const std::string& allocation_id, bool enable) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
     // set hardware to new value. Raise an exception if it's not possible
-    this->frontend_tuner_status[idx].enabled = enable;
+    this->frontend_tuner_status[0].enabled = enable;
 }
 
 bool ${className}::getTunerEnable(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].enabled;
+    return frontend_tuner_status[0].enabled;
 }
 /*{% endif %}*/
 /*{% if 'DigitalTuner' in component.implements %}*/
 
 void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, double sr) {
-    long idx = getTunerMapping(allocation_id);
+    if (sr<0) throw FRONTEND::BadParameterException("Sample rate cannot be less than 0");
+    // set hardware to new value. Raise an exception if it's not possible
+    this->frontend_tuner_status[0].sample_rate = sr;
+}    long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    if (sr<0) throw FRONTEND::BadParameterException("Sample rate cannot be less than 0");
-    // set hardware to new value. Raise an exception if it's not possible
-    this->frontend_tuner_status[idx].sample_rate = sr;
-}
+
 
 double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    return frontend_tuner_status[idx].sample_rate;
+    return frontend_tuner_status[0].sample_rate;
 }
 /*{% endif %}*/
 /*{% if 'TransmitControl' in component.implements %}*/
 
 void ${className}::reset(const std::string& allocation_id, const std::string& stream_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 
 bool ${className}::hold(const std::string& allocation_id, const std::string& stream_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    return true;
+    return false;
 }
 
 std::vector<std::string> ${className}::held(const std::string& allocation_id, const std::string& stream_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
     std::vector<std::string> _held;
     return _held;
 }
 
 bool ${className}::allow(const std::string& allocation_id, const std::string& stream_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-    return true;
+    return false;
 }
 
 void ${className}::setTransmitParemeters(const std::string& allocation_id, const frontend::TransmitParameters& transmit_parameters) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 
 frontend::TransmitParameters ${className}::getTransmitParemeters(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
     frontend::TransmitParameters transmit_parameters;
     return transmit_parameters;
 }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
     frontend::ScanStatus retval(tmp);
     return retval;
 }
 
 void ${className}::setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time) {
-    long idx = getTunerMapping(allocation_id);
-    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
-    if(allocation_id != getControlAllocationId(idx))
-        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
 }
 
 void ${className}::setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy) {
-    long idx = getTunerMapping(allocation_id);
+}
+/*{% endif %}*/
+/*{% if 'GPS' in component.implements %}*/    long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     if(allocation_id != getControlAllocationId(idx))
         throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
-}
-/*{% endif %}*/
-/*{% if 'GPS' in component.implements %}*/
+
 
 frontend::GPSInfo ${className}::get_gps_info(const std::string& port_name)
 {
