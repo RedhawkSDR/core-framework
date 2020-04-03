@@ -39,6 +39,7 @@ class PullComponentMapper(BaseComponentMapper):
         additionalinfo = set()
         inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'TransmitControl': ('DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 
@@ -93,6 +94,8 @@ class PullComponentMapper(BaseComponentMapper):
             classes.append({'name': 'virtual frontend::digital_scanning_tuner_delegation', 'header': ''})
         elif 'AnalogScanningTuner' in additionalinfo:
             classes.append({'name': 'virtual frontend::analog_scanning_tuner_delegation', 'header': ''})
+        elif 'TransmitControl' in additionalinfo:
+            classes.append({'name': 'virtual frontend::transmit_control_delegation', 'header': ''})
         elif 'DigitalTuner' in additionalinfo:
             classes.append({'name': 'virtual frontend::digital_tuner_delegation', 'header': ''})
         elif 'AnalogTuner' in additionalinfo:

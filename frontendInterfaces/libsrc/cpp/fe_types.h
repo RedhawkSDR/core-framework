@@ -147,6 +147,13 @@ namespace frontend {
         BULKIO::PrecisionUTCTime timestamp;
         CF::Properties additional_info;
     };
+    struct TransmitParameters {
+        std::string  stream_id;
+        bool ignore_timestamp;
+        bool ignore_error;
+        double  tx_power;
+        double  max_timing_error;
+    };
     
     struct frontend_tuner_allocation_struct {
         frontend_tuner_allocation_struct ()

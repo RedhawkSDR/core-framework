@@ -34,6 +34,7 @@ if not '__package__' in locals():
 _headerMap = {
     'AnalogTuner':     '<frontend/fe_tuner_port_impl.h>',
     'DigitalTuner':    '<frontend/fe_tuner_port_impl.h>',
+    'TransmitControl': '<frontend/fe_tuner_port_impl.h>',
     'FrontendTuner':   '<frontend/fe_tuner_port_impl.h>',
     'GPS':             '<frontend/fe_gps_port_impl.h>',
     'NavData':         '<frontend/fe_navdata_port_impl.h>',

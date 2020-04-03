@@ -42,6 +42,7 @@ class FrontendComponentMapper(PullComponentMapper):
         # and FrontendTuner)
         inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'TransmitControl': ('DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 

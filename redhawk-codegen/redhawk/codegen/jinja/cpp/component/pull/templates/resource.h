@@ -82,6 +82,14 @@ class ${className} : public ${baseClass}
         void setScanStartTime(const std::string& allocation_id, const BULKIO::PrecisionUTCTime& start_time);
         void setScanStrategy(const std::string& allocation_id, const frontend::ScanStrategy* scan_strategy);
 /*{% endif %}*/
+/*{% if 'TransmitControl' in component.implements %}*/
+        void reset(const std::string& allocation_id, const std::string& stream_id);
+        bool hold(const std::string& allocation_id, const std::string& stream_id);
+        std::vector<std::string> held(const std::string& allocation_id, const std::string& stream_id);
+        bool allow(const std::string& allocation_id, const std::string& stream_id);
+        void setTransmitParemeters(const std::string& allocation_id, const frontend::TransmitParameters& transmit_parameters);
+        frontend::TransmitParameters getTransmitParemeters(const std::string& allocation_id);
+/*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
         frontend::GPSInfo get_gps_info(const std::string& port_name);
         void set_gps_info(const std::string& port_name, const frontend::GPSInfo &gps_info);

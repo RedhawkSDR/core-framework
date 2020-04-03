@@ -187,6 +187,24 @@ namespace frontend {
         val.timestamp = tmpVal.timestamp;
         return val;
     };
+    FRONTEND::TransmitControl::TransmitParameters* returnTransmitParameters(const frontend::TransmitParameters &val) {
+        FRONTEND::TransmitControl::TransmitParameters* tmpVal = new FRONTEND::TransmitControl::TransmitParameters();
+        tmpVal->stream_id = CORBA::string_dup(val.stream_id.c_str());
+        tmpVal->ignore_timestamp = val.ignore_timestamp;
+        tmpVal->ignore_error = val.ignore_error;
+        tmpVal->tx_power = val.tx_power;
+        tmpVal->max_timing_error = val.max_timing_error;
+        return tmpVal;
+    };
+    frontend::TransmitParameters returnTransmitParameters(const FRONTEND::TransmitControl::TransmitParameters &tmpVal) {
+        frontend::TransmitParameters val;
+        val.stream_id = ossie::corba::returnString(tmpVal.stream_id);
+        val.ignore_timestamp = tmpVal.ignore_timestamp;
+        val.ignore_error = tmpVal.ignore_error;
+        val.tx_power = tmpVal.tx_power;
+        val.max_timing_error = tmpVal.max_timing_error;
+        return val;
+    };
 
     FRONTEND::NavigationPacket* returnNavigationPacket(const frontend::NavigationPacket &val) {
         FRONTEND::NavigationPacket* tmpVal = new FRONTEND::NavigationPacket();

@@ -483,7 +483,7 @@ module FRONTEND {
     struct TransmitStatusType {
         string                      stream_id;
         string                      allocation_id;
-        CF::UTCTime                 timestamp;
+        BULKIO::PrecisionUTCTime                 timestamp;
         unsigned long long          total_samples;  // number of samples transmitted from this stream id; resets to 0 when >= max Ulonglong
         unsigned long long          total_packets;  // number of packets transmitted (pushPacket calls) from this stream id; resets to 0 when >= max Ulonglong
         boolean                     transmitting;   // true when currently transmitting, false when no queued data to transmit

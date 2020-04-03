@@ -73,6 +73,9 @@ namespace frontend {
     FRONTEND::ScanningTuner::ScanStrategy* returnScanStrategy(const frontend::ScanStrategy &val);
     frontend::ScanStrategy* returnScanStrategy(const FRONTEND::ScanningTuner::ScanStrategy &tmpVal);
 
+    FRONTEND::TransmitControl::TransmitParameters* returnTransmitParameters(const frontend::TransmitParameters &val);
+    frontend::TransmitParameters returnTransmitParameters(const FRONTEND::TransmitControl::TransmitParameters &tmpVal);
+
     // ----------------------------------------------------------------------------------------
     // OutFrontendPort declaration
     // ----------------------------------------------------------------------------------------

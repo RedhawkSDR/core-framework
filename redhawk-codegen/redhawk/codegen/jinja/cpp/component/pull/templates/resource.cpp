@@ -522,6 +522,31 @@ void ${className}::setScanStrategy(const std::string& allocation_id, const front
     throw FRONTEND::NotSupportedException("setScanStrategy not supported");
 }
 /*{% endif %}*/
+/*{% if 'TransmitControl' in component.implements %}*/
+void ${className}::reset(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("reset not supported");
+}
+
+bool ${className}::hold(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("hold not supported");
+}
+
+std::vector<std::string> ${className}::held(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("held not supported");
+}
+
+bool ${className}::allow(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("allow not supported");
+}
+
+void ${className}::setTransmitParemeters(const std::string& allocation_id, const frontend::TransmitParameters& transmit_parameters) {
+    throw FRONTEND::NotSupportedException("setTransmitParemeters not supported");
+}
+
+frontend::TransmitParameters ${className}::getTransmitParemeters(const std::string& allocation_id) {
+    throw FRONTEND::NotSupportedException("getTransmitParemeters not supported");
+}
+/*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/
 
 frontend::GPSInfo ${className}::get_gps_info(const std::string& port_name)

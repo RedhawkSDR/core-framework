@@ -75,6 +75,10 @@ namespace bulkio {
 
         void update_ignore_error(bool ignore_error);
 
+        bool get_ignore_timestamp();
+
+        bool get_ignore_error();
+
         double getCenterFrequency(DataBlockType &block);
 
         std::vector<std::string> held();

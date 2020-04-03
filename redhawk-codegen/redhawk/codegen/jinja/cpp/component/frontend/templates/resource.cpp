@@ -250,6 +250,56 @@ double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     return frontend_tuner_status[idx].sample_rate;
 }
 /*{% endif %}*/
+/*{% if 'TransmitControl' in component.implements %}*/
+
+void ${className}::reset(const std::string& allocation_id, const std::string& stream_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+}
+
+bool ${className}::hold(const std::string& allocation_id, const std::string& stream_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+    return true;
+}
+
+std::vector<std::string> ${className}::held(const std::string& allocation_id, const std::string& stream_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+    std::vector<std::string> _held;
+    return _held;
+}
+
+bool ${className}::allow(const std::string& allocation_id, const std::string& stream_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+    return true;
+}
+
+void ${className}::setTransmitParemeters(const std::string& allocation_id, const frontend::TransmitParameters& transmit_parameters) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+}
+
+frontend::TransmitParameters ${className}::getTransmitParemeters(const std::string& allocation_id) {
+    long idx = getTunerMapping(allocation_id);
+    if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
+    if(allocation_id != getControlAllocationId(idx))
+        throw FRONTEND::FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner").c_str());
+    frontend::TransmitParameters transmit_parameters;
+    return transmit_parameters;
+}
+/*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
     long idx = getTunerMapping(allocation_id);

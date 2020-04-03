@@ -68,6 +68,16 @@ namespace bulkio {
     }
 
     template <class T_port>
+    bool StreamQueue<T_port>::get_ignore_timestamp() {
+        return _ignore_timestamp;
+    }
+
+    template <class T_port>
+    bool StreamQueue<T_port>::get_ignore_error() {
+        return _ignore_error;
+    }
+
+    template <class T_port>
     double StreamQueue<T_port>::getCenterFrequency(typename StreamQueue<T_port>::DataBlockType &block) {
         const redhawk::PropertyMap& keywords = redhawk::PropertyMap::cast(block.sri().keywords);
         if (keywords.find("CHAN_RF") != keywords.end()) {

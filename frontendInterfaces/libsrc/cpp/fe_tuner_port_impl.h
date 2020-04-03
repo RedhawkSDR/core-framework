@@ -120,6 +120,28 @@ namespace frontend {
             }
     };
 
+    class transmit_control_delegation : public virtual digital_tuner_delegation {
+        public:
+            virtual void reset(const std::string& id, const std::string& stream_id) {
+                throw FRONTEND::NotSupportedException("reset not supported");
+            }
+            virtual bool hold(const std::string& id, const std::string& stream_id) {
+                throw FRONTEND::NotSupportedException("hold not supported");
+            }
+            virtual std::vector<std::string> held(const std::string& id) {
+                throw FRONTEND::NotSupportedException("held not supported");
+            }
+            virtual bool allow(const std::string& id, const std::string& stream_id) {
+                throw FRONTEND::NotSupportedException("allow not supported");
+            }
+            virtual void setTransmitParameters(const std::string& id, const frontend::TransmitParameters &transmit_parameters) {
+                throw FRONTEND::NotSupportedException("setTransmitParameters not supported");
+            }
+            virtual frontend::TransmitParameters getTransmitParameters(const std::string& id) {
+                throw FRONTEND::NotSupportedException("getTransmitParameters not supported");
+            }
+    };
+
     class InFrontendTunerPort : public virtual POA_FRONTEND::FrontendTuner, public Port_Provides_base_impl
     {
         public:
@@ -263,6 +285,60 @@ namespace frontend {
             };
         private:
             digital_tuner_delegation *parent;
+    };
+    
+    class InTransmitControlPort : public virtual POA_FRONTEND::TransmitControl, public InDigitalTunerPort
+    {
+        public:
+            typedef InDigitalTunerPort super;
+            InTransmitControlPort(std::string port_name, transmit_control_delegation *_parent):super(port_name, _parent)
+            {
+                parent = _parent;
+            };
+            ~InTransmitControlPort() {};
+
+            void reset(const char* stream_id) {
+                boost::mutex::scoped_lock lock(portAccess);
+                std::string _stream_id(stream_id);
+                this->parent->reset(this->name, _stream_id);
+            }
+            bool hold(const char* stream_id) {
+                boost::mutex::scoped_lock lock(portAccess);
+                std::string _stream_id(stream_id);
+                return this->parent->hold(this->name, _stream_id);
+            }
+            CF::StringSequence* held() {
+                boost::mutex::scoped_lock lock(portAccess);
+                CF::StringSequence_var retval = new CF::StringSequence();
+                std::vector<std::string> _held = this->parent->held(this->name);
+                retval->length(_held.size());
+                for (unsigned int i=0; i<_held.size(); i++) {
+                    retval[i] = CORBA::string_dup(_held[i].c_str());
+                }
+                return retval._retn();
+            }
+            bool allow(const char* stream_id) {
+                boost::mutex::scoped_lock lock(portAccess);
+                std::string _stream_id(stream_id);
+                return this->parent->allow(this->name, _stream_id);
+            }
+            void setTransmitParameters(const FRONTEND::TransmitControl::TransmitParameters &transmit_parameters) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                frontend::TransmitParameters input = frontend::returnTransmitParameters(transmit_parameters);
+                this->parent->setTransmitParameters(this->name, input);
+                return;
+            }
+            FRONTEND::TransmitControl::TransmitParameters* getTransmitParameters() {
+                boost::mutex::scoped_lock lock(portAccess);
+                frontend::TransmitParameters retval = this->parent->getTransmitParameters(this->name);
+                FRONTEND::TransmitControl::TransmitParameters* tmpVal = frontend::returnTransmitParameters(retval);
+                return tmpVal;
+            }
+            std::string getRepid() const {
+                return "IDL:FRONTEND/TransmitControl:1.0";
+            };
+        private:
+            transmit_control_delegation *parent;
     };
 
     class InAnalogScanningTunerPort : public virtual POA_FRONTEND::AnalogScanningTuner, public InAnalogTunerPort
@@ -762,7 +838,6 @@ namespace frontend {
                     for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
                         if (not __connection_id__.empty() and __connection_id__ != i->second)
                             continue;
-                        ((*i).first)->transmitStatusChanged(status);
                         ((*i).first)->transmitStatusChanged(status);
                     }
                 }
