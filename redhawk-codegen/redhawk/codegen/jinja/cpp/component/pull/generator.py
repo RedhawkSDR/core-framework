@@ -83,7 +83,10 @@ class PullComponentGenerator(CppCodeGenerator):
         templates = set()
         for generator in component['portgenerators']:
             if generator.hasDeclaration():
-                generator.setHeader('"port_impl.h"')
+                if component.has_key('isChild'):
+                    generator.setHeader('"'+component['name']+'_port_impl.h"')
+                else:
+                    generator.setHeader('"port_impl.h"')
                 templates.add('port_impl.h')
             if generator.hasImplementation():
                 templates.add('port_impl.cpp')
