@@ -768,6 +768,116 @@ namespace frontend {
     };
 
     template<typename PortType_var, typename PortType>
+    class OutTransmitControlPortT : public OutDigitalTunerPortT<PortType_var, PortType>
+    {
+        public:
+            OutTransmitControlPortT(std::string port_name) : OutDigitalTunerPortT<PortType_var, PortType>(port_name)
+            {};
+            ~OutTransmitControlPortT(){};
+
+            void reset(const std::string &stream_id, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->reset(stream_id.c_str());
+                    }
+                }
+                return;
+            };
+
+            bool hold(const std::string &stream_id, const std::string __connection_id__ = "") {
+                bool retval = false;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->hold(stream_id.c_str());
+                    }
+                }
+                return retval;
+            };
+
+            std::vector<std::string> held(const std::string &stream_id, const std::string __connection_id__ = "") {
+                CF::StringSequence retval;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->retval(stream_id.c_str());
+                    }
+                }
+                std::vector<std::string> _retval;
+                for (unsigned int i=0; i<retval.length(); i++) {
+                    _retval.push_back(ossie::corba::returnString(retval[i]));
+                }
+                return _retval;
+            };
+
+            bool allow(const std::string &stream_id, const std::string __connection_id__ = "") {
+                bool retval = 0;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->allow(stream_id.c_str());
+                    }
+                }
+                return retval;
+            };
+
+            void setTransmitParameters(FRONTEND::TransmitControl::TransmitParameters &transmit_parameters, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->setTransmitParameters(transmit_parameters);
+                    }
+                }
+                return;
+            };
+
+            FRONTEND::TransmitControl::TransmitParameters getTransmitParameters(const std::string __connection_id__ = "") {
+                FRONTEND::TransmitControl::TransmitParameters_var retval;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->getTransmitParameters();
+                    }
+                }
+                return retval._retn();
+            };
+    };
+
+    // ----------------------------------------------------------------------------------------
+    // OutDigitalTunerPort declaration
+    // ----------------------------------------------------------------------------------------
+    class OutTransmitControlPort : public OutTransmitControlPortT<FRONTEND::TransmitControl_var,FRONTEND::TransmitControl> {
+        public:
+            OutTransmitControlPort(std::string port_name) : OutTransmitControlPortT<FRONTEND::TransmitControl_var,FRONTEND::TransmitControl>(port_name)
+            {};
+    };
+
+    template<typename PortType_var, typename PortType>
     class OutTransmitDeviceStatusPortT : public OutFrontendPort<PortType_var, PortType>
     {
         public:
