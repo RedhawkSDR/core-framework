@@ -848,10 +848,149 @@ namespace frontend {
     // ----------------------------------------------------------------------------------------
     // OutTransmitDeviceStatusPort declaration
     // ----------------------------------------------------------------------------------------
-    class OutTransmitDeviceStatusPort : public OutTransmitDeviceStatusPortT<FRONTEND::TransmitDeviceStatus_var,FRONTEND::TransmitDeviceStatus> {
+    class OutTransmitDeviceStatusPort : public Port_Uses_base_impl, public POA_ExtendedCF::QueryablePort {
         public:
-            OutTransmitDeviceStatusPort(std::string port_name) : OutTransmitDeviceStatusPortT<FRONTEND::TransmitDeviceStatus_var,FRONTEND::TransmitDeviceStatus>(port_name)
-            {};
+        public:
+            OutTransmitDeviceStatusPort(std::string port_name) : Port_Uses_base_impl(port_name)
+            {
+                recConnectionsRefresh = false;
+                recConnections.length(0);
+            };
+            ~OutTransmitDeviceStatusPort(){};
+
+            std::vector<std::string> getConnectionIds() {
+                std::vector<std::string> retval;
+                for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+                    retval.push_back(this->outConnections[i].second);
+                }
+                return retval;
+            }
+
+            void __evaluateRequestBasedOnConnections(const std::string &__connection_id__, bool returnValue, bool inOut, bool out) {
+                if (__connection_id__.empty() and (this->outConnections.size() > 1)) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.",
+                                getConnectionIds());
+                    }
+                }
+                if (this->outConnections.empty()) {
+                    if (out or inOut or returnValue) {
+                        throw redhawk::PortCallError("No connections available.", std::vector<std::string>());
+                    } else {
+                        if (not __connection_id__.empty()) {
+                            std::ostringstream eout;
+                            eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                            throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                        }
+                    }
+                }
+                if ((not __connection_id__.empty()) and (not this->outConnections.empty())) {
+                    bool foundConnection = false;
+                    typename std::vector < std::pair < CF::DeviceStatus_var, std::string > >::iterator i;
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (i->second == __connection_id__) {
+                            foundConnection = true;
+                            break;
+                        }
+                    }
+                    if (not foundConnection) {
+                        std::ostringstream eout;
+                        eout<<"The requested connection id ("<<__connection_id__<<") does not exist.";
+                        throw redhawk::PortCallError(eout.str(), getConnectionIds());
+                    }
+                }
+            }
+            void statusChanged(const CF::DeviceStatusType &status, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < CF::DeviceStatus_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->statusChanged(status);
+                    }
+                }
+                return;
+            };
+            void transmitStatusChanged(const FRONTEND::TransmitStatusType &status, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < CF::DeviceStatus_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                __evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        FRONTEND::TransmitDeviceStatus_var port = FRONTEND::TransmitDeviceStatus::_narrow((*i).first);
+                        if (!CORBA::is_nil(port)) {
+                            port->transmitStatusChanged(status);
+                        } else {
+                            CF::DeviceStatusType newStatus;
+                            newStatus.allocation_id = CORBA::string_dup(status.allocation_id);
+                            newStatus.timestamp = bulkio::time::utils::convertToUTCTime(status.timestamp);
+                            newStatus.message = CORBA::string_dup(status.message);
+                            newStatus.status = status.status;
+                            ((*i).first)->statusChanged(newStatus);
+                        }
+                    }
+                }
+                return;
+            };
+
+            ExtendedCF::UsesConnectionSequence * connections()
+            {
+                boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+                if (recConnectionsRefresh) {
+                    recConnections.length(outConnections.size());
+                    for (unsigned int i = 0; i < outConnections.size(); i++) {
+                        recConnections[i].connectionId = CORBA::string_dup(outConnections[i].second.c_str());
+                        recConnections[i].port = CORBA::Object::_duplicate(outConnections[i].first);
+                    }
+                    recConnectionsRefresh = false;
+                }
+                ExtendedCF::UsesConnectionSequence_var retVal = new ExtendedCF::UsesConnectionSequence(recConnections);
+                // NOTE: You must delete the object that this function returns!
+                return retVal._retn();
+            };
+
+            void connectPort(CORBA::Object_ptr connection, const char* connectionId)
+            {
+                boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+                CF::DeviceStatus_var port = CF::DeviceStatus::_narrow(connection);
+                outConnections.push_back(std::make_pair(port, connectionId));
+                active = true;
+                recConnectionsRefresh = true;
+            };
+
+            void disconnectPort(const char* connectionId)
+            {
+                boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
+                for (unsigned int i = 0; i < outConnections.size(); i++) {
+                    if (outConnections[i].second == connectionId) {
+                        outConnections.erase(outConnections.begin() + i);
+                        break;
+                    }
+                }
+
+                if (outConnections.size() == 0) {
+                    active = false;
+                }
+                recConnectionsRefresh = true;
+            };
+
+            std::vector< std::pair<CF::DeviceStatus_var, std::string> > _getConnections()
+            {
+                return outConnections;
+            };
+        
+            std::string getRepid() const {
+                return CF::DeviceStatus::_PD_repoId;
+            };
+
+        protected:
+            std::vector < std::pair<CF::DeviceStatus_var, std::string> > outConnections;
+            ExtendedCF::UsesConnectionSequence recConnections;
+            bool recConnectionsRefresh;
     };
 
     template<typename PortType_var, typename PortType>

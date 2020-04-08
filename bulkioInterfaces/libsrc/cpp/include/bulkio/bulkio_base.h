@@ -297,7 +297,12 @@ namespace bulkio {
        * Create a time stamp object from the current time of day reported by the system
        */
       BULKIO::PrecisionUTCTime now();
-      
+
+      /*
+       * Convert BULKIO PrecisionUTCTime to CF UTCTime
+       */
+      CF::UTCTime convertToUTCTime( const BULKIO::PrecisionUTCTime &time_in);
+
       /*
        * Create a time stamp object from the current time of day reported by the system
        */

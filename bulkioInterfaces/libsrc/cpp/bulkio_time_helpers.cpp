@@ -55,6 +55,14 @@ namespace  bulkio {
         return tstamp;
       }
 
+        CF::UTCTime convertToUTCTime( const BULKIO::PrecisionUTCTime &time_in) {
+            CF::UTCTime utctime;
+            utctime.tcstatus = time_in.tcstatus;
+            utctime.twsec = time_in.twsec;
+            utctime.tfsec = time_in.tfsec;
+            return utctime;
+        }
+
       BULKIO::PrecisionUTCTime now() {
 	return create();
       }
