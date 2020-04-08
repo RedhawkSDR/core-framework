@@ -1603,7 +1603,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   }
 
   local_spd::ProgramProfile *spdinfo=0;
-  try { 
+  try {
       spdinfo = findProfile( registeringDevice->identifier() );
   }
   catch(...) {
@@ -1611,7 +1611,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       eout << "Loading Device's SPD failed, device:" <<  deviceLabel;
           RH_ERROR(this->_baseLog, eout.str());
       throw(CF::InvalidObjectReference(eout.str().c_str()));
-  } 
+  }
 
   // This lock needs to be here because we add the device to
   // the registeredDevices list at the top...therefore
@@ -2929,9 +2929,14 @@ bool DeviceManager_impl::allChildrenExited ()
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
+    for(unsigned int i=0; i<_registeredServices.size(); i++) {
+        if (_registeredServices[i]->pid != 0) {
+            return false;
+        }
+    }
+
     if ((_pendingDevices.size() == 0) && (_registeredDevices.size() == 0) &&
-        (_pendingServices.size() == 0) && (_registeredServices.size() == 0)
-        ) {
+        (_pendingServices.size() == 0)) {
         return true;
     }
 

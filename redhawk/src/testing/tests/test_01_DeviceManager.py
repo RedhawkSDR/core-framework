@@ -1305,6 +1305,29 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # Makes sure that all children are dead
         self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
 
+    def test_ServicePort_DevMgrShutdown(self):
+        num_services = 4
+        num_devices = 2
+
+        # This test makes sure that services are unregistered from the naming service upon shutdown of the DeviceManager
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/svc_port_node/DeviceManager.dcd.xml")
+        begin_time = time.time()
+        while len(devMgr._get_registeredServices()) != num_services and time.time()-begin_time < 10:
+            time.sleep(0.5)
+        self.assertEqual(len(devMgr._get_registeredServices()), num_services)
+
+        # Makes sure that the correct number of processes forked
+        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_devices)
+
+        # Check that we unregister correctly
+        os.kill(devmgr_nb.pid, signal.SIGTERM)
+
+        # Needs to allow time for unregistering
+        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+        # Makes sure that all children are dead
+        self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+
     def _test_Valgrind(self, valgrind):
         # Clear the device cache to prevent false positives
         deviceCacheDir = os.path.join(scatest.getSdrCache(), ".ExecutableDevice_node", "ExecutableDevice1")

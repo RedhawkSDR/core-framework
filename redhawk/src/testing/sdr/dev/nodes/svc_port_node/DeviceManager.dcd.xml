@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:4d4c9080-c77c-4905-b7c0-8d4cd6a9d139" name="svc_port_node">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="svc_port_25a3223c-b1d3-479a-ac2f-806b5b330ac8" type="SPD">
+      <localfile name="/devices/svc_port/svc_port.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="svc_port_25a3223c-b1d3-479a-ac2f-806b5b330ac8"/>
+      <componentinstantiation id="svc_port_node:svc_port_1" startorder="0">
+        <usagename>svc_port_1</usagename>
+        <componentproperties>
+          <simpleref refid="svc_2" value="svc1_2"/>
+          <simpleref refid="svc_1" value="svc1_1"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="svc_port_25a3223c-b1d3-479a-ac2f-806b5b330ac8"/>
+      <componentinstantiation id="svc_port_node:svc_port_2" startorder="1">
+        <usagename>svc_port_2</usagename>
+        <componentproperties>
+          <simpleref refid="svc_2" value="svc2_2"/>
+          <simpleref refid="svc_1" value="svc2_1"/>
+        </componentproperties>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>
