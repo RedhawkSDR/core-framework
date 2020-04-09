@@ -92,6 +92,12 @@ namespace frontend {
             virtual double getTunerOutputSampleRate(const std::string& id) {
                 throw FRONTEND::NotSupportedException("getTunerOutputSampleRate not supported");
             }
+            virtual void configureTuner(const std::string& id, const CF::Properties& tunerSettings) {
+                throw FRONTEND::NotSupportedException("configureTuner not supported");
+            }
+            virtual CF::Properties* getTunerSettings(const std::string& id) {
+                throw FRONTEND::NotSupportedException("getTunerSettings not supported");
+            }
     };
     
     class analog_scanning_tuner_delegation : public virtual analog_tuner_delegation {
@@ -279,6 +285,16 @@ namespace frontend {
                 boost::mutex::scoped_lock lock(this->portAccess);
                 std::string _id(id);
                 return (this->parent->getTunerOutputSampleRate(_id));
+            };
+            void configureTuner(const char* id, const CF::Properties& tunerSettings) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                this->parent->configureTuner(_id, tunerSettings);
+            };
+            CF::Properties* getTunerSettings(const char* id) {
+                boost::mutex::scoped_lock lock(this->portAccess);
+                std::string _id(id);
+                return (this->parent->getTunerSettings(_id));
             };
             std::string getRepid() const {
                 return "IDL:FRONTEND/DigitalTuner:1.0";
@@ -734,6 +750,33 @@ namespace frontend {
                         if (not __connection_id__.empty() and __connection_id__ != i->second)
                             continue;
                         retval = ((*i).first)->getTunerOutputSampleRate(id.c_str());
+                    }
+                }
+                return retval;
+            };
+            void configureTuner(const std::string &id, const CF::Properties& tunerSettings, const std::string __connection_id__ = "") {
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, false, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        ((*i).first)->configureTuner(id.c_str(), tunerSettings);
+                    }
+                }
+                return;
+            };
+            CF::Properties* getTunerSettings(const std::string &id, const std::string __connection_id__ = "") {
+                CF::Properties* retval = NULL;
+                typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
+                boost::mutex::scoped_lock lock(this->updatingPortsLock);
+                OutFrontendTunerPortT<PortType_var, PortType>::__evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
+                if (this->active) {
+                    for (i = this->outConnections.begin(); i != this->outConnections.end(); ++i) {
+                        if (not __connection_id__.empty() and __connection_id__ != i->second)
+                            continue;
+                        retval = ((*i).first)->getTunerSettings(id.c_str());
                     }
                 }
                 return retval;

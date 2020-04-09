@@ -26,6 +26,7 @@ import FRONTEND.NotSupportedException;
 import FRONTEND.ScanningTunerPackage.ScanStatus;
 import FRONTEND.ScanningTunerPackage.ScanStrategy;
 import BULKIO.PrecisionUTCTime;
+import CF.DataType;
 
 public interface DigitalScanningTunerDelegate extends DigitalTunerDelegate {
 
@@ -34,4 +35,8 @@ public interface DigitalScanningTunerDelegate extends DigitalTunerDelegate {
     public void setScanStartTime(String id, BULKIO.PrecisionUTCTime start_time) throws FrontendException, BadParameterException, NotSupportedException;
 
     public void setScanStrategy(String id, FRONTEND.ScanningTunerPackage.ScanStrategy scan_strategy) throws FrontendException, BadParameterException, NotSupportedException;
+
+    public void configureTuner(String id, final DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException;
+
+    public DataType[] getTunerSettings(String id) throws FrontendException, BadParameterException, NotSupportedException;
 }

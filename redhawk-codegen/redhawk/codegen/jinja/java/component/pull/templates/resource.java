@@ -536,6 +536,20 @@ public class ${classname} extends ${baseclass} {
         //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported");
     }
+
+    public void configureTuner(String allocation_id, final DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
+        throw new FRONTEND.NotSupportedException("configureTuner not supported");
+    }
+
+    public DataType[] getTunerSettings(String allocation_id) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
+        throw new FRONTEND.NotSupportedException("getTunerSettings not supported");
+    }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 

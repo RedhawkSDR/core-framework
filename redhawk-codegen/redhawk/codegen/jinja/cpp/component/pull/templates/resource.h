@@ -76,6 +76,8 @@ class ${className} : public ${baseClass}
 /*{% if 'DigitalTuner' in component.implements %}*/
         double getTunerOutputSampleRate(const std::string& allocation_id);
         void setTunerOutputSampleRate(const std::string& allocation_id, double sr);
+        void configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings);
+        CF::Properties* getTunerSettings(const std::string& allocation_id);
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
         frontend::ScanStatus getScanStatus(const std::string& allocation_id);

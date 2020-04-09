@@ -261,6 +261,24 @@ import CF.InvalidObjectReference;
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         return frontend_tuner_status.getValue().get(idx).sample_rate.getValue();
     }
+
+    public void configureTuner(String allocation_id, final DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        int idx = getTunerMapping(allocation_id);
+        if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
+        if (!allocation_id.equals(getControlAllocationId(idx)))
+            throw new FRONTEND.FrontendException(("ID "+allocation_id+" does not have authorization to modify the tuner"));
+        // set provided tuner settings
+    }
+
+    public DataType[] getTunerSettings(String allocation_id) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        int idx = getTunerMapping(allocation_id);
+        if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
+        // return tuner settings in a CF.DataType sequence
+        DataType[] props = new DataType[0];
+        return props;
+    }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
 

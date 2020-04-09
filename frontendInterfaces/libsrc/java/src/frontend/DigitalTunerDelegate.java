@@ -23,10 +23,15 @@ import frontend.AnalogTunerDelegate;
 import FRONTEND.FrontendException;
 import FRONTEND.BadParameterException;
 import FRONTEND.NotSupportedException;
+import CF.DataType;
 
 public interface DigitalTunerDelegate extends AnalogTunerDelegate {
 
     public void setTunerOutputSampleRate(String id, double sr) throws FrontendException, BadParameterException, NotSupportedException;
 
     public double getTunerOutputSampleRate(String id) throws FrontendException, BadParameterException, NotSupportedException;
+
+    public void configureTuner(String id, final DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException;
+
+    public DataType[] getTunerSettings(String id) throws FrontendException, BadParameterException, NotSupportedException;
 }

@@ -381,6 +381,16 @@ class ${className}(${baseClass}):
         #          allocation_id has no meaning
         raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
 
+    def configureTuner(self, allocation_id, tunerSettings):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("configureTuner not supported")
+
+    def getTunerSettings(self, allocation_id):
+        # WARNING: this device does not contain tuner allocation/status structures
+        #          allocation_id has no meaning
+        raise FRONTEND.NotSupportedException("getTunerSettings not supported")
+
 #{% endif %}
 #{% if 'ScanningTuner' in component.implements %}
 

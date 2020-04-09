@@ -29,6 +29,7 @@ import FRONTEND.ScanningTunerPackage.ScanStrategy;
 import BULKIO.PrecisionUTCTime;
 import org.ossie.component.PortBase;
 import org.ossie.component.RHLogger;
+import CF.DataType;
 
 public class InDigitalScanningTunerPort extends FRONTEND.DigitalScanningTunerPOA implements PortBase {
 
@@ -350,6 +351,38 @@ public class InDigitalScanningTunerPort extends FRONTEND.DigitalScanningTunerPOA
                     return delegate.getTunerOutputSampleRate(id);
                 } else {
                     throw new RuntimeException("InDigitalScanningTunerPort getTunerOutputSampleRate(String id) callback delegate not defined");
+                }
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void configureTuner(String id, final DataType[] tunerSettings) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
+        synchronized(this.portAccess){
+            try{
+                if ( delegate != null ){
+                    delegate.configureTuner(id, tunerSettings);
+                } else {
+                    throw new RuntimeException("InDigitalTunerPort configureTuner(String id, final DataType[] tunerSettings) callback delegate not defined");
+                }
+            } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
+                throw e;
+            } catch(Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public DataType[] getTunerSettings(String id) throws FRONTEND.FrontendException, FRONTEND.BadParameterException, FRONTEND.NotSupportedException {
+        synchronized(this.portAccess){
+            try{
+                if ( delegate != null ){
+                    return delegate.getTunerSettings(id);
+                } else {
+                    throw new RuntimeException("InDigitalTunerPort getTunerOutputSampleRate(String id) callback delegate not defined");
                 }
             } catch(org.omg.CORBA.SystemException | org.omg.CORBA.UserException e) {
                 throw e;

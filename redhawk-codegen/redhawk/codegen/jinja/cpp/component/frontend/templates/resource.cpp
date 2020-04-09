@@ -215,6 +215,16 @@ void ${className}::setTunerOutputSampleRate(const std::string& allocation_id, do
 double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     return frontend_tuner_status[0].sample_rate;
 }
+
+void ${className}::configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings){
+    // set the appropriate tuner settings
+}
+
+CF::Properties* ${className}::getTunerSettings(const std::string& allocation_id){
+    // return the tuner settings
+    redhawk::PropertyMap* tuner_settings = new redhawk::PropertyMap();
+    return tuner_settings;
+}
 /*{% endif %}*/
 /*{% if 'TransmitControl' in component.implements %}*/
 
@@ -243,6 +253,7 @@ frontend::TransmitParameters ${className}::getTransmitParemeters(const std::stri
 }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
+
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
     frontend::ManualStrategy* tmp = new frontend::ManualStrategy(0);
     frontend::ScanStatus retval(tmp);

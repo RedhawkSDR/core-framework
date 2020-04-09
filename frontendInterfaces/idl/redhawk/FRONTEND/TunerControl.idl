@@ -370,6 +370,20 @@ module FRONTEND {
           raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
         double  getTunerOutputSampleRate(in string id)
           raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+
+        // atomically set the tuner's parameters like center frequency, bandwidth, sample rate, and gain
+        // The available id/value pairs can be attained by calling getTunerSettings
+        // The default key/value pairs are:
+        //      id           value type       units       description
+        //    CHAN_RF         double           Hz         tuned center frequency
+        //      BW            double           Hz         receiver RF bandwidth
+        //      SR            double         samples/s    sampling rate
+        //     GAIN           double           dB         receiver gain
+        // The complete list of supported key/value pairs is returned by getTunerSettings
+        void    configureTuner(in string id,in CF::Properties tunerSettings)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
+        CF::Properties getTunerSettings(in string id)
+          raises (FRONTEND::FrontendException, FRONTEND::BadParameterException, FRONTEND::NotSupportedException);
     };
 
     /**

@@ -502,8 +502,21 @@ double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerOutputSampleRate not supported");
 }
+
+void ${className}::configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("configureTuner not supported");
+}
+
+CF::Properties* ${className}::getTunerSettings(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerSettings not supported");
+}
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
+
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
     // WARNING: this device does not contain tuner allocation/status structures
     //          allocation_id has no meaning
@@ -523,6 +536,7 @@ void ${className}::setScanStrategy(const std::string& allocation_id, const front
 }
 /*{% endif %}*/
 /*{% if 'TransmitControl' in component.implements %}*/
+
 void ${className}::reset(const std::string& allocation_id, const std::string& stream_id) {
     throw FRONTEND::NotSupportedException("reset not supported");
 }

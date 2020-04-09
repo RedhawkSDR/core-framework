@@ -215,6 +215,19 @@
         if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
         return self.frontend_tuner_status[idx].sample_rate
 
+    def configureTuner(self, allocation_id, tunerSettings):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        if allocation_id != self.getControlAllocationId(idx):
+            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
+        # set provided tuner settings
+
+    def getTunerSettings(self, allocation_id):
+        idx = self.getTunerMapping(allocation_id)
+        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
+        # return tuner settings in a CF.DataType sequence
+        return []
+
 #{% endif %}
 #{% if 'ScanningTuner' in component.implements %}
 
