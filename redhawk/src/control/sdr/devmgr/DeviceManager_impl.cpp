@@ -215,12 +215,103 @@ void DeviceManager_impl::abort() {
     shutdown();
 }
 
+int DeviceManager_impl::killGroup(pid_t _pid, int signal, float timeout)
+{
+    pid_t pgroup = getpgid(_pid);
+    if ( _pid != pgroup || pgroup == -1 ) {
+        return -1;
+    }
+    bool processes_dead = false;
+
+    int retval = killpg(pgroup, signal);
+    if ( retval == -1 && errno == EPERM ) {
+        return -1;
+    }
+    if ( retval == -1 && errno == ESRCH )  { 
+        return -1;
+    }
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    double now = tv.tv_sec + (((float)tv.tv_usec)/1e6) ;
+    double end_time = now + timeout;
+    while (!processes_dead && (retval != -1) and ( now < end_time )) {
+        retval = killpg(pgroup, 0);
+        if (retval == -1 and (errno == ESRCH)) {
+            processes_dead = true;
+            continue;
+        }
+
+        usleep(100000);
+        gettimeofday(&tv, NULL);
+        now = tv.tv_sec + (((double)tv.tv_usec)/1e6);
+    }
+    if (processes_dead) {
+        return 0;
+    }
+    return -1;
+}
+
+void DeviceManager_impl::killCyclePendingDevices (float timeout) {
+    boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+    std::vector< std::pair< int, float > > _signals;
+    _signals.push_back(std::make_pair(SIGINT, timeout));
+    _signals.push_back(std::make_pair(SIGTERM, timeout));
+    _signals.push_back(std::make_pair(SIGKILL, 0.1));
+
+    for (DeviceList::iterator device = _pendingDevices.begin(); device != _pendingDevices.end(); ++device) {
+        pid_t devicePid = (*device)->pid;
+        pid_t pgroup = getpgid(devicePid);
+        if ( devicePid != pgroup || pgroup == -1 ) {
+            continue;
+        }
+        bool processes_dead = false;
+
+        for (std::vector< std::pair< int, float > >::iterator _signal=_signals.begin();!processes_dead &&_signal!=_signals.end();_signal++) {
+            int retval = killpg(pgroup, _signal->first);
+            if ( retval == -1 && errno == EPERM ) {
+                break;
+            }
+            if ( retval == -1 && errno == ESRCH )  { 
+                break;
+            }
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            double now = tv.tv_sec + (((float)tv.tv_usec)/1e6) ;
+            double end_time = now + _signal->second;
+            while (!processes_dead && (retval != -1) and ( now < end_time )) {
+                retval = killpg(pgroup, 0);
+                if (retval == -1 and (errno == ESRCH)) {
+                    processes_dead = true;
+                    continue;
+                }
+
+                usleep(100000);
+                gettimeofday(&tv, NULL);
+                now = tv.tv_sec + (((double)tv.tv_usec)/1e6);
+            }
+            if (processes_dead) {
+                break;
+            }
+        }
+    }
+
+    // Wait for the remaining devices to exit
+    boost::system_time end = boost::get_system_time() + boost::posix_time::microseconds(2);
+    while (!_pendingDevices.empty()) {
+        if (!pendingDevicesEmpty.timed_wait(lock, end)) {
+            break;
+        }
+    }
+}
+
 void DeviceManager_impl::killPendingDevices (int signal, int timeout) {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
     for (DeviceList::iterator device = _pendingDevices.begin(); device != _pendingDevices.end(); ++device) {
         pid_t devicePid = (*device)->pid;
-        kill(devicePid, signal);
+        float seconds_timeout = timeout;
+        seconds_timeout = seconds_timeout / 1e6;
+        killGroup(devicePid, signal, seconds_timeout);
     }
 
     // Wait for the remaining devices to exit
@@ -2720,7 +2811,7 @@ void DeviceManager_impl::clean_registeredServices(){
         // Try an orderly shutdown.
         // NOTE: If the DeviceManager was terminated with a ^C, sending this signal may cause the
         //       original SIGINT to be forwarded to all other children (which is harmless, but be aware).
-        kill(servicePid, SIGTERM);
+        killGroup(servicePid, SIGTERM);
     }
 
     // Send a SIGTERM to any services that haven't yet unregistered
@@ -2728,7 +2819,7 @@ void DeviceManager_impl::clean_registeredServices(){
         pid_t servicePid = (*serviceIter)->pid;
         // Only kill services that were launched by this device manager
         if (servicePid != 0){
-            kill(servicePid, SIGTERM);
+            killGroup(servicePid, SIGTERM);
         }
     }
 
@@ -2748,7 +2839,7 @@ void DeviceManager_impl::clean_registeredServices(){
         while ((time_diff < 0.5) and (not registered_pending_pid_gone)) {
             registered_pending_pid_gone = true;
             for (std::vector<unsigned int>::iterator p_pid = pids.begin(); p_pid != pids.end(); ++p_pid) {
-                if (kill(*p_pid, 0) != -1) {
+                if (killGroup(*p_pid, 0) != -1) {
                     registered_pending_pid_gone = false;
                     break;
                 }
@@ -2767,7 +2858,7 @@ void DeviceManager_impl::clean_registeredServices(){
     // Send a SIGKILL to any remaining services.
     for (ServiceList::iterator serviceIter = _pendingServices.begin(); serviceIter != _pendingServices.end(); ++serviceIter) {
         pid_t servicePid = (*serviceIter)->pid;
-        kill(servicePid, SIGKILL);
+        killGroup(servicePid, SIGKILL);
     }
 
     // Send a SIGKILL to any services that haven't yet unregistered
@@ -2775,7 +2866,7 @@ void DeviceManager_impl::clean_registeredServices(){
         pid_t servicePid = (*serviceIter)->pid;
         // Only kill services that were launched by this device manager
         if (servicePid != 0){
-            kill(servicePid, SIGKILL);
+            killGroup(servicePid, SIGKILL);
         }
     }
 }
@@ -2822,10 +2913,7 @@ void DeviceManager_impl::clean_registeredDevices()
     // NOTE: If the DeviceManager was terminated with a ^C, sending SIGINT may
     //       cause the original SIGINT to be forwarded to all other children
     //       (which is harmless, but be aware).
-    float device_force_quite_time = this->DEVICE_FORCE_QUIT_TIME * 1e6;
-    killPendingDevices(SIGINT, device_force_quite_time);
-    killPendingDevices(SIGTERM, device_force_quite_time);
-    killPendingDevices(SIGKILL, 0);
+    killCyclePendingDevices(this->DEVICE_FORCE_QUIT_TIME);
 }
 
 /*
@@ -3083,17 +3171,17 @@ DeviceManager_impl::ServiceNode* DeviceManager_impl::_getPendingService(const st
 
 void DeviceManager_impl::_terminateProcess(pid_t pid)
 {
-    kill(pid, SIGTERM);
+    killGroup(pid, SIGTERM);
 
     boost::system_time end = boost::get_system_time() + boost::posix_time::milliseconds(500);
     while (boost::get_system_time() < end) {
-        if (kill(pid, 0) != 0) {
+        if (killGroup(pid, 0) == 0) {
             return;
         }
         boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     }
 
-    kill(pid, SIGKILL);
+    killGroup(pid, SIGKILL);
 }
 
 void DeviceManager_impl::_terminateProcessThreaded(pid_t pid)
