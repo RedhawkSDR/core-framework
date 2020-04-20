@@ -96,19 +96,22 @@ class CodeGenTestCase(OssieTestCase):
         wavedevfile = os.path.join(self.source_dir, '.'+self.base_name + '.wavedev')
         template_switch = None
         if not os.access(wavedevfile, os.F_OK):
-            scdfile = os.path.join(self.source_dir, self.base_name + '.scd.xml')
-            scd = open(scdfile, 'r')
-            scd_contents = scd.read()
-            scd.close()
-            if 'components' in self.source_dir:
-                template_switch = '--component'
-            elif 'devices' in self.source_dir:
-                template_switch = '--device'
-            elif 'services' in self.source_dir:
-                template_switch = '--service'
-            if template_switch == '--device':
-                if 'FRONTEND' in scd_contents:
-                    template_switch = '--frontend'
+            try:
+                scdfile = os.path.join(self.source_dir, self.base_name + '.scd.xml')
+                scd = open(scdfile, 'r')
+                scd_contents = scd.read()
+                scd.close()
+                if 'components' in self.source_dir:
+                    template_switch = '--component'
+                elif 'devices' in self.source_dir:
+                    template_switch = '--device'
+                elif 'services' in self.source_dir:
+                    template_switch = '--service'
+                if template_switch == '--device':
+                    if 'FRONTEND' in scd_contents:
+                        template_switch = '--frontend'
+            except:
+                pass
         codegen = os.path.join(os.environ['OSSIEHOME'], 'bin', 'redhawk-codegen')
         if template_switch:
             codegen = ' '.join((codegen, template_switch))
