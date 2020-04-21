@@ -730,7 +730,7 @@ class OutDigitalTunerPort(OutPort):
 
 class OutDigitalScanningTunerPort(OutDigitalTunerPort):
     def __init__(self, name):
-        OutPort.__init__(self, name, FRONTEND.DigitalTuner)
+        OutPort.__init__(self, name, FRONTEND.DigitalScanningTuner)
 
     def setScanStartTime(self, id, start_time, __connection_id__=""):
         self.port_lock.acquire()
