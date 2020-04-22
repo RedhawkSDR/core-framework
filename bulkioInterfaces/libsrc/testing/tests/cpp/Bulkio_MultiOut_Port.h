@@ -54,7 +54,7 @@ public:
 };
 
 
-template< typename OUT_PORT, typename IN_PORT, typename STREAM_DEF >
+template< typename OUT_PORT, typename IN_PORT, typename STREAM_DEF, typename BASE_EXCEPTION >
 class Bulkio_MultiOut_Attachable_Port : public Bulkio_MultiOut_Port<OUT_PORT,IN_PORT>, 
                                   public bulkio::InSDDSPort::Callback,
                                   public bulkio::InVITA49Port::Callback
@@ -149,11 +149,11 @@ public:
 };
 */
 
-typedef Bulkio_MultiOut_Attachable_Port< bulkio::OutSDDSPort, bulkio::InSDDSPort, BULKIO::SDDSStreamDefinition >     MultiOutSDDS;
-typedef Bulkio_MultiOut_Attachable_Port< bulkio::OutVITA49Port, bulkio::InVITA49Port, BULKIO::VITA49StreamDefinition> MultiOutVITA49;
+typedef Bulkio_MultiOut_Attachable_Port< bulkio::OutSDDSPort, bulkio::InSDDSPort, BULKIO::SDDSStreamDefinition, BULKIO::dataSDDS::AttachError >     MultiOutSDDS;
+typedef Bulkio_MultiOut_Attachable_Port< bulkio::OutVITA49Port, bulkio::InVITA49Port, BULKIO::VITA49StreamDefinition, BULKIO::dataVITA49::AttachError > MultiOutVITA49;
 
 
-#define DEF_ATTACHABLE_TEST( NAME ) class MultiOut##NAME##_Port : public  Bulkio_MultiOut_Attachable_Port< bulkio::Out##NAME##Port, bulkio::In##NAME##Port, BULKIO::NAME##StreamDefinition > \
+#define DEF_ATTACHABLE_TEST( NAME ) class MultiOut##NAME##_Port : public  Bulkio_MultiOut_Attachable_Port< bulkio::Out##NAME##Port, bulkio::In##NAME##Port, BULKIO::NAME##StreamDefinition, BULKIO::data##NAME::AttachError > \
 { \
   CPPUNIT_TEST_SUITE( MultiOut##NAME##_Port ); \
   CPPUNIT_TEST( test_multiout_sri ); \
