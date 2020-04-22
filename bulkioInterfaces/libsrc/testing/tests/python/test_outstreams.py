@@ -577,6 +577,82 @@ class OutBitStreamTest(BufferedOutStreamTest, unittest.TestCase):
         result = self.helper.unpack(self.stub.packets[-1].data)
         self.assertEqual(literal, result)
 
+class OutSDDSAttachStreamTest(unittest.TestCase):
+    helper = SDDSTestHelper()
+
+    def setUp(self):
+        self.port = self.helper.createOutPort()
+        self.stub = self._createStub()
+
+        objref = self.stub._this()
+        self.port.connectPort(objref, 'test_connection')
+        
+        self.GOOD_PORT = 12345
+        self.BAD_PORT = 54321
+
+    def attach(self, streamDef, userid):
+        if streamDef.port == self.BAD_PORT:
+            raise BULKIO.dataSDDS.AttachError('bad port')
+        new_id = 'hello_'+str(len(self.stub.attachmentIds))
+        return new_id
+
+    def detach(self, attach_id):
+        pass
+
+    def tearDown(self):
+        try:
+            self._disconnectPorts()
+        except:
+            # Ignore disconnection errors
+            pass
+
+        self._releaseServants()
+
+    def _createStub(self):
+        return self.helper.createInStub()
+
+    def _releaseServants(self):
+        poa = self.stub._default_POA()
+        object_id = poa.servant_to_id(self.stub)
+        poa.deactivate_object(object_id)
+
+    def testAttach(self):
+        self.assertEqual(len(self.stub.attachmentIds), 0)
+
+        self.stub.setNewAttachDetachCallback(self)
+
+        newStreamDef = BULKIO.SDDSStreamDefinition('abc',BULKIO.SDDS_SF,'',0,self.GOOD_PORT,0,False,'')
+        retval = self.port.addStream(newStreamDef)
+        self.assertTrue(retval)
+        self.assertEqual(len(self.stub.attachmentIds), 1)
+
+        invalidStreamDef = BULKIO.SDDSStreamDefinition('def',BULKIO.SDDS_SF,'',0,self.BAD_PORT,0,False,'')
+        retval = self.port.addStream(invalidStreamDef)
+        self.assertFalse(retval)
+        self.assertEqual(len(self.stub.attachmentIds), 1)
+
+        validStreamDef = BULKIO.SDDSStreamDefinition('def',BULKIO.SDDS_SF,'',0,self.GOOD_PORT,0,False,'')
+        retval = self.port.addStream(validStreamDef)
+        self.assertTrue(retval)
+        self.assertEqual(len(self.stub.attachmentIds), 2)
+
+#class OutVITA49AttachStreamTest(unittest.TestCase):
+#    def setUp(self):
+#        self.port = self.helper.createOutPort()
+#        self.stub = self._createStub()
+
+#        objref = self.stub._this()
+#        self.port.connectPort(objref, 'test_connection')
+
+#    def tearDown(self):
+#        try:
+#            self._disconnectPorts()
+#        except:
+#            # Ignore disconnection errors
+#            pass
+
+#        self._releaseServants()
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
