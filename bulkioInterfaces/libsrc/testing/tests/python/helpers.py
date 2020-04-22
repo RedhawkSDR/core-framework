@@ -302,6 +302,12 @@ class SDDSTestHelper(AttachablePortTestHelper):
     OutPortType = bulkio.OutSDDSPort
     InStubType = InSDDSPortStub
 
+class VITA49TestHelper(AttachablePortTestHelper):
+    PortType = BULKIO.dataVITA49
+    InPortType = bulkio.InVITA49Port
+    OutPortType = bulkio.OutVITA49Port
+    InStubType = InVITA49PortStub
+
 class XMLTestHelper(PortTestHelper):
     PortType = BULKIO.dataXML
     InPortType = bulkio.InXMLPort

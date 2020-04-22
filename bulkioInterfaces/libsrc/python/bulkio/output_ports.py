@@ -1017,7 +1017,7 @@ class OutAttachablePort(OutPort):
                            if  self.reportConnectionErrors(connId) :
                                if self._portLog:
                                    self._portLog.error("ATTACH FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s" , str(self.name), str(connId), str(e))
-                           return False
+                           raise
 
             if not portListed: 
                 if self.sriDict.has_key(stream.streamId):
@@ -1031,7 +1031,7 @@ class OutAttachablePort(OutPort):
                         if  self.reportConnectionErrors(connId) :
                             if self._portLog:
                                 self._portLog.error("ATTACH FAILED, PORT/CONNECTION %s/%s , EXCEPTION: %s" , str(self.name), str(connId), str(e))
-                        return False
+                        raise
 
             self.streamContainer.addStream(stream) 
         
