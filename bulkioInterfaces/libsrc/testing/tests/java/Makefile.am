@@ -79,6 +79,7 @@ bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
+bulkio_tests_jar_SOURCE += OutVITA49Port_Test.java
 bulkio_tests_jar_SOURCE += PrecisionUTCTimeTest.java
 bulkio_tests_jar_SOURCE += StreamSRITest.java
 bulkio_tests_jar_SOURCE += impl/InPortTestImpl.java
