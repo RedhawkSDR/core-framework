@@ -81,7 +81,6 @@ public class devj extends devj_base {
     public devj()
     {
         super();
-        System.out.println("------------------ i'm up");
         HelloWorld hw = new HelloWorld();
         this.busy_state.addChangeListener(new PropertyListener<Boolean>() {
             public void valueChanged(Boolean oldValue, Boolean newValue) {
