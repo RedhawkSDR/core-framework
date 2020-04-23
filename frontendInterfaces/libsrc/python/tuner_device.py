@@ -647,6 +647,10 @@ class FrontendTunerDevice(Device):
 
 
     def allocateCapacity(self, properties):
+
+        if self._usageState == CF.Device.BUSY:
+            return False
+
         self._deviceLog.debug("allocateCapacity(%s)", properties)
 
         self._validateAllocProps(properties)

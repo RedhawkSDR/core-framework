@@ -463,6 +463,11 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
     }
 
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+
+        if (UsageType.BUSY.value() == this.usageState().value()) {
+            return false;
+        }
+
         // Checks for empty
         if (capacities.length == 0){
             _deviceLog.trace("No capacities to allocate.");
