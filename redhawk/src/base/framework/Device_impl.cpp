@@ -297,9 +297,9 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
 {
     RH_TRACE(_deviceLog, "in allocateCapacity");
 
-    /*if (isBusy()) {
+    if (isBusy()) {
         return false;
-    }*/
+    }
 
     if (capacities.length() == 0) {
         // Nothing to do, return
