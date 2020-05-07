@@ -21,7 +21,6 @@
 //% set vartype = portgen.interfaceClass() + '_var'
 class ${classname} : public Port_Uses_base_impl, public POA_ExtendedCF::QueryablePort
 {
-    ENABLE_LOGGING
     public:
         ${classname}(std::string port_name, ${component.baseclass.name} *_parent);
         ~${classname}();
