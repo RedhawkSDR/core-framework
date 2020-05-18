@@ -91,7 +91,7 @@ def doesStructIncludeInterface(scopedName):
     idl = IDLStruct(repo_id)
     _members = idl.members()
     for member_key in _members:
-        if _members[member_key] in ['objref', 'alias', 'struct']:
+        if _members[member_key] in ['objref', 'alias', 'struct', 'string']:
             return True
     return False
 

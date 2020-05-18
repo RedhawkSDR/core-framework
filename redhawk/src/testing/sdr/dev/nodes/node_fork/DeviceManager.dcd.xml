@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE deviceconfiguration PUBLIC "-//JTRS//DTD SCA V2.2.2 DCD//EN" "deviceconfiguration.dtd">
+<deviceconfiguration id="DCE:9d36d491-56d4-4b6b-9f6e-fc445a09de62" name="node_fork">
+  <devicemanagersoftpkg>
+    <localfile name="/mgr/DeviceManager.spd.xml"/>
+  </devicemanagersoftpkg>
+  <componentfiles>
+    <componentfile id="device_fork_e456cd08-52ea-4b24-8ccd-6753d6047d7e" type="SPD">
+      <localfile name="/devices/device_fork/device_fork.spd.xml"/>
+    </componentfile>
+    <componentfile id="service_fork_413b0515-a871-4e34-a2b0-837a4f41b821" type="SPD">
+      <localfile name="/services/service_fork/service_fork.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="device_fork_e456cd08-52ea-4b24-8ccd-6753d6047d7e"/>
+      <componentinstantiation id="node_fork:device_fork_1" startorder="0">
+        <usagename>device_fork_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="service_fork_413b0515-a871-4e34-a2b0-837a4f41b821"/>
+      <componentinstantiation id="node_fork:service_fork_1" startorder="1">
+        <usagename>service_fork_1</usagename>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <domainmanager>
+    <namingservice name="REDHAWK_DEV/REDHAWK_DEV"/>
+  </domainmanager>
+</deviceconfiguration>

@@ -193,6 +193,8 @@ private:
     DeviceList  _registeredDevices;
     ServiceList _registeredServices;
 
+    int killGroup(pid_t _pid, int signal, float timeout=0.1);
+
     // Devices that were launched by this DeviceManager, but are either waiting for
     // registration or process termination.
     DeviceList  _pendingDevices;
@@ -249,6 +251,7 @@ private:
     CF::DomainManager_var _dmnMgr;
 
     void killPendingDevices(int signal, int timeout);
+    void killCyclePendingDevices(float timeout);
     void abort();
 
     void parseDeviceConfigurationProfile(const char *overrideDomainName);
