@@ -99,6 +99,17 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self._domBooter = nodebooter
 
     def tearDown(self):
+
+        try:
+            os.kill(self.device_pids[1],15)
+        except:
+            pass
+
+        try:
+            os.kill(self.service_pids[1],15)
+        except:
+            pass
+
         scatest.CorbaTestCase.tearDown(self)
 
         killChildProcesses(os.getpid())
@@ -1018,6 +1029,63 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # now clean up the test....
         devMgr.shutdown()
         self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+
+    def test_processGroupDevSvc(self):
+        from ossie.utils import redhawk
+        d=redhawk.attach(self._domainManager._get_name())
+        devmgr_nb, devMgr = self.launchDeviceManager("/nodes/node_fork/DeviceManager.dcd.xml")
+        self.device_pids = [0,0]
+        for entry in d.devices[0].query([]):
+            if entry.id == 'child_pid':
+                self.device_pids[1] = entry.value._v
+            if entry.id == 'self_pid':
+                self.device_pids[0] = entry.value._v
+        self.service_pids = [0,0]
+        for entry in d.services[0].query([]):
+            if entry.id == 'child_pid':
+                self.service_pids[1] = entry.value._v
+            if entry.id == 'self_pid':
+                self.service_pids[0] = entry.value._v
+
+        devMgr.shutdown()
+
+        timeout = 5
+
+        item_shutdown = False
+        begin_time = time.time()
+        while not item_shutdown and not (time.time()-begin_time > timeout):
+            try:
+                os.kill(self.device_pids[0],0)
+            except OSError:
+                item_shutdown = True
+        self.assertTrue(item_shutdown)
+
+        item_shutdown = False
+        begin_time = time.time()
+        while not item_shutdown and not (time.time()-begin_time > timeout):
+            try:
+                os.kill(self.device_pids[1],0)
+            except OSError:
+                item_shutdown = True
+        self.assertTrue(item_shutdown)
+
+        item_shutdown = False
+        begin_time = time.time()
+        while not item_shutdown and not (time.time()-begin_time > timeout):
+            try:
+                os.kill(self.service_pids[0],0)
+            except OSError:
+                item_shutdown = True
+        self.assertTrue(item_shutdown)
+
+        item_shutdown = False
+        begin_time = time.time()
+        while not item_shutdown and not (time.time()-begin_time > timeout):
+            try:
+                os.kill(self.service_pids[1],0)
+            except OSError:
+                item_shutdown = True
+        self.assertTrue(item_shutdown)
 
     def test_ExternalServices(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_MultipleService_node/DeviceManager.dcd.xml")
