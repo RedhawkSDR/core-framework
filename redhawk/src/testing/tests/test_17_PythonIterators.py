@@ -71,7 +71,7 @@ class Iterators(unittest.TestCase):
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
         mem_2 = self.get_memory_size(self.svc._pid)
-        self.assertEquals(mem_1<mem_2, True)
+        self.assertGreater(mem_2, mem_1)
 
         devstatus, devlist = deviter.next_n(20)
         self.assertEquals(len(devlist), 20)
@@ -80,51 +80,32 @@ class Iterators(unittest.TestCase):
         time.sleep(1.5)
 
         mem_3 = self.get_memory_size(self.svc._pid)
-        self.assertEquals(mem_3<mem_2, True)
+        self.assertGreater(mem_2, mem_3)
 
         self.assertRaises(CORBA.OBJECT_NOT_EXIST, deviter.next_n, 10)
 
     def test_mem_dealloc(self):
         # the list of allocations in the service is 50000 devices long
+        # mem_1: initial memory
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         self.assertEquals(len(devlist), 10)
+        # mem_2: memory after an iterator is created
         mem_2 = self.get_memory_size(self.svc._pid)
-        self.assertEquals(mem_1<mem_2, True)
+        # check that the iterator required new memory
+        self.assertGreater(mem_2, mem_1)
 
-        timeout = 5
-        time.sleep(1)
-        mem_3 = self.get_memory_size(self.svc._pid)
-        begin_time = time.time()
-        while not (mem_3<mem_2) and time.time() - begin_time < timeout:
-            time.sleep(0.5)
-            mem_3 = self.get_memory_size(self.svc._pid)
-
-        self.assertEquals(mem_3<mem_2, True)
-
+        time.sleep(1) # wait for the iterator to expire
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         mem_4 = self.get_memory_size(self.svc._pid)
+        # mem_4: memory after an iterator is created
+        # verify that the new iterator did not require more memory beyond the first iterator
+        # if the iterator did not expire, new memory would have been allocated
         self.assertEquals(mem_2, mem_4)
-        self.assertEquals(mem_3<mem_4, True)
 
-        time.sleep(1)
-        mem_5 = self.get_memory_size(self.svc._pid)
-        begin_time = time.time()
-        while not (mem_5<mem_4) and time.time() - begin_time < timeout:
-            time.sleep(0.5)
-            mem_5 = self.get_memory_size(self.svc._pid)
-
-        self.assertEquals(mem_5<mem_4, True)
+        time.sleep(1) # wait for the iterator to expire
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
+        # mem_6: memory after an iterator is created
         mem_6 = self.get_memory_size(self.svc._pid)
+        # verify that the new iterator did not require more memory beyond the first or second iterator
         self.assertEquals(mem_4, mem_6)
-        self.assertEquals(mem_5<mem_6, True)
-
-        time.sleep(1)
-        mem_7 = self.get_memory_size(self.svc._pid)
-        begin_time = time.time()
-        while not (mem_7<mem_6) and time.time() - begin_time < timeout:
-            time.sleep(0.5)
-            mem_7 = self.get_memory_size(self.svc._pid)
-
-        self.assertEquals(mem_7<mem_6, True)
