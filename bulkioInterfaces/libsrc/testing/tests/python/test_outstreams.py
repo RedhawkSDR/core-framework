@@ -577,7 +577,7 @@ class OutBitStreamTest(BufferedOutStreamTest, unittest.TestCase):
         result = self.helper.unpack(self.stub.packets[-1].data)
         self.assertEqual(literal, result)
 
-class AttachStreamTest(unittest.TestCase):
+class AttachStreamTest(object):
     def setUp(self):
         self.port = self.helper.createOutPort()
         self.stub = self._createStub()
