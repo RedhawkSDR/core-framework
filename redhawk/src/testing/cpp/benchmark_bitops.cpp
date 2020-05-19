@@ -81,6 +81,7 @@ void test_getint(std::ostream& stream, size_t iterations)
             }
         }
     }
+    iterations = value; // remove compile warning
 }
 
 void test_setint(std::ostream& stream, size_t iterations)
