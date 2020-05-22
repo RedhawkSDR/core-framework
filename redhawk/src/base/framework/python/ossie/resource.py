@@ -1128,7 +1128,11 @@ def getPOA(orb, thread_policy, name):
     if thread_policy != None:
         policyList = []
         policyList.append(obj_poa.create_thread_policy(thread_policy))
-        POA = obj_poa.create_POA(name, poaManager, policyList)
+        if name:
+            try:
+                POA = obj_poa.find_POA(name, True)
+            except:
+                POA = obj_poa.create_POA(name, poaManager, policyList)
     else:
         if name:
             try:
