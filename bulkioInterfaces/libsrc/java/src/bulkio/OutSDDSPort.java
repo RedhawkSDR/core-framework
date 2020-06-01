@@ -637,7 +637,6 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                 return false;
             }else{
                 stream = new SDDSStream(streamDef, this.userId, streamDef.id, null, null, null, this);
-                this.streamContainer.addStream(stream);
             }
 
             boolean portListed = false;
@@ -672,6 +671,10 @@ public class OutSDDSPort extends OutPortBase<dataSDDSOperations> {
                 for (Entry<String, dataSDDSOperations> p : this.outConnections.entrySet()) {
                     stream.createNewAttachment(p.getKey(),p.getValue(), this );
                 }
+            }
+            SDDSStream checkStream = this.streamContainer.findByStreamId(streamDef.id);
+            if (checkStream == null){
+                this.streamContainer.addStream(stream);
             }
         }
 
