@@ -484,6 +484,9 @@ namespace frontend {
     template < typename TunerStatusStructType >
     CORBA::Boolean FrontendTunerDevice<TunerStatusStructType>::allocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
+        if (isBusy()) {
+            return false;
+        }
         if (this->tuner_allocation_ids.size() != this->frontend_tuner_status.size()) {
             this->tuner_allocation_ids.resize(this->frontend_tuner_status.size());
         }

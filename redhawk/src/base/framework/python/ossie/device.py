@@ -451,6 +451,8 @@ class Device(resource.Resource):
             otherwise
         """
         self._deviceLog.debug("allocateCapacity(%s)", properties)
+        if self._usageState == CF.Device.BUSY:
+            return False
         # Validate
         self._validateAllocProps(properties)
         # Consume
