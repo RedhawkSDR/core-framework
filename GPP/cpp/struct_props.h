@@ -1,22 +1,3 @@
-/*
- * This file is protected by Copyright. Please refer to the COPYRIGHT file
- * distributed with this source distribution.
- *
- * This file is part of REDHAWK GPP.
- *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- */
 #ifndef STRUCTPROPS_H
 #define STRUCTPROPS_H
 
@@ -731,6 +712,191 @@ inline bool operator== (const affinity_struct& s1, const affinity_struct& s2) {
 }
 
 inline bool operator!= (const affinity_struct& s1, const affinity_struct& s2) {
+    return !(s1==s2);
+}
+
+struct plugin_registration_struct {
+    plugin_registration_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::registration");
+    }
+
+    static const char* getFormat() {
+        return "sss";
+    }
+
+    std::string plugin__registration__id;
+    std::string plugin__registration__name;
+    std::string plugin__registration__description;
+};
+
+inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::registration::id")) {
+        if (!(props["plugin::registration::id"] >>= s.plugin__registration__id)) return false;
+    }
+    if (props.contains("plugin::registration::name")) {
+        if (!(props["plugin::registration::name"] >>= s.plugin__registration__name)) return false;
+    }
+    if (props.contains("plugin::registration::description")) {
+        if (!(props["plugin::registration::description"] >>= s.plugin__registration__description)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const plugin_registration_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::registration::id"] = s.plugin__registration__id;
+ 
+    props["plugin::registration::name"] = s.plugin__registration__name;
+ 
+    props["plugin::registration::description"] = s.plugin__registration__description;
+    a <<= props;
+}
+
+inline bool operator== (const plugin_registration_struct& s1, const plugin_registration_struct& s2) {
+    if (s1.plugin__registration__id!=s2.plugin__registration__id)
+        return false;
+    if (s1.plugin__registration__name!=s2.plugin__registration__name)
+        return false;
+    if (s1.plugin__registration__description!=s2.plugin__registration__description)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const plugin_registration_struct& s1, const plugin_registration_struct& s2) {
+    return !(s1==s2);
+}
+
+struct plugin_heartbeat_struct {
+    plugin_heartbeat_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::heartbeat");
+    }
+
+    static const char* getFormat() {
+        return "s";
+    }
+
+    std::string plugin__heartbeat__id;
+};
+
+inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::heartbeat::id")) {
+        if (!(props["plugin::heartbeat::id"] >>= s.plugin__heartbeat__id)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const plugin_heartbeat_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::heartbeat::id"] = s.plugin__heartbeat__id;
+    a <<= props;
+}
+
+inline bool operator== (const plugin_heartbeat_struct& s1, const plugin_heartbeat_struct& s2) {
+    if (s1.plugin__heartbeat__id!=s2.plugin__heartbeat__id)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const plugin_heartbeat_struct& s1, const plugin_heartbeat_struct& s2) {
+    return !(s1==s2);
+}
+
+struct plugin_message_struct {
+    plugin_message_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::message");
+    }
+
+    static const char* getFormat() {
+        return "sbusss";
+    }
+
+    std::string plugin__message__id;
+    bool plugin__message__ok;
+    CF::UTCTime plugin__message__metric_timestamp;
+    std::string plugin__message__metric_reason;
+    std::string plugin__message__metric_threshold_value;
+    std::string plugin__message__metric_recorded_value;
+};
+
+inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::message::id")) {
+        if (!(props["plugin::message::id"] >>= s.plugin__message__id)) return false;
+    }
+    if (props.contains("plugin::message::ok")) {
+        if (!(props["plugin::message::ok"] >>= s.plugin__message__ok)) return false;
+    }
+    if (props.contains("plugin::message::metric_timestamp")) {
+        if (!(props["plugin::message::metric_timestamp"] >>= s.plugin__message__metric_timestamp)) return false;
+    }
+    if (props.contains("plugin::message::metric_reason")) {
+        if (!(props["plugin::message::metric_reason"] >>= s.plugin__message__metric_reason)) return false;
+    }
+    if (props.contains("plugin::message::metric_threshold_value")) {
+        if (!(props["plugin::message::metric_threshold_value"] >>= s.plugin__message__metric_threshold_value)) return false;
+    }
+    if (props.contains("plugin::message::metric_recorded_value")) {
+        if (!(props["plugin::message::metric_recorded_value"] >>= s.plugin__message__metric_recorded_value)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const plugin_message_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::message::id"] = s.plugin__message__id;
+ 
+    props["plugin::message::ok"] = s.plugin__message__ok;
+ 
+    props["plugin::message::metric_timestamp"] = s.plugin__message__metric_timestamp;
+ 
+    props["plugin::message::metric_reason"] = s.plugin__message__metric_reason;
+ 
+    props["plugin::message::metric_threshold_value"] = s.plugin__message__metric_threshold_value;
+ 
+    props["plugin::message::metric_recorded_value"] = s.plugin__message__metric_recorded_value;
+    a <<= props;
+}
+
+inline bool operator== (const plugin_message_struct& s1, const plugin_message_struct& s2) {
+    if (s1.plugin__message__id!=s2.plugin__message__id)
+        return false;
+    if (s1.plugin__message__ok!=s2.plugin__message__ok)
+        return false;
+    if (s1.plugin__message__metric_timestamp!=s2.plugin__message__metric_timestamp)
+        return false;
+    if (s1.plugin__message__metric_reason!=s2.plugin__message__metric_reason)
+        return false;
+    if (s1.plugin__message__metric_threshold_value!=s2.plugin__message__metric_threshold_value)
+        return false;
+    if (s1.plugin__message__metric_recorded_value!=s2.plugin__message__metric_recorded_value)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const plugin_message_struct& s1, const plugin_message_struct& s2) {
     return !(s1==s2);
 }
 

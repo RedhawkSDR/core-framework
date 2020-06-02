@@ -1,22 +1,3 @@
-/*
- * This file is protected by Copyright. Please refer to the COPYRIGHT file
- * distributed with this source distribution.
- *
- * This file is part of REDHAWK GPP.
- *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- */
 #ifndef GPP_BASE_IMPL_BASE_H
 #define GPP_BASE_IMPL_BASE_H
 
@@ -24,8 +5,8 @@
 #include <ossie/ExecutableDevice_impl.h>
 #include <ossie/ThreadedComponent.h>
 
-#include <ossie/PropertyInterface.h>
 #include <ossie/MessageInterface.h>
+#include <ossie/PropertyInterface.h>
 #include "struct_props.h"
 
 class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
@@ -135,6 +116,12 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         redhawk__reservation_request_struct redhawk__reservation_request;
         /// Property: affinity
         affinity_struct affinity;
+        /// Message structure definition for plugin_registration
+        plugin_registration_struct plugin_registration;
+        /// Message structure definition for plugin_heartbeat
+        plugin_heartbeat_struct plugin_heartbeat;
+        /// Message structure definition for plugin_message
+        plugin_message_struct plugin_message;
         /// Property: nic_allocation_status
         std::vector<nic_allocation_status_struct_struct> nic_allocation_status;
         /// Property: nic_metrics
@@ -147,6 +134,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         std::vector<component_monitor_struct> component_monitor;
 
         // Ports
+        /// Port: metrics_in
+        MessageConsumerPort *metrics_in;
         /// Port: propEvent
         PropertyEventSupplier *propEvent;
         /// Port: MessageEvent_out

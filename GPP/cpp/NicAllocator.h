@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
+#include <ossie/Resource_impl.h>
 #include "struct_props.h"
 #include "states/NicState.h"
 

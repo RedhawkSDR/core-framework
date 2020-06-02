@@ -1,22 +1,3 @@
-/*
- * This file is protected by Copyright. Please refer to the COPYRIGHT file
- * distributed with this source distribution.
- *
- * This file is part of REDHAWK GPP.
- *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- */
 #include "GPP_base.h"
 
 /*******************************************************************************************
@@ -59,6 +40,8 @@ GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::P
 
 GPP_base::~GPP_base()
 {
+    metrics_in->_remove_ref();
+    metrics_in = 0;
     propEvent->_remove_ref();
     propEvent = 0;
     MessageEvent_out->_remove_ref();
@@ -69,6 +52,9 @@ void GPP_base::construct()
 {
     loadProperties();
 
+    metrics_in = new MessageConsumerPort("metrics_in");
+    metrics_in->setLogger(this->_baseLog->getChildLogger("metrics_in", "ports"));
+    addPort("metrics_in", metrics_in);
     propEvent = new PropertyEventSupplier("propEvent");
     propEvent->setLogger(this->_baseLog->getChildLogger("propEvent", "ports"));
     addPort("propEvent", propEvent);
@@ -503,6 +489,33 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(plugin_registration,
+                plugin_registration_struct(),
+                "plugin::registration",
+                "plugin_registration",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
+    addProperty(plugin_heartbeat,
+                plugin_heartbeat_struct(),
+                "plugin::heartbeat",
+                "plugin_heartbeat",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
+    addProperty(plugin_message,
+                plugin_message_struct(),
+                "plugin::message",
+                "plugin_message",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
     addProperty(nic_allocation_status,
                 "nic_allocation_status",
                 "",
@@ -544,5 +557,6 @@ void GPP_base::loadProperties()
                 "property");
 
 }
+
 
 
