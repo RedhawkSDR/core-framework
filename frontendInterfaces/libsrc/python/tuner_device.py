@@ -648,17 +648,17 @@ class FrontendTunerDevice(Device):
 
     def allocateCapacity(self, properties):
 
-        if self._usageState == CF.Device.BUSY:
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        if (not propdict.has_key('FRONTEND::listener_allocation')) and self._usageState == CF.Device.BUSY:
             return False
 
         self._deviceLog.debug("allocateCapacity(%s)", properties)
 
         self._validateAllocProps(properties)
-
-        propdict = {}
-        for prop in properties:
-            propdef = self._props.getPropDef(prop.id)
-            propdict[prop.id] = propdef._fromAny(prop.value)
 
         self._checkValidIds(propdict)
         scanner_prop = None

@@ -484,7 +484,14 @@ namespace frontend {
     template < typename TunerStatusStructType >
     CORBA::Boolean FrontendTunerDevice<TunerStatusStructType>::allocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
-        if (isBusy()) {
+        bool has_listener = false;
+        for (CORBA::ULong listen_idx = 0; listen_idx < capacities.length(); ++listen_idx) {
+            const std::string id = (const char*) capacities[listen_idx].id;
+            if (id == "FRONTEND::listener_allocation") {
+                has_listener = true;
+            }
+        }
+        if ((not has_listener) and (isBusy())) {
             return false;
         }
         if (this->tuner_allocation_ids.size() != this->frontend_tuner_status.size()) {

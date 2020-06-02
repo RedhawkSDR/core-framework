@@ -464,7 +464,13 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
 
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
 
-        if (UsageType.BUSY.value() == this.usageState().value()) {
+        boolean has_listener = false;
+        for (DataType cap : capacities) {
+            if (cap.id.equals("FRONTEND::listener_allocation")) {
+                has_listener = true;
+            }
+        }
+        if ((!has_listener) && (UsageType.BUSY.value() == this.usageState().value())) {
             return false;
         }
 
