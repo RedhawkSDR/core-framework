@@ -181,6 +181,9 @@ class GPP_i : public GPP_base
         };
 
         void constructor();
+        void pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData);
+        void pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData);
+        void pluginMessage(const std::string& messageId, const plugin_message_struct& msgData);
 
         protected:
 

@@ -528,6 +528,15 @@ void GPP_i::constructor()
     ProcStat::GetTicks(_systemTicks, _userTicks);
 }
 
+/***********************************************
+ * 
+ * plugin messaging callback function
+ * 
+ * associate plugin with watch thread
+ * 
+ * provide state loop with updates from plugin
+ * 
+ **********************************************/
 
 void GPP_i::postConstruction (std::string &profile, 
                                      std::string &registrar_ior, 
@@ -545,9 +554,28 @@ void GPP_i::postConstruction (std::string &profile,
     // require signalfd to be configured before orb init call.... 
     throw std::runtime_error("unable configure signal handler");
   }
+  
+  // associate callback function with plugin messaging port
+  // scan for plugins
+  // launch plugins
+  metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
+  metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
+  metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
 
   _signalThread.start();
 
+}
+
+void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
+{
+}
+
+void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
+{
+}
+
+void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_struct& msgData)
+{
 }
 
 void GPP_i::update_grp_child_pids() {
