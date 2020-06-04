@@ -728,9 +728,9 @@ struct plugin_registration_struct {
         return "sss";
     }
 
-    std::string plugin__registration__id;
-    std::string plugin__registration__name;
-    std::string plugin__registration__description;
+    std::string id;
+    std::string name;
+    std::string description;
 };
 
 inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
@@ -738,13 +738,13 @@ inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
     if (props.contains("plugin::registration::id")) {
-        if (!(props["plugin::registration::id"] >>= s.plugin__registration__id)) return false;
+        if (!(props["plugin::registration::id"] >>= s.id)) return false;
     }
     if (props.contains("plugin::registration::name")) {
-        if (!(props["plugin::registration::name"] >>= s.plugin__registration__name)) return false;
+        if (!(props["plugin::registration::name"] >>= s.name)) return false;
     }
     if (props.contains("plugin::registration::description")) {
-        if (!(props["plugin::registration::description"] >>= s.plugin__registration__description)) return false;
+        if (!(props["plugin::registration::description"] >>= s.description)) return false;
     }
     return true;
 }
@@ -752,20 +752,20 @@ inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
 inline void operator<<= (CORBA::Any& a, const plugin_registration_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::registration::id"] = s.plugin__registration__id;
+    props["plugin::registration::id"] = s.id;
  
-    props["plugin::registration::name"] = s.plugin__registration__name;
+    props["plugin::registration::name"] = s.name;
  
-    props["plugin::registration::description"] = s.plugin__registration__description;
+    props["plugin::registration::description"] = s.description;
     a <<= props;
 }
 
 inline bool operator== (const plugin_registration_struct& s1, const plugin_registration_struct& s2) {
-    if (s1.plugin__registration__id!=s2.plugin__registration__id)
+    if (s1.id!=s2.id)
         return false;
-    if (s1.plugin__registration__name!=s2.plugin__registration__name)
+    if (s1.name!=s2.name)
         return false;
-    if (s1.plugin__registration__description!=s2.plugin__registration__description)
+    if (s1.description!=s2.description)
         return false;
     return true;
 }
@@ -787,7 +787,7 @@ struct plugin_heartbeat_struct {
         return "s";
     }
 
-    std::string plugin__heartbeat__id;
+    std::string id;
 };
 
 inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
@@ -795,7 +795,7 @@ inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
     if (props.contains("plugin::heartbeat::id")) {
-        if (!(props["plugin::heartbeat::id"] >>= s.plugin__heartbeat__id)) return false;
+        if (!(props["plugin::heartbeat::id"] >>= s.id)) return false;
     }
     return true;
 }
@@ -803,12 +803,12 @@ inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
 inline void operator<<= (CORBA::Any& a, const plugin_heartbeat_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::heartbeat::id"] = s.plugin__heartbeat__id;
+    props["plugin::heartbeat::id"] = s.id;
     a <<= props;
 }
 
 inline bool operator== (const plugin_heartbeat_struct& s1, const plugin_heartbeat_struct& s2) {
-    if (s1.plugin__heartbeat__id!=s2.plugin__heartbeat__id)
+    if (s1.id!=s2.id)
         return false;
     return true;
 }
@@ -830,12 +830,12 @@ struct plugin_message_struct {
         return "sbusss";
     }
 
-    std::string plugin__message__id;
-    bool plugin__message__ok;
-    CF::UTCTime plugin__message__metric_timestamp;
-    std::string plugin__message__metric_reason;
-    std::string plugin__message__metric_threshold_value;
-    std::string plugin__message__metric_recorded_value;
+    std::string id;
+    bool ok;
+    CF::UTCTime metric_timestamp;
+    std::string metric_reason;
+    std::string metric_threshold_value;
+    std::string metric_recorded_value;
 };
 
 inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
@@ -843,22 +843,22 @@ inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
     if (props.contains("plugin::message::id")) {
-        if (!(props["plugin::message::id"] >>= s.plugin__message__id)) return false;
+        if (!(props["plugin::message::id"] >>= s.id)) return false;
     }
     if (props.contains("plugin::message::ok")) {
-        if (!(props["plugin::message::ok"] >>= s.plugin__message__ok)) return false;
+        if (!(props["plugin::message::ok"] >>= s.ok)) return false;
     }
     if (props.contains("plugin::message::metric_timestamp")) {
-        if (!(props["plugin::message::metric_timestamp"] >>= s.plugin__message__metric_timestamp)) return false;
+        if (!(props["plugin::message::metric_timestamp"] >>= s.metric_timestamp)) return false;
     }
     if (props.contains("plugin::message::metric_reason")) {
-        if (!(props["plugin::message::metric_reason"] >>= s.plugin__message__metric_reason)) return false;
+        if (!(props["plugin::message::metric_reason"] >>= s.metric_reason)) return false;
     }
     if (props.contains("plugin::message::metric_threshold_value")) {
-        if (!(props["plugin::message::metric_threshold_value"] >>= s.plugin__message__metric_threshold_value)) return false;
+        if (!(props["plugin::message::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
     }
     if (props.contains("plugin::message::metric_recorded_value")) {
-        if (!(props["plugin::message::metric_recorded_value"] >>= s.plugin__message__metric_recorded_value)) return false;
+        if (!(props["plugin::message::metric_recorded_value"] >>= s.metric_recorded_value)) return false;
     }
     return true;
 }
@@ -866,32 +866,32 @@ inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
 inline void operator<<= (CORBA::Any& a, const plugin_message_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::message::id"] = s.plugin__message__id;
+    props["plugin::message::id"] = s.id;
  
-    props["plugin::message::ok"] = s.plugin__message__ok;
+    props["plugin::message::ok"] = s.ok;
  
-    props["plugin::message::metric_timestamp"] = s.plugin__message__metric_timestamp;
+    props["plugin::message::metric_timestamp"] = s.metric_timestamp;
  
-    props["plugin::message::metric_reason"] = s.plugin__message__metric_reason;
+    props["plugin::message::metric_reason"] = s.metric_reason;
  
-    props["plugin::message::metric_threshold_value"] = s.plugin__message__metric_threshold_value;
+    props["plugin::message::metric_threshold_value"] = s.metric_threshold_value;
  
-    props["plugin::message::metric_recorded_value"] = s.plugin__message__metric_recorded_value;
+    props["plugin::message::metric_recorded_value"] = s.metric_recorded_value;
     a <<= props;
 }
 
 inline bool operator== (const plugin_message_struct& s1, const plugin_message_struct& s2) {
-    if (s1.plugin__message__id!=s2.plugin__message__id)
+    if (s1.id!=s2.id)
         return false;
-    if (s1.plugin__message__ok!=s2.plugin__message__ok)
+    if (s1.ok!=s2.ok)
         return false;
-    if (s1.plugin__message__metric_timestamp!=s2.plugin__message__metric_timestamp)
+    if (s1.metric_timestamp!=s2.metric_timestamp)
         return false;
-    if (s1.plugin__message__metric_reason!=s2.plugin__message__metric_reason)
+    if (s1.metric_reason!=s2.metric_reason)
         return false;
-    if (s1.plugin__message__metric_threshold_value!=s2.plugin__message__metric_threshold_value)
+    if (s1.metric_threshold_value!=s2.metric_threshold_value)
         return false;
-    if (s1.plugin__message__metric_recorded_value!=s2.plugin__message__metric_recorded_value)
+    if (s1.metric_recorded_value!=s2.metric_recorded_value)
         return false;
     return true;
 }

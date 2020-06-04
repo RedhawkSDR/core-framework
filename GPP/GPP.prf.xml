@@ -617,22 +617,22 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <configurationkind kindtype="property"/>
   </struct>
     <struct id="plugin::registration" name="plugin_registration">
-        <simple type="string" id="plugin::registration::id"/>
-        <simple type="string" id="plugin::registration::name"/>
-        <simple type="string" id="plugin::registration::description"/>
+        <simple type="string" id="plugin::registration::id" name="id"/>
+        <simple type="string" id="plugin::registration::name" name="name"/>
+        <simple type="string" id="plugin::registration::description" name="description"/>
         <configurationkind kindtype="message"/>
     </struct>
     <struct id="plugin::heartbeat" name="plugin_heartbeat">
-        <simple type="string" id="plugin::heartbeat::id"/>
+        <simple type="string" id="plugin::heartbeat::id" name="id"/>
         <configurationkind kindtype="message"/>
     </struct>
     <struct id="plugin::message" name="plugin_message">
-        <simple type="string" id="plugin::message::id"/>
-        <simple type="boolean" id="plugin::message::ok"/>
-        <simple type="utctime" id="plugin::message::metric_timestamp"/>
-        <simple type="string" id="plugin::message::metric_reason"/>
-        <simple type="string" id="plugin::message::metric_threshold_value"/>
-        <simple type="string" id="plugin::message::metric_recorded_value"/>
+        <simple type="string" id="plugin::message::id" name="id"/>
+        <simple type="boolean" id="plugin::message::ok" name="ok"/>
+        <simple type="utctime" id="plugin::message::metric_timestamp" name="metric_timestamp"/>
+        <simple type="string" id="plugin::message::metric_reason" name="metric_reason"/>
+        <simple type="string" id="plugin::message::metric_threshold_value" name="metric_threshold_value"/>
+        <simple type="string" id="plugin::message::metric_recorded_value" name="metric_recorded_value"/>
         <configurationkind kindtype="message"/>
     </struct>
 </properties>

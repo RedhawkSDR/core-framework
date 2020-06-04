@@ -560,6 +560,9 @@ void GPP_i::postConstruction (std::string &profile,
 void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
 {
     std::cout<<"..... gpp got a registration"<<std::endl;
+    std::cout<<"id: "<<msgData.id<<std::endl;
+    std::cout<<"name: "<<msgData.name<<std::endl;
+    std::cout<<"desc: "<<msgData.description<<std::endl;
 }
 
 void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
@@ -584,12 +587,12 @@ void GPP_i::launchPlugins() {
         if (boost::filesystem::is_directory(itr->path())) {
             boost::filesystem::path found_plugin(itr->path());
             found_plugin /= itr->path().filename();
-            std::cout<<"........ filename 3: "<<found_plugin<<" "<<boost::filesystem::is_directory(found_plugin)<<" "<<boost::filesystem::exists(found_plugin)<<std::endl;
             if ((not boost::filesystem::is_directory(found_plugin)) and boost::filesystem::exists(found_plugin)) {
                 std::vector<std::string> args;
-                std::cout<<"============ launching "<<found_plugin.string()<<std::endl;
                 args.push_back(found_plugin.string());
                 args.push_back(ossie::corba::objectToString(this->metrics_in->_this()));
+                args.push_back(ossie::generateUUID());
+
                 std::vector<char*> argv(args.size()+1, NULL);
                 for (std::size_t i = 0; i < args.size(); ++i) {
                     argv[i] = const_cast<char*> (args[i].c_str());
@@ -598,33 +601,36 @@ void GPP_i::launchPlugins() {
                 if (pid == 0) {
                     setpgid(gpp_pid, 0);
                     int returnval = execv(argv[0], &argv[0]);
+                    std::string error_msg("Unable to launch plugin '");
+                    error_msg += found_plugin.string();
+                    error_msg += "': ";
                     switch (errno) {
                         case E2BIG:
-                            std::cout<<"Argument list too long"<<std::endl;
+                            std::cout<<error_msg<<"Argument list too long"<<std::endl;
                             break;
                         case EACCES:
-                            std::cout<<"Permission denied"<<std::endl;
+                            std::cout<<error_msg<<"Permission denied"<<std::endl;
                             break;
                         case ENAMETOOLONG:
-                            std::cout<<"File name too long"<<std::endl;
+                            std::cout<<error_msg<<"File name too long"<<std::endl;
                             break;
                         case ENOENT:
-                            std::cout<<"No such file or directory"<<std::endl;
+                            std::cout<<error_msg<<"No such file or directory"<<std::endl;
                             break;
                         case ENOEXEC:
-                            std::cout<<"Exec format error"<<std::endl;
+                            std::cout<<error_msg<<"Exec format error"<<std::endl;
                             break;
                         case ENOMEM:
-                            std::cout<<"Out of memory"<<std::endl;
+                            std::cout<<error_msg<<"Out of memory"<<std::endl;
                             break;
                         case ENOTDIR:
-                            std::cout<<"Not a directory"<<std::endl;
+                            std::cout<<error_msg<<"Not a directory"<<std::endl;
                             break;
                         case EPERM:
-                            std::cout<<"Operation not permitted"<<std::endl;
+                            std::cout<<error_msg<<"Operation not permitted"<<std::endl;
                             break;
                         default:
-                            std::cout<<"ERROR ON FORK "<<errno<<std::endl;
+                            std::cout<<error_msg<<"Error on fork with error number "<<errno<<std::endl;
                             break;
                     }
                     exit(returnval);
