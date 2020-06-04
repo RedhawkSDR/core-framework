@@ -563,6 +563,16 @@ void GPP_i::pluginRegistration(const std::string& messageId, const plugin_regist
     std::cout<<"id: "<<msgData.id<<std::endl;
     std::cout<<"name: "<<msgData.name<<std::endl;
     std::cout<<"desc: "<<msgData.description<<std::endl;
+    plugin_status_template_struct new_plugin;
+    new_plugin.id = msgData.id;
+    new_plugin.name = msgData.name;
+    new_plugin.description = msgData.description;
+    plugin_status.push_back(new_plugin);
+    plugin_description new_registration;
+    new_registration.name = msgData.name;
+    new_registration.description = msgData.description;
+    new_registration.status_idx = plugin_status.size()-1;
+    _plugins[msgData.id] = new_registration;
 }
 
 void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
@@ -573,6 +583,18 @@ void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat
 void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_struct& msgData)
 {
     std::cout<<"..... gpp got the message"<<std::endl;
+    size_t s_idx = _plugins[msgData.id].status_idx;
+    plugin_status[s_idx].ok = msgData.ok;
+    plugin_status[s_idx].metric_timestamp = msgData.metric_timestamp;
+    plugin_status[s_idx].metric_reason = msgData.metric_reason;
+    plugin_status[s_idx].metric_threshold_value = msgData.metric_threshold_value;
+    plugin_status[s_idx].metric_recorded_value = msgData.metric_recorded_value;
+
+    _plugins[msgData.id].ok = msgData.ok;
+    _plugins[msgData.id].metric_timestamp = msgData.metric_timestamp;
+    _plugins[msgData.id].metric_reason = msgData.metric_reason;
+    _plugins[msgData.id].metric_threshold_value = msgData.metric_threshold_value;
+    _plugins[msgData.id].metric_recorded_value = msgData.metric_recorded_value;
 }
 
 void GPP_i::launchPlugins() {
@@ -601,37 +623,39 @@ void GPP_i::launchPlugins() {
                 if (pid == 0) {
                     setpgid(gpp_pid, 0);
                     int returnval = execv(argv[0], &argv[0]);
-                    std::string error_msg("Unable to launch plugin '");
-                    error_msg += found_plugin.string();
-                    error_msg += "': ";
-                    switch (errno) {
-                        case E2BIG:
-                            std::cout<<error_msg<<"Argument list too long"<<std::endl;
-                            break;
-                        case EACCES:
-                            std::cout<<error_msg<<"Permission denied"<<std::endl;
-                            break;
-                        case ENAMETOOLONG:
-                            std::cout<<error_msg<<"File name too long"<<std::endl;
-                            break;
-                        case ENOENT:
-                            std::cout<<error_msg<<"No such file or directory"<<std::endl;
-                            break;
-                        case ENOEXEC:
-                            std::cout<<error_msg<<"Exec format error"<<std::endl;
-                            break;
-                        case ENOMEM:
-                            std::cout<<error_msg<<"Out of memory"<<std::endl;
-                            break;
-                        case ENOTDIR:
-                            std::cout<<error_msg<<"Not a directory"<<std::endl;
-                            break;
-                        case EPERM:
-                            std::cout<<error_msg<<"Operation not permitted"<<std::endl;
-                            break;
-                        default:
-                            std::cout<<error_msg<<"Error on fork with error number "<<errno<<std::endl;
-                            break;
+                    if (errno) {
+                        std::string error_msg("Unable to launch plugin '");
+                        error_msg += found_plugin.string();
+                        error_msg += "': ";
+                        switch (errno) {
+                            case E2BIG:
+                                std::cout<<error_msg<<"Argument list too long"<<std::endl;
+                                break;
+                            case EACCES:
+                                std::cout<<error_msg<<"Permission denied"<<std::endl;
+                                break;
+                            case ENAMETOOLONG:
+                                std::cout<<error_msg<<"File name too long"<<std::endl;
+                                break;
+                            case ENOENT:
+                                std::cout<<error_msg<<"No such file or directory"<<std::endl;
+                                break;
+                            case ENOEXEC:
+                                std::cout<<error_msg<<"Exec format error"<<std::endl;
+                                break;
+                            case ENOMEM:
+                                std::cout<<error_msg<<"Out of memory"<<std::endl;
+                                break;
+                            case ENOTDIR:
+                                std::cout<<error_msg<<"Not a directory"<<std::endl;
+                                break;
+                            case EPERM:
+                                std::cout<<error_msg<<"Operation not permitted"<<std::endl;
+                                break;
+                            default:
+                                std::cout<<error_msg<<"Error on fork with error number "<<errno<<std::endl;
+                                break;
+                        }
                     }
                     exit(returnval);
                 } else if (pid < 0) {

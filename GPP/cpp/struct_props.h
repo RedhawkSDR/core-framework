@@ -1538,4 +1538,103 @@ inline bool operator!= (const component_monitor_struct& s1, const component_moni
     return !(s1==s2);
 }
 
+struct plugin_status_template_struct {
+    plugin_status_template_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::status::template");
+    }
+
+    static const char* getFormat() {
+        return "sssbusss";
+    }
+
+    std::string id;
+    std::string name;
+    std::string description;
+    bool ok;
+    CF::UTCTime metric_timestamp;
+    std::string metric_reason;
+    std::string metric_threshold_value;
+    std::string metric_recorded_value;
+};
+
+inline bool operator>>= (const CORBA::Any& a, plugin_status_template_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::status::id")) {
+        if (!(props["plugin::status::id"] >>= s.id)) return false;
+    }
+    if (props.contains("plugin::status::name")) {
+        if (!(props["plugin::status::name"] >>= s.name)) return false;
+    }
+    if (props.contains("plugin::status::description")) {
+        if (!(props["plugin::status::description"] >>= s.description)) return false;
+    }
+    if (props.contains("plugin::status::ok")) {
+        if (!(props["plugin::status::ok"] >>= s.ok)) return false;
+    }
+    if (props.contains("plugin::status::metric_timestamp")) {
+        if (!(props["plugin::status::metric_timestamp"] >>= s.metric_timestamp)) return false;
+    }
+    if (props.contains("plugin::status::metric_reason")) {
+        if (!(props["plugin::status::metric_reason"] >>= s.metric_reason)) return false;
+    }
+    if (props.contains("plugin::status::metric_threshold_value")) {
+        if (!(props["plugin::status::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
+    }
+    if (props.contains("plugin::status::metric_recorded_value")) {
+        if (!(props["plugin::status::metric_recorded_value"] >>= s.metric_recorded_value)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const plugin_status_template_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::status::id"] = s.id;
+ 
+    props["plugin::status::name"] = s.name;
+ 
+    props["plugin::status::description"] = s.description;
+ 
+    props["plugin::status::ok"] = s.ok;
+ 
+    props["plugin::status::metric_timestamp"] = s.metric_timestamp;
+ 
+    props["plugin::status::metric_reason"] = s.metric_reason;
+ 
+    props["plugin::status::metric_threshold_value"] = s.metric_threshold_value;
+ 
+    props["plugin::status::metric_recorded_value"] = s.metric_recorded_value;
+    a <<= props;
+}
+
+inline bool operator== (const plugin_status_template_struct& s1, const plugin_status_template_struct& s2) {
+    if (s1.id!=s2.id)
+        return false;
+    if (s1.name!=s2.name)
+        return false;
+    if (s1.description!=s2.description)
+        return false;
+    if (s1.ok!=s2.ok)
+        return false;
+    if (s1.metric_timestamp!=s2.metric_timestamp)
+        return false;
+    if (s1.metric_reason!=s2.metric_reason)
+        return false;
+    if (s1.metric_threshold_value!=s2.metric_threshold_value)
+        return false;
+    if (s1.metric_recorded_value!=s2.metric_recorded_value)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const plugin_status_template_struct& s1, const plugin_status_template_struct& s2) {
+    return !(s1==s2);
+}
+
 #endif // STRUCTPROPS_H

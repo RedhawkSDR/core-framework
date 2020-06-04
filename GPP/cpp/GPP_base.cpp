@@ -556,6 +556,14 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(plugin_status,
+                "plugin::status",
+                "plugin_status",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
 }
 
 

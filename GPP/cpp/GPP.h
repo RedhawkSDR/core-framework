@@ -207,6 +207,19 @@ class GPP_i : public GPP_base
             float allocated;
           };
 
+          struct plugin_description {
+              std::string name;
+              std::string description;
+              size_t status_idx;
+              bool ok;
+              std::string metric_reason;
+              std::string metric_threshold_value;
+              std::string metric_recorded_value;
+              CF::UTCTime metric_timestamp;
+          };
+
+          std::map<std::string, plugin_description> _plugins;
+
           //
           // base execution unit for partitioning a host system
           //

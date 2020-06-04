@@ -616,6 +616,19 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     </simple>
     <configurationkind kindtype="property"/>
   </struct>
+  <structsequence id="plugin::status" mode="readonly" name="plugin_status">
+    <struct id="plugin::status::template" name="plugin_status_template">
+        <simple type="string" id="plugin::status::id" name="id"/>
+        <simple type="string" id="plugin::status::name" name="name"/>
+        <simple type="string" id="plugin::status::description" name="description"/>
+        <simple type="boolean" id="plugin::status::ok" name="ok"/>
+        <simple type="utctime" id="plugin::status::metric_timestamp" name="metric_timestamp"/>
+        <simple type="string" id="plugin::status::metric_reason" name="metric_reason"/>
+        <simple type="string" id="plugin::status::metric_threshold_value" name="metric_threshold_value"/>
+        <simple type="string" id="plugin::status::metric_recorded_value" name="metric_recorded_value"/>
+        <configurationkind kindtype="property"/>
+    </struct>
+  </structsequence>
     <struct id="plugin::registration" name="plugin_registration">
         <simple type="string" id="plugin::registration::id" name="id"/>
         <simple type="string" id="plugin::registration::name" name="name"/>
