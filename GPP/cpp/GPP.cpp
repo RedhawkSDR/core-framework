@@ -528,16 +528,6 @@ void GPP_i::constructor()
     ProcStat::GetTicks(_systemTicks, _userTicks);
 }
 
-/***********************************************
- * 
- * plugin messaging callback function
- * 
- * associate plugin with watch thread
- * 
- * provide state loop with updates from plugin
- * 
- **********************************************/
-
 void GPP_i::postConstruction (std::string &profile, 
                                      std::string &registrar_ior, 
                                      const std::string &idm_channel_ior,
@@ -561,6 +551,7 @@ void GPP_i::postConstruction (std::string &profile,
   metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
   metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
   metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
+  launchPlugins();
 
   _signalThread.start();
 
@@ -568,14 +559,85 @@ void GPP_i::postConstruction (std::string &profile,
 
 void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
 {
+    std::cout<<"..... gpp got a registration"<<std::endl;
 }
 
 void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
 {
+    std::cout<<"..... gpp got a heartbeat"<<std::endl;
 }
 
 void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_struct& msgData)
 {
+    std::cout<<"..... gpp got the message"<<std::endl;
+}
+
+void GPP_i::launchPlugins() {
+
+    boost::filesystem::path dirPath(getenv( "SDRROOT" ));
+    dirPath /= "/dev/devices/GPP/plugins";
+    
+    int gpp_pid = getpid();
+
+    const boost::filesystem::directory_iterator end_itr; // an end iterator (by boost definition)
+    for (boost::filesystem::directory_iterator itr = boost::filesystem::directory_iterator(dirPath); itr != end_itr; ++itr) {
+        if (boost::filesystem::is_directory(itr->path())) {
+            boost::filesystem::path found_plugin(itr->path());
+            found_plugin /= itr->path().filename();
+            std::cout<<"........ filename 3: "<<found_plugin<<" "<<boost::filesystem::is_directory(found_plugin)<<" "<<boost::filesystem::exists(found_plugin)<<std::endl;
+            if ((not boost::filesystem::is_directory(found_plugin)) and boost::filesystem::exists(found_plugin)) {
+                std::vector<std::string> args;
+                std::cout<<"============ launching "<<found_plugin.string()<<std::endl;
+                args.push_back(found_plugin.string());
+                args.push_back(ossie::corba::objectToString(this->metrics_in->_this()));
+                std::vector<char*> argv(args.size()+1, NULL);
+                for (std::size_t i = 0; i < args.size(); ++i) {
+                    argv[i] = const_cast<char*> (args[i].c_str());
+                }
+                int pid = fork();
+                if (pid == 0) {
+                    setpgid(gpp_pid, 0);
+                    int returnval = execv(argv[0], &argv[0]);
+                    switch (errno) {
+                        case E2BIG:
+                            std::cout<<"Argument list too long"<<std::endl;
+                            break;
+                        case EACCES:
+                            std::cout<<"Permission denied"<<std::endl;
+                            break;
+                        case ENAMETOOLONG:
+                            std::cout<<"File name too long"<<std::endl;
+                            break;
+                        case ENOENT:
+                            std::cout<<"No such file or directory"<<std::endl;
+                            break;
+                        case ENOEXEC:
+                            std::cout<<"Exec format error"<<std::endl;
+                            break;
+                        case ENOMEM:
+                            std::cout<<"Out of memory"<<std::endl;
+                            break;
+                        case ENOTDIR:
+                            std::cout<<"Not a directory"<<std::endl;
+                            break;
+                        case EPERM:
+                            std::cout<<"Operation not permitted"<<std::endl;
+                            break;
+                        default:
+                            std::cout<<"ERROR ON FORK "<<errno<<std::endl;
+                            break;
+                    }
+                    exit(returnval);
+                } else if (pid < 0) {
+                    std::cout<<"failed to launch"<<std::endl;
+                }
+            }
+        }
+    }
+
+    // scan directory
+    // loop over plugins
+    // fork plugins
 }
 
 void GPP_i::update_grp_child_pids() {
