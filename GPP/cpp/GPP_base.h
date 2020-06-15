@@ -134,6 +134,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         std::vector<component_monitor_struct> component_monitor;
         /// Property: plugin_status
         std::vector<plugin_status_template_struct> plugin_status;
+        /// Property: metric_status
+        std::vector<plugin_metric_status_template_struct> metric_status;
 
         // Ports
         /// Port: metrics_in
