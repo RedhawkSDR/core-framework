@@ -544,10 +544,8 @@ void GPP_i::postConstruction (std::string &profile,
     // require signalfd to be configured before orb init call.... 
     throw std::runtime_error("unable configure signal handler");
   }
-  
-  // associate callback function with plugin messaging port
-  // scan for plugins
-  // launch plugins
+
+  _pluginBusy = false;
   metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
   metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
   metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
@@ -559,42 +557,92 @@ void GPP_i::postConstruction (std::string &profile,
 
 void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
 {
-    std::cout<<"..... gpp got a registration"<<std::endl;
-    std::cout<<"id: "<<msgData.id<<std::endl;
-    std::cout<<"name: "<<msgData.name<<std::endl;
-    std::cout<<"desc: "<<msgData.description<<std::endl;
+    ReadLock rlock(monitorLock);
+
     plugin_status_template_struct new_plugin;
     new_plugin.id = msgData.id;
     new_plugin.name = msgData.name;
     new_plugin.description = msgData.description;
     plugin_status.push_back(new_plugin);
+
     plugin_description new_registration;
     new_registration.name = msgData.name;
     new_registration.description = msgData.description;
     new_registration.status_idx = plugin_status.size()-1;
+    new_registration.alive = true;
     _plugins[msgData.id] = new_registration;
 }
 
 void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
 {
-    std::cout<<"..... gpp got a heartbeat"<<std::endl;
+    ReadLock rlock(monitorLock);
 }
 
 void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_struct& msgData)
 {
-    std::cout<<"..... gpp got the message"<<std::endl;
-    size_t s_idx = _plugins[msgData.id].status_idx;
-    plugin_status[s_idx].ok = msgData.ok;
-    plugin_status[s_idx].metric_timestamp = msgData.metric_timestamp;
-    plugin_status[s_idx].metric_reason = msgData.metric_reason;
-    plugin_status[s_idx].metric_threshold_value = msgData.metric_threshold_value;
-    plugin_status[s_idx].metric_recorded_value = msgData.metric_recorded_value;
+    ReadLock rlock(monitorLock);
 
-    _plugins[msgData.id].ok = msgData.ok;
-    _plugins[msgData.id].metric_timestamp = msgData.metric_timestamp;
-    _plugins[msgData.id].metric_reason = msgData.metric_reason;
-    _plugins[msgData.id].metric_threshold_value = msgData.metric_threshold_value;
-    _plugins[msgData.id].metric_recorded_value = msgData.metric_recorded_value;
+    std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.id, msgData.metric_name);
+    size_t metrics_idx = 0;
+    if (_plugin_metrics.find(plugin_metric_tuple) == _plugin_metrics.end()) {
+        metric_status.resize(metric_status.size()+1);
+        _plugin_metrics[plugin_metric_tuple].status_idx = metric_status.size()-1;
+    }
+
+    metrics_idx = _plugin_metrics[plugin_metric_tuple].status_idx;
+    metric_status[metrics_idx].ok = msgData.ok;
+    metric_status[metrics_idx].id = msgData.id;
+    metric_status[metrics_idx].metric_name = msgData.metric_name;
+    metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
+    metric_status[metrics_idx].metric_reason = msgData.metric_reason;
+    metric_status[metrics_idx].metric_threshold_value = msgData.metric_threshold_value;
+    metric_status[metrics_idx].metric_recorded_value = msgData.metric_recorded_value;
+
+    _plugin_metrics[plugin_metric_tuple].ok = msgData.ok;
+    _plugin_metrics[plugin_metric_tuple].name = msgData.metric_name;
+    _plugin_metrics[plugin_metric_tuple].metric_timestamp = msgData.metric_timestamp;
+    _plugin_metrics[plugin_metric_tuple].metric_reason = msgData.metric_reason;
+    _plugin_metrics[plugin_metric_tuple].metric_threshold_value = msgData.metric_threshold_value;
+    _plugin_metrics[plugin_metric_tuple].metric_recorded_value = msgData.metric_recorded_value;
+    if (not msgData.ok) {
+        if (not _pluginBusy) {
+            _pluginBusy = true;
+            std::ostringstream oss;
+            oss << "Threshold: " <<  msgData.metric_threshold_value << " Actual: " << msgData.metric_recorded_value;
+            _setBusyReason(msgData.metric_reason, oss.str());
+        }
+    }
+    bool all_ok = true;
+    for (unsigned int i=0; i<plugin_status.size(); i++) {
+        if (not plugin_status[i].ok) {
+            all_ok = false;
+            break;
+        }
+    }
+    if (all_ok) {
+        _pluginBusy = false;
+    }
+
+    size_t plugin_idx = _plugins[msgData.id].status_idx;
+    all_ok = true;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin();it!=_plugin_metrics.end();++it) {
+        if (it->first.first == msgData.id) {
+            if (not it->second.ok) {
+                all_ok = false;
+                break;
+            }
+        }
+    }
+    plugin_status[plugin_idx].ok = all_ok;
+    bool found_metric = false;
+    for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
+        if (*it == msgData.metric_name) {
+            found_metric = true;
+        }
+    }
+    if (not found_metric) {
+        plugin_status[plugin_idx].metric_names.push_back(msgData.metric_name);
+    }
 }
 
 void GPP_i::launchPlugins() {
@@ -2016,6 +2064,9 @@ void GPP_i::updateUsageState()
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
       _setBusyReason("ULIMIT (MAX_FILES)", oss.str());
+  }
+  else if (_pluginBusy) {
+      // avoid going into idle or active
   }
   else if (getPids().size() == 0) {
     RH_TRACE(_baseLog, "Usage State IDLE (trigger) pids === 0...  ");

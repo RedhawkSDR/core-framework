@@ -212,13 +212,23 @@ class GPP_i : public GPP_base
               std::string description;
               size_t status_idx;
               bool ok;
+              bool alive;
+              std::vector<std::string> metric_names;
+          };
+
+          struct metric_description {
+              std::string name;
+              size_t status_idx;
+              bool ok;
               std::string metric_reason;
               std::string metric_threshold_value;
               std::string metric_recorded_value;
               CF::UTCTime metric_timestamp;
           };
 
-          std::map<std::string, plugin_description> _plugins;
+          std::map< std::pair<std::string, std::string>, metric_description> _plugin_metrics;
+          std::map< std::string, plugin_description> _plugins;
+          bool _pluginBusy;
 
           //
           // base execution unit for partitioning a host system
