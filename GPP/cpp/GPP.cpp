@@ -585,18 +585,18 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.id, msgData.metric_name);
     size_t metrics_idx = 0;
     if (_plugin_metrics.find(plugin_metric_tuple) == _plugin_metrics.end()) {
-        metric_status.resize(metric_status.size()+1);
-        _plugin_metrics[plugin_metric_tuple].status_idx = metric_status.size()-1;
+        plugin_metric_status.resize(plugin_metric_status.size()+1);
+        _plugin_metrics[plugin_metric_tuple].status_idx = plugin_metric_status.size()-1;
     }
 
     metrics_idx = _plugin_metrics[plugin_metric_tuple].status_idx;
-    metric_status[metrics_idx].ok = msgData.ok;
-    metric_status[metrics_idx].id = msgData.id;
-    metric_status[metrics_idx].metric_name = msgData.metric_name;
-    metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
-    metric_status[metrics_idx].metric_reason = msgData.metric_reason;
-    metric_status[metrics_idx].metric_threshold_value = msgData.metric_threshold_value;
-    metric_status[metrics_idx].metric_recorded_value = msgData.metric_recorded_value;
+    plugin_metric_status[metrics_idx].ok = msgData.ok;
+    plugin_metric_status[metrics_idx].id = msgData.id;
+    plugin_metric_status[metrics_idx].metric_name = msgData.metric_name;
+    plugin_metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
+    plugin_metric_status[metrics_idx].metric_reason = msgData.metric_reason;
+    plugin_metric_status[metrics_idx].metric_threshold_value = msgData.metric_threshold_value;
+    plugin_metric_status[metrics_idx].metric_recorded_value = msgData.metric_recorded_value;
 
     _plugin_metrics[plugin_metric_tuple].ok = msgData.ok;
     _plugin_metrics[plugin_metric_tuple].name = msgData.metric_name;

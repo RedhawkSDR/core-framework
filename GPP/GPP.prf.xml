@@ -627,7 +627,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <configurationkind kindtype="property"/>
     </struct>
   </structsequence>
-  <structsequence id="plugin::metric_status" mode="readonly" name="metric_status">
+  <structsequence id="plugin::metric_status" mode="readonly" name="plugin_metric_status">
     <struct id="plugin::metric_status::template" name="plugin_metric_status_template">
         <simple type="string" id="plugin::metric_status::id" name="id"/>
         <simple type="string" id="plugin::metric_status::metric_name" name="metric_name"/>
