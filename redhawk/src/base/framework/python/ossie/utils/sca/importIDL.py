@@ -142,12 +142,36 @@ class EnumType(NamedType):
     def enumValues(self):
         return self._enumValues
 
+class Member(object):
+    def __init__(self, name, memberType):
+        self._name = name
+        self._memberType = memberType
+
+    def name(self):
+        return self._name
+
+    def memberType(self):
+        return self._memberType
+
+class Union(NamedType):
+    def __init__(self, scopedName, repoId, discriminant, members):
+        super(Union,self).__init__(CORBA.tk_union, scopedName)
+        self.name = scopedName[-1]
+        self.repoId = repoId
+        self._discriminant = discriminant
+        self._members = members
+
+    def discriminant(self):
+        return self._discriminant
+
+    def members(self):
+        return self._members
+
 def ExceptionType(type):
     return NamedType(CORBA.tk_except, type.scopedName())
 
-# Internal cache of parsed IDL interfaces
-_interfaces = {}
-_structs = {}
+# Internal cache of parsed IDL types
+_cache = {}
 
 class Interface:
     def __init__(self,name,nameSpace="",operations=[],filename="",fullpath="",repoId=""):
@@ -184,7 +208,6 @@ class Interface:
         retstr += "'operations':[" + ','.join(str(op) for op in self.operations) + "]}"
 
         return retstr
-
 
 class Operation:
     def __init__(self,name,returnType,params=[]):
@@ -293,8 +316,11 @@ class IdlStruct():
         self.name = '::'.join(node.scopedName())
         self.repoId = node.repoId()
         self.members = {}
+        self._fields = []
         for member in node.members():
-            self.members[member.declarators()[0].scopedName()[-1]] = baseTypes[member.memberType().kind()]
+            name = member.declarators()[0].scopedName()[-1]
+            self.members[name] = baseTypes[member.memberType().kind()]
+            self._fields.append(Member(name, IDLType.instance(member.memberType())))
         
 class ExampleVisitor (idlvisitor.AstVisitor):
     def __init__(self,*args):
@@ -312,20 +338,44 @@ class ExampleVisitor (idlvisitor.AstVisitor):
             n.accept(self)
 
     def visitStruct(self, node):
-        # create the Attribute object
-        _struct = IdlStruct(node)
-        _structs[node.repoId()] = _struct
-        self.myStructs.append(_struct)
+        # Use cached post-processed struct if available
+        struct = _cache.get(node.repoId(), None)
+        if not struct:
+            struct = IdlStruct(node)
+            _cache[node.repoId()] = struct
+        self.myStructs.append(struct)
+
+    def visitUnion(self, node):
+        # Use cached post-processed union if available
+        union = _cache.get(node.repoId(), None)
+        if not union:
+            members = []
+            for case in node.cases():
+                name = case.declarator().identifier()
+                idl_type = IDLType.instance(case.caseType())
+                # Ignore case labels here, until there is a need to generate code
+                # based upon them
+                members.append(Member(name, idl_type))
+
+            union = Union(node.scopedName(), node.repoId(), IDLType.instance(node.switchType()), members)
+            _cache[union.repoId] = union
+
+        self.myStructs.append(union)
 
     def visitInterface(self, node):
         # Use cached post-processed interface if available
-        global _interfaces
-        interface = _interfaces.get(node.repoId(), None)
+        interface = _cache.get(node.repoId(), None)
         if not interface:
             visitor = InterfaceVisitor()
             node.accept(visitor)
             interface = visitor.interface
-            _interfaces[node.repoId()] = interface
+            _cache[node.repoId()] = interface
+
+        # Process nested declarations regardless of cache status in case unions
+        # and structs were not requested last time
+        for decl in node.declarations():
+            decl.accept(self)
+
         self.myInterfaces.append(interface)
 
 def run(tree, args):
@@ -377,8 +427,7 @@ def getInterfacesFromFile(filename, includepath=None, getStructs=False):
         x.filename = x.filename[:-4] #remove the .idl suffix
 
     if getStructs:
-        for _struct in structs:
-            ints = ints + structs
+        ints = ints + structs
 
     return ints
 

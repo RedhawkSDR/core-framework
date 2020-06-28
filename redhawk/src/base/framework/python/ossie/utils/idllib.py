@@ -102,7 +102,7 @@ class IDLLibrary(object):
                 self._interfaces[interface.repoId] = interface
 
             # Mark the file that provided this interface as parsed
-            if not isinstance(interface, importIDL.IdlStruct):
+            if isinstance(interface, importIDL.Interface):
                 self._parsed.add(interface.fullpath)
 
         # Mark the file as parsed in case it didn't contain any interfaces
