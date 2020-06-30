@@ -53,7 +53,7 @@ void ${className}::run()
         usleep(5e5);
         plugin_message_struct plugin_message;
         plugin_message.ok = false;
-        plugin_message.id = _id;
+        plugin_message.plugin_id = _id;
         plugin_message.metric_name = CORBA::string_dup("colors");
         plugin_message.metric_timestamp = redhawk::time::utils::now();
         plugin_message.metric_reason = CORBA::string_dup("should be green but got an orange");
@@ -66,4 +66,11 @@ void ${className}::run()
 void ${className}::start()
 {
     _thread = new boost::thread(&${className}::run, this);
+}
+
+void ${className}::updateThreshold(const std::string& messageId, const update_threshold_struct& msgData)
+{
+    // msgData.plugin_id
+    // msgData.metric_name
+    // msgData.metric_threshold_value
 }

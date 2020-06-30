@@ -92,7 +92,9 @@ protected:
         CORBA::Object_ptr object = ::ossie::corba::stringToObject(IOR);
         message_out->connectPort(object, "metrics_out_connection");
 
-        //extern char *program_invocation_name;
+        message_in = new MessageConsumerPort("threshold_control");
+        message_in->registerMessage("plugin::update_threshold", this, &test_plugin::updateThreshold);
+
         extern char *program_invocation_short_name;
 
         _id = id;
@@ -100,10 +102,14 @@ protected:
         plugin_reg_message.id = id;
         plugin_reg_message.name = program_invocation_short_name;
         plugin_reg_message.description = "none";
+        plugin_reg_message.metric_port = ::ossie::corba::objectToString(message_in->_this());
         this->message_out->send(plugin_reg_message);
     };
 
+    void updateThreshold(const std::string& messageId, const update_threshold_struct& msgData);
+
     GPPMetricSupplier* message_out;
+    MessageConsumerPort* message_in;
     boost::thread* _thread;
     std::string _id;
 
