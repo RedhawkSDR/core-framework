@@ -629,7 +629,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
   </structsequence>
   <structsequence id="plugin::metric_status" mode="readonly" name="plugin_metric_status">
     <struct id="plugin::metric_status::template" name="plugin_metric_status_template">
-        <simple type="string" id="plugin::metric_status::id" name="id"/>
+        <simple type="string" id="plugin::metric_status::plugin_id" name="plugin_id"/>
         <simple type="string" id="plugin::metric_status::metric_name" name="metric_name"/>
         <simple type="boolean" id="plugin::metric_status::ok" name="ok"/>
         <simple type="utctime" id="plugin::metric_status::metric_timestamp" name="metric_timestamp"/>
@@ -643,20 +643,33 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <simple type="string" id="plugin::registration::id" name="id"/>
         <simple type="string" id="plugin::registration::name" name="name"/>
         <simple type="string" id="plugin::registration::description" name="description"/>
+        <simple type="string" id="plugin::registration::metric_port" name="metric_port"/>
         <configurationkind kindtype="message"/>
     </struct>
     <struct id="plugin::heartbeat" name="plugin_heartbeat">
-        <simple type="string" id="plugin::heartbeat::id" name="id"/>
+        <simple type="string" id="plugin::heartbeat::plugin_id" name="plugin_id"/>
         <configurationkind kindtype="message"/>
     </struct>
     <struct id="plugin::message" name="plugin_message">
-        <simple type="string" id="plugin::message::id" name="id"/>
+        <simple type="string" id="plugin::message::plugin_id" name="plugin_id"/>
         <simple type="string" id="plugin::message::metric_name" name="metric_name"/>
         <simple type="boolean" id="plugin::message::ok" name="ok"/>
         <simple type="utctime" id="plugin::message::metric_timestamp" name="metric_timestamp"/>
         <simple type="string" id="plugin::message::metric_reason" name="metric_reason"/>
         <simple type="string" id="plugin::message::metric_threshold_value" name="metric_threshold_value"/>
         <simple type="string" id="plugin::message::metric_recorded_value" name="metric_recorded_value"/>
+        <configurationkind kindtype="message"/>
+    </struct>
+    <struct id="plugin::update_metric" mode="readwrite" name="update_metric">
+        <simple type="string" id="plugin::update_metric::plugin_id" name="plugin_id"/>
+        <simple type="string" id="plugin::update_metric::metric_name" name="metric_name"/>
+        <simple type="string" id="plugin::update_metric::metric_threshold_value" name="metric_threshold_value"/>
+        <configurationkind kindtype="property"/>
+    </struct>
+    <struct id="plugin::update_threshold" name="update_threshold">
+        <simple type="string" id="plugin::update_threshold::plugin_id" name="plugin_id"/>
+        <simple type="string" id="plugin::update_threshold::metric_name" name="metric_name"/>
+        <simple type="string" id="plugin::update_threshold::metric_threshold_value" name="metric_threshold_value"/>
         <configurationkind kindtype="message"/>
     </struct>
 </properties>

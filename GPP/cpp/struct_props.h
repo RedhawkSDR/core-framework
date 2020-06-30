@@ -725,12 +725,13 @@ struct plugin_registration_struct {
     }
 
     static const char* getFormat() {
-        return "sss";
+        return "ssss";
     }
 
     std::string id;
     std::string name;
     std::string description;
+    std::string metric_port;
 };
 
 inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
@@ -746,6 +747,9 @@ inline bool operator>>= (const CORBA::Any& a, plugin_registration_struct& s) {
     if (props.contains("plugin::registration::description")) {
         if (!(props["plugin::registration::description"] >>= s.description)) return false;
     }
+    if (props.contains("plugin::registration::metric_port")) {
+        if (!(props["plugin::registration::metric_port"] >>= s.metric_port)) return false;
+    }
     return true;
 }
 
@@ -757,6 +761,8 @@ inline void operator<<= (CORBA::Any& a, const plugin_registration_struct& s) {
     props["plugin::registration::name"] = s.name;
  
     props["plugin::registration::description"] = s.description;
+ 
+    props["plugin::registration::metric_port"] = s.metric_port;
     a <<= props;
 }
 
@@ -766,6 +772,8 @@ inline bool operator== (const plugin_registration_struct& s1, const plugin_regis
     if (s1.name!=s2.name)
         return false;
     if (s1.description!=s2.description)
+        return false;
+    if (s1.metric_port!=s2.metric_port)
         return false;
     return true;
 }
@@ -787,15 +795,15 @@ struct plugin_heartbeat_struct {
         return "s";
     }
 
-    std::string id;
+    std::string plugin_id;
 };
 
 inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("plugin::heartbeat::id")) {
-        if (!(props["plugin::heartbeat::id"] >>= s.id)) return false;
+    if (props.contains("plugin::heartbeat::plugin_id")) {
+        if (!(props["plugin::heartbeat::plugin_id"] >>= s.plugin_id)) return false;
     }
     return true;
 }
@@ -803,12 +811,12 @@ inline bool operator>>= (const CORBA::Any& a, plugin_heartbeat_struct& s) {
 inline void operator<<= (CORBA::Any& a, const plugin_heartbeat_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::heartbeat::id"] = s.id;
+    props["plugin::heartbeat::plugin_id"] = s.plugin_id;
     a <<= props;
 }
 
 inline bool operator== (const plugin_heartbeat_struct& s1, const plugin_heartbeat_struct& s2) {
-    if (s1.id!=s2.id)
+    if (s1.plugin_id!=s2.plugin_id)
         return false;
     return true;
 }
@@ -830,7 +838,7 @@ struct plugin_message_struct {
         return "ssbusss";
     }
 
-    std::string id;
+    std::string plugin_id;
     std::string metric_name;
     bool ok;
     CF::UTCTime metric_timestamp;
@@ -843,8 +851,8 @@ inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("plugin::message::id")) {
-        if (!(props["plugin::message::id"] >>= s.id)) return false;
+    if (props.contains("plugin::message::plugin_id")) {
+        if (!(props["plugin::message::plugin_id"] >>= s.plugin_id)) return false;
     }
     if (props.contains("plugin::message::metric_name")) {
         if (!(props["plugin::message::metric_name"] >>= s.metric_name)) return false;
@@ -870,7 +878,7 @@ inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
 inline void operator<<= (CORBA::Any& a, const plugin_message_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::message::id"] = s.id;
+    props["plugin::message::plugin_id"] = s.plugin_id;
  
     props["plugin::message::metric_name"] = s.metric_name;
  
@@ -887,7 +895,7 @@ inline void operator<<= (CORBA::Any& a, const plugin_message_struct& s) {
 }
 
 inline bool operator== (const plugin_message_struct& s1, const plugin_message_struct& s2) {
-    if (s1.id!=s2.id)
+    if (s1.plugin_id!=s2.plugin_id)
         return false;
     if (s1.metric_name!=s2.metric_name)
         return false;
@@ -905,6 +913,124 @@ inline bool operator== (const plugin_message_struct& s1, const plugin_message_st
 }
 
 inline bool operator!= (const plugin_message_struct& s1, const plugin_message_struct& s2) {
+    return !(s1==s2);
+}
+
+struct update_metric_struct {
+    update_metric_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::update_metric");
+    }
+
+    static const char* getFormat() {
+        return "sss";
+    }
+
+    std::string plugin_id;
+    std::string metric_name;
+    std::string metric_threshold_value;
+};
+
+inline bool operator>>= (const CORBA::Any& a, update_metric_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::update_metric::plugin_id")) {
+        if (!(props["plugin::update_metric::plugin_id"] >>= s.plugin_id)) return false;
+    }
+    if (props.contains("plugin::update_metric::metric_name")) {
+        if (!(props["plugin::update_metric::metric_name"] >>= s.metric_name)) return false;
+    }
+    if (props.contains("plugin::update_metric::metric_threshold_value")) {
+        if (!(props["plugin::update_metric::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const update_metric_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::update_metric::plugin_id"] = s.plugin_id;
+ 
+    props["plugin::update_metric::metric_name"] = s.metric_name;
+ 
+    props["plugin::update_metric::metric_threshold_value"] = s.metric_threshold_value;
+    a <<= props;
+}
+
+inline bool operator== (const update_metric_struct& s1, const update_metric_struct& s2) {
+    if (s1.plugin_id!=s2.plugin_id)
+        return false;
+    if (s1.metric_name!=s2.metric_name)
+        return false;
+    if (s1.metric_threshold_value!=s2.metric_threshold_value)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const update_metric_struct& s1, const update_metric_struct& s2) {
+    return !(s1==s2);
+}
+
+struct update_threshold_struct {
+    update_threshold_struct ()
+    {
+    }
+
+    static std::string getId() {
+        return std::string("plugin::update_threshold");
+    }
+
+    static const char* getFormat() {
+        return "sss";
+    }
+
+    std::string plugin_id;
+    std::string metric_name;
+    std::string metric_threshold_value;
+};
+
+inline bool operator>>= (const CORBA::Any& a, update_threshold_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("plugin::update_threshold::plugin_id")) {
+        if (!(props["plugin::update_threshold::plugin_id"] >>= s.plugin_id)) return false;
+    }
+    if (props.contains("plugin::update_threshold::metric_name")) {
+        if (!(props["plugin::update_threshold::metric_name"] >>= s.metric_name)) return false;
+    }
+    if (props.contains("plugin::update_threshold::metric_threshold_value")) {
+        if (!(props["plugin::update_threshold::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
+    }
+    return true;
+}
+
+inline void operator<<= (CORBA::Any& a, const update_threshold_struct& s) {
+    redhawk::PropertyMap props;
+ 
+    props["plugin::update_threshold::plugin_id"] = s.plugin_id;
+ 
+    props["plugin::update_threshold::metric_name"] = s.metric_name;
+ 
+    props["plugin::update_threshold::metric_threshold_value"] = s.metric_threshold_value;
+    a <<= props;
+}
+
+inline bool operator== (const update_threshold_struct& s1, const update_threshold_struct& s2) {
+    if (s1.plugin_id!=s2.plugin_id)
+        return false;
+    if (s1.metric_name!=s2.metric_name)
+        return false;
+    if (s1.metric_threshold_value!=s2.metric_threshold_value)
+        return false;
+    return true;
+}
+
+inline bool operator!= (const update_threshold_struct& s1, const update_threshold_struct& s2) {
     return !(s1==s2);
 }
 
@@ -1642,7 +1768,7 @@ struct plugin_metric_status_template_struct {
         return "ssbusss";
     }
 
-    std::string id;
+    std::string plugin_id;
     std::string metric_name;
     bool ok;
     CF::UTCTime metric_timestamp;
@@ -1655,8 +1781,8 @@ inline bool operator>>= (const CORBA::Any& a, plugin_metric_status_template_stru
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("plugin::metric_status::id")) {
-        if (!(props["plugin::metric_status::id"] >>= s.id)) return false;
+    if (props.contains("plugin::metric_status::plugin_id")) {
+        if (!(props["plugin::metric_status::plugin_id"] >>= s.plugin_id)) return false;
     }
     if (props.contains("plugin::metric_status::metric_name")) {
         if (!(props["plugin::metric_status::metric_name"] >>= s.metric_name)) return false;
@@ -1682,7 +1808,7 @@ inline bool operator>>= (const CORBA::Any& a, plugin_metric_status_template_stru
 inline void operator<<= (CORBA::Any& a, const plugin_metric_status_template_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::metric_status::id"] = s.id;
+    props["plugin::metric_status::plugin_id"] = s.plugin_id;
  
     props["plugin::metric_status::metric_name"] = s.metric_name;
  
@@ -1699,7 +1825,7 @@ inline void operator<<= (CORBA::Any& a, const plugin_metric_status_template_stru
 }
 
 inline bool operator== (const plugin_metric_status_template_struct& s1, const plugin_metric_status_template_struct& s2) {
-    if (s1.id!=s2.id)
+    if (s1.plugin_id!=s2.plugin_id)
         return false;
     if (s1.metric_name!=s2.metric_name)
         return false;

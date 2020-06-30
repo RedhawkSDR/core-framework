@@ -493,6 +493,10 @@ void GPP_i::_init() {
   // check  reservation allocations 
   setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
 
+  _update_metrics = new UpdateThresholdSupplier("plugin_threshold_control");
+  PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(_update_metrics);
+  _update_metrics->_remove_ref();
+
 }
 
 void GPP_i::constructor()
@@ -549,10 +553,25 @@ void GPP_i::postConstruction (std::string &profile,
   metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
   metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
   metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
+  addPropertyListener(update_metric, this, &GPP_i::_plugin_threshold_changed);
   launchPlugins();
 
   _signalThread.start();
 
+}
+
+void GPP_i::_plugin_threshold_changed(const update_metric_struct& old_metric, const update_metric_struct& new_metric)
+{
+    update_threshold_struct update_message;
+    update_message.plugin_id = new_metric.plugin_id;
+    update_message.metric_name = new_metric.metric_name;
+    update_message.metric_threshold_value = new_metric.metric_threshold_value;
+    CF::Properties invalidProperties;
+    try {
+        _update_metrics->send(update_message);
+    } catch ( std::invalid_argument &e ) {
+        throw CF::PropertySet::InvalidConfiguration("Invalid plugin id", invalidProperties);
+    }
 }
 
 void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
@@ -564,6 +583,12 @@ void GPP_i::pluginRegistration(const std::string& messageId, const plugin_regist
     new_plugin.name = msgData.name;
     new_plugin.description = msgData.description;
     plugin_status.push_back(new_plugin);
+
+    try {
+        CORBA::Object_ptr object = ::ossie::corba::stringToObject(msgData.metric_port);
+        _update_metrics->connectPort(object, msgData.id.c_str());
+    } catch ( ... ) {
+    }
 
     plugin_description new_registration;
     new_registration.name = msgData.name;
@@ -582,7 +607,7 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
 {
     ReadLock rlock(monitorLock);
 
-    std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.id, msgData.metric_name);
+    std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.plugin_id, msgData.metric_name);
     size_t metrics_idx = 0;
     if (_plugin_metrics.find(plugin_metric_tuple) == _plugin_metrics.end()) {
         plugin_metric_status.resize(plugin_metric_status.size()+1);
@@ -591,7 +616,7 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
 
     metrics_idx = _plugin_metrics[plugin_metric_tuple].status_idx;
     plugin_metric_status[metrics_idx].ok = msgData.ok;
-    plugin_metric_status[metrics_idx].id = msgData.id;
+    plugin_metric_status[metrics_idx].plugin_id = msgData.plugin_id;
     plugin_metric_status[metrics_idx].metric_name = msgData.metric_name;
     plugin_metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
     plugin_metric_status[metrics_idx].metric_reason = msgData.metric_reason;
@@ -623,10 +648,10 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
         _pluginBusy = false;
     }
 
-    size_t plugin_idx = _plugins[msgData.id].status_idx;
+    size_t plugin_idx = _plugins[msgData.plugin_id].status_idx;
     all_ok = true;
     for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin();it!=_plugin_metrics.end();++it) {
-        if (it->first.first == msgData.id) {
+        if (it->first.first == msgData.plugin_id) {
             if (not it->second.ok) {
                 all_ok = false;
                 break;
@@ -712,10 +737,6 @@ void GPP_i::launchPlugins() {
             }
         }
     }
-
-    // scan directory
-    // loop over plugins
-    // fork plugins
 }
 
 void GPP_i::update_grp_child_pids() {

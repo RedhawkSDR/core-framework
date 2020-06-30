@@ -516,6 +516,24 @@ void GPP_base::loadProperties()
                 "external",
                 "message");
 
+    addProperty(update_metric,
+                update_metric_struct(),
+                "plugin::update_metric",
+                "update_metric",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    addProperty(update_threshold,
+                update_threshold_struct(),
+                "plugin::update_threshold",
+                "update_threshold",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
     addProperty(nic_allocation_status,
                 "nic_allocation_status",
                 "",

@@ -186,6 +186,26 @@ class GPP_i : public GPP_base
         void pluginMessage(const std::string& messageId, const plugin_message_struct& msgData);
         void launchPlugins();
 
+        class UpdateThresholdSupplier : public MessageSupplierPort {
+            ENABLE_LOGGING;
+
+            public:
+                UpdateThresholdSupplier(std::string port_name) : MessageSupplierPort(port_name) {
+                };
+
+                void send(update_threshold_struct &in_update_threshold) {
+                    CF::Properties outProps;
+                    CORBA::Any data;
+                    outProps.length(1);
+                    outProps[0].id = CORBA::string_dup("plugin::update_threshold");
+                    outProps[0].value <<= in_update_threshold;
+                    data <<= outProps;
+                    push(data, in_update_threshold.plugin_id);
+                };
+        };
+
+        UpdateThresholdSupplier* _update_metrics;
+
         protected:
 
         enum fork_msg { FORK_GO=1, FORK_WAIT=2 };
@@ -409,6 +429,10 @@ class GPP_i : public GPP_base
           // Determine list of CPUs that are monitored
           //
           void _set_processor_monitor_list( const CpuList &cl );
+
+          //
+          // Update plugin threshold
+          void _plugin_threshold_changed(const update_metric_struct& old_metric, const update_metric_struct& new_metric);
 
           //
           // expand special characters in consoleOutputLog
