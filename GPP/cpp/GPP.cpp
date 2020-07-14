@@ -629,14 +629,27 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     _plugin_metrics[plugin_metric_tuple].metric_reason = msgData.metric_reason;
     _plugin_metrics[plugin_metric_tuple].metric_threshold_value = msgData.metric_threshold_value;
     _plugin_metrics[plugin_metric_tuple].metric_recorded_value = msgData.metric_recorded_value;
+
+    size_t plugin_idx = _plugins[msgData.plugin_id].status_idx;
+
     if (msgData.signal_busy) {
+        plugin_status[plugin_idx].signal_busy = true;
         if (not _pluginBusy) {
             _pluginBusy = true;
             std::ostringstream oss;
             oss << "Threshold: " <<  msgData.metric_threshold_value << " Actual: " << msgData.metric_recorded_value;
             _setBusyReason(msgData.metric_reason, oss.str());
         }
+    } else {
+        plugin_status[plugin_idx].signal_busy = false;
+        if (_pluginBusy) {
+            _pluginBusy = false;
+            std::ostringstream oss;
+            oss << "Threshold: " <<  msgData.metric_threshold_value << " Actual: " << msgData.metric_recorded_value;
+            _setBusyReason(msgData.metric_reason, oss.str());
+        }
     }
+
     bool all_ok = true;
     for (unsigned int i=0; i<plugin_status.size(); i++) {
         if (plugin_status[i].signal_busy) {
@@ -648,7 +661,6 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
         _pluginBusy = false;
     }
 
-    size_t plugin_idx = _plugins[msgData.plugin_id].status_idx;
     all_ok = true;
     for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin();it!=_plugin_metrics.end();++it) {
         if (it->first.first == msgData.plugin_id) {
