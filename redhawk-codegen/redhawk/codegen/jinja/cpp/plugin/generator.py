@@ -67,6 +67,8 @@ class GPPPluginGenerator(CppCodeGenerator):
             #CppTemplate('resource.cpp', userSource, userfile=True),
             CppTemplate('resource.h', self.plugin_name+'.h', userfile=True),
             CppTemplate('resource.cpp', self.plugin_name+'.cpp', userfile=True),
+            CppTemplate('resource_base.h', self.plugin_name+'_base.h'),
+            CppTemplate('resource_base.cpp', self.plugin_name+'_base.cpp'),
             CppTemplate('struct_props.h'),
             CppTemplate('main.cpp'),
             AutomakeTemplate('Makefile.am'),

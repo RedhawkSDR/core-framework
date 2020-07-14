@@ -516,19 +516,19 @@ void GPP_base::loadProperties()
                 "external",
                 "message");
 
-    addProperty(update_metric,
-                update_metric_struct(),
+    addProperty(plugin_update_metric,
+                plugin_update_metric_struct(),
                 "plugin::update_metric",
-                "update_metric",
+                "plugin_update_metric",
                 "readwrite",
                 "",
                 "external",
                 "property");
 
-    addProperty(update_threshold,
-                update_threshold_struct(),
+    addProperty(plugin_update_threshold,
+                plugin_update_threshold_struct(),
                 "plugin::update_threshold",
-                "update_threshold",
+                "plugin_update_threshold",
                 "readwrite",
                 "",
                 "external",

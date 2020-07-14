@@ -25,53 +25,9 @@
 #ifndef ${includeGuard}
 #define ${includeGuard}
 
-#include <ossie/MessageInterface.h>
+#include "${className}_base.h"
 
-#include <string>
-
-#include <ossie/Resource_impl.h>
-#include <ossie/debug.h>
-#include "struct_props.h"
-
-class GPPMetricSupplier : public MessageSupplierPort {
-    ENABLE_LOGGING;
-
-    public:
-        GPPMetricSupplier(std::string port_name) : MessageSupplierPort(port_name) {
-        };
-
-        void send(plugin_registration_struct &in_plugin_registration) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::registration");
-            outProps[0].value <<= in_plugin_registration;
-            data <<= outProps;
-            push(data);
-        };
-
-        void send(plugin_message_struct &in_plugin_message) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::message");
-            outProps[0].value <<= in_plugin_message;
-            data <<= outProps;
-            push(data);
-        };
-
-        void send(plugin_heartbeat_struct &in_plugin_heartbeat) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::heartbeat");
-            outProps[0].value <<= in_plugin_heartbeat;
-            data <<= outProps;
-            push(data);
-        };
-};
-
-class ${className}
+class ${className} : public ${className}_base
 {
     ENABLE_LOGGING;
 
@@ -79,39 +35,22 @@ public:
     ${className} (std::string &IOR, std::string &id);
     ~${className} (void);
 
-    void start ();
     void run ();
 
 protected:
 
-    void connectPlugin(std::string &IOR, std::string &id) {
-        ossie::logging::ConfigureDefault();
-        message_out = new GPPMetricSupplier(std::string("metrics_out"));
-        PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(message_out);
-        message_out->_remove_ref();
-        CORBA::Object_ptr object = ::ossie::corba::stringToObject(IOR);
-        message_out->connectPort(object, "metrics_out_connection");
-
-        message_in = new MessageConsumerPort("threshold_control");
-        message_in->registerMessage("plugin::update_threshold", this, &test_plugin::updateThreshold);
-
+    void registerPlugin() {
         extern char *program_invocation_short_name;
 
-        _id = id;
         plugin_registration_struct plugin_reg_message;
-        plugin_reg_message.id = id;
+        plugin_reg_message.id = _id;
         plugin_reg_message.name = program_invocation_short_name;
         plugin_reg_message.description = "none";
         plugin_reg_message.metric_port = ::ossie::corba::objectToString(message_in->_this());
         this->message_out->send(plugin_reg_message);
     };
 
-    void updateThreshold(const std::string& messageId, const update_threshold_struct& msgData);
-
-    GPPMetricSupplier* message_out;
-    MessageConsumerPort* message_in;
-    boost::thread* _thread;
-    std::string _id;
+    void updateThreshold(const std::string& messageId, const plugin_update_threshold_struct& msgData);
 
     /*/// Message structure definition for plugin_registration
     plugin_registration_struct plugin_registration;

@@ -193,7 +193,7 @@ class GPP_i : public GPP_base
                 UpdateThresholdSupplier(std::string port_name) : MessageSupplierPort(port_name) {
                 };
 
-                void send(update_threshold_struct &in_update_threshold) {
+                void send(plugin_update_threshold_struct &in_update_threshold) {
                     CF::Properties outProps;
                     CORBA::Any data;
                     outProps.length(1);
@@ -239,7 +239,7 @@ class GPP_i : public GPP_base
           struct metric_description {
               std::string name;
               size_t status_idx;
-              bool ok;
+              bool signal_busy;
               std::string metric_reason;
               std::string metric_threshold_value;
               std::string metric_recorded_value;
@@ -432,7 +432,7 @@ class GPP_i : public GPP_base
 
           //
           // Update plugin threshold
-          void _plugin_threshold_changed(const update_metric_struct& old_metric, const update_metric_struct& new_metric);
+          void _plugin_threshold_changed(const plugin_update_metric_struct& old_metric, const plugin_update_metric_struct& new_metric);
 
           //
           // expand special characters in consoleOutputLog

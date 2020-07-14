@@ -553,16 +553,16 @@ void GPP_i::postConstruction (std::string &profile,
   metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
   metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
   metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
-  addPropertyListener(update_metric, this, &GPP_i::_plugin_threshold_changed);
+  addPropertyListener(plugin_update_metric, this, &GPP_i::_plugin_threshold_changed);
   launchPlugins();
 
   _signalThread.start();
 
 }
 
-void GPP_i::_plugin_threshold_changed(const update_metric_struct& old_metric, const update_metric_struct& new_metric)
+void GPP_i::_plugin_threshold_changed(const plugin_update_metric_struct& old_metric, const plugin_update_metric_struct& new_metric)
 {
-    update_threshold_struct update_message;
+    plugin_update_threshold_struct update_message;
     update_message.plugin_id = new_metric.plugin_id;
     update_message.metric_name = new_metric.metric_name;
     update_message.metric_threshold_value = new_metric.metric_threshold_value;
@@ -615,7 +615,7 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     }
 
     metrics_idx = _plugin_metrics[plugin_metric_tuple].status_idx;
-    plugin_metric_status[metrics_idx].ok = msgData.ok;
+    plugin_metric_status[metrics_idx].signal_busy = msgData.signal_busy;
     plugin_metric_status[metrics_idx].plugin_id = msgData.plugin_id;
     plugin_metric_status[metrics_idx].metric_name = msgData.metric_name;
     plugin_metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
@@ -623,13 +623,13 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     plugin_metric_status[metrics_idx].metric_threshold_value = msgData.metric_threshold_value;
     plugin_metric_status[metrics_idx].metric_recorded_value = msgData.metric_recorded_value;
 
-    _plugin_metrics[plugin_metric_tuple].ok = msgData.ok;
+    _plugin_metrics[plugin_metric_tuple].signal_busy = msgData.signal_busy;
     _plugin_metrics[plugin_metric_tuple].name = msgData.metric_name;
     _plugin_metrics[plugin_metric_tuple].metric_timestamp = msgData.metric_timestamp;
     _plugin_metrics[plugin_metric_tuple].metric_reason = msgData.metric_reason;
     _plugin_metrics[plugin_metric_tuple].metric_threshold_value = msgData.metric_threshold_value;
     _plugin_metrics[plugin_metric_tuple].metric_recorded_value = msgData.metric_recorded_value;
-    if (not msgData.ok) {
+    if (msgData.signal_busy) {
         if (not _pluginBusy) {
             _pluginBusy = true;
             std::ostringstream oss;
@@ -639,7 +639,7 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     }
     bool all_ok = true;
     for (unsigned int i=0; i<plugin_status.size(); i++) {
-        if (not plugin_status[i].ok) {
+        if (plugin_status[i].signal_busy) {
             all_ok = false;
             break;
         }
@@ -652,13 +652,13 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     all_ok = true;
     for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin();it!=_plugin_metrics.end();++it) {
         if (it->first.first == msgData.plugin_id) {
-            if (not it->second.ok) {
+            if (it->second.signal_busy) {
                 all_ok = false;
                 break;
             }
         }
     }
-    plugin_status[plugin_idx].ok = all_ok;
+    plugin_status[plugin_idx].signal_busy = not all_ok;
     bool found_metric = false;
     for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
         if (*it == msgData.metric_name) {
