@@ -296,6 +296,9 @@ void InPortTest<Port>::testQueueDepth()
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(!packet->sriChanged);
+    CPPUNIT_ASSERT(!packet->dataBuffer.empty());
 
     // One more packet, should not report a flush
     this->_pushTestPacket(1, bulkio::time::utils::now(), false, stream_id);
@@ -510,8 +513,11 @@ void InPortTest<Port>::testQueueFlushFlags()
 
     // Cause a queue flush by lowering the ceiling and pushing packets
     port->setMaxQueueDepth(3);
+
+    // the following push forces the flush
     this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
     this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
+    port->setMaxQueueDepth(5);
 
     // Push another packet for the SRI change stream
     this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri_change.streamID);
@@ -525,21 +531,31 @@ void InPortTest<Port>::testQueueFlushFlags()
     CPPUNIT_ASSERT(!packet->sriChanged);
     CPPUNIT_ASSERT(packet->dataBuffer.empty());
 
-    // 2nd packet should be for data stream, with no EOS or SRI change flag
+    // 2nd packet should be for no EOS stream, no data, with "lost" SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT(packet->dataBuffer.empty());
+
+    // 3rdst packet should be for no EOS stream, with data (since it did the push that flushed the queue), no SRI change flag
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT_EQUAL(std::string(sri_data.streamID), packet->streamID);
-    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
     CPPUNIT_ASSERT(!packet->EOS);
     CPPUNIT_ASSERT(!packet->sriChanged);
+    CPPUNIT_ASSERT(!packet->dataBuffer.empty());
 
-    // 3rd packet should contain the "lost" SRI change flag
+    // 4th packet should be for data stream, with no EOS or SRI change flag
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
     CPPUNIT_ASSERT(!packet->inputQueueFlushed);
     CPPUNIT_ASSERT(!packet->EOS);
-    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT(!packet->sriChanged);
 }
 
 template <class Port>
@@ -562,6 +578,7 @@ void InPortTest<Port>::testQueueSize()
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT_EQUAL((size_t)1, packet->dataBuffer.size());
 
     // Set queue depth to unlimited and push a lot of packets
     port->setMaxQueueDepth(-1);

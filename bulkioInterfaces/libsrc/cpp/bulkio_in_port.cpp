@@ -359,6 +359,24 @@ namespace bulkio {
       } else {
           tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
       }
+
+      // if the stream that cause the flush is not new, replace the empty packet with the newly arrived one
+      if (flushToReport) {
+        for (typename PacketQueue::iterator it=packetQueue.begin(); it!=packetQueue.end(); it++) {
+          if (((*it)->streamID == tmpIn->streamID) and ((*it)->buffer.empty())) {
+            tmpIn->inputQueueFlushed = true;
+            if ((*it)->EOS) {
+              tmpIn->EOS = true;
+            }
+            if ((*it)->sriChanged) {
+              tmpIn->sriChanged = true;
+            }
+            packetQueue.erase(it);
+            delete *it;
+            break;
+          }
+        }
+      }
       packetQueue.push_back(tmpIn);
 
       if (EOS) {
@@ -369,12 +387,6 @@ namespace bulkio {
           }
       }
 
-      // If a flush occurred, always set the flag on the first packet; this may
-      // not be the packet that was just inserted if there were any EOS packets
-      // on the queue
-      if (flushToReport) {
-        packetQueue.front()->inputQueueFlushed = true;
-      }
       dataAvailable.notify_all();
     }
 
@@ -388,25 +400,63 @@ namespace bulkio {
   void InPort<PortType>::_flushQueue()
   {
     std::set<std::string> sri_changed;
+    std::set<std::string> post_eos_sri_changed;
     PacketQueue saved_packets;
+    std::set<std::string> _found_streams;
+    std::set<std::string> has_eos;
+    // find which streams ended or changed SRI in the queue
     for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
       Packet* packet = *iter;
+      std::string _streamid(packet->streamID);
+      if (packet->sriChanged) {
+        if (has_eos.find(_streamid) != has_eos.end()) {
+          post_eos_sri_changed.insert(_streamid);
+        }
+      }
+      if (packet->EOS) {
+        has_eos.insert(_streamid);
+        post_eos_sri_changed.erase(_streamid);
+      }
+      if (packet->sriChanged) {
+        sri_changed.insert(_streamid);
+      }
+    }
+    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+      Packet* packet = *iter;
+      std::string _streamid(packet->streamID);
+      packet->inputQueueFlushed = true;
       if (packet->EOS) {
         // Remove the SRI change flag for this stream, as further SRI changes
         // apply to a different stream; set the SRI change flag for the EOS
         // packet if there was one for this stream earlier in the queue
-        if (sri_changed.erase(packet->streamID)) {
+        if (sri_changed.erase(_streamid)) {
           packet->sriChanged = true;
         }
 
-        // Discard data and preserve the EOS packet
-        packet->buffer = BufferType();
-        saved_packets.push_back(packet);
-      } else {
-        if (packet->sriChanged) {
-          sri_changed.insert(packet->streamID);
+        if (packet->buffer.empty()) { // EOS packet with no data
+          packet->inputQueueFlushed = false;
+        } else {
+          packet->buffer = BufferType();
         }
-        delete packet;
+        // Discard data and preserve the EOS packet
+        saved_packets.push_back(packet);
+        _found_streams.insert(_streamid);
+      } else {
+        // there is no EOS for this stream
+        if (has_eos.find(_streamid) == has_eos.end()) {
+          if (_found_streams.find(_streamid) == _found_streams.end()) {
+            if (sri_changed.erase(_streamid)) {
+              packet->sriChanged = true;
+            }
+            packet->buffer = BufferType();
+            saved_packets.push_back(packet);
+            _found_streams.insert(_streamid);
+          } else {
+            delete packet;
+          }
+        } else {
+          delete packet;
+        }
       }
     }
     packetQueue.swap(saved_packets);
