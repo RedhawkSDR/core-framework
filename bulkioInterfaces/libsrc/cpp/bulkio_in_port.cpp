@@ -405,7 +405,7 @@ namespace bulkio {
     std::set<std::string> _found_streams;
     std::set<std::string> has_eos;
     // find which streams ended or changed SRI in the queue
-    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
+    /*for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
       Packet* packet = *iter;
       std::string _streamid(packet->streamID);
       if (packet->sriChanged) {
@@ -420,10 +420,22 @@ namespace bulkio {
       if (packet->sriChanged) {
         sri_changed.insert(_streamid);
       }
-    }
+    }*/
     for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
       Packet* packet = *iter;
       std::string _streamid(packet->streamID);
+      bool current_empty = packet->buffer.empty();
+      bool current_eos = packet->EOS;
+      bool current_new_sri = packet->sriChanged;
+      std::vector<Packet*> past_instances;
+      for (typename PacketQueue:::iterator tmp_q = saved_packets.begin(); iter != saved_packets.end(); tmp_q++) {
+        std::string _now_streamid((*tmp_q)->streamID);
+        if (_streamid != _now_streamid) {
+          continue;
+        }
+        // i've seen this stream id before
+        past_instances.push_back(*tmp_q);
+      }
       packet->inputQueueFlushed = true;
       if (packet->EOS) {
         // Remove the SRI change flag for this stream, as further SRI changes

@@ -17,38 +17,38 @@ export CLASSPATH=${bulkio_libsrc_top}/bulkio.jar:${bulkio_top}/BULKIOInterfaces.
 # due to hitting the per-user process limit
 export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
 
-
-with_xunit=
-pproc=
-if [ $# -gt 0 ];
-then
-   if [ "-with-xunit" == "${1##[-+]}" ];
-   then
-       with_xunit="--with-xunit"
-       shift
-   fi
-fi
-
-#
-#  Run Python Sandbox based testing..
-#
-if [ $# -gt 0 ]
-then
-    # run an associated test script
-    python  $*
-    exit
-else
-    for pt in test_*.py ; do
-        python $pt
-    done
-fi
-
-#
-#  Run Java unit tests
-#
-cd java
-./runtests $with_xunit
-cd -
+# 
+# with_xunit=
+# pproc=
+# if [ $# -gt 0 ];
+# then
+#    if [ "-with-xunit" == "${1##[-+]}" ];
+#    then
+#        with_xunit="--with-xunit"
+#        shift
+#    fi
+# fi
+# 
+# #
+# #  Run Python Sandbox based testing..
+# #
+# if [ $# -gt 0 ]
+# then
+#     # run an associated test script
+#     python  $*
+#     exit
+# else
+#     for pt in test_*.py ; do
+#         python $pt
+#     done
+# fi
+# 
+# #
+# #  Run Java unit tests
+# #
+# cd java
+# ./runtests $with_xunit
+# cd -
 
 #
 #  Run C++ unit tests
@@ -57,78 +57,78 @@ cd cpp
 ./runtests $with_xunit
 cd -
 
-
-#
-# Run Python unit tests with XML output
-#
-# NOTE: virtualenv aliases python in the shell, so it's necessary to explicitly
-# run runtests.py via python
-(cd python && ./runtests.py -x)
-
-#
-#  Run transport api unit tests
-#
-cd transport_api
-./runtests $with_xunit
-cd -
-
-#
-# Resource level unit tests
-#
-run_resource_test() {
-rdir=$1
-comp=$2
-results_file=$3
-xml=$4
-test_cmd="test_$comp.py"
-
-cd ../$rdir/$comp/tests/
-if [[ $xml ]]
-then
-    ./$test_cmd --with-xunit --xunit-file="$results_file" --xunit-testsuite-name="$comp" test_$comp.py
-else
-    ./$test_cmd
-fi
-cd -
-}
-
-run_component_test() {
-    run_resource_test components $*
-}
-
-run_device_test() {
-    run_resource_test devices $*
-}
-
-
-#
-#  Run Large Packet Size Test
-#
-#
-run_component_test TestLargePush "$bulkio_libsrc_testdir/bulkio-large-push-%IMPL%-results.xml"  $with_xunit
-
-
-#
-#  Run Attachable/Multiout Test
-#
-#
-run_component_test multiout_attachable "$bulkio_libsrc_testdir/bulkio-multiout-attachable-%IMPL%-results.xml"  $with_xunit
-
-
-#
-#  Run Oversized frame data Test
-#
-#
-run_component_test Oversized_framedata "$bulkio_libsrc_testdir/bulkio-oversized-frames-%IMPL%-results.xml"  $with_xunit
-
-#
-#  Run port lock Test
-#
-#
-run_component_test src "$bulkio_libsrc_testdir/bulkio-port-lock-%IMPL%-results.xml"  $with_xunit
-
-
-#  Run jni reference resolution
-#
-#
-run_device_test dev_src "$bulkio_libsrc_testdir/bulkio-jni-reference-%IMPL%-results.xml"  $with_xunit
+# 
+# #
+# # Run Python unit tests with XML output
+# #
+# # NOTE: virtualenv aliases python in the shell, so it's necessary to explicitly
+# # run runtests.py via python
+# (cd python && ./runtests.py -x)
+# 
+# #
+# #  Run transport api unit tests
+# #
+# cd transport_api
+# ./runtests $with_xunit
+# cd -
+# 
+# #
+# # Resource level unit tests
+# #
+# run_resource_test() {
+# rdir=$1
+# comp=$2
+# results_file=$3
+# xml=$4
+# test_cmd="test_$comp.py"
+# 
+# cd ../$rdir/$comp/tests/
+# if [[ $xml ]]
+# then
+#     ./$test_cmd --with-xunit --xunit-file="$results_file" --xunit-testsuite-name="$comp" test_$comp.py
+# else
+#     ./$test_cmd
+# fi
+# cd -
+# }
+# 
+# run_component_test() {
+#     run_resource_test components $*
+# }
+# 
+# run_device_test() {
+#     run_resource_test devices $*
+# }
+# 
+# 
+# #
+# #  Run Large Packet Size Test
+# #
+# #
+# run_component_test TestLargePush "$bulkio_libsrc_testdir/bulkio-large-push-%IMPL%-results.xml"  $with_xunit
+# 
+# 
+# #
+# #  Run Attachable/Multiout Test
+# #
+# #
+# run_component_test multiout_attachable "$bulkio_libsrc_testdir/bulkio-multiout-attachable-%IMPL%-results.xml"  $with_xunit
+# 
+# 
+# #
+# #  Run Oversized frame data Test
+# #
+# #
+# run_component_test Oversized_framedata "$bulkio_libsrc_testdir/bulkio-oversized-frames-%IMPL%-results.xml"  $with_xunit
+# 
+# #
+# #  Run port lock Test
+# #
+# #
+# run_component_test src "$bulkio_libsrc_testdir/bulkio-port-lock-%IMPL%-results.xml"  $with_xunit
+# 
+# 
+# #  Run jni reference resolution
+# #
+# #
+# run_device_test dev_src "$bulkio_libsrc_testdir/bulkio-jni-reference-%IMPL%-results.xml"  $with_xunit
