@@ -436,8 +436,10 @@ namespace bulkio {
         // if the previous one is a common packet
         //  if the current one is a common packet, set the previous one's sri changed to true if either current or previous are true
         //  if the current one is an EOS:
-        //   -- remove the previous one (location of EOS matters)
-        //   -- add EOS; set queue flushed to true if the previous one had a flush to true or this packet has data
+        //   -- if the current one has a payload
+        //    -- remove the previous one (location of EOS matters)
+        //    -- add EOS; set queue flushed to true if the previous one had a flush to true or this packet has data
+        //   -- else update the previous one's EOS flag
         // if the previous one is an EOS
         //  treat the current one as a new packet
         Packet *previous = past_instances.back();
