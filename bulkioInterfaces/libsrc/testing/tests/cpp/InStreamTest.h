@@ -63,6 +63,7 @@ class BufferedInStreamTest : public InStreamTest<Port>
     CPPUNIT_TEST(testTryreadPeek);
     CPPUNIT_TEST(testReadPeek);
     CPPUNIT_TEST(testReadPartial);
+    CPPUNIT_TEST(testQueueFlushScenarios);
     CPPUNIT_TEST(testReadTimestamps);
     CPPUNIT_TEST(testRepeatStreamIds);
     CPPUNIT_TEST(testDisableDiscard);
@@ -75,6 +76,7 @@ public:
     void testTryreadPeek();
     void testReadPeek();
     void testReadPartial();
+    void testQueueFlushScenarios();
     void testReadTimestamps();
     void testRepeatStreamIds();
 

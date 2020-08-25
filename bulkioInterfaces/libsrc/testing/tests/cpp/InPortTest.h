@@ -40,6 +40,7 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testSriChangedInvalidStream);
     CPPUNIT_TEST(testStatistics);
     CPPUNIT_TEST(testDiscardEmptyPacket);
+    CPPUNIT_TEST(testQueueFlushScenarios);
     CPPUNIT_TEST(testQueueFlushFlags);
     CPPUNIT_TEST(testQueueSize);
     CPPUNIT_TEST_SUITE_END();
@@ -57,6 +58,7 @@ public:
     void testSriChangedInvalidStream();
     void testStatistics();
     void testDiscardEmptyPacket();
+    void testQueueFlushScenarios();
     void testQueueFlushFlags();
     void testQueueSize();
 
