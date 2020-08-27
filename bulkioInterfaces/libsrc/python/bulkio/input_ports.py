@@ -464,13 +464,6 @@ class InPort(object):
 
         self.queue = saved_packets
 
-        #for stream_id in sri_changed:
-            # It should be safe to assume that an entry exists for the stream
-            # ID, but just in case, use get instead of operator[]
-        #    sri, _ = self.sriDict.get(stream_id, (None, None))
-        #    if sri is not None:
-        #        self.sriDict[stream_id] = (sri, True)
-
     def _acceptPacket(self, streamID, EOS):
         # Acquire streamsMutex for the duration of this call to ensure that
         # end-of-stream is handled atomically for disabled streams
