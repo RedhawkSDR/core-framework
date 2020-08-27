@@ -460,6 +460,414 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
     }
 
     @Test
+    public void testQueueFlushScenarios()
+    {
+        // Establish all the streams as "active"
+
+        // Push 1 packet for stream_A
+        BULKIO.StreamSRI stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, stream_A.streamID);
+
+        // Push 1 packet for stream_B
+        BULKIO.StreamSRI stream_B = bulkio.sri.utils.create("stream_B");
+        stream_B.blocking = false;
+        corbaPort.pushSRI(stream_B);
+        helper.pushTestPacket(port, 2, bulkio.time.utils.now(), false, stream_B.streamID);
+
+        // Push 1 packet for stream_C
+        BULKIO.StreamSRI stream_C = bulkio.sri.utils.create("stream_C");
+        stream_C.blocking = false;
+        corbaPort.pushSRI(stream_C);
+        helper.pushTestPacket(port, 3, bulkio.time.utils.now(), false, stream_C.streamID);
+
+        // empty the queue
+        DataTransfer<A> packet = null;
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        BULKIO.StreamSRI[] active_sris = corbaPort.activeSRIs();
+        int number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 1
+        helper.pushTestPacket(port, 4, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 5, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 6, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 7, bulkio.time.utils.now(), false, stream_C.streamID);
+        port.setMaxQueueDepth(4);
+        // flush
+        helper.pushTestPacket(port, 8, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(6, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(7, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(8, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 2
+        port.setMaxQueueDepth(6);
+        helper.pushTestPacket(port, 7, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 8, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 9, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 10, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 11, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 12, bulkio.time.utils.now(), false, stream_C.streamID);
+        // flush
+        helper.pushTestPacket(port, 13, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(11, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(12, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(13, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        port.setMaxQueueDepth(5);
+        // Test case 3
+        helper.pushTestPacket(port, 11, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 12, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, stream_B.streamID);
+        helper.pushTestPacket(port, 13, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 14, bulkio.time.utils.now(), false, stream_C.streamID);
+        // flush
+        helper.pushTestPacket(port, 15, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(12, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(14, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(15, helper.dataLength(packet.dataBuffer));
+
+        // Establish all the streams as "active"
+        port.setMaxQueueDepth(3);
+        // Push 1 packet for stream_A
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 14, bulkio.time.utils.now(), false, stream_A.streamID);
+
+        // Push 1 packet for stream_B
+        stream_B = bulkio.sri.utils.create("stream_B");
+        stream_B.blocking = false;
+        corbaPort.pushSRI(stream_B);
+        helper.pushTestPacket(port, 15, bulkio.time.utils.now(), false, stream_B.streamID);
+
+        // Push 1 packet for stream_C
+        stream_C = bulkio.sri.utils.create("stream_C");
+        stream_C.blocking = false;
+        corbaPort.pushSRI(stream_C);
+        helper.pushTestPacket(port, 16, bulkio.time.utils.now(), false, stream_C.streamID);
+
+        // empty the queue
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 4
+        port.setMaxQueueDepth(3);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, stream_B.streamID);
+        helper.pushTestPacket(port, 17, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 18, bulkio.time.utils.now(), false, stream_C.streamID);
+        // flush
+        helper.pushTestPacket(port, 19, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(0, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(18, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(19, helper.dataLength(packet.dataBuffer));
+
+        // Establish all the streams as "active"
+        port.setMaxQueueDepth(3);
+        // Push 1 packet for stream_A
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 19, bulkio.time.utils.now(), false, stream_A.streamID);
+
+        // Push 1 packet for stream_B
+        stream_B = bulkio.sri.utils.create("stream_B");
+        stream_B.blocking = false;
+        corbaPort.pushSRI(stream_B);
+        helper.pushTestPacket(port, 20, bulkio.time.utils.now(), false, stream_B.streamID);
+
+        // Push 1 packet for stream_C
+        stream_C = bulkio.sri.utils.create("stream_C");
+        stream_C.blocking = false;
+        corbaPort.pushSRI(stream_C);
+        helper.pushTestPacket(port, 21, bulkio.time.utils.now(), false, stream_C.streamID);
+
+        // empty the queue
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 5
+        port.setMaxQueueDepth(3);
+        helper.pushTestPacket(port, 22, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, stream_A.streamID);
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 23, bulkio.time.utils.now(), false, stream_A.streamID);
+        // flush
+        helper.pushTestPacket(port, 24, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(22, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(24, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 5a
+        port.setMaxQueueDepth(4);
+        helper.pushTestPacket(port, 21, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 22, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, stream_A.streamID);
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 23, bulkio.time.utils.now(), false, stream_A.streamID);
+        // flush
+        helper.pushTestPacket(port, 24, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(22, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(24, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 6
+        port.setMaxQueueDepth(3);
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, stream_A.streamID);
+        helper.pushTestPacket(port, 25, bulkio.time.utils.now(), false, stream_B.streamID);
+        helper.pushTestPacket(port, 26, bulkio.time.utils.now(), false, stream_B.streamID);
+        // flush
+        int old_mode = stream_A.mode;
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        if (old_mode == 1) {
+            stream_A.mode = 0;
+        } else {
+            stream_A.mode = 1;
+        }
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 27, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(0, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(26, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(27, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+
+        port.setMaxQueueDepth(2);
+        old_mode = stream_A.mode;
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        if (old_mode == 1) {
+            stream_A.mode = 0;
+        } else {
+            stream_A.mode = 1;
+        }
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 28, bulkio.time.utils.now(), false, stream_A.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(28, helper.dataLength(packet.dataBuffer));
+
+        // Test case 7
+        port.setMaxQueueDepth(4);
+        old_mode = stream_A.mode;
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        if (old_mode == 1) {
+            stream_A.mode = 0;
+        } else {
+            stream_A.mode = 1;
+        }
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 28, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 29, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 30, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 31, bulkio.time.utils.now(), false, stream_C.streamID);
+        // flush
+        helper.pushTestPacket(port, 32, bulkio.time.utils.now(), false, stream_B.streamID);
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(30, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(31, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(32, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
+    }
+
+    @Test
     public void testQueueFlushFlags()
     {
         // Push 1 packet for the normal data stream
@@ -479,7 +887,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_change.streamID);
 
         // Grab the packets to ensure the initial conditions are correct
-	DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertEquals(sri_data.streamID, packet.streamID);
 
@@ -501,39 +909,50 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         sri_change.mode = 1;
         corbaPort.pushSRI(sri_change);
         helper.pushTestPacket(port, 2, bulkio.time.utils.now(), false, sri_change.streamID);
+        helper.pushTestPacket(port, 3, bulkio.time.utils.now(), false, sri_change.streamID);
 
         // Cause a queue flush by lowering the ceiling and pushing packets
-        port.setMaxQueueDepth(3);
-        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_data.streamID);
-        helper.pushTestPacket(port, 1, bulkio.time.utils.now(), false, sri_data.streamID);
+        port.setMaxQueueDepth(4);
+        helper.pushTestPacket(port, 4, bulkio.time.utils.now(), false, sri_data.streamID);
+        helper.pushTestPacket(port, 5, bulkio.time.utils.now(), false, sri_data.streamID);
+
+        port.setMaxQueueDepth(6);
 
         // Push another packet for the SRI change stream
-        helper.pushTestPacket(port, 2, bulkio.time.utils.now(), false, sri_change.streamID);
+        helper.pushTestPacket(port, 6, bulkio.time.utils.now(), false, sri_change.streamID);
 
         // 1st packet should be for EOS stream, with no data or SRI change flag
         packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertEquals(sri_eos.streamID, packet.streamID);
-        Assert.assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("Input queue flush should !be reported", packet.inputQueueFlushed);
         Assert.assertTrue("EOS should be reported", packet.EOS);
-        Assert.assertFalse("SRI change should not be reported", packet.sriChanged);
+        Assert.assertFalse("SRI change should !be reported", packet.sriChanged);
         Assert.assertEquals("EOS packet should contain no data", 0, helper.dataLength(packet.dataBuffer));
 
-        // 2nd packet should be for data stream, with no EOS or SRI change flag
-        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
-        Assert.assertNotNull(packet);
-        Assert.assertEquals(sri_data.streamID, packet.streamID);
-        Assert.assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
-        Assert.assertFalse("EOS should not be reported", packet.EOS);
-        Assert.assertFalse("SRI change should not be reported", packet.sriChanged);
-
-        // 3rd packet should contain the "lost" SRI change flag
+        // 2nd packet should be for no EOS stream, data from the third packet on the queue, with "lost" SRI change flag from the second packet
         packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertEquals(sri_change.streamID, packet.streamID);
-        Assert.assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
-        Assert.assertFalse("EOS should not be reported", packet.EOS);
+        Assert.assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("EOS should !be reported", packet.EOS);
         Assert.assertTrue("SRI change should be reported", packet.sriChanged);
+
+        // 3rd packet should be for no EOS stream, with data (since it did the push that flushed the queue), no SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_data.streamID, packet.streamID);
+        Assert.assertTrue("Input queue flush should be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("EOS should !be reported", packet.EOS);
+        Assert.assertFalse("SRI change should !be reported", packet.sriChanged);
+
+        // 4th packet should be for stream_sri stream, with no EOS or SRI change flag
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(sri_change.streamID, packet.streamID);
+        Assert.assertFalse("Input queue flush should !be reported", packet.inputQueueFlushed);
+        Assert.assertFalse("EOS should !be reported", packet.EOS);
+        Assert.assertFalse("SRI change should be reported", packet.sriChanged);
     }
 
     @Test
@@ -554,7 +973,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
 
         DataTransfer<A> packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
-        Assert.assertTrue("Input queue flush not reported", packet.inputQueueFlushed);
+        Assert.assertTrue("Input queue flush !reported", packet.inputQueueFlushed);
 
         // Set queue depth to unlimited and push a lot of packets
         port.setMaxQueueDepth(-1);       
