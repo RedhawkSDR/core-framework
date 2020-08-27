@@ -377,23 +377,29 @@ class InPort(object):
 
                         # Update the SRI change flag for this stream, which may
                         # have been modified during the queue flush
-                        sri, sri_changed = self.sriDict[streamID]
+                        sri, _sri_changed = self.sriDict[streamID]
                         self.sriDict[streamID] = (sri, False)
+                        if _sri_changed:
+                            sri_changed = True
 
             self._portLog.trace("bulkio::InPort pushPacket NEW Packet (QUEUE=%d)", len(self.queue))
             self.stats.update(self._packetSize(data), float(len(self.queue))/float(self._maxSize), EOS, streamID, queue_flushed)
             packet = InPort.Packet(data, T, EOS, sri, sri_changed, False)
+
+            if queue_flushed:
+                for _packet in self.queue:
+                    if _packet.streamID == packet.streamID and (not _packet.EOS):
+                        packet.inputQueueFlushed = True
+                        if _packet.sriChanged:
+                            packet.sriChanged = True
+                        self.queue.remove(_packet)
+                        break
+
             self.queue.append(packet)
 
             with self._sriUpdateLock:
                 if EOS:
                     sri, _ = self.sriDict.pop(streamID, (None, None))
-
-            # If a flush occurred, always set the flag on the first packet;
-            # this may not be the packet that was just inserted if there were
-            # any EOS packets on the queue
-            if queue_flushed:
-                self.queue[0].inputQueueFlushed = True
 
             # Let one waiting getPacket call know there is a packet available
             self._dataAvailable.notify()
@@ -404,31 +410,66 @@ class InPort(object):
         sri_changed = set()
         saved_packets = collections.deque()
         for packet in self.queue:
-            if packet.EOS:
-                # Remove the SRI change flag for this stream, as further SRI
-                # changes apply to a different stream; set the SRI change flag
-                # for the EOS packet if there was one for this stream earlier
-                # in the queue
-                if packet.streamID in sri_changed:
-                    packet.sriChanged = True
-                sri_changed.discard(packet.streamID)
+            current_empty = (len(packet.buffer) == 0)
+            current_eos = packet.EOS
+            _streamid = packet.streamID
 
-                # Discard data (using a 0-length slice works with any sequence)
-                # and preserve the EOS packet
-                packet.buffer = packet.buffer[:0]
-                packet.inputQueueFlushed = False
+            if current_eos:
+                if (sri_changed.discard(_streamid)):
+                    packet.sriChanged = True
+            else:
+                if packet.sriChanged:
+                    sri_changed.add(_streamid)
+                if _streamid in sri_changed:
+                    packet.sriChanged = True
+            
+            past_instances = []
+            previous_iter = None
+            for saved_packet in saved_packets:
+                _now_streamid = saved_packet.streamID
+                if _streamid != _now_streamid:
+                    continue
+                past_instances.append(saved_packet)
+                previous_iter = saved_packet
+            
+            if len(past_instances) == 0:
                 saved_packets.append(packet)
-            elif packet.sriChanged:
-                sri_changed.add(packet.streamID)
+            else:
+                previous = past_instances[-1]
+                previous_eos = previous.EOS
+                previous_new_sri = previous.sriChanged
+                if not previous_eos:
+                    if not current_eos:
+                        if previous_new_sri:
+                            packet.sriChanged = True
+                        saved_packets.remove(previous_iter)
+                        packet.inputQueueFlushed = True
+                        saved_packets.append(packet)
+                    else:
+                        if current_empty:
+                            previous_iter.EOS = True
+                        else:
+                            if not previous_eos:
+                                packet.inputQueueFlushed = True
+                            saved_packets.remove(previous_iter)
+                            if previous_new_sri:
+                                packet.sriChanged = True
+                            packet.EOS = True
+                            saved_packets.append(packet)
+                else:
+                    packet.inputQueueFlushed = True
+                    if (current_empty and current_eos):
+                        packet.inputQueueFlushed = False
+                    saved_packets.append(packet)
 
         self.queue = saved_packets
 
-        for stream_id in sri_changed:
+        #for stream_id in sri_changed:
             # It should be safe to assume that an entry exists for the stream
             # ID, but just in case, use get instead of operator[]
-            sri, _ = self.sriDict.get(stream_id, (None, None))
-            if sri is not None:
-                self.sriDict[stream_id] = (sri, True)
+        #    sri, _ = self.sriDict.get(stream_id, (None, None))
+        #    if sri is not None:
+        #        self.sriDict[stream_id] = (sri, True)
 
     def _acceptPacket(self, streamID, EOS):
         # Acquire streamsMutex for the duration of this call to ensure that

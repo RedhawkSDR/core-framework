@@ -167,7 +167,7 @@ class InPortTest(object):
         # Push a packet of data to trigger meaningful statistics
         sri = bulkio.sri.create("port_stats")
         self.port.pushSRI(sri)
-        self._pushTestPacket(1024, bulkio.timestamp.now(), False, sri.streamID);
+        self._pushTestPacket(1024, bulkio.timestamp.now(), False, sri.streamID)
 
         # Check that the statistics report the right element size
         stats = self.port._get_statistics()
@@ -289,7 +289,7 @@ class InPortTest(object):
         stream_id = 'invalid_stream'
 
         # Turn off the port's logging to avoid dumping a warning to the screen
-        self.port.getLogger().setLevel(logging.OFF);
+        self.port.getLogger().setLevel(logging.OFF)
 
         # Push data without an SRI to check that the sriChanged flag is still
         # set and the SRI callback gets called
@@ -301,7 +301,7 @@ class InPortTest(object):
         self.failUnless(packet.sriChanged)
         self.failIf(listener.sri is None)
         
-        # Push again to the same stream ID; sriChanged should now be false and the
+        # Push again to the same stream ID; sriChanged should now be False and the
         # SRI callback should not get called
         listener.reset()
         self._pushTestPacket(100, bulkio.timestamp.now(), False, stream_id)
@@ -401,6 +401,403 @@ class InPortTest(object):
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failUnless(not packet.dataBuffer)
 
+    def testQueueFlushScenarios(self):
+        # Establish all the streams as "active"
+
+        # Push 1 packet for stream_A
+        stream_A = bulkio.sri.create("stream_A")
+        stream_A.blocking = False
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(1, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        # Push 1 packet for stream_B
+        stream_B = bulkio.sri.create("stream_B")
+        stream_B.blocking = False
+        self.port.pushSRI(stream_B)
+        self._pushTestPacket(2, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        # Push 1 packet for stream_C
+        stream_C = bulkio.sri.create("stream_C")
+        stream_C.blocking = False
+        self.port.pushSRI(stream_C)
+        self._pushTestPacket(3, bulkio.timestamp.now(), False, stream_C.streamID)
+
+        # empty the queue
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertEqual(stream_A.streamID, packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertEqual(stream_B.streamID, packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertEqual(stream_C.streamID, packet.streamID)
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 1
+        self._pushTestPacket(4, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(5, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(6, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(7, bulkio.timestamp.now(), False, stream_C.streamID)
+        self.port.setMaxQueueDepth(4)
+        # flush
+        self._pushTestPacket(8, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(6, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(7, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(8, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 2
+        self.port.setMaxQueueDepth(6)
+        self._pushTestPacket(7, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(8, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(9, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(10, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(11, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(12, bulkio.timestamp.now(), False, stream_C.streamID)
+        # flush
+        self._pushTestPacket(13, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(11, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(12, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(13, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        self.port.setMaxQueueDepth(5)
+        # Test case 3
+        self._pushTestPacket(11, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(12, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(0, bulkio.timestamp.now(), True, stream_B.streamID)
+        self._pushTestPacket(13, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(14, bulkio.timestamp.now(), False, stream_C.streamID)
+        # flush
+        self._pushTestPacket(15, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(12, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(14, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(15, len(packet.dataBuffer))
+
+        # Establish all the streams as "active"
+        self.port.setMaxQueueDepth(3)
+        # Push 1 packet for stream_A
+        stream_A = bulkio.sri.create("stream_A")
+        stream_A.blocking = False
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(14, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        # Push 1 packet for stream_B
+        stream_B = bulkio.sri.create("stream_B")
+        stream_B.blocking = False
+        self.port.pushSRI(stream_B)
+        self._pushTestPacket(15, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        # Push 1 packet for stream_C
+        stream_C = bulkio.sri.create("stream_C")
+        stream_C.blocking = False
+        self.port.pushSRI(stream_C)
+        self._pushTestPacket(16, bulkio.timestamp.now(), False, stream_C.streamID)
+
+        # empty the queue
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 4
+        self.port.setMaxQueueDepth(3)
+        self._pushTestPacket(0, bulkio.timestamp.now(), True, stream_B.streamID)
+        self._pushTestPacket(17, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(18, bulkio.timestamp.now(), False, stream_C.streamID)
+        # flush
+        self._pushTestPacket(19, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEquals(0, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(18, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(19, len(packet.dataBuffer))
+
+        # Establish all the streams as "active"
+        self.port.setMaxQueueDepth(3)
+        # Push 1 packet for stream_A
+        stream_A = bulkio.sri.create("stream_A")
+        stream_A.blocking = False
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(19, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        # Push 1 packet for stream_B
+        stream_B = bulkio.sri.create("stream_B")
+        stream_B.blocking = False
+        self.port.pushSRI(stream_B)
+        self._pushTestPacket(20, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        # Push 1 packet for stream_C
+        stream_C = bulkio.sri.create("stream_C")
+        stream_C.blocking = False
+        self.port.pushSRI(stream_C)
+        self._pushTestPacket(21, bulkio.timestamp.now(), False, stream_C.streamID)
+
+        # empty the queue
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 5
+        self.port.setMaxQueueDepth(3)
+        self._pushTestPacket(22, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(0, bulkio.timestamp.now(), True, stream_A.streamID)
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(23, bulkio.timestamp.now(), False, stream_A.streamID)
+        # flush
+        self._pushTestPacket(24, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(22, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(24, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 5a
+        self.port.setMaxQueueDepth(4)
+        self._pushTestPacket(21, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(22, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(0, bulkio.timestamp.now(), True, stream_A.streamID)
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(23, bulkio.timestamp.now(), False, stream_A.streamID)
+        # flush
+        self._pushTestPacket(24, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(22, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(24, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        # Test case 6
+        self.port.setMaxQueueDepth(3)
+        self._pushTestPacket(0, bulkio.timestamp.now(), True, stream_A.streamID)
+        self._pushTestPacket(25, bulkio.timestamp.now(), False, stream_B.streamID)
+        self._pushTestPacket(26, bulkio.timestamp.now(), False, stream_B.streamID)
+        # flush
+        if stream_A.mode:
+            stream_A.mode = 0
+        else:
+            stream_A.mode = 1
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(27, bulkio.timestamp.now(), False, stream_A.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(0, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(26, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(27, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
+        self.port.setMaxQueueDepth(2)
+        if (stream_A.mode):
+            stream_A.mode = 0
+        else:
+            stream_A.mode = 1
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(28, bulkio.timestamp.now(), False, stream_A.streamID)
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(28, len(packet.dataBuffer))
+
+        # Test case 7
+        self.port.setMaxQueueDepth(4)
+        if (stream_A.mode):
+            stream_A.mode = 0
+        else:
+            stream_A.mode = 1
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(28, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(29, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(30, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(31, bulkio.timestamp.now(), False, stream_C.streamID)
+        # flush
+        self._pushTestPacket(32, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(30, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(31, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(32, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
     def testQueueFlushFlags(self):
         """
         Tests that EOS and sriChanged flags are preserved on a per-stream basis
@@ -441,42 +838,58 @@ class InPortTest(object):
         self._pushTestPacket(0, bulkio.timestamp.notSet(), True, sri_eos.streamID)
 
         # Modify the SRI for the SRI change stream and push another packet
-        sri_change.mode = 1
+        if sri_change.mode:
+            sri_change.mode = 0
+        else:
+            sri_change.mode = 1
         self.port.pushSRI(sri_change)
         self._pushTestPacket(2, bulkio.timestamp.now(), False, sri_change.streamID)
+        self._pushTestPacket(3, bulkio.timestamp.now(), False, sri_change.streamID)
 
         # Cause a queue flush by lowering the ceiling and pushing packets
-        self.port.setMaxQueueDepth(3)
-        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_data.streamID)
-        self._pushTestPacket(1, bulkio.timestamp.now(), False, sri_data.streamID)
+        self.port.setMaxQueueDepth(4)
+        self._pushTestPacket(4, bulkio.timestamp.now(), False, sri_data.streamID)
+        self._pushTestPacket(5, bulkio.timestamp.now(), False, sri_data.streamID)
+        self.port.setMaxQueueDepth(6)
 
         # Push another packet for the SRI change stream
-        self._pushTestPacket(2, bulkio.timestamp.now(), False, sri_change.streamID)
+        self._pushTestPacket(6, bulkio.timestamp.now(), False, sri_change.streamID)
 
         # 1st packet should be for EOS stream, with no data or SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(packet is None)
         self.assertEqual(sri_eos.streamID, packet.streamID)
-        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.inputQueueFlushed)
         self.assertTrue(packet.EOS)
-        self.assertFalse(packet.sriChanged)
+        self.assertTrue(not packet.sriChanged)
         self.assertEqual(0, len(packet.dataBuffer))
 
-        # 2nd packet should be for data stream, with no EOS or SRI change flag
+        # 2nd packet should be for no EOS stream, data from the third packet on the queue, with "lost" SRI change flag from the second packet
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.failIf(packet is None)
+        self.assertEqual(sri_change.streamID, packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertFalse(packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(3, len(packet.dataBuffer))
+
+        # 3rd packet should be for no EOS stream, with data (since it did the push that flushed the queue), no SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(packet is None)
         self.assertEqual(sri_data.streamID, packet.streamID)
-        self.assertFalse(packet.inputQueueFlushed)
+        self.assertTrue(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
         self.assertFalse(packet.sriChanged)
+        self.assertEqual(5, len(packet.dataBuffer))
 
-        # 3rd packet should contain the "lost" SRI change flag
+        # 4th packet should be for stream_sri stream, with no EOS or SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.failIf(packet is None)
         self.assertEqual(sri_change.streamID, packet.streamID)
         self.assertFalse(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
-        self.assertTrue(packet.sriChanged)
+        self.assertFalse(packet.sriChanged)
+        self.assertEqual(6, len(packet.dataBuffer))
 
     def testQueueSize(self):
         """
