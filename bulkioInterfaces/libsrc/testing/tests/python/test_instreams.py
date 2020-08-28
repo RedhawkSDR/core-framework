@@ -627,6 +627,51 @@ class BufferedInStreamTest(InStreamTest):
         number_alive_streams = len(active_sris)
         self.assertEqual(number_alive_streams, 3)
 
+        # Test case 8
+        self.port.setMaxQueueDepth(3)
+        if (stream_A.mode):
+            stream_A.mode = 0
+        else:
+            stream_A.mode = 1
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(28, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(29, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(30, bulkio.timestamp.now(), False, stream_A.streamID)
+        # flush
+        self._pushTestPacket(32, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        stream = self.port.getCurrentStream()
+        self.assertEqual(stream.streamID, stream_C.streamID)
+        block = stream.read()
+        self.failIf(not block)
+        self.assertTrue(not block.inputQueueFlushed)
+        self.assertTrue(not stream.eos())
+        self.assertTrue(not block.sriChanged)
+        self.assertEqual(29, len(block.buffer))
+
+        stream = self.port.getCurrentStream()
+        self.assertEqual(stream.streamID, stream_A.streamID)
+        block = stream.read()
+        self.failIf(not block)
+        self.assertTrue(block.inputQueueFlushed)
+        self.assertTrue(not stream.eos())
+        self.assertTrue(block.sriChanged)
+        self.assertEqual(30, len(block.buffer))
+
+        stream = self.port.getCurrentStream()
+        self.assertEqual(stream.streamID, stream_B.streamID)
+        block = stream.read()
+        self.failIf(not block)
+        self.assertTrue(not block.inputQueueFlushed)
+        self.assertTrue(not stream.eos())
+        self.assertTrue(not block.sriChanged)
+        self.assertEqual(32, len(block.buffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
     def testSizedReadEmptyEos(self):
         stream_id = "read_empty_eos"
 

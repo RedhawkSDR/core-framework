@@ -865,6 +865,50 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         active_sris = corbaPort.activeSRIs();
         number_alive_streams = active_sris.length;
         Assert.assertEquals(number_alive_streams, 3);
+
+        // Test case 8
+        port.setMaxQueueDepth(3);
+        old_mode = stream_A.mode;
+        stream_A = bulkio.sri.utils.create("stream_A");
+        stream_A.blocking = false;
+        if (old_mode == 1) {
+            stream_A.mode = 0;
+        } else {
+            stream_A.mode = 1;
+        }
+        corbaPort.pushSRI(stream_A);
+        helper.pushTestPacket(port, 28, bulkio.time.utils.now(), false, stream_A.streamID);
+        helper.pushTestPacket(port, 29, bulkio.time.utils.now(), false, stream_C.streamID);
+        helper.pushTestPacket(port, 30, bulkio.time.utils.now(), false, stream_A.streamID);
+        // flush
+        helper.pushTestPacket(port, 32, bulkio.time.utils.now(), false, stream_B.streamID);
+
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_C.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(29, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_A.streamID, packet.streamID);
+        Assert.assertTrue(packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(packet.sriChanged);
+        Assert.assertEquals(30, helper.dataLength(packet.dataBuffer));
+        packet = port.getPacket(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(packet);
+        Assert.assertEquals(stream_B.streamID, packet.streamID);
+        Assert.assertTrue(!packet.inputQueueFlushed);
+        Assert.assertTrue(!packet.EOS);
+        Assert.assertTrue(!packet.sriChanged);
+        Assert.assertEquals(32, helper.dataLength(packet.dataBuffer));
+
+        Assert.assertEquals(port.getCurrentQueueDepth(), 0);
+        active_sris = corbaPort.activeSRIs();
+        number_alive_streams = active_sris.length;
+        Assert.assertEquals(number_alive_streams, 3);
     }
 
     @Test

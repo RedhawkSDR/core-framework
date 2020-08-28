@@ -798,6 +798,46 @@ class InPortTest(object):
         number_alive_streams = len(active_sris)
         self.assertEqual(number_alive_streams, 3)
 
+        # Test case 8
+        self.port.setMaxQueueDepth(3)
+        if (stream_A.mode):
+            stream_A.mode = 0
+        else:
+            stream_A.mode = 1
+        self.port.pushSRI(stream_A)
+        self._pushTestPacket(28, bulkio.timestamp.now(), False, stream_A.streamID)
+        self._pushTestPacket(29, bulkio.timestamp.now(), False, stream_C.streamID)
+        self._pushTestPacket(30, bulkio.timestamp.now(), False, stream_A.streamID)
+        # flush
+        self._pushTestPacket(32, bulkio.timestamp.now(), False, stream_B.streamID)
+
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_C.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(29, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_A.streamID), packet.streamID)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(packet.sriChanged)
+        self.assertEqual(30, len(packet.dataBuffer))
+        packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
+        self.assertTrue(packet)
+        self.assertEqual(str(stream_B.streamID), packet.streamID)
+        self.assertTrue(not packet.inputQueueFlushed)
+        self.assertTrue(not packet.EOS)
+        self.assertTrue(not packet.sriChanged)
+        self.assertEqual(32, len(packet.dataBuffer))
+
+        self.assertEqual(self.port.getCurrentQueueDepth(), 0)
+        active_sris = self.port._get_activeSRIs()
+        number_alive_streams = len(active_sris)
+        self.assertEqual(number_alive_streams, 3)
+
     def testQueueFlushFlags(self):
         """
         Tests that EOS and sriChanged flags are preserved on a per-stream basis
