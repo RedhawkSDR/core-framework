@@ -23,6 +23,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include <bulkio/bulkio_in_port.h>
+#include "bulkio.h"
 
 template <class Port>
 class InPortTestFixture : public CppUnit::TestFixture

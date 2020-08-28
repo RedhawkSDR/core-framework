@@ -40,7 +40,6 @@ class InPortTest : public InPortTestFixture<Port>
     CPPUNIT_TEST(testSriChangedInvalidStream);
     CPPUNIT_TEST(testStatistics);
     CPPUNIT_TEST(testDiscardEmptyPacket);
-    CPPUNIT_TEST(testQueueFlushScenarios);
     CPPUNIT_TEST(testQueueFlushFlags);
     CPPUNIT_TEST(testQueueSize);
     CPPUNIT_TEST_SUITE_END();
@@ -58,7 +57,6 @@ public:
     void testSriChangedInvalidStream();
     void testStatistics();
     void testDiscardEmptyPacket();
-    void testQueueFlushScenarios();
     void testQueueFlushFlags();
     void testQueueSize();
 
@@ -68,6 +66,25 @@ protected:
 
     static const size_t BITS_PER_ELEMENT;
 
+    using TestBase::port;
+};
+
+template <class Port>
+class NumericInPortTest : public InPortTest<Port>
+{
+    typedef InPortTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericInPortTest, TestBase);
+    CPPUNIT_TEST(testQueueFlushScenarios);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testQueueFlushScenarios();
+
+protected:
+    typedef typename Port::dataTransfer PacketType;
+    typedef typename Port::CorbaType CorbaType;
+
+private:
     using TestBase::port;
 };
 
