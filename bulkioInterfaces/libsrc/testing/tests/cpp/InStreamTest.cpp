@@ -342,6 +342,26 @@ void BufferedInStreamTest<Port>::testReadPartial()
 }
 
 template <class Port>
+void BufferedInStreamTest<Port>::testConsumeMoreThanRead()
+{
+    const char* stream_id = "consume_more_than_read";
+
+    // Create a new stream and push some data to it
+    BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
+    port->pushSRI(sri);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), true, stream_id);
+    this->_pushTestPacket(1024, bulkio::time::utils::now(), true, stream_id);
+
+    // Get the input stream and read the first packet
+    StreamType stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    DataBlockType block = stream.read(1000,2000);
+    CPPUNIT_ASSERT_EQUAL((size_t) 1000, block.buffer().size());
+    block = stream.read();
+    CPPUNIT_ASSERT_EQUAL((size_t) 48, block.buffer().size());
+}
+
+template <class Port>
 void BufferedInStreamTest<Port>::testReadTimestamps()
 {
     const char* stream_id = "read_timestamps";
