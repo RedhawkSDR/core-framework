@@ -336,6 +336,23 @@ class BufferedInStreamTest(InStreamTest):
         block = stream.read(10000)
         self.failUnless(not block)
 
+    def testConsumeMoreThanRead(self):
+        stream_id = "consume_more_than_read"
+
+        # Create a new stream and push some data to it
+        sri = bulkio.sri.create(stream_id)
+        self.port.pushSRI(sri)
+        self._pushTestPacket(1024, bulkio.timestamp.now(), False, stream_id)
+        self._pushTestPacket(1024, bulkio.timestamp.now(), True, stream_id)
+
+        # Get the input stream and read the first packet
+        stream = self.port.getStream(stream_id)
+        self.failIf(not stream)
+        block = stream.read(1000, 2000)
+        self.assertEqual(1000, len(block.buffer))
+        block = stream.read()
+        self.assertEqual(48, len(block.buffer))
+
     def testReadMultiplePackets(self):
         sri = bulkio.sri.create('multiple_packets')
         self.port.pushSRI(sri)
