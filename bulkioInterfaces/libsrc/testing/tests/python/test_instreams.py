@@ -352,6 +352,23 @@ class BufferedInStreamTest(InStreamTest):
         self.assertEqual(1000, len(block.buffer))
         block = stream.read()
         self.assertEqual(48, len(block.buffer))
+        block = stream.read()
+        self.failUnless(not block)
+
+        self.port.pushSRI(sri)
+        self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
+        block = stream.read(800, 900)
+        self.assertEqual(800, len(block.buffer))
+        block = stream.read()
+        self.assertEqual(100, len(block.buffer))
+        block = stream.read()
+        self.failUnless(not block)
+
+        self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
+        block = stream.read(800, 900)
+        self.assertEqual(800, len(block.buffer))
+        block = stream.read()
+        self.assertEqual(100, len(block.buffer))
 
     def testReadMultiplePackets(self):
         sri = bulkio.sri.create('multiple_packets')

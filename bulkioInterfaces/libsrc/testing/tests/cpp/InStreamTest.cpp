@@ -20,6 +20,7 @@
 
 #include "InStreamTest.h"
 #include "bulkio.h"
+#include <boost/thread.hpp>
 
 template <class Port>
 void InStreamTest<Port>::testTimestamp()
@@ -352,6 +353,14 @@ void BufferedInStreamTest<Port>::testReadPartial()
 }
 
 template <class Port>
+void BufferedInStreamTest<Port>::_run()
+{
+    DataBlockType thread_block = thread_stream.read(800, 1100);
+    // if it does not block, the test fails
+    CPPUNIT_ASSERT(false);
+}
+
+template <class Port>
 void BufferedInStreamTest<Port>::testConsumeMoreThanRead()
 {
     const char* stream_id = "consume_more_than_read";
@@ -369,6 +378,46 @@ void BufferedInStreamTest<Port>::testConsumeMoreThanRead()
     CPPUNIT_ASSERT_EQUAL((size_t) 1000, block.buffer().size());
     block = stream.read();
     CPPUNIT_ASSERT_EQUAL((size_t) 48, block.buffer().size());
+    block = stream.read();
+    CPPUNIT_ASSERT(!block);
+
+    port->pushSRI(sri);
+    this->_pushTestPacket(1000, bulkio::time::utils::now(), false, stream_id);
+    stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    block = stream.read(800, 900);
+    CPPUNIT_ASSERT_EQUAL((size_t) 800, block.buffer().size());
+    block = stream.read();
+    CPPUNIT_ASSERT_EQUAL((size_t) 100, block.buffer().size());
+    block = stream.tryread();
+    CPPUNIT_ASSERT(!block);
+
+    this->_pushTestPacket(1000, bulkio::time::utils::now(), false, stream_id);
+    thread_stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!thread_stream, false);
+    // kick off in thread
+    boost::thread _thread = boost::thread(&BufferedInStreamTest<Port>::_run, this);
+    // wait some time and kill the thread
+    usleep(1e5);
+    _thread.interrupt();
+    _thread.join();
+    this->_pushTestPacket(1000, bulkio::time::utils::now(), false, stream_id);
+    block = thread_stream.read(800, 1100);
+    CPPUNIT_ASSERT_EQUAL((size_t) 800, block.buffer().size());
+    block = thread_stream.read();
+    CPPUNIT_ASSERT_EQUAL((size_t) 900, block.buffer().size());
+    block = thread_stream.tryread();
+    CPPUNIT_ASSERT(!block);
+
+    this->_pushTestPacket(1000, bulkio::time::utils::now(), false, stream_id);
+    stream = port->getStream(stream_id);
+    CPPUNIT_ASSERT_EQUAL(!stream, false);
+    block = stream.tryread(800, 1100);
+    CPPUNIT_ASSERT(!block);
+    block = stream.read();
+    CPPUNIT_ASSERT_EQUAL((size_t) 1000, block.buffer().size());
+    block = stream.tryread();
+    CPPUNIT_ASSERT(!block);
 }
 
 template <class Port>

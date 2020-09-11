@@ -76,6 +76,7 @@ public:
     void testTryreadPeek();
     void testReadPeek();
     void testReadPartial();
+    void _run();
     void testConsumeMoreThanRead();
     void testReadTimestamps();
     void testRepeatStreamIds();
@@ -85,6 +86,7 @@ public:
 protected:
     typedef typename Port::StreamType StreamType;
     typedef typename StreamType::DataBlockType DataBlockType;
+    StreamType thread_stream;
 
     using TestBase::port;
 };
