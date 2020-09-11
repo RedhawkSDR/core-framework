@@ -572,7 +572,7 @@ class BufferedInputStream(InputStream):
         # Handle a partial read, which could mean that there's not enough data
         # at present (non-blocking), or that the read pointer has reached the
         # end of a segment (new SRI, queue flush, end-of-stream)
-        if samples < count:
+        if samples < requested:
             # Non-blocking: return None if there's not currently a break in the
             # data, under the assumption that a future read might return the
             # full amount

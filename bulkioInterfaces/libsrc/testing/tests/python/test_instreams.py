@@ -29,6 +29,8 @@ import bulkio
 from bulkio.bulkioInterfaces import BULKIO
 
 from helpers import *
+import threading as _threading
+import time as _time
 
 class InStreamTest(object):
     def setUp(self):
@@ -336,6 +338,9 @@ class BufferedInStreamTest(InStreamTest):
         block = stream.read(10000)
         self.failUnless(not block)
 
+    def _run(self, thread_stream):
+        self.thread_block = thread_stream.read(800, 1100)
+
     def testConsumeMoreThanRead(self):
         stream_id = "consume_more_than_read"
 
@@ -357,18 +362,38 @@ class BufferedInStreamTest(InStreamTest):
 
         self.port.pushSRI(sri)
         self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
+        stream = self.port.getStream(stream_id)
         block = stream.read(800, 900)
         self.assertEqual(800, len(block.buffer))
         block = stream.read()
         self.assertEqual(100, len(block.buffer))
-        block = stream.read()
+        block = stream.tryread()
         self.failUnless(not block)
 
         self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
-        block = stream.read(800, 900)
-        self.assertEqual(800, len(block.buffer))
+        self.thread_block = None
+        _runThread = _threading.Thread(target=self._run,args=([stream]))
+        _runThread.setDaemon(True)
+        _runThread.start()
+        _runThread.join(0.1)
+        self.assertTrue(_runThread.isAlive())
+
+        self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
+        _time.sleep(0.1)
+        self.assertEqual(800, len(self.thread_block.buffer))
         block = stream.read()
-        self.assertEqual(100, len(block.buffer))
+        self.assertEqual(900, len(block.buffer))
+        block = stream.tryread()
+        self.failUnless(not block)
+
+        self.port.pushSRI(sri)
+        self._pushTestPacket(1000, bulkio.timestamp.now(), False, stream_id)
+        block = stream.tryread(800, 1100)
+        self.failUnless(not block)
+        block = stream.read()
+        self.assertEqual(1000, len(block.buffer))
+        block = stream.tryread()
+        self.failUnless(not block)
 
     def testReadMultiplePackets(self):
         sri = bulkio.sri.create('multiple_packets')
