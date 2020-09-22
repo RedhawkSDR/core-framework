@@ -193,14 +193,14 @@ class GPP_i : public GPP_base
                 UpdateThresholdSupplier(std::string port_name) : MessageSupplierPort(port_name) {
                 };
 
-                void send(plugin_update_threshold_struct &in_update_threshold) {
+                void send(plugin_set_threshold_struct &in_set_threshold) {
                     CF::Properties outProps;
                     CORBA::Any data;
                     outProps.length(1);
-                    outProps[0].id = CORBA::string_dup("plugin::update_threshold");
-                    outProps[0].value <<= in_update_threshold;
+                    outProps[0].id = CORBA::string_dup("plugin::set_threshold");
+                    outProps[0].value <<= in_set_threshold;
                     data <<= outProps;
-                    push(data, in_update_threshold.plugin_id);
+                    push(data, in_set_threshold.plugin_id);
                 };
         };
 

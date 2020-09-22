@@ -666,10 +666,10 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <simple type="string" id="plugin::update_metric::metric_threshold_value" name="metric_threshold_value"/>
         <configurationkind kindtype="property"/>
     </struct>
-    <struct id="plugin::update_threshold" name="plugin_update_threshold">
-        <simple type="string" id="plugin::update_threshold::plugin_id" name="plugin_id"/>
-        <simple type="string" id="plugin::update_threshold::metric_name" name="metric_name"/>
-        <simple type="string" id="plugin::update_threshold::metric_threshold_value" name="metric_threshold_value"/>
+    <struct id="plugin::set_threshold" name="plugin_set_threshold">
+        <simple type="string" id="plugin::set_threshold::plugin_id" name="plugin_id"/>
+        <simple type="string" id="plugin::set_threshold::metric_name" name="metric_name"/>
+        <simple type="string" id="plugin::set_threshold::metric_threshold_value" name="metric_threshold_value"/>
         <configurationkind kindtype="message"/>
     </struct>
 </properties>

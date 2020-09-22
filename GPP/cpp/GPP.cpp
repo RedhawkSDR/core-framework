@@ -562,7 +562,7 @@ void GPP_i::postConstruction (std::string &profile,
 
 void GPP_i::_plugin_threshold_changed(const plugin_update_metric_struct& old_metric, const plugin_update_metric_struct& new_metric)
 {
-    plugin_update_threshold_struct update_message;
+    plugin_set_threshold_struct update_message;
     update_message.plugin_id = new_metric.plugin_id;
     update_message.metric_name = new_metric.metric_name;
     update_message.metric_threshold_value = new_metric.metric_threshold_value;

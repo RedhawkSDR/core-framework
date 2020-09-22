@@ -975,13 +975,13 @@ inline bool operator!= (const plugin_update_metric_struct& s1, const plugin_upda
     return !(s1==s2);
 }
 
-struct plugin_update_threshold_struct {
-    plugin_update_threshold_struct ()
+struct plugin_set_threshold_struct {
+    plugin_set_threshold_struct ()
     {
     }
 
     static std::string getId() {
-        return std::string("plugin::update_threshold");
+        return std::string("plugin::set_threshold");
     }
 
     static const char* getFormat() {
@@ -993,34 +993,34 @@ struct plugin_update_threshold_struct {
     std::string metric_threshold_value;
 };
 
-inline bool operator>>= (const CORBA::Any& a, plugin_update_threshold_struct& s) {
+inline bool operator>>= (const CORBA::Any& a, plugin_set_threshold_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("plugin::update_threshold::plugin_id")) {
-        if (!(props["plugin::update_threshold::plugin_id"] >>= s.plugin_id)) return false;
+    if (props.contains("plugin::set_threshold::plugin_id")) {
+        if (!(props["plugin::set_threshold::plugin_id"] >>= s.plugin_id)) return false;
     }
-    if (props.contains("plugin::update_threshold::metric_name")) {
-        if (!(props["plugin::update_threshold::metric_name"] >>= s.metric_name)) return false;
+    if (props.contains("plugin::set_threshold::metric_name")) {
+        if (!(props["plugin::set_threshold::metric_name"] >>= s.metric_name)) return false;
     }
-    if (props.contains("plugin::update_threshold::metric_threshold_value")) {
-        if (!(props["plugin::update_threshold::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
+    if (props.contains("plugin::set_threshold::metric_threshold_value")) {
+        if (!(props["plugin::set_threshold::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
     }
     return true;
 }
 
-inline void operator<<= (CORBA::Any& a, const plugin_update_threshold_struct& s) {
+inline void operator<<= (CORBA::Any& a, const plugin_set_threshold_struct& s) {
     redhawk::PropertyMap props;
  
-    props["plugin::update_threshold::plugin_id"] = s.plugin_id;
+    props["plugin::set_threshold::plugin_id"] = s.plugin_id;
  
-    props["plugin::update_threshold::metric_name"] = s.metric_name;
+    props["plugin::set_threshold::metric_name"] = s.metric_name;
  
-    props["plugin::update_threshold::metric_threshold_value"] = s.metric_threshold_value;
+    props["plugin::set_threshold::metric_threshold_value"] = s.metric_threshold_value;
     a <<= props;
 }
 
-inline bool operator== (const plugin_update_threshold_struct& s1, const plugin_update_threshold_struct& s2) {
+inline bool operator== (const plugin_set_threshold_struct& s1, const plugin_set_threshold_struct& s2) {
     if (s1.plugin_id!=s2.plugin_id)
         return false;
     if (s1.metric_name!=s2.metric_name)
@@ -1030,7 +1030,7 @@ inline bool operator== (const plugin_update_threshold_struct& s1, const plugin_u
     return true;
 }
 
-inline bool operator!= (const plugin_update_threshold_struct& s1, const plugin_update_threshold_struct& s2) {
+inline bool operator!= (const plugin_set_threshold_struct& s1, const plugin_set_threshold_struct& s2) {
     return !(s1==s2);
 }
 

@@ -525,10 +525,10 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
-    addProperty(plugin_update_threshold,
-                plugin_update_threshold_struct(),
-                "plugin::update_threshold",
-                "plugin_update_threshold",
+    addProperty(plugin_set_threshold,
+                plugin_set_threshold_struct(),
+                "plugin::set_threshold",
+                "plugin_set_threshold",
                 "readwrite",
                 "",
                 "external",

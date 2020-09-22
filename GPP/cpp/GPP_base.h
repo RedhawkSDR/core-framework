@@ -124,8 +124,8 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         plugin_message_struct plugin_message;
         /// Property: plugin_update_metric
         plugin_update_metric_struct plugin_update_metric;
-        /// Message structure definition for plugin_update_threshold
-        plugin_update_threshold_struct plugin_update_threshold;
+        /// Message structure definition for plugin_set_threshold
+        plugin_set_threshold_struct plugin_set_threshold;
         /// Property: nic_allocation_status
         std::vector<nic_allocation_status_struct_struct> nic_allocation_status;
         /// Property: nic_metrics
