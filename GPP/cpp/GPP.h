@@ -186,29 +186,13 @@ class GPP_i : public GPP_base
         void pluginMessage(const std::string& messageId, const plugin_message_struct& msgData);
         void launchPlugins();
 
-        class UpdateThresholdSupplier : public MessageSupplierPort {
-            ENABLE_LOGGING;
-
-            public:
-                UpdateThresholdSupplier(std::string port_name) : MessageSupplierPort(port_name) {
-                };
-
-                void send(plugin_set_threshold_struct &in_set_threshold) {
-                    CF::Properties outProps;
-                    CORBA::Any data;
-                    outProps.length(1);
-                    outProps[0].id = CORBA::string_dup("plugin::set_threshold");
-                    outProps[0].value <<= in_set_threshold;
-                    data <<= outProps;
-                    push(data, in_set_threshold.plugin_id);
-                };
-        };
-
-        UpdateThresholdSupplier* _update_metrics;
+        MessageSupplierPort* _update_metrics;
 
         protected:
 
         enum fork_msg { FORK_GO=1, FORK_WAIT=2 };
+        
+        std::map<std::string, CORBA::ULong> plugin_pid;
         
         struct check_fork_msg {
         check_fork_msg( GPP_i &gpp, const GPP_i::fork_msg &msg ):

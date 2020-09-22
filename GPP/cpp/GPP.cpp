@@ -493,7 +493,7 @@ void GPP_i::_init() {
   // check  reservation allocations 
   setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
 
-  _update_metrics = new UpdateThresholdSupplier("plugin_threshold_control");
+  _update_metrics = new MessageSupplierPort("plugin_threshold_control");
   PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(_update_metrics);
   _update_metrics->_remove_ref();
 
@@ -568,9 +568,11 @@ void GPP_i::_plugin_threshold_changed(const plugin_update_metric_struct& old_met
     update_message.metric_threshold_value = new_metric.metric_threshold_value;
     CF::Properties invalidProperties;
     try {
-        _update_metrics->send(update_message);
+        _update_metrics->sendMessage(update_message);
     } catch ( std::invalid_argument &e ) {
-        throw CF::PropertySet::InvalidConfiguration("Invalid plugin id", invalidProperties);
+        std::string msg("Invalid plugin id ");
+        msg += new_metric.plugin_id;
+        throw CF::PropertySet::InvalidConfiguration(msg.c_str(), invalidProperties);
     }
 }
 
@@ -580,6 +582,11 @@ void GPP_i::pluginRegistration(const std::string& messageId, const plugin_regist
 
     plugin_status_template_struct new_plugin;
     new_plugin.id = msgData.id;
+    if (plugin_pid.find(msgData.id) != plugin_pid.end()) {
+        new_plugin.pid = plugin_pid[msgData.id];
+    } else {
+        new_plugin.pid = 0;
+    }
     new_plugin.name = msgData.name;
     new_plugin.description = msgData.description;
     plugin_status.push_back(new_plugin);
@@ -634,20 +641,8 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
 
     if (msgData.busy) {
         plugin_status[plugin_idx].busy = true;
-        if (not _pluginBusy) {
-            _pluginBusy = true;
-            std::ostringstream oss;
-            oss << "Threshold: " <<  msgData.metric_threshold_value << " Actual: " << msgData.metric_recorded_value;
-            _setBusyReason(msgData.metric_reason, oss.str());
-        }
     } else {
         plugin_status[plugin_idx].busy = false;
-        if (_pluginBusy) {
-            _pluginBusy = false;
-            std::ostringstream oss;
-            oss << "Threshold: " <<  msgData.metric_threshold_value << " Actual: " << msgData.metric_recorded_value;
-            _setBusyReason(msgData.metric_reason, oss.str());
-        }
     }
 
     bool all_ok = true;
@@ -656,9 +651,6 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
             all_ok = false;
             break;
         }
-    }
-    if (all_ok) {
-        _pluginBusy = false;
     }
 
     all_ok = true;
@@ -694,11 +686,12 @@ void GPP_i::launchPlugins() {
         if (boost::filesystem::is_directory(itr->path())) {
             boost::filesystem::path found_plugin(itr->path());
             found_plugin /= itr->path().filename();
+            std::string plugin_id(ossie::generateUUID());
             if ((not boost::filesystem::is_directory(found_plugin)) and boost::filesystem::exists(found_plugin)) {
                 std::vector<std::string> args;
                 args.push_back(found_plugin.string());
                 args.push_back(ossie::corba::objectToString(this->metrics_in->_this()));
-                args.push_back(ossie::generateUUID());
+                args.push_back(plugin_id);
 
                 std::vector<char*> argv(args.size()+1, NULL);
                 for (std::size_t i = 0; i < args.size(); ++i) {
@@ -743,6 +736,8 @@ void GPP_i::launchPlugins() {
                         }
                     }
                     exit(returnval);
+                } else if (pid > 0) {
+                    plugin_pid[plugin_id] = pid;
                 } else if (pid < 0) {
                     std::cout<<"failed to launch"<<std::endl;
                 }
@@ -2057,7 +2052,17 @@ void GPP_i::updateUsageState()
             " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
             " NIC: " << std::endl << nic_message.str()
             );
-  
+
+    _pluginBusy = false;
+    for (unsigned int metrics_idx=0; metrics_idx != plugin_metric_status.size(); ++metrics_idx) {
+        if (plugin_metric_status[metrics_idx].busy) {
+            _pluginBusy = true;
+            std::ostringstream oss;
+            oss << "Threshold: " <<  plugin_metric_status[metrics_idx].metric_threshold_value << " Actual: " << plugin_metric_status[metrics_idx].metric_recorded_value;
+            _setBusyReason(plugin_metric_status[metrics_idx].metric_reason, oss.str());
+        }
+    }
+
   if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;

@@ -623,6 +623,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <simple type="string" id="plugin::status::description" name="description"/>
         <simple type="boolean" id="plugin::status::busy" name="busy"/>
         <simple type="boolean" id="plugin::status::alive" name="alive"/>
+        <simple type="ulong" id="plugin::status::pid" name="pid"/>
         <simplesequence type="string" id="plugin::status::metric_names" name="metric_names"/>
         <configurationkind kindtype="property"/>
     </struct>

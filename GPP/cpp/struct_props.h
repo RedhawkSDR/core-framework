@@ -1682,7 +1682,7 @@ struct plugin_status_template_struct {
     }
 
     static const char* getFormat() {
-        return "sssbb[s]";
+        return "sssbbI[s]";
     }
 
     std::string id;
@@ -1690,6 +1690,7 @@ struct plugin_status_template_struct {
     std::string description;
     bool busy;
     bool alive;
+    CORBA::ULong pid;
     std::vector<std::string> metric_names;
 };
 
@@ -1712,6 +1713,9 @@ inline bool operator>>= (const CORBA::Any& a, plugin_status_template_struct& s) 
     if (props.contains("plugin::status::alive")) {
         if (!(props["plugin::status::alive"] >>= s.alive)) return false;
     }
+    if (props.contains("plugin::status::pid")) {
+        if (!(props["plugin::status::pid"] >>= s.pid)) return false;
+    }
     if (props.contains("plugin::status::metric_names")) {
         if (!(props["plugin::status::metric_names"] >>= s.metric_names)) return false;
     }
@@ -1731,6 +1735,8 @@ inline void operator<<= (CORBA::Any& a, const plugin_status_template_struct& s) 
  
     props["plugin::status::alive"] = s.alive;
  
+    props["plugin::status::pid"] = s.pid;
+ 
     props["plugin::status::metric_names"] = s.metric_names;
     a <<= props;
 }
@@ -1745,6 +1751,8 @@ inline bool operator== (const plugin_status_template_struct& s1, const plugin_st
     if (s1.busy!=s2.busy)
         return false;
     if (s1.alive!=s2.alive)
+        return false;
+    if (s1.pid!=s2.pid)
         return false;
     if (s1.metric_names!=s2.metric_names)
         return false;
