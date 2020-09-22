@@ -120,8 +120,13 @@ class GPP_i : public GPP_base
         int sigchld_handler( int sig );
 
         int redirected_io_handler( );
-        
+
+        /// Port: metrics_in
+        MessageConsumerPort *metrics_in;
+
         std::vector<component_monitor_struct> get_component_monitor();
+        std::vector<plugin_metric_status_template_struct> get_plugin_metric_status();
+        std::vector<plugin_status_template_struct> get_plugin_status();
         
         struct proc_values {
             float mem_rss;

@@ -5,8 +5,8 @@
 #include <ossie/ExecutableDevice_impl.h>
 #include <ossie/ThreadedComponent.h>
 
-#include <ossie/MessageInterface.h>
 #include <ossie/PropertyInterface.h>
+#include <ossie/MessageInterface.h>
 #include "struct_props.h"
 
 class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
@@ -142,8 +142,6 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         std::vector<plugin_metric_status_template_struct> plugin_metric_status;
 
         // Ports
-        /// Port: metrics_in
-        MessageConsumerPort *metrics_in;
         /// Port: propEvent
         PropertyEventSupplier *propEvent;
         /// Port: MessageEvent_out

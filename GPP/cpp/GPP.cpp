@@ -391,10 +391,15 @@ GPP_i::GPP_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Propert
 
 GPP_i::~GPP_i()
 {
-
+    metrics_in->_remove_ref();
+    metrics_in = 0;
 }
 
 void GPP_i::_init() {
+
+    metrics_in = new MessageConsumerPort("metrics_in");
+    metrics_in->setLogger(this->_baseLog->getChildLogger("metrics_in", "ports"));
+    addPort("metrics_in", metrics_in);
 
   // get the user id
   uid_t tmp_user_id = getuid();
@@ -470,6 +475,8 @@ void GPP_i::_init() {
   utilization.push_back(cpu);
 
   setPropertyQueryImpl(this->component_monitor, this, &GPP_i::get_component_monitor);
+  setPropertyQueryImpl(this->plugin_status, this, &GPP_i::get_plugin_status);
+  setPropertyQueryImpl(this->plugin_metric_status, this, &GPP_i::get_plugin_metric_status);
 
   // tie allocation modifier callbacks to identifiers
 
@@ -615,21 +622,6 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     ReadLock rlock(monitorLock);
 
     std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.plugin_id, msgData.metric_name);
-    size_t metrics_idx = 0;
-    if (_plugin_metrics.find(plugin_metric_tuple) == _plugin_metrics.end()) {
-        plugin_metric_status.resize(plugin_metric_status.size()+1);
-        _plugin_metrics[plugin_metric_tuple].status_idx = plugin_metric_status.size()-1;
-    }
-
-    metrics_idx = _plugin_metrics[plugin_metric_tuple].status_idx;
-    plugin_metric_status[metrics_idx].busy = msgData.busy;
-    plugin_metric_status[metrics_idx].plugin_id = msgData.plugin_id;
-    plugin_metric_status[metrics_idx].metric_name = msgData.metric_name;
-    plugin_metric_status[metrics_idx].metric_timestamp = msgData.metric_timestamp;
-    plugin_metric_status[metrics_idx].metric_reason = msgData.metric_reason;
-    plugin_metric_status[metrics_idx].metric_threshold_value = msgData.metric_threshold_value;
-    plugin_metric_status[metrics_idx].metric_recorded_value = msgData.metric_recorded_value;
-
     _plugin_metrics[plugin_metric_tuple].busy = msgData.busy;
     _plugin_metrics[plugin_metric_tuple].name = msgData.metric_name;
     _plugin_metrics[plugin_metric_tuple].metric_timestamp = msgData.metric_timestamp;
@@ -639,30 +631,6 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
 
     size_t plugin_idx = _plugins[msgData.plugin_id].status_idx;
 
-    if (msgData.busy) {
-        plugin_status[plugin_idx].busy = true;
-    } else {
-        plugin_status[plugin_idx].busy = false;
-    }
-
-    bool all_ok = true;
-    for (unsigned int i=0; i<plugin_status.size(); i++) {
-        if (plugin_status[i].busy) {
-            all_ok = false;
-            break;
-        }
-    }
-
-    all_ok = true;
-    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin();it!=_plugin_metrics.end();++it) {
-        if (it->first.first == msgData.plugin_id) {
-            if (it->second.busy) {
-                all_ok = false;
-                break;
-            }
-        }
-    }
-    plugin_status[plugin_idx].busy = not all_ok;
     bool found_metric = false;
     for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
         if (*it == msgData.metric_name) {
@@ -846,6 +814,50 @@ void GPP_i::update_grp_child_pids() {
     BOOST_FOREACH(const int &_pid, parsed_stat_to_erase) {
         parsed_stat.erase(_pid);
     }
+}
+
+std::vector<plugin_metric_status_template_struct> GPP_i::get_plugin_metric_status() {
+
+    ReadLock rlock(monitorLock);
+
+    std::vector<plugin_metric_status_template_struct> retval;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        plugin_metric_status_template_struct tmp;
+        tmp.busy = it->second.busy;
+        tmp.plugin_id = it->first.first;
+        tmp.metric_name = it->second.name;
+        tmp.metric_timestamp = it->second.metric_timestamp;
+        tmp.metric_reason = it->second.metric_reason;
+        tmp.metric_threshold_value = it->second.metric_threshold_value;
+        tmp.metric_recorded_value = it->second.metric_recorded_value;
+        retval.push_back(tmp);
+    }
+
+    return retval;
+}
+
+std::vector<plugin_status_template_struct> GPP_i::get_plugin_status() {
+
+    ReadLock rlock(monitorLock);
+
+    std::map<std::string, bool> tmp_metrics;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        std::string plugin_id = it->first.first;
+        if (tmp_metrics.find(plugin_id) == tmp_metrics.end()) {
+            tmp_metrics[plugin_id] = it->second.busy;
+        } else {
+            if (it->second.busy) {
+                tmp_metrics[plugin_id] = true;
+            }
+        }
+    }
+
+    for (std::vector<plugin_status_template_struct>::iterator _ps=plugin_status.begin(); _ps!=plugin_status.end(); ++_ps) {
+        if (tmp_metrics.find(_ps->id) != tmp_metrics.end()) {
+            _ps->busy = tmp_metrics[_ps->id];
+        }
+    }
+    return plugin_status;
 }
 
 std::vector<component_monitor_struct> GPP_i::get_component_monitor() {

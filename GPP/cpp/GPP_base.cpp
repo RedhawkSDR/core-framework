@@ -40,8 +40,6 @@ GPP_base::GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::P
 
 GPP_base::~GPP_base()
 {
-    metrics_in->_remove_ref();
-    metrics_in = 0;
     propEvent->_remove_ref();
     propEvent = 0;
     MessageEvent_out->_remove_ref();
@@ -52,9 +50,6 @@ void GPP_base::construct()
 {
     loadProperties();
 
-    metrics_in = new MessageConsumerPort("metrics_in");
-    metrics_in->setLogger(this->_baseLog->getChildLogger("metrics_in", "ports"));
-    addPort("metrics_in", metrics_in);
     propEvent = new PropertyEventSupplier("propEvent");
     propEvent->setLogger(this->_baseLog->getChildLogger("propEvent", "ports"));
     addPort("propEvent", propEvent);
