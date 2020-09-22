@@ -840,7 +840,7 @@ struct plugin_message_struct {
 
     std::string plugin_id;
     std::string metric_name;
-    bool signal_busy;
+    bool busy;
     CF::UTCTime metric_timestamp;
     std::string metric_reason;
     std::string metric_threshold_value;
@@ -857,8 +857,8 @@ inline bool operator>>= (const CORBA::Any& a, plugin_message_struct& s) {
     if (props.contains("plugin::message::metric_name")) {
         if (!(props["plugin::message::metric_name"] >>= s.metric_name)) return false;
     }
-    if (props.contains("plugin::message::signal_busy")) {
-        if (!(props["plugin::message::signal_busy"] >>= s.signal_busy)) return false;
+    if (props.contains("plugin::message::busy")) {
+        if (!(props["plugin::message::busy"] >>= s.busy)) return false;
     }
     if (props.contains("plugin::message::metric_timestamp")) {
         if (!(props["plugin::message::metric_timestamp"] >>= s.metric_timestamp)) return false;
@@ -882,7 +882,7 @@ inline void operator<<= (CORBA::Any& a, const plugin_message_struct& s) {
  
     props["plugin::message::metric_name"] = s.metric_name;
  
-    props["plugin::message::signal_busy"] = s.signal_busy;
+    props["plugin::message::busy"] = s.busy;
  
     props["plugin::message::metric_timestamp"] = s.metric_timestamp;
  
@@ -899,7 +899,7 @@ inline bool operator== (const plugin_message_struct& s1, const plugin_message_st
         return false;
     if (s1.metric_name!=s2.metric_name)
         return false;
-    if (s1.signal_busy!=s2.signal_busy)
+    if (s1.busy!=s2.busy)
         return false;
     if (s1.metric_timestamp!=s2.metric_timestamp)
         return false;
@@ -1688,7 +1688,7 @@ struct plugin_status_template_struct {
     std::string id;
     std::string name;
     std::string description;
-    bool signal_busy;
+    bool busy;
     bool alive;
     std::vector<std::string> metric_names;
 };
@@ -1706,8 +1706,8 @@ inline bool operator>>= (const CORBA::Any& a, plugin_status_template_struct& s) 
     if (props.contains("plugin::status::description")) {
         if (!(props["plugin::status::description"] >>= s.description)) return false;
     }
-    if (props.contains("plugin::status::signal_busy")) {
-        if (!(props["plugin::status::signal_busy"] >>= s.signal_busy)) return false;
+    if (props.contains("plugin::status::busy")) {
+        if (!(props["plugin::status::busy"] >>= s.busy)) return false;
     }
     if (props.contains("plugin::status::alive")) {
         if (!(props["plugin::status::alive"] >>= s.alive)) return false;
@@ -1727,7 +1727,7 @@ inline void operator<<= (CORBA::Any& a, const plugin_status_template_struct& s) 
  
     props["plugin::status::description"] = s.description;
  
-    props["plugin::status::signal_busy"] = s.signal_busy;
+    props["plugin::status::busy"] = s.busy;
  
     props["plugin::status::alive"] = s.alive;
  
@@ -1742,7 +1742,7 @@ inline bool operator== (const plugin_status_template_struct& s1, const plugin_st
         return false;
     if (s1.description!=s2.description)
         return false;
-    if (s1.signal_busy!=s2.signal_busy)
+    if (s1.busy!=s2.busy)
         return false;
     if (s1.alive!=s2.alive)
         return false;
@@ -1770,7 +1770,7 @@ struct plugin_metric_status_template_struct {
 
     std::string plugin_id;
     std::string metric_name;
-    bool signal_busy;
+    bool busy;
     CF::UTCTime metric_timestamp;
     std::string metric_reason;
     std::string metric_threshold_value;
@@ -1787,8 +1787,8 @@ inline bool operator>>= (const CORBA::Any& a, plugin_metric_status_template_stru
     if (props.contains("plugin::metric_status::metric_name")) {
         if (!(props["plugin::metric_status::metric_name"] >>= s.metric_name)) return false;
     }
-    if (props.contains("plugin::metric_status::signal_busy")) {
-        if (!(props["plugin::metric_status::signal_busy"] >>= s.signal_busy)) return false;
+    if (props.contains("plugin::metric_status::busy")) {
+        if (!(props["plugin::metric_status::busy"] >>= s.busy)) return false;
     }
     if (props.contains("plugin::metric_status::metric_timestamp")) {
         if (!(props["plugin::metric_status::metric_timestamp"] >>= s.metric_timestamp)) return false;
@@ -1812,7 +1812,7 @@ inline void operator<<= (CORBA::Any& a, const plugin_metric_status_template_stru
  
     props["plugin::metric_status::metric_name"] = s.metric_name;
  
-    props["plugin::metric_status::signal_busy"] = s.signal_busy;
+    props["plugin::metric_status::busy"] = s.busy;
  
     props["plugin::metric_status::metric_timestamp"] = s.metric_timestamp;
  
@@ -1829,7 +1829,7 @@ inline bool operator== (const plugin_metric_status_template_struct& s1, const pl
         return false;
     if (s1.metric_name!=s2.metric_name)
         return false;
-    if (s1.signal_busy!=s2.signal_busy)
+    if (s1.busy!=s2.busy)
         return false;
     if (s1.metric_timestamp!=s2.metric_timestamp)
         return false;

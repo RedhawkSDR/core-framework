@@ -621,7 +621,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
         <simple type="string" id="plugin::status::id" name="id"/>
         <simple type="string" id="plugin::status::name" name="name"/>
         <simple type="string" id="plugin::status::description" name="description"/>
-        <simple type="boolean" id="plugin::status::signal_busy" name="signal_busy"/>
+        <simple type="boolean" id="plugin::status::busy" name="busy"/>
         <simple type="boolean" id="plugin::status::alive" name="alive"/>
         <simplesequence type="string" id="plugin::status::metric_names" name="metric_names"/>
         <configurationkind kindtype="property"/>
@@ -631,7 +631,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <struct id="plugin::metric_status::template" name="plugin_metric_status_template">
         <simple type="string" id="plugin::metric_status::plugin_id" name="plugin_id"/>
         <simple type="string" id="plugin::metric_status::metric_name" name="metric_name"/>
-        <simple type="boolean" id="plugin::metric_status::signal_busy" name="signal_busy"/>
+        <simple type="boolean" id="plugin::metric_status::busy" name="busy"/>
         <simple type="utctime" id="plugin::metric_status::metric_timestamp" name="metric_timestamp"/>
         <simple type="string" id="plugin::metric_status::metric_reason" name="metric_reason"/>
         <simple type="string" id="plugin::metric_status::metric_threshold_value" name="metric_threshold_value"/>
@@ -653,7 +653,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <struct id="plugin::message" name="plugin_message">
         <simple type="string" id="plugin::message::plugin_id" name="plugin_id"/>
         <simple type="string" id="plugin::message::metric_name" name="metric_name"/>
-        <simple type="boolean" id="plugin::message::signal_busy" name="signal_busy"/>
+        <simple type="boolean" id="plugin::message::busy" name="busy"/>
         <simple type="utctime" id="plugin::message::metric_timestamp" name="metric_timestamp"/>
         <simple type="string" id="plugin::message::metric_reason" name="metric_reason"/>
         <simple type="string" id="plugin::message::metric_threshold_value" name="metric_threshold_value"/>

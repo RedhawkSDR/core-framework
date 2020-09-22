@@ -239,7 +239,7 @@ class GPP_i : public GPP_base
           struct metric_description {
               std::string name;
               size_t status_idx;
-              bool signal_busy;
+              bool busy;
               std::string metric_reason;
               std::string metric_threshold_value;
               std::string metric_recorded_value;
