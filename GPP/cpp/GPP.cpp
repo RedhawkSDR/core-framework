@@ -837,7 +837,6 @@ std::vector<plugin_metric_status_template_struct> GPP_i::get_plugin_metric_statu
 }
 
 std::vector<plugin_status_template_struct> GPP_i::get_plugin_status() {
-
     ReadLock rlock(monitorLock);
 
     std::map<std::string, bool> tmp_metrics;
@@ -857,6 +856,7 @@ std::vector<plugin_status_template_struct> GPP_i::get_plugin_status() {
             _ps->busy = tmp_metrics[_ps->id];
         }
     }
+
     return plugin_status;
 }
 
@@ -2065,14 +2065,20 @@ void GPP_i::updateUsageState()
             " NIC: " << std::endl << nic_message.str()
             );
 
-    _pluginBusy = false;
-    for (unsigned int metrics_idx=0; metrics_idx != plugin_metric_status.size(); ++metrics_idx) {
-        if (plugin_metric_status[metrics_idx].busy) {
+    bool some_busy = false;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        if (it->second.busy) {
+            some_busy = true;
+            if (not _pluginBusy) {
+              std::ostringstream oss;
+              oss << "Threshold: " <<  it->second.metric_threshold_value << " Actual: " << it->second.metric_recorded_value;
+              _setBusyReason(it->second.metric_reason, oss.str());
+            }
             _pluginBusy = true;
-            std::ostringstream oss;
-            oss << "Threshold: " <<  plugin_metric_status[metrics_idx].metric_threshold_value << " Actual: " << plugin_metric_status[metrics_idx].metric_recorded_value;
-            _setBusyReason(plugin_metric_status[metrics_idx].metric_reason, oss.str());
         }
+    }
+    if (not some_busy) {
+      _pluginBusy = false;
     }
 
   if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {

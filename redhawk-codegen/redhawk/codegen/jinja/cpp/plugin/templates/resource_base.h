@@ -94,12 +94,12 @@ protected:
         message_out->connectPort(object, "metrics_out_connection");
 
         message_in = new MessageConsumerPort("threshold_control");
-        message_in->registerMessage("plugin::update_threshold", this, &${className}::updateThreshold);
+        message_in->registerMessage("plugin::set_threshold", this, &${className}::updateThreshold);
 
         _id = id;
     };
 
-    virtual void updateThreshold(const std::string& messageId, const plugin_update_threshold_struct& msgData) {};
+    virtual void updateThreshold(const std::string& messageId, const plugin_set_threshold_struct& msgData) {};
 
     GPPMetricSupplier* message_out;
     MessageConsumerPort* message_in;
