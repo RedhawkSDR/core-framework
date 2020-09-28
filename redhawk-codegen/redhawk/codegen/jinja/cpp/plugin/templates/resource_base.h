@@ -59,6 +59,7 @@ protected:
         message_in = new MessageConsumerPort("threshold_control");
         message_in->registerMessage("plugin::set_threshold", this, &${className}::updateThreshold);
 
+        // store the id provided by the GPP
         _id = id;
     };
 

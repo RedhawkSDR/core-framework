@@ -49,19 +49,39 @@ ${className}::~${className}(void)
 
 void ${className}::serviceFunction()
 {
-    // this is an example for the processing thread and status message
-    while (not _shutdown) {
-        usleep(5e5);
+    /* This is an example for the processing thread and status message
+     *
+     * The _shutdown boolean is managed by the plugin and is true when a shutdown signal
+     *  is received by the plugin
+     while (not _shutdown) {
+
         plugin_message_struct plugin_message;
         plugin_message.busy = true;              // set GPP to BUSY
+
+        // The member _id is provided by the GPP as part of the plugin registration on startup
         plugin_message.plugin_id = _id;         // _id is the instance id and is populated in the base class
+
+        // Name for the metric that is being checked. The list of metrics supported by the plugin is extended every time
+        //  a new metric sends a message to the plugin. There is no limit on the number of metrics that a plugin can
+        //  support
         plugin_message.metric_name = CORBA::string_dup("colors");
+
+        // The GPP keeps the timestamp for the most recent update from any of the plugin's supported metrics
         plugin_message.metric_timestamp = redhawk::time::utils::now();
+
+        // This is some human-readable string that provides insight into the reason why the state is busy
         plugin_message.metric_reason = CORBA::string_dup("should be green but got an orange");
+
+        // The busy/idle threshold value for the metric
         plugin_message.metric_threshold_value = CORBA::string_dup("green");
+
+        // The measured value for the metric
         plugin_message.metric_recorded_value = CORBA::string_dup("orange");
+
+        // Send the GPP the metric update
         this->message_out->sendMessage(plugin_message);
     }
+    */
 }
 
 void ${className}::updateThreshold(const std::string& messageId, const plugin_set_threshold_struct& msgData)
