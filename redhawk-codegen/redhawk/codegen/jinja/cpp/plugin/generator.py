@@ -21,7 +21,7 @@
 import os
 
 from redhawk.codegen.jinja.loader import CodegenLoader
-from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate, PkgconfigTemplate
+from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate, AutomakeTemplate, AutoconfTemplate, PkgconfigTemplate
 from redhawk.codegen.jinja.cpp import CppCodeGenerator, CppTemplate
 from mapping import PluginMapper
 
@@ -71,6 +71,7 @@ class GPPPluginGenerator(CppCodeGenerator):
             CppTemplate('resource_base.cpp', self.plugin_name+'_base.cpp'),
             CppTemplate('struct_props.h'),
             CppTemplate('main.cpp'),
+            SpecfileTemplate('plugin.spec', self.plugin_name+'.spec'),
             AutomakeTemplate('Makefile.am'),
             AutomakeTemplate('base/Makefile.am.ide', userfile=True),
             AutoconfTemplate('configure.ac'),
