@@ -83,6 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/codegen_version
 %{_bindir}/createBinaryComponent
 %{_bindir}/createOctaveComponent
+%{_bindir}/createGPPplugin
 %{_bindir}/moveComponentNamespace
 %{_bindir}/update_project
 %{_bindir}/redhawk-codegen
