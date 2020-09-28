@@ -37,16 +37,35 @@
 
 PREPARE_LOGGING(${className})
 
-${className}::${className}(std::string &IOR, std::string &id)
+${className}::${className}(std::string &IOR, std::string &id) :
+    plugin_running_mutex(),
+    plugin_running(&plugin_running_mutex)
 {
     connectPlugin(IOR, id);
+    _shutdown = false;
+}
+
+${className}::${className}() :
+    plugin_running_mutex(),
+    plugin_running(&plugin_running_mutex)
+{
+    _shutdown = false;
+}
+
+void ${className}::halt() {
+    _shutdown = true;
+    plugin_running.signal();
 }
 
 ${className}::~${className}(void)
 {
+    if (_thread) {
+        _thread->join();
+        delete _thread;
+    }
 }
 
 void ${className}::start()
 {
-    _thread = new boost::thread(&${className}::run, this);
+    _thread = new boost::thread(&${className}::serviceFunction, this);
 }

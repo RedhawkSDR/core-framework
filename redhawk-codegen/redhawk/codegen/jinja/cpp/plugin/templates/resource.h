@@ -33,9 +33,12 @@ class ${className} : public ${className}_base
 
 public:
     ${className} (std::string &IOR, std::string &id);
-    ~${className} (void);
+    virtual ~${className} (void);
 
-    void run ();
+    void run() {
+        this->start();
+        plugin_running.wait();
+    }
 
 protected:
 
@@ -47,10 +50,12 @@ protected:
         plugin_reg_message.name = program_invocation_short_name;
         plugin_reg_message.description = "none";
         plugin_reg_message.metric_port = ::ossie::corba::objectToString(message_in->_this());
-        this->message_out->send(plugin_reg_message);
+        this->message_out->sendMessage(plugin_reg_message);
     };
 
-    void updateThreshold(const std::string& messageId, const plugin_update_threshold_struct& msgData);
+    void serviceFunction ();
+
+    void updateThreshold(const std::string& messageId, const plugin_set_threshold_struct& msgData);
 
     /*/// Message structure definition for plugin_registration
     plugin_registration_struct plugin_registration;

@@ -17,29 +17,39 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
-#include <iostream>
-#include <string>
-#include <map>
-#include <boost/scoped_ptr.hpp>
-
-#include <ossie/ossieSupport.h>
-#include <Logging_impl.h>
-#include <Port_impl.h>
-#include <LifeCycle_impl.h>
-#include <PortSet_impl.h>
-#include <PropertySet_impl.h>
-#include <TestableObject_impl.h>
-#include <ossie/logging/loghelpers.h>
-#include <ossie/prop_helpers.h>
-#include <ossie/Containers.h>
-#include <ossie/PropertyMap.h>
-#include <ossie/MessageInterface.h>
 
 #include "${component.name}.h"
 #include "struct_props.h"
 
+static ${component.name}* main_plugin = 0;
+static void sigint_handler(int signum)
+{
+    main_plugin->halt();
+}
+
 int main(int argc, char* argv[])
 {
+    struct sigaction sa;
+    sa.sa_handler = &sigint_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if( sigaction( SIGINT, &sa, NULL ) == -1 ) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Associate SIGQUIT to signal_catcher interrupt handler
+    if( sigaction( SIGQUIT, &sa, NULL ) == -1 ) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Associate SIGTERM to signal_catcher interrupt handler
+    if( sigaction( SIGTERM, &sa, NULL ) == -1 ) {
+        exit(EXIT_FAILURE);
+    }
+
+    signal(SIGINT, SIG_IGN);
+
     ossie::corba::CorbaInit(argc, argv);
 
     std::string ior;
@@ -54,8 +64,9 @@ int main(int argc, char* argv[])
     }
 
     ${component.name}* my_plugin = new ${component.name}(ior, id);
-    my_plugin->start();
-    while (true) {
-        usleep(1e6);
-    }
+    main_plugin = my_plugin;
+    my_plugin->run();
+    delete my_plugin;
+
+    ossie::corba::OrbShutdown(true);
 }

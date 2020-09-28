@@ -47,24 +47,24 @@ ${className}::~${className}(void)
 
 }
 
-void ${className}::run()
+void ${className}::serviceFunction()
 {
     // this is an example for the processing thread and status message
-    while (true) {
+    while (not _shutdown) {
         usleep(5e5);
         plugin_message_struct plugin_message;
-        plugin_message.signal_busy = true;              // set GPP to BUSY
+        plugin_message.busy = true;              // set GPP to BUSY
         plugin_message.plugin_id = _id;         // _id is the instance id and is populated in the base class
         plugin_message.metric_name = CORBA::string_dup("colors");
         plugin_message.metric_timestamp = redhawk::time::utils::now();
         plugin_message.metric_reason = CORBA::string_dup("should be green but got an orange");
         plugin_message.metric_threshold_value = CORBA::string_dup("green");
         plugin_message.metric_recorded_value = CORBA::string_dup("orange");
-        this->message_out->send(plugin_message);
+        this->message_out->sendMessage(plugin_message);
     }
 }
 
-void ${className}::updateThreshold(const std::string& messageId, const plugin_update_threshold_struct& msgData)
+void ${className}::updateThreshold(const std::string& messageId, const plugin_set_threshold_struct& msgData)
 {
     // msgData.plugin_id
     // msgData.metric_name

@@ -33,61 +33,24 @@
 #include <ossie/debug.h>
 #include "struct_props.h"
 
-class GPPMetricSupplier : public MessageSupplierPort {
-    ENABLE_LOGGING;
-
-    public:
-        GPPMetricSupplier(std::string port_name) : MessageSupplierPort(port_name) {
-        };
-
-        void send(plugin_registration_struct &in_plugin_registration) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::registration");
-            outProps[0].value <<= in_plugin_registration;
-            data <<= outProps;
-            push(data);
-        };
-
-        void send(plugin_message_struct &in_plugin_message) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::message");
-            outProps[0].value <<= in_plugin_message;
-            data <<= outProps;
-            push(data);
-        };
-
-        void send(plugin_heartbeat_struct &in_plugin_heartbeat) {
-            CF::Properties outProps;
-            CORBA::Any data;
-            outProps.length(1);
-            outProps[0].id = CORBA::string_dup("plugin::heartbeat");
-            outProps[0].value <<= in_plugin_heartbeat;
-            data <<= outProps;
-            push(data);
-        };
-};
-
 class ${className}
 {
     ENABLE_LOGGING;
 
 public:
     ${className} (std::string &IOR, std::string &id);
-    ~${className} (void);
-    ${className}() {};
+    virtual ~${className} (void);
+    ${className}();
 
     virtual void start ();
-    virtual void run () {};
+    virtual void halt ();
+    virtual void serviceFunction () {};
 
 protected:
 
     void connectPlugin(std::string &IOR, std::string &id) {
         ossie::logging::ConfigureDefault();
-        message_out = new GPPMetricSupplier(std::string("metrics_out"));
+        message_out = new MessageSupplierPort(std::string("metrics_out"));
         PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(message_out);
         message_out->_remove_ref();
         CORBA::Object_ptr object = ::ossie::corba::stringToObject(IOR);
@@ -101,10 +64,14 @@ protected:
 
     virtual void updateThreshold(const std::string& messageId, const plugin_set_threshold_struct& msgData) {};
 
-    GPPMetricSupplier* message_out;
+    MessageSupplierPort* message_out;
+    omni_mutex plugin_running_mutex;
+    omni_condition plugin_running;
     MessageConsumerPort* message_in;
     boost::thread* _thread;
+    bool _shutdown;
     std::string _id;
+
 };
 
 #endif // ${includeGuard}
