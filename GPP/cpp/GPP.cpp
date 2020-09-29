@@ -1973,6 +1973,27 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
 
 bool GPP_i::_component_cleanup(const int pid, const int status)
 {
+    if (pid > 0) {
+      ReadLock rlock(monitorLock);
+      for (std::map<std::string, CORBA::ULong>::iterator _pid = plugin_pid.begin(); _pid != plugin_pid.end(); ++_pid) {
+          if (_pid->second == (CORBA::ULong) pid) {
+            for (unsigned int i=0; i<plugin_status.size(); ++i) {
+              if (plugin_status[i].id == _pid->first) {
+                plugin_status[i].alive = false;
+                plugin_status[i].busy = false;
+              }
+            }
+            for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+                if (it->first.first == _pid->first) {
+                  it->second.busy = false;
+                  it->second.metric_timestamp = redhawk::time::utils::now();
+                  it->second.metric_reason = "plugin crashed";
+                  it->second.metric_recorded_value = "plugin crashed";
+                }
+            }
+          }
+      }
+    }
     component_description comp;
     try {
         comp = markPidReaped(pid);
