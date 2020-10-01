@@ -399,7 +399,9 @@ void GPP_i::_init() {
 
     metrics_in = new MessageConsumerPort("metrics_in");
     metrics_in->setLogger(this->_baseLog->getChildLogger("metrics_in", "ports"));
-    addPort("metrics_in", metrics_in);
+    PortableServer::POA_var poa = metrics_in->_default_POA();
+    PortableServer::ObjectId_var oid = poa->activate_object(metrics_in);
+    metrics_in->initializePort();
 
   // get the user id
   uid_t tmp_user_id = getuid();
@@ -501,7 +503,7 @@ void GPP_i::_init() {
   setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
 
   _update_metrics = new MessageSupplierPort("plugin_threshold_control");
-  PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(_update_metrics);
+  oid = ossie::corba::RootPOA()->activate_object(_update_metrics);
   _update_metrics->_remove_ref();
 
 }
@@ -603,13 +605,6 @@ void GPP_i::pluginRegistration(const std::string& messageId, const plugin_regist
         _update_metrics->connectPort(object, msgData.id.c_str());
     } catch ( ... ) {
     }
-
-    plugin_description new_registration;
-    new_registration.name = msgData.name;
-    new_registration.description = msgData.description;
-    new_registration.status_idx = plugin_status.size()-1;
-    new_registration.alive = true;
-    _plugins[msgData.id] = new_registration;
 }
 
 void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
@@ -629,16 +624,19 @@ void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_str
     _plugin_metrics[plugin_metric_tuple].metric_threshold_value = msgData.metric_threshold_value;
     _plugin_metrics[plugin_metric_tuple].metric_recorded_value = msgData.metric_recorded_value;
 
-    size_t plugin_idx = _plugins[msgData.plugin_id].status_idx;
-
-    bool found_metric = false;
-    for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
-        if (*it == msgData.metric_name) {
-            found_metric = true;
+    for (unsigned int plugin_idx=0; plugin_idx<plugin_status.size(); ++plugin_idx) {
+      if (plugin_status[plugin_idx].id == msgData.plugin_id) {
+        bool found_metric = false;
+        for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
+            if (*it == msgData.metric_name) {
+                found_metric = true;
+            }
         }
-    }
-    if (not found_metric) {
-        plugin_status[plugin_idx].metric_names.push_back(msgData.metric_name);
+        if (not found_metric) {
+            plugin_status[plugin_idx].metric_names.push_back(msgData.metric_name);
+        }
+        break;
+      }
     }
 }
 
@@ -1981,6 +1979,7 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
               if (plugin_status[i].id == _pid->first) {
                 plugin_status[i].alive = false;
                 plugin_status[i].busy = false;
+                plugin_status[i].description = std::string("plugin crashed. ") + plugin_status[i].description;
               }
             }
             for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
@@ -1991,6 +1990,7 @@ bool GPP_i::_component_cleanup(const int pid, const int status)
                   it->second.metric_recorded_value = "plugin crashed";
                 }
             }
+            return false;
           }
       }
     }
@@ -2096,6 +2096,7 @@ void GPP_i::updateUsageState()
               _setBusyReason(it->second.metric_reason, oss.str());
             }
             _pluginBusy = true;
+            return;
         }
     }
     if (not some_busy) {

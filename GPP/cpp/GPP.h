@@ -236,7 +236,6 @@ class GPP_i : public GPP_base
           };
 
           std::map< std::pair<std::string, std::string>, metric_description> _plugin_metrics;
-          std::map< std::string, plugin_description> _plugins;
           bool _pluginBusy;
 
           //
