@@ -6,7 +6,7 @@ Tooling is included to help develop plugins.
 At runtime, the behavior of plugins can be monitored and altered as conditions change.
 The following sections describe how to develop and use GPP plugins.
 
-## Theory of operatoin
+## Theory of operation
 
 A plugin is a separate binary that is forked by the GPP.
 The plugin is installed onto `$SDRROOT/dev/devices/GPP/plugins`.
@@ -16,6 +16,7 @@ As part of the deployment process, the GPP provides the plugin an instance id an
 On startup, the plugin registers with the GPP throught the GPP's MessageConsumer port using the plugin's `message_out` messaging port.
 Plugins can manage any number of metrics, where each metric is identified by its name.
 Individual metrics are registered implicitly by sending out a `plugin_message` with metric status over the `message_out` port.
+Metric thresholds can be changed by providing updates through the GPP's `plugin::update_metric` property.
 
 ## Plugin Development
 
@@ -64,9 +65,9 @@ The plugin sends the GPP messages with metric updates.
 To provide an update to the GPP from the plugin, create a `plugin_message_struct` instance and send it using the `message_out` port included in the plugin by the code generators.
 The generated plugin code includes the callback function and an example of sending a status message in the plugin's `serviceFunction` method.
 
-## Plugin Runtime Inspection
+## Run Time Plugin Inspection and Control
 
-Plugins can be inspected through the GPP's properties.
+Plugin status and their metric state/status can be inspected though the GPP properties `plugin::status` and `plugin::metric_status`, respectively..
 The GPP contains the `plugin::update_metric` property; setting this property will trigger a message to the appropriate plugin.
 Each plugin can control multiple metrics, so messages regarding changes in a threshold value need to be addressed with the plugin id and the metric in question.
 
