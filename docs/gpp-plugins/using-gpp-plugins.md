@@ -75,7 +75,6 @@ The plugin message structure elements are:
  * metric_threshold_value (string): Trigger threshold for metric
  * metric_recorded_value (string): Recorded value
 
-
 The metric and threshold in the message structure are defined as strings to simplify communications between the GPP and the plugin.
 Part of the plugin development process is to convert the metric value to/from strings as appropriate.
 The generated plugin code includes an example of sending a status message in the plugin's `serviceFunction` method.
@@ -94,7 +93,6 @@ The `plugin::status` is a sequence of structures whose elements are:
  * pid (CORBA::Ulong): The plugin's process id
  * metric_names (string sequence): List of metrics the plugin is evaluating
 
-
 The `plugin::metric_status` structure provides detailed information about the metrics monitored by the different plugins.
 While the `plugin::status` property provides an overview of the different plugins, `plugin::metric_status` provides insight into each of the metrics monitored by any running plugins.
 The `plugin::metric_status` is a sequence of structures whose elements are:
@@ -107,7 +105,6 @@ The `plugin::metric_status` is a sequence of structures whose elements are:
  * metric_threshold_value (string): Current trigger threshold for metric
  * metric_recorded_value (string): Most recent recorded value
 
-
 ## Run Time Metric Control
 Control is performed through the GPP's `plugin::update_metric` property.
 Since each plugin can manage multiple metrics, changes to the `plugin::update_metric` property require the `plugin-id` and `metric-name` as described below:
@@ -118,5 +115,4 @@ The `plugin::update_metric` message structure elements are:
  * metric_name (string): The metric's name
  * metric_threshold_value (string): The new threshold value for the metric
 
-
-The generated plugin code includes the callback function to respond to a `plugin::update_metric` message.
+The pluging generated code contains the callback function `updateThreshold` to respond to `plugin::set_threshold` messages from the GPP.
