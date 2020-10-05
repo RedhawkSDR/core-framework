@@ -1,7 +1,7 @@
 # Customizing Resources per GPP
 
 The GPP supports a plugin infrastructure that allows the addition of custom resource monitoring.
-Plugins enable the extension of the GPP to monitor additional system attributes than those monitored by the GPP by default.
+Plugins enable the GPP to monitor additional system resources than those monitored by default.
 The following sections describe the operation of a GPP plugin and their development.
 
 ## Theory of operation
