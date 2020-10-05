@@ -66,15 +66,15 @@ The plugin sends the GPP messages with metric updates.
 To provide an update to the GPP from the plugin, create a `plugin_message_struct` instance and send it using the provided `message_out` port included in the plugin by the code generators.
 
 The plugin message structure elements are:
-<ul>
-<li>busy (boolean): BUSY/not BUSY</li>
-<li>plugin_id (string): The plugin's id (available in the _id plugin base class)</li>
-<li>metric_name (string): Name for the metric. Must be unique in the plugin but does not have to be globally unique</li>
-<li>metric_timestamp (CF::UTCTime): Timestamp for the message</li>
-<li>metric_reason (string): Reason why the state is set (e.g.: value above threshold, value below threshold, value not equal to threshold)</li>
-<li>metric_threshold_value (string): Trigger threshold for metric</li>
-<li>metric_recorded_value (string): Recorded value</li>
-</ul>
+
+ * busy (boolean): BUSY/not BUSY
+ * plugin_id (string): The plugin's id (available in the _id plugin base class)
+ * metric_name (string): Name for the metric. Must be unique in the plugin but does not have to be globally unique
+ * metric_timestamp (CF::UTCTime): Timestamp for the message
+ * metric_reason (string): Reason why the state is set (e.g.: value above threshold, value below threshold, value not equal to threshold)
+ * metric_threshold_value (string): Trigger threshold for metric
+ * metric_recorded_value (string): Recorded value
+
 
 The metric and threshold in the message structure are defined as strings to simplify communications between the GPP and the plugin.
 Part of the plugin development process is to convert the metric value to/from strings as appropriate.
@@ -86,38 +86,37 @@ Plugin status and their metric state/status can be inspected though the GPP prop
 Querying the GPP's `pluging::status` property provides the state of all the registered plugins.
 
 The `plugin::status` is a sequence of structures whose elements are:
-<ul>
-<li>id (string): The plugin's id</li>
-<li>name (string): The plugin's name</li>
-<li>description (string): The plugin's description</li>
-<li>busy (boolean): BUSY/not BUSY</li>
-<li>alive (boolean): Plugin process is alive/not alive</li>
-<li>pid (CORBA::Ulong): The plugin's process id</li>
-<li>metric_names (string sequence): List of metrics the plugin is evaluating</li>
-</ul>
+ * id (string): The plugin's id
+ * name (string): The plugin's name
+ * description (string): The plugin's description
+ * busy (boolean): BUSY/not BUSY
+ * alive (boolean): Plugin process is alive/not alive
+ * pid (CORBA::Ulong): The plugin's process id
+ * metric_names (string sequence): List of metrics the plugin is evaluating
+
 
 The `plugin::metric_status` structure provides detailed information about the metrics monitored by the different plugins.
 While the `plugin::status` property provides an overview of the different plugins, `plugin::metric_status` provides insight into each of the metrics monitored by any running plugins.
 The `plugin::metric_status` is a sequence of structures whose elements are:
-<ul>
-<li>plugin_id (string): The plugin's id (available in the _id plugin base class)</li>
-<li>metric_name (string): Name for the metric. Must be unique in the plugin but does not have to be globally unique</li>
-<li>busy (boolean): BUSY/not BUSY</li>
-<li>metric_timestamp (CF::UTCTime): Timestamp for the last message received by the GPP from this metric</li>
-<li>metric_reason (string): Most recent reason why the state was set (e.g.: value above threshold, value below threshold, value not equal to threshold)</li>
-<li>metric_threshold_value (string): Current trigger threshold for metric</li>
-<li>metric_recorded_value (string): Most recent recorded value</li>
-</ul>
+
+ * plugin_id (string): The plugin's id (available in the _id plugin base class)
+ * metric_name (string): Name for the metric. Must be unique in the plugin but does not have to be globally unique
+ * busy (boolean): BUSY/not BUSY
+ * metric_timestamp (CF::UTCTime): Timestamp for the last message received by the GPP from this metric
+ * metric_reason (string): Most recent reason why the state was set (e.g.: value above threshold, value below threshold, value not equal to threshold)
+ * metric_threshold_value (string): Current trigger threshold for metric
+ * metric_recorded_value (string): Most recent recorded value
+
 
 ## Run Time Metric Control
 Control is performed through the GPP's `plugin::update_metric` property.
 Since each plugin can manage multiple metrics, changes to the `plugin::update_metric` property require the `plugin-id` and `metric-name` as described below:
 
 The `plugin::update_metric` message structure elements are:
-<ul>
-<li>plugin_id (string): The plugin's id</li>
-<li>metric_name (string): The metric's name</li>
-<li>metric_threshold_value (string): The new threshold value for the metric</li>
-</ul>
+
+ * plugin_id (string): The plugin's id
+ * metric_name (string): The metric's name
+ * metric_threshold_value (string): The new threshold value for the metric
+
 
 The generated plugin code includes the callback function to respond to a `plugin::update_metric` message.
