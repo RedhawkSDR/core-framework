@@ -83,7 +83,7 @@ The generated plugin code includes an example of sending a status message in the
 ## Run Time Plugin Inspection
 
 Plugin status and their metric state/status can be inspected though the GPP properties `plugin::status` and `plugin::metric_status`, respectively.
-To scan a GPP's running plugins, use the `plugin::status` property.
+Querying the GPP's `pluging::status` property provides the state of all the registered plugins.
 
 The `plugin::status` is a sequence of structures whose elements are:
 <ul>
@@ -96,7 +96,8 @@ The `plugin::status` is a sequence of structures whose elements are:
 <li>metric_names (string sequence): List of metrics the plugin is evaluating</li>
 </ul>
 
-The `plugin::metric_status` structure provides detailed information about the running metrics.
+The `plugin::metric_status` structure provides detailed information about the metrics monitored by the different plugins.
+While the `plugin::status` property provides an overview of the different plugins, `plugin::metric_status` provides insight into each of the metrics monitored by any running plugins.
 The `plugin::metric_status` is a sequence of structures whose elements are:
 <ul>
 <li>plugin_id (string): The plugin's id (available in the _id plugin base class)</li>
@@ -108,7 +109,7 @@ The `plugin::metric_status` is a sequence of structures whose elements are:
 <li>metric_recorded_value (string): Most recent recorded value</li>
 </ul>
 
-## Run Time Plugin Control
+## Run Time Metric Control
 Control is performed through the GPP's `plugin::update_metric` property.
 Each plugin can manage multiple metrics, so messages regarding changes in a threshold value need to be addressed with the plugin id and the metric in question.
 
