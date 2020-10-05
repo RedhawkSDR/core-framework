@@ -111,7 +111,7 @@ The `plugin::metric_status` is a sequence of structures whose elements are:
 
 ## Run Time Metric Control
 Control is performed through the GPP's `plugin::update_metric` property.
-Each plugin can manage multiple metrics, so messages regarding changes in a threshold value need to be addressed with the plugin id and the metric in question.
+Since each plugin can manage multiple metrics, changes to the `plugin::update_metric` property require the `plugin-id` and `metric-name` as described below:
 
 The `plugin::update_metric` message structure elements are:
 <ul>
