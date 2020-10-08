@@ -19,8 +19,8 @@ The `plugin::message` passes the result of its assessment of the metric it track
 The message contains the identifier for the plugin, the name of the metric, the measured metric, the threshold used, the reason why the metric triggered, a busy/not busy determination, and the timestamp for the decision.
 If the plugin sets its message's busy flag to true, the GPP's usageState to BUSY.
 If the plugin sets its message's busy flag to false, the flag has no effect on the GPP's usageState.
-Metric thresholds can be changed by providing updates through the GPP's `plugin::update_metric` property.
-The `plugin::update_metric` message is used to set the threshold for a specific metric on a specific plugin.
+Metric thresholds can be changed by providing updates through the GPP's `plugin::set_threshold` property.
+The `plugin::set_threshold` message is used to set the threshold for a specific metric on a specific plugin.
 
 ## Plugin Development
 
@@ -106,10 +106,10 @@ The `plugin::metric_status` is a sequence of structures whose elements are:
  * metric_recorded_value (string): Most recent recorded value
 
 ## Run Time Metric Control
-Control is performed through the GPP's `plugin::update_metric` property.
-Since each plugin can manage multiple metrics, changes to the `plugin::update_metric` property require the `plugin-id` and `metric-name` as described below:
+Control is performed through the GPP's `plugin::set_threshold` property.
+Since each plugin can manage multiple metrics, changes to the `plugin::set_threshold` property require the `plugin-id` and `metric-name` as described below:
 
-The `plugin::update_metric` message structure elements are:
+The `plugin::set_threshold` message structure elements are:
 
  * plugin_id (string): The plugin's id
  * metric_name (string): The metric's name
