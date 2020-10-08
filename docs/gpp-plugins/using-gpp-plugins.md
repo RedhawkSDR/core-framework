@@ -14,11 +14,11 @@ On startup, the GPP scans the directory `$SDRROOT/dev/devices/GPP/plugins` for a
 On plugin startup, the plugin registers with the GPP using the plugin's `message_out` port.
 
 Plugins can manage any number of metrics.
-Each metric is automatically registered when the plug sends a `plugin::message` to the GPP over the `message_out` port.
+Each metric is automatically registered when the plug sends a `plugin::message` to the GPP over its `message_out` port.
 The `plugin::message` passes the result of its assessment of the metric it tracks.
-The message contains the identifier for the plugin, the name of the metric, the measured metric, the threshold used, the reason why the metric triggered, a busy/not busy determination, and the timestamp for the decision.
-If the plugin sets its message's busy flag to true, the GPP's usageState to BUSY.
-If the plugin sets its message's busy flag to false, the flag has no effect on the GPP's usageState.
+The `plugin::message` structure contains the identifier for the plugin, the name of the metric, the measured metric, the threshold used, the reason why the metric triggered, a busy/not busy determination, and the timestamp for the decision.
+If the plugin sets its message's busy flag to true, the GPP's usageState is set to BUSY.
+If the plugin sets its message's busy flag to false, the flag has no direct effect on the GPP's usageState, and if no other metrics trigger their threshold, the GPP's usageState is not BUSY (IDLE or ACTIVE).
 Metric thresholds can be changed by providing updates through the GPP's `plugin::set_threshold` property.
 The `plugin::set_threshold` message is used to set the threshold for a specific metric on a specific plugin.
 
@@ -54,10 +54,13 @@ The `serviceFunction` function is the plugin's main thread function.
 The processing thread is started automatically when the plugin launches.
 This method is provided as a convenient place to include plugin processing, but the processing code can be placed anywhere in the plugin.
 Exiting this function terminates the thread but does not affect the lifecycle of the plugin.
+The lifecycle of a plugin is linked to the lifecycle of the GPP.
+If a plugin is no longer tracking a metric of interest, it can terminate its thread and remain in an idle state until the GPP terminates.
+If the plugin were to self-terminate (e.g.: through an exit call or an error), the GPP would detect the plugin's terminate and mark the plugin as not alive.
 
-The plugin's `updateThreshold` method is invoked anytime a metric's threshold value is modified on the GPP.
-This callback method exists to provide the user with the ability to modify the behavior of the plugin at runtime.
-The received message structure contains three fields: the `plugin_id`, the `metric_name`, and the new `metric_threshold_value`.
+The plugin's `updateThreshold` method allows for runtime changes to a metric's threshold value.
+The GPP's sends a `plugin::set_threshold` message to the plug when it's pluging::set_threshold property is modified.
+The `plugin::set_threshold` message contains three fields: the `plugin_id`, the `metric_name`, and the new `metric_threshold_value`, where the details of the field are described in the [Run Time Metric Control](#run-time-metric-control) section.
 
 ## Plugin Messaging
 
@@ -75,7 +78,7 @@ The plugin message structure elements are:
  * metric_threshold_value (string): Trigger threshold for metric
  * metric_recorded_value (string): Recorded value
 
-The metric and threshold in the message structure are defined as strings to simplify communications between the GPP and the plugin.
+The `metric_recorded_value` and `metric_threshold_value` elements in the message structure are defined as strings to simplify communications between the GPP and the plugin.
 Part of the plugin development process is to convert the metric value to/from strings as appropriate.
 The generated plugin code includes an example of sending a status message in the plugin's `serviceFunction` method.
 
@@ -115,4 +118,6 @@ The `plugin::set_threshold` message structure elements are:
  * metric_name (string): The metric's name
  * metric_threshold_value (string): The new threshold value for the metric
 
-The pluging generated code contains the callback function `updateThreshold` to respond to `plugin::set_threshold` messages from the GPP.
+The plugin generated code contains the callback function `updateThreshold` to respond to `plugin::set_threshold` messages from the GPP.
+The plugin receives all messages for any metrics that the plugin supports through this callback.
+The developer needs to evaluate the incoming messages to apply them to the correct metric.
