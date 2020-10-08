@@ -391,10 +391,6 @@ GPP_i::GPP_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Propert
 
 GPP_i::~GPP_i()
 {
-    PortableServer::POA_var poa = metrics_in->_default_POA();
-    PortableServer::ObjectId_var oid = poa->servant_to_id(metrics_in);
-    poa->deactivate_object(oid);
-    delete metrics_in;
 }
 
 void GPP_i::_init() {
@@ -1531,6 +1527,11 @@ void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::Releas
   _redirectedIO.stop();
   _redirectedIO.release();
   if ( odm_consumer ) odm_consumer.reset();
+  PortableServer::POA_var poa = metrics_in->_default_POA();
+  PortableServer::ObjectId_var oid = poa->servant_to_id(metrics_in);
+  poa->deactivate_object(oid);
+  delete metrics_in;
+
   GPP_base::releaseObject();
 }
 
