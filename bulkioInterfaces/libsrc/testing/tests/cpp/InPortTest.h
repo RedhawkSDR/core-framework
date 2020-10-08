@@ -69,4 +69,23 @@ protected:
     using TestBase::port;
 };
 
+template <class Port>
+class NumericInPortTest : public InPortTest<Port>
+{
+    typedef InPortTest<Port> TestBase;
+    CPPUNIT_TEST_SUB_SUITE(NumericInPortTest, TestBase);
+    CPPUNIT_TEST(testQueueFlushScenarios);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void testQueueFlushScenarios();
+
+protected:
+    typedef typename Port::dataTransfer PacketType;
+    typedef typename Port::CorbaType CorbaType;
+
+private:
+    using TestBase::port;
+};
+
 #endif // BULKIO_INPORTTEST_H
