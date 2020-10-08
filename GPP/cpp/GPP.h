@@ -191,7 +191,7 @@ class GPP_i : public GPP_base
         void pluginMessage(const std::string& messageId, const plugin_message_struct& msgData);
         void launchPlugins();
 
-        MessageSupplierPort* _update_metrics;
+        MessageSupplierPort* _set_threshold;
 
         protected:
 
@@ -420,7 +420,7 @@ class GPP_i : public GPP_base
 
           //
           // Update plugin threshold
-          void _plugin_threshold_changed(const plugin_update_metric_struct& old_metric, const plugin_update_metric_struct& new_metric);
+          void _plugin_threshold_changed(const plugin_set_threshold_struct& old_metric, const plugin_set_threshold_struct& new_metric);
 
           //
           // expand special characters in consoleOutputLog

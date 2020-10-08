@@ -391,8 +391,10 @@ GPP_i::GPP_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Propert
 
 GPP_i::~GPP_i()
 {
-    metrics_in->_remove_ref();
-    metrics_in = 0;
+    PortableServer::POA_var poa = metrics_in->_default_POA();
+    PortableServer::ObjectId_var oid = poa->servant_to_id(metrics_in);
+    poa->deactivate_object(oid);
+    delete metrics_in;
 }
 
 void GPP_i::_init() {
@@ -502,9 +504,9 @@ void GPP_i::_init() {
   // check  reservation allocations 
   setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
 
-  _update_metrics = new MessageSupplierPort("plugin_threshold_control");
-  oid = ossie::corba::RootPOA()->activate_object(_update_metrics);
-  _update_metrics->_remove_ref();
+  _set_threshold = new MessageSupplierPort("plugin_threshold_control");
+  oid = ossie::corba::RootPOA()->activate_object(_set_threshold);
+  _set_threshold->_remove_ref();
 
 }
 
@@ -562,14 +564,14 @@ void GPP_i::postConstruction (std::string &profile,
   metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
   metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
   metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
-  addPropertyListener(plugin_update_metric, this, &GPP_i::_plugin_threshold_changed);
+  addPropertyListener(plugin_set_threshold, this, &GPP_i::_plugin_threshold_changed);
   launchPlugins();
 
   _signalThread.start();
 
 }
 
-void GPP_i::_plugin_threshold_changed(const plugin_update_metric_struct& old_metric, const plugin_update_metric_struct& new_metric)
+void GPP_i::_plugin_threshold_changed(const plugin_set_threshold_struct& old_metric, const plugin_set_threshold_struct& new_metric)
 {
     plugin_set_threshold_struct update_message;
     update_message.plugin_id = new_metric.plugin_id;
@@ -577,7 +579,7 @@ void GPP_i::_plugin_threshold_changed(const plugin_update_metric_struct& old_met
     update_message.metric_threshold_value = new_metric.metric_threshold_value;
     CF::Properties invalidProperties;
     try {
-        _update_metrics->sendMessage(update_message);
+        _set_threshold->sendMessage(update_message);
     } catch ( std::invalid_argument &e ) {
         std::string msg("Invalid plugin id ");
         msg += new_metric.plugin_id;
@@ -602,7 +604,7 @@ void GPP_i::pluginRegistration(const std::string& messageId, const plugin_regist
 
     try {
         CORBA::Object_ptr object = ::ossie::corba::stringToObject(msgData.metric_port);
-        _update_metrics->connectPort(object, msgData.id.c_str());
+        _set_threshold->connectPort(object, msgData.id.c_str());
     } catch ( ... ) {
     }
 }

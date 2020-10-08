@@ -122,9 +122,7 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         plugin_heartbeat_struct plugin_heartbeat;
         /// Message structure definition for plugin_message
         plugin_message_struct plugin_message;
-        /// Property: plugin_update_metric
-        plugin_update_metric_struct plugin_update_metric;
-        /// Message structure definition for plugin_set_threshold
+        /// Property: plugin_set_threshold
         plugin_set_threshold_struct plugin_set_threshold;
         /// Property: nic_allocation_status
         std::vector<nic_allocation_status_struct_struct> nic_allocation_status;

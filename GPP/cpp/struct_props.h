@@ -916,65 +916,6 @@ inline bool operator!= (const plugin_message_struct& s1, const plugin_message_st
     return !(s1==s2);
 }
 
-struct plugin_update_metric_struct {
-    plugin_update_metric_struct ()
-    {
-    }
-
-    static std::string getId() {
-        return std::string("plugin::update_metric");
-    }
-
-    static const char* getFormat() {
-        return "sss";
-    }
-
-    std::string plugin_id;
-    std::string metric_name;
-    std::string metric_threshold_value;
-};
-
-inline bool operator>>= (const CORBA::Any& a, plugin_update_metric_struct& s) {
-    CF::Properties* temp;
-    if (!(a >>= temp)) return false;
-    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
-    if (props.contains("plugin::update_metric::plugin_id")) {
-        if (!(props["plugin::update_metric::plugin_id"] >>= s.plugin_id)) return false;
-    }
-    if (props.contains("plugin::update_metric::metric_name")) {
-        if (!(props["plugin::update_metric::metric_name"] >>= s.metric_name)) return false;
-    }
-    if (props.contains("plugin::update_metric::metric_threshold_value")) {
-        if (!(props["plugin::update_metric::metric_threshold_value"] >>= s.metric_threshold_value)) return false;
-    }
-    return true;
-}
-
-inline void operator<<= (CORBA::Any& a, const plugin_update_metric_struct& s) {
-    redhawk::PropertyMap props;
- 
-    props["plugin::update_metric::plugin_id"] = s.plugin_id;
- 
-    props["plugin::update_metric::metric_name"] = s.metric_name;
- 
-    props["plugin::update_metric::metric_threshold_value"] = s.metric_threshold_value;
-    a <<= props;
-}
-
-inline bool operator== (const plugin_update_metric_struct& s1, const plugin_update_metric_struct& s2) {
-    if (s1.plugin_id!=s2.plugin_id)
-        return false;
-    if (s1.metric_name!=s2.metric_name)
-        return false;
-    if (s1.metric_threshold_value!=s2.metric_threshold_value)
-        return false;
-    return true;
-}
-
-inline bool operator!= (const plugin_update_metric_struct& s1, const plugin_update_metric_struct& s2) {
-    return !(s1==s2);
-}
-
 struct plugin_set_threshold_struct {
     plugin_set_threshold_struct ()
     {
