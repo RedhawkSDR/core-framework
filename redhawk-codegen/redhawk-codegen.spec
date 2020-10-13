@@ -38,7 +38,7 @@ BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires:       python
-Requires:       redhawk = %{version}
+Requires:       redhawk >= 2.2.6
 %if 0%{?rhel} >= 7
 Requires:       python-jinja2
 BuildRequires:  python-jinja2
