@@ -32,6 +32,7 @@ import subprocess
 import commands
 import struct
 import tempfile
+import numpy
 
 from omniORB import CORBA, any, tcInternal
 
@@ -1750,7 +1751,32 @@ class SBTestTest(scatest.CorbaTestCase):
         outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
         self.assertEqual(outDataInt[0], 0)
         self.assertEqual(outDataInt, [int(x) for x in outData])
-    
+
+    def test_ComplexNumpyListConversions(self):
+        # Test interleaved-to-complex
+        inData = range(4)
+        outData = bulkio_helpers.bulkioComplexToPythonComplexList(inData)
+        self.assertEqual(outData,[complex(0,1),complex(2,3)])
+
+        # Test complex-to-interleaved
+        cxData = [complex(x+0.5,0) for x in xrange(4)]
+        outData = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, itemType=float)
+        self.assertEqual(outData, [0.5,0.0,1.5,0.0,2.5,0.0,3.5,0.0])
+
+        # Ensure that conversion does not modify the original list
+        self.assertTrue(isinstance(cxData[0],complex))
+
+        # Test inline type conversion (should truncate)
+        outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
+        self.assertEqual(outDataInt[0], 0)
+        self.assertEqual(outDataInt, [int(x) for x in outData])
+
+        # test native type is returned
+        numpyData = numpy.array([1+2j, 3+4j, 5+6j])
+        outnumpyData = bulkio_helpers.pythonComplexListToBulkioComplex(numpyData)
+        self.assertEqual(len(outnumpyData), 6)
+        self.assertEqual(type(outnumpyData[0]),float)
+
     def test_apiBeforeLaunch(self):
         try:
             sb.api("TestCppProps", destfile=sys.stdout)
