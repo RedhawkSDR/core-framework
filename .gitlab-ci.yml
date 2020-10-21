@@ -231,7 +231,7 @@ deploy:
     - curl --insecure -X POST -F ref=$redhawk_testing_ref
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F  "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
+                              -F "variables[triggering_ref_name] = $CI_COMMIT_REF_NAME"
                               -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
 
