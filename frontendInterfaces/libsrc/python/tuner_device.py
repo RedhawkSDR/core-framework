@@ -541,7 +541,7 @@ class FrontendTunerDevice(Device):
         if propdict.has_key('FRONTEND::tuner_allocation'):
             retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
             if retval:
-                alloc_id = uuidgen()
+                alloc_id = model._uuidgen()
                 self._allocationTracker[alloc_id] = properties
                 return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
             else:
