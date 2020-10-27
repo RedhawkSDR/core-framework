@@ -135,6 +135,8 @@ InVITA49Port.java \
 InXMLPort.java \
 InDataPort.java \
 InPortImpl.java \
+InStreamDescriptor.java \
+InStreamBase.java \
 linkStatistics.java \
 OutBitPort.java \
 OutDataPort.java \
