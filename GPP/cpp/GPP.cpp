@@ -642,6 +642,10 @@ void GPP_i::launchPlugins() {
 
     boost::filesystem::path dirPath(getenv( "SDRROOT" ));
     dirPath /= "/dev/devices/GPP/plugins";
+
+    if (not boost::filesystem::exists(dirPath)) {
+      return;
+    }
     
     int gpp_pid = getpid();
 
