@@ -1,0 +1,79 @@
+#!/usr/bin/python
+
+'''
+Command-line wrapper to the createOctaveComponent.py's create() method.
+
+'''
+
+from getopt import getopt
+from redhawk.packagegen.pluginPackage import PluginPackage
+import sys
+import os
+
+usage = """
+Script for GPP plugin generation
+
+{0} [flags] <plugin name>
+
+E.g.,
+
+    {0} --outputDir=foo my_plugin
+
+Arguments:
+    <plugin name>       Name for the plugin
+
+Options:
+    --outputDir         Location of all output files.  Default is ".".
+
+    -f                  Forward force flag to redhawk-codegen.
+
+    --buildRpm          If set, compile an rpm after generating the code.
+
+    --install           If set, run "reconf; configure; make install" after
+                        generating the code.
+
+""".format(os.path.basename(sys.argv[0]))
+
+if __name__ == "__main__":
+    opts, args = getopt(
+        sys.argv[1:],
+        'fh',
+        ['outputDir=',
+         'help',
+         'buildRpm',
+         'install'])
+
+    force            = False
+    outputDir        = '.'
+    buildRpm         = False
+    install          = False
+
+    # Set option variables based on option flags set on the command line
+    for key, value in opts:
+        if key == '--help' or key == '-h':
+            print usage
+            raise SystemExit
+        elif key == '--outputDir':
+            outputDir = value
+        elif key.lower() == '--buildrpm':
+            buildRpm = True
+        elif key == '--install':
+            install = True
+        elif key == '-f':
+            force = True
+
+    if len(args) == 0:
+        # No m files have been provided, print usage and quit
+        print usage
+        raise SystemExit
+
+    dirs = args[0].split('/')
+    plugin_name = dirs[-1]
+
+    # Create XML model
+    myPluginPackage = PluginPackage(
+        plugin_name      = plugin_name,
+        outputDir        = outputDir)
+
+    myPluginPackage.writeXML()
+    myPluginPackage.callCodegen(force)

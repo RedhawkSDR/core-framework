@@ -38,7 +38,7 @@ BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires:       python
-Requires:       redhawk = %{version}
+Requires:       redhawk >= 2.2.6
 %if 0%{?rhel} >= 7
 Requires:       python-jinja2
 BuildRequires:  python-jinja2
@@ -83,6 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/codegen_version
 %{_bindir}/createBinaryComponent
 %{_bindir}/createOctaveComponent
+%{_bindir}/createGPPplugin
 %{_bindir}/moveComponentNamespace
 %{_bindir}/update_project
 %{_bindir}/redhawk-codegen

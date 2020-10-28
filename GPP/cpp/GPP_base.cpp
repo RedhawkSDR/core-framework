@@ -1,22 +1,3 @@
-/*
- * This file is protected by Copyright. Please refer to the COPYRIGHT file
- * distributed with this source distribution.
- *
- * This file is part of REDHAWK GPP.
- *
- * REDHAWK GPP is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- *
- * REDHAWK GPP is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- */
 #include "GPP_base.h"
 
 /*******************************************************************************************
@@ -503,6 +484,42 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(plugin_registration,
+                plugin_registration_struct(),
+                "plugin::registration",
+                "plugin_registration",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
+    addProperty(plugin_heartbeat,
+                plugin_heartbeat_struct(),
+                "plugin::heartbeat",
+                "plugin_heartbeat",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
+    addProperty(plugin_message,
+                plugin_message_struct(),
+                "plugin::message",
+                "plugin_message",
+                "readwrite",
+                "",
+                "external",
+                "message");
+
+    addProperty(plugin_set_threshold,
+                plugin_set_threshold_struct(),
+                "plugin::set_threshold",
+                "plugin_set_threshold",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
     addProperty(nic_allocation_status,
                 "nic_allocation_status",
                 "",
@@ -543,6 +560,23 @@ void GPP_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(plugin_status,
+                "plugin::status",
+                "plugin_status",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
+    addProperty(plugin_metric_status,
+                "plugin::metric_status",
+                "plugin_metric_status",
+                "readonly",
+                "",
+                "external",
+                "configure");
+
 }
+
 
 
