@@ -286,13 +286,12 @@ module FRONTEND {
 
     /** --- Tuner Types - Expandable list of supported FE types --- */
     const string TUNER_TYPE_TX = "TX"; 
+    const string TUNER_TYPE_TX_ARRAY = "TX_ARRAY"; 
     const string TUNER_TYPE_RX = "RX"; 
+    const string TUNER_TYPE_RX_ARRAY = "RX_ARRAY"; 
     const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
-    const string TUNER_TYPE_RX_SCANNER_DIGITIZER = "RX_SCANNER_DIGITIZER"; 
-    const string TUNER_TYPE_CHANNELIZER = "CHANNELIZER"; 
-    const string TUNER_TYPE_DDC = "DDC"; 
-    const string TUNER_TYPE_DUC = "DUC"; 
-    const string TUNER_TYPE_RX_DIGITIZER_CHANNELIZER = "RX_DIGITIZER_CHANNELIZER"; // deprecated
+    const string TUNER_TYPE_RDC = "RDC"; 
+    const string TUNER_TYPE_TDC = "TDC"; 
 
     /*************************/
     /***      INTERFACE      */
