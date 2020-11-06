@@ -23,9 +23,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
   <simplesequence id="preload" mode="readonly" type="string">
     <description>List of shared libraries to be preloaded by ComponentHost at startup time, to be made available for all components launched inside of this ComponentHost instance.</description>
     <values>
-      <value>libbulkio-2.3.so</value>
+      <value>libbulkio-3.0.so</value>
       <value>libburstio.so</value>
-      <value>libfrontend-2.5.so</value>
+      <value>libfrontend-3.0.so</value>
     </values>
     <kind kindtype="property"/>
     <action type="external"/>

@@ -23,7 +23,7 @@
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.3.0
+Version:        3.0.0
 Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
@@ -38,7 +38,7 @@ BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires:       python
-Requires:       redhawk >= 2.2.6
+Requires:       redhawk >= 3.0.0
 %if 0%{?rhel} >= 7
 Requires:       python-jinja2
 BuildRequires:  python-jinja2
