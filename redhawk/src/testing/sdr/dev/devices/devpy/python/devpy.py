@@ -22,6 +22,8 @@ class devpy_i(devpy_base):
 
         """
         hw = helloworld.HelloWorld()
+        self.addPropertyChangeListener('busy_state', self.busyStateChanged)
+        self.setAllocationImpl("a_number", self.my_alloc_fn, self.my_dealloc_fn)
 
         
     def updateUsageState(self):
@@ -33,6 +35,20 @@ class devpy_i(devpy_base):
            self._usageState = CF.Device.BUSY   # in use, with no capacity remaining for allocation
         """
         return NOOP
+
+    def busyStateChanged(self, _id, old_value, new_value):
+        if new_value:
+            self._usageState = CF.Device.BUSY
+        else:
+            self._usageState = CF.Device.IDLE
+
+    def my_alloc_fn(self, value):
+        # perform logic
+        return True # successful allocation
+
+    def my_dealloc_fn(self, value):
+        # perform logic
+        pass
 
     def process(self):
         """

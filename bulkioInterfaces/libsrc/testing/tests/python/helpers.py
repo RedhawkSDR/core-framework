@@ -54,6 +54,42 @@ class InXMLPortStub(BULKIO__POA.dataXML, InPortStub):
         self.logger.debug("pushPacket '%s'", streamID)
         self._queuePacket(InXMLPortStub.Packet(data, EOS, streamID))
 
+class AttachablePortStub(object):
+    def __init__(self):
+        self.attach_ids = []
+        self.attach_obj = None
+   
+    def setNewAttachDetachCallback(self, attach_obj):
+        self.attach_obj = attach_obj
+
+    @property
+    def attachmentIds(self):
+        return self.attach_ids
+
+    def attach(self, streamdef, userid):
+        if self.attach_obj:
+            new_id = self.attach_obj.attach(streamdef, userid)
+        else:
+            new_id = 'hello_'+str(len(self.attach_ids))
+        self.attach_ids.append(new_id)
+        return new_id
+
+    def detach(self, attach_id):
+        if self.attach_obj:
+            self.attach_obj.detach(attach_id)
+        if attach_id in self.attach_ids:
+            self.attach_ids.remove(attach_id)
+
+# XML requires a special override for pushPacket
+class InSDDSPortStub(BULKIO__POA.dataSDDS, AttachablePortStub):
+    def __init__(self):
+        AttachablePortStub.__init__(self)
+
+# XML requires a special override for pushPacket
+class InVITA49PortStub(BULKIO__POA.dataVITA49, AttachablePortStub):
+    def __init__(self):
+        AttachablePortStub.__init__(self)
+
 # Generate stubs for all standard BULKIO interfaces
 for name in ('dataChar', 'dataOctet', 'dataBit', 'dataShort', 'dataUshort',
              'dataLong', 'dataUlong', 'dataLongLong', 'dataUlongLong',
@@ -104,6 +140,30 @@ class PortTestHelper(object):
 
     def packetLength(self, data):
         return len(data)
+
+    def _getName(self):
+        return self.PortType.__name__
+
+    def getName(self):
+        name = self._getName()
+        # Remap BULKIO interface names, where unsigned types have a lowercase
+        # letter after the U, to the implementations, where it's uppercase
+        if name[4] == 'U':
+            name = name[:5] + name[5].upper() + name[6:]
+        return name[4:]
+
+class AttachablePortTestHelper(object):
+    def attach(self, port, stream, userid):
+        port.attach(stream, userid)
+
+    def createInPort(self):
+        return self.InPortType(self._getName() + '_in')
+
+    def createOutPort(self):
+        return self.OutPortType(self._getName() + '_out')
+
+    def createInStub(self):
+        return self.InStubType()
 
     def _getName(self):
         return self.PortType.__name__
@@ -235,6 +295,18 @@ class FileTestHelper(PortTestHelper):
 
     def createStreamData(self, length):
         return ' '*length
+
+class SDDSTestHelper(AttachablePortTestHelper):
+    PortType = BULKIO.dataSDDS
+    InPortType = bulkio.InSDDSPort
+    OutPortType = bulkio.OutSDDSPort
+    InStubType = InSDDSPortStub
+
+class VITA49TestHelper(AttachablePortTestHelper):
+    PortType = BULKIO.dataVITA49
+    InPortType = bulkio.InVITA49Port
+    OutPortType = bulkio.OutVITA49Port
+    InStubType = InVITA49PortStub
 
 class XMLTestHelper(PortTestHelper):
     PortType = BULKIO.dataXML

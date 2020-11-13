@@ -463,6 +463,31 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
     }
 
     public boolean allocateCapacity(DataType[] capacities) throws InvalidCapacity, InvalidState {
+
+        checkValidIds(capacities);
+
+        // Check for obviously invalid properties up front.
+        validateAllocProps(capacities);
+
+        boolean has_listener = false;
+        for (DataType cap : capacities) {
+            if (cap.id.equals("FRONTEND::listener_allocation")) {
+                has_listener = true;
+            }
+        }
+        if (!has_listener) {
+            for (DataType cap : capacities) {
+                if (cap.id.equals("FRONTEND::tuner_allocation")) {
+                    if (!frontend_tuner_allocation.getValue().device_control.getValue()) {
+                        has_listener = true;
+                    }
+                }
+            }
+        }
+        if ((!has_listener) && (UsageType.BUSY.value() == this.usageState().value())) {
+            return false;
+        }
+
         // Checks for empty
         if (capacities.length == 0){
             _deviceLog.trace("No capacities to allocate.");
@@ -484,11 +509,6 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
         }
 
         synchronized(allocation_id_to_tuner_id) {
-            checkValidIds(capacities);
-
-            // Check for obviously invalid properties up front.
-            validateAllocProps(capacities);
-
             // apply all allocations to local object
             for (DataType cap : capacities) {
                 final IProperty property = this.propSet.get(cap.id);

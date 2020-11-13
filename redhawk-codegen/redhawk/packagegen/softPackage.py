@@ -158,7 +158,8 @@ class SoftPackage(object):
 
         outFile = open(self.outputDir+"/"+self.name+"/"+self.name+"."+fileType+".xml", 'w')
         outFile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-        outFile.write('<!DOCTYPE _DTDNAME_ PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "_DTDNAME_.dtd">\n'.replace("_DTDNAME_", dtdName))
+        doctype = '<!DOCTYPE _DTDNAME_ PUBLIC "-//JTRS//DTD SCA V2.2.2 '+fileType.upper()+'//EN" "_DTDNAME_.dtd">\n'
+        outFile.write(doctype.replace("_DTDNAME_", dtdName))
         if name_ == None:
             name_ = dtdName
         xmlObject.export(

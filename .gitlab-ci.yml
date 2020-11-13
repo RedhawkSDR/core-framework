@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
-  redhawk_version: '2.2.6'
+  redhawk_version: '2.2.7'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   redhawk_branch: 'develop-2.2'
@@ -74,70 +74,6 @@ stages:
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/
-
-redhawk:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk
-    specfile: src/releng/redhawk.spec
-    local_repo: ""
-  <<: *rpmbuild
-
-redhawk-codegen:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk-codegen
-    local_repo: ""
-  <<: *rpmbuild
-
-bulkio:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: bulkioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-gpp:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: GPP
-    local_repo: output
-  <<: *rpmbuild
-
-burstio:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: burstioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-frontend:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: frontendInterfaces
-    version: $fei_version
-    local_repo: output
-  <<: *rpmbuild
 
 redhawk:el7:
   stage: package-redhawk-codegen
@@ -255,10 +191,8 @@ test-trigger:release:
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
-  variables:
-    redhawk_version: '2.2.5-rc1'
   script:
-    - curl --insecure -X POST -F ref=$redhawk_version
+    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME"
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
@@ -327,7 +261,7 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  image: ${docker_registry}utils/s3cmd:el7-createrepo
   stage: deploy
   tags:
     - s3
@@ -372,17 +306,4 @@ deploy-el7:
     - frontend:el7
     - gpp:el7
     - redhawk-codegen:el7
-  <<: *s3
-
-deploy-el6:
-  variables:
-    dist: el6
-    arch: x86_64
-  dependencies:
-    - redhawk:el6
-    - bulkio:el6
-    - burstio:el6
-    - frontend:el6
-    - gpp:el6
-    - redhawk-codegen:el6
   <<: *s3

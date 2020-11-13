@@ -24,25 +24,25 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        InCharPortTest.class,
+        NumericInCharPortTest.class,
         OutCharPortTest.class,
-        InOctetPortTest.class,
+        NumericInOctetPortTest.class,
         OutOctetPortTest.class,
-        InShortPortTest.class,
+        NumericInShortPortTest.class,
         OutShortPortTest.class,
-        InUShortPortTest.class,
+        NumericInUShortPortTest.class,
         OutUShortPortTest.class,
-        InLongPortTest.class,
+        NumericInLongPortTest.class,
         OutLongPortTest.class,
-        InULongPortTest.class,
+        NumericInULongPortTest.class,
         OutULongPortTest.class,
-        InLongLongPortTest.class,
+        NumericInLongLongPortTest.class,
         OutLongLongPortTest.class,
-        InULongLongPortTest.class,
+        NumericInULongLongPortTest.class,
         OutULongLongPortTest.class,
-        InFloatPortTest.class,
+        NumericInFloatPortTest.class,
         OutFloatPortTest.class,
-        InDoublePortTest.class,
+        NumericInDoublePortTest.class,
         OutDoublePortTest.class,
         InBitPortTest.class,
         OutBitPortTest.class,
@@ -53,7 +53,8 @@ import org.junit.runners.Suite.SuiteClasses;
         PrecisionUTCTimeTest.class,
         StreamSRITest.class,
         InSDDSPort_Test.class,
-        OutSDDSPort_Test.class
+        OutSDDSPort_Test.class,
+        OutVITA49Port_Test.class
 })
 public class AllTests {
 }

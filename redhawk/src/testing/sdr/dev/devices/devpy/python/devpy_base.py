@@ -43,7 +43,7 @@ class devpy_base(CF__POA.Device, Device, ThreadedComponent):
             try:
                 self.stop()
             except Exception:
-                self._log.exception("Error stopping")
+                self._baseLog.exception("Error stopping")
             Device.releaseObject(self)
 
         ######################################################################
@@ -64,7 +64,8 @@ class devpy_base(CF__POA.Device, Device, ThreadedComponent):
                                       action="eq",
                                       kinds=("allocation",),
                                       description="""This specifies the device kind""")
-        
+
+
         device_model = simple_property(id_="DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb",
                                        name="device_model",
                                        type_="string",
@@ -72,6 +73,25 @@ class devpy_base(CF__POA.Device, Device, ThreadedComponent):
                                        action="eq",
                                        kinds=("allocation",),
                                        description=""" This specifies the specific device""")
-        
+
+
+        busy_state = simple_property(id_="busy_state",
+                                     name="busy_state",
+                                     type_="boolean",
+                                     defvalue=False,
+                                     mode="readwrite",
+                                     action="external",
+                                     kinds=("property",))
+
+
+        a_number = simple_property(id_="a_number",
+                                   name="a_number",
+                                   type_="short",
+                                   defvalue=100,
+                                   mode="readwrite",
+                                   action="external",
+                                   kinds=("allocation",))
+
+
 
 

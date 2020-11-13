@@ -32,6 +32,8 @@ import FRONTEND.NotSupportedException;
 import CF.DevicePackage.InvalidCapacity;
 import CF.InvalidObjectReference;
 import org.ossie.redhawk.PortCallError;
+import org.ossie.properties.PropertyListener;
+import CF.DevicePackage.UsageType;
 
 /**
  * This is the device code. This file contains the derived class where custom
@@ -175,6 +177,21 @@ public class fei_exception_through extends fei_exception_through_base {
     public fei_exception_through()
     {
         super();
+        this.busy_state.addChangeListener(new PropertyListener<Boolean>() {
+            public void valueChanged(Boolean oldValue, Boolean newValue) {
+                busyStateValueChanged(oldValue, newValue);
+            }
+        });
+    }
+
+    private void busyStateValueChanged(Boolean oldValue, Boolean newValue)
+    {
+        this.busy_state.setValue(newValue);
+        if (newValue) {
+            this.setUsageState(UsageType.BUSY);
+        } else {
+            this.setUsageState(UsageType.IDLE);
+        }
     }
 
     public void constructor()
