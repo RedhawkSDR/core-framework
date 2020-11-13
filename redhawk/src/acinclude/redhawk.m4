@@ -113,10 +113,10 @@ AC_DEFUN([RH_SOFTPKG_CXX],
   rh_softpkg_name=`redhawk-softpkg --name $rh_softpkg_spd`
   rh_softpkg_version_check=""
   AS_IF([test "x$3" != "x"], [
-    rh_softpkg_version_check=" >= $3"
+    rh_softpkg_version_check=" $rh_softpkg_name >= $3"
   ])
   AS_IF([test "x$4" != "x"], [
-    rh_softpkg_version_check=" < $4"
+    rh_softpkg_version_check=" $rh_softpkg_version_check $rh_softpkg_name < $4"
   ])
   
   AS_IF([test "x$2" != "x"], [

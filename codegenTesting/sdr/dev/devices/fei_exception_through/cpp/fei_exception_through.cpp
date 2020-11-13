@@ -72,6 +72,17 @@ void fei_exception_through_i::constructor()
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
     this->setNumChannels(1, "RX_DIGITIZER");
+    this->addPropertyListener(busy_state, this, &fei_exception_through_i::busyStatusChanged);
+}
+
+void fei_exception_through_i::busyStatusChanged(bool oldValue, bool newValue)
+{
+    this->busy_state = newValue;
+    if (newValue) {
+        this->_usageState = CF::Device::BUSY;
+    } else {
+        this->_usageState = CF::Device::IDLE;
+    }
 }
 
 /***********************************************************************************************

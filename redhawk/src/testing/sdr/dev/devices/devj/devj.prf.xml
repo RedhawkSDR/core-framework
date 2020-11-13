@@ -17,4 +17,12 @@
     <kind kindtype="property"/>
     <action type="external"/>
   </simple>
+    <simple id="busy_state" mode="readwrite" name="busy_state" type="boolean">
+        <value>false</value>
+        <kind kindtype="property"/>
+    </simple>
+    <simple id="a_number" mode="readwrite" name="a_number" type="short">
+        <value>100</value>
+        <kind kindtype="allocation"/>
+    </simple>
 </properties>

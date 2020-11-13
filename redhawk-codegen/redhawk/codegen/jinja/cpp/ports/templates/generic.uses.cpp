@@ -19,7 +19,6 @@
  #*/
 //% set classname = portgen.className()
 //% set vartype = portgen.interfaceClass() + '_var'
-PREPARE_ALT_LOGGING(${classname},${component.userclass.name})
 ${classname}::${classname}(std::string port_name, ${component.baseclass.name} *_parent) :
 Port_Uses_base_impl(port_name)
 {
@@ -79,7 +78,7 @@ ${operation.returns} ${classname}::${operation.name}(const std::string __connect
             try {
                 ${"retval = " if hasreturn}((*i).first)->${operation.name}(${operation.argnames});
             } catch (...) {
-                LOG_ERROR(${classname},"Call to ${operation.name} by ${classname} failed");
+                RH_ERROR(this->_portLog, "Call to ${operation.name} by ${classname} failed");
                 throw;
             }
         }

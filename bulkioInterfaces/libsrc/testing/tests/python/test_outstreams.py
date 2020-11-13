@@ -577,9 +577,82 @@ class OutBitStreamTest(BufferedOutStreamTest, unittest.TestCase):
         result = self.helper.unpack(self.stub.packets[-1].data)
         self.assertEqual(literal, result)
 
+class AttachStreamTest(object):
+    def setUp(self):
+        self.port = self.helper.createOutPort()
+        self.stub = self._createStub()
+
+        objref = self.stub._this()
+        self.port.connectPort(objref, 'test_connection')
+
+        self.GOOD_PORT = 12345
+        self.BAD_PORT = 54321
+
+    def attach(self, streamDef, userid):
+        if streamDef.port == self.BAD_PORT:
+            raise self._exception('bad port')
+        new_id = 'hello_'+str(len(self.stub.attachmentIds))
+        return new_id
+
+    def detach(self, attach_id):
+        pass
+
+    def tearDown(self):
+        try:
+            self._disconnectPorts()
+        except:
+            # Ignore disconnection errors
+            pass
+
+        self._releaseServants()
+
+    def _createStub(self):
+        return self.helper.createInStub()
+
+    def _releaseServants(self):
+        poa = self.stub._default_POA()
+        object_id = poa.servant_to_id(self.stub)
+        poa.deactivate_object(object_id)
+
+    def testAttach(self):
+        self.assertEqual(len(self.stub.attachmentIds), 0)
+
+        self.stub.setNewAttachDetachCallback(self)
+
+        vita49_fmt = BULKIO.VITA49DataPacketPayloadFormat(False, BULKIO.VITA49_REAL, BULKIO.VITA49_32F, False, 0, 0, 0, 0, 0, 0)
+
+        if self._streamDef._NP_RepositoryId == BULKIO.SDDSStreamDefinition._NP_RepositoryId:
+            newStreamDef = self._streamDef('abc', BULKIO.SDDS_SF,'0.0.0.0',0,self.GOOD_PORT,0,False,'')
+        else:
+            newStreamDef = self._streamDef('0.0.0.0',0,self.GOOD_PORT,BULKIO.VITA49_UDP_TRANSPORT,'abc',False,vita49_fmt)
+
+        retval = self.port.addStream(newStreamDef)
+        self.assertTrue(retval)
+        self.assertEqual(len(self.stub.attachmentIds), 1)
+
+        if self._streamDef._NP_RepositoryId == BULKIO.SDDSStreamDefinition._NP_RepositoryId:
+            invalidStreamDef = self._streamDef('def', BULKIO.SDDS_SF,'0.0.0.0',0,self.BAD_PORT,0,False,'')
+        else:
+            invalidStreamDef = self._streamDef('0.0.0.0',0,self.BAD_PORT,BULKIO.VITA49_UDP_TRANSPORT,'def',False,vita49_fmt)
+
+        self.assertRaises(self._exception, self.port.addStream, invalidStreamDef)
+        self.assertRaises(self._exception, self.port.attach, invalidStreamDef, 'some_user')
+        self.assertEqual(len(self.stub.attachmentIds), 1)
+
+        if self._streamDef._NP_RepositoryId == BULKIO.SDDSStreamDefinition._NP_RepositoryId:
+            validStreamDef = self._streamDef('def', BULKIO.SDDS_SF,'0.0.0.0',0,self.GOOD_PORT,0,False,'')
+        else:
+            validStreamDef = self._streamDef('0.0.0.0',0,self.GOOD_PORT,BULKIO.VITA49_UDP_TRANSPORT,'def',False,vita49_fmt)
+
+        retval = self.port.addStream(validStreamDef)
+        self.assertTrue(retval)
+        self.assertEqual(len(self.stub.attachmentIds), 2)
+
 def register_test(name, testbase, **kwargs):
     globals()[name] = type(name, (testbase, unittest.TestCase), kwargs)
 
+register_test('OutSDDSAttachStreamTest', AttachStreamTest, helper=SDDSTestHelper(), _exception=BULKIO.dataSDDS.AttachError, _streamDef=BULKIO.SDDSStreamDefinition)
+register_test('OutVITA49AttachStreamTest', AttachStreamTest, helper=VITA49TestHelper(), _exception=BULKIO.dataVITA49.AttachError, _streamDef=BULKIO.VITA49StreamDefinition)
 register_test('OutFileStreamTest', OutStreamTest, helper=FileTestHelper())
 register_test('OutCharStreamTest', NumericOutStreamTest, helper=CharTestHelper())
 register_test('OutOctetStreamTest', NumericOutStreamTest, helper=OctetTestHelper())

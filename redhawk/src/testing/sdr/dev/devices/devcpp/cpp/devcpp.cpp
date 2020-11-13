@@ -41,6 +41,7 @@ void devcpp_i::constructor()
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
 	this->setPropertyConfigureImpl(foobar, this, &devcpp_i::set_foobar);
+    this->addPropertyListener(busy_state, this, &devcpp_i::busyStatusChanged);
 }
 
 void devcpp_i::set_foobar( int value ) {
@@ -62,6 +63,16 @@ void devcpp_i::set_foobar( int value ) {
 **************************************************************************/
 void devcpp_i::updateUsageState()
 {
+}
+
+void devcpp_i::busyStatusChanged(bool oldValue, bool newValue)
+{
+    this->busy_state = newValue;
+    if (newValue) {
+        this->_usageState = CF::Device::BUSY;
+    } else {
+        this->_usageState = CF::Device::IDLE;
+    }
 }
 
 /***********************************************************************************************

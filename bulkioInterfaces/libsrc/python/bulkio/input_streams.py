@@ -162,7 +162,7 @@ class InputStream(StreamBase):
         # packets with this stream ID are for a different instance), purge any
         # packets for this stream from the port's queue
         if self._eosState == EOS_NONE:
-            self._port._discardPacketsForStream(self.streamID);
+            self._port._discardPacketsForStream(self.streamID)
 
         self._disable()
 
@@ -201,20 +201,20 @@ class InputStream(StreamBase):
         # At this point, if end-of-stream has been reached, the state is
         # reported (it gets set above), so the checking for the latter is
         # sufficient
-        return self._eosState == EOS_REPORTED;
+        return self._eosState == EOS_REPORTED
 
     def _hasBufferedData(self):
         # For the base class, there is no data to report; however, to nudge
         # the check end-of-stream, return true if it has been reached but not
         # reported
-        return self._eosState == EOS_REACHED;
+        return self._eosState == EOS_REACHED
 
     def _close(self):
         # NB: This method is always called by the port with streamsMutex held
 
         # Consider end-of-stream reported, since the stream has already been
         # removed from the port; otherwise, there's nothing to do
-        self._eosState = EOS_REPORTED;
+        self._eosState = EOS_REPORTED
 
     def _readPacket(self, blocking):
         packet = self._fetchNextPacket(blocking)
@@ -264,8 +264,8 @@ class InputStream(StreamBase):
             # This is the first time end-of-stream has been checked since it
             # was reached; remove the stream from the port now, since the
             # caller knows that the stream ended
-            self._port._removeStream(self.streamID);
-            self._eosState = EOS_REPORTED;
+            self._port._removeStream(self.streamID)
+            self._eosState = EOS_REPORTED
 
     def _getSriChangeFlags(self, packet):
         if self.__newstream:
@@ -475,7 +475,7 @@ class BufferedInputStream(InputStream):
             return 0
 
         item_size = 2 if (sri.mode != 0) else 1
-        count *= item_size;
+        count *= item_size
 
         # Queue up packets from the port until we have enough data to satisfy
         # the requested read amount
@@ -528,7 +528,7 @@ class BufferedInputStream(InputStream):
             return None
 
         # Only read up to the end of the first packet in the queue
-        samples = len(self.__queue[0].buffer) - self.__sampleOffset;
+        samples = len(self.__queue[0].buffer) - self.__sampleOffset
         return self._readData(samples, samples)
 
     def _read(self, count, consume, blocking):
@@ -538,7 +538,7 @@ class BufferedInputStream(InputStream):
 
         # Try to get the SRI for the upcoming block of data, fetching it from
         # the port's input queue if necessary
-        sri = self._nextSRI(blocking);
+        sri = self._nextSRI(blocking)
         if not sri:
             # No SRI retreived implies no data will be retrieved, either due
             # to end-of-stream or because it would block
@@ -552,9 +552,10 @@ class BufferedInputStream(InputStream):
             count = count * 2
             consume = consume * 2
 
+        requested = max(count, consume)
         # Queue up packets from the port until we have enough data to satisfy
         # the requested read amount
-        while self.__samplesQueued < count:
+        while self.__samplesQueued < requested:
             if not self._fetchPacket(blocking):
                 break
 
@@ -566,12 +567,12 @@ class BufferedInputStream(InputStream):
 
         # Only read as many samples as are available (e.g., if a new SRI is
         # coming or the stream reached the end)
-        samples = min(count, self.__samplesQueued);
+        samples = min(requested, self.__samplesQueued)
 
         # Handle a partial read, which could mean that there's not enough data
         # at present (non-blocking), or that the read pointer has reached the
         # end of a segment (new SRI, queue flush, end-of-stream)
-        if samples < count:
+        if samples < requested:
             # Non-blocking: return None if there's not currently a break in the
             # data, under the assumption that a future read might return the
             # full amount
@@ -582,6 +583,8 @@ class BufferedInputStream(InputStream):
             # requested as 0)
             if consume != 0:
                 consume = samples
+
+        samples = min(count, self.__samplesQueued)
 
         return self._readData(samples, consume)
 
@@ -610,7 +613,7 @@ class BufferedInputStream(InputStream):
 
         # If the queue is empty, move the pending packet onto the queue
         if not self.__queue and self.__pending:
-            self._queuePacket(self.__pending);
+            self._queuePacket(self.__pending)
             self.__pending = 0
 
     def _readData(self, count, consume):
@@ -639,8 +642,8 @@ class BufferedInputStream(InputStream):
             block.addTimestamp(ts, offset, synthetic)
 
         # Clear flags from packet, since they've been reported
-        front.sriChanged = False;
-        front.inputQueueFlushed = False;
+        front.sriChanged = False
+        front.inputQueueFlushed = False
 
         # Advance the read pointers
         self._consumeData(consume)
@@ -663,8 +666,8 @@ class BufferedInputStream(InputStream):
 
             # The number of samples copied on this pass may be less than
             # the total remaining
-            available = len(packet.buffer) - packet_offset;
-            nelem = min(available, count);
+            available = len(packet.buffer) - packet_offset
+            nelem = min(available, count)
 
             # Append chunk to buffer and advance counters
             data += packet.buffer[packet_offset:packet_offset+nelem]
@@ -723,7 +726,7 @@ class BufferedInputStream(InputStream):
         if not self.__queue or self._canBridge(packet):
             return self._queuePacket(packet)
         else:
-            self.__pending = packet;
+            self.__pending = packet
             return False
 
     def _queuePacket(self, packet):
@@ -733,7 +736,7 @@ class BufferedInputStream(InputStream):
             # point)
             if not self.__queue:
                 # No queued packets, read pointer has reached end-of-stream
-                self._eosState = EOS_REACHED;
+                self._eosState = EOS_REACHED
             else:
                 # Assign the end-of-stream flag to the last packet in the queue
                 # so that it is handled on read
@@ -743,7 +746,7 @@ class BufferedInputStream(InputStream):
         else:
             # Add the packet to the queue
             self.__samplesQueued += len(packet.buffer)
-            self.__queue.append(packet);
+            self.__queue.append(packet)
             return True
 
     def _canBridge(self, packet):

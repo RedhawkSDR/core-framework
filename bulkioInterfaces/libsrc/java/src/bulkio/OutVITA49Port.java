@@ -638,7 +638,6 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 return false;
             }else{
                 stream = new VITA49Stream(streamDef, this.userId, streamDef.id, null, null, null,this);
-                this.streamContainer.addStream(stream);
             }
 
             boolean portListed = false;
@@ -672,6 +671,10 @@ public class OutVITA49Port extends OutPortBase<dataVITA49Operations> {
                 for (Entry<String, dataVITA49Operations> p : this.outConnections.entrySet()) {
                     stream.createNewAttachment(p.getKey(),p.getValue());
                 }
+            }
+            VITA49Stream checkStream = this.streamContainer.findByStreamId(streamDef.id);
+            if (checkStream == null){
+                this.streamContainer.addStream(stream);
             }
         }
 
