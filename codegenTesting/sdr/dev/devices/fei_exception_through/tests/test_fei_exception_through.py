@@ -206,6 +206,19 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.stop();
         sb.release()
 
+    def test_BusyAlloc(self):
+        self.comp.busy_state = True
+        frontend_alloc = frontend.createTunerAllocation(returnDict=False)
+        retval = self.comp.allocateCapacity([frontend_alloc])
+        self.assertFalse(retval)
+        self.comp.busy_state = False
+        retval = self.comp.allocateCapacity([frontend_alloc])
+        self.assertTrue(retval)
+        self.comp.deallocateCapacity([frontend_alloc])
+        self.comp.busy_state = True
+        retval = self.comp.allocateCapacity([frontend_alloc])
+        self.assertFalse(retval)
+
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

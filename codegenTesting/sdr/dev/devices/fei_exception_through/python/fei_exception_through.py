@@ -53,7 +53,14 @@ class fei_exception_through_i(fei_exception_through_base):
         """
         # TODO add customization here.
         self.setNumChannels(1, "RX_DIGITIZER")
-        
+        self.addPropertyChangeListener('busy_state', self.busyStateChanged)
+
+    def busyStateChanged(self, _id, old_value, new_value):
+        if new_value:
+            self._usageState = CF.Device.BUSY
+        else:
+            self._usageState = CF.Device.IDLE
+
     def process(self):
         """
         Basic functionality:

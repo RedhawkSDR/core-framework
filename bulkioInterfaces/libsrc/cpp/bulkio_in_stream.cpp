@@ -375,6 +375,7 @@ public:
             this->_reportIfEosReached();
             return DataBlockType();
         }
+
         // Only read up to the end of the first packet in the queue
         const size_t samples = _queue.front().buffer.size() - _sampleOffset;
         return _readData(samples, samples);
@@ -400,9 +401,11 @@ public:
             consume *= 2;
         }
 
+        size_t requested = (consume > count) ? consume : count;
+
         // Queue up packets from the port until we have enough data to satisfy the
         // requested read amount
-        while (_samplesQueued < count) {
+        while (_samplesQueued < requested) {
             if (!_fetchPacket(blocking)) {
                 break;
             }
@@ -417,12 +420,12 @@ public:
 
         // Only read as many samples as are available (e.g., if a new SRI is coming
         // or the stream reached the end)
-        const size_t samples = std::min(count, _samplesQueued);
+        size_t samples = std::min(requested, _samplesQueued);
 
         // Handle a partial read, which could mean that there's not enough data at
         // present (non-blocking), or that the read pointer has reached the end of
         // a segment (new SRI, queue flush, end-of-stream)
-        if (samples < count) {
+        if (samples < requested) {
             // Non-blocking: return a null block if there's not currently a break in
             // the data, under the assumption that a future read might return the
             // full amount
@@ -433,6 +436,8 @@ public:
             if (consume != 0)
                 consume = samples;
         }
+
+        samples = std::min(count, _samplesQueued);
 
         return _readData(samples, consume);
     }
@@ -595,7 +600,9 @@ private:
         }
 
         // Advance the read pointers
-        _consumeData(consume);
+        // modify the consume pointer to maintain the skip API
+        consume = data.sri().mode? consume/2 : consume;
+        skip(consume);
 
         return data;
     }

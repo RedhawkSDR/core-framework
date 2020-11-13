@@ -297,6 +297,10 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
 {
     RH_TRACE(_deviceLog, "in allocateCapacity");
 
+    if (isBusy()) {
+        return false;
+    }
+
     if (capacities.length() == 0) {
         // Nothing to do, return
         RH_TRACE(_deviceLog, "no capacities to configure.");
