@@ -5,7 +5,7 @@ variables:
   redhawk_version: '3.0.0'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_branch: 'develop'
+  redhawk_branch: 'develop-2.3'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   redhawk_deps: $redhawk_branch
