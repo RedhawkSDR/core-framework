@@ -34,13 +34,13 @@ msg_through_cpp_base::~msg_through_cpp_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void msg_through_cpp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void msg_through_cpp_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void msg_through_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void msg_through_cpp_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -48,7 +48,7 @@ void msg_through_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::S
     }
 }
 
-void msg_through_cpp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void msg_through_cpp_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

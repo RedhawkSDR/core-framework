@@ -54,7 +54,7 @@ ProgrammableDevice_i::~ProgrammableDevice_i()
 {
 }
 
-void ProgrammableDevice_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException) 
+void ProgrammableDevice_i::initialize()
 {
     setHwLoadRequestsPtr(&hw_load_requests);
     setHwLoadStatusesPtr(&hw_load_statuses);

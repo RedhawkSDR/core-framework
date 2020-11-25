@@ -27,13 +27,13 @@ check_noop_base::~check_noop_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void check_noop_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void check_noop_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void check_noop_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void check_noop_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -41,7 +41,7 @@ void check_noop_base::stop() throw (CORBA::SystemException, CF::Resource::StopEr
     }
 }
 
-void check_noop_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void check_noop_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

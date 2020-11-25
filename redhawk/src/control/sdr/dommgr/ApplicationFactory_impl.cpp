@@ -881,10 +881,6 @@ CF::Application_ptr ApplicationFactory_impl::create (
     const char* name,
     const CF::Properties& initConfiguration,
     const CF::DeviceAssignmentSequence& deviceAssignments)
-throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
-        CF::ApplicationFactory::CreateApplicationRequestError,
-        CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
-        CF::ApplicationFactory::InvalidInitConfiguration)
 {
     RH_TRACE(_appFactoryLog, "Creating application " << name);
 

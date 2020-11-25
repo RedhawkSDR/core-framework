@@ -37,7 +37,7 @@ PREPARE_CF_LOGGING(StructSequenceProperty)
 /*
  * PRF class
  */
-void PRF::addProperty(const Property* p) throw (ossie::parser_error)
+void PRF::addProperty(const Property* p)
 {
     LOG_TRACE(PRF, "Adding property " << p->getID() << " " << p);
     assert(p != 0);
@@ -77,7 +77,7 @@ Properties::Properties()
     _prf.reset(new ossie::PRF());
 }
 
-Properties::Properties(std::istream& input) throw(ossie::parser_error) 
+Properties::Properties(std::istream& input)
 {
     LOG_TRACE(Properties, "Constructing properties")
     load(input);
@@ -88,12 +88,12 @@ Properties::~Properties()
     LOG_TRACE(Properties, "Destruction for properties")
 }
 
-void Properties::load(std::istream& input) throw (ossie::parser_error) {
+void Properties::load(std::istream& input) {
   std::auto_ptr<ossie::PRF> t = ossie::internalparser::parsePRF(input);
   _prf.reset(t.release());
 }
 
-void Properties::join(std::istream& input) throw (ossie::parser_error) {
+void Properties::join(std::istream& input) {
     LOG_TRACE(Properties, "Loading property set")
       std::auto_ptr<ossie::PRF> _joinedprf = ossie::internalparser::parsePRF(input);
     if (_prf.get() == 0) {
@@ -130,7 +130,7 @@ void Properties::join(std::istream& input) throw (ossie::parser_error) {
     }
 }
 
-void Properties::join(ossie::Properties& props) throw (ossie::parser_error) {
+void Properties::join(ossie::Properties& props) {
     LOG_TRACE(Properties, "Loading property set")
     LOG_TRACE(Properties, "Merging property sets")
     std::vector<const Property*>::iterator jp_iter;

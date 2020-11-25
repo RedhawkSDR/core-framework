@@ -37,11 +37,11 @@ SoftPkg::SoftPkg() :
 {
 }
 
-SoftPkg::SoftPkg(std::istream& input, const std::string& spdFile) throw (ossie::parser_error) {
+SoftPkg::SoftPkg(std::istream& input, const std::string& spdFile) {
     this->load(input, spdFile);
 }
 
-void SoftPkg::load(std::istream& input, const std::string& spdFile) throw (ossie::parser_error) 
+void SoftPkg::load(std::istream& input, const std::string& spdFile)
 {
     _spd = ossie::internalparser::parseSPD(input);
 

@@ -41,8 +41,6 @@ Property_CPP_i::~Property_CPP_i()
 }
 
 void Property_CPP_i::initializeProperties(const CF::Properties& ctorProps)
-          throw (CF::PropertySet::PartialConfiguration,
-                 CF::PropertySet::InvalidConfiguration, CORBA::SystemException)
 {
   LOG_INFO(Property_CPP_i, "construct--- example log message");
   const redhawk::PropertyMap& tmp_params = redhawk::PropertyMap::cast(ctorProps);

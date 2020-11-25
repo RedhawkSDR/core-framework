@@ -108,17 +108,17 @@ class props_test_device_cpp_impl1_base : public Device_impl
         props_test_device_cpp_impl1_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities);
         props_test_device_cpp_impl1_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
-        void configure(const CF::Properties&) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration);
+        void configure(const CF::Properties&);
         
-        void query(CF::Properties&) throw (CF::UnknownProperties, CORBA::SystemException);
+        void query(CF::Properties&);
 
         void loadProperties();
 

@@ -23,7 +23,7 @@
 #include "spd-parser.h"
 #include "spd-pimpl.h"
 
-std::auto_ptr<ossie::SPD> ossie::internalparser::parseSPD(std::istream& input) throw (ossie::parser_error)
+std::auto_ptr<ossie::SPD> ossie::internalparser::parseSPD(std::istream& input)
 {
     try {
         // Instantiate individual parsers.

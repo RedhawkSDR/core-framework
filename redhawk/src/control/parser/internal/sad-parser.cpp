@@ -24,7 +24,7 @@
 #include "sad-pimpl.h"
 
 std::auto_ptr<ossie::SoftwareAssembly::SAD>
-ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
+ossie::internalparser::parseSAD(std::istream& input)
 {
     try {
         // Instantiate individual parsers.

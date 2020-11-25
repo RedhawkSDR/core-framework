@@ -40,15 +40,15 @@ class  SimpleComponent_cpp_impl1_base  : public Component, protected ThreadedCom
         
         ~SimpleComponent_cpp_impl1_base(void);
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 
-        void configure(const CF::Properties&) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration);
+        void configure(const CF::Properties&);
 
     protected:
     

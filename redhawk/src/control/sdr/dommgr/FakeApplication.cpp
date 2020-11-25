@@ -61,19 +61,16 @@ void FakeApplication::query (CF::Properties& configProperties)
 }
 
 CF::Properties* FakeApplication::metrics(const CF::StringSequence& components, const CF::StringSequence& attributes)
-  throw (CF::Application::InvalidMetric, CORBA::SystemException)
 {
     throw CF::Application::InvalidMetric(components, attributes);
 }
 
 char * FakeApplication::registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval) 
-  throw(CF::UnknownProperties, CF::InvalidObjectReference)
 {
   throw CF::UnknownProperties();
 }
 
 void  FakeApplication::unregisterPropertyListener( const char *reg_id )   
-  throw(CF::InvalidIdentifier)
 {
   throw CF::InvalidIdentifier();
 }
@@ -123,11 +120,11 @@ bool FakeApplication::aware ()
     return false;
 }
 
-CORBA::Float FakeApplication::stopTimeout () throw (CORBA::SystemException) {
+CORBA::Float FakeApplication::stopTimeout () {
     return -1;
 }
 
-void FakeApplication::stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException) {
+void FakeApplication::stopTimeout (CORBA::Float timeout) {
 }
 
 CF::DeviceAssignmentSequence * FakeApplication::componentDevices ()

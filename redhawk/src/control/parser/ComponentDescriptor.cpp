@@ -28,7 +28,7 @@
 
 using namespace ossie;
 
-ComponentDescriptor::ComponentDescriptor(std::istream& input) throw (ossie::parser_error)  {
+ComponentDescriptor::ComponentDescriptor(std::istream& input) {
     this->load(input);
 }
 
@@ -46,7 +46,7 @@ ComponentDescriptor& ComponentDescriptor::operator=(const ComponentDescriptor &o
     return *this;
 }
 
-void ComponentDescriptor::load(std::istream& input) throw(ossie::parser_error)
+void ComponentDescriptor::load(std::istream& input)
 {
   std::auto_ptr<SCD> t = ossie::internalparser::parseSCD(input);
   _scd.reset(t.release());

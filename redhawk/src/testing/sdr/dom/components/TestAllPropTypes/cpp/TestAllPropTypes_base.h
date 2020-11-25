@@ -106,13 +106,13 @@ class TestAllPropTypes_base : public Resource_impl
     public: 
         TestAllPropTypes_base(const char *uuid, const char *label);
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
         void loadProperties();
 

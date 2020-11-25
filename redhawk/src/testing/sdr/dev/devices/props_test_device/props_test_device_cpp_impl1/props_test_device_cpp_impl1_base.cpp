@@ -72,11 +72,11 @@ void props_test_device_cpp_impl1_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void props_test_device_cpp_impl1_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void props_test_device_cpp_impl1_base::initialize()
 {
 }
 
-void props_test_device_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void props_test_device_cpp_impl1_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -85,7 +85,7 @@ void props_test_device_cpp_impl1_base::start() throw (CORBA::SystemException, CF
     }
 }
 
-void props_test_device_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void props_test_device_cpp_impl1_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -98,7 +98,7 @@ void props_test_device_cpp_impl1_base::stop() throw (CORBA::SystemException, CF:
 }
 
 
-void props_test_device_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void props_test_device_cpp_impl1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -115,12 +115,12 @@ void props_test_device_cpp_impl1_base::releaseObject() throw (CORBA::SystemExcep
     Device_impl::releaseObject();
 }
 
-void props_test_device_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void props_test_device_cpp_impl1_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }
 
-void props_test_device_cpp_impl1_base::query(CF::Properties& props) throw (CF::UnknownProperties, CORBA::SystemException)
+void props_test_device_cpp_impl1_base::query(CF::Properties& props)
 {
     PropertySet_impl::query(props);
 }

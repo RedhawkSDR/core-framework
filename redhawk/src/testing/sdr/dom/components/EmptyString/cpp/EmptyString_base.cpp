@@ -25,13 +25,13 @@ EmptyString_base::~EmptyString_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void EmptyString_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void EmptyString_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void EmptyString_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void EmptyString_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -39,7 +39,7 @@ void EmptyString_base::stop() throw (CORBA::SystemException, CF::Resource::StopE
     }
 }
 
-void EmptyString_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void EmptyString_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

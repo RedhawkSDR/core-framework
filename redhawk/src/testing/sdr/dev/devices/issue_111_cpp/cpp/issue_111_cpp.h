@@ -35,7 +35,7 @@ class issue_111_cpp_i : public issue_111_cpp_base
         issue_111_cpp_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities);
         issue_111_cpp_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~issue_111_cpp_i();
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
         int serviceFunction();
 };
 

@@ -73,7 +73,6 @@ void base_persona_persona_base::construct()
 
 // TODO: This was overriden since setting admin state is not accessible via the current IDL
 void base_persona_persona_base::adminState(CF::Device::AdminType adminState) 
-    throw (CORBA::SystemException)
 {
     // Force admin state to change usage state since usage state is currently protected
     switch (adminState) {
@@ -92,9 +91,6 @@ void base_persona_persona_base::adminState(CF::Device::AdminType adminState)
 }
 
 void base_persona_persona_base::releaseObject() 
-    throw (
-        CF::LifeCycle::ReleaseError, 
-        CORBA::SystemException ) 
 {
     // Terminate all children that were executed
     ProcessMapIter iter;
@@ -189,14 +185,6 @@ CF::ExecutableDevice::ProcessID_Type base_persona_persona_base::execute (
                         const char*                 name, 
                         const CF::Properties&       options, 
                         const CF::Properties&       parameters )
-    throw ( 
-        CF::ExecutableDevice::ExecuteFail, 
-        CF::InvalidFileName, 
-        CF::ExecutableDevice::InvalidOptions, 
-        CF::ExecutableDevice::InvalidParameters,
-        CF::ExecutableDevice::InvalidFunction, 
-        CF::Device::InvalidState, 
-        CORBA::SystemException ) 
 {
     // Initialize local variables
     std::string propId;
@@ -217,7 +205,7 @@ CF::ExecutableDevice::ProcessID_Type base_persona_persona_base::execute (
     if (resourcePtr == NULL) {
         LOG_FATAL(base_persona_persona_base, __FUNCTION__ << 
             ": Unable to instantiate '" << name << "'");
-        throw (CF::ExecutableDevice::ExecuteFail());
+        throw CF::ExecutableDevice::ExecuteFail();
     }
 
     resourceId = ossie::corba::returnString(resourcePtr->identifier());
@@ -229,10 +217,6 @@ CF::ExecutableDevice::ProcessID_Type base_persona_persona_base::execute (
 }
 
 void base_persona_persona_base::terminate(CF::ExecutableDevice::ProcessID_Type processId)
-    throw (
-        CF::Device::InvalidState, 
-        CF::ExecutableDevice::InvalidProcess, 
-        CORBA::SystemException ) 
 {
     // Initialize local variables
     ProcessMapIter processIter;

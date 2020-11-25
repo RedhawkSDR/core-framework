@@ -59,11 +59,11 @@ void ticket2093_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void ticket2093_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void ticket2093_base::initialize()
 {
 }
 
-void ticket2093_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void ticket2093_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -76,7 +76,7 @@ void ticket2093_base::start() throw (CORBA::SystemException, CF::Resource::Start
     }
 }
 
-void ticket2093_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void ticket2093_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -93,7 +93,7 @@ void ticket2093_base::stop() throw (CORBA::SystemException, CF::Resource::StopEr
 }
 
 
-void ticket2093_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void ticket2093_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -110,12 +110,12 @@ void ticket2093_base::releaseObject() throw (CORBA::SystemException, CF::LifeCyc
     Resource_impl::releaseObject();
 }
 
-void ticket2093_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void ticket2093_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }
 
-void ticket2093_base::query(CF::Properties& props) throw (CF::UnknownProperties, CORBA::SystemException)
+void ticket2093_base::query(CF::Properties& props)
 {
     PropertySet_impl::query(props);
 }
