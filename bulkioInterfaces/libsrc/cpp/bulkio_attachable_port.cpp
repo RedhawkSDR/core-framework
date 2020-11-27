@@ -270,7 +270,6 @@ namespace bulkio {
   //
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   char* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attach(const StreamDefinition& stream, const char* userid)
-    throw (typename PortType::AttachError, typename PortType::StreamInputError) 
   {
     TRACE_ENTER(_portLog, "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attach" );
     LOG_DEBUG( _portLog, "ATTACHABLE PORT: ATTACH REQUEST, STREAM/USER: " << stream.id <<  "/" << userid );
@@ -1928,7 +1927,6 @@ namespace bulkio {
   //    
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   char* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attach(const StreamDefinition& stream, const char* userid) 
-      throw (typename PortType::AttachError, typename PortType::StreamInputError)
   {
     // TODO: ADD DEPRECATION WARNING HERE
     this->streamContainer.removeStreamByStreamId(std::string(stream.id));

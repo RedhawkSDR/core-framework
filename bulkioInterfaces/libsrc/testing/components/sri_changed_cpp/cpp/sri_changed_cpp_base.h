@@ -32,11 +32,11 @@ class sri_changed_cpp_base : public Resource_impl, protected ThreadedComponent
         sri_changed_cpp_base(const char *uuid, const char *label);
         ~sri_changed_cpp_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

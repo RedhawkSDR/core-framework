@@ -86,11 +86,9 @@ public:
     updateSriEvents++;
   }
 
-    virtual char* attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid)
-            throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError);
+    virtual char* attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid);
     
-    virtual char* attach(const BULKIO::VITA49StreamDefinition& stream, const char* userid)
-            throw (BULKIO::dataVITA49::AttachError, BULKIO::dataVITA49::StreamInputError);
+    virtual char* attach(const BULKIO::VITA49StreamDefinition& stream, const char* userid);
     // Applicable for both SDDS and VITA callback interface
     virtual void detach(const char* attachId);
 
