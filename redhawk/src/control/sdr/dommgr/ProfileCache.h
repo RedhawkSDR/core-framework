@@ -30,6 +30,12 @@
 #include <ossie/debug.h>
 #include <ossie/SoftPkg.h>
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 namespace redhawk {
 
     /**
@@ -44,7 +50,7 @@ namespace redhawk {
         {
         }
 
-        virtual ~invalid_profile() throw()
+        virtual ~invalid_profile() NOEXCEPT
         {
             // Only defined because the compiler-generated destructor has a
             // looser throw specification than runtime_error's destructor

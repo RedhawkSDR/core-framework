@@ -82,8 +82,10 @@ namespace ossie {
 
         /*
          * Create a DeviceManagerConfiguration, parsing the DCD information provided by input.
+         * 
+         * @throw ossie::parser_error
          */
-        DeviceManagerConfiguration(std::istream& input) throw (ossie::parser_error);
+        DeviceManagerConfiguration(std::istream& input);
 
         /*
          * Assignment operator.
@@ -95,7 +97,10 @@ namespace ossie {
         }
 
     public:
-        void load(std::istream& input) throw (ossie::parser_error);
+        /*
+         * @throw ossie::parser_error
+         */
+        void load(std::istream& input);
 
         const bool isLoaded() const;
 
@@ -115,7 +120,10 @@ namespace ossie {
 
         const char* getFileNameFromRefId(const char* refid);
 
-        const ComponentInstantiation& getComponentInstantiationById(std::string id) throw(std::out_of_range);
+        /*
+         * @throw std::out_of_range
+         */
+        const ComponentInstantiation& getComponentInstantiationById(std::string id);
 
     private:
         boost::shared_ptr<DCD > _dcd;

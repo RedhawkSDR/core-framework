@@ -60,16 +60,54 @@ public:
         start_device(boost::bind(&Device_impl::make_device<T>,boost::ref(*devPtr),_1,_2,_3,_4,_5), sa, argc, argv);
     }
     virtual void halt ();
-    void releaseObject () throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
-    char* label () throw (CORBA::SystemException);
-    CF::Device::UsageType usageState ()throw (CORBA::SystemException);
-    CF::Device::AdminType adminState ()throw (CORBA::SystemException);
-    CF::Device::OperationalType operationalState ()throw (CORBA::SystemException);
-    CF::AggregateDevice_ptr compositeDevice ()throw (CORBA::SystemException);
-    void adminState (CF::Device::AdminType _adminType) throw (CORBA::SystemException);
-    void deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
-    CORBA::Boolean allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
-    void configure (const CF::Properties& configProperties) throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+    /**
+     * @throw CF::LifeCycle::ReleaseError
+     * @throw CORBA::SystemException
+     */
+    void releaseObject ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    char* label ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::Device::UsageType usageState ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::Device::AdminType adminState ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::Device::OperationalType operationalState ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::AggregateDevice_ptr compositeDevice ();
+    /**
+     * @throw CORBA::SystemException
+     */
+    void adminState (CF::Device::AdminType _adminType);
+    /**
+     * @throw CF::Device::InvalidState
+     * @throw CF::Device::InvalidCapacity
+     * @throw CORBA::SystemException
+     */
+    void deallocateCapacity (const CF::Properties& capacities);
+    /**
+     * @throw CF::Device::InvalidState
+     * @throw CF::Device::InvalidCapacity
+     * @throw CF::Device::InsufficientCapacity
+     * @throw CORBA::SystemException
+     */
+    CORBA::Boolean allocateCapacity (const CF::Properties& capacities);
+    /**
+     * @throw CF::PropertySet::PartialConfiguration
+     * @throw CF::PropertySet::InvalidConfiguration
+     * @throw CORBA::SystemException
+     */
+    void configure (const CF::Properties& configProperties);
     // resolve domain awareness
     void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, const std::string &nic);
     virtual void run ();

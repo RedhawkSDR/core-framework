@@ -26,6 +26,12 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/tss.hpp>
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 namespace redhawk {
     /**
      * @brief  Singleton class providing buffer allocation management.
@@ -70,18 +76,18 @@ namespace redhawk {
                 typedef Allocator<U> other;
             };
 
-            Allocator() throw() :
+            Allocator() NOEXCEPT :
                 base()
             {
             }
 
-            Allocator(const Allocator& other) throw() :
+            Allocator(const Allocator& other) NOEXCEPT :
                 base(other)
             {
             }
 
             template <typename U>
-            Allocator(const Allocator<U>& other) throw() :
+            Allocator(const Allocator<U>& other) NOEXCEPT :
                 base(other)
             {
             }
