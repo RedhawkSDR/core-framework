@@ -267,15 +267,16 @@ class ${className} : public ${baseClass}
             _hwLoadStatusesPtr = &_defaultHwLoadStatuses;
         }
 
+        /**
+         * @throw CF::LoadableDevice::LoadFail
+         * @throw CF::InvalidFileName
+         * @throw CF::LoadableDevice::InvalidLoadKind
+         * @throw CF::Device::InvalidState
+         * @throw CORBA::SystemException
+         */
         void load ( CF::FileSystem_ptr           fs, 
                     const char*                  fileName, 
                     CF::LoadableDevice::LoadType loadKind )
-            throw ( 
-                CF::LoadableDevice::LoadFail, 
-                CF::InvalidFileName, 
-                CF::LoadableDevice::InvalidLoadKind,
-                CF::Device::InvalidState, 
-                CORBA::SystemException ) 
         {
             bool isSharedLibrary = (loadKind == CF::LoadableDevice::SHARED_LIBRARY);
             bool existsOnDevFS   = _deviceManager->fileSys()->exists(fileName);
@@ -291,18 +292,19 @@ class ${className} : public ${baseClass}
             ${baseClass}::load(fs, fileName, loadKind);
         }
         
+        /**
+         * @throw CF::ExecutableDevice::ExecuteFail
+         * @throw CF::InvalidFileName
+         * @throw CF::ExecutableDevice::InvalidOptions
+         * @throw CF::ExecutableDevice::InvalidParameters
+         * @throw CF::ExecutableDevice::InvalidFunction
+         * @throw CF::Device::InvalidState
+         * @throw CORBA::SystemException
+         */
         CF::ExecutableDevice::ProcessID_Type execute (
                         const char*             name, 
                         const CF::Properties&   options, 
                         const CF::Properties&   parameters )
-            throw (
-                CF::ExecutableDevice::ExecuteFail, 
-                CF::InvalidFileName, 
-                CF::ExecutableDevice::InvalidOptions, 
-                CF::ExecutableDevice::InvalidParameters,
-                CF::ExecutableDevice::InvalidFunction, 
-                CF::Device::InvalidState, 
-                CORBA::SystemException )
         {
             RH_DEBUG(this->_deviceLog, __FUNCTION__ << 
                     ": Instantiating ${executeType} '" << name << "'... ");
@@ -316,7 +318,7 @@ class ${className} : public ${baseClass}
             if (${executeType} == NULL) {
                 RH_FATAL(this->_deviceLog, __FUNCTION__ << 
                     ": Unable to instantiate '" << name << "'");
-                throw (CF::ExecutableDevice::ExecuteFail());
+                throw CF::ExecutableDevice::ExecuteFail();
             }
            
             // Grab the name from the instantiated object 
@@ -332,11 +334,12 @@ class ${className} : public ${baseClass}
             return _processIdIncrement;
         }
         
+        /**
+         * @throw CF::Device::InvalidState
+         * @throw CF::ExecutableDevice::InvalidProcess
+         * @throw CORBA::SystemException
+         */
         void terminate (CF::ExecutableDevice::ProcessID_Type processId) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::ExecutableDevice::InvalidProcess, 
-                CORBA::SystemException ) 
         {
             // Initialize local variables
             ProcessMapIter processIter;
@@ -363,12 +366,13 @@ class ${className} : public ${baseClass}
                     ": Unable to locate ${executeType} using pid '" << processId <<"'");
         }
         
+        /**
+         * @throw CF::Device::InvalidState
+         * @throw CF::Device::InvalidCapacity
+         * @throw CF::Device::InsufficientCapacity
+         * @throw CORBA::SystemException
+         */
         CORBA::Boolean allocateCapacity(const CF::Properties& capacities) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::Device::InvalidCapacity, 
-                CF::Device::InsufficientCapacity, 
-                CORBA::SystemException ) 
         {
             boost::mutex::scoped_lock lock(_allocationMutex);
 
@@ -444,11 +448,12 @@ class ${className} : public ${baseClass}
             return allocationSuccess;
         }
         
+        /**
+         * @throw CF::Device::InvalidState
+         * @throw CF::Device::InvalidCapacity
+         * @throw CORBA::SystemException
+         */
         void deallocateCapacity(const CF::Properties& capacities) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::Device::InvalidCapacity, 
-                CORBA::SystemException ) 
         {
             // Initialize local variables
             bool deallocationSuccess = false;
@@ -508,9 +513,11 @@ class ${className} : public ${baseClass}
             }
         }
         
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
         void releaseObject() 
-            throw ( CF::LifeCycle::ReleaseError, 
-                    CORBA::SystemException)
         {
             // Initialize local variables
             ProcessMapIter processIter;
