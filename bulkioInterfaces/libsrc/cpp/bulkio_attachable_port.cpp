@@ -1722,7 +1722,7 @@ namespace bulkio {
     if ( sri_iter == currentSRIs.end() ) {
       // need to use insert since we do not have default CTOR for AttachableSriMapStruct
       AttachableSriMapStruct sri_ctx(H,T);
-      currentSRIs.insert(std::make_pair(H.streamID, sri_ctx));
+      currentSRIs.insert(std::make_pair(sid, sri_ctx));
       sri_iter=  currentSRIs.find( sid );
     }
     else {
