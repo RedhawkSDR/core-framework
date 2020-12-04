@@ -26,6 +26,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include <net/if.h>
 #include <fstream>
@@ -121,7 +122,7 @@ NicFacade::get_or_insert_nic_state( const std::string& interface )
     if( nic_states_.end() == i )
     {
       RH_NL_DEBUG( "GPP", __FUNCTION__ << ": Adding NicState (" << interface << ")" );
-      i = nic_states_.insert( std::make_pair(interface, new NicState(interface)) ).first;
+      i = nic_states_.insert( std::make_pair(interface, boost::make_shared<NicState>(NicState(interface))) ).first;
     }
     return i->second;
 }
