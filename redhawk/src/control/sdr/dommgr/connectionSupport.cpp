@@ -112,7 +112,7 @@ CORBA::Object_ptr ConnectionManager::resolveFindByNamingService(const std::strin
     RH_TRACE(_connectionLog, "resolveFindByNamingService: The findname that I'm using is: " << findbyName);
     try {
         return ossie::corba::objectFromName(findbyName);
-    } catch (CosNaming::NamingContext::NotFound) {
+    } catch (const CosNaming::NamingContext::NotFound&) {
         // The name was not found, continue on and return nil.
     } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
 
@@ -173,7 +173,7 @@ CORBA::Object_ptr AppConnectionManager::resolveFindByNamingService(const std::st
         
         try {
             return ossie::corba::objectFromName(findbyName);
-        } catch (CosNaming::NamingContext::NotFound) {
+        } catch (const CosNaming::NamingContext::NotFound&) {
             // The name was not found, continue on and return nil.
         } CATCH_RH_ERROR(_connectionLog, "Exception trying to resolve findbynamingservice \"" << findbyName << "\"");
     }

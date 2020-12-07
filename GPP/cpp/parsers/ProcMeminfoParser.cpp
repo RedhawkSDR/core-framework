@@ -80,7 +80,7 @@ void   ProcMeminfoParser::parse( ProcMeminfo::Contents & data )
         try {
           metric = boost::lexical_cast<ProcMeminfo::Counter>( values[1] );
         }
-        catch( boost::bad_lexical_cast ){
+        catch( const boost::bad_lexical_cast& ){
         }
       }
 
