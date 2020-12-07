@@ -924,10 +924,10 @@ namespace ossie {
           return "Response returned with status code \n";
         }
 
-        while (boost::asio::read(socket, response,
-            boost::asio::transfer_at_least(1), error)) 
+        while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error)) {
           ss << &response;
-          fileContents = ss.str();
+        }
+        fileContents = ss.str();
         if (error != boost::asio::error::eof)
           throw boost::system::system_error(error);
         
