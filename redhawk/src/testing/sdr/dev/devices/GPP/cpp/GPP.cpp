@@ -604,7 +604,7 @@ void GPP_i::update_grp_child_pids() {
 
             } catch ( ... ) {
                 std::stringstream errstr;
-                errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
+                errstr << "Unable to read " << stat_filename.str() << ". The process is no longer there";
                 LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
