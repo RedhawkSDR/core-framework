@@ -223,6 +223,8 @@ test-trigger:release:
     paths:
       - $rpm_name-abi-results.txt
     expire_in: 30 days
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:abi:
   variables:
