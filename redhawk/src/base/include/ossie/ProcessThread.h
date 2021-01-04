@@ -56,6 +56,7 @@ public:
 
 private:
     boost::thread* _thread;
+    // This _running has different semantics than ThreadedComponent::_running.
     volatile bool _running;
     ThreadedComponent* _target;
     struct timespec _delay;

@@ -20,6 +20,7 @@
 
 #include <ossie/ThreadedComponent.h>
 #include <ossie/CorbaUtils.h>
+#include <ossie/prop_helpers.h>
 
 namespace ossie {
 
@@ -40,6 +41,7 @@ void ProcessThread::start()
     if (!_thread) {
         _running = true;
         _thread = new boost::thread(&ProcessThread::run, this);
+        _target->setRunning(true);
     }
 }
 
@@ -71,6 +73,10 @@ void ProcessThread::run()
             exit(-1);
         }
         if (state == FINISH) {
+            _running = false;
+            _target->setFinished(true);
+            _target->setRunning(false);
+            _target->setFinishedTime();
             return;
         } else if (state == NOOP) {
             try {
@@ -86,6 +92,7 @@ void ProcessThread::run()
             boost::this_thread::yield();
         }
     }
+    _target->setRunning(false);
 }
 
 bool ProcessThread::release(unsigned long secs, unsigned long usecs)
@@ -104,13 +111,16 @@ bool ProcessThread::release(unsigned long secs, unsigned long usecs)
         delete _thread;
         _thread = 0;
     }
+    _target->setRunning(false);
     
     return true;
 }
 
 void ProcessThread::stop() {
     _running = false;
-    if ( _thread ) _thread->interrupt();
+    if ( _thread ) {
+        _thread->interrupt();
+    }
 }
 
 ProcessThread::~ProcessThread()
@@ -134,12 +144,21 @@ bool ProcessThread::threadRunning()
 
 };   //end of ossie namespace
 
+
+PREPARE_CF_LOGGING(ThreadedComponent);
+
 ThreadedComponent::ThreadedComponent() :
     serviceThread(0),
     serviceThreadLock(),
     _threadName(),
-    _defaultDelay(0.1)
+    _defaultDelay(0.1),
+    _finished(false),
+    _running(false),
+    _stopped(false)
 {
+    _finishedTime.tcstatus = 0;
+    _finishedTime.twsec = 0;
+    _finishedTime.tfsec = 0;
 }
 
 ThreadedComponent::~ThreadedComponent()
@@ -149,14 +168,24 @@ ThreadedComponent::~ThreadedComponent()
 void ThreadedComponent::startThread ()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
-    if (!serviceThread) {
+    if (serviceThread) {
+        LOG_WARN(ThreadedComponent, "Service thread was already running.");
+    } else {
+        if (_finished) {
+            LOG_WARN(ThreadedComponent, "Cannot start a FINISHed thread.");
+            return;
+        }
         serviceThread = new ossie::ProcessThread(this, _defaultDelay, _threadName);
+        _stopped = false;
         serviceThread->start();
     }
 }
 
 bool ThreadedComponent::stopThread ()
 {
+    if (!_finished) {
+        _stopped = true;
+    }
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread) {
         if (!serviceThread->release(2)) {
@@ -186,4 +215,20 @@ void ThreadedComponent::setThreadName (const std::string& name)
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     _threadName = name;
+}
+
+bool ThreadedComponent::isFinished() { return _finished; }
+bool ThreadedComponent::isRunning() { return _running; }
+bool ThreadedComponent::wasStopCalled() { return _stopped; }
+void ThreadedComponent::setFinished(bool val) { _finished = val; }
+void ThreadedComponent::setRunning(bool val) { _running = val; }
+
+CF::UTCTime ThreadedComponent::getFinishedTime() {
+    boost::mutex::scoped_lock lock(_finishedTimeMutex);
+    return _finishedTime;
+}
+
+void ThreadedComponent::setFinishedTime() {
+    boost::mutex::scoped_lock lock(_finishedTimeMutex);
+    _finishedTime = redhawk::time::utils::now();
 }
