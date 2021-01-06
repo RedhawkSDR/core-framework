@@ -177,9 +177,6 @@ if test "x$enable_java" != "xno"; then
   # Enable IDL-to-Java build rules
   RH_IDLJ_RULES
 
-  # Check vendor
-  RH_JAVA_VENDOR
-
   # Locate headers we need
   RH_JAVA_JNI_H
 
@@ -187,7 +184,6 @@ if test "x$enable_java" != "xno"; then
           "$JAVAC" != "no" -a \
           "$JAR" != "no" -a \
           "$IDLJ" != "no" -a \
-          "$JAVA_VENDOR" == "yes" -a \
           "$HAVE_JNI_H" == "yes"; then
     HAVE_JAVASUPPORT="yes"
     AC_SUBST(javadir, '${prefix}/lib')
