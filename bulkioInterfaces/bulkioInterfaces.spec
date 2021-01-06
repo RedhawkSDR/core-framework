@@ -41,6 +41,7 @@ Vendor:         REDHAWK
 Requires: 	redhawk = %{version}
 BuildRequires: 	redhawk-devel = %{version}
 BuildRequires: 	cppunit-devel
+BuildRequires: 	autoconf-archive
 
 %description
 Libraries and interface definitions for bulkio interfaces.

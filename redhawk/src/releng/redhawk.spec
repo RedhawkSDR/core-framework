@@ -90,6 +90,7 @@ BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
 BuildRequires:  numactl-devel
 BuildRequires:  sqlite-devel
+BuildRequires:  autoconf-archive
 
 %description
 REDHAWK is a Software Defined Radio framework.
