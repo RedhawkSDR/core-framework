@@ -1919,7 +1919,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
             std::ostringstream message;
             message << "container " << container->getIdentifier() << " was assigned to non-loadable device "
                     << device->identifier;
-            RH_ERROR(_createHelperLog, message);
+            RH_ERROR(_createHelperLog, message.str());
             throw std::logic_error(message.str());
         }
 
@@ -1987,7 +1987,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             std::ostringstream message;
             message << "component " << component_id << " was assigned to non-loadable device "
                     << device->identifier;
-            RH_ERROR(_createHelperLog, message);
+            RH_ERROR(_createHelperLog, message.str());
             throw std::logic_error(message.str());
         }
 

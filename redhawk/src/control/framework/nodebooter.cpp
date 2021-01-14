@@ -143,7 +143,7 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         prf.load(prfStream);
     } catch (const ossie::parser_error& ex) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfStream<< ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     prfStream.close();
