@@ -538,10 +538,10 @@ class FrontendTunerDevice(Device):
         if propdict.has_key('FRONTEND::scanner_allocation'):
             scanner_prop = propdict['FRONTEND::scanner_allocation']
 
+        alloc_id = model._uuidgen()
         if propdict.has_key('FRONTEND::tuner_allocation'):
-            retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
+            retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop, alloc_id)
             if retval:
-                alloc_id = model._uuidgen()
                 self._allocationTracker[alloc_id] = properties
                 return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
             else:
@@ -706,7 +706,7 @@ class FrontendTunerDevice(Device):
             if prop_key != "FRONTEND::tuner_allocation" and prop_key != "FRONTEND::listener_allocation":
                 raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
 
-    def _allocate_frontend_tuner_allocation(self, frontend_tuner_allocation, scanner_prop = None):
+    def _allocate_frontend_tuner_allocation(self, frontend_tuner_allocation, scanner_prop = None, override_id = None):
         exception_raised = False
         try:
             # Check allocation_id
@@ -772,7 +772,10 @@ class FrontendTunerDevice(Device):
 
                         self.tuner_allocation_ids[tuner_id].control_allocation_id = frontend_tuner_allocation.allocation_id
                         self.allocation_id_to_tuner_id[frontend_tuner_allocation.allocation_id] =  tuner_id
-                        self.frontend_tuner_status[tuner_id].allocation_id_csv = self.createAllocationIdCsv(tuner_id)
+                        if override_id:
+                            self.frontend_tuner_status[tuner_id].allocation_id_csv = override_id
+                        else:
+                            self.frontend_tuner_status[tuner_id].allocation_id_csv = self.createAllocationIdCsv(tuner_id)
                     else:
                         # channelizer allocations must specify device control = true
                         if frontend_tuner_allocation.tuner_type == "CHANNELIZER" or frontend_tuner_allocation.tuner_type == "TX":

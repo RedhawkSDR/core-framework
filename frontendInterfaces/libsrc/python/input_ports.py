@@ -71,6 +71,20 @@ class digital_tuner_delegation(analog_tuner_delegation):
     def getTunerOutputSampleRate(self, id):
         raise FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported")
 
+class transmit_control_delegation(digital_tuner_delegation):
+    def reset(self, id):
+        raise FRONTEND.NotSupportedException("reset not supported")
+    def hold(self, id):
+        raise FRONTEND.NotSupportedException("hold not supported")
+    def held(self):
+        raise FRONTEND.NotSupportedException("held not supported")
+    def allow(self, id):
+        raise FRONTEND.NotSupportedException("allow not supported")
+    def setTransmitParameters(self, transmit_parameters):
+        raise FRONTEND.NotSupportedException("setTransmitParameters not supported")
+    def getTransmitParameters(self):
+        raise FRONTEND.NotSupportedException("getTransmitParameters not supported")
+
 class analog_scanning_tuner_delegation(analog_tuner_delegation):
     def getScanStatus(self, id):
         raise FRONTEND.NotSupportedException("getScanStatus not supported")
@@ -235,6 +249,67 @@ class InDigitalTunerPort(FRONTEND__POA.DigitalTuner, InAnalogTunerPort):
         self.port_lock.acquire()
         try:
             return self.parent.getTunerOutputSampleRate(id)
+        finally:
+            self.port_lock.release()
+
+    def reset(self, id):
+        raise FRONTEND.NotSupportedException("reset not supported")
+    def hold(self, id):
+        raise FRONTEND.NotSupportedException("hold not supported")
+    def held(self):
+        raise FRONTEND.NotSupportedException("held not supported")
+    def allow(self, id):
+        raise FRONTEND.NotSupportedException("allow not supported")
+    def setTransmitParameters(self, transmit_parameters):
+        raise FRONTEND.NotSupportedException("setTransmitParameters not supported")
+    def getTransmitParameters(self):
+        raise FRONTEND.NotSupportedException("getTransmitParameters not supported")
+
+class InTransmitControlPort(FRONTEND__POA.TransmitControl, InDigitalTunerPort):
+    def __init__(self, name, parent=transmit_control_delegation()):
+        self.name = name
+        self.port_lock = threading.Lock()
+        self.parent = parent
+        
+    def reset(self, id):
+        self.port_lock.acquire()
+        try:
+            self.parent.reset(id)
+        finally:
+            self.port_lock.release()
+
+    def hold(self, id):
+        self.port_lock.acquire()
+        try:
+            return self.parent.hold(id)
+        finally:
+            self.port_lock.release()
+
+    def held(self):
+        self.port_lock.acquire()
+        try:
+            return self.parent.held()
+        finally:
+            self.port_lock.release()
+
+    def allow(self, id):
+        self.port_lock.acquire()
+        try:
+            return self.parent.allow(id)
+        finally:
+            self.port_lock.release()
+
+    def setTransmitParameters(self, transmit_parameters):
+        self.port_lock.acquire()
+        try:
+            self.parent.setTunerOutputSampleRate(transmit_parameters)
+        finally:
+            self.port_lock.release()
+
+    def getTransmitParameters(self):
+        self.port_lock.acquire()
+        try:
+            return self.parent.getTransmitParameters()
         finally:
             self.port_lock.release()
 

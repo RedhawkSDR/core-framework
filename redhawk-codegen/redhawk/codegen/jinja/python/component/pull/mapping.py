@@ -74,6 +74,7 @@ class PullComponentMapper(ComponentMapper):
         # and FrontendTuner)
         inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'TransmitControl': ('DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 
@@ -150,6 +151,8 @@ class PullComponentMapper(ComponentMapper):
                 classes.append({'name': 'digital_scanning_tuner_delegation', 'package': 'frontend'})
             elif 'AnalogScanningTuner' in deviceinfo:
                 classes.append({'name': 'analog_scanning_tuner_delegation', 'package': 'frontend'})
+            elif 'TransmitControl' in deviceinfo:
+                classes.append({'name': 'transmit_control_delegation', 'package': 'frontend'})
             elif 'DigitalTuner' in deviceinfo:
                 classes.append({'name': 'digital_tuner_delegation', 'package': 'frontend'})
             elif 'AnalogTuner' in deviceinfo:
