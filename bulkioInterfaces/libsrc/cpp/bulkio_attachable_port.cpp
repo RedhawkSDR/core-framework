@@ -2010,21 +2010,21 @@ namespace bulkio {
                     newStream->createNewAttachment(i->second, i->first);
                 } catch (typename PortType::AttachError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
-                    delete newStream;
                     throw;
                 } catch (typename PortType::StreamInputError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
-                    delete newStream;
                     throw;
                 } catch(...) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
-                    delete newStream;
                     throw;
                 }
 
              } catch(...) {
                 LOG_ERROR( _portLog, "UNABLE TO CREATE ATTACHMENT, PORT/CONNECTION: " << this->name << "/" << i->second );
-                delete newStream;
+                if ( newStream ) {
+                  delete newStream;
+                  newStream=0;
+                }
                 throw;
              }
           }
