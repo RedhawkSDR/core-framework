@@ -71,7 +71,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         port.enableStats(false);
     }
 
-    /*@Test
+    @Test
     public void testGetPacket()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_get_packet");
@@ -111,7 +111,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         Assert.assertEquals(true, packet.EOS);
         Assert.assertEquals(true, packet.sriChanged);
         Assert.assertEquals(1, packet.SRI.mode);
-    }*/
+    }
 
     @Test
     public void testActiveSRIs()
@@ -331,7 +331,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
     /**
      * Tests that SRI changes are reported correctly from getPacket().
      */
-    /*@Test
+    @Test
     public void testSriChanged()
     {
         helpers.SriListener listener = new helpers.SriListener();
@@ -365,7 +365,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         packet = port.getPacket(bulkio.Const.NON_BLOCKING);
         Assert.assertNotNull(packet);
         Assert.assertTrue(packet.sriChanged);
-    }*/
+    }
 
     @Test
     public void testSriChangedFlush()
@@ -459,7 +459,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         Assert.assertNull(packet);
     }
 
-    /*@Test
+    @Test
     public void testQueueFlushFlags()
     {
         // Push 1 packet for the normal data stream
@@ -534,7 +534,7 @@ public class InPortTestImpl<E extends BULKIO.updateSRIOperations & BULKIO.Provid
         Assert.assertFalse("Input queue flush should not be reported", packet.inputQueueFlushed);
         Assert.assertFalse("EOS should not be reported", packet.EOS);
         Assert.assertTrue("SRI change should be reported", packet.sriChanged);
-    }*/
+    }
 
     @Test
     public void testQueueSize()
