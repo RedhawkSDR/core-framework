@@ -27,10 +27,19 @@ import org.apache.log4j.Logger;
 
 import org.ossie.component.RHLogger;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Arrays;
+import java.util.ArrayDeque;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
+//import bulkio.In@name@Stream;
 
 /**
  * 
@@ -48,7 +57,10 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
         };
     };
 
+    public Object streamsMutex;
     private InPortImpl<@type@[]> impl;
+    //protected Map<String, InShortStream> streams;
+    //protected Map<String, InShortStream[]> pendingStreams;
 
     /**
      * 

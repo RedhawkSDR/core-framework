@@ -53,7 +53,8 @@ import org.junit.runners.Suite.SuiteClasses;
         PrecisionUTCTimeTest.class,
         StreamSRITest.class,
         InSDDSPort_Test.class,
-        OutSDDSPort_Test.class
+        OutSDDSPort_Test.class,
+        InShortStreamTest.class
 })
 public class AllTests {
 }

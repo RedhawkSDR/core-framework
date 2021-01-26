@@ -137,6 +137,9 @@ InDataPort.java \
 InPortImpl.java \
 InStreamDescriptor.java \
 InStreamBase.java \
+InShortStream.java \
+SampleTimestamp.java \
+ShortDataBlock.java \
 linkStatistics.java \
 OutBitPort.java \
 OutDataPort.java \
@@ -171,6 +174,9 @@ time/utils.java
 # Numeric ports are generated via sed for ease of maintenance
 $(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InPort.java.template
 	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InPort.java.template > $@
+
+$(JAVA_SRCDIR)/bulkio/%DataBlock.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/DataBlock.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DataBlock.java.template > $@
 
 $(JAVA_SRCDIR)/bulkio/%DataHelper.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/NumericDataHelper.java.template
 	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/NumericDataHelper.java.template > $@
@@ -208,6 +214,17 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutUShortPort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongPort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutULongLongPort.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OutOctetPort.java
+
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/DoubleDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/FloatDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ShortDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/LongLongDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/CharDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UShortDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongLongDataBlock.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OctetDataBlock.java
 
 # Deprecated port alias classes (e.g., InInt16Port aliases InShortPort)
 $(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template

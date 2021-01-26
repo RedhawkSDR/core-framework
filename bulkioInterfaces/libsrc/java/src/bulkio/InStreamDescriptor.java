@@ -50,7 +50,7 @@ import BULKIO.StreamSRI;
     * @note  User code should typically use the type-specific input and output
     *        stream classes.
     */
-class InStreamDescriptor {
+public class InStreamDescriptor {
 
     public InStreamDescriptor()
     {

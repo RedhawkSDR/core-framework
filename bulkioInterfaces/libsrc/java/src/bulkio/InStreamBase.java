@@ -56,7 +56,13 @@ import org.omg.CORBA.Any;
     * @note  User code should typically use the type-specific input and output
     *        stream classes.
     */
-class InStreamBase {
+public class InStreamBase {
+
+    static int EOS_NONE = 0;
+    static int EOS_RECEIVED = 1;
+    static int EOS_REACHED = 2;
+    static int EOS_REPORTED = 3;
+
     /**
         * @brief  Returns the stream ID.
         * @pre  Stream is valid.
