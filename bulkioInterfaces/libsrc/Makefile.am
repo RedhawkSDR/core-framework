@@ -175,6 +175,9 @@ time/utils.java
 $(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InPort.java.template
 	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InPort.java.template > $@
 
+$(JAVA_SRCDIR)/bulkio/In%Stream.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/InStream.java.template
+	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/InStream.java.template > $@
+
 $(JAVA_SRCDIR)/bulkio/%DataBlock.java : $(JAVA_DIR)/sed/%.sed $(JAVA_SRCDIR)/bulkio/DataBlock.java.template
 	$(AM_V_GEN)sed -f $< $(JAVA_SRCDIR)/bulkio/DataBlock.java.template > $@
 
@@ -225,6 +228,17 @@ JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/UShortDataBlock.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongDataBlock.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/ULongLongDataBlock.java
 JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/OctetDataBlock.java
+
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InDoubleStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InFloatStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InShortStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InLongLongStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InCharStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InUShortStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InULongLongStream.java
+JAVA_BUILT_SOURCE += $(JAVA_SRCDIR)/bulkio/InOctetStream.java
 
 # Deprecated port alias classes (e.g., InInt16Port aliases InShortPort)
 $(JAVA_SRCDIR)/bulkio/In%Port.java : $(JAVA_DIR)/sed/deprecated/%.sed $(JAVA_SRCDIR)/bulkio/DeprecatedInPort.java.template
