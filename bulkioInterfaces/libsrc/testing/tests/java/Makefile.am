@@ -30,6 +30,10 @@ ALL_TYPES = $(NUMERIC_TYPES) Bit File XML
 In%PortTest.java : sed/%.sed InPortTest.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
+# Tests are generated via sed for ease of maintenance.
+In%StreamTest.java : sed/%.sed InStreamTest.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
 # Numeric out port tests are generated.
 Out%PortTest.java : sed/%.sed NumericOutPortTest.java.template
 	$(AM_V_GEN)sed -f $^ > $@
@@ -55,6 +59,7 @@ stubs/stub/InXMLPortStub.java : ;
 BUILT_SOURCES := $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
+BUILT_SOURCES += $(patsubst %,In%StreamTest.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 
 noinst_java_JARFILES = bulkio-tests.jar
@@ -79,11 +84,9 @@ bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
-bulkio_tests_jar_SOURCE += InShortStreamTest.java
 bulkio_tests_jar_SOURCE += PrecisionUTCTimeTest.java
 bulkio_tests_jar_SOURCE += StreamSRITest.java
 bulkio_tests_jar_SOURCE += impl/InPortTestImpl.java
-bulkio_tests_jar_SOURCE += impl/InStreamTestImpl.java
 bulkio_tests_jar_SOURCE += impl/OutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/ChunkingOutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/NumericOutPortTestImpl.java
