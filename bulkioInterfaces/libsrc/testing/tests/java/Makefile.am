@@ -38,6 +38,10 @@ In%StreamTest.java : sed/%.sed InStreamTest.java.template
 Out%PortTest.java : sed/%.sed NumericOutPortTest.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
+# Tests are generated via sed for ease of maintenance.
+Out%StreamTest.java : sed/%.sed OutStreamTest.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
 # Explicitly disable out port test generation for bit, file and XML.
 OutBitPortTest.java OutFilePortTest.java OutXMLPortTest.java : ;
 
@@ -61,6 +65,7 @@ BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,In%StreamTest.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
+BUILT_SOURCES += $(patsubst %,Out%StreamTest.java,$(NUMERIC_TYPES))
 
 noinst_java_JARFILES = bulkio-tests.jar
 

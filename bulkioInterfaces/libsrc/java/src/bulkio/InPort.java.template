@@ -68,8 +68,6 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
      */
     public In@name@Port( String portName ) {
         this( portName, null, new bulkio.sri.DefaultComparator(), null );
-        this.streams = new HashMap<String, In@name@Stream>();
-        this.pendingStreams = new HashMap<String, In@name@Stream[]>();
     }
 
     public In@name@Port( String portName,
@@ -94,6 +92,8 @@ public class In@name@Port extends BULKIO.jni.@idl@POA implements InDataPort<BULK
                        bulkio.SriListener sriCallback ) {
         impl = new InPortImpl<@type@[]>(portName, logger, compareSRI, sriCallback, new @name@DataHelper());
         this.streamsMutex = new Object();
+        this.streams = new HashMap<String, In@name@Stream>();
+        this.pendingStreams = new HashMap<String, In@name@Stream[]>();
     }
 
     public Logger getLogger() {

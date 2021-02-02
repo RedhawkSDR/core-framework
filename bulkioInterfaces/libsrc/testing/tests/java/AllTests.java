@@ -54,7 +54,26 @@ import org.junit.runners.Suite.SuiteClasses;
         StreamSRITest.class,
         InSDDSPort_Test.class,
         OutSDDSPort_Test.class,
-        InShortStreamTest.class
+        InCharStreamTest.class,
+        InOctetStreamTest.class,
+        InShortStreamTest.class,
+        InUShortStreamTest.class,
+        InLongStreamTest.class,
+        InULongStreamTest.class,
+        InLongLongStreamTest.class,
+        InULongLongStreamTest.class,
+        InFloatStreamTest.class,
+        InDoubleStreamTest.class,
+        OutCharStreamTest.class,
+        OutOctetStreamTest.class,
+        OutShortStreamTest.class,
+        OutUShortStreamTest.class,
+        OutLongStreamTest.class,
+        OutULongStreamTest.class,
+        OutLongLongStreamTest.class,
+        OutULongLongStreamTest.class,
+        OutFloatStreamTest.class,
+        OutDoubleStreamTest.class
 })
 public class AllTests {
 }
