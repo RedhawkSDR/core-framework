@@ -54,6 +54,7 @@ import org.junit.runners.Suite.SuiteClasses;
         StreamSRITest.class,
         InSDDSPort_Test.class,
         OutSDDSPort_Test.class,
+        InBitStreamTest.class,
         InCharStreamTest.class,
         InOctetStreamTest.class,
         InShortStreamTest.class,

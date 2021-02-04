@@ -327,7 +327,7 @@ public class InBitStream extends InStreamBase {
         return count / item_size;
     }
 
-    protected void _addTimestamp(BitDataBlock data, int inputOffset, int outputOffset, BULKIO.PrecisionUTCTime time)
+    protected void _addTimestamp(BitDataBlock data, double inputOffset, int outputOffset, BULKIO.PrecisionUTCTime time)
     {
         // Determine the timestamp of this chunk of data; if this is the
         // first chunk, the packet offset (number of samples already read)
@@ -380,8 +380,9 @@ public class InBitStream extends InStreamBase {
 
         // Allocate empty data block and propagate the SRI change and input queue
         // flush flags
-        BULKIO.BitSequence empty_data = new BULKIO.BitSequence();
-        BitDataBlock data = new BitDataBlock(front.SRI, empty_data, 0, false);
+        BULKIO.BitSequence data_payload = new BULKIO.BitSequence();
+        data_payload.data = new byte[0];
+        BitDataBlock data = new BitDataBlock(front.SRI, data_payload, 0, false);
         this._setBlockFlags(data, front);
         if (front.sriChanged) {
             // Update the stream metadata
@@ -395,7 +396,7 @@ public class InBitStream extends InStreamBase {
         int last_offset = this._sampleOffset + count;
         if (last_offset <= front.dataBuffer.bits) {
             // The requsted sample count can be satisfied from the first packet
-            _addTimestamp(data, _sampleOffset, 0, front.T);
+            _addTimestamp(data, (double)_sampleOffset, 0, front.T);
 
             int number_bytes = last_offset/8;
             if (last_offset%8 != 0) {
@@ -404,16 +405,16 @@ public class InBitStream extends InStreamBase {
             int byte_offset = _sampleOffset/8;
             byte bit_offset = (byte)(_sampleOffset%8);
 
-            BULKIO.BitSequence new_data = new BULKIO.BitSequence();
-            new_data.data = new byte[number_bytes];
-            for (int i=0; i<new_data.data.length; i++) {
+            data_payload.data = new byte[number_bytes];
+            for (int i=0; i<data_payload.data.length; i++) {
                 // contortions because Java does not have unsigned bytes
-                new_data.data[i] = (byte)(((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset)-128);
+                data_payload.data[i] = (byte)(((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset)-128);
                 if (bit_offset != 0) {
                     // contortions because Java does not have unsigned bytes
-                    new_data.data[i] |= (byte)(((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
+                    data_payload.data[i] |= (byte)(((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
                 }
             }
+            data_payload.bits = last_offset;
         //data.setBuffer(Arrays.copyOfRange(front.dataBuffer, _sampleOffset, last_offset));
         } else {
             // We have to span multiple packets to get the data
@@ -421,8 +422,10 @@ public class InBitStream extends InStreamBase {
             int data_offset = 0;
 
             // Assemble data spanning several input packets into the output buffer
-            int packet_offset = _sampleOffset;
-            while (last_offset > 0) {
+            int packet_bit_offset = _sampleOffset;
+            boolean has_remainder = false;
+            int remainder_offset = 0;
+            while (count > 0) {
                 Iterator<InBitPort.Packet> itr = _queue.iterator();
                 int iter_count = 0;
                 while (iter_count != this._queuedPacketIndex) {
@@ -434,11 +437,11 @@ public class InBitStream extends InStreamBase {
                 BULKIO.BitSequence input_data = packet.dataBuffer;
 
                 // Add the timestamp for this pass
-                _addTimestamp(data, packet_offset, data_offset, packet.T);
+                _addTimestamp(data, (double)packet_bit_offset, data_offset, packet.T);
 
                 // The number of samples copied on this pass may be less than the total
                 // remaining
-                int available = input_data.bits - packet_offset;
+                int available = input_data.bits - packet_bit_offset;
                 int pass = Math.min(available, last_offset);
 
                 // last_offset: from begining of offset to + requested count
@@ -450,37 +453,57 @@ public class InBitStream extends InStreamBase {
                 if (pass%8 != 0) {
                     number_bytes += 1;
                 }
-                int byte_offset = packet_offset/8;
-                byte bit_offset = (byte)(packet_offset%8);
+                int byte_offset = packet_bit_offset/8;
+                int bit_offset = (byte)(packet_bit_offset%8);
 
-                BULKIO.BitSequence new_data = new BULKIO.BitSequence();
-                new_data.data = new byte[number_bytes];
-                for (int i=0; i<new_data.data.length; i++) {
+                int data_payload_origin = 0;
+                if (data_payload.data.length == 0) {
+                    data_payload.data = new byte[number_bytes];
+                } else {
+                    data_payload_origin = data_payload.data.length;
+                    data_payload.data = Arrays.copyOf(data_payload.data, data_payload.data.length+number_bytes);
+                }
+                for (int i=0; i<number_bytes; i++) {
+                    if ((i==0) && (has_remainder)) {
+                        data_payload.data[data_payload_origin-1] |= (byte)(((((int)input_data.data[i+byte_offset])+128) << (8-remainder_offset))-128);
+                        bit_offset = bit_offset + (8-remainder_offset);
+                        bit_offset = bit_offset%8;
+                        remainder_offset = 0;
+                        has_remainder = false;
+                    }
                     // contortions because Java does not have unsigned bytes
-                    new_data.data[i] = (byte)(((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset)-128);
+                    data_payload.data[i+data_payload_origin] = (byte)(((((int)input_data.data[i+byte_offset])+128) << bit_offset)-128);
                     if (bit_offset != 0) {
-                        // contortions because Java does not have unsigned bytes
-                        new_data.data[i] |= (byte)(((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
+                        if (i+byte_offset+1 == input_data.data.length) {
+                            has_remainder = true;
+                            remainder_offset = bit_offset;
+                            break;
+                        } else {
+                            // contortions because Java does not have unsigned bytes
+                            data_payload.data[i+data_payload_origin] |= (byte)(((((int)input_data.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
+                        }
                     }
                 }
-    
+                data_payload.bits += pass;
+
 
                 //buffer.replace(data_offset, pass, input_data, packet_offset);
                                 // src          srcPos       dest     destPos     length
                 //System.arraycopy(input_data, packet_offset, buffer, data_offset, pass);
                 data_offset += pass;
-                packet_offset += pass/8;
+                packet_bit_offset += pass;
                 count -= pass;
+                last_offset -= pass;
 
                 // If all the data from the current packet has been read, move on to
                 // the next
-                if (packet_offset >= input_data.data.length) {
-                    packet_offset = 0;
+                if (packet_bit_offset >= input_data.bits) {
+                    packet_bit_offset = 0;
                     this._queuedPacketIndex += 1;
                     //_queue.poll();
                 }
             }
-            data.setBuffer(buffer);
+            //data.setBuffer(buffer);
         }
 
         // Advance the read pointers
