@@ -129,6 +129,8 @@ DataHelper.java \
 DataTransfer.java \
 ChunkingOutPort.java \
 InBitPort.java \
+InBitStream.java \
+BitDataBlock.java \
 InFilePort.java \
 InSDDSPort.java \
 InVITA49Port.java \
@@ -138,9 +140,8 @@ InPortImpl.java \
 InStreamDescriptor.java \
 InStreamBase.java \
 OutStreamBase.java \
-OutShortStream.java \
 SampleTimestamp.java \
-ShortDataBlock.java \
+StreamListener.java \
 linkStatistics.java \
 OutBitPort.java \
 OutDataPort.java \
