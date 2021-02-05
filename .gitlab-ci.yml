@@ -191,10 +191,8 @@ test-trigger:release:
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
-  variables:
-    redhawk_version: '2.2.5-rc1'
   script:
-    - curl --insecure -X POST -F ref=$redhawk_version
+    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME"
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
@@ -225,6 +223,8 @@ test-trigger:release:
     paths:
       - $rpm_name-abi-results.txt
     expire_in: 30 days
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:abi:
   variables:
@@ -263,7 +263,7 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  image: ${docker_registry}utils/s3cmd:el7-createrepo
   stage: deploy
   tags:
     - s3

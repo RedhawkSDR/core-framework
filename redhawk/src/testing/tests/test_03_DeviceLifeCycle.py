@@ -21,13 +21,67 @@
 import unittest, os
 from _unitTestHelpers import scatest
 from test_01_DeviceManager import killChildProcesses
-from ossie.utils import redhawk
+from ossie.utils import redhawk, sb
 from ossie.cf import CF
 from ossie.events import Subscriber
 from ossie import properties
 from omniORB import any as _any
 import time
 import Queue
+
+class CppDeviceBusyState(scatest.CorbaTestCase):
+    def setUp(self):
+        # Flagrant violation of sandbox API: if the sandbox singleton exists,
+        # clean up previous state and dispose of it.
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+
+    def tearDown(self):
+        sb.release()
+
+    def test_BusyAllocCpp(self):
+        dev=sb.launch('devcpp')
+
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.busy_state = False
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertTrue(res)
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.releaseObject()
+
+    @scatest.requireJava
+    def test_BusyAllocJava(self):
+        dev=sb.launch('devj')
+
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.busy_state = False
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertTrue(res)
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.releaseObject()
+
+    def test_BusyAllocPy(self):
+        dev=sb.launch('devpy')
+
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.busy_state = False
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertTrue(res)
+        dev.busy_state = True
+        res=dev.allocateCapacity({'a_number': 3 } )
+        self.assertFalse(res)
+        dev.releaseObject()
 
 class DeviceLifeCycleTest(scatest.CorbaTestCase):
     def setUp(self):

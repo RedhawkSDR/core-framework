@@ -105,6 +105,25 @@ void devcpp_base::loadProperties()
                 "external",
                 "property");
 
+    addProperty(busy_state,
+                false,
+                "busy_state",
+                "busy_state",
+                "readwrite",
+                "",
+                "external",
+                "property");
+
+    addProperty(a_number,
+                100,
+                "a_number",
+                "a_number",
+                "readwrite",
+                "",
+                "external",
+                "allocation");
+
 }
+
 
 

@@ -403,7 +403,9 @@ class InPortImpl<A> {
                         // Update the SRI change flag for this stream, which
                         // may have been modified during the queue flush
                         sriState currH = this.currentHs.get(streamID);
-                        sriChanged = currH.isChanged();
+                        if (!sriChanged) {
+                            sriChanged = currH.isChanged();
+                        }
                         currH.setChanged(false);
                     }
                 }
@@ -411,21 +413,27 @@ class InPortImpl<A> {
                 if (( logger != null ) && (logger.isTraceEnabled())) {
                     logger.trace( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + workQueue.size() + ")");
                 }
-                DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, false);
+
+                boolean report_queueFlushed = false;
+                if (flushToReport) {
+                    for (DataTransfer<A> it : this.workQueue) {
+                        if ((it.streamID.equals(streamID)) && (!it.EOS)) {
+                            report_queueFlushed = true;
+                            if (it.sriChanged) {
+                                sriChanged = true;
+                            }
+                            this.workQueue.remove(it);
+                            break;
+                        }
+                    }
+                }
+                DataTransfer<A> p = new DataTransfer<A>(data, time, eos, streamID, tmpH, sriChanged, report_queueFlushed);
                 this.workQueue.add(p);
 
                 if (eos) {
                     synchronized (this.sriUpdateLock) {
                         this.currentHs.remove(streamID);
                     }
-                }
-                // If a flush occurred, always set the flag on the first
-                // packet; this may not be the packet that was just inserted if
-                // there were any EOS packets on the queue
-                if (flushToReport) {
-                    DataTransfer<A> first = this.workQueue.removeFirst();
-                    first = new DataTransfer<A>(first.dataBuffer, first.T, first.EOS, first.streamID, first.SRI, first.sriChanged, true);
-                    this.workQueue.addFirst(first);
                 }
                 this.dataSem.release();
             }
@@ -441,37 +449,91 @@ class InPortImpl<A> {
     private void _flushQueue()
     {
         Set<String> sri_changed = new HashSet<String>();
-        ArrayDeque<DataTransfer<A>> saved_packets = new ArrayDeque<DataTransfer<A>>();
+        ArrayList<DataTransfer<A>> saved_packets = new ArrayList<DataTransfer<A>>();
         for (DataTransfer<A> packet : this.workQueue) {
-            if (packet.EOS) {
-                // Remove the SRI change flag for this stream, as further SRI
-                // changes apply to a different stream; set the SRI change flag
-                // for the EOS packet if there was one for this stream earlier
-                // in the queue
-                boolean sri_flag = packet.sriChanged;
-                if (sri_changed.remove(packet.streamID)) {
-                    sri_flag = true;
+            String _streamid = new String(packet.streamID);
+
+            boolean current_empty = this.helper.isEmpty(packet.dataBuffer);
+            boolean current_eos = packet.EOS;
+
+            boolean packet_modification_sriChanged = packet.sriChanged;
+            boolean packet_modification_inputQueueFlushed = false;
+
+            if (current_eos) {
+                if (sri_changed.remove(_streamid)) {
+                    packet_modification_sriChanged = true;
                 }
+            } else {
+                if (packet.sriChanged) {
+                    sri_changed.add(_streamid);
+                }
+            }
 
-                // Discard data and preserve the EOS packet
-                DataTransfer<A> modified_packet = new DataTransfer<A>(this.helper.emptyArray(), packet.T, true, packet.streamID, packet.SRI, sri_flag, false);
-                saved_packets.addLast(modified_packet);
-            } else if (packet.sriChanged) {
-                sri_changed.add(packet.streamID);
+            ArrayList<DataTransfer<A>> past_instances = new ArrayList<DataTransfer<A>>();
+            DataTransfer<A> previous_iter = null;//saved_packets.get(saved_packets.size()-1);
+            for (DataTransfer<A> tmp_q : saved_packets) {
+                String _now_streamid = new String(tmp_q.streamID);
+                if (!_streamid.equals(_now_streamid)) {
+                    continue;
+                }
+                // i've seen this stream id before
+                past_instances.add(tmp_q);
+                previous_iter = tmp_q;
+            }
+
+            if (past_instances.isEmpty()) {
+                DataTransfer<A> modified_packet = new DataTransfer<A>(packet.dataBuffer, packet.T, packet.EOS, packet.streamID, packet.SRI, packet_modification_sriChanged, packet_modification_inputQueueFlushed);
+                saved_packets.add(modified_packet);
+            } else {
+                // if the previous one is a common packet
+                //  if the current one is a common packet, set the previous one's sri changed to true if either current or previous are true
+                //  if the current one is an EOS:
+                //   -- if the current one has a payload
+                //    -- remove the previous one (location of EOS matters)
+                //    -- add EOS; set queue flushed to true if the previous one had a flush to true or this packet has data
+                //   -- else update the previous one's EOS flag
+                // if the previous one is an EOS
+                //  treat the current one as a new packet
+                DataTransfer<A> previous = past_instances.get(past_instances.size()-1);
+                boolean previous_eos = previous.EOS;
+                boolean previous_new_sri = previous.sriChanged;
+                if (!previous_eos) {
+                    if (!current_eos) {
+                        if (previous_new_sri) {
+                            packet_modification_sriChanged = true;
+                        }
+                        saved_packets.remove(previous_iter);
+                        packet_modification_inputQueueFlushed = true;
+
+                        DataTransfer<A> modified_packet = new DataTransfer<A>(packet.dataBuffer, packet.T, packet.EOS, packet.streamID, packet.SRI, packet_modification_sriChanged, packet_modification_inputQueueFlushed);
+                        saved_packets.add(modified_packet);
+                    } else {
+                        if (current_empty) {
+                            DataTransfer<A> modified_packet = new DataTransfer<A>(previous_iter.dataBuffer, previous_iter.T, true, previous_iter.streamID, previous_iter.SRI, previous_iter.sriChanged, previous_iter.inputQueueFlushed);
+                            saved_packets.set(saved_packets.indexOf(previous_iter), modified_packet);
+                        } else {
+                            if (!previous_eos) {
+                                packet_modification_inputQueueFlushed = true;
+                            }
+                            saved_packets.remove(previous_iter);
+                            if (previous_new_sri) {
+                                packet_modification_sriChanged = true;
+                            }
+                            DataTransfer<A> modified_packet = new DataTransfer<A>(packet.dataBuffer, packet.T, true, packet.streamID, packet.SRI, packet_modification_sriChanged, packet_modification_inputQueueFlushed);
+                            saved_packets.add(modified_packet);
+                        }
+                    }
+                } else {
+                    packet_modification_inputQueueFlushed = true;
+                    if (current_empty && current_eos) {
+                        packet_modification_inputQueueFlushed = false;
+                    }
+                    DataTransfer<A> modified_packet = new DataTransfer<A>(packet.dataBuffer, packet.T, packet.EOS, packet.streamID, packet.SRI, packet_modification_sriChanged, packet_modification_inputQueueFlushed);
+                    saved_packets.add(modified_packet);
+                }
             }
         }
-        this.workQueue = saved_packets;
-
-        // Save any SRI change flags that were collected and not applied to an
-        // EOS packet
-        for (String stream_id : sri_changed) {
-            // It should be safe to assume that an entry exists for the stream
-            // ID, but just in case, check the result of get
-            sriState currH = this.currentHs.get(stream_id);
-            if (currH != null) {
-                currH.setChanged(true);
-            }
-        }
+        this.workQueue = new ArrayDeque<DataTransfer<A>>(saved_packets);
     }
 
     /**

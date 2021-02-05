@@ -18,6 +18,8 @@ class devcpp_i : public devcpp_base
         int serviceFunction();
         void set_foobar( int value );
 
+        void busyStatusChanged(bool oldValue, bool newValue);
+
 
     protected:
         void updateUsageState();

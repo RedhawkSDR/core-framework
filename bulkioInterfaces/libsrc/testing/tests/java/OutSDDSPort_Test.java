@@ -27,6 +27,7 @@ import org.junit.runners.JUnit4;
 import org.apache.log4j.Logger;
 
 import bulkio.ConnectionEventListener;
+import org.omg.CORBA.ORB;
 
 /**
  * Tests for {@link Foo}.
@@ -34,9 +35,12 @@ import bulkio.ConnectionEventListener;
  * @author 
  */
 @RunWith(JUnit4.class)
-public class OutSDDSPort_Test {
+public class OutSDDSPort_Test implements bulkio.InSDDSPort.Callback {
 
     Logger logger =  Logger.getRootLogger();
+    int attachIdCount;
+    int good_port = 12345;
+    int bad_port = 54321;
 
     class test_fact {
 
@@ -170,5 +174,75 @@ public class OutSDDSPort_Test {
 
     }
 
+    public String attach(BULKIO.SDDSStreamDefinition stream, String userid) throws BULKIO.dataSDDSPackage.AttachError, BULKIO.dataSDDSPackage.StreamInputError {
+        if (stream.port == this.bad_port) {
+            throw new BULKIO.dataSDDSPackage.AttachError("bad port");
+        }
+        String retval = new String("hello");
+        retval += Integer.toString(this.attachIdCount);
+        this.attachIdCount += 1;
+        return retval;
+    };
 
+    public void detach(String attachId) throws BULKIO.dataSDDSPackage.DetachError, BULKIO.dataSDDSPackage.StreamInputError {
+    };
+
+    @Test
+    public void test_OutSDDS_attachFail( ) throws CF.PortPackage.InvalidPort, CF.PortPackage.OccupiedPort, BULKIO.dataSDDSPackage.DetachError, BULKIO.dataSDDSPackage.AttachError, BULKIO.dataSDDSPackage.StreamInputError {
+
+        this.attachIdCount = 0;
+        test_fact out_ctx = new test_fact( "OutSDDS" );
+        test_fact in_ctx=new test_fact("InSDDS");
+
+        bulkio.OutSDDSPort out_port = new bulkio.OutSDDSPort(out_ctx.port_name);
+
+        bulkio.InSDDSPort in_port = new bulkio.InSDDSPort(in_ctx.port_name );
+        
+        BULKIO.SDDSStreamDefinition newStreamDef = new BULKIO.SDDSStreamDefinition();
+        newStreamDef.id = new String("some_id");
+        newStreamDef.dataFormat = BULKIO.SDDSDataDigraph.SDDS_SF;
+        newStreamDef.multicastAddress = new String("0.0.0.0");
+        newStreamDef.privateInfo = new String("");
+        newStreamDef.port = this.good_port;
+
+        in_port.setAttachDetachCallback(this);
+
+        String pname = out_port.getName();
+        assertTrue("Port Name Failed",  pname == out_ctx.port_name );
+        out_port.connectPort( in_port._this_object(ORB.init((String[]) null, null)), out_ctx.cid );
+        boolean retval = out_port.addStream(newStreamDef);
+        assertTrue(retval);
+
+        BULKIO.SDDSStreamDefinition invalidStreamDef = new BULKIO.SDDSStreamDefinition();
+        invalidStreamDef.id = new String("another_id");
+        invalidStreamDef.dataFormat = BULKIO.SDDSDataDigraph.SDDS_SF;
+        invalidStreamDef.multicastAddress = new String("0.0.0.0");
+        invalidStreamDef.privateInfo = new String("");
+        invalidStreamDef.port = this.bad_port;
+
+        boolean exception_thrown = false;
+        try {
+            retval = out_port.addStream(invalidStreamDef);
+        } catch (BULKIO.dataSDDSPackage.AttachError e) {
+            exception_thrown = true;
+        }
+        assertTrue(exception_thrown);
+        exception_thrown = false;
+        try {
+            String[] attach_id = out_port.attach(invalidStreamDef, out_ctx.user_id);
+        } catch (BULKIO.dataSDDSPackage.AttachError e) {
+            exception_thrown = true;
+        }
+        assertTrue(exception_thrown);
+
+        BULKIO.SDDSStreamDefinition validStreamDef = new BULKIO.SDDSStreamDefinition();
+        validStreamDef.id = new String("another_id");
+        validStreamDef.dataFormat = BULKIO.SDDSDataDigraph.SDDS_SF;
+        validStreamDef.multicastAddress = new String("0.0.0.0");
+        validStreamDef.privateInfo = new String("");
+        validStreamDef.port = this.good_port;
+
+        retval = out_port.addStream(validStreamDef);
+        assertTrue(retval);
+    }
 }

@@ -34,6 +34,9 @@ In%PortTest.java : sed/%.sed InPortTest.java.template
 In%StreamTest.java : sed/%.sed InStreamTest.java.template
 	$(AM_V_GEN)sed -f $^ > $@
 
+NumericIn%PortTest.java : sed/%.sed NumericInPortTest.java.template
+	$(AM_V_GEN)sed -f $^ > $@
+
 # Numeric out port tests are generated.
 Out%PortTest.java : sed/%.sed NumericOutPortTest.java.template
 	$(AM_V_GEN)sed -f $^ > $@
@@ -64,6 +67,8 @@ BUILT_SOURCES := $(patsubst %,helpers/%TestHelper.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,stubs/In%PortStub.java,$(NUMERIC_TYPES) Bit File)
 BUILT_SOURCES += $(patsubst %,In%PortTest.java,$(ALL_TYPES))
 BUILT_SOURCES += $(patsubst %,In%StreamTest.java,$(NUMERIC_TYPES))
+BUILT_SOURCES += $(patsubst %,NumericIn%PortTest.java,$(NUMERIC_TYPES))
+BUILT_SOURCES += $(patsubst %,In%PortTest.java, Bit File XML)
 BUILT_SOURCES += $(patsubst %,Out%PortTest.java,$(NUMERIC_TYPES))
 BUILT_SOURCES += $(patsubst %,Out%StreamTest.java,$(NUMERIC_TYPES))
 
@@ -91,9 +96,11 @@ bulkio_tests_jar_SOURCE += InBitStreamTest.java
 bulkio_tests_jar_SOURCE += OutBitStreamTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
+bulkio_tests_jar_SOURCE += OutVITA49Port_Test.java
 bulkio_tests_jar_SOURCE += PrecisionUTCTimeTest.java
 bulkio_tests_jar_SOURCE += StreamSRITest.java
 bulkio_tests_jar_SOURCE += impl/InPortTestImpl.java
+bulkio_tests_jar_SOURCE += impl/NumericInPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/OutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/ChunkingOutPortTestImpl.java
 bulkio_tests_jar_SOURCE += impl/NumericOutPortTestImpl.java

@@ -31,6 +31,10 @@ class devcpp_base : public Device_impl, protected ThreadedComponent
         std::string device_model;
         /// Property: foobar
         CORBA::Long foobar;
+        /// Property: busy_state
+        bool busy_state;
+        /// Property: a_number
+        short a_number;
 
     private:
         void construct();
