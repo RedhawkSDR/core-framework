@@ -29,7 +29,7 @@ import ossie.properties
 from ossie.utils.bulkio import bulkio_helpers
 from ossie.utils.log4py import logging
 
-import bluefile
+from . import bluefile
 try:
     import bulkio
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -100,10 +100,10 @@ def hdr_to_sri(hdr, stream_id):
     kwds = []        
 
     # Getting all the items in the extended header
-    if hdr.has_key('ext_header'):
+    if 'ext_header' in hdr:
         ext_hdr = hdr['ext_header']
         if isinstance(ext_hdr, dict):            
-            for key, value in ext_hdr.iteritems():
+            for key, value in ext_hdr.items():
                 try:
                     data=item[1]
                     if isinstance(item[1], numpy.generic):
@@ -123,7 +123,7 @@ def hdr_to_sri(hdr, stream_id):
                     dt = CF.DataType(item[0], dtv )
                     #print "DEBUG (list) AFTER dt.value:", dt.value, dt.value.value(), type(dt.value.value())
                     kwds.append(dt)
-                except Exception, e:
+                except Exception as e:
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
@@ -218,7 +218,7 @@ def compare_bluefiles(file1=None, file2=None):
     
     are_the_same = True
     # check each element in the data
-    for i, item1, item2 in zip(range(0, sz1), data1, data2):
+    for i, item1, item2 in zip(list(range(0, sz1)), data1, data2):
         if item1 != item2:
             log.error("Item[%d]:\t%s  <==>   %s are not the same" % 
                                             (i, str(item1), str(item2)))
@@ -273,9 +273,9 @@ class BlueFileReader(object):
         self.defaultStreamSRI = H
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushSRI(H)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -293,9 +293,9 @@ class BlueFileReader(object):
 
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushPacket(data, T, EOS, streamID)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -368,7 +368,7 @@ class BlueFileReader(object):
         # NOTE: midas time is seconds since Jan. 1 1950
         #       Redhawk time is seconds since Jan. 1 1970
         currentSampleTime = 0.0
-        if hdr.has_key('timecode'):
+        if 'timecode' in hdr:
             # Set sample time to seconds since Jan. 1 1970 
             currentSampleTime = j1950_to_unix(hdr['timecode'])
             if currentSampleTime < 0:

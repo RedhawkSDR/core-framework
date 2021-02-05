@@ -58,7 +58,7 @@ if dailyRollingFileAppender : __all__ = __all__+ (dailyRollingFileAppender)
 # Override base logging.Handler handleError method to give better stack trace
 #  if string passed to log message is malformed
 def handleError(self, record):
-    print traceback.print_stack()
+    print(traceback.print_stack())
 logging.Handler.handleError = handleError
 
 # The NullHandler, for library use, is only available in Python 2.7 and up.
@@ -107,7 +107,7 @@ class ConsoleAppender(logging.StreamHandler,object):
   def activateOptions(self):
     if sys.hexversion >= 0x020700F0:
       # strm was changed to stream
-      if self.log4pyProps.has_key("strm"):
+      if "strm" in self.log4pyProps:
         # Don't override stream if it already exists
         self.log4pyProps.setdefault("stream", self.log4pyProps["strm"])
         del self.log4pyProps["strm"]
@@ -133,9 +133,9 @@ class FileAppender(logging.FileHandler,object):
             aggregate = os.path.join(aggregate,_dir)
             try: 
                 os.mkdir(aggregate)
-            except Exception, e:
+            except Exception as e:
                 if type(e) == exceptions.OSError and e.errno == 13:
-                    print e
+                    print(e)
                 pass
             
     self.baseFilename = os.path.abspath(filename)
@@ -364,13 +364,13 @@ class RH_LogEventAppender(logging.Handler):
               #print "RH_LogEventAppender::handle  .... connection to ECM::Publisher rec: " + str(logRecord)
               eventLogLevel = ossie.logger.ConvertLog4ToCFLevel(self.level)
 
-              logEvent = any.to_any(CF.LogEvent(self.prodId,self.prodName,self.prodFQN,long(logRecord.created),eventLogLevel,logRecord.getMessage())) 
+              logEvent = any.to_any(CF.LogEvent(self.prodId,self.prodName,self.prodFQN,int(logRecord.created),eventLogLevel,logRecord.getMessage())) 
               try:
                   self._pub.push(logEvent)
-              except Exception, e:
-                  print "RH_LogEventAppender::handle EVENT CHANNEL, PUSH OPERATION FAILED WITH EXCEPTION " + str(e)
+              except Exception as e:
+                  print("RH_LogEventAppender::handle EVENT CHANNEL, PUSH OPERATION FAILED WITH EXCEPTION " + str(e))
           else:
-                  print "RH_LogEventAppender::handle No EVENT CHANNEL to publish on."
+                  print("RH_LogEventAppender::handle No EVENT CHANNEL to publish on.")
 
 class SyslogAppender(logging.handlers.SysLogHandler, object):
   def __init__(self):

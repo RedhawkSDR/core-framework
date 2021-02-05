@@ -34,13 +34,13 @@ from ossie.cf import CF
 
 from ossie.utils import redhawk,prop_helpers
 
-from properties import *
-from browsewindowbase import BrowseWindowBase
-import installdialog as installdialog
+from .properties import *
+from .browsewindowbase import BrowseWindowBase
+from . import installdialog as installdialog
 from ossie.utils.redhawk.channels import IDMListener, ODMListener
 from ossie.utils import weakobj
 import ossie.parsers.sad
-import Queue
+import queue
 
 def buildDevSeq(dasXML, fs):
     _xmlFile = fs.open(str(dasXML), True)
@@ -91,7 +91,7 @@ def toAny (value, type):
     elif type == "boolean":
         value = str(value.lower()) in ( "true", "1" )
     elif type == "longlong":
-        value = long(value)
+        value = int(value)
     elif type == "char":
         value = value[0]
     return CORBA.Any(TYPE_MAP[type], value)
@@ -112,7 +112,7 @@ class BrowseWindow(BrowseWindowBase):
         if not domainName:
             domainName = self.findDomains()
         BrowseWindowBase.__init__(self,parent,name,fl, domainName)
-        self._requests = Queue.Queue()
+        self._requests = queue.Queue()
         self.worker = self.WorkThread(self._requests)
         self.debug('Domain:', domainName)
         self.connect(self.worker, SIGNAL('refreshApplications()'), self.refreshApplications)
@@ -179,7 +179,7 @@ class BrowseWindow(BrowseWindowBase):
                 elif request[0] == 'refreshProperty':
                     self.emit( SIGNAL('refreshProperty(QString,QString,QString)'), request[1], request[2], request[3] )
                 else:
-                    print request,"...unrecognized"
+                    print(request,"...unrecognized")
             return
 
     def addRequest(self, request):
@@ -260,18 +260,18 @@ class BrowseWindow(BrowseWindowBase):
             self.domManager = redhawk.attach(domainName)
             self.connectToODMChannel()
             if self.domManager is None:
-                raise StandardError('Could not narrow Domain Manager')
+                raise Exception('Could not narrow Domain Manager')
 
             # this is here just to make sure that the pointer is accessible
             if self.domManager._non_existent():
-                raise StandardError("Unable to access the Domain Manager in naming context "+domainName)
+                raise Exception("Unable to access the Domain Manager in naming context "+domainName)
         except:
-            raise StandardError("Unable to access the Domain Manager in naming context "+domainName)
+            raise Exception("Unable to access the Domain Manager in naming context "+domainName)
 
         try:
             self.fileMgr = self.domManager._get_fileMgr()
         except:
-            raise StandardError("Unable to access the File Manager in Domain Manager "+domainName)
+            raise Exception("Unable to access the File Manager in Domain Manager "+domainName)
 
     def updateDomain(self, domainName):
 
@@ -362,7 +362,7 @@ class BrowseWindow(BrowseWindowBase):
             return
         try:
             app_inst = self.domManager.createApplication(app)
-        except CF.ApplicationFactory.CreateApplicationError, e:
+        except CF.ApplicationFactory.CreateApplicationError as e:
             QMessageBox.critical(self, 'Creation of waveform failed.', e.msg, QMessageBox.Ok)
             return
         except:
@@ -380,7 +380,7 @@ class BrowseWindow(BrowseWindowBase):
             return
         try:
             app_inst = self.domManager.createApplication(app)
-        except CF.ApplicationFactory.CreateApplicationError, e:
+        except CF.ApplicationFactory.CreateApplicationError as e:
             QMessageBox.critical(self, 'Creation of waveform failed.', e.msg, QMessageBox.Ok)
             return
         if app_inst == None:
@@ -563,8 +563,8 @@ class BrowseWindow(BrowseWindowBase):
         for devMgr in self.domManager.devMgrs:
             try:
                 self.parseDeviceManager(devMgr)
-            except Exception, e:
-                print "Failed to parse a Device Manager. Continuing..."
+            except Exception as e:
+                print("Failed to parse a Device Manager. Continuing...")
 
     def parseDeviceManager (self, devMgr):
         _id = devMgr.id
@@ -572,7 +572,7 @@ class BrowseWindow(BrowseWindowBase):
         try:
             profile = str(devMgr._get_deviceConfigurationProfile())
         except:
-            print "Device Manager "+label+" unreachable"
+            print("Device Manager "+label+" unreachable")
             return
 
         # Create a node for the Device Manager, with its attributes and devices as children.
@@ -690,13 +690,13 @@ class BrowseWindow(BrowseWindowBase):
             setEditable(parent, editable)
             parent.setText(1, str(prop.queryValue()))
         elif prop.__class__ == prop_helpers.structProperty:
-            for member in prop.members.itervalues():
+            for member in prop.members.values():
                 valueSubItem = self.addTreeWidgetItem(parent, member.clean_name, str(member.queryValue()))
                 setEditable(valueSubItem, editable)
         elif prop.__class__ == prop_helpers.structSequenceProperty:
             idx_count = 0
             # Create a lookup table of friendly property names
-            names = dict((k, v.clean_name) for k, v in prop.structDef.members.iteritems())
+            names = dict((k, v.clean_name) for k, v in prop.structDef.members.items())
             for entry in prop.queryValue():
                 valueSubItem = self.addTreeWidgetItem(parent, '['+str(idx_count)+']')
                 for field in entry:
@@ -725,5 +725,5 @@ class BrowseWindow(BrowseWindowBase):
         if not self.verbose:
             return
         for arg in args:
-            print arg,
-        print
+            print(arg, end=' ')
+        print()

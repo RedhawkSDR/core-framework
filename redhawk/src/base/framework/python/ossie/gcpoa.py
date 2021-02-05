@@ -55,7 +55,7 @@ class SingletonThread(threading.Thread):
             try:
                 self.contexts.remove(context)
             except:
-                print 'Unable to remove context'
+                print('Unable to remove context')
 
     def run(self):
         while not self.stop_signal.isSet():
@@ -104,7 +104,7 @@ class GCServantLocator(PortableServer__POA.ServantLocator):
 
     def preinvoke(self, oid, adapter, operation, the_cookie=0):
         with self.activeMapMutex_:
-            if not self.activeMap_.has_key(oid):
+            if oid not in self.activeMap_:
                 raise CORBA.OBJECT_NOT_EXIST()
 
             servant = self.activeMap_[oid].servant
@@ -119,7 +119,7 @@ class GCServantLocator(PortableServer__POA.ServantLocator):
 
     def register_servant(self, oid, servant, ttl, destroy):
         with self.activeMapMutex_:
-            if self.activeMap_.has_key(oid):
+            if oid in self.activeMap_:
                 raise PortableServer.POA.ObjectAlreadyActive()
 
             self.activeMap_[oid] = ServantEntry(servant, ttl, destroy, time.time())

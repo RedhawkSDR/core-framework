@@ -69,7 +69,7 @@ class CorbaAttribute(object):
         AttributeError is raised.
         """
         if not self._setter:
-            raise AttributeError, 'CORBA attribute is read-only'
+            raise AttributeError('CORBA attribute is read-only')
         self._lock.acquire()
         try:
             if self.value == value:
@@ -196,7 +196,7 @@ class DomainObjectList(object):
             del self.__data[identifier]
         elif self.isCached:
             # Full state is known and item is not in list.
-            raise KeyError, 'No item with identifier "%s"' % identifier
+            raise KeyError('No item with identifier "%s"' % identifier)
 
         if notify:
             self.itemRemoved(identifier)
@@ -226,7 +226,7 @@ class DomainObjectList(object):
                     pass
 
             # Remove stale items.
-            for identifier in self.__data.keys():
+            for identifier in list(self.__data.keys()):
                 if identifier not in validIdentifiers:
                     self.__remove(identifier, self.__cached)
 
@@ -253,7 +253,7 @@ class DomainObjectList(object):
         try:
             if not self.isCached:
                 self.sync(), self.__data
-            return self.__data.values()
+            return list(self.__data.values())
         finally:
             self.unlock()
 

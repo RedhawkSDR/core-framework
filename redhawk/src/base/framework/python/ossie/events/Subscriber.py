@@ -20,7 +20,7 @@
 
 import sys
 import time
-import Queue
+import queue
 import copy
 import threading
 import logging
@@ -119,7 +119,7 @@ class Subscriber:
         self.proxy = None
         self.logger = logging.getLogger('ossie.events.Subscriber')
         self.dataArrivedCB=dataArrivedCB
-        self.events = Queue.Queue()
+        self.events = queue.Queue()
         self.my_lock = threading.Lock()
         self.consumer = DefaultConsumer(self)
         self.connect()

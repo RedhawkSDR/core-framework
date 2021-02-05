@@ -18,10 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import sys, gcpoa
+import sys
+from . import gcpoa
 import omniORB
 from omniORB import CORBA
-from utils import corba
+from .utils import corba
 import copy
 
 class Iterator:

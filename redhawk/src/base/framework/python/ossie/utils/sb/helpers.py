@@ -19,15 +19,15 @@ def PagerWithHeader( src_generator,  num_lines=25, header=None, repeat_header=No
            if (index % repeat_header) == 0 :
                if type(header) == list:
                    for x in header:
-                       print x
+                       print(x)
                else:
-                   print header
+                   print(header)
        if index % num_lines == 0 and index:
-           input=raw_input("Hit any key to continue press q to quit ")
+           input=input("Hit any key to continue press q to quit ")
            if input.lower() == 'q':
                break
        else:
-           print line
+           print(line)
 
 
 def Pager( doc ):

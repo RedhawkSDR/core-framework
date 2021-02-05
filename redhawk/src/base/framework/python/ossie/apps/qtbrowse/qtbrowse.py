@@ -26,7 +26,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import logging
 
-from browsewindow import BrowseWindow
+from .browsewindow import BrowseWindow
 
 def main():
     # Set up a console logger.

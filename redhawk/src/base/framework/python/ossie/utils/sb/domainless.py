@@ -103,7 +103,7 @@ import fnmatch
 import sys
 import logging
 import string as _string
-import cStringIO, pydoc
+import io, pydoc
 import warnings
 import traceback
 from omniORB import CORBA, any
@@ -155,7 +155,7 @@ def _populateFromExternalNC():
             _currentState['Components Running'][comp._instanceName] = comp
 
         # Determine current connection state of components running
-        for component in _currentState['Components Running'].values():
+        for component in list(_currentState['Components Running'].values()):
             for port in component._ports:
                 if port._direction == "Uses" and hasattr(port,"_get_connections"):
                     for connection in port._get_connections():
@@ -164,19 +164,19 @@ def _populateFromExternalNC():
                         _currentState['Component Connections'][connectionId] = {}
                         _currentState['Component Connections'][connectionId]['Uses Component'] = component
                         _currentState['Component Connections'][connectionId]['Uses Port Name'] = port._name
-                        for entry in component._usesPortDict.values():
+                        for entry in list(component._usesPortDict.values()):
                             if entry['Port Name'] == port._name:
                                 _currentState['Component Connections'][connectionId]['Uses Port Interface'] = entry['Port Interface']
                                 break
                         # Loop over all components to find a matching port
-                        for providesComponent in _currentState['Components Running'].values():
+                        for providesComponent in list(_currentState['Components Running'].values()):
                             if not component.ref._is_equivalent(providesComponent.ref):
                                 for providesPort in providesComponent._ports:
                                     if providesPort._direction == "Provides":
                                         if connectionProvidesPortObj._is_equivalent(providesPort.ref):
                                             _currentState['Component Connections'][connectionId]['Provides Component'] = providesComponent
                                             _currentState['Component Connections'][connectionId]['Provides Port Name'] = providesPort._name
-                                            for entry in providesComponent._providesPortDict.values():
+                                            for entry in list(providesComponent._providesPortDict.values()):
                                                 if entry['Port Name'] == providesPort._name:
                                                     _currentState['Component Connections'][connectionId]['Provides Port Interface'] = entry['Port Interface']
                                                     break
@@ -221,7 +221,7 @@ def reset():
     '''
     # Save connection state.
     connectionList = []
-    for _connectionId, connection in ConnectionManager.instance().getConnections().iteritems():
+    for _connectionId, connection in ConnectionManager.instance().getConnections().items():
         connectionId, uses, provides = connection
         entry = { 'USES_REFID': uses.getRefid(),
                   'USES_PORT_NAME': uses.getPortName(),
@@ -246,13 +246,13 @@ def reset():
 
 def IDELocation(location=None):
     if location == None:
-        if os.environ.has_key("RH_IDE"):
+        if "RH_IDE" in os.environ:
             if _DEBUG:
-                print "IDELocation(): RH_IDE environment variable is set to " + str(os.environ["RH_IDE"])
+                print("IDELocation(): RH_IDE environment variable is set to " + str(os.environ["RH_IDE"]))
             return str(os.environ["RH_IDE"])
         else:
             if _DEBUG:
-                print "IDELocation(): WARNING - RH_IDE environment variable is not set so plotting will not work"
+                print("IDELocation(): WARNING - RH_IDE environment variable is not set so plotting will not work")
             return None
     else:
         foundIDE = False
@@ -262,20 +262,20 @@ def IDELocation(location=None):
                     foundIDE = True
                     os.environ["RH_IDE"] = str(location)
                     if _DEBUG:
-                         print "IDELocation(): setting RH_IDE environment variable " + str(location)
+                         print("IDELocation(): setting RH_IDE environment variable " + str(location))
         if not foundIDE:
-            print "IDELocation(): ERROR - invalid location passed in, must give absolute path " + str(location)
+            print("IDELocation(): ERROR - invalid location passed in, must give absolute path " + str(location))
         if _DEBUG:
-            print "IDELocation(): setting RH_IDE environment variable " + str(location)
+            print("IDELocation(): setting RH_IDE environment variable " + str(location))
             return str(location)
         else:
             if _DEBUG:
-                print "IDELocation(): ERROR - invalid location passed in for RH_IDE environment variable"
+                print("IDELocation(): ERROR - invalid location passed in for RH_IDE environment variable")
             return None
 
 def redirectSTDOUT(filename):
     if _DEBUG == True:
-        print "redirectSTDOUT(): redirecting stdout/stderr to filename " + str(filename)
+        print("redirectSTDOUT(): redirecting stdout/stderr to filename " + str(filename))
     if type(filename) == str:
         dirname = os.path.dirname(filename)
         if len(dirname) == 0 or \
@@ -285,54 +285,54 @@ def redirectSTDOUT(filename):
                 # Send stdout and stderr to provided filename
                 sys.stdout = f
                 sys.stderr = f
-            except Exception, e:
-                print "redirectSTDOUT(): ERROR - Unable to open file " + str(filename) + " for writing stdout and stderr " + str(e)
-    elif type(filename) == cStringIO.OutputType:
+            except Exception as e:
+                print("redirectSTDOUT(): ERROR - Unable to open file " + str(filename) + " for writing stdout and stderr " + str(e))
+    elif type(filename) == io.OutputType:
         sys.stdout = filename
         sys.stderr = filename
     else:
-        print 'redirectSTDOUT(): failed to redirect stdout/stderr to ' + str(filename)
-        print 'redirectSTDOUT(): argument must be: string filename, cStringIO.StringIO object'
+        print('redirectSTDOUT(): failed to redirect stdout/stderr to ' + str(filename))
+        print('redirectSTDOUT(): argument must be: string filename, cStringIO.StringIO object')
 
 def show():
     '''
     Show current list of components running and component connections
     '''
     sandbox = _getSandbox()
-    print "Components Running:"
-    print "------------------"
+    print("Components Running:")
+    print("------------------")
     for component in sandbox.getComponents():
-        print component._instanceName, component
-    print "\n"
+        print(component._instanceName, component)
+    print("\n")
 
-    print "Services Running:"
-    print "----------------"
+    print("Services Running:")
+    print("----------------")
     for service in sandbox.getServices():
-        print service._instanceName, service
-    print "\n"
+        print(service._instanceName, service)
+    print("\n")
 
-    print "Component Connections:"
-    print "---------------------"
+    print("Component Connections:")
+    print("---------------------")
     if connectedIDE:
         log.trace('Scan for new connections')
         ConnectionManager.instance().resetConnections()
         ConnectionManager.instance().refreshConnections(sandbox.getComponents())
-    for connectionid, uses, provides in ConnectionManager.instance().getConnections().values():
-        print "%s [%s] -> %s [%s]" % (uses.getName(), uses.getInterface(),
-                                      provides.getName(), provides.getInterface())
+    for connectionid, uses, provides in list(ConnectionManager.instance().getConnections().values()):
+        print("%s [%s] -> %s [%s]" % (uses.getName(), uses.getInterface(),
+                                      provides.getName(), provides.getInterface()))
 
-    print "\n"
-    print "Event Channels:"
-    print "--------------"
+    print("\n")
+    print("Event Channels:")
+    print("--------------")
     for channel in sandbox.getEventChannels():
-        print '%s (%d supplier(s), %d consumer(s))' % (channel.name, channel.supplier_count,
-                                                       channel.consumer_count)
-    print "\n"
+        print('%s (%d supplier(s), %d consumer(s))' % (channel.name, channel.supplier_count,
+                                                       channel.consumer_count))
+    print("\n")
 
-    print "SDRROOT:"
-    print "-------"
-    print sandbox.getSdrRoot().getLocation()
-    print "\n"
+    print("SDRROOT:")
+    print("-------")
+    print(sandbox.getSdrRoot().getLocation())
+    print("\n")
 
 def getComponent(name):
     '''
@@ -358,7 +358,7 @@ def generateSADXML(waveform_name):
     '''
     import ossie.utils.redhawk.sad_template as sad_template
     if _DEBUG == True:
-        print "generateSadFileString(): generating SAD XML string for given waveform name " + str(waveform_name)
+        print("generateSadFileString(): generating SAD XML string for given waveform name " + str(waveform_name))
     sandbox = _getSandbox()
     Sad_template = sad_template.sad()
     initial_file = Sad_template.template
@@ -457,7 +457,7 @@ def generateSADXML(waveform_name):
     with_connections = with_connections.replace('@__EXTERNALPORTS__@',"")
     sadString = with_connections
     if _DEBUG == True:
-        print "generateSadFileString(): returning SAD XML string " + str(sadString)
+        print("generateSadFileString(): returning SAD XML string " + str(sadString))
     return sadString
 
 class overloadContainer:
@@ -556,15 +556,15 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                     allProps.pop(overload.id)
                     try:
                         setattr(component, entry.clean_name, convertToValue(entry.valueType, overload.value))
-                    except Exception, e:
-                        print e, "Problem overloading id="+entry.id
+                    except Exception as e:
+                        print(e, "Problem overloading id="+entry.id)
             for overload in simpleseq:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
                     try:
                         setattr(component, entry.clean_name, convertToValue(entry.valueType, overload.value))
-                    except Exception, e:
-                        print e, "Problem overloading id="+entry.id
+                    except Exception as e:
+                        print(e, "Problem overloading id="+entry.id)
             for overload in struct:
                 if overload.id == entry.id:
                     allProps.pop(overload.id)
@@ -590,30 +590,30 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                         _ov_key=None
                         for kl in [ st_clean, simple[0] ]:
                             kl_clean = kl.translate(translation)
-                            if overload.value.has_key(kl):
+                            if kl in overload.value:
                                 _ov_key = kl
                             else:
-                                if _keys.has_key(kl_clean) and overload.value.has_key(_keys.get(kl_clean)):
+                                if kl_clean in _keys and _keys.get(kl_clean) in overload.value:
                                     _ov_key = _keys[kl_clean]
                                     break
 
-                        if _ov_key == None or not overload.value.has_key(_ov_key):
+                        if _ov_key == None or _ov_key not in overload.value:
                             if _DEBUG:
-                                print "Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
+                                print("Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key)
                             continue
 
                         if _DEBUG:
-                            print "Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded ID: ", overload.id, " value: ", overload.value, " key:", _ov_key
+                            print("Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded ID: ", overload.id, " value: ", overload.value, " key:", _ov_key)
 
                         # cleanup struct key if it has illegal characters...
                         st_clean = st_clean.translate(translation)
                         try:
                             structValue[st_clean] = convertToValue(simple[1], overload.value[_ov_key])
-                        except Exception, e:
-                            print e, "Problem overloading id="+entry.id
+                        except Exception as e:
+                            print(e, "Problem overloading id="+entry.id)
 
                     if _DEBUG:
-                         print "setattr  ", component, " clean name ", entry.clean_name,  " struct ", structValue
+                         print("setattr  ", component, " clean name ", entry.clean_name,  " struct ", structValue)
                     setattr(component, entry.clean_name, structValue)
             for overload in structseq:
                 if overload.id == entry.id:
@@ -640,27 +640,27 @@ def overloadProperty(component, simples=None, simpleseq=None, struct=None, struc
                             _ov_key=None
                             for kl in [ st_clean, simple[0] ]:
                                 kl_clean = kl.translate(translation)
-                                if overloadedValue.has_key(kl):
+                                if kl in overloadedValue:
                                     _ov_key = kl
                                 else:
-                                    if _keys.has_key(kl_clean) and overloadedValue.has_key(_keys.get(kl_clean)):
+                                    if kl_clean in _keys and _keys.get(kl_clean) in overloadedValue:
                                         _ov_key = _keys[kl_clean]
                                         break
 
-                            if _ov_key == None or not overloadedValue.has_key(_ov_key):
+                            if _ov_key == None or _ov_key not in overloadedValue:
                                 if _DEBUG:
-                                    print "StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key
+                                    print("StructSeq::Struct::Simple:  id:",str(simple[0]), " cleaned id:", st_clean, "  Unable to match overloaded key: ", _ov_key)
                                 continue
 
                             if _DEBUG:
-                                print "StructSeq::Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded  value: ", overloadedValue, " key:", _ov_key
+                                print("StructSeq::Struct::Simple:  id:", str(simple[0]), " cleaned id:", st_clean, " Overloaded  value: ", overloadedValue, " key:", _ov_key)
 
                             # cleanup struct key if it has illegal characters...
                             st_clean = st_clean.translate(translation)
                             try:
                                 structValue[st_clean] = convertToValue(simple[1], overloadedValue[_ov_key])
-                            except Exception, e:
-                                print e, "Problem overloading id="+entry.id
+                            except Exception as e:
+                                print(e, "Problem overloading id="+entry.id)
 
                         structSeqValue.append(structValue)
                     setattr(component, entry.clean_name, structSeqValue)
@@ -710,7 +710,7 @@ def loadSADFile(filename, props={}):
         sandbox = _getSandbox()
         sdrroot = sandbox.getSdrRoot()
         if type(props) != dict:
-            print "loadSADFile(): props argument must be a dictionary. Ignoring overload"
+            print("loadSADFile(): props argument must be a dictionary. Ignoring overload")
             props = {}
         sadFile = open(filename,'r')
         sadFileString = sadFile.read()
@@ -771,7 +771,7 @@ def loadSADFile(filename, props={}):
 
         # flatten dictionary to an ordered list
         ordered_placements=[]
-        for k,v in startorder.items():
+        for k,v in list(startorder.items()):
             ordered_placements = ordered_placements + v
 
         configurable = {}
@@ -782,7 +782,7 @@ def loadSADFile(filename, props={}):
             log.debug("COMPONENT PLACEMENT component name '%s'", component.get_componentinstantiation()[0].get_usagename())
             # If component has a valid SPD file (isKickable), launch it
             refid = component.componentfileref.refid
-            if validRequestedComponents.has_key(refid):
+            if refid in validRequestedComponents:
                 instanceName = component.get_componentinstantiation()[0].get_usagename()
                 instanceID = component.get_componentinstantiation()[0].id_ + waveform_modifier
                 log.debug("launching component '%s'", instanceName)
@@ -846,7 +846,7 @@ def loadSADFile(filename, props={}):
                     launchedComponents.append(newComponent)
                 except Exception as e:
                     msg = "Failed to launch component '%s', REASON: %s" %  (instanceName, str(e))
-                    print msg
+                    print(msg)
                     raise RuntimeError(msg)
 
         # Set up component connections
@@ -908,8 +908,8 @@ def loadSADFile(filename, props={}):
                                 log.warn("Unable to create connection")
                                 continue
                             if _DEBUG == True:
-                                print "loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port interface " + str(connection.get_componentsupportedinterface().get_supportedidentifier())
-                                print "loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port component ref " + str(connection.get_componentsupportedinterface().get_componentinstantiationref().get_refid())
+                                print("loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port interface " + str(connection.get_componentsupportedinterface().get_supportedidentifier()))
+                                print("loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port component ref " + str(connection.get_componentsupportedinterface().get_componentinstantiationref().get_refid()))
                             # Loop through launched components to find one containing the provides port to be connected
                             for component in launchedComponents:
                                 if component._refid[:3] == 'DCE':
@@ -939,7 +939,7 @@ def loadSADFile(filename, props={}):
             refid = component.componentfileref.refid
             assemblyController = False
             sandboxComponent = None
-            if validRequestedComponents.has_key(refid):
+            if refid in validRequestedComponents:
                 instanceID = component.get_componentinstantiation()[0].id_ + waveform_modifier
                 componentProps = None
                 if len(launchedComponents) > 0:
@@ -1086,7 +1086,7 @@ def loadSADFile(filename, props={}):
                 for prop_to_pop_iter in prop_to_pop:
                     props.pop(prop_to_pop_iter)
                 if _DEBUG:
-                    print "OverLoad Assembly Controller ", (sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
+                    print("OverLoad Assembly Controller ", (sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1]))
                 overloadProperty(sandboxComponent, prop_types['simple'][1], prop_types['simpleseq'][1], prop_types['struct'][1], prop_types['structseq'][1])
 
         launchedComponents = []
@@ -1100,7 +1100,7 @@ def loadSADFile(filename, props={}):
         pnames=""
         for prop in props:
             pnames += ", " + prop
-            print "Overload property '"+prop+"' was ignored because it is not on the Assembly Controller"
+            print("Overload property '"+prop+"' was ignored because it is not on the Assembly Controller")
         raise Warning('Requested property overloads not assigned' + pnames )
     return True
 
@@ -1117,9 +1117,9 @@ def setSDRROOT(newRoot):
     '''
     try:
         _getSandbox().setSdrRoot(newRoot)
-    except RuntimeError, e:
+    except RuntimeError as e:
         # Turn RuntimeErrors into AssertionErrors to match legacy expectation.
-        raise AssertionError, "Cannot set SDRROOT: '%s'" % e
+        raise AssertionError("Cannot set SDRROOT: '%s'" % e)
 
 def catalog(searchPath=None, printResults=False, returnSPDs=False, objType="components"):
     '''
@@ -1132,15 +1132,15 @@ def catalog(searchPath=None, printResults=False, returnSPDs=False, objType="comp
                       devices and services can also be requested
     '''
     profiles = _getSandbox().catalog(searchPath, objType)
-    componentNames = profiles.keys()
+    componentNames = list(profiles.keys())
     componentNames.sort()
-    spdFilesWithFullPath = profiles.values()
+    spdFilesWithFullPath = list(profiles.values())
 
     if printResults == True:
-        print "catalog(): available components found in search path " + str(searchPath) + " ====================="
+        print("catalog(): available components found in search path " + str(searchPath) + " =====================")
         count = 0
         for component in componentNames:
-            print componentNames[count]
+            print(componentNames[count])
             count = count + 1
 
     if returnSPDs:
@@ -1184,14 +1184,14 @@ class Component(object):
             else:
                 configure = kwargs
             return launch(componentDescriptor, instanceName, refid, impl, debugger, execparams=execparams, configure=configure, objType=objType)
-        except RuntimeError, e:
+        except RuntimeError as e:
             # Turn RuntimeErrors into AssertionErrors to match legacy expectation.
-            raise AssertionError, "Unable to launch component: '%s'" % e
+            raise AssertionError("Unable to launch component: '%s'" % e)
 def api(descriptor, objType=None, destfile=None):
     localdef_dest = False
     if destfile == None:
         localdef_dest = True
-        destfile = cStringIO.StringIO()
+        destfile = io.StringIO()
 
     sdrRoot = _getSandbox().getSdrRoot()
     profile = sdrRoot.findProfile(descriptor, objType=objType)
@@ -1207,21 +1207,21 @@ def api(descriptor, objType=None, destfile=None):
         else:
             description = spd.description
     if description:
-        print >>destfile, '\nDescription ======================\n'
-        print >>destfile, description
-    print >>destfile, '\nPorts ======================'
-    print >>destfile, '\nUses (output)'
+        print('\nDescription ======================\n', file=destfile)
+        print(description, file=destfile)
+    print('\nPorts ======================', file=destfile)
+    print('\nUses (output)', file=destfile)
     table = TablePrinter('Port Name', 'Port Interface')
     for uses in scd.get_componentfeatures().get_ports().get_uses():
         table.append(uses.get_usesname(), uses.get_repid())
     table.write(f=destfile)
-    print >>destfile, '\nProvides (input)'
+    print('\nProvides (input)', file=destfile)
     table = TablePrinter('Port Name', 'Port Interface')
     for provides in scd.get_componentfeatures().get_ports().get_provides():
         table.append(provides.get_providesname(), provides.get_repid())
     table.write(f=destfile)
 
-    print >>destfile, '\nProperties ======================\n'
+    print('\nProperties ======================\n', file=destfile)
     table = TablePrinter('id', 'type')
     if prf != None:
         for simple in prf.simple:

@@ -27,7 +27,7 @@ def objectExists(obj):
         return not obj._non_existent()
     except CORBA.Exception:
         return False
-    except Exception, e:
+    except Exception as e:
         return False
 
 def constructDefaultType(typeobj):
@@ -65,7 +65,7 @@ def constructDefaultType(typeobj):
     if kind in (CORBA.tk_octet, CORBA.tk_short, CORBA.tk_ushort, CORBA.tk_long, CORBA.tk_boolean):
         return int()
     if kind in (CORBA.tk_ulong, CORBA.tk_longlong, CORBA.tk_ulonglong):
-        return long()
+        return int()
     if kind == CORBA.tk_char:
         return '\x00'
     if kind == CORBA.tk_sequence:
@@ -74,4 +74,4 @@ def constructDefaultType(typeobj):
         return CORBA.Any(CORBA.TC_null, None)
     if kind == CORBA.tk_objref:
         return None
-    raise NotImplementedError, tc
+    raise NotImplementedError(tc)

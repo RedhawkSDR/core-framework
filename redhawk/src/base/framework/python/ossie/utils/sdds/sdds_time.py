@@ -36,7 +36,7 @@ def difference(t1, t2):
 
 def sum( t1, t2 ):
      tmp=_copy.copy(t1)
-     tfrac =long(tmp.pf250_) + t2.pf250_
+     tfrac =int(tmp.pf250_) + t2.pf250_
      tmp.ps250_ += t2.ps250_ + int(tfrac>>32) 
      tmp.pf250_ = int(tfrac)
      return tmp
@@ -53,8 +53,8 @@ def iadd(t1, offset):
      tmp=_copy.copy(t1)
      # make into  tics
      pfrac,pwhole = math.modf(offset*Time.TicFreq)
-     tfrac = long(tmp.pf250_) + int(pfrac * Time.Two32)
-     tmp.ps250_ += long(pwhole) + (tfrac>>32)
+     tfrac = int(tmp.pf250_) + int(pfrac * Time.Two32)
+     tmp.ps250_ += int(pwhole) + (tfrac>>32)
      tmp.pf250_ = int(tfrac)
      return tmp
 
@@ -79,11 +79,11 @@ class Time:
     REDHAWK_FORMAT="%Y:%m:%d::%H:%M:%S"
     Tic = 250e-12
     TicFreq = 4000000000.0
-    TicFreqLong = 4000000000L
+    TicFreqLong = 4000000000
     Two32 = 4294967296.0
     def __init__(self ):
 
-         self.ps250_ = 0L
+         self.ps250_ = 0
          self.pf250_ = 0
          self.startofyear = self.startOfYear()
          self.setFromTime()
@@ -99,13 +99,13 @@ class Time:
                    time_sec = time_sec - self.startofyear
 
          pfrac, pwhole = math.modf(time_sec*Time.TicFreq)
-         self.ps250_ = long(pwhole)
+         self.ps250_ = int(pwhole)
          self.pf250_ = int( pfrac*Time.Two32)
          #print "td: %12Lu %12u %16.2Lf " % ( self.ps250_, self.pf250_, pfrac )
               
     def setFromPartial( self, integral, fractional ):
          pfrac, pwhole= math.modf(fractional*Time.TicFreq)
-         self.ps250_ = long(integral*Time.TicFreqLong) + long(pwhole)
+         self.ps250_ = int(integral*Time.TicFreqLong) + int(pwhole)
          self.pf250_ = int( pfrac * Time.Two32)
          #print "td: %12Lu %12u %16.2Lf " % ( self.ps250_, self.pf250_, pfrac )
 

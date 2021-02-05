@@ -43,7 +43,7 @@ class inherit_doc(object):
         return 0
 
     def _get_line_indent(self, line):
-        for pos in xrange(len(line)):
+        for pos in range(len(line)):
             if not line[pos].isspace():
                 return pos
         return 0

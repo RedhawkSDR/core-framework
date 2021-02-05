@@ -61,10 +61,10 @@ def _deferred_imports():
         from bulkio.bulkioInterfaces import BULKIO__POA
 
         globals().update(locals())
-    except ImportError, e:
+    except ImportError as e:
         raise RuntimeError("Missing required package for sandbox audio: '%s'" % e)
 
-from io_helpers import _SinkBase
+from .io_helpers import _SinkBase
 
 __all__ = ('SoundSink',)
 

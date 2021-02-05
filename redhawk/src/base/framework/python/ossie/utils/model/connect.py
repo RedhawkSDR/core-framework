@@ -134,7 +134,7 @@ class ConnectionManager(object):
     def getConnectionsBetween(self, usesComponent, providesComponent):
         connections = {}
         with self.__lock:
-            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+            for _identifier, (identifier, uses, provides) in self.__connections.items():
                 if uses.hasComponent(usesComponent) and provides.hasComponent(providesComponent):
                     connections[_identifier] = (identifier, uses, provides)
         return connections
@@ -142,7 +142,7 @@ class ConnectionManager(object):
     def getConnectionsFor(self, usesComponent):
         connections = {}
         with self.__lock:
-            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+            for _identifier, (identifier, uses, provides) in self.__connections.items():
                 if uses.hasComponent(usesComponent):
                     connections[_identifier] = (identifier, uses, provides)
         return connections
@@ -226,5 +226,5 @@ class ConnectionManager(object):
             connections = self.__connections
             self.__connections = {}
 
-        for (identifier, uses, provides) in connections.itervalues():
+        for (identifier, uses, provides) in connections.values():
             self._breakConnection(identifier, uses, provides)

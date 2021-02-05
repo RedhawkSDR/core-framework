@@ -21,8 +21,8 @@ import logging
 import socket
 import os
 from   ossie.cf import CF
-import urlparse
-import urllib
+import urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import ossie.utils.log4py.config
 from   ossie.utils.log4py import RedhawkLogger
 from  omniORB import CORBA
@@ -196,7 +196,7 @@ def ExpandMacros( source,  macrotable ):
     """
     text=source
     if source and macrotable:
-        for i, j in macrotable.iteritems():
+        for i, j in macrotable.items():
             text = text.replace(i, j)
     return text
 
@@ -321,7 +321,7 @@ def GetDefaultConfig():
 
 def GetSCAFileContents( url ):
     fileContents = None
-    scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+    scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(url)
     if scheme=="sca" :
        queryAsDict = dict([x.split("=") for x in query.split("&")])
        try:
@@ -347,7 +347,7 @@ def GetSCAFileContents( url ):
 def GetHTTPFileContents( url ):
     fileContents = None
     try:
-       filehandle = urllib.urlopen( url )
+       filehandle = urllib.request.urlopen( url )
        return filehandle.read()
     except:
         logging.warning("connection cannot be made to" + url)
@@ -355,7 +355,7 @@ def GetHTTPFileContents( url ):
 
 def GetConfigFileContents( url ):
     fc=None
-    scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+    scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(url)
     if scheme == "file":
         try:
             f = open(path,'r')
@@ -401,7 +401,7 @@ def ConfigureWithContext( cfg_data, tbl, category=None ):
         fileContents=""
         fc_raw=cfg_data
         if fc_raw.find("<log4j:configuration") != -1 :
-            raise "XML configuration not supported by log4py"
+            raise RuntimeError("XML configuration not supported by log4py")
 
         fileContents=ExpandMacros( fc_raw, tbl)
 
@@ -409,8 +409,8 @@ def ConfigureWithContext( cfg_data, tbl, category=None ):
 
         cfg=fileContents
 
-    except Exception, e:
-        print "Error: log4py configuration file error", e
+    except Exception as e:
+        print("Error: log4py configuration file error", e)
         pass
     return cfg
 
@@ -432,8 +432,8 @@ def Configure( logcfgUri, logLevel=None, ctx=None, category=None ):
 
             if fileContents and len(fileContents) != 0:
                 fc=ConfigureWithContext( fileContents, tbl, category )
-        except Exception,e:
-            print "Error: log4py configuration file error", e
+        except Exception as e:
+            print("Error: log4py configuration file error", e)
             pass
 
     # If a log level was explicitly stated, set it here, potentially
