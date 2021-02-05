@@ -22,7 +22,7 @@ import unittest
 from _unitTestHelpers import scatest
 import time
 import contextlib
-import cStringIO
+import io
 import tempfile
 import re
 import resource
@@ -31,8 +31,8 @@ from omniORB import CORBA
 from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
-import Queue
-import StringIO
+import queue
+import io
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
@@ -75,11 +75,11 @@ class OrbShutdownTest(scatest.CorbaTestCase):
         self.assertNotEqual(dom, dom3)
         self.assertEqual(dom.name, dom3.name)
         self.assertEqual(dom3.location, 'localhost:2809')
-        self.assertEquals(orb1, dom3.orb)
+        self.assertEqual(orb1, dom3.orb)
 
         orb1.shutdown(True)
 
         # Verify that we get the location=None domain, not dom4
         dom4=redhawk.base.attach(dom_name)
         self.assertNotEqual(dom, dom4)
-        self.assertNotEquals(orb1, dom4.orb)
+        self.assertNotEqual(orb1, dom4.orb)

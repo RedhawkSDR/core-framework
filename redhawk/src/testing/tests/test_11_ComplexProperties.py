@@ -36,8 +36,8 @@ class _DataTypeTest:
         self.typecode = typecode
 
 def _compareComplex(parent, item_1, item_2):
-    parent.assertEquals(item_1.real, item_2.real)
-    parent.assertEquals(item_1.imag, item_2.imag)
+    parent.assertEqual(item_1.real, item_2.real)
+    parent.assertEqual(item_1.imag, item_2.imag)
 
 def _compareStructs(parent, struct_1, struct_2):
     for _struct_mem_idx in range(len(struct_2)):
@@ -302,7 +302,7 @@ class SandboxTests(scatest.CorbaTestCase):
         prop_idx = {}
         for idx in range(len(components['cpp']._properties)):
             prop_idx[components['cpp']._properties[idx].id] = idx
-        for language in components.keys():
+        for language in list(components.keys()):
             for _test in testSet:
                 _prop = components[language]._properties[prop_idx[_test._id[0]]]
                 _value = _prop._queryValue().value()
@@ -325,7 +325,7 @@ class SandboxTests(scatest.CorbaTestCase):
                       (_SandboxDataTypeTest(['complexFloatStructSequence', ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']], [(CF.complexFloat(9, 4), [CF.complexFloat(6, 5)])], None))]
 
         retval = sb.loadSADFile('sdr/dom/waveforms/TestComplexPropsWaveform/TestComplexPropsWaveform.sad.xml')
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         comp_ac = sb.getComponent('TestComplexProps_1')
 
         sb.start()
@@ -356,7 +356,7 @@ class SandboxTests(scatest.CorbaTestCase):
                       (_SandboxDataTypeTest(['complexFloatStructSequence', ['complexFloatStructSequenceMemberMemember', 'complexFloatStructSequence::complex_float_seq']], [(CF.complexFloat(32, 33), [CF.complexFloat(45, 55), CF.complexFloat(69, 78)]), (CF.complexFloat(42, 43), [CF.complexFloat(145, 155), CF.complexFloat(169, 178), CF.complexFloat(279, 998)])], None))]
 
         retval = sb.loadSADFile('sdr/dom/waveforms/TestComplexPropsSADOverrides/TestComplexPropsSADOverrides.sad.xml')
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         comp_ac = sb.getComponent('TestComplexProps_1')
 
         sb.start()

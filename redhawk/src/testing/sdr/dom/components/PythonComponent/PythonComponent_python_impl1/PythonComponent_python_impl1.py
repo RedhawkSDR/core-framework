@@ -85,7 +85,7 @@ class PythonComponent_python_impl1_i(PythonComponent_python_impl1_base):
         """
 
         time.sleep(1)
-        print "Processing some data..."
+        print("Processing some data...")
         return NOOP
   
 if __name__ == '__main__':

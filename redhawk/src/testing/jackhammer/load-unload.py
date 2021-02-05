@@ -36,7 +36,7 @@ class LoadUnload(jackhammer.Jackhammer):
                     self.device = device
                     return
 
-        raise RuntimeError, "No LoadableDevice available"
+        raise RuntimeError("No LoadableDevice available")
         
     def test (self):
         self.device.load(self.fileMgr, self.filename, CF.LoadableDevice.EXECUTABLE)

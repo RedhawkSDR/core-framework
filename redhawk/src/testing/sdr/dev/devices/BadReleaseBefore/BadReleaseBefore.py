@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -25,7 +25,7 @@ from ossie.device import ExecutableDevice, AggregateDevice, start_device
 from ossie.properties import simple_property, simpleseq_property, struct_property, structseq_property
 import os, sys, stat
 from omniORB import URI, any
-import commands, copy, time, signal, pprint, subprocess
+import subprocess, copy, time, signal, pprint, subprocess
 import logging
 import signal
 import shutil
@@ -41,7 +41,7 @@ class BadReleaseBefore(CF__POA.AggregateExecutableDevice, ExecutableDevice, Aggr
     self._props["BogoMipsCapacity"] = 100000000
     self._props["nicCapacity"] = 100.0
     self._props["fakeCapacity"] = 3
-    self._props["execparams"] = " ".join(["%s %s" % x for x in execparams.items()])
+    self._props["execparams"] = " ".join(["%s %s" % x for x in list(execparams.items())])
 
   def execute(self, name, options, parameters):
     retval = ExecutableDevice.execute(self, name, options, parameters)

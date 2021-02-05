@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -30,7 +30,7 @@ from ossie.device import Device
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class py_dev_base(CF__POA.Device, Device, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class

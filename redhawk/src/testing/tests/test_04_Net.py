@@ -24,14 +24,14 @@ from _unitTestHelpers import scatest
 from xml.dom import minidom
 from omniORB import CORBA, URI, any
 from ossie.cf import CF, CF__POA, ExtendedCF
-import commands
+import subprocess
 from ossie.utils.sandbox.launcher import LocalProcess
 from ossie import parsers
 from ossie.utils.sandbox.naming import NamingContextStub
 from ossie.utils import sb
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -52,7 +52,7 @@ def getChildren(parentPid):
 
 def getProcessName(pid):
     str_pid = str(pid)
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     Name = ''
     for entry in process_listing:
         if entry == str_pid:
@@ -73,7 +73,7 @@ def getProcessName(pid):
     return Name
 
 def pidExists(pid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
 
 class AwarenessTest(scatest.CorbaTestCase):
@@ -162,7 +162,7 @@ class NicAllocTest(scatest.CorbaTestCase):
             for comp in app._get_componentProcessIds():
                 with open('/proc/%d/cmdline' % comp.processId, 'r') as fp:
                     args = fp.read().split('\0')
-                    self.failUnless('NIC' in args, "%s did not get NIC command line argument" % comp.componentId)
+                    self.assertTrue('NIC' in args, "%s did not get NIC command line argument" % comp.componentId)
 
         for comp in app._get_registeredComponents():
             props = comp.componentObject.query([CF.DataType(id='nic_name',value=any.to_any(None))])

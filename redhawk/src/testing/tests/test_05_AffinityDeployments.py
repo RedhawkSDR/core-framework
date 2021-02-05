@@ -69,7 +69,7 @@ def  setXmlSource( src, dest=None ):
     lines = [line.rstrip() for line in open(src)]
     for l in lines:
         newline=l
-        for k in affinity_test_src.keys():
+        for k in list(affinity_test_src.keys()):
             newline = re.sub(r'XXX'+k+'XXX', r''+affinity_test_src[k], newline )
         dest_f.write(newline+'\n')
 
@@ -489,7 +489,7 @@ if numasupport and (n1 or n2):
    numa_layout=numa_affinity_ctx['numa_layout']
    numa_match=numa_affinity_ctx['affinity_match']
 else:
-   print "NonNumaSupport ", nonnuma_affinity_ctx
+   print("NonNumaSupport ", nonnuma_affinity_ctx)
    maxcpus = nonnuma_affinity_ctx['maxcpus']
    maxnodes = nonnuma_affinity_ctx['maxnodes']
    all_cpus = nonnuma_affinity_ctx['all_cpus']
@@ -513,12 +513,12 @@ else:
         affinity_test_src["8-10"] = all_cpus
         affinity_test_src["5"] = all_cpus
 
-print "numa_layout:", numa_layout
-print "maxcpus:", maxcpus
-print "maxnodes:", maxnodes
-print "affinity_test_src:", affinity_test_src
-print "numa_match (wf) :", numa_match
-print "numa_match (dev) :", dev_affinity_ctx
+print("numa_layout:", numa_layout)
+print("maxcpus:", maxcpus)
+print("maxnodes:", maxnodes)
+print("affinity_test_src:", affinity_test_src)
+print("numa_match (wf) :", numa_match)
+print("numa_match (dev) :", dev_affinity_ctx)
 
 ## GPP blacklist=0, affinity=socket,0  deploy_per_socket=true
 setXmlSource( "./sdr/dev/nodes/test_affinity_node_socket/DeviceManager.dcd.xml.GOLD")

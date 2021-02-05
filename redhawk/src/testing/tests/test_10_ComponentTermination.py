@@ -58,7 +58,7 @@ class ComponentTerminationTest(scatest.CorbaTestCase):
             pass
 
         self._event.wait(1)
-        self.failUnless(self._event.isSet(), 'No unexpected termination message received')
+        self.assertTrue(self._event.isSet(), 'No unexpected termination message received')
 
     def test_UnhandledExceptionCpp(self):
         """

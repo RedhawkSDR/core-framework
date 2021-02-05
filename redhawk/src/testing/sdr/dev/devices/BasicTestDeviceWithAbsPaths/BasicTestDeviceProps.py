@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -27,144 +27,144 @@
 
 PROPERTIES = (
               (
-               u'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
-               u'no_default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
+               'no_default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
-               u'default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
+               'default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                'default', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
-               u'os_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
+               'os_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'Linux', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
-               u'processor_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
+               'processor_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'x86', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
-               u'DeviceKind', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
+               'DeviceKind', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'BasicTestDevice', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:64303822-4c67-4c04-9a5c-bf670f27cf39', # ID
-               u'RunsAs', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:64303822-4c67-4c04-9a5c-bf670f27cf39', # ID
+               'RunsAs', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'root', # DEFAULT
                None, # UNITS
-               u'ne', # ACTION
-               (u'allocation',), # KINDS
+               'ne', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:021f10cf-7a05-46ec-a507-04b513b84bd4', # ID
-               u'HasXMIDAS', # NAME
-               u'boolean', # TYPE
-               u'readonly', # MODE
+               'DCE:021f10cf-7a05-46ec-a507-04b513b84bd4', # ID
+               'HasXMIDAS', # NAME
+               'boolean', # TYPE
+               'readonly', # MODE
                True, # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:ac73446e-f935-40b6-8b8d-4d9adb6b403f', # ID
-               u'ProvidedCpuCores', # NAME
-               u'short', # TYPE
-               u'readonly', # MODE
+               'DCE:ac73446e-f935-40b6-8b8d-4d9adb6b403f', # ID
+               'ProvidedCpuCores', # NAME
+               'short', # TYPE
+               'readonly', # MODE
                8, # DEFAULT
                None, # UNITS
-               u'ge', # ACTION
-               (u'allocation',), # KINDS
+               'ge', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:dd339b67-b387-4018-94d2-9a72955d85b9', # ID
-               u'CoresClockRateGHz', # NAME
-               u'float', # TYPE
-               u'readonly', # MODE
+               'DCE:dd339b67-b387-4018-94d2-9a72955d85b9', # ID
+               'CoresClockRateGHz', # NAME
+               'float', # TYPE
+               'readonly', # MODE
                3.0, # DEFAULT
                None, # UNITS
-               u'le', # ACTION
-               (u'allocation',), # KINDS
+               'le', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
-               u'memCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
+               'memCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
-               u'BogoMipsCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
+               'BogoMipsCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648', # ID
-               u'SomeConfigFileLocation', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648', # ID
+               'SomeConfigFileLocation', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'notyourfile', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'DCE:dc4289a8-bb98-435b-b914-305ffaa7594f', # ID
-               u'ImplementationSpecificProperty', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:dc4289a8-bb98-435b-b914-305ffaa7594f', # ID
+               'ImplementationSpecificProperty', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'DefaultValueNoGood', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'DCE:716ea1c4-059a-4b18-8b66-74804bd8d435', # ID
-               u'ImplementationSpecificProperty2', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:716ea1c4-059a-4b18-8b66-74804bd8d435', # ID
+               'ImplementationSpecificProperty2', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'DefaultValueNoGood2', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
              )
 

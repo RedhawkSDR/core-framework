@@ -44,38 +44,38 @@ class Iterators(unittest.TestCase):
     def test_iter_count(self):
         # the list of allocations in the service is 20 allocations long
         alloclist, allociter = self.svc.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 1)
-        self.assertEquals(len(alloclist), 1)
-        self.assertEquals(alloclist[0].sourceID, "1")
+        self.assertEqual(len(alloclist), 1)
+        self.assertEqual(alloclist[0].sourceID, "1")
         allocstatus, alloclist = allociter.next_n(10)
-        self.assertEquals(len(alloclist), 10)
-        self.assertEquals(alloclist[9].sourceID, "11")
-        self.assertEquals(allocstatus, True)
+        self.assertEqual(len(alloclist), 10)
+        self.assertEqual(alloclist[9].sourceID, "11")
+        self.assertEqual(allocstatus, True)
         allocstatus, allocvalue = allociter.next_one()
-        self.assertEquals(allocvalue.allocationID, "sample_id")
-        self.assertEquals(allocvalue.sourceID, "12")
-        self.assertEquals(allocstatus, True)
+        self.assertEqual(allocvalue.allocationID, "sample_id")
+        self.assertEqual(allocvalue.sourceID, "12")
+        self.assertEqual(allocstatus, True)
         allocstatus, alloclist = allociter.next_n(10)
-        self.assertEquals(len(alloclist), 8)
-        self.assertEquals(alloclist[-1].sourceID, "20")
-        self.assertEquals(allocstatus, True)
+        self.assertEqual(len(alloclist), 8)
+        self.assertEqual(alloclist[-1].sourceID, "20")
+        self.assertEqual(allocstatus, True)
         allocstatus, alloclist = allociter.next_n(10)
-        self.assertEquals(len(alloclist), 0)
-        self.assertEquals(allocstatus, False)
+        self.assertEqual(len(alloclist), 0)
+        self.assertEqual(allocstatus, False)
         allocstatus, allocvalue = allociter.next_one()
-        self.assertEquals(allocvalue.allocationID, "")
-        self.assertEquals(allocstatus, False)
+        self.assertEqual(allocvalue.allocationID, "")
+        self.assertEqual(allocstatus, False)
 
     def test_object_not_exist(self):
         # the list of allocations in the service is 50000 devices long
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
-        self.assertEquals(len(devlist), 10)
+        self.assertEqual(len(devlist), 10)
         mem_2 = self.get_memory_size(self.svc._pid)
         self.assertGreater(mem_2, mem_1)
 
         devstatus, devlist = deviter.next_n(20)
-        self.assertEquals(len(devlist), 20)
-        self.assertEquals(devstatus, True)
+        self.assertEqual(len(devlist), 20)
+        self.assertEqual(devstatus, True)
 
         time.sleep(1.5)
 
@@ -89,7 +89,7 @@ class Iterators(unittest.TestCase):
         # mem_1: initial memory
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
-        self.assertEquals(len(devlist), 10)
+        self.assertEqual(len(devlist), 10)
         # mem_2: memory after an iterator is created
         mem_2 = self.get_memory_size(self.svc._pid)
         # check that the iterator required new memory
@@ -101,11 +101,11 @@ class Iterators(unittest.TestCase):
         # mem_4: memory after an iterator is created
         # verify that the new iterator did not require more memory beyond the first iterator
         # if the iterator did not expire, new memory would have been allocated
-        self.assertEquals(mem_2, mem_4)
+        self.assertEqual(mem_2, mem_4)
 
         time.sleep(1) # wait for the iterator to expire
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
         # mem_6: memory after an iterator is created
         mem_6 = self.get_memory_size(self.svc._pid)
         # verify that the new iterator did not require more memory beyond the first or second iterator
-        self.assertEquals(mem_4, mem_6)
+        self.assertEqual(mem_4, mem_6)
