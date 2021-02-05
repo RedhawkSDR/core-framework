@@ -35,7 +35,6 @@ enum {
 //
 class ThreadedComponent {
     friend class ossie::ProcessThread;
-    ENABLE_LOGGING;
 public:
     virtual ~ThreadedComponent ();
 
@@ -43,7 +42,8 @@ public:
     virtual int serviceFunction () = 0;
 
     /**
-     * Return the time at which ProcessThread::run() processed FINISH.
+     * Return the time at which ProcessThread::run() processed FINISH
+     * for the latest underlying thread.
      */
     CF::UTCTime getFinishedTime ();
 
@@ -52,7 +52,7 @@ public:
      * More than one underlying thread, but only one at a time, can be
      * created from startThread().
      * 
-     * Before FINISH is processed, this sequence is possble:
+     * This sequence is possible:
      * - user calls startThread()
      * - thread-A is created and starts processing
      * - user calls stopThread()
@@ -60,10 +60,12 @@ public:
      * - user calls startThread()
      * - thread-B is created and starts processing
      * 
-     * Once FINISH is processed, startThread() will not create more threads.
+     * A similar sequence is possible in which the serviceFunction()
+     * returns FINISH, instead of the user calling stopThread().
      */
 
     /**
+     * The return value is in reference to the latest underlying thread.
      * True means that ProcessThread::run() processed a FINISH return
      * value from serviceFunction().
      * 
@@ -125,13 +127,8 @@ protected:
 
     void setThreadName(const std::string& name);
 
-private:
     void setFinished(bool val);
     void setRunning(bool val);
-    void setFinishedTime();
-
-    std::string _threadName;
-    float _defaultDelay;
 
     bool _finished;
     bool _running;
@@ -139,6 +136,10 @@ private:
 
     CF::UTCTime _finishedTime;
     boost::mutex _finishedTimeMutex;
+
+private:
+    std::string _threadName;
+    float _defaultDelay;
 };
 
 #endif // OSSIE_THREADEDCOMPONENT_H

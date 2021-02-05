@@ -22,11 +22,10 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(StatusTest);
 
-Comp::Comp(const char* uuid, const char* label, std::string behavior) :
+Comp::Comp(const char* uuid, const char* label) :
     Component(uuid, label),
     ThreadedComponent(),
-    mRanOnce(false),
-    _behavior(behavior)
+    returnVal(RetVal::NORMAL)
 {
 }
 
@@ -62,16 +61,15 @@ void Comp::loadProperties() {}
 
 int Comp::serviceFunction()
 {
-    mRanOnce = true;
-    if (_behavior.compare("return FINISH") == 0) {
+    if (returnVal == RetVal::FINISH) {
         return FINISH;
     }
-    if (_behavior.compare("return NOOP") == 0) {
+    if (returnVal == RetVal::NOOP) {
         return NOOP;
     }
-    if (_behavior.compare("long running") == 0) {
+    if (returnVal == RetVal::DONT_RETURN) {
         double val = 10.0;
-        while (true) {
+        while (true) { // run forever, but don't thread.sleep()
             if (val < 999999.9) {
                 val *= 11.0;
             } else {
@@ -92,12 +90,20 @@ void StatusTest::tearDown() {}
 
 void StatusTest::testStatusWithFinish()
 {
-    Comp comp("uuid", "label", "return FINISH");
+    Comp comp("uuid", "label");
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
     comp.start();
+    // _running is set by a different thread, so accommodate a delay.
+    boost::system_time end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(comp.started());
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
@@ -107,9 +113,15 @@ void StatusTest::testStatusWithFinish()
     CPPUNIT_ASSERT(tsBefore.twsec == 0);
     CPPUNIT_ASSERT(tsBefore.tfsec == 0);
 
+    comp.setReturnVal(RetVal::FINISH);
     // Wait for FINISH to be processed.
-    usleep(10000);
-
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isFinished() && !comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
@@ -123,8 +135,16 @@ void StatusTest::testStatusWithFinish()
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
     comp.start();
-    CPPUNIT_ASSERT(comp.isFinished());
-    CPPUNIT_ASSERT(!comp.isRunning());
+    // _running is set by a different thread, so accommodate a delay.
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
+    CPPUNIT_ASSERT(!comp.isFinished());
+    CPPUNIT_ASSERT(comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
     comp.releaseObject();
@@ -132,12 +152,20 @@ void StatusTest::testStatusWithFinish()
 
 void StatusTest::testStatusWithNormal()
 {
-    Comp comp("uuid", "label", "return NORMAL");
+    Comp comp("uuid", "label");
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
     comp.start();
+    // _running is set by a different thread, so accommodate a delay.
+    boost::system_time end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(comp.started());
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
@@ -147,11 +175,15 @@ void StatusTest::testStatusWithNormal()
     CPPUNIT_ASSERT(tsBefore.twsec == 0);
     CPPUNIT_ASSERT(tsBefore.tfsec == 0);
 
-    while (!comp.mRanOnce) {
+    comp.stop();
+    // Wait for stop() to be processed.
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.wasStopCalled() && !comp.isRunning()) {
+            break;
+        }
         usleep(10);
     }
-
-    comp.stop();
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(comp.wasStopCalled());
@@ -160,6 +192,14 @@ void StatusTest::testStatusWithNormal()
     CPPUNIT_ASSERT(tsAfter.twsec == 0);
 
     comp.start();
+    // _running is set by a different thread, so accommodate a delay.
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
@@ -169,12 +209,20 @@ void StatusTest::testStatusWithNormal()
 
 void StatusTest::testStatusWithLongRunning()
 {
-    Comp comp("uuid", "label", "long running");
+    Comp comp("uuid", "label");
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
     comp.start();
+    // _running is set by a different thread, so accommodate a delay.
+    boost::system_time end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(comp.started());
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
@@ -184,11 +232,24 @@ void StatusTest::testStatusWithLongRunning()
     CPPUNIT_ASSERT(tsBefore.twsec == 0);
     CPPUNIT_ASSERT(tsBefore.tfsec == 0);
 
-    while (!comp.mRanOnce) {
+    comp.setReturnVal(RetVal::DONT_RETURN);
+    // Wait for setReturnVal() to be processed.
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.getReturnVal() == RetVal::DONT_RETURN) {
+            break;
+        }
         usleep(10);
     }
-
     comp.stop();
+    // Wait for stop() to be processed.
+    end_time = boost::get_system_time() + boost::posix_time::milliseconds(2100);
+    while (boost::get_system_time() < end_time) {
+        if (comp.wasStopCalled() && !comp.isRunning()) {
+            break;
+        }
+        usleep(10);
+    }
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
     CPPUNIT_ASSERT(comp.wasStopCalled());

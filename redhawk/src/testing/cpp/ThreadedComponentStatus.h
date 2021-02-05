@@ -30,10 +30,14 @@
 
 #include <boost/thread.hpp>
 
+namespace RetVal {
+    enum { FINISH, NOOP, NORMAL, DONT_RETURN };
+}
+
 class Comp : public Component, protected ThreadedComponent
 {
     public:
-        Comp(const char *uuid, const char *label, std::string behavior);
+        Comp(const char *uuid, const char *label);
         ~Comp();
 
         void start() throw (CF::Resource::StartError, CORBA::SystemException);
@@ -49,11 +53,10 @@ class Comp : public Component, protected ThreadedComponent
         bool isRunning() { return ThreadedComponent::isRunning(); }
         bool wasStopCalled() { return ThreadedComponent::wasStopCalled(); }
         CF::UTCTime getFinishedTime() { return ThreadedComponent::getFinishedTime(); }
+        void setReturnVal(int val) { returnVal = val; }
+        int getReturnVal() { return returnVal; }
 
-        bool mRanOnce;
-
-    private:
-        std::string _behavior;
+        int returnVal;
 };
 
 

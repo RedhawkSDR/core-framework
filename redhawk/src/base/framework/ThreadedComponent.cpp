@@ -76,7 +76,6 @@ void ProcessThread::run()
             _running = false;
             _target->setFinished(true);
             _target->setRunning(false);
-            _target->setFinishedTime();
             return;
         } else if (state == NOOP) {
             try {
@@ -110,8 +109,8 @@ bool ProcessThread::release(unsigned long secs, unsigned long usecs)
         }
         delete _thread;
         _thread = 0;
+        _target->setRunning(false);
     }
-    _target->setRunning(false);
     
     return true;
 }
@@ -145,16 +144,14 @@ bool ProcessThread::threadRunning()
 };   //end of ossie namespace
 
 
-PREPARE_CF_LOGGING(ThreadedComponent);
-
 ThreadedComponent::ThreadedComponent() :
     serviceThread(0),
     serviceThreadLock(),
-    _threadName(),
-    _defaultDelay(0.1),
     _finished(false),
     _running(false),
-    _stopped(false)
+    _stopped(false),
+    _threadName(),
+    _defaultDelay(0.1)
 {
     _finishedTime.tcstatus = 0;
     _finishedTime.twsec = 0;
@@ -168,14 +165,9 @@ ThreadedComponent::~ThreadedComponent()
 void ThreadedComponent::startThread ()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
-    if (serviceThread) {
-        LOG_WARN(ThreadedComponent, "Service thread was already running.");
-    } else {
-        if (_finished) {
-            LOG_WARN(ThreadedComponent, "Cannot start a FINISHed thread.");
-            return;
-        }
+    if (!serviceThread) {
         serviceThread = new ossie::ProcessThread(this, _defaultDelay, _threadName);
+        _finished = false;
         _stopped = false;
         serviceThread->start();
     }
@@ -220,15 +212,16 @@ void ThreadedComponent::setThreadName (const std::string& name)
 bool ThreadedComponent::isFinished() { return _finished; }
 bool ThreadedComponent::isRunning() { return _running; }
 bool ThreadedComponent::wasStopCalled() { return _stopped; }
-void ThreadedComponent::setFinished(bool val) { _finished = val; }
+void ThreadedComponent::setFinished(bool val) {
+    _finished = val;
+    if (val) {
+        boost::mutex::scoped_lock lock(_finishedTimeMutex);
+        _finishedTime = redhawk::time::utils::now();
+    }
+}
 void ThreadedComponent::setRunning(bool val) { _running = val; }
 
 CF::UTCTime ThreadedComponent::getFinishedTime() {
     boost::mutex::scoped_lock lock(_finishedTimeMutex);
     return _finishedTime;
-}
-
-void ThreadedComponent::setFinishedTime() {
-    boost::mutex::scoped_lock lock(_finishedTimeMutex);
-    _finishedTime = redhawk::time::utils::now();
 }
