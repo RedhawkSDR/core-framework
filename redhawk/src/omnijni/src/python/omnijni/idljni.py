@@ -20,8 +20,8 @@
 
 import os
 from omniidl import idlast, idlvisitor, idltype
-import cppcode
-from typeinfo import *
+from . import cppcode
+from .typeinfo import *
 
 primitiveTypeMap = {
     idltype.tk_void:      'void',

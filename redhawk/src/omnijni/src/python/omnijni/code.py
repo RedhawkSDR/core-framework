@@ -18,13 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import new
-
 def factoryclass (base, factory):
     def init (self, *args, **kwargs):
         base.__init__(self, *args, **kwargs)
         factory.__init__(self)
-    return new.classobj(base.__name__, (base, factory), { '__init__': init })
+    return type(base.__name__, (base, factory), { '__init__': init })
 
 class Factory(object):
     def __init__ (self, *classes):
@@ -32,7 +30,7 @@ class Factory(object):
 
     def __getattr__ (self, name):
         if not name in self.__classes:
-            raise KeyError, name
+            raise KeyError(name)
         return lambda *args, **kwargs: self._append(name, *args, **kwargs)
     
     def _create (self, name, *args, **kwargs):
@@ -146,5 +144,5 @@ class SourceFile:
 
     def outdent (self):
         if (self.__indent_level == 0):
-            raise IndentationError, 'Indentation level went below zero'
+            raise IndentationError('Indentation level went below zero')
         self.__indent_level -= 1
