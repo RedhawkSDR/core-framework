@@ -21,13 +21,22 @@ package bulkio;
 
 import org.apache.log4j.Logger;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
+
 import BULKIO.PrecisionUTCTime;
 import BULKIO.dataBitOperations;
+import BULKIO.StreamSRI;
+import bulkio.OutBitStream;
 
 /**
  * BulkIO output port implementation for dataBit.
  */
 public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequence> {
+
+    protected Map<String, OutBitStream> streams;
+    public Object streamsMutex;
 
     public OutBitPort(String portName) {
         this(portName, null, null);
@@ -42,6 +51,8 @@ public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequ
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }
+        this.streams = new HashMap<String, OutBitStream>();
+        this.streamsMutex = new Object();
     }
 
     protected dataBitOperations narrow(org.omg.CORBA.Object obj) {
@@ -54,5 +65,57 @@ public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequ
 
     public String getRepid() {
         return BULKIO.dataBitHelper.id();
+    }
+
+    public OutBitStream getStream(String streamID)
+    {
+        synchronized (this.updatingPortsLock) {
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+        }
+        return null;
+    }
+  
+    public OutBitStream[] getStreams()
+    {
+        OutBitStream[] retval = null;
+        Iterator<OutBitStream> streams_iter = streams.values().iterator();
+        synchronized (this.streamsMutex) {
+            retval = new OutBitStream[streams.size()];
+            int streams_idx = 0;
+            while (streams_iter.hasNext()) {
+                retval[streams_idx] = streams_iter.next();
+                streams_idx++;
+            }
+        }
+        return retval;
+    }
+  
+    public OutBitStream createStream(String streamID)
+    {
+        OutBitStream stream = null;
+        synchronized (this.updatingPortsLock) {
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+            stream = new OutBitStream(bulkio.sri.utils.create(streamID), this);
+            streams.put(streamID, stream);
+        }
+        return stream;
+    }
+  
+    public OutBitStream createStream(BULKIO.StreamSRI sri)
+    {
+        OutBitStream stream = null;
+        synchronized (this.updatingPortsLock) {
+            String streamID = sri.streamID;
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+            stream = new OutBitStream(sri, this);
+            streams.put(streamID, stream);
+        }
+        return stream;
     }
 }

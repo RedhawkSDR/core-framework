@@ -88,6 +88,7 @@ bulkio_tests_jar_SOURCE += OutBitPortTest.java
 bulkio_tests_jar_SOURCE += OutFilePortTest.java
 bulkio_tests_jar_SOURCE += OutXMLPortTest.java
 bulkio_tests_jar_SOURCE += InBitStreamTest.java
+bulkio_tests_jar_SOURCE += OutBitStreamTest.java
 bulkio_tests_jar_SOURCE += InSDDSPort_Test.java
 bulkio_tests_jar_SOURCE += OutSDDSPort_Test.java
 bulkio_tests_jar_SOURCE += PrecisionUTCTimeTest.java

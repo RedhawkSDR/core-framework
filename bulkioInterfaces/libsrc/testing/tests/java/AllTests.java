@@ -65,6 +65,7 @@ import org.junit.runners.Suite.SuiteClasses;
         InULongLongStreamTest.class,
         InFloatStreamTest.class,
         InDoubleStreamTest.class,
+        OutBitStreamTest.class,
         OutCharStreamTest.class,
         OutOctetStreamTest.class,
         OutShortStreamTest.class,

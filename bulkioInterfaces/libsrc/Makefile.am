@@ -144,6 +144,7 @@ SampleTimestamp.java \
 StreamListener.java \
 linkStatistics.java \
 OutBitPort.java \
+OutBitStream.java \
 OutDataPort.java \
 OutFilePort.java \
 OutPortBase.java \

@@ -408,10 +408,10 @@ public class InBitStream extends InStreamBase {
             data_payload.data = new byte[number_bytes];
             for (int i=0; i<data_payload.data.length; i++) {
                 // contortions because Java does not have unsigned bytes
-                data_payload.data[i] = (byte)(((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset)-128);
+                data_payload.data[i] = (byte)((((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset) >> (8-bit_offset))-128);
                 if (bit_offset != 0) {
                     // contortions because Java does not have unsigned bytes
-                    data_payload.data[i] |= (byte)(((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
+                    data_payload.data[i] |= (byte)((((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset)) >> (8-bit_offset))-128);
                 }
             }
             data_payload.bits = last_offset;
