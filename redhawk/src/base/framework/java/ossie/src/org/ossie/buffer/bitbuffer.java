@@ -20,6 +20,8 @@
 
 package org.ossie.buffer;
 
+import java.util.BitSet;
+
 public class bitbuffer extends BitSet {
 
     //
