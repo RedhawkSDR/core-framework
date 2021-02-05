@@ -30,10 +30,10 @@ ossie__v_pysetup_0 = --quiet
 ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 
 all-local:
-	python setup.py $(OSSIE_V_pysetup) build
+	$(PYTHON) setup.py $(OSSIE_V_pysetup) build
 
 clean-local:
-	python setup.py clean
+	$(PYTHON) setup.py clean
 	rm -rf build
 
 ossie/cf/%_idl.py : $(top_srcdir)/idl/ossie/CF/%.idl

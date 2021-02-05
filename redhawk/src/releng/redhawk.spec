@@ -53,18 +53,15 @@ Requires:       gstreamer-plugins-base
 Requires:       python-matplotlib
 %endif
 
-Requires:       python
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-Requires:       python-lxml
-Requires:       python-omniORB >= 3.0
-Requires:       omniORB-devel >= 4.1.0
-Requires:       bash-completion
-%endif
+Requires:       python3
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       python-omniORB > 4.2.2
+Requires:       python3-omniORB > 4.2.2
 Requires:       omniORB-devel > 4.2.2
 %endif
-Requires:       numpy
+Requires:       python36-numpy
+Requires:       python36-qt5
+Requires:       python36-lxml
+Requires:       python36-jinja2
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
@@ -74,13 +71,14 @@ BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
 BuildRequires:  java-1.8.0-openjdk-devel
-BuildRequires:  python-setuptools
-BuildRequires:  python-devel >= 2.4
+BuildRequires:  python3-setuptools
+BuildRequires:  python3-devel >= 3.6
+BuildRequires:  python36-lxml
+BuildRequires:  python36-numpy
+BuildRequires:  python36-qt5
+BuildRequires:  python36-qt5-devel
+BuildRequires:  python36-jinja2
 BuildRequires:  log4cxx-devel >= 0.10
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-BuildRequires:  omniORB-devel >= 4.1.0
-BuildRequires:  omniORBpy-devel >= 3.0
-%endif
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 BuildRequires:  omniORB-devel > 4.2.2
 BuildRequires:  omniORBpy-devel > 4.2.2
@@ -147,10 +145,6 @@ Requires:       numactl-devel
 
 # omniORB / omniORBpy
 
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-Requires:       omniORB-devel >= 4.1.0
-Requires:       omniORBpy-devel >= 3.0
-%endif
 %if 0%{?fedora} == 17 || 0%{?rhel} == 7
 Requires:       omniORB-devel > 4.2.2
 Requires:       omniORBpy-devel > 4.2.2
@@ -158,7 +152,7 @@ Requires:       omniORBpy-devel > 4.2.2
 Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
-Requires:       python-devel >= 2.4
+Requires:       python3-devel >= 3.6
 Requires:       java-1.8.0-openjdk-devel
 
 %description devel

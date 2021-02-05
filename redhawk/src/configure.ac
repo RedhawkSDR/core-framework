@@ -198,7 +198,7 @@ fi
 AC_SUBST([HAVE_JAVASUPPORT], $HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AM_PATH_PYTHON([2.4])
+AM_PATH_PYTHON([3.6])
 
 AC_CHECK_PYMODULE(logging ,[], [AC_MSG_ERROR([the python logging module is required])])
 AC_CHECK_PYMODULE(subprocess, [], [AC_MSG_ERROR([the python subprocess module is required])])
@@ -300,6 +300,7 @@ AC_CONFIG_FILES(Makefile \
                 control/sdr/ComponentHost/Makefile \
                 base/Makefile \
                 base/framework/python/Makefile \
+                base/framework/python/redhawk.pth \
                 base/framework/java/Makefile \
                 base/framework/java/jni/Makefile \
                 base/framework/java/jni/COS/Makefile \
