@@ -75,7 +75,7 @@ import org.junit.runners.Suite.SuiteClasses;
         OutLongLongStreamTest.class,
         OutULongLongStreamTest.class,
         OutFloatStreamTest.class,
-        OutDoubleStreamTest.class
+        OutDoubleStreamTest.class,
         OutVITA49Port_Test.class
 })
 public class AllTests {

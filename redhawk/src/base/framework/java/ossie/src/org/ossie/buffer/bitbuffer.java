@@ -45,7 +45,7 @@ public class bitbuffer extends BitSet {
         length = nbits;
     }
 
-    public set(int bitlocation) {
+    public void set(int bitlocation) {
         super.set(bitlocation);
         if (bitlocation > this.length) {
             length = bitlocation;
