@@ -563,7 +563,7 @@ class Property(object):
     __add__ = proxy_operator(_operator.add)
     __sub__ = proxy_operator(_operator.sub)
     __mul__ = proxy_operator(_operator.mul)
-    __div__ = proxy_operator(_operator.div)
+    __div__ = proxy_operator(_operator.floordiv)
     __truediv__ = proxy_operator(_operator.truediv)
     __floordiv__ = proxy_operator(_operator.floordiv)
     __mod__= proxy_operator(_operator.mod)
@@ -579,7 +579,7 @@ class Property(object):
     __iadd__ = proxy_inplace_operator(_operator.add)
     __isub__ = proxy_inplace_operator(_operator.sub)
     __imul__ = proxy_inplace_operator(_operator.mul)
-    __idiv__ = proxy_inplace_operator(_operator.div)
+    __idiv__ = proxy_inplace_operator(_operator.floordiv)
     __itruediv__ = proxy_inplace_operator(_operator.truediv)
     __ifloordiv__ = proxy_inplace_operator(_operator.floordiv)
     __imod__ = proxy_inplace_operator(_operator.mod)
@@ -594,7 +594,7 @@ class Property(object):
     __radd__ = proxy_reverse_operator(_operator.add)
     __rsub__ = proxy_reverse_operator(_operator.sub)
     __rmul__ = proxy_reverse_operator(_operator.mul)
-    __rdiv__ = proxy_reverse_operator(_operator.div)
+    __rdiv__ = proxy_reverse_operator(_operator.floordiv)
     __rtruediv__ = proxy_reverse_operator(_operator.truediv)
     __rfloordiv__ = proxy_reverse_operator(_operator.floordiv)
     __rmod__ = proxy_reverse_operator(_operator.mod)
@@ -615,16 +615,12 @@ class Property(object):
     # Type conversions
     __complex__ = proxy_operator(complex)
     __int__ = proxy_operator(int)
-    __long__ = proxy_operator(int)
     __float__ = proxy_operator(float)
     __nonzero__ = proxy_operator(bool)
 
     # Base conversion
     __oct__ = proxy_operator(oct)
     __hex__ = proxy_operator(hex)
-
-    # Coercion
-    __coerce__ = proxy_operator(coerce)
 
     # Rich comparison methods
     __lt__ = proxy_operator(_operator.lt)
@@ -1233,11 +1229,7 @@ class structProperty(Property):
     __iter__ = Property.proxy_operator(iter)
 
     # Dict methods
-    has_key = Property.proxy_operator(dict.has_key)
     items = Property.proxy_operator(dict.items)
-    iteritems = Property.proxy_operator(dict.iteritems)
-    iterkeys = Property.proxy_operator(dict.iterkeys)
-    itervalues = Property.proxy_operator(dict.itervalues)
     keys = Property.proxy_operator(dict.keys)
     update = Property.proxy_modifier_function(dict.update)
     values = Property.proxy_operator(dict.values)

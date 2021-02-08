@@ -24,7 +24,7 @@ from ossie.cf import CF
 from omniORB import CORBA
 import time
 import os
-from .test_09_HardFail import getChildren
+from test_09_HardFail import getChildren
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):

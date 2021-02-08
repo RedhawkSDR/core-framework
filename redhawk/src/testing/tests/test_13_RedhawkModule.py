@@ -1150,7 +1150,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
             if type(pat['match']) == tuple:
                    reslen=len(pat['results'])
                    c=pat['match']
-	           res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
+                   res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
                    self.assertTrue(res)
 
             if type(pat['match']) == int:

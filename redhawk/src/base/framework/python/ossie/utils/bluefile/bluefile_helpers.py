@@ -22,7 +22,6 @@ import os
 import threading
 import time
 import numpy
-from new import classobj
 
 from ossie.cf import CF, CF__POA
 import ossie.properties
@@ -315,8 +314,8 @@ class BlueFileReader(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (CF__POA.Port,),
+        PortClass = type('PortClass',
+                             (object,CF__POA.Port,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -609,8 +608,8 @@ class BlueFileWriter(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass', 
-                             (self.port_type,), 
+        PortClass = type('PortClass', 
+                             (object,self.port_type,), 
                              {'pushPacket':self.pushPacket,
                               'pushSRI':self.pushSRI})
 

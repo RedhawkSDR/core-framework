@@ -23,7 +23,6 @@
 import os
 import time
 import threading
-from new import classobj
 import unittest
 import signal
 import subprocess

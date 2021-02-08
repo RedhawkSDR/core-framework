@@ -24,6 +24,7 @@ from ossie.utils.log4py import config
 from ossie.utils.log4py import *
 import time
 import os
+import tempfile
 import sys
 import contextlib
 import io
@@ -70,22 +71,25 @@ def stdout_redirect(where):
 class Test_Log4py_DateFormat(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile(mode="w+t")
 
     def _run_test(self, fmt_key):
         conv=conversions[fmt_key]
         config.strConfig(logcfg+conv[0])
+        #import pdb
+        #pdb.set_trace()
         self.logger=logging.getLogger('')
         self.console=self.logger.handlers[0]
         self.console.stream=self.tfile
         
         pval=time.strftime(conv[1])
-        
+        print("pval",pval)
         # 
         self.logger.info('test1')
         self.tfile.seek(0)
         logline=self.tfile.read()
         logline=logline.strip()
+        print("logline",logline)        
         if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]

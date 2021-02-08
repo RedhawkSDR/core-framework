@@ -835,27 +835,6 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertRaises(CF.PropertySet.InvalidConfiguration, tr.configure, [CF.DataType(id="dictprop[@]", value=any.to_any(newvalue))])
         self.assertEqual(tr.dictprop, {"val1": 1, "val2": 20, "val3": 30})
 
-    def test_InvalidStructDef(self):
-        try:
-            class BadStructResource(Resource):
-                """Test that strutdef constraints of being new-style are validated in the struct_property constructor"""
-                def __init__(self, execparams={}):
-                    Resource.__init__(self, "BadStructResource", execparams)
-
-                class SomeStruct:
-                    field1 = simple_property(id_="f1",
-                                             name="Field 1",
-                                             type_="double",
-                                             defvalue=123.4)
-
-                struct = struct_property(id_="astruct",
-                                         name="Demonstration of a Struct",
-                                         structdef=SomeStruct)
-        except ValueError:
-            pass
-        else:
-            self.fail("Expected ValueError")
-
     def test_ValidStructDef(self):
         """
         Tests the rebind function added to the struct_property object

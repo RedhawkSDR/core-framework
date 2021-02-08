@@ -79,7 +79,6 @@ import os
 import re
 import numpy
 import warnings
-from exceptions import UserWarning, NameError
 
 # define a portable string instance tester going forward that includes
 # unicode strings in Python 2.x and portable to Python 3

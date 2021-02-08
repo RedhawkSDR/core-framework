@@ -25,11 +25,12 @@ import sys
 def _notification_signature(func):
     # To provide meaningful documentation of the signature of a
     # notification, inspect the wrapped function to get its arguments.
-    args, varargs, varkw, defaults = inspect.getargspec(func)
-    if len(args) > 0 and args[0] == 'self':
-        # Discard "self" argument, if it exists.
-        args = args[1:]
-    return func.__name__+inspect.formatargspec(args, varargs, varkw, defaults)
+    #args, varargs, varkw, defaults = inspect.getargspec(func)
+    #if len(args) > 0 and args[0] == 'self':
+    # Discard "self" argument, if it exists.
+    #   args = args[1:]
+    #return func.__name__+inspect.formatargspec(args, varargs, varkw, defaults)
+    return func.__name__+str(inspect.signature(func))
 
 class notify_callback(object):
     """
@@ -113,11 +114,10 @@ class bound_notification(object):
     """
     A notification method associated with an object instance.
     """
-    def __init__(self, func, obj, owner):
+    def __init__(self, func, obj, owner=None):
         for attr in ('__name__', '__doc__', '__module__'):
             setattr(self, attr, getattr(func, attr))
         self.__self__ = obj
-        self.__self__.__class__ = owner
         self.__func__ = func
 
     def __call__(self, *args, **kwargs):

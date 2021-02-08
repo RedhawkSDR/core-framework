@@ -29,6 +29,7 @@ import io
 import binascii
 import struct
 import re
+import tempfile
 
 from ossie.utils.sdds import *
 
@@ -43,7 +44,7 @@ def stdout_redirect(where):
 class Test_SDDS_Time(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile()
         self.cur_year = datetime.date.today().year
         self.cur_year_str = str(self.cur_year)
 
@@ -178,7 +179,7 @@ class Test_SDDS_Time(unittest.TestCase):
 class Test_SDDS_Packet(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile()
         self.cur_year = datetime.date.today().year
         self.cur_year_str = str(self.cur_year)
 

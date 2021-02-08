@@ -1155,12 +1155,12 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_longlong_name.configureValue, 9223372036854775808)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulonglong_name.configureValue, 18446744073709551616)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_octet_name.configureValue, [0, 256])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [0, 32768])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [0, 65536])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [0, 2147483648])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [0, 4294967296])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [0, 9223372036854775808])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [0, 32768])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [0, 65536])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [0, 2147483648])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [0, 4294967296])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [0, 9223372036854775808])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
 
         # Test one beyond lower bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_octet_name.configureValue, -1)
@@ -1171,12 +1171,12 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_longlong_name.configureValue, -9223372036854775809)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_ulonglong_name.configureValue, -1)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_octet_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [-32769, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [-2147483649, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [-9223372036854775809, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_short_name.configureValue, [-32769, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ushort_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_long_name.configureValue, [-2147483649, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulong_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_longlong_name.configureValue, [-9223372036854775809, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_struct_name.struct_seq_ulonglong_name.configureValue, [-1, 0])
 
         # Makes sure the struct can be set without error
         # NB: This test used to use names instead of ids, which silently failed in 1.8.
@@ -1321,12 +1321,12 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_longlong_name.configureValue, 9223372036854775808)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_ulonglong_name.configureValue, 18446744073709551616)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_octet_name.configureValue, [0, 256])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_short_name.configureValue, [0, 32768])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ushort_name.configureValue, [0, 65536])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_long_name.configureValue, [0, 2147483648])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulong_name.configureValue, [0, 4294967296])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_longlong_name.configureValue, [0, 9223372036854775808])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_short_name.configureValue, [0, 32768])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ushort_name.configureValue, [0, 65536])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_long_name.configureValue, [0, 2147483648])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulong_name.configureValue, [0, 4294967296])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_longlong_name.configureValue, [0, 9223372036854775808])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[0].ss_seq_ulonglong_name.configureValue, [0, 18446744073709551616])
 
         # Test one beyond lower bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_octet_name.configureValue, -1)
@@ -1337,12 +1337,12 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_longlong_name.configureValue, -9223372036854775809)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_ulonglong_name.configureValue, -1)
         self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_octet_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_short_name.configureValue, [-32769, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ushort_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_long_name.configureValue, [-2147483649, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulong_name.configureValue, [-1, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_longlong_name.configureValue, [-9223372036854775809, 0])
-	self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulonglong_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_short_name.configureValue, [-32769, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ushort_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_long_name.configureValue, [-2147483649, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulong_name.configureValue, [-1, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_longlong_name.configureValue, [-9223372036854775809, 0])
+        self.assertRaises(type_helpers.OutOfRangeException, comp.my_structseq_name[1].ss_seq_ulonglong_name.configureValue, [-1, 0])
 
         # Make sure entire struct seq can be set without error
         new_value = [{'ss_octet': 100, 'ss_short': 101, 'ss_ushort': 102, 'ss_long': 103,
@@ -1361,8 +1361,8 @@ class SBTestTest(scatest.CorbaTestCase):
         for item in new_value:
             for name in item.keys():
                 if isinstance(item[name], list):
-		    for i in item[name]:
-			i += 100
+                    for i in item[name]:
+                        i += 100
                 else:
                     item[name] = item[name] + 100
         comp.my_structseq_name[0] = new_value[0]

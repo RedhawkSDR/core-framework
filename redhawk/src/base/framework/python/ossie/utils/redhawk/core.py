@@ -87,29 +87,29 @@ def _cleanUpLaunchedApps():
 _atexit.register(_cleanUpLaunchedApps)
 
 class App(_CF__POA.Application, Resource):
-    """This is the basic descriptor for a waveform (collection of inter-connected Components)
+    """
+    This is the basic descriptor for a waveform (collection of inter-connected Components)
        
-       App overview:
+    App overview:
        
-       A waveform is defined by an XML file (<waveform name>.sad.xml) that resides in a waveform
-       directory, usually $SDRROOT/dom/waveforms. This XML file lists a series of
-       components, a variety of default values for each of these components, and a set of connections
-       between different components' input and output ports. Input ports are referred to as 'Provides'
-       and output ports are referred to as 'Uses'.
+    A waveform is defined by an XML file (<waveform name>.sad.xml) that resides in a waveform
+    directory, usually $SDRROOT/dom/waveforms. This XML file lists a series of
+    components, a variety of default values for each of these components, and a set of connections
+    between different components' input and output ports. Input ports are referred to as 'Provides'
+    and output ports are referred to as 'Uses'.
+     
+    A waveform can follow any type of design, but may look something like this:
        
-       A waveform can follow any type of design, but may look something like this:
-       
-                                  _________ 
-                                  |        |
-       _________    _________   ->| Comp 3 |
-       |        |   |        | /  |        |
-       | Comp 1 |-->| Comp 2 |/   ----------
-       |        |   |        |\   _________ 
-       ----------   ---------- \  |        |
-                                ->| Comp 4 |
-                                  |        |
-                                  ----------
-       
+                               _________ 
+                               |        |
+    _________    _________   ->| Comp 3 |
+    |        |   |        | /  |        |
+    | Comp 1 |-->| Comp 2 |/   ----------
+    |        |   |        |\   _________ 
+    ----------   ---------- \  |        |
+                             ->| Comp 4 |
+                               |        |
+                               ----------   
     """
     def __init__(self, name="", domain=None, sad=None):
         # __initialized needs to be set first to prevent __setattr__ from entering an error state
@@ -503,7 +503,9 @@ class App(_CF__POA.Application, Resource):
             destfile.close()
 
     def _populatePorts(self, fs=None):
-        """Add all port descriptions to the component instance"""
+        """
+        Add all port descriptions to the component instance
+        """
         object.__setattr__(self, '_portsUpdated', True)
 
         sad = object.__getattribute__(self,'_sad')
@@ -684,7 +686,8 @@ class App(_CF__POA.Application, Resource):
                     continue
     
     def connect(self, provides, usesPortName=None, providesPortName=None, usesName=None, providesName=None):
-        """usesName and providesName are deprecated. Use usesPortName or providesPortName
+        """
+        usesName and providesName are deprecated. Use usesPortName or providesPortName
         """
         uses_name = usesName
         provides_name = providesName
@@ -711,7 +714,8 @@ class App(_CF__POA.Application, Resource):
 
 
 class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, PortSet):
-    """The DeviceManager is a descriptor for an logical grouping of devices.
+    """
+    The DeviceManager is a descriptor for an logical grouping of devices.
 
        Relevant member data:
        name - Node's name

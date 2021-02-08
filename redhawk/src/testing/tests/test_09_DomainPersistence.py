@@ -1143,7 +1143,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
     def test_DomainChannelsRestore_KillDeviceManager(self):
 
         # check that event channel names are not in naming context
-	domain_name = scatest.getTestDomainName()
+        domain_name = scatest.getTestDomainName()
         ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
         ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
         self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
@@ -1199,8 +1199,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
-	self.assertEqual( ODM_ref._non_existent(), 0)
-	self.assertEqual( IDM_ref._non_existent(), 0)
+        self.assertEqual( ODM_ref._non_existent(), 0)
+        self.assertEqual( IDM_ref._non_existent(), 0)
 
         # perform normal shutdown for DomainManager
         os.kill(self._nb_domMgr.pid, signal.SIGINT)

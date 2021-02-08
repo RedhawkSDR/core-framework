@@ -41,7 +41,7 @@ import subprocess
 import CosNaming
 import re
 import tempfile
-import buildconfig
+from . import buildconfig
 from . import runtestHelpers
 import subprocess
 import traceback

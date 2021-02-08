@@ -26,7 +26,6 @@ import threading
 from . import bulkio_helpers
 import time
 import logging
-from new import classobj
 from ossie.utils.redhawk.base import attach
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -122,8 +121,8 @@ class ArraySource(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (CF__POA.Port,),
+        PortClass = type('PortClass',
+                             (object,CF__POA.Port,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -391,8 +390,8 @@ class ArraySink(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (self.port_type,),
+        PortClass = type('PortClass',
+                             (object,self.port_type,),
                              {'pushPacket':self.pushPacket,
                               'pushSRI':self.pushSRI})
 
@@ -533,8 +532,8 @@ class ProbeSink(object):
             pushPacket = self.pushPacketXML
         else:
             pushPacket = self.pushPacket
-        PortClass = classobj('PortClass',
-                             (self.port_type,),
+        PortClass = type('PortClass',
+                             (object,self.port_type,),
                              {'pushPacket':pushPacket,
                               'pushSRI':self.pushSRI})
 
@@ -710,8 +709,8 @@ class SDDSSource(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (CF__POA.Port,),
+        PortClass = type('PortClass',
+                             (object,CF__POA.Port,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -910,8 +909,8 @@ class FileSource(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (CF__POA.Port,),
+        PortClass = type('PortClass',
+                             (object,CF__POA.Port,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -1061,8 +1060,8 @@ class SDDSSink(object):
         self.parent.detach_cb(attachId)
 
     def getPort(self):
-        PortClass = classobj('PortClass',
-                             (BULKIO__POA.dataSDDS,),
+        PortClass = type('PortClass',
+                             (object,BULKIO__POA.dataSDDS,),
                              {'_get_attachmentIds':self._get_attachmentIds,
                               '_get_attachedStreams':self._get_attachedStreams,
                               '_get_usageState':self._get_usageState,
@@ -1281,8 +1280,8 @@ class FileSink(object):
             pushPacket = self.pushPacketXML
         else:
             pushPacket = self.pushPacket
-        PortClass = classobj('PortClass',
-                             (self.port_type,),
+        PortClass = type('PortClass',
+                             (object,self.port_type,),
                              {'pushPacket':pushPacket,
                               'pushSRI':self.pushSRI})
 

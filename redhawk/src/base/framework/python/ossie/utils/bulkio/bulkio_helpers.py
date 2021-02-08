@@ -20,7 +20,6 @@
 
 import threading, struct, time, queue, copy, random
 from omniORB import any, CORBA
-from new import classobj
 from ossie.cf import CF
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -554,8 +553,8 @@ def createBULKIOInputPort(portType):
     # These are used if your port attempts
     # to mimic an SDDS input port
     if portType == BULKIO__POA.dataSDDS:
-        PortClass = classobj('Port',
-                             (portType,object),
+        PortClass = type('Port',
+                             (object,portType),
                              {'pushSRI':SDDS_pushSRI,
                               'attach':attach,
                               'detach':detach,
@@ -567,8 +566,8 @@ def createBULKIOInputPort(portType):
         retval.detach = tmp.detach
         return retval
     else:
-        PortClass = classobj('PortClass',
-                             (portType,object),
+        PortClass = type('PortClass',
+                         (object,portType),
                              {'pushPacket':pushPacket,
                               'getPacket':getPacket,
                               'pushSRI':pushSRI,

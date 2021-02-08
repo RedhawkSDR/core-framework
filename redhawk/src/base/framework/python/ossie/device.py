@@ -41,7 +41,6 @@ import os
 import stat
 import subprocess
 import threading
-import exceptions
 from queue import Queue
 import time
 import traceback
@@ -341,7 +340,7 @@ class Device(resource.Resource):
         for prop in properties:
             try:
                 if not self._props.isAllocatable(prop.id):
-                    raise exceptions.Exception()
+                    raise Exception()
             except:
                 self._deviceLog.error("Property %s is not allocatable", prop.id)
                 raise CF.Device.InvalidCapacity("Invalid capacity %s" % prop.id, [prop])

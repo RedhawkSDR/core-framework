@@ -1390,7 +1390,7 @@ class struct_property(_property):
             configurationkind = (configurationkind,)
         _property.__init__(self, id_, None, name, None, mode, "external", configurationkind, description, fget, fset, fval)
                              
-        if type(structdef) is type:
+        if not issubclass(structdef, object):
             raise ValueError("structdef must be a new-style python class (i.e. inherits from object)")
         self.structdef = structdef
         self.fields = {} # Map field id's to attribute names
@@ -1493,7 +1493,7 @@ class structseq_property(_sequence_property):
             configurationkind = (configurationkind,)
         _sequence_property.__init__(self, id_, None, name, None, mode, "external", configurationkind, description, fget, fset, fval)
         
-        if type(structdef) is type:
+        if not issubclass(structdef, object):
             raise ValueError("structdef must be a new-style python class (i.e. inherits from object)")
         self.structdef = structdef
         self.fields = {} # Map field id's to attribute names

@@ -20,7 +20,7 @@
 
 import unittest, os
 from _unitTestHelpers import scatest
-from .test_01_DeviceManager import killChildProcesses
+from test_01_DeviceManager import killChildProcesses
 from ossie.utils import redhawk, sb
 from ossie.cf import CF
 from ossie.events import Subscriber

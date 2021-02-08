@@ -113,7 +113,7 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(allocRes[0].value.value()[0].value.value(), 90)
         self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 0.9)
         self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 45)
-	self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 450)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 450)
 
         # Make sure values are deallocated on release
         self._app.releaseObject()
@@ -124,8 +124,8 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes = dev.query([prop])
         self.assertEqual(allocRes[0].value.value()[0].value.value(), 100)
         self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 1.0)
-	self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
-	self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
 
     def test_connections(self):
         appFact = self.createAppFact("ConnectionDevProvides")
@@ -148,8 +148,8 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes2 = dev.query([prop2])
         self.assertEqual(allocRes[0].value.value()[0].value.value(), 100)
         self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 1.0)
-	self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
-	self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
         self.assertEqual(allocRes2[0].value.value(), 10)
 
 

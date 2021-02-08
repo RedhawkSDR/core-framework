@@ -30,7 +30,6 @@ from omniORB import any
 from ossie.cf import CF
 import CosEventChannelAdmin
 import ossie.logger
-import exceptions
 
 
 nullHandler=None
@@ -134,7 +133,7 @@ class FileAppender(logging.FileHandler,object):
             try: 
                 os.mkdir(aggregate)
             except Exception as e:
-                if type(e) == exceptions.OSError and e.errno == 13:
+                if type(e) == OSError and e.errno == 13:
                     print(e)
                 pass
             

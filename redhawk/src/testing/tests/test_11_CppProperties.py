@@ -245,25 +245,25 @@ class CppPropertiesTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), 9223372036854775807)
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
-		    elif v.id == 'struct_seq_octet':
+                    elif v.id == 'struct_seq_octet':
 			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEqual(vals[0], 0)
-                	self.assertEqual(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEqual(v.value.value(), [0, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEqual(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEqual(v.value.value(), [0, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEqual(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEqual(v.value.value(), [0, 9223372036854775807])
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            curr = struct.unpack('B', num)
+                            vals.append(curr[0])
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
 		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
@@ -378,7 +378,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
         self.preconditions()
 
         # Test upper bounds
-	octet_val = struct.pack('B', 0) + struct.pack('B', 255)
+        octet_val = struct.pack('B', 0) + struct.pack('B', 255)
         my_struct = CF.DataType(id='my_struct', value=any.to_any([
                                 CF.DataType(id='struct_octet', value=CORBA.Any(CORBA.TC_octet, 255)),
                                 CF.DataType(id='struct_short', value=CORBA.Any(CORBA.TC_short, 32767)),
@@ -415,25 +415,25 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), 9223372036854775807)
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
-		    elif v.id == 'struct_seq_octet':
+                    elif v.id == 'struct_seq_octet':
 			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
                     	    curr = struct.unpack('B', num)
                     	    vals.append(curr[0])
-                	self.assertEqual(vals[0], 0)
-                	self.assertEqual(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEqual(v.value.value(), [0, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEqual(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEqual(v.value.value(), [0, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEqual(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEqual(v.value.value(), [0, 9223372036854775807])
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
 		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
@@ -474,25 +474,25 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), -9223372036854775808)
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 0)
-		    elif v.id == 'struct_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEqual(vals[0], 0)
-                	self.assertEqual(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEqual(v.value.value(), [-32768, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEqual(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEqual(v.value.value(), [-2147483648, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEqual(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
+                    elif v.id == 'struct_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            curr = struct.unpack('B', num)
+                            vals.append(curr[0])
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [-32768, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [-2147483648, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
 		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
@@ -546,7 +546,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
         self.preconditions()
 
         # Struct with upper bound
-	octet_val = struct.pack('B', 0) + struct.pack('B', 255)
+        octet_val = struct.pack('B', 0) + struct.pack('B', 255)
         upper = CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), [
                             CF.DataType(id='ss_octet', value=CORBA.Any(CORBA.TC_octet, 255)),
                             CF.DataType(id='ss_short', value=CORBA.Any(CORBA.TC_short, 32767)),
@@ -608,27 +608,27 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), 9223372036854775807)
                     elif v.id == 'ss_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
-		    elif v.id == 'ss_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEqual(vals[0], 0)
-                	self.assertEqual(vals[1], 255)
-		    elif v.id == 'ss_seq_short':
-			self.assertEqual(v.value.value(), [0, 32767])
-		    elif v.id == 'ss_seq_ushort':
-			self.assertEqual(v.value.value(), [0, 65535])
-		    elif v.id == 'ss_seq_long':
-			self.assertEqual(v.value.value(), [0, 2147483647])
-		    elif v.id == 'ss_seq_ulong':
-			self.assertEqual(v.value.value(), [0, 4294967295])
-		    elif v.id == 'ss_seq_longlong':
-			self.assertEqual(v.value.value(), [0, 9223372036854775807])
-		    #elif v.id == 'ss_seq_ulonglong':
-		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                    elif v.id == 'ss_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            curr = struct.unpack('B', num)
+                            vals.append(curr[0])
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'ss_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'ss_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'ss_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'ss_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'ss_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
+                    #elif v.id == 'ss_seq_ulonglong':
+                #       self.assertEquals(v.value.value(), [0, 9223372036854775807L])
                 for v in lower.value():
                     if v.id == 'ss_octet':
                         self.assertEqual(v.value.value(), 0)
@@ -644,25 +644,25 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), -9223372036854775808)
                     elif v.id == 'ss_ulonglong':
                         self.assertEqual(v.value.value(), 0)
-		    elif v.id == 'ss_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEqual(vals[0], 0)
-                	self.assertEqual(vals[1], 255)
-		    elif v.id == 'ss_seq_short':
-			self.assertEqual(v.value.value(), [-32768, 32767])
-		    elif v.id == 'ss_seq_ushort':
-			self.assertEqual(v.value.value(), [0, 65535])
-		    elif v.id == 'ss_seq_long':
-			self.assertEqual(v.value.value(), [-2147483648, 2147483647])
-		    elif v.id == 'ss_seq_ulong':
-			self.assertEqual(v.value.value(), [0, 4294967295])
-		    elif v.id == 'ss_seq_longlong':
-			self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
+                    elif v.id == 'ss_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            curr = struct.unpack('B', num)
+                            vals.append(curr[0])
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'ss_seq_short':
+                        self.assertEqual(v.value.value(), [-32768, 32767])
+                    elif v.id == 'ss_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'ss_seq_long':
+                        self.assertEqual(v.value.value(), [-2147483648, 2147483647])
+                    elif v.id == 'ss_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'ss_seq_longlong':
+                        self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
 		    #elif v.id == 'ss_seq_ulonglong':
 			#self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 

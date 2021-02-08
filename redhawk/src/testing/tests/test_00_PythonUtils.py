@@ -21,7 +21,7 @@
 
 import unittest
 import weakref
-
+import gc
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
@@ -150,7 +150,7 @@ class TestPythonUtils(unittest.TestCase):
 
         try:
             objref.foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -180,9 +180,10 @@ class TestPythonUtils(unittest.TestCase):
         # original object to be deleted.
         del reffoo
 
+        gc.collect()
         try:
             objfoo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -221,7 +222,7 @@ class TestPythonUtils(unittest.TestCase):
         del obj
         try:
             foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak bound method should be invalidated')
