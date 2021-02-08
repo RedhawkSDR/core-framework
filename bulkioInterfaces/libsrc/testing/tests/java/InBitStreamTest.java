@@ -132,7 +132,7 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
         BitDataBlock block = stream.read();
         Assert.assertNotNull(block);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         Assert.assertFalse(stream.eos());
 
         // Push an end-of-stream packet with data and get the stream again
@@ -141,7 +141,7 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
         block = stream.read();
         Assert.assertNotNull(block);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
 
         // Try to get the current stream again; since the end-of-stream has not been
         // checked yet, it should return the existing stream (as with above)
@@ -176,7 +176,7 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
         BitDataBlock block = stream.read();
         Assert.assertNotNull(block);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         Assert.assertTrue(!stream.eos());
         Assert.assertTrue(Math.abs(sri.xdelta - block.sri().xdelta) < 0.01);
 
@@ -188,7 +188,7 @@ public class InBitStreamTest {
         helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, new_sri.streamID);
         block = stream.read();
         Assert.assertNotNull(block);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         Assert.assertTrue(!stream.eos());
         Assert.assertTrue(block.sriChanged());
         int flags = bulkio.sri.utils.XDELTA;
@@ -206,7 +206,7 @@ public class InBitStreamTest {
         helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, sri.streamID);
         block = stream.read();
         Assert.assertNotNull(block);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         Assert.assertTrue(!stream.eos());
         Assert.assertTrue(block.sriChanged());
         flags = bulkio.sri.utils.XSTART | bulkio.sri.utils.XDELTA | bulkio.sri.utils.KEYWORDS;
@@ -289,9 +289,9 @@ public class InBitStreamTest {
         InBitStream stream = port.getStream(stream_id);
         Assert.assertNotNull(stream);
         BitDataBlock block = stream.tryread(10000,0);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         block = stream.read(10000);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
         block = stream.read(10000);
         Assert.assertNull(block);
     }
@@ -311,10 +311,10 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
 
         BitDataBlock block = stream.read(10000,0);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
 
         block = stream.read(10000);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
 
         block = stream.read(10000);
         Assert.assertNull(block);
@@ -335,7 +335,7 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
 
         BitDataBlock block = stream.read(10000,2000);
-        Assert.assertEquals(1024, block.buffer().bits);
+        Assert.assertEquals(1024, block.buffer().length);
 
         block = stream.read(10000);
         Assert.assertNull(block);
@@ -364,7 +364,7 @@ public class InBitStreamTest {
         Assert.assertNotNull(stream);
         BitDataBlock block = stream.read(70);
         Assert.assertNotNull(block);
-        Assert.assertEquals(70, block.buffer().bits);
+        Assert.assertEquals(70, block.buffer().length);
 
         // There should be 3 timestamps, all non-synthetic
         bulkio.SampleTimestamp[] timestamps = block.getTimestamps();
@@ -388,7 +388,7 @@ public class InBitStreamTest {
         // synthetic
         block = stream.read(58);
         Assert.assertNotNull(block);
-        Assert.assertEquals(58, block.buffer().bits);
+        Assert.assertEquals(58, block.buffer().length);
         timestamps = block.getTimestamps();
         Assert.assertEquals(2, timestamps.length);
         Assert.assertEquals(true, timestamps[0].synthetic);

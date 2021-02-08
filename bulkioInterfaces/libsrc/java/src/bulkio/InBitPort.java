@@ -23,6 +23,8 @@ import org.apache.log4j.Logger;
 
 import org.ossie.component.RHLogger;
 
+import org.ossie.buffer.bitbuffer;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Arrays;
@@ -43,6 +45,7 @@ import bulkio.StreamListener;
  * 
  */
 public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKIO.dataBitOperations,BULKIO.BitSequence> {
+//public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKIO.dataBitOperations, bitbuffer> {
 
     /**
      * A class to hold packet data.
@@ -57,7 +60,7 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
 
     public Object streamsMutex;
 
-    private InPortImpl<BULKIO.BitSequence> impl;
+    private InPortImpl<bitbuffer> impl;
     protected Map<String, InBitStream> streams;
     protected Map<String, InBitStream[]> pendingStreams;
     protected List<StreamListener<InBitStream>> streamAdded = new LinkedList<StreamListener<InBitStream>>();
@@ -70,7 +73,7 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
     }
 
     public InBitPort(String name, Logger logger) {
-        impl = new InPortImpl<BULKIO.BitSequence>(name, logger, new bulkio.sri.DefaultComparator(), null, new BitDataHelper());
+        impl = new InPortImpl<bitbuffer>(name, logger, new bulkio.sri.DefaultComparator(), null, new BitDataHelper());
         this.streamsMutex = new Object();
         this.streams = new HashMap<String, InBitStream>();
         this.pendingStreams = new HashMap<String, InBitStream[]>();
@@ -193,7 +196,7 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
             } else {
                 int eos_count = 0;
                 synchronized (impl.dataBufferLock) {
-                    for (DataTransfer<BULKIO.BitSequence> packet : impl.workQueue) {
+                    for (DataTransfer<bitbuffer> packet : impl.workQueue) {
                         if ((packet.streamID.equals(header.streamID)) && (packet.EOS)) {
                             eos_count+=1;
                         }
@@ -242,12 +245,30 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
     public void pushPacket(BULKIO.BitSequence data, PrecisionUTCTime time, boolean eos, String streamID)
     {
         if (!_acceptPacket(streamID, eos)) {
-            BULKIO.BitSequence empty_data = new BULKIO.BitSequence();
-            empty_data.data = new byte[0];
+            bitbuffer empty_data = new bitbuffer();
             impl.pushPacket(empty_data, time, eos, streamID);
             return;
         }
-        impl.pushPacket(data, time, eos, streamID);
+        int bit_count = 0;
+        bitbuffer _data = new bitbuffer(data.bits);
+        int bitmasks[] = {1, 2, 4, 8, 16, 32, 64, 128};
+        for (int i=0; i<data.data.length; i++) {
+            for (int j=0; j<8; j++) {
+                int value = data.data[i];
+                value = value + 128;
+                if (!((value & bitmasks[j]) == 0)) {
+                    _data.set(bit_count);
+                }
+                bit_count++;
+                if (bit_count == data.bits) {
+                    break;
+                }
+            }
+            if (bit_count == data.bits) {
+                break;
+            }
+        }
+        impl.pushPacket(_data, time, eos, streamID);
     }
 
     /**
@@ -255,12 +276,16 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
      */
     public Packet getPacket(long wait)
     {
-        DataTransfer<BULKIO.BitSequence> p = impl.getPacket(wait);
+        DataTransfer<bitbuffer> p = impl.getPacket(wait);
         if (p == null) {
             return null;
-        } else {
-            return new Packet(p.getData(), p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
         }
+        //DataTransfer<BULKIO.BitSequence> p = impl.getPacket(wait);
+        byte[] data_payload = p.getData().toByteArray();
+        BULKIO.BitSequence _data = new BULKIO.BitSequence();
+        _data.data = data_payload;
+        _data.bits = p.getData().length;
+        return new Packet(_data, p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
     }
   
     public InBitStream getStream(String streamID)
@@ -336,11 +361,15 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
     public Packet peekPacket(float timeout)
     {
         int timeout_ms = (int)(timeout * 1000);
-        DataTransfer<BULKIO.BitSequence> p = impl.peekPacket(timeout_ms);
-        if (p != null) {
-            return new Packet(p.getData(), p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
+        DataTransfer<bitbuffer> p = impl.peekPacket(timeout_ms);
+        if (p == null) {
+            return null;
         }
-        return null;
+        byte[] data_payload = p.getData().toByteArray();
+        BULKIO.BitSequence _data = new BULKIO.BitSequence();
+        _data.data = data_payload;
+        _data.bits = p.getData().length;
+        return new Packet(_data, p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
     }
 
     public String getDirection() {
@@ -353,11 +382,15 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
 
     public Packet fetchPacket(String streamID)
     {
-        DataTransfer<BULKIO.BitSequence> p =  this.impl.fetchPacket(streamID);
+        DataTransfer<bitbuffer> p =  this.impl.fetchPacket(streamID);
         if (p == null) {
             return null;
         }
-        return new Packet(p.getData(), p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
+        byte[] data_payload = p.getData().toByteArray();
+        BULKIO.BitSequence _data = new BULKIO.BitSequence();
+        _data.data = data_payload;
+        _data.bits = p.getData().length;
+        return new Packet(_data, p.getTime(), p.getEndOfStream(), p.getStreamID(), p.getSRI(), p.sriChanged(), p.inputQueueFlushed());
     }
 
     public boolean isStreamActive(String streamID)

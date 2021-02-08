@@ -20,6 +20,7 @@
 package bulkio;
 
 import org.apache.log4j.Logger;
+import org.ossie.buffer.bitbuffer;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -47,7 +48,7 @@ public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequ
     }
 
     public OutBitPort(String portName, Logger logger, ConnectionEventListener eventCB) {
-        super(portName, logger, eventCB, new BitDataHelper());
+        super(portName, logger, eventCB, new BitSequenceDataHelper());
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName);
         }

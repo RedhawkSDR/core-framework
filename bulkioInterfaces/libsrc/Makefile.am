@@ -159,6 +159,7 @@ ConnectionEventListener.java \
 sriState.java \
 utils.java \
 BitDataHelper.java \
+BitSequenceDataHelper.java \
 FileDataHelper.java \
 XMLDataHelper.java \
 sdds/SDDSStream.java \

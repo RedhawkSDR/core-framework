@@ -27,6 +27,8 @@ import org.apache.log4j.Logger;
 
 import org.ossie.component.RHLogger;
 
+import org.ossie.buffer.bitbuffer;
+
 import BULKIO.PortStatistics;
 import BULKIO.PortUsageType;
 import BULKIO.PrecisionUTCTime;
@@ -38,6 +40,8 @@ import bulkio.sri.utils;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Iterator;
+
+import java.nio.ByteBuffer;
 
 public class InBitStream extends InStreamBase {
 
@@ -372,6 +376,25 @@ public class InBitStream extends InStreamBase {
         }
     }
 
+    private static Boolean isBitSet(byte b, int bit)
+    {
+        return (b & (1 << bit)) != 0;
+    }
+
+    public bitbuffer byteToBitBuffer(byte[] bytearray, int nbits){
+        bitbuffer returnValue = new bitbuffer(bytearray.length*8);
+        ByteBuffer  byteBuffer = ByteBuffer.wrap(bytearray);
+        //Hexadecimal values used are Big-Endian, because Java is Big-Endian
+        for (int i = 0; i < bytearray.length; i++) {
+            byte thebyte = byteBuffer.get(i);
+            for (int j = 0; j <8 ; j++) {
+                returnValue.set(i*8+j,isBitSet(thebyte,j));
+            }
+        }
+        returnValue.length = nbits;
+        return returnValue;
+    }
+
     // count and consumer are in terms of bits
     protected BitDataBlock _readData(int count, int consume)
     {
@@ -380,8 +403,7 @@ public class InBitStream extends InStreamBase {
 
         // Allocate empty data block and propagate the SRI change and input queue
         // flush flags
-        BULKIO.BitSequence data_payload = new BULKIO.BitSequence();
-        data_payload.data = new byte[0];
+        bitbuffer data_payload = null;
         BitDataBlock data = new BitDataBlock(front.SRI, data_payload, 0, false);
         this._setBlockFlags(data, front);
         if (front.sriChanged) {
@@ -394,116 +416,46 @@ public class InBitStream extends InStreamBase {
         front.inputQueueFlushed = false;
 
         int last_offset = this._sampleOffset + count;
-        if (last_offset <= front.dataBuffer.bits) {
+        bitbuffer front_dataBuffer = byteToBitBuffer(front.dataBuffer.data, front.dataBuffer.bits);
+        if (last_offset <= front_dataBuffer.length) {
             // The requsted sample count can be satisfied from the first packet
             _addTimestamp(data, (double)_sampleOffset, 0, front.T);
-
-            int number_bytes = last_offset/8;
-            if (last_offset%8 != 0) {
-                number_bytes += 1;
-            }
-            int byte_offset = _sampleOffset/8;
-            byte bit_offset = (byte)(_sampleOffset%8);
-
-            data_payload.data = new byte[number_bytes];
-            for (int i=0; i<data_payload.data.length; i++) {
-                // contortions because Java does not have unsigned bytes
-                data_payload.data[i] = (byte)((((((int)front.dataBuffer.data[i+byte_offset])+128) << bit_offset) >> (8-bit_offset))-128);
-                if (bit_offset != 0) {
-                    // contortions because Java does not have unsigned bytes
-                    data_payload.data[i] |= (byte)((((((int)front.dataBuffer.data[i+byte_offset+1])+128) << (8-bit_offset)) >> (8-bit_offset))-128);
+            data_payload = new bitbuffer(count);
+            for (int i=0; i<data_payload.length; i++) {
+                if (front_dataBuffer.get(i+this._sampleOffset)) {
+                    data_payload.set(i);
                 }
             }
-            data_payload.bits = last_offset;
-        //data.setBuffer(Arrays.copyOfRange(front.dataBuffer, _sampleOffset, last_offset));
+            data.setBuffer(data_payload);
         } else {
             // We have to span multiple packets to get the data
-            BULKIO.BitSequence buffer = new BULKIO.BitSequence();
+            data_payload = new bitbuffer(count);
             int data_offset = 0;
 
             // Assemble data spanning several input packets into the output buffer
             int packet_bit_offset = _sampleOffset;
-            boolean has_remainder = false;
-            int remainder_offset = 0;
+            int bit_count = 0;
+            Iterator<InBitPort.Packet> itr = _queue.iterator();
             while (count > 0) {
-                Iterator<InBitPort.Packet> itr = _queue.iterator();
-                int iter_count = 0;
-                while (iter_count != this._queuedPacketIndex) {
-                    itr.next();
-                    iter_count += 1;
-                }
                 InBitPort.Packet packet = itr.next();
-                //InBitPort.Packet packet = _queue.peekFirst();
-                BULKIO.BitSequence input_data = packet.dataBuffer;
-
                 // Add the timestamp for this pass
-                _addTimestamp(data, (double)packet_bit_offset, data_offset, packet.T);
-
-                // The number of samples copied on this pass may be less than the total
-                // remaining
-                int available = input_data.bits - packet_bit_offset;
-                int pass = Math.min(available, last_offset);
-
-                // last_offset: from begining of offset to + requested count
-
-                //int last_offset = packet_offset + pass;
-
-                // figure out how many bytes to copy
-                int number_bytes = pass/8;
-                if (pass%8 != 0) {
-                    number_bytes += 1;
-                }
-                int byte_offset = packet_bit_offset/8;
-                int bit_offset = (byte)(packet_bit_offset%8);
-
-                int data_payload_origin = 0;
-                if (data_payload.data.length == 0) {
-                    data_payload.data = new byte[number_bytes];
-                } else {
-                    data_payload_origin = data_payload.data.length;
-                    data_payload.data = Arrays.copyOf(data_payload.data, data_payload.data.length+number_bytes);
-                }
-                for (int i=0; i<number_bytes; i++) {
-                    if ((i==0) && (has_remainder)) {
-                        data_payload.data[data_payload_origin-1] |= (byte)(((((int)input_data.data[i+byte_offset])+128) << (8-remainder_offset))-128);
-                        bit_offset = bit_offset + (8-remainder_offset);
-                        bit_offset = bit_offset%8;
-                        remainder_offset = 0;
-                        has_remainder = false;
+                _addTimestamp(data, (double)packet_bit_offset, bit_count, packet.T);
+                bitbuffer input_data = byteToBitBuffer(packet.dataBuffer.data, packet.dataBuffer.bits);
+                //bitbuffer input_data = packet.dataBuffer;
+                int available_data = input_data.length - packet_bit_offset;
+                for (int i=0; i<available_data; i++) {
+                    if (input_data.get(i+packet_bit_offset)) {
+                        data_payload.set(bit_count);
                     }
-                    // contortions because Java does not have unsigned bytes
-                    data_payload.data[i+data_payload_origin] = (byte)(((((int)input_data.data[i+byte_offset])+128) << bit_offset)-128);
-                    if (bit_offset != 0) {
-                        if (i+byte_offset+1 == input_data.data.length) {
-                            has_remainder = true;
-                            remainder_offset = bit_offset;
-                            break;
-                        } else {
-                            // contortions because Java does not have unsigned bytes
-                            data_payload.data[i+data_payload_origin] |= (byte)(((((int)input_data.data[i+byte_offset+1])+128) << (8-bit_offset))-128);
-                        }
+                    bit_count++;
+                    count--;
+                    if (count == 0) {
+                        break;
                     }
                 }
-                data_payload.bits += pass;
-
-
-                //buffer.replace(data_offset, pass, input_data, packet_offset);
-                                // src          srcPos       dest     destPos     length
-                //System.arraycopy(input_data, packet_offset, buffer, data_offset, pass);
-                data_offset += pass;
-                packet_bit_offset += pass;
-                count -= pass;
-                last_offset -= pass;
-
-                // If all the data from the current packet has been read, move on to
-                // the next
-                if (packet_bit_offset >= input_data.bits) {
-                    packet_bit_offset = 0;
-                    this._queuedPacketIndex += 1;
-                    //_queue.poll();
-                }
+                packet_bit_offset = 0;
             }
-            //data.setBuffer(buffer);
+            data.setBuffer(data_payload);
         }
 
         // Advance the read pointers
@@ -548,7 +500,7 @@ public class InBitStream extends InStreamBase {
     }
 
     protected boolean _queuePacket(InBitPort.Packet packet) {
-        if ((packet.EOS) && (packet.dataBuffer.bits == 0)) {
+        if ((packet.EOS) && (packet.dataBuffer.data.length == 0)) {
             // Handle end-of-stream packet with no data (assuming that
             // timestamps, SRI changes, and queue flushes are irrelevant at this
             // point)
@@ -587,14 +539,15 @@ public class InBitStream extends InStreamBase {
             this._reportIfEosReached();
             return null;
         }
-        if (packet.EOS && (packet.dataBuffer.bits == 0)) {
+        if (packet.EOS && (packet.dataBuffer.data.length == 0)) {
             this._reportIfEosReached();
             return null;
         }
 
         // Turn packet into a data block
         int sri_flags = this._getSriChangeFlags(packet);
-        BitDataBlock block = new BitDataBlock(packet.SRI, packet.dataBuffer, sri_flags, packet.inputQueueFlushed);
+        bitbuffer _data = byteToBitBuffer(packet.dataBuffer.data, packet.dataBuffer.bits);
+        BitDataBlock block = new BitDataBlock(packet.SRI, _data, sri_flags, packet.inputQueueFlushed);
         // Only add a timestamp if one was given (XML does not include one in
         //  the CORBA interface, but passes a None to adapt to the common port
         //  implementation)
@@ -698,16 +651,17 @@ public class InBitStream extends InStreamBase {
     //consume bits
     protected void _consumeData(int count) {
         while (count > 0) {
-            BULKIO.BitSequence data = this._queue.peekFirst().dataBuffer;
+            //bitbuffer data = this._queue.peekFirst().dataBuffer;
+            bitbuffer data = byteToBitBuffer(this._queue.peekFirst().dataBuffer.data, this._queue.peekFirst().dataBuffer.bits);
 
-            int available = data.bits - this._sampleOffset;
+            int available = data.length - this._sampleOffset;
             int pass = Math.min(available, count);
 
             this._sampleOffset += pass;
             this._samplesQueued -= pass;
             count -= pass;
 
-            if (_sampleOffset >= data.bits) {
+            if (_sampleOffset >= data.length) {
                 // Read pointer has passed the end of the packet data
                 _consumePacket();
                 this._sampleOffset = 0;
