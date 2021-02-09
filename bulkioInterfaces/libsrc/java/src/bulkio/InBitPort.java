@@ -280,7 +280,6 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
         if (p == null) {
             return null;
         }
-        //DataTransfer<BULKIO.BitSequence> p = impl.getPacket(wait);
         byte[] data_payload = p.getData().toByteArray();
         BULKIO.BitSequence _data = new BULKIO.BitSequence();
         _data.data = data_payload;

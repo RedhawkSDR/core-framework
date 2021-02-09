@@ -64,14 +64,6 @@ public class InStreamBase {
     static int EOS_REPORTED = 3;
 
     /**
-        * @brief  Returns the stream ID.
-        * @pre  Stream is valid.
-        *
-        * The stream ID is immutable and cannot be changed.
-        */
-    //public String streamID();
-
-    /**
         * @brief  Gets the current stream metadata.
         * @returns  Read-only reference to stream SRI.
         * @pre  Stream is valid.
@@ -79,12 +71,6 @@ public class InStreamBase {
     public BULKIO.StreamSRI sri() {
         return _impl.sri();
     };
-
-    /**
-        * @brief  Implicit conversion to read-only StreamSRI.
-        * @pre  Stream is valid.
-        */
-    //operator const BULKIO::StreamSRI& () const;
 
     /**
         * @brief  Gets the X-axis start value.
@@ -264,38 +250,6 @@ public class InStreamBase {
         }
         return null;
     };
-
-    /**
-        * @brief  Checks stream validity.
-        * @returns  True if this stream is not valid. False if the stream is
-        *           invalid.
-        *
-        * Invalid (null) streams are not associated with an active stream in a
-        * port. If this method returns true, no other methods except
-        * comparison or assignment may be called.
-        */
-    //public boolean operator! ();
-
-//protected:
-    /// @cond IMPL
-    /*class Impl : public StreamDescriptor {
-    public:
-        Impl(const StreamDescriptor& sri) :
-            StreamDescriptor(sri),
-            _streamID(sri.streamID())
-        {
-        }
-
-        const std::string& streamID() const
-        {
-            return _streamID;
-        }
-
-        virtual ~Impl() { }
-
-    protected:
-        const std::string _streamID;
-    };*/
 
     public InStreamBase() {
         _impl = null;

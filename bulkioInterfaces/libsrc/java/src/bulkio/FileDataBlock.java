@@ -1,0 +1,281 @@
+
+package bulkio;
+
+import BULKIO.PrecisionUTCTime;
+import bulkio.SampleTimestamp;
+
+import java.util.Arrays;
+
+public class FileDataBlock
+{
+    /*"""
+    Container for sample data and stream metadata read from an input stream.
+
+    DataBlock encapsulates the result of a read operation on an input stream.
+    It contains both data, which varies with the input stream type, and
+    metadata, including signal-related information (SRI).
+
+    While it is possible to create DataBlocks in user code, they are usually
+    obtained by reading from an input stream.
+
+    See Also:
+        InputStream.read()
+        InputStream.tryread()
+    """*/
+
+    protected double _get_drift(SampleTimestamp begin, SampleTimestamp end, double xdelta)
+    {
+        double real = (end.time.twsec + end.time.tfsec) - (begin.time.twsec + begin.time.tfsec);
+        double expected = (end.offset - begin.offset) * this._sri.xdelta;
+        return real - expected;
+    }
+
+    //__slots__ = ('_sri', '_data', '_sriChangeFlags', '_inputQueueFlushed', '_timestamps')
+    protected BULKIO.StreamSRI _sri;
+    protected String _data;
+    protected SampleTimestamp[] _timestamps;
+    protected int _sriChangeFlags;
+    protected boolean _inputQueueFlushed;
+
+    public FileDataBlock(BULKIO.StreamSRI sri, String data, int sriChangeFlags, boolean inputQueueFlushed) {
+        this._sri = sri;
+        this._data = data;
+        this._timestamps = new SampleTimestamp[0];
+        this._sriChangeFlags = sriChangeFlags;
+        this._inputQueueFlushed = inputQueueFlushed;
+    }
+
+    public BULKIO.StreamSRI sri()
+    {
+        /*"""
+        BULKIO.StreamSRI: Stream metadata at the time the block was read.
+        """*/
+        return this._sri;
+    }
+
+    public void setSri(BULKIO.StreamSRI sri)
+    {
+        this._sri = sri;
+    }
+
+    public String buffer()
+    {
+        /*"""
+        The data read from the stream.
+
+        The data type varies depending on the input stream.
+        """*/
+        return this._data;
+    }
+
+    public void setBuffer(String new_buffer)
+    {
+        this._data = new_buffer;
+    }
+
+    public double xdelta()
+    {
+        /*"""
+        float: The distance between two adjacent samples in the X direction.
+
+        Because the X-axis is commonly in terms of time (that is, sri.xunits is
+        BULKIO.UNITS_TIME), this is typically the reciprocal of the sample rate.
+        """*/
+        return this._sri.xdelta;
+    }
+    
+    public boolean sriChanged()
+    {
+        /*"""
+        bool: Indicates whether the SRI has changed since the last read from
+        the same stream.
+
+        See Also:
+            DataBlock.sriChangeFlags
+        """*/
+        boolean retval = (this._sriChangeFlags != 0);
+        return retval;
+    }
+
+    public void setSriChangeFlags(int new_flags)
+    {
+        this._sriChangeFlags = new_flags;
+    }
+
+    public int sriChangeFlags()
+    {
+            /*"""
+        int: Bit mask representing which SRI fields have changed since the last
+        read from the same stream.
+
+        If no SRI change has occurred since the last read, the value is
+        bulkio.sri.NONE (equal to 0). Otherwise, the value is the bitwise OR of
+        one or more of the following flags:
+            * bulkio.sri.HVERSION
+            * bulkio.sri.XSTART
+            * bulkio.sri.XDELTA
+            * bulkio.sri.XUNITS
+            * bulkio.sri.SUBSIZE
+            * bulkio.sri.YSTART
+            * bulkio.sri.YDELTA
+            * bulkio.sri.YUNITS
+            * bulkio.sri.MODE
+            * bulkio.sri.STREAMID
+            * bulkio.sri.BLOCKING
+            * bulkio.sri.KEYWORDS
+
+        The HVERSION and STREAMID flags are not set in normal operation.
+        """*/
+        return this._sriChangeFlags;
+    }
+
+    public void setInputQueueFlushed(boolean new_value)
+    {
+        this._inputQueueFlushed = new_value;
+    }
+
+    public boolean inputQueueFlushed()
+    {
+        /*"""
+        bool: Indicates whether an input queue flush occurred.
+
+        An input queue flush indicates that the input port was unable to keep
+        up with incoming packets for non-blocking streams and emptied the queue
+        to catch up.
+
+        The input port reports a flush once, on the next queued packet. This is
+        typically reflected in the next DataBlock read from any input stream
+        associated with the port; however, this does not necessarily mean that
+        any packets for that stream were discarded.
+        """*/
+        return this._inputQueueFlushed;
+    }
+
+    public BULKIO.PrecisionUTCTime getStartTime() throws Exception
+    {
+        /*"""
+        Gets the time stamp for the first sample.
+
+        Returns:
+            BULKIO.PrecisionUTCTime: The first time stamp.
+
+        Raises:
+            IndexError: If there are no time stamps.
+        """*/
+        this._validateTimestamps();
+        return this._timestamps[0].time;
+    }
+
+    public void addTimestamp(BULKIO.PrecisionUTCTime timestamp, int offset, boolean synthetic)
+    {
+        this._timestamps = Arrays.copyOf(this._timestamps, this._timestamps.length + 1);
+        this._timestamps[this._timestamps.length - 1] = new SampleTimestamp(timestamp, offset, synthetic);
+    }
+
+    public SampleTimestamp[] getTimestamps()
+    {
+        /*"""
+        Gets the time stamps for the sample data.
+
+        Valid DataBlocks obtained by reading from an input stream are
+        guaranteed to have at least one time stamp, at offset 0. If the read
+        spanned more than one packet, each packet's time stamp is included with
+        the packet's respective offset from the first sample.
+
+        When the DataBlock is read from an input stream, only the first time
+        stamp may be synthetic. This occurs when the prior read did not consume
+        a full packet worth of data. In this case, the input stream linearly
+        interpolates the time stamp based on the stream's xdelta value.
+
+        Returns:
+            list(SampleTimestamp): The time stamps for the sample data.
+        """*/
+        return this._timestamps;
+    }
+
+    public double getNetTimeDrift() throws Exception
+    {
+        /*"""
+        Calculates the difference between the expected and actual value of the
+        last time stamp.
+
+        If this DataBlock contains more than one time stamp, this method
+        compares the last time stamp to a linearly interpolated value based on
+        the initial time stamp, the StreamSRI xdelta, and the sample offset.
+        This difference gives a rough estimate of the deviation between the
+        nominal and actual sample rates over the sample period.
+
+        Note:
+            If the SRI X-axis is not in units of time, this value has no
+            meaning.
+
+        Returns:
+            float: Difference, in seconds, between expected and actual value.
+        """*/
+        this._validateTimestamps();
+        return _get_drift(this._timestamps[0], this._timestamps[-1], this._sri.xdelta);
+    }
+
+    public double getMaxTimeDrift() throws Exception
+    {
+        /*"""
+        Calculates the largest difference between expected and actual time
+        stamps in the block.
+
+        If this DataBlock contains more than one time stamp, this method
+        compares each time stamp to its linearly interpolated equivalent time
+        stamp, based on the initial time stamp, the StreamSRI xdelta, and the
+        sample offset. The greatest deviation is reported; this difference
+        gives a rough indication of how severely the actual sample rate
+        deviates from the nominal sample rate on a packet-to-packet basis.
+
+        Note:
+            If the SRI X-axis is not in units of time, this value has no
+            meaning.
+
+        Returns:
+            float: Difference, in seconds, between expected and actual value.
+        """*/
+        this._validateTimestamps();
+        double max_drift = 0.0;
+        for (int index=1; index<this._timestamps.length; index++)
+        {
+            double drift = _get_drift(this._timestamps[index-1], this._timestamps[index], this._sri.xdelta);
+            if (java.lang.Math.abs(drift) > java.lang.Math.abs(max_drift))
+            {
+                max_drift = drift;
+            }
+        }
+        return max_drift;
+    }
+
+    protected void _validateTimestamps() throws Exception
+    {
+        if (this._timestamps.length == 0) {
+            throw new Exception("block contains no timestamps");
+        }
+        else if (this._timestamps[0].offset != 0) {
+            throw new Exception("no timestamp at offset 0");
+        }
+    }
+
+    public String data()
+    {
+        /*"""
+        list: Sample data interpreted as Python numbers.
+
+        The type of each element depends on the input stream. Integer types
+        return int or long values, while floating point types return float
+        values.
+        """*/
+        return this._data;
+    }
+
+    public int size()
+    {
+        /*"""
+        int: The size of the data in terms of real samples.
+        """*/
+        return this._data.length();
+    }
+}

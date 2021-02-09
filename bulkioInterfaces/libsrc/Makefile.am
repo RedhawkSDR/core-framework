@@ -135,6 +135,12 @@ InFilePort.java \
 InSDDSPort.java \
 InVITA49Port.java \
 InXMLPort.java \
+InXMLStream.java \
+InFileStream.java \
+FileDataBlock.java \
+OutXMLStream.java \
+OutFileStream.java \
+XMLDataBlock.java \
 InDataPort.java \
 InPortImpl.java \
 InStreamDescriptor.java \
