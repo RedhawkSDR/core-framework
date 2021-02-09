@@ -26,6 +26,7 @@ import threading
 import logging
 import traceback
 
+import omniORB
 from omniORB import any, URI, CORBA
 from ossie.cf import CF, CF__POA
 import CosEventComm__POA
@@ -127,14 +128,7 @@ class Subscriber:
     def __del__(self):
         self.logger.debug("Subscriber  DTOR START")
         if self.consumer:
-            self.logger.debug("Subscriber::DTOR  DISCONNECT")
-            self.disconnect()
-
-        self.logger.debug("Subscriber::DTOR  DEACTIVATE CONSUMER")
-        self.proxy = None
-        self.consumer = None
-        self.channel = None
-                             
+            self.terminate()
         self.logger.debug("Subscriber  DTOR END")
 
     def setDataArrivedCB(self, newCB=None ):
@@ -142,15 +136,16 @@ class Subscriber:
 
     def terminate(self):
         self.logger.debug("Subscriber::terminate START")
-        if self.consumer:
-            self.logger.debug("Subscriber::terminate DISCONNECT")
-            self.disconnect()
-
+        try:
+            if self.consumer:
+                self.logger.debug("Subscriber::terminate DISCONNECT")
+                self.disconnect()
+        except:
+            pass
         self.logger.debug("Subscriber::terminate  DEACTIVATE CONSUMER")
         self.proxy = None
         self.consumer = None
         self.channel = None
-                             
         self.logger.debug("Subscriber::terminate END")
 
     def getData(self):

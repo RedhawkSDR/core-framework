@@ -256,6 +256,11 @@ if __name__ == "__main__":
     else:
         os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.abspath(options.logconfig)
 
+    for k,v in os.environ.items():
+        print("{} = {}",k,v)
+        
+    raise SystemExit
+
     from datetime import datetime
     test_start_time = datetime.now()
 
