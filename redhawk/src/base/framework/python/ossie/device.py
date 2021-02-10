@@ -935,12 +935,12 @@ class LoadableDevice(Device):
         modifiedName = None
         fileToLoad = fileSystem.open(remotePath, True)
         try:
-            f = open(localPath, "w+")
+            f = open(localPath, "wb+")
         except Exception as e:
             if "Text file busy" in e:
                 modifiedName = localPath+"_"+str(time.time()).split('.')[0]
                 os.rename(localPath, modifiedName)
-                f = open(localPath, "w+")
+                f = open(localPath, "wb+")
             else:
                 fileToLoad.close();
                 raise
