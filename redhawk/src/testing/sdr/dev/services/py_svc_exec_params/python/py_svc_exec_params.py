@@ -27,7 +27,7 @@ class py_svc_exec_params(CF__POA.TestableObject):
         pass
 
     def runTest(self, testid, testValues):
-	pass
+        pass
 
 
 if __name__ == '__main__':
