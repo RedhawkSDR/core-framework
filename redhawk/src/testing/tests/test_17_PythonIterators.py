@@ -21,14 +21,16 @@
 import unittest
 import tempfile
 import time
+import os
 from ossie.cf import CF, CF__POA
 from omniORB import CORBA
-
 from ossie.utils import sb
 
 class Iterators(unittest.TestCase):
 
     def setUp(self):
+        # need to set this so IDLs can be found
+        os.environ["OSSIEHOME"]=os.path.abspath(os.path.join(os.getcwd(),'..'))
         self.svc = sb.launch('allocmgr_svc')
 
     def tearDown(self):

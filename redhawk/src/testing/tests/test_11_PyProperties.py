@@ -293,10 +293,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
                     elif v.id == 'struct_seq_octet':
-			# Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
                     elif v.id == 'struct_seq_short':
                         self.assertEqual(v.value.value(), [0, 32767])
                     elif v.id == 'struct_seq_ushort':
@@ -348,10 +347,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 0)
                     elif v.id == 'struct_seq_octet':
-                        # Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)                        
                     elif v.id == 'struct_seq_short':
                         self.assertEqual(v.value.value(), [-32768, 32767])
                     elif v.id == 'struct_seq_ushort':
@@ -523,10 +521,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
         res = self._app.query([])
         for r in res:
             if r.id == 'seq_octet':
-                # Octet sequences are treated like strings, so numbers need to be extracted
-                vals = r.value.value().lstrip('[').rstrip(']').split(',')
-                self.assertEqual(int(vals[0].strip()), 0)
-                self.assertEqual(int(vals[1].strip()), 255)
+                vals=list(r.value.value())
+                self.assertEqual(vals[0], 0)
+                self.assertEqual(vals[1], 255)                        
             elif r.id == 'seq_short':
                 self.assertEqual(r.value.value()[0], -32768)
                 self.assertEqual(r.value.value()[1], 32767)
@@ -630,10 +627,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'ss_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
                     elif v.id == 'ss_seq_octet':
-                        # Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
                     elif v.id == 'ss_seq_short':
                         self.assertEqual(v.value.value(), [0, 32767])
                     elif v.id == 'ss_seq_ushort':
@@ -662,10 +658,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'ss_ulonglong':
                         self.assertEqual(v.value.value(), 0)
                     elif v.id == 'ss_seq_octet':
-                        # Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)                        
                     elif v.id == 'ss_seq_short':
                         self.assertEqual(v.value.value(), [-32768, 32767])
                     elif v.id == 'ss_seq_ushort':
@@ -940,9 +935,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                         self.assertEqual(v.value.value(), "new string")
                     elif v.id == 'struct_seq_octet':
                         # Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)                        
                     elif v.id == 'struct_seq_short':
                         self.assertEqual(v.value.value(), [0, 32767])
                     elif v.id == 'struct_seq_ushort':
@@ -1001,10 +996,9 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_string':
                         self.assertEqual(v.value.value(), "new string")
                     elif v.id == 'struct_seq_octet':
-                        # Octet sequences are treated like strings, so numbers need to be extracted
-                        vals = v.value.value().lstrip('[').rstrip(']').split(',')
-                        self.assertEqual(int(vals[0].strip()), 0)
-                        self.assertEqual(int(vals[1].strip()), 255)
+                        vals=list(v.value.value())
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)                        
                     elif v.id == 'struct_seq_short':
                         self.assertEqual(v.value.value(), [0, 32767])
                     elif v.id == 'struct_seq_ushort':

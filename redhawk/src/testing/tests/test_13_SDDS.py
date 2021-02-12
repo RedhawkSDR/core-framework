@@ -192,7 +192,7 @@ class Test_SDDS_Packet(unittest.TestCase):
         self.assertEqual( formatid.asString(), res )
 
         # assign from values sf=1, sos=1, dm =4, bps=16
-        formatid= format_identifier.from_buffer_copy('\xC4\x10')
+        formatid= format_identifier.from_buffer_copy(b'\xC4\x10')
         self.assertEqual( formatid.sf, 1 )
         self.assertEqual( formatid.sos, 1 )
         self.assertEqual( formatid.dm, 4 )

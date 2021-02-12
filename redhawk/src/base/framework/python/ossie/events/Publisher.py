@@ -122,9 +122,8 @@ class Publisher:
         # check if orb has shutdown
         self.logger.debug("Publisher::terminate START")
         try:
-            if self.disconnectReceiver and self.disconnectReceiver.get_disconnect() == False:
-                self.logger.debug("Publisher::terminate  DISCONNECT")
-                self.disconnect()
+            self.logger.debug("Publisher::terminate  DISCONNECT")
+            self.disconnect()
         except:
             pass
         
@@ -153,7 +152,8 @@ class Publisher:
 
     def disconnect(self, retries=10, retry_wait=.01):
         if self.channel != None:
-            self.disconnectEvtChan(retries, retry_wait)
+            if self.disconnectReceiver and self.disconnectReceiver.get_disconnect() == False:
+                self.disconnectEvtChan(retries, retry_wait)
         else:
             self.disconnectDomMgr()
 

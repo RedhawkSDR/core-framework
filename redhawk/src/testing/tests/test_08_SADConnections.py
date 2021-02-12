@@ -340,8 +340,9 @@ class SADConnectionsTest(scatest.CorbaTestCase):
         plist = component.getPortSet()
         nports = len(plist)
         self.assertEqual(nports, 7 )
-        self.assertEqual(plist[0].name, 'resource_in')
-        self.assertEqual(plist[0].direction.upper(), 'PROVIDES')
+        pinfo = [x for x in plist if x.name == 'resource_in']        
+        self.assertEqual(pinfo[0].name, 'resource_in')
+        self.assertEqual(pinfo[0].direction.upper(), 'PROVIDES')
 
         component = self._getComponents()['PortTest2']
         plist = component.getPortSet()

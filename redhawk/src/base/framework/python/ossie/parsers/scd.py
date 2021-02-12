@@ -1994,7 +1994,10 @@ def parseString(inString, silence=False):
     Returns -- The root object in the tree.
     '''
     parser = None
-    rootNode= parsexmlstring_(inString, parser)
+    _inString=inString
+    if type(inString) == str:
+        _inString=inString.encode()
+    rootNode= parsexmlstring_(_inString, parser)
     rootTag, rootClass = get_root_tag(rootNode)
     if rootClass is None:
         rootTag = 'softwarecomponent'

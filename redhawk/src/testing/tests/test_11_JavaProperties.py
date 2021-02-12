@@ -154,8 +154,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'struct_seq_short':
@@ -218,8 +217,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'struct_seq_short':
@@ -420,8 +418,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'struct_seq_short':
@@ -476,8 +473,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'struct_seq_short':
@@ -522,8 +518,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                 stored_vals = r.value.value()
                 vals = []
                 for num in stored_vals:
-                    curr = struct.unpack('B', num)
-                    vals.append(curr[0])
+                    vals.append(num)
                 self.assertEqual(vals[0], 0)
                 self.assertEqual(vals[1], 255)
             elif r.id == 'seq_short':
@@ -612,8 +607,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'ss_seq_short':
@@ -646,8 +640,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                         stored_vals = v.value.value()
                         vals = []
                         for num in stored_vals:
-                            curr = struct.unpack('B', num)
-                            vals.append(curr[0])
+                            vals.append(num)
                         self.assertEqual(vals[0], 0)
                         self.assertEqual(vals[1], 255)
                     elif v.id == 'ss_seq_short':

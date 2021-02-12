@@ -199,13 +199,13 @@ class SBEventChannelTest(scatest.CorbaTestCase):
         sub.terminate()
         
     def test_PublishSubscribeCB(self):
-        queue = queue.Queue()
-        sub = Subscriber(self.channel, dataArrivedCB=queue.put)
+        _queue = queue.Queue()
+        sub = Subscriber(self.channel, dataArrivedCB=_queue.put)
         pub = Publisher(self.channel)
         payload = 'hello'
         data = any.to_any(payload)
         pub.push(data)
-        rec_data = queue.get(timeout=1.0)
+        rec_data = _queue.get(timeout=1.0)
         self.assertEqual(rec_data._v, payload)
         pub.terminate()
         sub.terminate()

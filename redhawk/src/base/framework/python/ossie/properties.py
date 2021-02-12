@@ -325,7 +325,6 @@ def to_tc_value(data, type_, alt_map=None):
     elif type_ in __TYPE_MAP:
         # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
-
         if tc == None:
             # Unknown type, let omniORB decide
             return any.to_any(data)
@@ -1338,7 +1337,7 @@ class simpleseq_property(_sequence_property):
         if self.type_ == "char":
             result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), str(value))
         elif self.type_ == "octet":
-            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq), str(value))
+            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq), bytes(value))
         else:
             if self._complex:
                 # type code for CF::complex sequence is looked up

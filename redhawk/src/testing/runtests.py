@@ -31,6 +31,7 @@ import time
 import functools
 import unittest
 
+
 def prependPythonPath(thepath):
     theabspath = os.path.abspath(thepath)
     sys.path.insert(0, theabspath)
@@ -239,7 +240,7 @@ if __name__ == "__main__":
         default=3)
     
     (options, args) = parser.parse_args()
-    
+
     from _unitTestHelpers import scatest
     scatest.DEBUG_NODEBOOTER = options.gdb
     scatest.GDB_CMD_FILE = options.gdbfile
@@ -248,7 +249,7 @@ if __name__ == "__main__":
         files = runtestHelpers.getUnitTestFiles("tests")
     else:
         files = args
-
+        
     if 'OSSIEUNITTESTSLOGCONFIG' in os.environ:
         ans = input("OSSIEUNITTESTSLOGCONFIG already exists as %s. Do you want to continue [Y]/N? " % os.environ[OSSIEUNITTESTSLOGCONFIG]).upper()
         if ans == "N":

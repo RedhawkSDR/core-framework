@@ -1080,7 +1080,7 @@ def load_logging_config_uri(orb, uri, binding=None):
                 try:
                     t = tempfile.mktemp()
 
-                    tf = open(t, "w+")
+                    tf = open(t, "wb+")
                     scaFile = fileSys.open(path, True)
                     fileSize = scaFile.sizeOf()
                     buf = scaFile.read(fileSize)

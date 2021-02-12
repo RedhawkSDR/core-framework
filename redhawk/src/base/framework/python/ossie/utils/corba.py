@@ -43,7 +43,7 @@ def constructDefaultType(typeobj):
         # findType() is public by Python convention. It returns a tuple with
         # details of the type, but here we only need the class object.
         typeobj = omniORB.findType(tc.id())[1]
-        args = [constructDefaultType(tc.member_type(idx)) for idx in range(tc.member_count())]
+        args = [constructDefaultType(tc.member_type(idx)) for idx in range(int(tc.member_count()))]
         return typeobj(*args)
     if kind == CORBA.tk_enum:
         # As with above, an implementation detail. The last element of the
@@ -54,7 +54,7 @@ def constructDefaultType(typeobj):
         typeobj = omniORB.findType(tc.id())[1]
         index = tc.default_index()
         if index < 0:
-            index = tc.member_count() + index
+            index = int(tc.member_count()) + index
         kwds = {}
         kwds[tc.member_name(index)] = constructDefaultType(tc.member_type(index))
         return typeobj(**kwds)

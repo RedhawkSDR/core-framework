@@ -354,11 +354,14 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertNotEqual(devMgr, None)
 
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [], )
+        thrown_e=None
         try:
             app = domMgr.createApplication("/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [])
         except Exception as e:
-            pass
-        self.assertNotEqual(e.msg.find('Unable to perform conversion'), -1)
+            thrown_e=e
+
+        self.assertNotEqual(thrown_e,None)
+        self.assertNotEqual(thrown_e.msg.find('Unable to perform conversion'), -1)
         self.assertEqual(len(domMgr._get_applications()), 0)
 
     def test_PartialStructConfiguration(self):

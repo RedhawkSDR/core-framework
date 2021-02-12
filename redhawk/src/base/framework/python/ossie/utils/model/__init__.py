@@ -55,6 +55,7 @@ _trackLaunchedApps = False
 _idllib = idllib.IDLLibrary()
 if 'OSSIEHOME' in _os.environ:
     _idllib.addSearchPath(_os.path.join(_os.environ['OSSIEHOME'], 'share/idl'))
+    _idllib.addSearchPath(_os.path.join(_os.environ['OSSIEHOME'], 'idl'))    
 
 __MIDAS_TYPE_MAP = {'char'  : ('/SB/8t'),
                     'octet' : ('/SO/8o'),
@@ -701,7 +702,7 @@ class Service(CorbaObject):
         self._instanceName = instanceName
         self.name = instanceName
         
-         # Add mapping of services operations and attributes
+        # Add mapping of services operations and attributes
         found = False
         self._repid = self._scd.get_interfaces().interface[0].repid
         try:
@@ -1217,6 +1218,7 @@ class QueryableBase(object):
                     defValue = [_convertType(propType, val) for val in values.get_value()]
                 else:
                     defValue = None
+
                 kindList = []
                 for k in prop.get_kind():
                     kindList.append(k.get_kindtype())

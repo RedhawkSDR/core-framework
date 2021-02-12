@@ -87,7 +87,7 @@ def get_process_affinity( pname, use_pidof=True):
 
     return cpus_allowed   
 
-
+@scatest.requireAffinity
 class TestNodeAffinity(scatest.CorbaTestCase):
 
     def get_node_info(self):
@@ -127,7 +127,8 @@ class TestNodeAffinity(scatest.CorbaTestCase):
 
         self.assertEqual(len(domMgr._get_deviceManagers()), 0)
 
-
+        
+@scatest.requireAffinity
 class TestWaveformAffinity(scatest.CorbaTestCase):
 
     def get_node_info(self):
@@ -450,7 +451,6 @@ def hasNumaSupport( exec_path):
 
     return have_numa
 
-
 ## Set default to minimal system
 all_cpus="0"
 maxcpus=1
@@ -511,6 +511,7 @@ if maxcpus == 2:
 else:
     if maxcpus < 9 or maxcpus < 11 :
         affinity_test_src["8-10"] = all_cpus
+    if maxcpus < 5 :
         affinity_test_src["5"] = all_cpus
 
 print("numa_layout:", numa_layout)

@@ -203,6 +203,13 @@ def _skipUnless(condition, reason):
     else:
         return _id
 
+def requireAffinity(obj):
+    """
+    Decorator to conditionally disable affinity tests
+    """
+    _affinity = runtestHelpers.haveAffinitySupport('../Makefile')
+    return _skipUnless(_affinity, 'affinity is disabled')(obj)
+
 def requireJava(obj):
     """
     Decorator to conditionally disable a test if Java support is not enabled.

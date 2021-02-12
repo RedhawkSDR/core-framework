@@ -93,13 +93,13 @@ class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
         self.assertRaises(CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, self.channelName)
         
     def test_eventChannelCB(self):
-        queue = queue.Queue()
-        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=queue.put)
+        _queue = queue.Queue()
+        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=_queue.put)
         pub = Publisher(self._domMgr, self.channelName)
         payload = 'hello'
         data = _any.to_any(payload)
         pub.push(data)
-        rec_data = queue.get(timeout=1.0)
+        rec_data = _queue.get(timeout=1.0)
         self.assertEqual(rec_data._v, payload)
         pub.terminate()
         sub.terminate()

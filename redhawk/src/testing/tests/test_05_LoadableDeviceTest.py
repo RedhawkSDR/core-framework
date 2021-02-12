@@ -702,7 +702,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         cmd = comp.query([CF.DataType(id="prop2", value=any.to_any(None))])[0]
         self.assertEqual(cmd.value._v, "goober")
         cmd = comp.query([CF.DataType(id="prop3", value=any.to_any(None))])[0]
-        self.assertEqual(cmd.value._v, "testing")
+        self.assertEqual(cmd.value._v, "foobar jones testing")
 
         app.stop()
         app.releaseObject()

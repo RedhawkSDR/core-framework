@@ -915,11 +915,11 @@ class sequenceProperty(Property):
                 values = [self._mapCFtoComplex(x) for x in values]
             elif self.valueType == 'octet':
                 # Octet sequences are stored as strings
-                values = [ord(x) for x in values]
+                values=list(values)
             elif self.valueType == 'char':
                 values = [x for x in values]
             return values
-        if self.valueType == 'octet' or self.valueType == 'char':
+        if self.valueType == 'char':
             return ''
         return []
 
@@ -934,7 +934,7 @@ class sequenceProperty(Property):
             value = self._getComplexConfigValues(value)
         else:
             value = _type_helpers.checkValidDataSet(value, self.valueType)
-
+                        
         return _CORBA.Any(self.typecode, value)
         
     '''
@@ -963,7 +963,8 @@ class sequenceProperty(Property):
 
     def __repr__(self):
         if self.mode != "writeonly":
-            return repr(self.queryValue())
+            res=self.queryValue()
+            return repr(res)
         else:
             raise Exception('Could not perform query, "' + str(self.id) + '" is a writeonly property')
     

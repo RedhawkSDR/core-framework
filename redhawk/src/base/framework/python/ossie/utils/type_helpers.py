@@ -140,5 +140,5 @@ def checkValidDataSet(dataSet, dataType):
         value = ''.join(value)
     elif dataType == 'octet':
         # Octet sequence, likewise.
-        value = ''.join(chr(v) for v in value)
+        value = bytes(value)
     return value

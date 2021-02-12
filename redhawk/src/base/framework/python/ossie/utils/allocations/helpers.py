@@ -22,6 +22,7 @@ import copy
 from ossie import properties
 import ossie.parsers.prf
 from omniORB import tcInternal, CORBA, any
+from io import IOBase
 
 class WrongInputType(Exception):
     pass
@@ -148,7 +149,7 @@ def matchTypes(props, prop_ids=[], prf=None):
                     break
                 _len = len(prfcontents)
             prf.close()
-        elif isinstance(prf, file):
+        elif isinstance(prf, IOBase):
             prfcontents = prf.read()
             prf.close()
         elif isinstance(prf, str):

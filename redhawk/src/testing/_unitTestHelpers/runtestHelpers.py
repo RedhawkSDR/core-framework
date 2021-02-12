@@ -51,6 +51,17 @@ def getUnitTestFiles(rootpath, testFileGlob="test_*.py"):
     files.sort()
     return files
 
+def haveAffinitySupport(filename):
+    fp=open(filename,'r')
+    makefile_lines = fp.readlines()
+    fp.close()
+    affinity_support = True
+    for line in makefile_lines:
+        if 'OSSIE_AFFINITY' in line:
+            if line.split('=')[1][:3] == ' no':
+                affinity_support = False
+    return affinity_support
+
 def haveJavaSupport(filename):
     fp=open(filename,'r')
     makefile_lines = fp.readlines()

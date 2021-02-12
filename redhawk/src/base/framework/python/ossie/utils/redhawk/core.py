@@ -82,7 +82,7 @@ def _cleanUpLaunchedApps():
         try:
             app.releaseObject()
         except:
-            log.warn('Unable to release application object...continuing')
+            log.warning('Unable to release application object...continuing')
 
 _atexit.register(_cleanUpLaunchedApps)
 
@@ -696,9 +696,9 @@ class App(_CF__POA.Application, Resource):
         if providesPortName != None:
             provides_name = providesPortName
         if providesPortName != None and providesName != None:
-            log.warn('providesPortName and providesName provided; using only providesName')
+            log.warning('providesPortName and providesName provided; using only providesName')
         if usesPortName != None and usesName != None:
-            log.warn('usesPortName and usesName provided; using only usesPortName')
+            log.warning('usesPortName and usesName provided; using only usesPortName')
         connections = _ConnectionManager.instance().getConnections()
         name_mangling = '%s/%s' % (self._instanceName, uses_name)
         while True:
@@ -1055,7 +1055,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             spd, scd, prf = _readProfile(profile, self.fs)
             return createDevice(profile, spd, scd, prf, deviceRef, instanceName, refid, implId, self.__idmListener)
         except _CORBA.Exception:
-            log.warn('Ignoring inaccessible device')
+            log.warning('Ignoring inaccessible device')
 
     def __deviceAddedEvent(self, event):
         if not self.ref:
@@ -1112,7 +1112,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
             else:
                 return RogueService(serviceRef, instanceName )
         except _CORBA.Exception:
-            log.warn('Ignoring inaccessible service')
+            log.warning('Ignoring inaccessible service')
 
     def __serviceAddedEvent(self, event):
         if not self.ref:

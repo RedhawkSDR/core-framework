@@ -164,13 +164,12 @@ class unbound_notification(object):
             setattr(self, attr, getattr(func, attr))
         self.__func__ = func
         self.__self__ = None
-        self.__self__.__class__ = owner
         self.__doc__ = "Notification '%s'." % (_notification_signature(self.__func__),)
         if self.__func__.__doc__:
             self.__doc__ += '\n' + self.__func__.__doc__
 
     def __call__(self, obj, *args, **kwargs):
-        func = bound_notification(self.__func__, obj, self.__self__.__class__)
+        func = bound_notification(self.__func__, obj )
         return func(*args, **kwargs)
 
     def __get__(self, obj, owner):

@@ -143,6 +143,23 @@ class Time:
     def __str__(self):
          return toString(self)
 
+    def __eq__(self, other):
+         return ( (self.pf250_, self.ps250_) == (other.pf250_, other.ps250_))
+    
+
+    def __le__(self, other):
+         retval=self.pf250_ < other.pf250_
+         if not retval:
+              if self.pf250_ == other.pf250_ :
+                   retval=self.ps250_ <= other.ps250_
+         return retval
+
+    def __ge__(self, other):
+         retval=self.pf250_ > other.pf250_
+         if not retval:
+              if self.pf250_ == other.pf250_ :
+                   retval=self.ps250_ >= other.ps250_
+         return retval
 
     @staticmethod
     def startOfYear():

@@ -76,7 +76,7 @@ class LocalSdrRoot(SdrRoot):
         return os.path.isfile(filename)
 
     def _readFile(self, filename):
-        path = open(self._sdrPath(filename), 'r')
+        path = open(self._sdrPath(filename), 'rb')
         return path.read()
 
     def _getSearchPaths(self, objTypes):
