@@ -44,12 +44,12 @@ public class In@name@Stream extends InStreamBase {
     protected In@name@Port _port;
     protected int _eosState;
     protected int _samplesQueued;
-    protected int _sampleOffset;
+    public int _sampleOffset;
     protected int _queuedPacketIndex;
     protected boolean _enabled;
     protected boolean _newstream;
     protected StreamSRI _sri;
-    protected ArrayDeque<In@name@Port.Packet> _queue;
+    public ArrayDeque<In@name@Port.Packet> _queue;
     
     public In@name@Stream(BULKIO.StreamSRI sri, In@name@Port port) {
         /*
@@ -73,6 +73,13 @@ public class In@name@Stream extends InStreamBase {
         this._sri = sri;
         this._queue = new ArrayDeque<In@name@Port.Packet>();
         //self.__blockType = blockType
+    }
+
+    public String streamID() {
+        if (this._sri != null) {
+            return this._sri.streamID;
+        }
+        return null;
     }
 
     public @name@DataBlock read() {
@@ -151,6 +158,16 @@ public class In@name@Stream extends InStreamBase {
         // Only read as many samples as are available (e.g., if a new SRI is coming
         // or the stream reached the end)
         int samples = Math.min(count, this._samplesQueued);
+        int ceiling = Math.max(count, consume);
+
+        if (samples < ceiling) {
+            // Non-blocking: return a null block if there's not currently a break in
+            // the data, under the assumption that a future read might return the
+            // full amount
+            if (!blocking && (this._eosState == EOS_NONE)) {
+                    return null;
+            }
+        }
 
         // Handle a partial read, which could mean that there's not enough data at
         // present (non-blocking), or that the read pointer has reached the end of
@@ -387,10 +404,6 @@ public class In@name@Stream extends InStreamBase {
             data.setSri(front.SRI);
         }
 
-        // Clear flags from packet, since they've been reported
-        front.sriChanged = false;
-        front.inputQueueFlushed = false;
-
         int last_offset = this._sampleOffset + count;
         if (last_offset <= front.dataBuffer.length) {
             // The requsted sample count can be satisfied from the first packet
@@ -403,15 +416,16 @@ public class In@name@Stream extends InStreamBase {
 
             // Assemble data spanning several input packets into the output buffer
             int packet_offset = _sampleOffset;
+            Iterator<In@name@Port.Packet> itr = _queue.iterator();
             while (count > 0) {
-                Iterator<In@name@Port.Packet> itr = _queue.iterator();
-                int iter_count = 0;
-                while (iter_count != this._queuedPacketIndex) {
-                    itr.next();
-                    iter_count += 1;
+                while (!itr.hasNext()) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        return null;
+                    }
                 }
-                In@name@Port.Packet packet = itr.next();
-                //In@name@Port.Packet packet = _queue.peekFirst();
+                InBitPort.Packet packet = itr.next();
                 @type@[] input_data = packet.dataBuffer;
 
                 // Add the timestamp for this pass
@@ -433,11 +447,13 @@ public class In@name@Stream extends InStreamBase {
                 if (packet_offset >= input_data.length) {
                     packet_offset = 0;
                     this._queuedPacketIndex += 1;
-                    //_queue.poll();
                 }
             }
             data.setBuffer(buffer);
         }
+        // Clear flags from packet, since they've been reported
+        front.sriChanged = false;
+        front.inputQueueFlushed = false;
 
         // Advance the read pointers
         _consumeData(consume);
@@ -629,6 +645,7 @@ public class In@name@Stream extends InStreamBase {
     }
 
     protected void _consumeData(int count) {
+        this._refreshQueue();
         while (count > 0) {
             @type@[] data = this._queue.peekFirst().dataBuffer;
 
@@ -642,8 +659,6 @@ public class In@name@Stream extends InStreamBase {
             if (_sampleOffset >= data.length) {
                 // Read pointer has passed the end of the packet data
                 _consumePacket();
-                this._sampleOffset = 0;
-                this._queuedPacketIndex = this._queuedPacketIndex - 1;
             }
         }
     }
@@ -655,5 +670,6 @@ public class In@name@Stream extends InStreamBase {
             this._eosState = InStreamBase.EOS_REACHED;
         }
         _queue.poll();
+        this._sampleOffset = 0;
     }
 };

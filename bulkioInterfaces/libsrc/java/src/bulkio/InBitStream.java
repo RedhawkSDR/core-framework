@@ -48,12 +48,12 @@ public class InBitStream extends InStreamBase {
     protected InBitPort _port;
     protected int _eosState;
     protected int _samplesQueued;
-    protected int _sampleOffset;
+    public int _sampleOffset;
     protected int _queuedPacketIndex;
     protected boolean _enabled;
     protected boolean _newstream;
     protected StreamSRI _sri;
-    protected ArrayDeque<InBitPort.Packet> _queue;
+    public ArrayDeque<InBitPort.Packet> _queue;
     
     public InBitStream(BULKIO.StreamSRI sri, InBitPort port) {
         /*
@@ -77,6 +77,13 @@ public class InBitStream extends InStreamBase {
         this._sri = sri;
         this._queue = new ArrayDeque<InBitPort.Packet>();
         //self.__blockType = blockType
+    }
+
+    public String streamID() {
+        if (this._sri != null) {
+            return this._sri.streamID;
+        }
+        return null;
     }
 
     public BitDataBlock read() {
@@ -155,6 +162,16 @@ public class InBitStream extends InStreamBase {
         // Only read as many samples as are available (e.g., if a new SRI is coming
         // or the stream reached the end)
         int samples = Math.min(count, this._samplesQueued);
+        int ceiling = Math.max(count, consume);
+
+        if (samples < ceiling) {
+            // Non-blocking: return a null block if there's not currently a break in
+            // the data, under the assumption that a future read might return the
+            // full amount
+            if (!blocking && (this._eosState == EOS_NONE)) {
+                    return null;
+            }
+        }
 
         // Handle a partial read, which could mean that there's not enough data at
         // present (non-blocking), or that the read pointer has reached the end of
@@ -398,6 +415,16 @@ public class InBitStream extends InStreamBase {
     // count and consumer are in terms of bits
     protected BitDataBlock _readData(int count, int consume)
     {
+
+        int max_val = Math.max(count, consume);
+        while (max_val > this._samplesQueued) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                return null;
+            }
+            this._refreshQueue();
+        }
         // Acknowledge pending SRI change
         InBitPort.Packet front = this._queue.peekFirst();
 
@@ -410,10 +437,6 @@ public class InBitStream extends InStreamBase {
             // Update the stream metadata
             data.setSri(front.SRI);
         }
-
-        // Clear flags from packet, since they've been reported
-        front.sriChanged = false;
-        front.inputQueueFlushed = false;
 
         int last_offset = this._sampleOffset + count;
         bitbuffer front_dataBuffer = byteToBitBuffer(front.dataBuffer.data, front.dataBuffer.bits);
@@ -437,6 +460,13 @@ public class InBitStream extends InStreamBase {
             int bit_count = 0;
             Iterator<InBitPort.Packet> itr = _queue.iterator();
             while (count > 0) {
+                while (!itr.hasNext()) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        return null;
+                    }
+                }
                 InBitPort.Packet packet = itr.next();
                 // Add the timestamp for this pass
                 _addTimestamp(data, (double)packet_bit_offset, bit_count, packet.T);
@@ -457,6 +487,9 @@ public class InBitStream extends InStreamBase {
             }
             data.setBuffer(data_payload);
         }
+        // Clear flags from packet, since they've been reported
+        front.sriChanged = false;
+        front.inputQueueFlushed = false;
 
         // Advance the read pointers
         _consumeData(consume);
@@ -554,6 +587,18 @@ public class InBitStream extends InStreamBase {
         if (packet.T != null) {
             block.addTimestamp(packet.T, 0, false);
         }
+        if (this._sampleOffset != 0) {
+            _addTimestamp(block, (double)_sampleOffset, 0, packet.T);
+            bitbuffer data_payload = new bitbuffer(_data.length-this._sampleOffset);
+            for (int i=0; i<data_payload.length; i++) {
+                if (_data.get(i+this._sampleOffset)) {
+                    data_payload.set(i);
+                }
+            }
+            block.setBuffer(data_payload);
+        }
+        this._samplesQueued = this._samplesQueued - (_data.length-this._sampleOffset);
+        this._sampleOffset = 0;
 
         // Update local SRI from packet
         this._sri = packet.SRI;
@@ -650,6 +695,7 @@ public class InBitStream extends InStreamBase {
 
     //consume bits
     protected void _consumeData(int count) {
+        this._refreshQueue();
         while (count > 0) {
             //bitbuffer data = this._queue.peekFirst().dataBuffer;
             bitbuffer data = byteToBitBuffer(this._queue.peekFirst().dataBuffer.data, this._queue.peekFirst().dataBuffer.bits);
@@ -664,8 +710,6 @@ public class InBitStream extends InStreamBase {
             if (_sampleOffset >= data.length) {
                 // Read pointer has passed the end of the packet data
                 _consumePacket();
-                this._sampleOffset = 0;
-                this._queuedPacketIndex = this._queuedPacketIndex - 1;
             }
         }
     }
@@ -677,5 +721,6 @@ public class InBitStream extends InStreamBase {
             this._eosState = InStreamBase.EOS_REACHED;
         }
         _queue.poll();
+        this._sampleOffset = 0;
     }
 };
