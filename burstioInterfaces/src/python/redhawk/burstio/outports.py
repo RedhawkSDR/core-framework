@@ -27,11 +27,11 @@ from omniORB import CORBA
 
 from ossie.utils.log4py import logging
 
-import utils
-import traits
-from statistics import BurstStatistics
-from usesport import UsesPort
-from executor import ExecutorService
+from . import utils
+from . import traits
+from .statistics import BurstStatistics
+from .usesport import UsesPort
+from .executor import ExecutorService
 
 __all__ = ('ROUTE_ALL_INTERLEAVED', 'ROUTE_ALL_STREAMS', 'ROUTE_CONNECTION_STREAMS',
            'BurstByteOut', 'BurstUbyteOut',
@@ -164,7 +164,10 @@ class Queue(object):
             return None
 
     def _latencyExceeded(self):
-        return self._elapsed() > self._thresholdLatency
+        elapsed=self._elapsed()        
+        if elapsed:
+            return elapsed > self._thresholdLatency
+        return False
     
     def _shouldFlush(self):
         return self._burstsExceeded() or self._bytesExceeded() or self._latencyExceeded()
@@ -345,7 +348,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
 
         self._connectionMutex.acquire()
         try:
-            for connectionId, connection in self._connections.iteritems():
+            for connectionId, connection in self._connections.items():
                 # Check stream routing
                 if not self._isStreamRoutedToConnection(streamID, connectionId):
                     continue
@@ -356,14 +359,14 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
                     connection.port.pushBursts(bursts)
                     connection.alive = True
                     connection.stats.record(len(bursts), total_elements, queueDepth, delay)
-                except CORBA.MARSHAL, e:
+                except CORBA.MARSHAL as e:
                     if len(bursts) == 1:
                         if connection.alive:
                             self._portLog.error('pushBursts to %s failed because the burst size is too long')
                         connection.alive = False
                     else:
                         self._partitionBursts(bursts, startTime, queueDepth, connection)
-                except Exception, e:
+                except Exception as e:
                     if connection.alive:
                         self._portLog.error('pushBursts to %s failed: %s', connectionId, e)
                     connection.alive = False
@@ -375,7 +378,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
             self._connectionMutex.release()  
 
     def _partitionBursts(self, bursts, startTime, queueDepth, connection):
-        first_burst = bursts[:len(bursts)/2]
+        first_burst = bursts[:len(bursts)//2]
         second_burst = bursts[len(first_burst):]
         delay = time.time() - startTime
         first_total_elements = sum(len(burst.data) for burst in first_burst)
@@ -384,26 +387,26 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
             connection.port.pushBursts(first_burst)
             connection.alive = True
             connection.stats.record(len(first_burst), first_total_elements, queueDepth, delay)
-        except CORBA.MARSHAL, e:
+        except CORBA.MARSHAL as e:
             self._partitionBursts(first_burst, startTime, queueDepth, connection)
         try:
             connection.port.pushBursts(second_burst)
             connection.alive = True
             connection.stats.record(len(second_burst), second_total_elements, queueDepth, delay)
-        except CORBA.MARSHAL, e:
+        except CORBA.MARSHAL as e:
             self._partitionBursts(second_burst, startTime, queueDepth, connection)
         
     def _get_statistics(self):
         self._connectionMutex.acquire()
         try:
             return [self._retrieveStats(connectionId, connection)
-                    for connectionId, connection in self._connections.iteritems()]
+                    for connectionId, connection in self._connections.items()]
         finally:
             self._connectionMutex.release()
 
     def _retrieveStats(self, connectionId, connection):
         stats = connection.stats.retrieve()
-        stats.streamIDs = [stream_id for stream_id in self._streamQueues.keys()
+        stats.streamIDs = [stream_id for stream_id in list(self._streamQueues.keys())
                            if self._isStreamRoutedToConnection(stream_id, connectionId)]
         return BULKIO.UsesPortStatistics(connectionId, stats)
 
@@ -456,7 +459,7 @@ class OutPort(UsesPort, BULKIO__POA.UsesPortStatisticsProvider):
         if self._isInterleaved():
             return [self._defaultQueue]
         else:
-            return self._streamQueues.values()
+            return list(self._streamQueues.values())
 
     def _isStreamRoutedToConnection(self, streamID, connectionID):
         if ROUTE_CONNECTION_STREAMS != self._routingMode:

@@ -44,7 +44,7 @@ model._idllib.addSearchPath('../../../idl')
 model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
 
 def str_to_class(s):
-    if s in globals() and isinstance(globals()[s], types.ClassType):
+    if s in globals() and isinstance(globals()[s], type):
         return globals()[s]
     return None
 
@@ -115,7 +115,7 @@ class BaseVectorPort(unittest.TestCase):
         if self.srcData:
             self.seq = self.srcData
         else:
-            self.seq = range(50)
+            self.seq = list(range(50))
             if self.ptype == 'Int8' :
                 self.seq = numpy.array(self.seq,numpy.int8).tostring()
             if  self.ptype == 'UInt8' :

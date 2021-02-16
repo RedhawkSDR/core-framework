@@ -53,7 +53,7 @@ class Traits(object):
         Floating point types (float, double) return a 1-D array of native
         complex values.
         """
-        return self.toArray(data).reshape(len(data)/2, 2)
+        return self.toArray(data).reshape(len(data)//2, 2)
 
 class CharTraits(Traits):
     """

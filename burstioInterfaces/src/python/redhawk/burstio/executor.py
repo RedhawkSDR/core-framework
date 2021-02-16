@@ -22,6 +22,8 @@ import threading
 import traceback
 
 def compare_tasks(lhs, rhs):
+    import pdb
+    pdb.set_trace()
     return cmp(lhs[0], rhs[0])
 
 class ExecutorService(object):
@@ -37,7 +39,7 @@ class ExecutorService(object):
             # Add the new task to the end of the queue, then sort the queue
             # in ascending order
             self._queue.append((when, func))
-            self._queue.sort(compare_tasks)
+            self._queue.sort(key=lambda x: x[0])
             self._cond.notifyAll()
         finally:
             self._cond.release()
