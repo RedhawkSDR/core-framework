@@ -66,41 +66,41 @@ class BaseFailPort(unittest.TestCase):
         while self.comp2._process.isAlive():
             time.sleep(0.1)
 
-        for _ in xrange(9):
+        for _ in range(9):
             source.write(data)
         source.close()
 
         sink.read(eos=True)
 
     def testCharConnectionFail(self):
-        self._testConnectionFail('Char', range(100))
+        self._testConnectionFail('Char', list(range(100)))
 
     def testOctetConnectionFail(self):
-        self._testConnectionFail('Octet', range(100))
+        self._testConnectionFail('Octet', list(range(100)))
 
     def testShortConnectionFail(self):
-        self._testConnectionFail('Short', range(100))
+        self._testConnectionFail('Short', list(range(100)))
 
     def testUShortConnectionFail(self):
-        self._testConnectionFail('UShort', range(100))
+        self._testConnectionFail('UShort', list(range(100)))
 
     def testLongConnectionFail(self):
-        self._testConnectionFail('Long', range(100))
+        self._testConnectionFail('Long', list(range(100)))
 
     def testULongConnectionFail(self):
-        self._testConnectionFail('ULong', range(100))
+        self._testConnectionFail('ULong', list(range(100)))
 
     def testLongLongConnectionFail(self):
-        self._testConnectionFail('LongLong', range(100))
+        self._testConnectionFail('LongLong', list(range(100)))
 
     def testULongLongConnectionFail(self):
-        self._testConnectionFail('ULongLong', range(100))
+        self._testConnectionFail('ULongLong', list(range(100)))
 
     def testFloatConnectionFail(self):
-        self._testConnectionFail('Float', range(100))
+        self._testConnectionFail('Float', list(range(100)))
 
     def testDoubleConnectionFail(self):
-        self._testConnectionFail('Double', range(100))
+        self._testConnectionFail('Double', list(range(100)))
 
     def testFileConnectionFail(self):
         text = "The quick brown fox jumped over the lazy dog"

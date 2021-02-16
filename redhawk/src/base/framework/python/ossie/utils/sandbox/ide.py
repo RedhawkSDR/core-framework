@@ -254,13 +254,13 @@ class IDESandbox(Sandbox):
 
     def catalog(self, searchPath=None, objType=None):
         if searchPath:
-            log.warn("IDE sandbox does not support alternate paths")
+            log.warning("IDE sandbox does not support alternate paths")
 
         return super(IDESandbox,self).catalog(searchPath, objType)
 
     def browse(self, searchPath=None, objType=None, withDescription=False):
         if searchPath:
-            log.warn("IDE sandbox does not support alternate paths")
+            log.warning("IDE sandbox does not support alternate paths")
 
         sdrroot = self.getSdrRoot()
 

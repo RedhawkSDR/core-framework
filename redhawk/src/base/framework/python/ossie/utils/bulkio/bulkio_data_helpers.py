@@ -83,7 +83,7 @@ class ArraySource(object):
             except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
             self.refreshSRI = False
@@ -107,7 +107,7 @@ class ArraySource(object):
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -485,7 +485,7 @@ class ProbeSink(object):
         self.port_lock.acquire()
         try:
             if stream_id not in self.valid_streams:
-                log.warn("the received packet has the invalid stream ID: "+stream_id+". Valid stream IDs are:"+str(list(self.valid_streams.keys())))
+                log.warning("the received packet has the invalid stream ID: "+stream_id+". Valid stream IDs are:"+str(list(self.valid_streams.keys())))
             self.received_data[stream_id] = (self.received_data[stream_id][0] + len(data), self.received_data[stream_id][1] + 1)
             if EOS:
                 self.invalid_streams[stream_id] = self.valid_streams[stream_id]
@@ -592,7 +592,7 @@ class XmlArraySource(ArraySource):
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -661,7 +661,7 @@ class SDDSSource(object):
             except Exception as e:
                 msg = "The call to attach failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
         return retval
@@ -677,7 +677,7 @@ class SDDSSource(object):
             except Exception as e:
                 msg = "The call to detach failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -853,7 +853,7 @@ class FileSource(object):
             except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
             self.refreshSRI = False
@@ -891,7 +891,7 @@ class FileSource(object):
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -1099,7 +1099,7 @@ class FileSink(object):
         """
         # If output file already exists, remove it
         if outputFilename != None and os.path.isfile(outputFilename):
-            log.warn("overwriting output file " + str(outputFilename) + " since it already exists ")
+            log.warning("overwriting output file " + str(outputFilename) + " since it already exists ")
             os.remove(outputFilename)
 
         if outputFilename == None:

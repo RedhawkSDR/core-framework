@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -78,18 +78,18 @@ class InPortTest(object):
 
         # Check result of getPacket
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
-        self.failIf(packet.dataBuffer is None, 'packet.dataBuffer is empty')
+        self.assertFalse(packet is None)
+        self.assertFalse(packet.dataBuffer is None, 'packet.dataBuffer is empty')
         self.assertEqual(50, len(packet.dataBuffer))
         if isinstance(self.port, bulkio.InXMLPort):
             # XML does not use timestamp
-            self.failUnless(packet.T is None)
+            self.assertTrue(packet.T is None)
         else:
             self.assertEqual(ts, packet.T, 'packet.T is incorrect')
         self.assertEqual(packet.EOS, False, 'packet.EOS is incorrect')
         self.assertEqual(packet.streamID, sri.streamID, 'packet.streamID is incorrect')
-        self.failUnless(bulkio.sri.compare(packet.SRI, sri), 'packet.SRI is incorrect')
-        self.failIf(packet.sriChanged is None, 'packet.sriChanged is incorrect')
+        self.assertTrue(bulkio.sri.compare(packet.SRI, sri), 'packet.SRI is incorrect')
+        self.assertFalse(packet.sriChanged is None, 'packet.sriChanged is incorrect')
         self.assertEqual(packet.inputQueueFlushed, False, 'packet.inputQueueFlushed is incorrect')
 
         # Check backwards-compatibility for tuple offsets
@@ -104,13 +104,13 @@ class InPortTest(object):
 
         # No packet, all fields should be None
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failUnless(packet.dataBuffer is None, 'packet.dataBuffer should be None')
-        self.failUnless(packet.T is None, 'packet.T should be None')
-        self.failUnless(packet.EOS is None, 'packet.EOS should be None')
-        self.failUnless(packet.streamID is None, 'packet.streamID should be None')
-        self.failUnless(packet.SRI is None, 'packet.SRI should be None')
-        self.failUnless(packet.sriChanged is None, 'packet.sriChanged should be None')
-        self.failUnless(packet.inputQueueFlushed is None, 'packet.inputQueueFlushed should be None')
+        self.assertTrue(packet.dataBuffer is None, 'packet.dataBuffer should be None')
+        self.assertTrue(packet.T is None, 'packet.T should be None')
+        self.assertTrue(packet.EOS is None, 'packet.EOS should be None')
+        self.assertTrue(packet.streamID is None, 'packet.streamID should be None')
+        self.assertTrue(packet.SRI is None, 'packet.SRI should be None')
+        self.assertTrue(packet.sriChanged is None, 'packet.sriChanged should be None')
+        self.assertTrue(packet.inputQueueFlushed is None, 'packet.inputQueueFlushed should be None')
 
         # Change mode to complex and push another packet with EOS set
         sri.mode = 1
@@ -133,14 +133,14 @@ class InPortTest(object):
         # SRI should report changed for first packet
         self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet.dataBuffer is None)
-        self.failUnless(packet.sriChanged)
+        self.assertFalse(packet.dataBuffer is None)
+        self.assertTrue(packet.sriChanged)
 
         # No SRI change for second packet
         self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet.dataBuffer is None)
-        self.failIf(packet.sriChanged)
+        self.assertFalse(packet.dataBuffer is None)
+        self.assertFalse(packet.sriChanged)
 
         # Reduce the queue size so we can force a flush
         self.port.setMaxQueueDepth(2)
@@ -156,9 +156,9 @@ class InPortTest(object):
         # Get the last packet and verify that the queue has flushed, and the
         # SRI change is still reported
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet.dataBuffer is None)
-        self.failUnless(packet.inputQueueFlushed)
-        self.failUnless(packet.sriChanged)
+        self.assertFalse(packet.dataBuffer is None)
+        self.assertTrue(packet.inputQueueFlushed)
+        self.assertTrue(packet.sriChanged)
 
     def testStatistics(self):
         """
@@ -171,7 +171,7 @@ class InPortTest(object):
 
         # Check that the statistics report the right element size
         stats = self.port._get_statistics()
-        self.failUnless(stats.elementsPerSecond > 0.0)
+        self.assertTrue(stats.elementsPerSecond > 0.0)
         bits_per_element = int(round(stats.bitsPerSecond / stats.elementsPerSecond))
         self.assertEqual(self.helper.BITS_PER_ELEMENT, bits_per_element)
 
@@ -268,7 +268,7 @@ class InPortTest(object):
         """
         # Create a few streams, push an SRI and packet for each, and test that
         # the statistics report the correct stream IDs
-        stream_ids = set('sri%d' % ii for ii in xrange(3))
+        stream_ids = set('sri%d' % ii for ii in range(3))
         for stream in stream_ids:
             stream_sri = bulkio.sri.create(stream)
             self.port.pushSRI(stream_sri)
@@ -297,18 +297,18 @@ class InPortTest(object):
         self.port.setNewSriListener(listener)
         self._pushTestPacket(100, bulkio.timestamp.now(), False, stream_id)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(not packet)
-        self.failUnless(packet.sriChanged)
-        self.failIf(listener.sri is None)
+        self.assertFalse(not packet)
+        self.assertTrue(packet.sriChanged)
+        self.assertFalse(listener.sri is None)
         
         # Push again to the same stream ID; sriChanged should now be False and the
         # SRI callback should not get called
         listener.reset()
         self._pushTestPacket(100, bulkio.timestamp.now(), False, stream_id)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(not packet)
-        self.failIf(packet.sriChanged)
-        self.failUnless(listener.sri is None)
+        self.assertFalse(not packet)
+        self.assertFalse(packet.sriChanged)
+        self.assertTrue(listener.sri is None)
 
     def testGetPacketTimeout(self):
         """
@@ -320,21 +320,21 @@ class InPortTest(object):
         results = []
         start = time.time()
         iterations = 10
-        for ii in xrange(iterations):
+        for ii in range(iterations):
             packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
             if packet.dataBuffer:
                 results.append(packet)
         elapsed = time.time() - start
         self.assertEqual(0, len(results))
-        self.failIf(elapsed > (iterations * 1e-3))
+        self.assertFalse(elapsed > (iterations * 1e-3))
 
         # Check that (at least) the timeout period elapses
         timeout = 0.125
         start = time.time()
         packet = self.port.getPacket(timeout)
         elapsed = time.time() - start
-        self.failUnless(packet.dataBuffer is None)
-        self.failIf(elapsed < timeout)
+        self.assertTrue(packet.dataBuffer is None)
+        self.assertFalse(elapsed < timeout)
 
         # Try a blocking getPacket() on another thread
         results = []
@@ -353,8 +353,8 @@ class InPortTest(object):
         # Stop the port and make sure the thread exits
         self.port.stopPort()
         t.join(timeout=1.0)
-        self.failIf(t.isAlive())
-        self.failUnless(results[0].dataBuffer is None)
+        self.assertFalse(t.isAlive())
+        self.assertTrue(results[0].dataBuffer is None)
 
     def testBlockingDeadlock(self):
         """
@@ -389,7 +389,7 @@ class InPortTest(object):
         # Get packets to unblock the push thread, allows all threads to finish
         self.port.getPacket()
         self.port.getPacket()
-        self.failIf(deadlock)
+        self.assertFalse(deadlock)
 
     def testDiscardEmptyPacket(self):
         # Push an empty, non-EOS packet
@@ -399,7 +399,7 @@ class InPortTest(object):
 
         # No packet should be returned
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failUnless(not packet.dataBuffer)
+        self.assertTrue(not packet.dataBuffer)
 
     def testQueueFlushFlags(self):
         """
@@ -426,15 +426,15 @@ class InPortTest(object):
 
         # Grab the packets to ensure the initial conditions are correct
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_data.streamID, packet.streamID)
 
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_eos.streamID, packet.streamID)
 
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_change.streamID, packet.streamID)
 
         # Push an EOS packet for the EOS stream
@@ -460,7 +460,7 @@ class InPortTest(object):
 
         # 1st packet should be for EOS stream, with no data or SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_eos.streamID, packet.streamID)
         self.assertTrue(not packet.inputQueueFlushed)
         self.assertTrue(packet.EOS)
@@ -469,7 +469,7 @@ class InPortTest(object):
 
         # 2nd packet should be for no EOS stream, data from the third packet on the queue, with "lost" SRI change flag from the second packet
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_change.streamID, packet.streamID)
         self.assertTrue(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
@@ -478,7 +478,7 @@ class InPortTest(object):
 
         # 3rd packet should be for no EOS stream, with data (since it did the push that flushed the queue), no SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_data.streamID, packet.streamID)
         self.assertTrue(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
@@ -487,7 +487,7 @@ class InPortTest(object):
 
         # 4th packet should be for stream_sri stream, with no EOS or SRI change flag
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertEqual(sri_change.streamID, packet.streamID)
         self.assertFalse(packet.inputQueueFlushed)
         self.assertFalse(packet.EOS)
@@ -506,25 +506,25 @@ class InPortTest(object):
         # Start with a reasonably small queue depth and check that a flush
         # occurs at the expected time
         self.port.setMaxQueueDepth(10)
-        for _ in xrange(10):
+        for _ in range(10):
             self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
         self.assertEqual(10, self.port.getCurrentQueueDepth())
         self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
         self.assertEqual(1, self.port.getCurrentQueueDepth())
 
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet.dataBuffer is None)
+        self.assertFalse(packet.dataBuffer is None)
         self.assertTrue(packet.inputQueueFlushed)
 
         # Set queue depth to unlimited and push a lot of packets
         self.port.setMaxQueueDepth(-1)
         QUEUE_SIZE = 250
-        for _ in xrange(QUEUE_SIZE):
+        for _ in range(QUEUE_SIZE):
             self._pushTestPacket(1, bulkio.timestamp.now(), False, sri.streamID)
         self.assertEqual(QUEUE_SIZE, self.port.getCurrentQueueDepth())
-        for _ in xrange(QUEUE_SIZE):
+        for _ in range(QUEUE_SIZE):
             packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-            self.failIf(packet.dataBuffer is None)
+            self.assertFalse(packet.dataBuffer is None)
             self.assertFalse(packet.inputQueueFlushed)
 
     def testSRIqueueBlock(self):
@@ -572,7 +572,7 @@ class InPortTest(object):
         push_thread.start()
         push_thread.join(1.0)
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
-        self.failIf(packet is None)
+        self.assertFalse(packet is None)
         self.assertFalse(packet.inputQueueFlushed)
         queue_depth = self.port.getCurrentQueueDepth()
         count = 0
@@ -584,7 +584,7 @@ class InPortTest(object):
 
         for ii in range(101):
             packet = self.port.getPacket(bulkio.const.BLOCKING)
-            self.failIf(packet is None)
+            self.assertFalse(packet is None)
             self.assertFalse(packet.inputQueueFlushed)
 
     def _pushTestPacket(self, length, time, eos, streamID):
@@ -800,7 +800,7 @@ class InNumericPortTest(InPortTest):
         self.assertTrue(packet.EOS)
         self.assertTrue(not packet.sriChanged)
         self.assertEqual(packet.T, ts+20.0);
-        self.assertEquals(0, len(packet.dataBuffer))
+        self.assertEqual(0, len(packet.dataBuffer))
         packet = self.port.getPacket(bulkio.const.NON_BLOCKING)
         self.assertTrue(packet)
         self.assertEqual(str(stream_C.streamID), packet.streamID)

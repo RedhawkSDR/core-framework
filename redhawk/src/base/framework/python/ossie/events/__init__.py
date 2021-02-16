@@ -69,7 +69,7 @@ class PropertyEventSupplier(CF__POA.Port):
                 try:
                     connection['proxy_consumer'].push(event)
                 except:
-                    self._component._log.warn("Unable to send PropertySetChangeEventType to '%s': %s", connectionId, sys.exc_info()[0])
+                    self._component._log.warning("Unable to send PropertySetChangeEventType to '%s': %s", connectionId, sys.exc_info()[0])
 
     def sendPropertyEvent(self, id):
         self.sendPropertiesEvent((id,))
@@ -122,7 +122,7 @@ class PropertyEventSupplier(CF__POA.Port):
         try:
             channel = connection._narrow(CosEventChannelAdmin.EventChannel)
         except:
-            self._component._log.warn("Could not narrow channel object: %s", sys.exc_info()[0])
+            self._component._log.warning("Could not narrow channel object: %s", sys.exc_info()[0])
             return
         self._outPorts[str(connectionId)] = self._connectSupplierToEventChannel(channel)
 
@@ -146,7 +146,7 @@ class PropertyEventSupplier(CF__POA.Port):
             proxy_consumer.connect_push_supplier(None)
             connection['proxy_consumer'] = proxy_consumer
         except:
-            self._component._log.warn("Failed to connect to event channel")
+            self._component._log.warning("Failed to connect to event channel")
 
         return connection
 
@@ -559,7 +559,7 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         try:
             self._push( data, connectionId )
         except CORBA.MARSHAL:
-            self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
+            self._port_log.warning("Could not deliver the message. Maximum message size exceeded")
 
 
     # CosEventComm.PushSupplier delegation
@@ -587,7 +587,7 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
                 except CORBA.MARSHAL as e:
                     raise e
                 except:
-                    self._port_log.warn("WARNING: Unable to send data to " + identifier)
+                    self._port_log.warning("WARNING: Unable to send data to " + identifier)
 
 
     def sendMessage(self, data_struct, connectionId=None):
@@ -633,16 +633,16 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
             self._push(outmsg, connectionId)
         except CORBA.MARSHAL:
             if len(data_structs) == 1:
-                self._port_log.warn("Could not deliver the message id="+str(msgid)+". Maximum message size exceeded")
+                self._port_log.warning("Could not deliver the message id="+str(msgid)+". Maximum message size exceeded")
             else:
-                self._port_log.warn("Could not deliver the message. Maximum message size exceeded, trying individually")
+                self._port_log.warning("Could not deliver the message. Maximum message size exceeded, trying individually")
                 # try resending individually
                 for msg in data_structs:
                     outm = props_to_any([CF.DataType(id=msg.getId(),value=struct_to_any(msg))])
                     try:
                         self._push(outm,connectionId)
                     except CORBA.MARSHAL:
-                        self._port_log.warn("Could not deliver the message id="+str(msg.getId())+". Maximum message size exceeded")
+                        self._port_log.warning("Could not deliver the message id="+str(msg.getId())+". Maximum message size exceeded")
                         break
                     except:
                         print("WARNING: Unable to send data to",connection)

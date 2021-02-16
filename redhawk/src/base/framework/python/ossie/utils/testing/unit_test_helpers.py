@@ -497,19 +497,25 @@ Examples:
         global IMPL_ID
         SOFT_PKG = self.spd_file
         spd = SPDParser.parse(self.spd_file)
-        
-        if self.testRunner is None:
-            try:
-                import xmlrunner
-                self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
-            except ImportError:
-                self.testRunner = unittest.TextTestRunner(verbosity=self.verbosity)
-        
-        for implementation in spd.get_implementation():
+
+        _testRunner = self.testRunner
+        ts=copy.deepcopy(self.test._tests)
+
+        for implementation in spd.get_implementation():        
             IMPL_ID = implementation.get_id()
             if IMPL_ID == self.impl or self.impl is None:
-                result = self.testRunner.run(self.test)
-                self.results.append(result)
+                if _testRunner is None:
+                    try:
+                        import xmlrunner
+                        self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
+                    except ImportError:
+                        self.testRunner = unittest.TextTestRunner(verbosity=self.verbosity)
+
+                    result = self.testRunner.run(self.test)
+                    self.results.append(result)
+                    # add tests back into test suite
+                    self.test._tests=copy.deepcopy(ts)
+
         #sys.exit(not result.wasSuccessful())
 
 def main(spd_file=None, module='__main__', defaultTest=None, argv=None, testRunner=None,

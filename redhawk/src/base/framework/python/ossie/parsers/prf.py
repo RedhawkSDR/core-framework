@@ -767,7 +767,7 @@ class action(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on ActionType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on ActionType' % {"value" : value.encode("utf-8")} )
     def hasContent_(self):
         if (
 
@@ -850,7 +850,7 @@ class configurationKind(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
             value = str(value)
             enumerations = ['configure', 'execparam', 'allocation', 'factoryparam', 'test', 'event', 'message', 'property']
             enumeration_respectee = False
@@ -859,7 +859,7 @@ class configurationKind(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
     def hasContent_(self):
         if (
 

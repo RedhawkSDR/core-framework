@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -22,6 +22,7 @@
 import threading
 import time
 import unittest
+import operator
 
 from omniORB import CORBA
 
@@ -107,13 +108,13 @@ class StreamSourceTest(unittest.TestCase):
 
     @format('ulonglong')
     def testWrite(self):
-        data = range(16)
+        data = list(range(16))
         ts = bulkio.timestamp.now()
         self.source.write(data, ts)
 
         # Check that the stub received a packet that matches
         self.assertEqual(1, len(self.stub.H))
-        self.failUnless(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
+        self.assertTrue(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
         self.assertEqual(1, len(self.stub.packets))
         self.assertEqual(self.source.streamID, self.stub.packets[-1].streamID)
         self.assertEqual(data, self.stub.packets[-1].data)
@@ -122,7 +123,7 @@ class StreamSourceTest(unittest.TestCase):
     @format('long')
     def testWriteTimestamp(self):
         # Explicit timestamp
-        data = range(16)
+        data = list(range(16))
         ts = bulkio.timestamp.create(10000.0, 0.75)
         self.source.write(data, ts)
 
@@ -135,14 +136,14 @@ class StreamSourceTest(unittest.TestCase):
         ts = bulkio.timestamp.now()
         self.source.write(data)
         self.assertEqual(2, len(self.stub.packets))
-        self.failIf(abs(self.stub.packets[-1].T - ts) > 1.0)
+        self.assertFalse(abs(self.stub.packets[-1].T - ts) > 1.0)
 
     @format('double')
     def testWriteComplex(self):
         # Write a 40-element complex list where the interleaved values are a
         # ramp
         self.source.complex = True
-        data = [complex(ii,ii+1) for ii in xrange(0, 80, 2)]
+        data = [complex(ii,ii+1) for ii in range(0, 80, 2)]
         self.source.write(data)
 
         # Check that the stub received a packet that matches (i.e., data is an
@@ -151,21 +152,21 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(1, self.stub.H[-1].mode)
         self.assertEqual(1, len(self.stub.packets))
         self.assertEqual(self.source.streamID, self.stub.packets[-1].streamID)
-        self.assertEqual(range(80), self.stub.packets[-1].data)
-        self.failIf(self.stub.packets[-1].EOS)
+        self.assertEqual(list(range(80)), self.stub.packets[-1].data)
+        self.assertFalse(self.stub.packets[-1].EOS)
 
         # Write a 20-element scalar list, which will be interpreted as 20
         # complex values with 0 for the imaginary portion
-        self.source.write(range(20))
+        self.source.write(list(range(20)))
         # To generate the expected output, walk through twice the range,
         # turning odd numbers into zeros and dividing even numbers in half
         # [ 0, 1, 2, 3, 4, 5...] => [ 0, 0, 1, 0, 2, 0...]
-        expected = [ii/2 if ii % 2 == 0 else 0 for ii in xrange(0, 40)]
+        expected = [ii//2 if ii % 2 == 0 else 0 for ii in range(0, 40)]
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(expected, self.stub.packets[-1].data)
 
         # Write pre-interleaved data
-        data = range(36)
+        data = list(range(36))
         self.source.write(data, interleaved=True)
         self.assertEqual(3, len(self.stub.packets))
         self.assertEqual(data, self.stub.packets[-1].data)
@@ -175,7 +176,7 @@ class StreamSourceTest(unittest.TestCase):
     def testWriteFramed(self):
         # Write a list of 4 ramps
         self.source.subsize = 16
-        data = [range(x,x+16) for x in xrange(0,64,16)]
+        data = [list(range(x,x+16)) for x in range(0,64,16)]
         self.source.write(data)
 
         # Check that the stub received a packet that matches (i.e., data is an
@@ -183,14 +184,14 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(16, self.stub.H[-1].subsize)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(range(64), self.stub.packets[-1].data)
+        self.assertEqual(list(range(64)), self.stub.packets[-1].data)
 
     @format('double')
     def testWriteFramedComplex(self):
         # Create a set of complex values where each alternating real/imaginary
         # value forms a ramp, and reframe it a a list of 4-item lists
-        data = [complex(x,x+1) for x in xrange(0, 32, 2)]
-        data = [data[x:x+4] for x in xrange(0, len(data), 4)]
+        data = [complex(x,x+1) for x in range(0, 32, 2)]
+        data = [data[x:x+4] for x in range(0, len(data), 4)]
         self.source.complex = True
         self.source.subsize = 4
         self.source.write(data)
@@ -201,17 +202,17 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(1, self.stub.H[-1].mode)
         self.assertEqual(4, self.stub.H[-1].subsize)
         self.assertEqual(1, len(self.stub.packets))
-        self.assertEqual(range(32), self.stub.packets[-1].data)
+        self.assertEqual(list(range(32)), self.stub.packets[-1].data)
 
         # Write a 4 frames of 4-element real lists; each element will be
         # interpreted as a complex value with 0 for the imaginary portion
-        data = range(16)
-        data = [data[x:x+4] for x in xrange(0, len(data), 4)]
+        data = list(range(16))
+        data = [data[x:x+4] for x in range(0, len(data), 4)]
         self.source.write(data)
         # To generate the expected output, walk through twice the range,
         # turning odd numbers into zeros and dividing even numbers in half
         # [ 0, 1, 2, 3, 4, 5...] => [ 0, 0, 1, 0, 2, 0...]
-        expected = [ii/2 if ii % 2 == 0 else 0 for ii in xrange(0, 32)]
+        expected = [ii//2 if ii % 2 == 0 else 0 for ii in range(0, 32)]
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(expected, self.stub.packets[-1].data)
 
@@ -220,7 +221,7 @@ class StreamSourceTest(unittest.TestCase):
         # Test that writing a 1-dimensional list for framed data still works as
         # expected
         self.source.subsize = 8
-        data = range(48)
+        data = list(range(48))
         self.source.write(data)
         self.assertEqual(1, len(self.stub.H))
         self.assertEqual(8, self.stub.H[-1].subsize)
@@ -309,14 +310,14 @@ class StreamSourceTest(unittest.TestCase):
         # Normal write, EOS should be false
         self.source.write([0] * 10)
         self.assertEqual(1, len(self.stub.packets))
-        self.failIf(self.stub.packets[-1].EOS)
+        self.assertFalse(self.stub.packets[-1].EOS)
 
         # Close the stream, which must send an EOS
         self.source.close()
         self.assertEqual(2, len(self.stub.packets))
         self.assertEqual(self.source.streamID, self.stub.packets[-1].streamID)
         self.assertEqual(0, len(self.stub.packets[-1].data))
-        self.failUnless(self.stub.packets[-1].EOS)
+        self.assertTrue(self.stub.packets[-1].EOS)
 
     def testStreamID(self):
         # Default: use instance name
@@ -365,26 +366,26 @@ class StreamSourceTest(unittest.TestCase):
         self.assertEqual(CORBA.TC_float, any_value.typecode())
 
         # Write to force an SRI push and compare the SRIs
-        self.source.write(range(16))
+        self.source.write(list(range(16)))
         self.assertEqual(1, len(self.stub.H))
-        self.failUnless(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
+        self.assertTrue(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
 
         # Modify a few fields and make sure the SRI is updated
         self.source.xdelta = 0.0625
         self.source.blocking = False
         self.source.eraseKeyword('CHAN_RF')
-        self.source.write(range(16))
+        self.source.write(list(range(16)))
         self.assertEqual(2, len(self.stub.H))
-        self.failUnless(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
+        self.assertTrue(bulkio.sri.compare(self.source.sri, self.stub.H[-1]))
 
     def testPortAccess(self):
         # New source should have no port yet
         source2 = StreamSource(sandbox=self.sandbox)
-        self.failUnless(source2.port is None)
+        self.assertTrue(source2.port is None)
 
         # A connection has already been made for the test fixture's source, so
         # the port must be defined
-        self.failIf(self.source.port is None)
+        self.assertFalse(self.source.port is None)
 
         # Use direct access to create another stream
         stream = self.source.port.createStream('test_stream')
@@ -393,12 +394,12 @@ class StreamSourceTest(unittest.TestCase):
     def testStreamAccess(self):
         # New source should have no stream yet
         source2 = StreamSource(sandbox=self.sandbox)
-        self.failUnless(source2.stream is None)
+        self.assertTrue(source2.stream is None)
 
         # A connection has already been made for the test fixture's source, so
         # a new stream should be created on access
         stream = self.source.stream
-        self.failIf(stream is None)
+        self.assertFalse(stream is None)
         self.assertEqual(self.source.streamID, stream.streamID)
 
     def testFormat(self):
@@ -436,21 +437,21 @@ class StreamSinkTest(unittest.TestCase):
     def testRead(self):
         # Read from empty sink
         sink_data = self.sink.read(timeout=0.0)
-        self.failUnless(sink_data is None)
+        self.assertTrue(sink_data is None)
 
         # Push directly to the port
         sri = bulkio.sri.create('test_read')
         self.port.pushSRI(sri)
-        data = range(16)
+        data = list(range(16))
         ts = bulkio.timestamp.now()
-        self.port.pushPacket(range(16), ts, False, sri.streamID)
+        self.port.pushPacket(list(range(16)), ts, False, sri.streamID)
 
         # Read the packet we just pushed
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual(sri.streamID, sink_data.sri.streamID)
         self.assertEqual(1, len(sink_data.sris))
-        self.failUnless(bulkio.sri.compare(sri, sink_data.sri))
+        self.assertTrue(bulkio.sri.compare(sri, sink_data.sri))
         self.assertEqual(data, sink_data.data)
         self.assertEqual((0, ts), sink_data.timestamps[0])
 
@@ -461,12 +462,12 @@ class StreamSinkTest(unittest.TestCase):
         sri.mode = 1
         self.port.pushSRI(sri)
         ts = bulkio.timestamp.now()
-        self.port.pushPacket(range(32), ts, False, sri.streamID)
+        self.port.pushPacket(list(range(32)), ts, False, sri.streamID)
 
         # Data should be returned as complex values
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
-        expected = [complex(x,x+1) for x in xrange(0,32,2)]
+        self.assertFalse(data is None)
+        expected = [complex(x,x+1) for x in range(0,32,2)]
         self.assertEqual(expected, data.data)
 
     @format('ushort')
@@ -476,26 +477,26 @@ class StreamSinkTest(unittest.TestCase):
         sri.subsize = 16
         self.port.pushSRI(sri)
         ts1 = bulkio.timestamp.now()
-        self.port.pushPacket(range(64), ts1, False, sri.streamID)
+        self.port.pushPacket(list(range(64)), ts1, False, sri.streamID)
 
         # Data should be returned as a 4-item list of lists
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(4, len(data.data))
-        expected = [range(x, x+16) for x in xrange(0, 64, 16)]
+        expected = [list(range(x, x+16)) for x in range(0, 64, 16)]
         self.assertEqual(expected, data.data)
 
         # Push another four frames across two packets
         ts2 = bulkio.timestamp.now()
-        self.port.pushPacket(range(32,64), ts2, False, sri.streamID)
+        self.port.pushPacket(list(range(32,64)), ts2, False, sri.streamID)
         ts3 = bulkio.timestamp.now()
-        self.port.pushPacket(range(64,96), ts3, False, sri.streamID)
+        self.port.pushPacket(list(range(64,96)), ts3, False, sri.streamID)
 
         # Data should be returned as a 4-item list of lists
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(4, len(data.data))
-        expected = [range(x, x+16) for x in xrange(32, 96, 16)]
+        expected = [list(range(x, x+16)) for x in range(32, 96, 16)]
         self.assertEqual(expected, data.data)
 
         # Time stamp offsets should be frame-based
@@ -513,26 +514,26 @@ class StreamSinkTest(unittest.TestCase):
         sri.subsize = 10
         self.port.pushSRI(sri)
         ts1 = bulkio.timestamp.now()
-        self.port.pushPacket(range(20), ts1, False, sri.streamID)
+        self.port.pushPacket(list(range(20)), ts1, False, sri.streamID)
 
         # Data should be returned as a 1-item list of lists of complex values
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(1, len(data.data))
-        expected = [[complex(x,x+1) for x in xrange(0, 20,2)]]
+        expected = [[complex(x,x+1) for x in range(0, 20,2)]]
         self.assertEqual(expected, data.data)
 
         # Push three frames across two packets
         ts2 = bulkio.timestamp.now()
-        self.port.pushPacket(range(40), ts2, False, sri.streamID)
+        self.port.pushPacket(list(range(40)), ts2, False, sri.streamID)
         ts3 = bulkio.timestamp.now()
-        self.port.pushPacket(range(40,60), ts3, False, sri.streamID)
+        self.port.pushPacket(list(range(40,60)), ts3, False, sri.streamID)
 
         # Data should come back as a 3-item list
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(3, len(data.data))
-        expected = [[complex(x,x+1) for x in xrange(y, y+20,2)] for y in xrange(0, 60, 20)]
+        expected = [[complex(x,x+1) for x in range(y, y+20,2)] for y in range(0, 60, 20)]
         self.assertEqual(expected, data.data)
 
         # Time stamp offsets should be frame-based
@@ -553,7 +554,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Read should return the equivalent bitbuffer
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual(data1, sink_data.data)
         self.assertEqual(1, len(sink_data.timestamps))
         self.assertEqual(0, sink_data.timestamps[0].offset)
@@ -571,7 +572,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Read should merge all of the bits into a single bitbuffer
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual(data1+data2+data3, sink_data.data)
         self.assertEqual(3, len(sink_data.timestamps))
 
@@ -603,7 +604,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Data should be returned as a 4-item list of bitbuffers
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual(4, len(sink_data.data))
         self.assertEqual([zeros,ones,zeros,ones], sink_data.data)
 
@@ -615,7 +616,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Data should be returned as a 6-item list of bitbuffers
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual(6, len(sink_data.data))
         self.assertEqual([zeros,ones,zeros,ones,zeros,ones], sink_data.data)
 
@@ -637,7 +638,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Read should return a list of URIs with 1 timestamp per URI
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual([uri1], sink_data.data)
         self.assertEqual(1, len(sink_data.timestamps))
         self.assertEqual(0, sink_data.timestamps[0].offset)
@@ -655,7 +656,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Again, read should return a list of URIs with 1 timestamp per URI
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual([uri1, uri2, uri3], sink_data.data)
         self.assertEqual(3, len(sink_data.timestamps))
 
@@ -675,7 +676,7 @@ class StreamSinkTest(unittest.TestCase):
         # Read should return a list of complete XML strings, and there should
         # be no timestamps; in this case, there's only one XML string
         sink_data = self.sink.read(timeout=1.0)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual([data1], sink_data.data)
         self.assertEqual(0, len(sink_data.timestamps))
 
@@ -688,7 +689,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # This time, it should return 3 XML strings, but still no timestamps
         sink_data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(sink_data is None)
+        self.assertFalse(sink_data is None)
         self.assertEqual([data1, data2, data3], sink_data.data)
         self.assertEqual(0, len(sink_data.timestamps))
 
@@ -698,27 +699,27 @@ class StreamSinkTest(unittest.TestCase):
         sri = bulkio.sri.create('test_read_stream_1')
         self.port.pushSRI(sri)
         ts = bulkio.timestamp.now()
-        self.port.pushPacket(range(16), ts, False, sri.streamID)
+        self.port.pushPacket(list(range(16)), ts, False, sri.streamID)
 
         # Read from a stream that does not have data should fail
         data = self.sink.read(timeout=0.1, streamID='not here')
-        self.failUnless(data is None)
+        self.assertTrue(data is None)
 
         # Push to a second stream ID
         sri = bulkio.sri.create('test_read_stream_2')
         self.port.pushSRI(sri)
         ts = bulkio.timestamp.now()
-        self.port.pushPacket(range(16), ts, False, sri.streamID)
+        self.port.pushPacket(list(range(16)), ts, False, sri.streamID)
 
         # Read should return data specifically from the given streamID (need to
         # give it a timeout so that the sink's thread has time to queue the
         # packet data)
         data = self.sink.read(timeout=1.0, streamID=sri.streamID)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(sri.streamID, data.sri.streamID)
         self.assertEqual(1, len(data.sris))
-        self.failUnless(bulkio.sri.compare(sri, data.sri))
-        self.assertEqual(range(16), data.data)
+        self.assertTrue(bulkio.sri.compare(sri, data.sri))
+        self.assertEqual(list(range(16)), data.data)
         self.assertEqual((0, ts), data.timestamps[0])
 
     @format('char')
@@ -740,7 +741,7 @@ class StreamSinkTest(unittest.TestCase):
 
         # Read all of the data and check the timestamps against what was sent
         data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(3, len(data.timestamps))
         for (exp_off, exp_ts), (act_off, act_ts) in zip(expected, data.timestamps):
             self.assertEqual(exp_off, act_off)
@@ -767,7 +768,7 @@ class StreamSinkTest(unittest.TestCase):
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri.streamID)
 
         data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(3, len(data.timestamps))
         for (exp_off, exp_ts), (act_off, act_ts) in zip(expected, data.timestamps):
             self.assertEqual(exp_off, act_off)
@@ -779,36 +780,36 @@ class StreamSinkTest(unittest.TestCase):
         sri = bulkio.sri.create('test_sri_changes')
         sri.xdelta = 1.0
         self.port.pushSRI(sri)
-        self.port.pushPacket('\x00', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'\x00', bulkio.timestamp.now(), False, sri.streamID)
 
         # Modify the SRI and push some more
         sri2 = bulkio.sri.create(sri.streamID)
         sri2.xdelta = 2.0
         self.port.pushSRI(sri2)
-        self.port.pushPacket('\x01', bulkio.timestamp.now(), False, sri.streamID)
-        self.port.pushPacket('\x02', bulkio.timestamp.now(), False, sri.streamID)
-        self.port.pushPacket('\x03', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'\x01', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'\x02', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'\x03', bulkio.timestamp.now(), False, sri.streamID)
 
         # One last modification and some data, followed by an EOS
         sri3 = bulkio.sri.create(sri.streamID)
         sri3.xdelta = 3.0
         self.port.pushSRI(sri3)
-        self.port.pushPacket('\x04', bulkio.timestamp.now(), False, sri.streamID)
-        self.port.pushPacket('\x05', bulkio.timestamp.now(), False, sri.streamID)
-        self.port.pushPacket('', bulkio.timestamp.notSet(), True, sri.streamID)
+        self.port.pushPacket(b'\x04', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'\x05', bulkio.timestamp.now(), False, sri.streamID)
+        self.port.pushPacket(b'', bulkio.timestamp.notSet(), True, sri.streamID)
 
         # Read all of the data up to the EOS to ensure we get all of the SRIs,
         # then check the SRIs and offsets
         data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         self.assertEqual(sri.streamID, data.streamID)
         self.assertEqual(3, len(data.sris))
         self.assertEqual(0, data.sris[0].offset)
-        self.failUnless(bulkio.sri.compare(sri, data.sris[0].sri))
+        self.assertTrue(bulkio.sri.compare(sri, data.sris[0].sri))
         self.assertEqual(1, data.sris[1].offset)
-        self.failUnless(bulkio.sri.compare(sri2, data.sris[1].sri))
+        self.assertTrue(bulkio.sri.compare(sri2, data.sris[1].sri))
         self.assertEqual(4, data.sris[2].offset)
-        self.failUnless(bulkio.sri.compare(sri3, data.sris[2].sri))
+        self.assertTrue(bulkio.sri.compare(sri3, data.sris[2].sri))
 
     @format('short')
     def testWaitEOS(self):
@@ -829,36 +830,36 @@ class StreamSinkTest(unittest.TestCase):
         # Read until end-of-stream should succeed, returning all the data
         # pushed, with EOS set
         sink_data = self.sink.read(timeout=1.0, eos=True)
-        self.failIf(sink_data is None)
-        self.failUnless(sink_data.eos)
+        self.assertFalse(sink_data is None)
+        self.assertTrue(sink_data.eos)
         self.assertEqual(sri.streamID, sink_data.sri.streamID)
-        self.assertEqual(range(10), sink_data.data)
+        self.assertEqual(list(range(10)), sink_data.data)
 
     @format('float')
     def testWaitStreamAndEOS(self):
         # Push directly to the port
         sri = bulkio.sri.create('test_stream_eos_1')
         self.port.pushSRI(sri)
-        self.port.pushPacket(range(7), bulkio.timestamp.now(), True, sri.streamID)
+        self.port.pushPacket(list(range(7)), bulkio.timestamp.now(), True, sri.streamID)
 
         # Read with eos=True and a different stream ID should fail
         sink_data = self.sink.read(timeout=0.1, streamID='other', eos=True)
-        self.failUnless(sink_data is None)
+        self.assertTrue(sink_data is None)
 
         # Push new data and an end-of-stream packet to a second stream
         sri2 = bulkio.sri.create('test_stream_eos_2')
         self.port.pushSRI(sri2)
-        self.port.pushPacket(range(21), bulkio.timestamp.now(), False, sri2.streamID)
-        self.port.pushPacket(range(21, 32), bulkio.timestamp.now(), False, sri2.streamID)
+        self.port.pushPacket(list(range(21)), bulkio.timestamp.now(), False, sri2.streamID)
+        self.port.pushPacket(list(range(21, 32)), bulkio.timestamp.now(), False, sri2.streamID)
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri2.streamID)
 
         # Read until end-of-stream should succeed, returning all the data
         # pushed, with EOS set
         sink_data = self.sink.read(timeout=1.0, streamID=sri2.streamID, eos=True)
-        self.failIf(sink_data is None)
-        self.failUnless(sink_data.eos)
+        self.assertFalse(sink_data is None)
+        self.assertTrue(sink_data.eos)
         self.assertEqual(sri2.streamID, sink_data.sri.streamID)
-        self.assertEqual(range(32), sink_data.data)
+        self.assertEqual(list(range(32)), sink_data.data)
 
     @format('double')
     def testStreamIDs(self):
@@ -884,22 +885,22 @@ class StreamSinkTest(unittest.TestCase):
         # only the second stream's ID should remain
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_1.streamID)
         data = self.sink.read(timeout=1.0, streamID=sri_1.streamID)
-        self.failIf(data is None)
-        self.failUnless(data.eos)
+        self.assertFalse(data is None)
+        self.assertTrue(data.eos)
         self.assertEqual([sri_2.streamID], self.sink.streamIDs())
 
         # Read all the data from the second stream; it should still be active
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
-        self.failIf(data.eos)
+        self.assertFalse(data is None)
+        self.assertFalse(data.eos)
         self.assertEqual([sri_2.streamID], self.sink.streamIDs())
 
         # Close out the second stream
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_2.streamID)
         self.assertEqual([sri_2.streamID], self.sink.streamIDs())
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
-        self.failUnless(data.eos)
+        self.assertFalse(data is None)
+        self.assertTrue(data.eos)
 
         # Should end up with no streams
         self.assertEqual([], self.sink.streamIDs())
@@ -916,7 +917,7 @@ class StreamSinkTest(unittest.TestCase):
         self.port.pushPacket([0], bulkio.timestamp.now(), False, sri_1.streamID)
         active_sris = self.sink.activeSRIs()
         self.assertEqual(1, len(active_sris))
-        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.assertTrue(bulkio.sri.compare(sri_1, active_sris[0]))
 
         # Push a second stream
         sri_2 = bulkio.sri.create('test_streamids_2')
@@ -927,16 +928,16 @@ class StreamSinkTest(unittest.TestCase):
         active_sris = self.sink.activeSRIs()
         self._sortSRIs(active_sris)
         self.assertEqual(2, len(active_sris))
-        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
-        self.failUnless(bulkio.sri.compare(sri_2, active_sris[1]))
+        self.assertTrue(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.assertTrue(bulkio.sri.compare(sri_2, active_sris[1]))
 
         # Send an end-of-stream for the second stream, but don't read it yet
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_2.streamID)
         active_sris = self.sink.activeSRIs()
         self._sortSRIs(active_sris)
         self.assertEqual(2, len(active_sris))
-        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
-        self.failUnless(bulkio.sri.compare(sri_2, active_sris[1]))
+        self.assertTrue(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.assertTrue(bulkio.sri.compare(sri_2, active_sris[1]))
 
         # Modify first SRI and push some more data; the active SRI should still
         # have the original values (xdelta == 1.0)
@@ -951,7 +952,7 @@ class StreamSinkTest(unittest.TestCase):
         # Read all of the data from the first stream; afterwards, the active
         # SRI should have the updated values
         data = self.sink.read(timeout=1.0, streamID=sri_1.streamID)
-        self.failIf(data is None)
+        self.assertFalse(data is None)
         active_sris = self.sink.activeSRIs()
         self._sortSRIs(active_sris)
         self.assertEqual(2, len(active_sris))
@@ -960,33 +961,33 @@ class StreamSinkTest(unittest.TestCase):
         # Acknowledge the end-of-stream for the second stream, and make sure it
         # no longer shows up in the active SRIs
         data = self.sink.read(timeout=1.0, streamID=sri_2.streamID)
-        self.failIf(data is None)
-        self.failUnless(data.eos)
+        self.assertFalse(data is None)
+        self.assertTrue(data.eos)
         active_sris = self.sink.activeSRIs()
         self.assertEqual(1, len(active_sris))
-        self.failUnless(bulkio.sri.compare(sri_1, active_sris[0]))
+        self.assertTrue(bulkio.sri.compare(sri_1, active_sris[0]))
 
         # Close out the first stream and make sure there are no more active
         # SRIs
         self.port.pushPacket([], bulkio.timestamp.notSet(), True, sri_1.streamID)
         data = self.sink.read(timeout=1.0)
-        self.failIf(data is None)
-        self.failUnless(data.eos)
+        self.assertFalse(data is None)
+        self.assertTrue(data.eos)
         self.assertEqual([], self.sink.activeSRIs())
 
     def _sortSRIs(self, sris):
         # Sorts a list of SRIs by stream ID
-        sris.sort(cmp=lambda x,y: cmp(x.streamID, y.streamID))
+        sris.sort(key=lambda x: x.streamID )
 
     def testPortAccess(self):
         # New sink should have no port yet
         sink2 = StreamSink(sandbox=self.sandbox)
-        self.failUnless(sink2.port is None)
+        self.assertTrue(sink2.port is None)
 
         # A connection has already been made for the test fixture's sink, so
         # the port must be defined
         port = self.sink.port
-        self.failIf(port is None)
+        self.assertFalse(port is None)
 
         # Try calling a port method as a quick sanity check
         self.assertEqual([], port.getStreams())

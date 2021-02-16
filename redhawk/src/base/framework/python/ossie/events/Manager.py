@@ -103,7 +103,7 @@ class Manager:
                 Manager._manager = Manager( resource )
             except:
                 #print traceback.format_exc()
-                logging.getLogger("ossie.events.Manager").warn("Unable to resolve Event Manager")
+                logging.getLogger("ossie.events.Manager").warning("Unable to resolve Event Manager")
  
         return Manager._manager
 

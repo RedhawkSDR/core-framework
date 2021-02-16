@@ -232,7 +232,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         global exit_condition
         while True:
             if timeout < (_time.time() - begin_time):
-                log.warn("Timeout reached. File '"+sink+"' is incomplete")
+                log.warning("Timeout reached. File '"+sink+"' is incomplete")
                 timeout_condition = True
                 undo_all(undos)
             _time.sleep(0.1)
@@ -247,7 +247,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         global exit_condition
         while True:
             if not _comp._process.isAlive():
-                log.warn('******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************')
+                log.warning('******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************')
                 crashed_condition = True
                 undo_all(undos)
             _time.sleep(0.1)

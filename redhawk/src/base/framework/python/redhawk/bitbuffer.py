@@ -74,7 +74,7 @@ def _copy_bits(dest, dstart, src, sstart, count):
         # next byte as well)
         dbyte += 1
         sbit += nbits
-        sbyte += sbit / 8
+        sbyte += sbit // 8
         sbit = sbit & 7
         count -= nbits
 

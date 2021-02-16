@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -45,7 +45,7 @@ class Test_SADxml(unittest.TestCase):
         try:
             sad = sb.generateSADXML("testsadxml")
         except:
-	    traceback.print_exc()
+            traceback.print_exc()
             self.fail("Generate SAD raised exception")
         self.assertEqual(sad.find("StreamSource"), -1, "Found StreamSource in SAD")
         self.assertEqual(sad.find("StreamSink"), -1, "Found StreamSink in SAD")

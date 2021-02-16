@@ -41,15 +41,15 @@ class Test_QueueFlush(unittest.TestCase):
         source = sb.StreamSource()
         source.connect(comp)
         source.start()
-        data = range(100)
+        data = list(range(100))
         for _ in range(1000):
             source.write(data)
         comp.start()
         time.sleep(1)
-        self.assertEquals(comp.verified,True)
-        self.assertEquals(comp.changed,True)
-        self.assertEquals(len(comp.ports[0].ref._get_statistics().keywords),1)
-        self.assertEquals(comp.ports[0].ref._get_statistics().keywords[0].id,'timeSinceLastFlush')
+        self.assertEqual(comp.verified,True)
+        self.assertEqual(comp.changed,True)
+        self.assertEqual(len(comp.ports[0].ref._get_statistics().keywords),1)
+        self.assertEqual(comp.ports[0].ref._get_statistics().keywords[0].id,'timeSinceLastFlush')
         
 
 if __name__ == '__main__':

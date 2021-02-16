@@ -22,6 +22,7 @@ import datetime
 import calendar
 import struct
 import math
+from  cmath import isclose
 import copy as _copy
 
 def difference(t1, t2):
@@ -74,6 +75,44 @@ def compare(t1, t2):
         return cmp(t1.pf250_,t2.pf250_)
     else:
         return cmp(t1.ps250_,t2.ps250_)
+
+def _equal(t1, t2):
+     if not isinstance(t1, Time) or  not isinstance(t2, Time):
+          return false
+     return isclose(t1.ps250_,t2.ps250_) and isclose(t1.pf250_,t2.pf250_)
+
+def _lt(t1, t2):
+     if not isinstance(t1, Time) or  not isinstance(t2, Time):
+          return false
+     ret=(t1.ps250_ < t2.ps250_)
+     if not ret and isclose(t1.ps250_,t2.ps250_):
+          ret=(t1.pf250_ < t2.pf250_)
+     return ret
+
+def _le(t1, t2):
+     if not isinstance(t1, Time) or  not isinstance(t2, Time):
+          return false
+     ret=(t1.ps250_ < t2.ps250_)
+     if not ret and isclose(t1.ps250_,t2.ps250_):
+          ret=(t1.pf250_ <= t2.pf250_)
+     return ret
+
+def _gt(t1, t2):
+     if not isinstance(t1, Time) or  not isinstance(t2, Time):
+          return false
+     ret=(t1.ps250_ > t2.ps250_)
+     if not ret and isclose(t1.ps250_,t2.ps250_):
+          ret=(t1.pf250_ > t2.pf250_)
+     return ret
+
+def _ge(t1, t2):
+     if not isinstance(t1, Time) or  not isinstance(t2, Time):
+          return false
+     ret=(t1.ps250_ > t2.ps250_)
+     if not ret and isclose(t1.ps250_,t2.ps250_):
+          ret=(t1.pf250_ >= t2.pf250_)
+     return ret
+
 
 class Time:
     REDHAWK_FORMAT="%Y:%m:%d::%H:%M:%S"
@@ -171,5 +210,12 @@ Time.__iadd__ = iadd
 Time.__sub__ = sub
 Time.__isub__ = isub
 Time.__isub__ = isub
-Time.__cmp__ = compare
 Time.__str__ = Time.toString
+Time.__cmp__ = compare
+Time.__eq__ = _equal
+Time.__lt__ = _lt
+Time.__le__ = _le
+Time.__gt__ = _gt
+Time.__ge__ = _ge
+
+

@@ -856,7 +856,7 @@ class FileSource(_SourceBase):
         # and flags to determine whether or not it's reversed or complex
         
         if dataFormat == None:
-            log.warn("dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat)
+            log.warning("dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat)
             dataFormat = self._defaultDataFormat
             if complexData:
                 dataFormat = dataFormat + 'c'
@@ -1090,7 +1090,7 @@ class FileSink(_SinkBase):
         else:
             # If the user has yet to call getPort(), the the file sink may
             # not yet exist.
-            log.warn("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
+            log.warning("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
 
 class DataSinkSDDS(_SinkBase):
     """
@@ -1608,7 +1608,7 @@ class DataSource(_SourceBase):
                                                       streamID)
                 self._packetSent()
             except Exception as e:
-                log.warn(self.className + ":pushData() failed " + str(e))
+                log.warning(self.className + ":pushData() failed " + str(e))
         self.threadExited = True
 
     def _pushPacketsAllConnectedPorts(self,

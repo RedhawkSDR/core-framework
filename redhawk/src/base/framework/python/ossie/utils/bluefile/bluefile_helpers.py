@@ -277,7 +277,7 @@ class BlueFileReader(object):
             except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -297,7 +297,7 @@ class BlueFileReader(object):
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 

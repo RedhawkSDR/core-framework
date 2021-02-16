@@ -23,7 +23,7 @@ from ossie.utils import sb
 dsource=sb.DataSource()
 dsink=sb.DataSink()
 test_comp=sb.Component('CPP_Ports')
-data=range(100)
+data=list(range(100))
 dsource.connect(test_comp, providesPortName='dataShortIn')
 test_comp.connect(dsink, providesPortName='shortIn', usesPortName='dataShortOut')
 sb.start()

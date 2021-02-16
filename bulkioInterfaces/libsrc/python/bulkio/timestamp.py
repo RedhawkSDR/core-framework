@@ -20,7 +20,7 @@
 import time
 import copy
 import math
-
+from  cmath import isclose
 from bulkio.bulkioInterfaces import BULKIO
 
 def now():
@@ -135,6 +135,43 @@ def compare(t1, t2):
     else:
         return cmp(t1.twsec, t2.twsec)
 
+def _equal(t1, t2):
+    if not isinstance(t1, BULKIO.PrecisionUTCTime) or  not isinstance(t2, BULKIO.PrecisionUTCTime):
+        return false
+    return isclose(t1.twsec, t2.twsec) and isclose(t1.tfsec, t2.tfsec)
+
+def _lt(t1, t2):
+    if not isinstance(t2, BULKIO.PrecisionUTCTime):
+        return false
+    ret=(t1.twsec<t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec < t2.tfsec)
+    return ret
+
+def _le(t1, t2):
+    if not isinstance(t2, BULKIO.PrecisionUTCTime):
+        return false
+    ret=(t1.twsec<t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec <= t2.tfsec)
+    return ret
+
+def _gt(t1, t2):
+    if not isinstance(t2, BULKIO.PrecisionUTCTime):
+        return false
+    ret=(t1.twsec>t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec > t2.tfsec)
+    return ret
+
+def _ge(t1, t2):
+    if not isinstance(t2, BULKIO.PrecisionUTCTime):
+        return false
+    ret=(t1.twsec>t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec >= t2.tfsec)
+    return ret    
+
 def toString(tstamp):
     # Break out the whole seconds into a GMT time
     gmt = time.gmtime(tstamp.twsec)
@@ -150,3 +187,9 @@ BULKIO.PrecisionUTCTime.__sub__ = sub
 BULKIO.PrecisionUTCTime.__isub__ = isub
 BULKIO.PrecisionUTCTime.__str__ = toString
 BULKIO.PrecisionUTCTime.__cmp__ = compare
+BULKIO.PrecisionUTCTime.__eq__ = _equal
+BULKIO.PrecisionUTCTime.__lt__ = _lt
+BULKIO.PrecisionUTCTime.__le__ = _le
+BULKIO.PrecisionUTCTime.__gt__ = _gt
+BULKIO.PrecisionUTCTime.__ge__ = _ge
+

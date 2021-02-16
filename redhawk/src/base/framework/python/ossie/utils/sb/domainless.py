@@ -730,7 +730,7 @@ def loadSADFile(filename, props={}):
                 log.debug("Found softpkg '%s'", spdFilename)
                 validRequestedComponents[component.get_id()] = spdFilename
             except:
-                log.warn("Could not find softpkg '%s'", component.get_localfile().get_name())
+                log.warning("Could not find softpkg '%s'", component.get_localfile().get_name())
 
         # Need to determine which component is the assembly controller
         assemblyControllerRefid = None
@@ -738,7 +738,7 @@ def loadSADFile(filename, props={}):
             assemblyControllerRefid = sad.assemblycontroller.get_componentinstantiationref().get_refid() + waveform_modifier
             log.debug("ASSEMBLY CONTROLLER component instantiation ref '%s'", assemblyControllerRefid)
         if not assemblyControllerRefid:
-            log.warn('SAD file did not specify an assembly controller')
+            log.warning('SAD file did not specify an assembly controller')
 
         #
         # Allow for external properties to be set
@@ -867,7 +867,7 @@ def loadSADFile(filename, props={}):
                         if connection.get_usesport().get_componentinstantiationref() != None:
                             usesPortComponentRefid = connection.get_usesport().get_componentinstantiationref().get_refid()
                         else:
-                            log.warn("Unable to create connection for '%s'",connection.get_usesport().get_usesidentifier())
+                            log.warning("Unable to create connection for '%s'",connection.get_usesport().get_usesidentifier())
                             continue
                         log.debug("CONNECTION INTERFACE: uses port name '%s'", usesPortName)
                         log.debug("CONNECTION INTERFACE: uses port component ref '%s'", usesPortComponentRefid)
@@ -888,7 +888,7 @@ def loadSADFile(filename, props={}):
                             if connection.get_providesport().get_componentinstantiationref() != None:
                                 providesPortComponentRefid = connection.get_providesport().get_componentinstantiationref().get_refid()
                             else:
-                                log.warn("Unable to create connection for '%s'",connection.get_providesport().get_providesidentifier())
+                                log.warning("Unable to create connection for '%s'",connection.get_providesport().get_providesidentifier())
                                 continue
                             log.debug("CONNECTION INTERFACE: provides port name '%s'", providesPortName)
                             log.debug("CONNECTION INTERFACE: provides port component ref '%s'", providesPortComponentRefid)
@@ -905,7 +905,7 @@ def loadSADFile(filename, props={}):
                             if connection.get_componentsupportedinterface().get_componentinstantiationref() != None:
                                 providesPortComponentRefid = connection.get_componentsupportedinterface().get_componentinstantiationref().get_refid()
                             else:
-                                log.warn("Unable to create connection")
+                                log.warning("Unable to create connection")
                                 continue
                             if _DEBUG == True:
                                 print("loadSADFile(): CONNECTION INTERFACE: componentsupportedinterface port interface " + str(connection.get_componentsupportedinterface().get_supportedidentifier()))

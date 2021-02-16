@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -103,23 +103,23 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         newStream = {
             'sdds::privateInfo': "whoops", 
             'sdds::timeTagValid': False, 
-            'sdds::sampleRate': 0L, 
+            'sdds::sampleRate': 0, 
             'sdds::id': streamId, 
             'sdds::multicastAddress': '0.0.0.0', 
-            'sdds::port': 0L, 
-            'sdds::vlan': 0L
+            'sdds::port': 0, 
+            'sdds::vlan': 0
         }
         self.source.SDDSStreamDefinitions.append(newStream)
 
     def addVitaStream(self, streamId):
         newStream = {
             'vita49::data_item_size': 0, 
-            'vita49::vlan': 0L, 
+            'vita49::vlan': 0, 
             'vita49::vector_size': 0, 
             'vita49::valid_data_format': False, 
             'vita49::event_tag_size': 0, 
             'vita49::channel_tag_size': 0, 
-            'vita49::port': 0L, 
+            'vita49::port': 0, 
             'vita49::repeat_count': 0, 
             'vita49::item_packing_field_size': 0, 
             'vita49::ip_address': '0.0.0.0', 
@@ -161,7 +161,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                 break
             except:
                 time.sleep(1)
-        inFloatPort.pushPacket(range(1,100),T,False,streamId)
+        inFloatPort.pushPacket(list(range(1,100)),T,False,streamId)
 
         # Wait until we know that the packet and SRI have been processed by the
         # source; this prevents some tests from reporting spurious failures due
@@ -170,22 +170,22 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.waitForPacketIngestion(self.source, expected_packets, delay=0.1)
     
     def assertNumNewSRICallbacks(self, num):
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, num)
 
     def assertNumSRIChangeCallbacks(self, num):
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, num)
 
     def checkTimeoutException(self, port, initial_length):
         len_attachedSRIs = initial_length
         try:
             len_attachedSRIs = len(port._get_attachedSRIs())
-        except Exception, e:
+        except Exception as e:
             if type(e) == CORBA.COMM_FAILURE:
                 if e.minor != omniORB.COMM_FAILURE_WaitingForReply and e.completed != CORBA.COMPLETED_MAYBE:
                     raise(e)
@@ -214,7 +214,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                         attachedSRIs = port._get_attachedSRIs()
                         self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
                         all_fields = True
-                        for key,val in sriFields.items():
+                        for key,val in list(sriFields.items()):
                             if getattr(attachedSRIs[0],key) == val:
                                 continue
                             else:
@@ -223,7 +223,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                             time.sleep(1) # key is not there
                         else:
                             break
-                    except Exception, e:
+                    except Exception as e:
                         if type(e) == CORBA.COMM_FAILURE:
                             if e.minor != omniORB.COMM_FAILURE_WaitingForReply and e.completed != CORBA.COMPLETED_MAYBE:
                                 raise(e)
@@ -256,7 +256,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         sdds_in = self.source.getPort("dataSDDS_in")
         attach_id = sdds_in.attach(sdds_stream_def,"")
         sdef = sdds_in.getStreamDefinition(attach_id)
-        print 'Attached stream: %s' % sdef
+        print('Attached stream: %s' % sdef)
         sdds_in.detach(attach_id) 
 
     
@@ -264,31 +264,31 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()       
  
         # No attaches should have been made
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 0)
         
         # No detaches should have been made
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 0)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 0)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 0)
     
     def testVitaConnectionsWithNoStreams(self):
         self.connectAllVita()       
  
         # No attaches should have been made
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 0)
         
         # No detaches should have been made
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 0)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 0)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 0)
 
     # 
     # Test adding streams while connections exist
@@ -297,10 +297,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.addSddsStream("Stream1")
 
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 1)
     
     def testAddingSDDSStreamsToActiveConnections(self):
         self.connectAllSdds()
@@ -308,10 +308,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream2")
         self.addSddsStream("Stream3")
         
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 3)
    
     # 
     # Test adding connections after streams
@@ -320,10 +320,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream1")
         self.connectAllSdds()
 
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 1)
 
     def testAddingSDDSConnectionsToActiveStreams(self):
         self.addSddsStream("Stream1")
@@ -331,10 +331,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream3")
         self.connectAllSdds()
         
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 3)
 
     def testAddingSDDSConnectionsAfterStreamDefinitions(self):
         self.addSddsStream("Stream1")
@@ -345,15 +345,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.pushSRI('Stream3')
         self.connectAllSdds()
         
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 3)
 
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 3)
     
     #
     # Test removing streams
@@ -365,10 +365,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.disconnectAll()
         
-        self.assertEquals(self.sink1.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_detaches, 3)
     
     def testDisconnectingActiveSDDSStreamsCF(self):
         self.connectAllSdds()
@@ -377,10 +377,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream3")
         self.disconnectAll()
 
-        self.assertEquals(self.sink1.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_detaches, 3)
     
     #
     # Test reconnecting streams
@@ -395,20 +395,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream2")
         self.addSddsStream("Stream3")
 
-        self.assertEquals(self.sink1.callback_stats.num_sdds_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_attaches, 6)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_attaches, 6)
         
-        self.assertEquals(self.sink1.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_sdds_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_sdds_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_sdds_detaches, 3)
 
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 3)
 
     #
     # Test connection table
@@ -420,10 +420,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 0)
     
     def testFilterTablePreSDDSConnection(self):
         self.addSddsStream("Stream1")
@@ -432,10 +432,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
         self.connectAllSdds()
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 0)
     
     def testFilterTablePreSDDSStreams(self):
         self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
@@ -444,10 +444,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addSddsStream("Stream3")
         self.connectAllSdds()
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 0)
     
     def testFilterTableInvalidSDDSPort(self):
         self.addSddsStream("Stream1")
@@ -456,10 +456,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.addConnectionTableEntry("conn1","Stream1","whoopsie")
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 3)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 3)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 3)
 
     def testFilterTableInvalidSDDSStream(self):
         self.addSddsStream("Stream1")
@@ -468,10 +468,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.addConnectionTableEntry("conn1","whoopsie","dataSDDS_out")
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 0)
     
     def testFilterTableInvalidSDDSConnectionId(self):
         self.addSddsStream("Stream1")
@@ -480,10 +480,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllSdds()
         self.addConnectionTableEntry("whoopsie","Stream1","dataSDDS_out")
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 0)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 0)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 0)
     
     def testFilterTableMultiSDDS(self):
         self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
@@ -495,10 +495,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addConnectionTableEntry("conn3","Stream3","dataSDDS_out")
         self.addConnectionTableEntry("conn4","Stream3","dataSDDS_out")
         
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 1)
 
     # 
     # Test adding streams while connections exist
@@ -507,10 +507,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.addVitaStream("Stream1")
 
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 1)
     
     def testAddingVITAStreamsToActiveConnections(self):
         self.connectAllVita()
@@ -518,10 +518,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream2")
         self.addVitaStream("Stream3")
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 3)
    
     # 
     # Test adding connections after streams
@@ -530,10 +530,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream1")
         self.connectAllVita()
 
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 1)
 
     def testAddingVITAConnectionsToActiveStreams(self):
         self.addVitaStream("Stream1")
@@ -541,10 +541,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream3")
         self.connectAllVita()
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 3)
 
     def testAddingVITAConnectionsAfterStreamDefinitions(self):
         self.addVitaStream("Stream1")
@@ -555,15 +555,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.pushSRI('Stream3')
         self.connectAllVita()
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 3)
 
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 3)
     
     #
     # Test removing streams
@@ -575,10 +575,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.disconnectAll()
 
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
     
     def testDisconnectingActiveVITAStreamsCF(self):
         self.connectAllVita()
@@ -587,10 +587,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream3")
         self.disconnectAll()
 
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
 
     #
     # Test updating streams
@@ -599,119 +599,119 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream1")
         self.addVitaStream("Stream2")
         self.addVitaStream("Stream3")
-        self.assertEquals(len(self.source.VITA49StreamDefinitions), 3)
+        self.assertEqual(len(self.source.VITA49StreamDefinitions), 3)
         self.connectAllVita()
        
-        self.source.VITA49StreamDefinitions[0].port = 123L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 4)
+        self.source.VITA49StreamDefinitions[0].port = 123
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 4)
         
-        self.source.VITA49StreamDefinitions[1].port = 456L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 5)
+        self.source.VITA49StreamDefinitions[1].port = 456
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 5)
         
-        self.source.VITA49StreamDefinitions[2].port = 789L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        self.source.VITA49StreamDefinitions[2].port = 789
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 6)
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 6)
         
-        self.assertEquals(self.sink1.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink1.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink1.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink1.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink1.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink1.received_vita49_attachments[2].port, 789)
         
-        self.assertEquals(self.sink2.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink2.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink2.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink2.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink2.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink2.received_vita49_attachments[2].port, 789)
         
-        self.assertEquals(self.sink3.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink3.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink3.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink3.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink3.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink3.received_vita49_attachments[2].port, 789)
     
     def testUpdatingActiveVITAStreamsCF(self):
         self.connectAllVita()
         self.addVitaStream("Stream1")
         self.addVitaStream("Stream2")
         self.addVitaStream("Stream3")
-        self.assertEquals(len(self.source.VITA49StreamDefinitions), 3)
+        self.assertEqual(len(self.source.VITA49StreamDefinitions), 3)
        
-        self.source.VITA49StreamDefinitions[0].port = 123L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 1)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 4)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 4)
+        self.source.VITA49StreamDefinitions[0].port = 123
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 1)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 4)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 4)
         
-        self.source.VITA49StreamDefinitions[1].port = 456L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 2)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 5)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 5)
+        self.source.VITA49StreamDefinitions[1].port = 456
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 2)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 5)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 5)
         
-        self.source.VITA49StreamDefinitions[2].port = 789L
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        self.source.VITA49StreamDefinitions[2].port = 789
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 6)
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 6)
         
-        self.assertEquals(self.sink1.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink1.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink1.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink1.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink1.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink1.received_vita49_attachments[2].port, 789)
         
-        self.assertEquals(self.sink2.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink2.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink2.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink2.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink2.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink2.received_vita49_attachments[2].port, 789)
         
-        self.assertEquals(self.sink3.received_vita49_attachments[0].port, 123)
-        self.assertEquals(self.sink3.received_vita49_attachments[1].port, 456)
-        self.assertEquals(self.sink3.received_vita49_attachments[2].port, 789)
+        self.assertEqual(self.sink3.received_vita49_attachments[0].port, 123)
+        self.assertEqual(self.sink3.received_vita49_attachments[1].port, 456)
+        self.assertEqual(self.sink3.received_vita49_attachments[2].port, 789)
     
     #
     # Test reconnecting streams
@@ -726,20 +726,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream2")
         self.addVitaStream("Stream3")
 
-        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_attaches, 6)
         
-        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
-        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEqual(self.sink4.callback_stats.num_vita49_detaches, 3)
 
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 3)
 
     #
     # Test connection table
@@ -751,10 +751,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 0)
     
     def testFilterTablePreVITAConnection(self):
         self.addVitaStream("Stream1")
@@ -763,10 +763,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
         self.connectAllVita()
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 0)
     
     def testFilterTablePreVITAStreams(self):
         self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
@@ -775,10 +775,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream3")
         self.connectAllVita()
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 0)
     
     def testFilterTableInvalidVITAPort(self):
         self.addVitaStream("Stream1")
@@ -787,10 +787,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.addConnectionTableEntry("vita1","Stream1","whoopsie")
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 3)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 3)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 3)
 
     def testFilterTableInvalidVITAStream(self):
         self.addVitaStream("Stream1")
@@ -799,10 +799,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.addConnectionTableEntry("vita1","whoopsie","dataVITA49_out")
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 0)
     
     def testFilterTableInvalidVITAConnectionId(self):
         self.addVitaStream("Stream1")
@@ -811,10 +811,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.connectAllVita()
         self.addConnectionTableEntry("whoopsie","Stream1","dataVITA49_out")
         
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 0)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 0)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 0)
     
     def testFilterTableMultiVITA(self):#
         self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
@@ -826,10 +826,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
         self.addConnectionTableEntry("vita4","Stream3","dataVITA49_out")
        
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 1)
 
     def testSDDSAttachmentUpdate(self):
         self.addSddsStream("Stream1")
@@ -837,15 +837,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         newPortValue = 12345
         self.source.SDDSStreamDefinitions[0].port = newPortValue
 
-        self.assertEquals(len(self.sink1.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink2.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink3.received_sdds_attachments), 1)
-        self.assertEquals(len(self.sink4.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink1.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink2.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink3.received_sdds_attachments), 1)
+        self.assertEqual(len(self.sink4.received_sdds_attachments), 1)
 
-        self.assertEquals(self.sink1.received_sdds_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink2.received_sdds_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink3.received_sdds_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink4.received_sdds_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink1.received_sdds_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink2.received_sdds_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink3.received_sdds_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink4.received_sdds_attachments[0].port, newPortValue)
     
     def testVITAAttachmentUpdate(self):
         self.addVitaStream("Stream1")
@@ -853,15 +853,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         newPortValue = 12345
         self.source.VITA49StreamDefinitions[0].port = newPortValue
 
-        self.assertEquals(len(self.sink1.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink2.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink3.received_vita49_attachments), 1)
-        self.assertEquals(len(self.sink4.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink1.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink2.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink3.received_vita49_attachments), 1)
+        self.assertEqual(len(self.sink4.received_vita49_attachments), 1)
 
-        self.assertEquals(self.sink1.received_vita49_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink2.received_vita49_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink3.received_vita49_attachments[0].port, newPortValue)
-        self.assertEquals(self.sink4.received_vita49_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink1.received_vita49_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink2.received_vita49_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink3.received_vita49_attachments[0].port, newPortValue)
+        self.assertEqual(self.sink4.received_vita49_attachments[0].port, newPortValue)
 
     def testSRIBeforeAddStreamSDDS(self):
         self.connectAllSdds()
@@ -875,10 +875,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
 
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(0)
@@ -896,10 +896,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(0)
@@ -917,14 +917,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
        
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(1)
@@ -942,14 +942,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(1)
@@ -966,10 +966,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(0)
@@ -986,10 +986,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(0)
@@ -1007,14 +1007,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(1)
@@ -1032,14 +1032,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
         
         self.assertNumNewSRICallbacks(1)
         self.assertNumSRIChangeCallbacks(1)
@@ -1064,15 +1064,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort3])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs(), [])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort4._get_attachedSRIs(), [])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs(), [])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort4._get_attachedSRIs(), [])
 
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
 
     def testSRIAfterAddStreamSDDSWithConnectionTable(self):
         self.connectAllSdds()
@@ -1094,15 +1094,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort3])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort4._get_attachedSRIs(),[])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
 
     def testSRIUpdateBeforeAddStreamSDDSWithConnectionTable(self):
         self.connectAllSdds()
@@ -1128,21 +1128,21 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
         self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
-        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEqual(inPort4._get_attachedSRIs(),[])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
 
     def testSRIUpdateAfterAddStreamSDDSWithConnectionTable(self):
         self.connectAllSdds()
@@ -1168,21 +1168,21 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
         self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
-        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEqual(inPort4._get_attachedSRIs(),[])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
 
     def testSRIBeforeAddStreamVITAWithConnectionTable(self):
         self.connectAllVita()
@@ -1205,15 +1205,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1])
         self.checkSRIReceived([inPort3])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs(), [])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort4._get_attachedSRIs(), [])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs(), [])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort4._get_attachedSRIs(), [])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
 
     def testSRIAfterAddStreamVITAWithConnectionTable(self):
         self.connectAllVita()
@@ -1236,15 +1236,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1])
         self.checkSRIReceived([inPort3])
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort4._get_attachedSRIs(),[])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
 
     def testSRIUpdateBeforeAddStreamVITAWithConnectionTable(self):
         self.connectAllVita()
@@ -1270,21 +1270,21 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
         self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
-        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEqual(inPort4._get_attachedSRIs(),[])
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
 
     def testSRIUpdateAfterAddStreamVITAWithConnectionTable(self):
         self.connectAllVita()
@@ -1311,20 +1311,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
         self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
-        self.assertEquals(inPort2._get_attachedSRIs(),[])
-        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
-        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEqual(inPort2._get_attachedSRIs(),[])
+        self.assertEqual(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEqual(inPort3._get_attachedSRIs()[0].xstart, 987.0)
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
     
     def testSRIConnectionTableAddedAfterPushSRI(self):
         self.connectAllVita()
@@ -1341,10 +1341,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort1 = self.sink1.getPort("dataVITA49_in")
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
 
-        self.assertEquals(len(inPort1._get_attachedSRIs()),1)
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(len(inPort1._get_attachedSRIs()),1)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 0)
     
     def testSRIPushWithoutValidStream(self):
         self.connectAllVita()
@@ -1358,10 +1358,10 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
 
-        self.assertEquals(len(inPort1._get_attachedSRIs()),1)
-        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEqual(len(inPort1._get_attachedSRIs()),1)
+        self.assertEqual(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 1)
     
     def testSRIConnectionTableAddedRemoved(self):
         self.connectAllVita()
@@ -1391,19 +1391,19 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.removeAllConnectionTableEntries()
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],3)
       
-        self.assertEquals(len(inPort1._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort2._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort3._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort4._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort1._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort2._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort3._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort4._get_attachedSRIs()),3)
 
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
     
     def testSRIConnectionTableAddedRemovedAdded(self):
         self.connectAllVita()
@@ -1440,19 +1440,19 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],3)
 
-        self.assertEquals(len(inPort1._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort2._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort3._get_attachedSRIs()),3)
-        self.assertEquals(len(inPort4._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort1._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort2._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort3._get_attachedSRIs()),3)
+        self.assertEqual(len(inPort4._get_attachedSRIs()),3)
         
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 0)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, 0)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,23 @@
-#!/usr/bin/env python
-from distutils.core import setup
+#!/usr/bin/env python3
+from setuptools import setup, find_packages
+from distutils import sysconfig
+
 
 setup(name='bulkioInterfaces',
       version='@PACKAGE_VERSION@',
+      description='REDHAWK Bulkio Interfaces Definitions',
+      author="Redhawk Deployer",
+      author_email="redhawksdr@redhawksdr.org",
+      classifiers=[
+          'Development Status :: 5  - Production/Stable',
+          'License:: OSI Approved :: GNU LESSER GENERAL PUBLIC LICENSE',
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3 :: Only',
+          "Operating System :: OS Independent",          
+          ],
       package_dir = {'': 'src/python'},
-      packages=['bulkio',
-                'bulkio.bulkioInterfaces',
-                'bulkio.bulkioInterfaces.BULKIO',
-                'bulkio.bulkioInterfaces.BULKIO.internal',
-                'bulkio.bulkioInterfaces.BULKIO__POA',
-                'bulkio.bulkioInterfaces.BULKIO__POA.internal']
+      packages=find_packages(where='src/python', include=[ "bulkio", "bulkio.*", "bulkioInterfaces", "bulkioInterfaces.*"]),
+      install_requires= [ 'ossiepy'],
+      
 )

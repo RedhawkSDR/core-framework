@@ -269,7 +269,7 @@ class Device(resource.Resource):
                     self._deviceLog.info("Connected to IDM CHANNEL, (command line IOR).... DEV-ID:" + self._id )
                 except Exception as err:
                     #traceback.print_exc()
-                    self._deviceLog.warn("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
+                    self._deviceLog.warning("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
             else:
                 try:
                     # make sure we have access to get to the EventChanneManager for the domain
@@ -285,7 +285,7 @@ class Device(resource.Resource):
                         self._deviceLog.info("Registered with IDM CHANNEL (Domain::EventChannelManager).... DEV-ID:" + self._id )
                 except:
                     #traceback.print_exc()
-                    self._deviceLog.warn("Unable to connect to IDM channel (Domain::EventChannelManager).... DEV-ID:" + self._id )
+                    self._deviceLog.warning("Unable to connect to IDM channel (Domain::EventChannelManager).... DEV-ID:" + self._id )
 
 
 
@@ -615,7 +615,7 @@ class Device(resource.Resource):
             self._deviceLog.error("Could not register with DeviceManager: %s", msg)
 
         def _logRegisterWarning(msg = ""):
-            self._deviceLog.warn("May not have registered with DeviceManager: %s", msg)
+            self._deviceLog.warning("May not have registered with DeviceManager: %s", msg)
                 
         def _registerThreadFunction():
             if self._devmgr:
@@ -652,13 +652,13 @@ class Device(resource.Resource):
             event = StandardEvent.StateChangeEventType(self._id, self._id, eventType, stateMap[fromState], stateMap[toState])
 
         except:
-            self._deviceLog.warn("Error creating StateChangeEvent")
+            self._deviceLog.warning("Error creating StateChangeEvent")
 
         try:
             if self._idm_publisher.push(any.to_any(event)) != 0 :
                 self._deviceLog.debug("Sending state change event......" + str((self._id, self._id, eventType, stateMap[fromState], stateMap[toState])) )
         except:
-            self._deviceLog.warn("Error sending event")
+            self._deviceLog.warning("Error sending event")
 
     def __setattr__ (self, attr, value):
         # Detect when the usage state and administrative state change, so that

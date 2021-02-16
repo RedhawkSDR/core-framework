@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -63,13 +63,13 @@ class OutStreamTest(object):
 
     def testBasicWrite(self):
         stream = self.port.createStream('test_basic_write')
-        self.failUnless(not self.stub.packets)
+        self.assertTrue(not self.stub.packets)
 
         time = bulkio.timestamp.now()
         self._writeSinglePacket(stream, 256, time)
         self.assertEqual(1, len(self.stub.packets))
         self.assertEqual(256, self.helper.packetLength(self.stub.packets[0].data))
-        self.failIf(self.stub.packets[0].EOS)
+        self.assertFalse(self.stub.packets[0].EOS)
         self.assertEqual(stream.streamID, self.stub.packets[0].streamID)
 
         # Check timestamp, but only if it's supported (i.e., not dataXML)
@@ -99,8 +99,8 @@ class OutStreamTest(object):
         self.assertEqual(stream.ystart, sri.ystart)
         self.assertEqual(stream.ydelta, sri.ydelta)
         self.assertEqual(stream.yunits, sri.yunits)
-        self.failUnless(stream.complex)
-        self.failUnless(stream.blocking)
+        self.assertTrue(stream.complex)
+        self.assertTrue(stream.blocking)
         self.assertEqual(len(sri.keywords), len(stream.keywords))
         self.assertEqual('value', stream.getKeyword('string'))
         self.assertEqual(100, stream.getKeyword('number'))
@@ -187,12 +187,12 @@ class OutStreamTest(object):
         xdelta = 1.0 / 1.25e6
         stream.xdelta = xdelta
         stream.blocking = True
-        self.failUnless(not self.stub.H)
+        self.assertTrue(not self.stub.H)
 
         # Write data to trigger initial SRI update
         self._writeSinglePacket(stream, 10)
         self.assertEqual(len(self.stub.H), 1)
-        self.failUnless(self.stub.H[-1].blocking)
+        self.assertTrue(self.stub.H[-1].blocking)
         self.assertEqual(xdelta, self.stub.H[-1].xdelta)
 
         # Update xdelta; no SRI update should occur
@@ -209,10 +209,10 @@ class OutStreamTest(object):
         # Change blocking flag, then trigger an SRI update
         stream.blocking = False
         self.assertEqual(len(self.stub.H), 2)
-        self.failUnless(self.stub.H[-1].blocking)
+        self.assertTrue(self.stub.H[-1].blocking)
         self._writeSinglePacket(stream, 25)
         self.assertEqual(len(self.stub.H), 3)
-        self.failIf(self.stub.H[-1].blocking)
+        self.assertFalse(self.stub.H[-1].blocking)
 
         # Change multiple fields, but only one SRI update should occur (after the
         # next write)
@@ -228,7 +228,7 @@ class OutStreamTest(object):
         # Trigger SRI update and verify that it matches
         self._writeSinglePacket(stream, 1024)
         self.assertEqual(len(self.stub.H), 4)
-        self.failUnless(bulkio.sri.compare(stream.sri, self.stub.H[-1]))
+        self.assertTrue(bulkio.sri.compare(stream.sri, self.stub.H[-1]))
 
     def testSriReplace(self):
         # Create initial stream
@@ -256,8 +256,8 @@ class OutStreamTest(object):
         self.assertEqual(stream.ystart, new_sri.ystart)
         self.assertEqual(stream.ydelta, new_sri.ydelta)
         self.assertEqual(stream.yunits, new_sri.yunits)
-        self.failUnless(stream.complex)
-        self.failUnless(stream.blocking)
+        self.assertTrue(stream.complex)
+        self.assertTrue(stream.blocking)
 
     def testKeywords(self):
         stream = self.port.createStream("test_keywords")
@@ -282,10 +282,10 @@ class OutStreamTest(object):
 
         # Erase and check for presence of keywords
         stream.eraseKeyword('string')
-        self.failUnless(stream.hasKeyword('integer'))
-        self.failIf(stream.hasKeyword('string'))
-        self.failUnless(stream.hasKeyword('double'))
-        self.failUnless(stream.hasKeyword('boolean'))
+        self.assertTrue(stream.hasKeyword('integer'))
+        self.assertFalse(stream.hasKeyword('string'))
+        self.assertTrue(stream.hasKeyword('double'))
+        self.assertTrue(stream.hasKeyword('boolean'))
 
         # Write a packet to trigger an SRI update
         self.assertEqual(1, len(self.stub.H))
@@ -294,7 +294,7 @@ class OutStreamTest(object):
 
         keywords = properties.props_to_dict(self.stub.H[-1].keywords)
         self.assertEqual(len(stream.keywords), len(keywords))
-        for key, value in keywords.iteritems():
+        for key, value in keywords.items():
             self.assertEqual(stream.getKeyword(key), value)
 
         # Replace keywords with a new set
@@ -310,7 +310,7 @@ class OutStreamTest(object):
 
         keywords = properties.props_to_dict(self.stub.H[-1].keywords)
         self.assertEqual(len(stream.keywords), len(keywords))
-        for key, value in keywords.iteritems():
+        for key, value in keywords.items():
             self.assertEqual(stream.getKeyword(key), value)
 
     def testSendEosOnClose(self):
@@ -323,11 +323,11 @@ class OutStreamTest(object):
 
         self.assertEqual(len(self.stub.H), 1)
         self.assertEqual(len(self.stub.packets), 1)
-        self.failIf(self.stub.packets[-1].EOS)
+        self.assertFalse(self.stub.packets[-1].EOS)
 
         stream.close()
         self.assertEqual(len(self.stub.packets), 2)
-        self.failUnless(self.stub.packets[-1].EOS)
+        self.assertTrue(self.stub.packets[-1].EOS)
 
     def _writeSinglePacket(self, stream, length, time=None):
         if time is None:
@@ -531,7 +531,7 @@ class NumericOutStreamTest(BufferedOutStreamTest):
 
         # Write a list of complex values, which should get turned into a list
         # of real values that is twice as long
-        data = [complex(ii,0) for ii in xrange(100)]
+        data = [complex(ii,0) for ii in range(100)]
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(1, len(self.stub.packets))
         result = self.helper.unpack(self.stub.packets[-1].data)
@@ -541,7 +541,7 @@ class NumericOutStreamTest(BufferedOutStreamTest):
 
         # Write a list of real values, each of which is interpreted as a
         # complex value (with an imaginary component of 0)
-        data = range(100)
+        data = list(range(100))
         stream.write(data, bulkio.timestamp.now())
         self.assertEqual(2, len(self.stub.packets))
         result = self.helper.unpack(self.stub.packets[-1].data)
@@ -550,7 +550,7 @@ class NumericOutStreamTest(BufferedOutStreamTest):
         self.assertEqual([0] * 100, result[1::2])
 
         # Write pre-interleaved data; no conversion should occur
-        data = self.helper.pack(range(100))
+        data = self.helper.pack(list(range(100)))
         stream.write(data, bulkio.timestamp.now(), interleaved=True)
         self.assertEqual(3, len(self.stub.packets))
         self.assertEqual(100, len(self.stub.packets[-1].data))

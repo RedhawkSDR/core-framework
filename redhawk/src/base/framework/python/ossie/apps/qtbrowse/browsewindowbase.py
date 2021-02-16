@@ -383,15 +383,15 @@ class TreeWidget(QTreeWidget):
             contref, contTrack, comp = self.getRefs(containers, container_name, compname)
             if contref == None:
                 if item.parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Application: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Application: "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find Device Manager: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Device Manager: "+container_name)
                 return
             if comp == None:
                 if item.parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Component ("+compname+") on Application ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Component ("+compname+") on Application ("+container_name+")")
                 else:
-                    self.callbackObject.log.warn("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
                 return
             pos = self.getPos(item, item.parent())
             if pos is not None:
@@ -440,7 +440,7 @@ class TreeWidget(QTreeWidget):
             appname = item.text(0)
             contref, contTrack, comp = self.getRefs(self.callbackObject.apps, appname)
             if contref == None:
-                self.callbackObject.log.warn("Unable to find Application: "+appname)
+                self.callbackObject.log.warning("Unable to find Application: "+appname)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -512,15 +512,15 @@ class TreeWidget(QTreeWidget):
             contref, contTrack, comp = self.getRefs(containers, container_name, compname)
             if contref == None:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Application: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Application: "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find Device Manager: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Device Manager: "+container_name)
                 return
             if comp == None:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Component ("+compname+") on Application ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Component ("+compname+") on Application ("+container_name+")")
                 else:
-                    self.callbackObject.log.warn("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
                 return
             foundPort = False
             for port in comp.ports:
@@ -529,9 +529,9 @@ class TreeWidget(QTreeWidget):
                     break
             if not foundPort:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find port "+portname+" in component "+compname+" on application "+container_name)
+                    self.callbackObject.log.warning("Unable to find port "+portname+" in component "+compname+" on application "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find port "+portname+" in device "+compname+" on device manager "+container_name)
+                    self.callbackObject.log.warning("Unable to find port "+portname+" in device "+compname+" on device manager "+container_name)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -570,7 +570,7 @@ class TreeWidget(QTreeWidget):
             portname = item.text(0)[:-7]
             appref, appTrack, comp = self.getRefs(self.callbackObject.apps, appname)
             if appref == None:
-                self.callbackObject.log.warn("Unable to find Application: "+appname)
+                self.callbackObject.log.warning("Unable to find Application: "+appname)
                 return
             foundPort = False
             for port in appref.ports:
@@ -578,7 +578,7 @@ class TreeWidget(QTreeWidget):
                     foundPort = True
                     break
             if not foundPort:
-                self.callbackObject.log.warn("Unable to find port "+portname+" on application "+appname)
+                self.callbackObject.log.warning("Unable to find port "+portname+" on application "+appname)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -640,7 +640,7 @@ class TreeWidget(QTreeWidget):
                     foundDevMgr = True
                     break
             if not foundDevMgr:
-                self.callbackObject.log.warn("Unable to find Device Manager: "+devMgrname)
+                self.callbackObject.log.warning("Unable to find Device Manager: "+devMgrname)
                 return
             itemrect = self.visualItemRect(item)
             pos = self.mapToGlobal(itemrect.center())
