@@ -167,7 +167,7 @@ void ThreadedComponent::startThread ()
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (!serviceThread) {
         serviceThread = new ossie::ProcessThread(this, _defaultDelay, _threadName);
-        _finished = false;
+        setFinished(false);
         _stopped = false;
         serviceThread->start();
     }
@@ -217,6 +217,11 @@ void ThreadedComponent::setFinished(bool val) {
     if (val) {
         boost::mutex::scoped_lock lock(_finishedTimeMutex);
         _finishedTime = redhawk::time::utils::now();
+    } else {
+        boost::mutex::scoped_lock lock(_finishedTimeMutex);
+        _finishedTime.tcstatus = 0;
+        _finishedTime.twsec = 0;
+        _finishedTime.tfsec = 0;
     }
 }
 void ThreadedComponent::setRunning(bool val) { _running = val; }

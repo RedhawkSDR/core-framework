@@ -54,8 +54,8 @@ class Comp : public Component, protected ThreadedComponent
         bool wasStopCalled() { return ThreadedComponent::wasStopCalled(); }
         CF::UTCTime getFinishedTime() { return ThreadedComponent::getFinishedTime(); }
         void setReturnVal(int val) { returnVal = val; }
-        int getReturnVal() { return returnVal; }
 
+        bool isInDontReturn;
         int returnVal;
 };
 

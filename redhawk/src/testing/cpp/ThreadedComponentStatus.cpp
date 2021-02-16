@@ -25,6 +25,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(StatusTest);
 Comp::Comp(const char* uuid, const char* label) :
     Component(uuid, label),
     ThreadedComponent(),
+    isInDontReturn(false),
     returnVal(RetVal::NORMAL)
 {
 }
@@ -68,6 +69,7 @@ int Comp::serviceFunction()
         return NOOP;
     }
     if (returnVal == RetVal::DONT_RETURN) {
+        isInDontReturn = true;
         double val = 10.0;
         while (true) { // run forever, but don't thread.sleep()
             if (val < 999999.9) {
@@ -108,10 +110,10 @@ void StatusTest::testStatusWithFinish()
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
-    CF::UTCTime tsBefore = comp.getFinishedTime();
-    CPPUNIT_ASSERT(tsBefore.tcstatus == 0);
-    CPPUNIT_ASSERT(tsBefore.twsec == 0);
-    CPPUNIT_ASSERT(tsBefore.tfsec == 0);
+    CF::UTCTime ts1 = comp.getFinishedTime();
+    CPPUNIT_ASSERT(ts1.tcstatus == 0);
+    CPPUNIT_ASSERT(ts1.twsec == 0);
+    CPPUNIT_ASSERT(ts1.tfsec == 0);
 
     comp.setReturnVal(RetVal::FINISH);
     // Wait for FINISH to be processed.
@@ -125,15 +127,16 @@ void StatusTest::testStatusWithFinish()
     CPPUNIT_ASSERT(comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
-    CF::UTCTime tsAfter = comp.getFinishedTime();
-    CPPUNIT_ASSERT(tsAfter.tcstatus == 1);
-    CPPUNIT_ASSERT(tsAfter.twsec > 0);
+    CF::UTCTime ts2 = comp.getFinishedTime();
+    CPPUNIT_ASSERT(ts2.tcstatus == 1);
+    CPPUNIT_ASSERT(ts2.twsec > 0);
 
     comp.stop();
     CPPUNIT_ASSERT(comp.isFinished());
     CPPUNIT_ASSERT(!comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
 
+    comp.setReturnVal(RetVal::NOOP);
     comp.start();
     // _running is set by a different thread, so accommodate a delay.
     end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
@@ -146,6 +149,10 @@ void StatusTest::testStatusWithFinish()
     CPPUNIT_ASSERT(!comp.isFinished());
     CPPUNIT_ASSERT(comp.isRunning());
     CPPUNIT_ASSERT(!comp.wasStopCalled());
+    CF::UTCTime ts3 = comp.getFinishedTime();
+    CPPUNIT_ASSERT(ts3.tcstatus == 0);
+    CPPUNIT_ASSERT(ts3.twsec == 0);
+    CPPUNIT_ASSERT(ts3.tfsec == 0);
 
     comp.releaseObject();
 }
@@ -233,10 +240,10 @@ void StatusTest::testStatusWithLongRunning()
     CPPUNIT_ASSERT(tsBefore.tfsec == 0);
 
     comp.setReturnVal(RetVal::DONT_RETURN);
-    // Wait for setReturnVal() to be processed.
+    // Wait for serviceFunction() to enter the DONT_RETURN case.
     end_time = boost::get_system_time() + boost::posix_time::milliseconds(100);
     while (boost::get_system_time() < end_time) {
-        if (comp.getReturnVal() == RetVal::DONT_RETURN) {
+        if (comp.isInDontReturn) {
             break;
         }
         usleep(10);
