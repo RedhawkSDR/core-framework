@@ -391,6 +391,15 @@ public class In@name@Stream extends InStreamBase {
 
     protected @name@DataBlock _readData(int count, int consume)
     {
+        int max_val = Math.max(count, consume);
+        while (max_val > this._samplesQueued) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                return null;
+            }
+            this._refreshQueue();
+        }
         // Acknowledge pending SRI change
         In@name@Port.Packet front = this._queue.peekFirst();
 
@@ -550,6 +559,13 @@ public class In@name@Stream extends InStreamBase {
         if (packet.T != null) {
             block.addTimestamp(packet.T, 0, false);
         }
+        if (this._sampleOffset != 0) {
+            _addTimestamp(block, _sampleOffset, 0, packet.T);
+            @type@[] data_payload = Arrays.copyOfRange(packet.dataBuffer, this._sampleOffset, packet.dataBuffer.length);
+            block.setBuffer(data_payload);
+        }
+        this._samplesQueued = this._samplesQueued - (packet.dataBuffer.length-this._sampleOffset);
+        this._sampleOffset = 0;
 
         // Update local SRI from packet
         this._sri = packet.SRI;
