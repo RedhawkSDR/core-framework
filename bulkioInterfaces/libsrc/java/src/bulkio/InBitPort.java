@@ -339,11 +339,21 @@ public class InBitPort extends BULKIO.jni.dataBitPOA implements InDataPort<BULKI
     public InBitStream getCurrentStream(float timeout)
     {
       // Prefer a stream that already has buffered data
+      InBitStream retval = null;
       synchronized (this.streamsMutex) {
         for (InBitStream value : streams.values()) {
             if (value._hasBufferedData()) {
-                return value;
+                if (retval == null) {
+                    retval = value;
+                } else {
+                    if (bulkio.time.utils.compare(value._queue.peekFirst().T, retval._queue.peekFirst().T) < 0) {
+                        retval = value;
+                    }
+                }
             }
+        }
+        if (retval != null) {
+            return retval;
         }
       }
   
