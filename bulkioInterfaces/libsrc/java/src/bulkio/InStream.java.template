@@ -425,7 +425,7 @@ public class In@name@Stream extends InStreamBase {
                         return null;
                     }
                 }
-                InBitPort.Packet packet = itr.next();
+                In@name@Port.Packet packet = itr.next();
                 @type@[] input_data = packet.dataBuffer;
 
                 // Add the timestamp for this pass
