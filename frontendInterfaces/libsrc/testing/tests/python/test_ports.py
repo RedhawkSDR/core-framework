@@ -33,10 +33,9 @@ from omniORB import any as _any
 from ossie.cf import CF
 
 from redhawk.frontendInterfaces import FRONTEND
-import tuner_device
+from frontend import tuner_device
 from input_ports import *
 from output_ports import *
-import fe_types
 from ossie.resource import PortCallError
 
 class PortsTest(unittest.TestCase):
@@ -48,7 +47,7 @@ class PortsTest(unittest.TestCase):
         def get_source_id(self):
             return self._id;
         def get_gps_info(self, port_name):
-            _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
+            _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
             _gpsinfo.source_id = self._id
             return _gpsinfo
         def set_gps_info(self, port_name, gps_info):
@@ -148,9 +147,9 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_1._this(), "hello")
 
         gpsinfo = output_port._get_gps_info()
-        self.assertEquals(gpsinfo.source_id, "newvalue")
+        self.assertEqual(gpsinfo.source_id, "newvalue")
         gpsinfo = output_port._get_gps_info("hello")
-        self.assertEquals(gpsinfo.source_id, "newvalue")
+        self.assertEqual(gpsinfo.source_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_gps_info, 'foo')
 
         input_parent_2 = self.gps_port_sample()
@@ -160,7 +159,7 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
         self.assertRaises(PortCallError, output_port._get_gps_info)
         gpsinfo = output_port._get_gps_info("hello")
-        self.assertEquals(gpsinfo.source_id, "newvalue")
+        self.assertEqual(gpsinfo.source_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_gps_info, "something")
 
         output_port.disconnectPort("hello")
@@ -171,23 +170,23 @@ class PortsTest(unittest.TestCase):
         input_port_1 = InGPSPort("input_1", input_parent)
         output_port = OutGPSPort("output")
 
-        self.assertEquals(input_parent.get_source_id(),"original")
+        self.assertEqual(input_parent.get_source_id(),"original")
 
-        gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
+        gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
         gpsinfo.source_id = "newvalue"
 
         output_port._set_gps_info(gpsinfo)
-        self.assertEquals(input_parent.get_source_id(), "original")
+        self.assertEqual(input_parent.get_source_id(), "original")
         self.assertRaises(PortCallError, output_port._set_gps_info, gpsinfo, "hello")
 
         output_port.connectPort(input_port_1._this(), "hello")
 
         output_port._set_gps_info(gpsinfo)
-        self.assertEquals(input_parent.get_source_id(), "newvalue")
+        self.assertEqual(input_parent.get_source_id(), "newvalue")
 
         gpsinfo.source_id = "newvalue_2";
         output_port._set_gps_info(gpsinfo, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_2")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_2")
 
         self.assertRaises(PortCallError, output_port._set_gps_info, gpsinfo, "foo")
 
@@ -196,13 +195,13 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
 
         output_port._set_gps_info(gpsinfo);
-        self.assertEquals(input_parent.get_source_id(), "newvalue_3")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         gpsinfo.source_id = "newvalue_4";
         output_port._set_gps_info(gpsinfo, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_4")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_4")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         self.assertRaises(PortCallError, output_port._set_gps_info, gpsinfo, "something")
 
@@ -221,9 +220,9 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_1._this(), "hello")
 
         navinfo = output_port._get_nav_packet()
-        self.assertEquals(navinfo.source_id, "newvalue")
+        self.assertEqual(navinfo.source_id, "newvalue")
         navinfo = output_port._get_nav_packet("hello")
-        self.assertEquals(navinfo.source_id, "newvalue")
+        self.assertEqual(navinfo.source_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_nav_packet, 'foo')
 
         input_parent_2 = self.nav_port_sample()
@@ -233,7 +232,7 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
         self.assertRaises(PortCallError, output_port._get_nav_packet)
         navinfo = output_port._get_nav_packet("hello")
-        self.assertEquals(navinfo.source_id, "newvalue")
+        self.assertEqual(navinfo.source_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_nav_packet, "something")
 
         output_port.disconnectPort("hello")
@@ -244,7 +243,7 @@ class PortsTest(unittest.TestCase):
         input_port_1 = InNavDataPort("input_1", input_parent)
         output_port = OutNavDataPort("output")
 
-        self.assertEquals(input_parent.get_source_id(),"original")
+        self.assertEqual(input_parent.get_source_id(),"original")
 
         _time = BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0)
         _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
@@ -256,17 +255,17 @@ class PortsTest(unittest.TestCase):
         navpacket.source_id = "newvalue"
 
         output_port._set_nav_packet(navpacket)
-        self.assertEquals(input_parent.get_source_id(), "original")
+        self.assertEqual(input_parent.get_source_id(), "original")
         self.assertRaises(PortCallError, output_port._set_nav_packet, navpacket, "hello")
 
         output_port.connectPort(input_port_1._this(), "hello")
 
         output_port._set_nav_packet(navpacket)
-        self.assertEquals(input_parent.get_source_id(), "newvalue")
+        self.assertEqual(input_parent.get_source_id(), "newvalue")
 
         navpacket.source_id = "newvalue_2";
         output_port._set_nav_packet(navpacket, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_2")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_2")
 
         self.assertRaises(PortCallError, output_port._set_nav_packet, navpacket, "foo")
 
@@ -275,13 +274,13 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
 
         output_port._set_nav_packet(navpacket);
-        self.assertEquals(input_parent.get_source_id(), "newvalue_3")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         navpacket.source_id = "newvalue_4";
         output_port._set_nav_packet(navpacket, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_4")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_4")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         self.assertRaises(PortCallError, output_port._set_nav_packet, navpacket, "something")
 
@@ -300,9 +299,9 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_1._this(), "hello")
 
         rfinfo = output_port._get_rfinfo_pkt()
-        self.assertEquals(rfinfo.rf_flow_id, "newvalue")
+        self.assertEqual(rfinfo.rf_flow_id, "newvalue")
         rfinfo = output_port._get_rfinfo_pkt("hello")
-        self.assertEquals(rfinfo.rf_flow_id, "newvalue")
+        self.assertEqual(rfinfo.rf_flow_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_rfinfo_pkt, 'foo')
 
         input_parent_2 = self.rfinfo_port_sample()
@@ -312,7 +311,7 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
         self.assertRaises(PortCallError, output_port._get_rfinfo_pkt)
         rfinfo = output_port._get_rfinfo_pkt("hello")
-        self.assertEquals(rfinfo.rf_flow_id, "newvalue")
+        self.assertEqual(rfinfo.rf_flow_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_rfinfo_pkt, "something")
 
         output_port.disconnectPort("hello")
@@ -323,7 +322,7 @@ class PortsTest(unittest.TestCase):
         input_port_1 = InRFInfoPort("input_1", input_parent)
         output_port = OutRFInfoPort("output")
 
-        self.assertEquals(input_parent.get_source_id(),"original")
+        self.assertEqual(input_parent.get_source_id(),"original")
 
         _antennainfo=FRONTEND.AntennaInfo('','','','')
         _freqrange=FRONTEND.FreqRange(0,0,[])
@@ -334,17 +333,17 @@ class PortsTest(unittest.TestCase):
         rfinfo.rf_flow_id = "newvalue"
 
         output_port._set_rfinfo_pkt(rfinfo)
-        self.assertEquals(input_parent.get_source_id(), "original")
+        self.assertEqual(input_parent.get_source_id(), "original")
         self.assertRaises(PortCallError, output_port._set_rfinfo_pkt, rfinfo, "hello")
 
         output_port.connectPort(input_port_1._this(), "hello")
 
         output_port._set_rfinfo_pkt(rfinfo)
-        self.assertEquals(input_parent.get_source_id(), "newvalue")
+        self.assertEqual(input_parent.get_source_id(), "newvalue")
 
         rfinfo.rf_flow_id = "newvalue_2";
         output_port._set_rfinfo_pkt(rfinfo, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_2")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_2")
 
         self.assertRaises(PortCallError, output_port._set_rfinfo_pkt, rfinfo, "foo")
 
@@ -353,13 +352,13 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
 
         output_port._set_rfinfo_pkt(rfinfo);
-        self.assertEquals(input_parent.get_source_id(), "newvalue_3")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         rfinfo.rf_flow_id = "newvalue_4";
         output_port._set_rfinfo_pkt(rfinfo, "hello")
-        self.assertEquals(input_parent.get_source_id(), "newvalue_4")
-        self.assertEquals(input_parent_2.get_source_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_source_id(), "newvalue_4")
+        self.assertEqual(input_parent_2.get_source_id(), "newvalue_3")
 
         self.assertRaises(PortCallError, output_port._set_rfinfo_pkt, rfinfo, "something")
 
@@ -378,9 +377,9 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_1._this(), "hello")
 
         rfsource = output_port._get_current_rf_input()
-        self.assertEquals(rfsource.rf_flow_id, "newvalue")
+        self.assertEqual(rfsource.rf_flow_id, "newvalue")
         rfsource = output_port._get_current_rf_input("hello")
-        self.assertEquals(rfsource.rf_flow_id, "newvalue")
+        self.assertEqual(rfsource.rf_flow_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_current_rf_input, 'foo')
 
         input_parent_2 = self.rfsource_port_sample()
@@ -390,7 +389,7 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
         self.assertRaises(PortCallError, output_port._get_current_rf_input)
         rfsource = output_port._get_current_rf_input("hello")
-        self.assertEquals(rfsource.rf_flow_id, "newvalue")
+        self.assertEqual(rfsource.rf_flow_id, "newvalue")
         self.assertRaises(PortCallError, output_port._get_current_rf_input, "something")
 
         output_port.disconnectPort("hello")
@@ -401,7 +400,7 @@ class PortsTest(unittest.TestCase):
         input_port_1 = InRFSourcePort("input_1", input_parent)
         output_port = OutRFSourcePort("output")
 
-        self.assertEquals(input_parent.get_rf_flow_id(),"original")
+        self.assertEqual(input_parent.get_rf_flow_id(),"original")
 
         _antennainfo=FRONTEND.AntennaInfo('','','','')
         _freqrange=FRONTEND.FreqRange(0,0,[])
@@ -412,17 +411,17 @@ class PortsTest(unittest.TestCase):
         rfsource.rf_flow_id = "newvalue"
 
         output_port._set_current_rf_input(rfsource)
-        self.assertEquals(input_parent.get_rf_flow_id(), "original")
+        self.assertEqual(input_parent.get_rf_flow_id(), "original")
         self.assertRaises(PortCallError, output_port._set_current_rf_input, rfsource, "hello")
 
         output_port.connectPort(input_port_1._this(), "hello")
 
         output_port._set_current_rf_input(rfsource)
-        self.assertEquals(input_parent.get_rf_flow_id(), "newvalue")
+        self.assertEqual(input_parent.get_rf_flow_id(), "newvalue")
 
         rfsource.rf_flow_id = "newvalue_2";
         output_port._set_current_rf_input(rfsource, "hello")
-        self.assertEquals(input_parent.get_rf_flow_id(), "newvalue_2")
+        self.assertEqual(input_parent.get_rf_flow_id(), "newvalue_2")
 
         self.assertRaises(PortCallError, output_port._set_current_rf_input, rfsource, "foo")
 
@@ -431,13 +430,13 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
 
         output_port._set_current_rf_input(rfsource);
-        self.assertEquals(input_parent.get_rf_flow_id(), "newvalue_3")
-        self.assertEquals(input_parent_2.get_rf_flow_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_rf_flow_id(), "newvalue_3")
+        self.assertEqual(input_parent_2.get_rf_flow_id(), "newvalue_3")
 
         rfsource.rf_flow_id = "newvalue_4";
         output_port._set_current_rf_input(rfsource, "hello")
-        self.assertEquals(input_parent.get_rf_flow_id(), "newvalue_4")
-        self.assertEquals(input_parent_2.get_rf_flow_id(), "newvalue_3")
+        self.assertEqual(input_parent.get_rf_flow_id(), "newvalue_4")
+        self.assertEqual(input_parent_2.get_rf_flow_id(), "newvalue_3")
 
         self.assertRaises(PortCallError, output_port._set_current_rf_input, rfsource, "something")
 
@@ -456,9 +455,9 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_1._this(), "hello")
 
         bw = output_port.getTunerBandwidth('first_tuner')
-        self.assertEquals(bw, 1)
+        self.assertEqual(bw, 1)
         bw = output_port.getTunerBandwidth('first_tuner', "hello")
-        self.assertEquals(bw, 1)
+        self.assertEqual(bw, 1)
         self.assertRaises(PortCallError, output_port.getTunerBandwidth, 'first_tuner', 'foo')
 
         input_parent_2 = self.tuner_port_sample()
@@ -468,7 +467,7 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
         self.assertRaises(PortCallError, output_port.getTunerBandwidth, 'first_tuner')
         bw = output_port.getTunerBandwidth('first_tuner', "hello")
-        self.assertEquals(bw, 1)
+        self.assertEqual(bw, 1)
         self.assertRaises(PortCallError, output_port.getTunerBandwidth, 'first_tuner', "something")
 
         output_port.disconnectPort("hello")
@@ -479,21 +478,21 @@ class PortsTest(unittest.TestCase):
         input_port_1 = InDigitalScanningTunerPort("input_1", input_parent)
         output_port = OutDigitalTunerPort("output")
 
-        self.assertEquals(input_parent.get_bw(),0)
+        self.assertEqual(input_parent.get_bw(),0)
 
         bw = 1
         output_port.setTunerBandwidth("first_tuner", bw)
-        self.assertEquals(input_parent.get_bw(), 0)
+        self.assertEqual(input_parent.get_bw(), 0)
         self.assertRaises(PortCallError, output_port.setTunerBandwidth, "first_tuner", bw, "hello")
 
         output_port.connectPort(input_port_1._this(), "hello")
 
         output_port.setTunerBandwidth("first_tuner", bw)
-        self.assertEquals(input_parent.get_bw(), bw)
+        self.assertEqual(input_parent.get_bw(), bw)
 
         bw = 2
         output_port.setTunerBandwidth("first_tuner", bw, "hello")
-        self.assertEquals(input_parent.get_bw(), bw)
+        self.assertEqual(input_parent.get_bw(), bw)
 
         self.assertRaises(PortCallError, output_port.setTunerBandwidth, "first_tuner", bw, "foo")
 
@@ -502,13 +501,13 @@ class PortsTest(unittest.TestCase):
         output_port.connectPort(input_port_2._this(), "foo")
 
         output_port.setTunerBandwidth("first_tuner", bw);
-        self.assertEquals(input_parent.get_bw(), bw)
-        self.assertEquals(input_parent_2.get_bw(), bw)
+        self.assertEqual(input_parent.get_bw(), bw)
+        self.assertEqual(input_parent_2.get_bw(), bw)
 
         bw = 4
         output_port.setTunerBandwidth("first_tuner", bw, "hello")
-        self.assertEquals(input_parent.get_bw(), bw)
-        self.assertEquals(input_parent_2.get_bw(), 3)
+        self.assertEqual(input_parent.get_bw(), bw)
+        self.assertEqual(input_parent_2.get_bw(), 3)
 
         self.assertRaises(PortCallError, output_port.setTunerBandwidth, "first_tuner", bw, "something")
 

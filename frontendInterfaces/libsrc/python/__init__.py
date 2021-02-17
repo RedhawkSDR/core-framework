@@ -27,13 +27,13 @@ frontend
 #
 
 # 
-from fe_types import *
+from .fe_types import *
 
-from tuner_device import *
+from .tuner_device import *
 
-from input_ports import *
+from .input_ports import *
 
-from output_ports import *
+from .output_ports import *
 
-import sri
+from . import sri
 

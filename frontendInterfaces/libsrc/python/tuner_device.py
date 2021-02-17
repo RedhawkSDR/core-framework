@@ -34,7 +34,7 @@ import threading
 from bulkio.bulkioInterfaces import BULKIO
 from redhawk.frontendInterfaces import FRONTEND
 from ossie.cf import ExtendedCF
-from fe_types import *
+from .fe_types import *
 
 class AllocationAlreadyExists(CF.Device.InvalidCapacity):
     def __init__(self, msg, props):
@@ -401,7 +401,7 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
     allAllocated = False
     #No tuners found on device
     if numTuners == 0:
-        print "No Available Tuner"
+        print("No Available Tuner")
     else:
         if numTuners >= 1:
             for index, key in enumerate(device.frontend_tuner_status):
@@ -412,7 +412,7 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
                     break
                 if id_csv == '':
                     if sample_rate == None or center_frequency == None:
-                        print "tune(): tune did not occur, must set center_frequency and sample_rate"
+                        print("tune(): tune did not occur, must set center_frequency and sample_rate")
                         return None
                     else:
                         alloc=createTunerAllocation(tuner_type, allocation_id,center_frequency,bandwidth, sample_rate,device_control,group_id,rf_flow_id,bandwidth_tolerance,sample_rate_tolerance,returnDict)
@@ -422,40 +422,40 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
                             allocation_id = alloc['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
                             if gain != None:
                                 tuner = None
-                                if "DigitalTuner_in" in device._providesPortDict.keys():
+                                if "DigitalTuner_in" in list(device._providesPortDict.keys()):
                                     tuner_type = "DigitalTuner"
                                     tuner = device.getPort("DigitalTuner_in")
-                                elif "AnalogTuner_in" in device._providesPortDict.keys():
+                                elif "AnalogTuner_in" in list(device._providesPortDict.keys()):
                                     tuner_type = "AnalogTuner"
                                     tuner = device.getPort("AnalogTuner_in")
                                 if tuner != None:
                                     if tuner.getTunerAgcEnable(allocation_id) == True:
-                                        print "tune(): Agc is enabled, disabling to allow setting of the gain to " + str(gain)
+                                        print("tune(): Agc is enabled, disabling to allow setting of the gain to " + str(gain))
                                         tuner.setTunerAgcEnable(allocation_id,False)
                                     tuner.setTunerGain(allocation_id, gain)
                             break
 
         if allocation_id == None and not newAllocation and numTuners >= 1:
             if allAllocated:
-                print "tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties"
+                print("tune(): All tuners (", len(device.frontend_tuner_status), ") have been allocated.  Specify an allocation_id to change tuning properties")
             else:
-                print "tune(): unable to allocate a tuner with the given parameters"
+                print("tune(): unable to allocate a tuner with the given parameters")
 
         elif not newAllocation:
             tuner=None
             tuner_type=None
             allocation_status = _getAllocationStatus(device, numTuners, allocation_id)
             if allocation_status == None:
-                print "tune(): unable to allocate a tuner with the given parameters"
+                print("tune(): unable to allocate a tuner with the given parameters")
                 return  allocation_status
-            elif "DigitalTuner_in" in device._providesPortDict.keys():
+            elif "DigitalTuner_in" in list(device._providesPortDict.keys()):
                 tuner_type = "DigitalTuner"
                 tuner = device.getPort("DigitalTuner_in")
-            elif "AnalogTuner_in" in device._providesPortDict.keys():
+            elif "AnalogTuner_in" in list(device._providesPortDict.keys()):
                 tuner_type = "AnalogTuner"
                 tuner = device.getPort("AnalogTuner_in")
             else:
-                print "tune(): No DigitalTuner_in or AnalogTuner_in found"
+                print("tune(): No DigitalTuner_in or AnalogTuner_in found")
                 return allocation_status.allocation_id_csv
             if len(allocation_status.allocation_id_csv) > 0:
                 # Get the control allocation_id
@@ -466,7 +466,7 @@ def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=No
                     tuner.setTunerOutputSampleRate(allocation_id, sample_rate)
                 if gain != None:
                     if tuner.getTunerAgcEnable(allocation_id) == True:
-                        print "tune(): Agc is enabled, disabling to allow setting of the gain to " + str(gain)
+                        print("tune(): Agc is enabled, disabling to allow setting of the gain to " + str(gain))
                         tuner.setTunerAgcEnable(allocation_id,False)
                     tuner.setTunerGain(allocation_id, gain)
 
@@ -493,7 +493,7 @@ def deallocate(device,allocation_id=None,allTuners=False):
             deallocated = True
     else:
         if allocation_id == None and allTuners == False:
-            print "deallocate(): no tuner deallocated because no allocation_id specified and allTuners set to False"
+            print("deallocate(): no tuner deallocated because no allocation_id specified and allTuners set to False")
         else:
             if allTuners == True:
                 for i in range(len(device.frontend_tuner_status)):
@@ -578,7 +578,7 @@ class FrontendTunerDevice(Device):
             if self.tuner_allocation_ids[tuner_id].control_allocation_id:
                 alloc_ids = [self.tuner_allocation_ids[tuner_id].control_allocation_id]
             # now add the rest
-            for allocID,tunerID in self.allocation_id_to_tuner_id.items():
+            for allocID,tunerID in list(self.allocation_id_to_tuner_id.items()):
                 if tunerID == tuner_id and allocID not in alloc_ids:
                     alloc_ids.append(allocID)
         finally:
@@ -654,11 +654,11 @@ class FrontendTunerDevice(Device):
             propdict[prop.id] = propdef._fromAny(prop.value)
 
         listener_alloc = False
-        if propdict.has_key('FRONTEND::tuner_allocation'):
+        if 'FRONTEND::tuner_allocation' in propdict:
             if propdict['FRONTEND::tuner_allocation'].device_control == False:
                 listener_alloc = True
 
-        if (not (propdict.has_key('FRONTEND::listener_allocation') or listener_alloc)) and self._usageState == CF.Device.BUSY:
+        if (not ('FRONTEND::listener_allocation' in propdict or listener_alloc)) and self._usageState == CF.Device.BUSY:
             return False
 
         self._deviceLog.debug("allocateCapacity(%s)", properties)
@@ -667,12 +667,12 @@ class FrontendTunerDevice(Device):
 
         self._checkValidIds(propdict)
         scanner_prop = None
-        if propdict.has_key('FRONTEND::scanner_allocation'):
+        if 'FRONTEND::scanner_allocation' in propdict:
             scanner_prop = propdict['FRONTEND::scanner_allocation']
 
-        if propdict.has_key('FRONTEND::tuner_allocation'):
+        if 'FRONTEND::tuner_allocation' in propdict:
             return self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
-        if propdict.has_key('FRONTEND::listener_allocation'):
+        if 'FRONTEND::listener_allocation' in propdict:
             return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
 
         raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
@@ -804,19 +804,19 @@ class FrontendTunerDevice(Device):
                 self.deallocate_frontend_tuner_allocation(frontend_tuner_allocation)
             return False
 
-        except AllocationAlreadyExists, e:
+        except AllocationAlreadyExists as e:
             # Don't call deallocateCapacity if the allocationId already exists
             #   - Would end up deallocating a valid tuner/listener
             raise CF.Device.InvalidCapacity(e)
         
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             raise e
         
-        except FRONTEND.BadParameterException, e:
+        except FRONTEND.BadParameterException as e:
             #self.deallocateCapacity([frontend_tuner_allocation.getProp()])
             return False
         
-        except Exception, e:
+        except Exception as e:
             self._deviceLog.exception('The following error occurred on allocation:',e)
             #self.deallocateCapacity([frontend_tuner_allocation.getProp()])
             raise e
@@ -909,21 +909,21 @@ class FrontendTunerDevice(Device):
             self.assignListener(frontend_listener_allocation.listener_allocation_id,frontend_listener_allocation.existing_allocation_id)
             return True
                 
-        except RuntimeError, e:
+        except RuntimeError as e:
             return False
 
-        except AllocationAlreadyExists, e:
+        except AllocationAlreadyExists as e:
             # Don't call deallocateCapacity if the allocationId already exists
             #   - Would end up deallocating a valid tuner/listener
             raise CF.Device.InvalidCapacity(str(e), struct_to_props(frontend_listener_allocation))
         
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             raise e
         
-        except FRONTEND.BadParameterException, e:
+        except FRONTEND.BadParameterException as e:
             return False
         
-        except Exception, e:
+        except Exception as e:
             self._deviceLog.info('The following error occurred on allocation:',e)
             raise e
 
@@ -1121,19 +1121,19 @@ class FrontendTunerDevice(Device):
 
     # This is not currently used but is available as a debugging tool
     def printSRI(self, sri, strHeader = "DEBUG SRI"):
-        print strHeader
-        print "\thversion:",  sri.hversion
-        print "\txstart:",  sri.xstart
-        print "\txdelta:",  sri.xdelta
-        print "\txunits:",  sri.xunits
-        print "\tsubsize:",  sri.subsize
-        print "\tystart:",  sri.ystart
-        print "\tydelta:",  sri.ydelta
-        print "\tyunits:",  sri.yunits
-        print "\tmode:",  sri.mode
-        print "\tstreamID:",  sri.streamID
+        print(strHeader)
+        print("\thversion:",  sri.hversion)
+        print("\txstart:",  sri.xstart)
+        print("\txdelta:",  sri.xdelta)
+        print("\txunits:",  sri.xunits)
+        print("\tsubsize:",  sri.subsize)
+        print("\tystart:",  sri.ystart)
+        print("\tydelta:",  sri.ydelta)
+        print("\tyunits:",  sri.yunits)
+        print("\tmode:",  sri.mode)
+        print("\tstreamID:",  sri.streamID)
         for keyword in sri.keywords:
-            print "\t KEYWORD KEY/VAL ::",  keywords.id + ":",  any.from_any(keywords.value)
+            print("\t KEYWORD KEY/VAL ::",  keywords.id + ":",  any.from_any(keywords.value))
             
     ######################################################################
     # PROPERTIES
