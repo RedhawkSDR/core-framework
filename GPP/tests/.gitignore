@@ -1,3 +1,4 @@
 sdr/dev/devices/GPP/
 sdr/dev/mgr
 sdr/dom/mgr
+component_stub.py

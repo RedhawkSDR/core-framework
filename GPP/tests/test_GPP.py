@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -19,10 +19,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import multiprocessing
 import os
-import Queue
+import queue
 import resource
 import shlex
 import shutil
@@ -77,12 +77,13 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
     SPD_FILE = '../GPP.spd.xml'
 
     def setUp(self):
-        print "\n-----------------------"
-        print "Running: ", self.id().split('.')[-1]
-        print "-----------------------\n"
+        print("\n-----------------------")
+        print("Running: ", self.id().split('.')[-1])
+        print("-----------------------\n")
 
         if self._shouldLaunch():
-            self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
+            self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64',
+	                               'DEBUG_LEVEL' : 3 })
         else:
             self.comp = None
 
@@ -150,7 +151,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         self._testFiles.remove(path)
 
     def addBusyTasks(self, count):
-        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in xrange(count)]
+        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in range(count)]
 
     def clearBusyTasks(self):
         for proc in self._busyProcs:
@@ -163,9 +164,9 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
     def _execute(self, executable, options, parameters):
         if isinstance(options, dict):
-            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
+            options = [CF.DataType(k, any.to_any(v)) for k, v in list(options.items())]
         if isinstance(parameters, dict):
-            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
+            parameters = [CF.DataType(k, any.to_any(v)) for k, v in list(parameters.items())]
         pid = self.comp.ref.execute(executable, options, parameters)
         if pid != 0:
             self._pids.append(pid)
@@ -190,7 +191,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
         wait_predicate(lambda: appReg.getObject(name) is not None, 2.0)
         comp = appReg.getObject(name)
-        self.failIf(comp is None, "component '" + name + "' never registered")
+        self.assertFalse(comp is None, "component '" + name + "' never registered")
 
         return (pid, comp)
 
@@ -202,7 +203,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
 class GPPTests(GPPSandboxTest):
     def testPropertyEvents(self):
-        event_queue = Queue.Queue()
+        event_queue = queue.Queue()
         event_channel = sb.createEventChannel('properties')
         event_channel.eventReceived.addListener(event_queue.put)
 
@@ -213,7 +214,7 @@ class GPPTests(GPPSandboxTest):
         # Make sure the background status events are emitted
         try:
             event = event_queue.get(timeout=1.0)
-        except Queue.Empty:
+        except queue.Empty:
             self.fail('Property change event not received')
         event = any.from_any(event, keep_structs=True)
         event_dict = ossie.properties.props_to_dict(event.properties)
@@ -251,7 +252,7 @@ class GPPTests(GPPSandboxTest):
         # third component unambiguously crosses into the busy threshold
         self.comp.thresholds.cpu_idle = 30
         self.comp.reserved_capacity_per_component = 0.25 * self.comp.processor_cores
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+        self.assertEqual(self.comp._get_usageState(),CF.Device.IDLE)
 
         self._launchComponentStub('reservation_1')
         self._launchComponentStub('reservation_2')
@@ -260,16 +261,16 @@ class GPPTests(GPPSandboxTest):
         # go busy; the CPU utilization (always the first entry) should report
         # 50% subscribed
         time.sleep(2)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.ACTIVE)
         expected = 0.5 * self.comp.processor_cores
-        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+        self.assertEqual(expected, self.comp.utilization[0].subscribed)
 
         # Launch the third component and give up to 2 seconds for the GPP to go
         # busy; CPU utilization should now be 75% subscribed
         self._launchComponentStub('reservation_3')
         self.waitUsageState(CF.Device.BUSY, 2.0)
         expected = 0.75 * self.comp.processor_cores
-        self.assertEquals(expected, self.comp.utilization[0].subscribed)
+        self.assertEqual(expected, self.comp.utilization[0].subscribed)
 
         # Reduce the reserved capacity such that it consumes less than the idle
         # threshold (10% x 3 = 30% active = 70% idle)
@@ -277,12 +278,12 @@ class GPPTests(GPPSandboxTest):
         self.waitUsageState(CF.Device.ACTIVE, 2.0)
         # 30% is an inexact fraction, so allow a little tolerance
         expected = 0.3 * self.comp.processor_cores
-        self.assertAlmostEquals(expected, self.comp.utilization[0].subscribed, 1)
+        self.assertAlmostEqual(expected, self.comp.utilization[0].subscribed, 1)
 
     def testFloorReservation(self):
         # Reserve an absurdly large amount of cores, which should drive the GPP
         # to a busy state immediately
-        self.assertEquals(self.comp._get_usageState(),CF.Device.IDLE)
+        self.assertEqual(self.comp._get_usageState(),CF.Device.IDLE)
         params = {"RH::GPP::MODIFIED_CPU_RESERVATION_VALUE": 1000.0}
         self._launchComponentStub('floor_reservation_1', parameters=params)
 
@@ -298,7 +299,7 @@ class GPPTests(GPPSandboxTest):
     def _checkThresholdEvent(self, resourceId, thresholdClass, exceeded):
         try:
             event = self.queue.get(timeout=2.0)
-        except Queue.Empty:
+        except queue.Empty:
             self.fail('Threshold event not received')
         self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
         self.assertEqual(thresholdClass, event['threshold_event::threshold_class'])
@@ -337,7 +338,7 @@ class GPPTests(GPPSandboxTest):
         while expected and (time.time() < end):
             try:
                 event = self.queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 time.sleep(0.1)
                 continue
 
@@ -348,8 +349,8 @@ class GPPTests(GPPSandboxTest):
             # Should only be receiving one NIC message from each configured
             # interface
             nic_name = event['threshold_event::resource_id']
-            self.failUnless(nic_name in nics, 'Received message from unexpected NIC %s' % nic_name)
-            self.failUnless(nic_name in expected, 'Received too many messages from NIC %s' % nic_name)
+            self.assertTrue(nic_name in nics, 'Received message from unexpected NIC %s' % nic_name)
+            self.assertTrue(nic_name in expected, 'Received too many messages from NIC %s' % nic_name)
             threshold_class = event['threshold_event::threshold_class']
             self.assertEqual('NIC_THROUGHPUT', threshold_class, 'Received unexpected threshold class %s' % threshold_class)
             self._assertThresholdState(event, exceeded)
@@ -372,7 +373,7 @@ class GPPTests(GPPSandboxTest):
 
         # Create a virtual event channel to queue the GPP's messages
         event_channel = sb.createEventChannel('thresholds')
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         def queue_message(message):
             # Unpack and queue up threshold event messages
             for event in self._unpackThresholdEvents(message):
@@ -386,7 +387,7 @@ class GPPTests(GPPSandboxTest):
         while not queue_empty:
             try:
                 event = self.queue.get(timeout=2.0)
-            except Queue.Empty:
+            except queue.Empty:
                 queue_empty = True
 
         # Test all thresholds except NIC, which is a little more complex
@@ -420,8 +421,8 @@ class GPPTests(GPPSandboxTest):
         # Test that when cache and working directory are not given, the
         # properties still have meaningful values
         cwd = os.getcwd()
-        self.assertEquals(cwd, self.comp.cacheDirectory)
-        self.assertEquals(cwd, self.comp.workingDirectory)
+        self.assertEqual(cwd, self.comp.cacheDirectory)
+        self.assertEqual(cwd, self.comp.workingDirectory)
 
     @nolaunch
     def testCacheDirectory(self):
@@ -436,10 +437,10 @@ class GPPTests(GPPSandboxTest):
 
         # Load a file and check that it was copied to the right place
         expected = os.path.join(cache_dir, 'bin/echo_pid.py')
-        self.failIf(os.path.exists(expected))
+        self.assertFalse(os.path.exists(expected))
         fs_stub = ComponentTests.FileSystemStub()
         self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
-        self.failUnless(os.path.isfile(expected))
+        self.assertTrue(os.path.isfile(expected))
 
     @nolaunch
     def testWorkingDirectory(self):
@@ -454,10 +455,10 @@ class GPPTests(GPPSandboxTest):
 
         # Run a test executable that writes to its current directory
         expected = os.path.join(working_dir, 'pid.out')
-        self.failIf(os.path.exists(expected))
+        self.assertFalse(os.path.exists(expected))
         pid = self._execute("/bin/echo_pid.py", {}, {})
         wait_predicate(lambda: os.path.exists(expected), 1.0)
-        self.failUnless(os.path.exists(expected))
+        self.assertTrue(os.path.exists(expected))
 
         # Read the output file and make sure that the right PID was written
         with open(expected, 'r') as fp:
@@ -483,17 +484,17 @@ class GPPTests(GPPSandboxTest):
 
         # Load a file and check that it was copied to the right place
         expected = os.path.join(cache_dir, 'bin/echo_pid.py')
-        self.failIf(os.path.exists(expected))
+        self.assertFalse(os.path.exists(expected))
         fs_stub = ComponentTests.FileSystemStub()
         self.comp.ref.load(fs_stub._this(), "/bin/echo_pid.py", CF.LoadableDevice.EXECUTABLE)
-        self.failUnless(os.path.isfile(expected))
+        self.assertTrue(os.path.isfile(expected))
 
         # Run a test executable that writes to its current directory
         expected = os.path.join(working_dir, 'pid.out')
-        self.failIf(os.path.exists(expected))
+        self.assertFalse(os.path.exists(expected))
         pid = self._execute("/bin/echo_pid.py", {}, {})
         wait_predicate(lambda: os.path.exists(expected), 1.0)
-        self.failUnless(os.path.exists(expected))
+        self.assertTrue(os.path.exists(expected))
 
         # Read the output file and make sure that the right PID was written
         with open(expected, 'r') as fp:
@@ -505,13 +506,13 @@ class GPPTests(GPPSandboxTest):
 
         # The total shouldn't change in normal operation, so using the same
         # expected integer math should give the same value
-        total = (status.f_blocks * status.f_frsize) / 1024 / 1024
+        total = (status.f_blocks * status.f_frsize) // 1024 // 1024
         self.assertEqual(total, self.comp.shmCapacity)
 
         # Free could vary slightly if something else is happening on the
         # system, so give it a little bit of slack (1 MB)
         free = (status.f_bfree * status.f_frsize) / 1024 / 1024
-        self.failIf(abs(free - self.comp.shmFree) > 1)
+        self.assertFalse(abs(free - self.comp.shmFree) > 1)
 
     def testBusyCpuIdle(self):
         # Disable load average threshold
@@ -521,9 +522,9 @@ class GPPTests(GPPSandboxTest):
 
         # Task all of the CPUs to be busy (more or less) and wait for the idle
         # threshold to be exceeded
-        self.addBusyTasks(self.comp.processor_cores)
+        self.addBusyTasks(int(self.comp.processor_cores))
         self.waitUsageState(CF.Device.BUSY, 5.0)
-        self.failUnless("CPU IDLE" in self.comp.busy_reason.upper())
+        self.assertTrue("CPU IDLE" in self.comp.busy_reason.upper())
 
         # Clear all busy tasks and wait for the device to go back to idle
         self.clearBusyTasks()
@@ -539,22 +540,22 @@ class GPPTests(GPPSandboxTest):
 
         # The load average may exceed the threshold to begin with, depending on
         # what the system was doing before this test
-        print 'Waiting for load average to fall below threshold, may take a while'
+        print('Waiting for load average to fall below threshold, may take a while')
         self.waitUsageState(CF.Device.IDLE, 30.0)
 
         # Occupy all of the CPUs with busy tasks and wait for the load average
         # to exceed the threshold; this may take a while, since it's based on a
         # 1 minute window
-        self.addBusyTasks(self.comp.processor_cores)
-        print 'Waiting for load average to exceed threshold, may take a while'
+        self.addBusyTasks(int(self.comp.processor_cores))
+        print('Waiting for load average to exceed threshold, may take a while')
         self.waitUsageState(CF.Device.BUSY, 30.0)
-        self.failUnless("LOAD AVG" in self.comp.busy_reason.upper())
+        self.assertTrue("LOAD AVG" in self.comp.busy_reason.upper())
 
         # Clear all of the busy tasks; again, due to the 1 minute window, it
         # may take a little while for the load average to drop back below the
         # threshold
         self.clearBusyTasks()
-        print 'Waiting for load average to fall below threshold, may take a while'
+        print('Waiting for load average to fall below threshold, may take a while')
         self.waitUsageState(CF.Device.IDLE, 90.0)
         self.assertEqual(self.comp.busy_reason, "")
 
@@ -578,7 +579,7 @@ class GPPTests(GPPSandboxTest):
             # Resize the file and write one byte every page to ensure that
             # shared memory is consumed
             fp.truncate(fill_size)
-            for pos in xrange(0, fill_size, 4096):
+            for pos in range(0, fill_size, 4096):
                 fp.seek(pos)
                 fp.write('\x00')
 
@@ -614,9 +615,9 @@ class ComponentTests(GPPSandboxTest):
     def get_single_nic_interface(self):
         self.nic_list = []
         cmd = '/sbin/ifconfig -a'
-        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
+        (exitstatus, ifconfig_info) = subprocess.getstatusoutput(cmd)
         if exitstatus != 0:
-            print "Problem running '{0}'".format(cmd)
+            print("Problem running '{0}'".format(cmd))
             return
 
         # add vlans
@@ -638,7 +639,7 @@ class ComponentTests(GPPSandboxTest):
             return os.path.getsize(self.path)
         
         def read(self, bytes):
-            return self.fobj.read(bytes)
+            return self.fobj.read(bytes).encode()
         
         def close(self):
             return self.fobj.close()
@@ -672,7 +673,7 @@ class ComponentTests(GPPSandboxTest):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more properties, but not fewer.
         for expectedProp in expectedProps:
-            self.assertEquals(expectedProp.id in props, True)
+            self.assertEqual(expectedProp.id in props, True)
 
         qr = [CF.DataType(id="DCE:9190eb70-bd1e-4556-87ee-5a259dcfee39", value=any.to_any(None)),  # hostName
               CF.DataType(id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d", value=any.to_any(None))]  # DeviceKind
@@ -724,10 +725,10 @@ class ComponentTests(GPPSandboxTest):
 
         component_monitor = self.comp.component_monitor
         self.assertNotEqual(len(component_monitor), 0)
-        self.assertEquals(component_monitor[0].pid, pid)
-        self.assertEquals(component_monitor[0].component_id, comp_id)
-        self.assertEquals(component_monitor[0].waveform_id, comp_id)
-        self.assertEquals(component_monitor[0].num_processes, 1)
+        self.assertEqual(component_monitor[0].pid, pid)
+        self.assertEqual(component_monitor[0].component_id, comp_id)
+        self.assertEqual(component_monitor[0].waveform_id, comp_id)
+        self.assertEqual(component_monitor[0].num_processes, 1)
         self.assertTrue(component_monitor[0].num_threads >= 4)
 
         try:
@@ -754,7 +755,7 @@ class ComponentTests(GPPSandboxTest):
             procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
-            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            print(str(time.time()) + " busy reason: " + str(self.comp.busy_reason))
             time.sleep(.4)
         self.assertEqual(self.comp.ref._get_usageState(), CF.Device.BUSY)
         br=self.comp.busy_reason
@@ -792,7 +793,7 @@ class ComponentTests(GPPSandboxTest):
             procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
-            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            print(str(time.time()) + " busy reason: " + str(self.comp.busy_reason))
             time.sleep(.4)
 
         self.assertEqual(self.comp.ref._get_usageState(), CF.Device.BUSY)
@@ -880,7 +881,7 @@ class ComponentTests(GPPSandboxTest):
         else:
             self.fail("Process failed to terminate")
         
-        output,status = commands.getstatusoutput('screen -wipe')
+        output,status = subprocess.getstatusoutput('screen -wipe')
             
         screens = os.listdir(screendir)
         self.assertEqual(len(screens), 0)
@@ -902,7 +903,7 @@ class ComponentTests(GPPSandboxTest):
         sproc="./spacely sprockets"
         shutil.copy(proc,sproc)
         procs = subprocess.Popen(sproc)
-	self._busyProcs += [procs]
+        self._busyProcs += [procs]
         self.assertEqual(procs.poll(), None )
 
         self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
@@ -934,8 +935,8 @@ class ComponentTests(GPPSandboxTest):
         cprops = [CF.DataType(id='DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1',value=any.to_any(None)),
                   CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(None)) ]
         cprops = self.comp.ref.query(cprops)
-        self.assertEquals( cprops[0].value.value(), 1)
-        self.assertEquals( cprops[1].value.value(), 1)
+        self.assertEqual( cprops[0].value.value(), 1)
+        self.assertEqual( cprops[1].value.value(), 1)
 
         # try failed allocation
         allocProps = [CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(200))]
@@ -949,8 +950,8 @@ class ComponentTests(GPPSandboxTest):
         cprops = [CF.DataType(id='DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1',value=any.to_any(None)),
                   CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(None)) ]
         cprops = self.comp.ref.query(cprops)
-        self.assertEquals( cprops[0].value.value(), 90)
-        self.assertEquals( cprops[1].value.value(), 90)
+        self.assertEqual( cprops[0].value.value(), 90)
+        self.assertEqual( cprops[1].value.value(), 90)
 
         # try good allocation
         allocProps = [CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(50))]
@@ -959,16 +960,16 @@ class ComponentTests(GPPSandboxTest):
         cprops = [CF.DataType(id='DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1',value=any.to_any(None)),
                   CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(None)) ]
         cprops = self.comp.ref.query(cprops)
-        self.assertEquals( cprops[0].value.value(), 90)
-        self.assertEquals( cprops[1].value.value(), 40)
+        self.assertEqual( cprops[0].value.value(), 90)
+        self.assertEqual( cprops[1].value.value(), 40)
 
         self.comp.ref.deallocateCapacity( allocProps)
 
         cprops = [CF.DataType(id='DCE:89be90ae-6a83-4399-a87d-5f4ae30ef7b1',value=any.to_any(None)),
                   CF.DataType(id='DCE:506102d6-04a9-4532-9420-a323d818ddec',value=any.to_any(None)) ]
         cprops = self.comp.ref.query(cprops)
-        self.assertEquals( cprops[0].value.value(), 90)
-        self.assertEquals( cprops[1].value.value(), 90)
+        self.assertEqual( cprops[0].value.value(), 90)
+        self.assertEqual( cprops[1].value.value(), 90)
 
     def test_loadCapacity(self):
 
@@ -991,7 +992,7 @@ class ComponentTests(GPPSandboxTest):
 
         # make sure capacity was affected
         remaining_cap = capacity-req_cap
-        self.assertEquals( cprops[0].value.value(), remaining_cap)
+        self.assertEqual( cprops[0].value.value(), remaining_cap)
 
         # now request more... result will be be  0..
         allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity))]
@@ -1001,7 +1002,7 @@ class ComponentTests(GPPSandboxTest):
         cprops=self.comp.ref.query(cprops)
 
         # make sure capacity is zero..
-        self.assertEquals( cprops[0].value.value(), 0.0)
+        self.assertEqual( cprops[0].value.value(), 0.0)
 
         # now dealloacte more than requests.. should go back to max.
         allocProps = [CF.DataType(id='DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056',value=any.to_any(capacity*2))]
@@ -1011,7 +1012,7 @@ class ComponentTests(GPPSandboxTest):
         cprops=self.comp.ref.query(cprops)
 
         # make sure capacity is original max.
-        self.assertEquals( cprops[0].value.value(), capacity)   
+        self.assertEqual( cprops[0].value.value(), capacity)   
 
         # now set reservation mode off 
         self.comp.reserved_capacity_per_component=0.0
@@ -1033,130 +1034,130 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
         self.comp.thresholds.cpu_idle = 100.00
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set cpu idle  back
         self.comp.thresholds.cpu_idle = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
         # set mem_free 
         orig_thres = self.comp.thresholds.mem_free.queryValue()
         mem_free = self.comp.memFree.queryValue()
         self.comp.thresholds.mem_free = mem_free+2000
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set mem_free  back
         self.comp.thresholds.mem_free = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
 
         # set load_avg
         orig_thres = self.comp.thresholds.load_avg.queryValue()
         self.comp.thresholds.load_avg=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set load_avg  back
         self.comp.thresholds.load_avg = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
 
         # set nic_usage
         orig_thres = self.comp.thresholds.nic_usage.queryValue()
         self.comp.thresholds.nic_usage=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set nic_usage  back
         self.comp.thresholds.nic_usage = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
         # set files_available
         orig_thres = self.comp.thresholds.files_available.queryValue()
         self.comp.thresholds.files_available=100.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set files_available back
         self.comp.thresholds.files_available = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
         # set threads
         orig_thres = self.comp.thresholds.threads.queryValue()
         self.comp.thresholds.threads=100.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.BUSY)
+        self.assertEqual(ustate, CF.Device.BUSY)
 
         # set threads back
         self.comp.thresholds.threads = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
 
     def test_threshold_usagestate_ignored(self):
@@ -1174,66 +1175,66 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
         self.comp.thresholds.cpu_idle = 100.00
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertNotEquals(ustate, CF.Device.BUSY)
+        self.assertNotEqual(ustate, CF.Device.BUSY)
 
         # set cpu idle  back
         self.comp.thresholds.cpu_idle = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
         # set mem_free 
         orig_thres = self.comp.thresholds.mem_free.queryValue()
         mem_free = self.comp.memFree.queryValue()
         self.comp.thresholds.mem_free = mem_free+2000
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertNotEquals(ustate, CF.Device.BUSY)
+        self.assertNotEqual(ustate, CF.Device.BUSY)
 
         # set mem_free  back
         self.comp.thresholds.mem_free = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
 
         # set load_avg
         orig_thres = self.comp.thresholds.load_avg.queryValue()
         self.comp.thresholds.load_avg=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
 
-        self.assertNotEquals(ustate, CF.Device.BUSY)
+        self.assertNotEqual(ustate, CF.Device.BUSY)
 
         # set load_avg  back
         self.comp.thresholds.load_avg = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
 
-        self.assertEquals(ustate, CF.Device.IDLE)
+        self.assertEqual(ustate, CF.Device.IDLE)
 
 
 @skipUnless(topology.available() and hasNumaSupport(), 'Affinity control is disabled')
@@ -1257,11 +1258,11 @@ class AffinityTests(GPPSandboxTest):
     def _getNumCpus(self):
         output=2
         try:
-            status,output=commands.getstatusoutput("ls -d /sys/devices/system/cpu/cpu[0-9]*  | wc -l")
+            status,output=subprocess.getstatusoutput("ls -d /sys/devices/system/cpu/cpu[0-9]*  | wc -l")
             if status == 0:
                 return int(output)
             else:
-                status,output=commands.getstatusoutput("lscpu  | egrep '^CPU\('  | awk  '{ print  $2 }'")
+                status,output=subprocess.getstatusoutput("lscpu  | egrep '^CPU\('  | awk  '{ print  $2 }'")
                 return int(output)
         except:
             pass
@@ -1270,7 +1271,7 @@ class AffinityTests(GPPSandboxTest):
     def _deployWithAffinityOptions(self, name, affinity={}):
         options = {}
         if affinity:
-            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
+            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in list(affinity.items())]
         pid, comp = self._launchComponentStub(name, options=options)
         return pid
 
@@ -1441,8 +1442,8 @@ class AffinityTests(GPPSandboxTest):
         # its CPUs
         node = topology.nodes[-1]
         cpu_count = len(node.cpus)
-        blacklist_cpus = node.cpus[:cpu_count/2]
-        cpu_list = node.cpus[cpu_count/2:]
+        blacklist_cpus = node.cpus[:cpu_count//2]
+        cpu_list = node.cpus[cpu_count//2:]
 
         self.comp.affinity.blacklist_cpus = ','.join(str(cpu) for cpu in blacklist_cpus)
         pid = self._deployWithAffinityOptions('socket_affinity_bl_1', {'affinity::exec_directive_class': 'socket',
@@ -1497,12 +1498,12 @@ class DomainSupport(scatest.CorbaTestCase):
         super(DomainSupport,self).setUp()
         self.orig_sdrroot=os.environ['SDRROOT']
         os.environ['SDRROOT'] = os.getcwd()+'/sdr'
-        print "\n-----------------------"
-        print "Running: ", self.id().split('.')[-1]
-        print "-----------------------\n"
+        print("\n-----------------------")
+        print("Running: ", self.id().split('.')[-1])
+        print("-----------------------\n")
         self._makeLink(self.orig_sdrroot+'/dom/mgr', 'sdr/dom/mgr')
         self._makeLink(self.orig_sdrroot+'/dev/mgr', 'sdr/dev/mgr')
-        print 'done staging DomainManager'
+        print('done staging DomainManager')
 
     def tearDown(self):
         super(DomainSupport, self).tearDown()
@@ -1522,39 +1523,39 @@ class ComponentTests_SystemReservations(DomainSupport):
         self.fail(msg)
 
     def testMonitorComponents(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         app_1=self.dom.createApplication('/waveforms/load_comp_w/load_comp_w.sad.xml','load_comp_w',[])
         wait_amount = (self.dom.devMgrs[0].devs[0].threshold_cycle_time / 1000.0) * 6
         time.sleep(wait_amount)
         component_monitor = self.dom.devMgrs[0].devs[0].component_monitor[0]
         self.assertNotEqual(len(component_monitor), 0)
-        self.assertEquals(component_monitor.num_processes, 2)
+        self.assertEqual(component_monitor.num_processes, 2)
         self.assertTrue(component_monitor.cores > 0.75)
         self.assertTrue(component_monitor.cores < 1.75)
         app_1.start()
         time.sleep(wait_amount)
         component_monitor = self.dom.devMgrs[0].devs[0].component_monitor[0]
-        self.assertEquals(component_monitor.num_processes, 2)
+        self.assertEqual(component_monitor.num_processes, 2)
         self.assertTrue(component_monitor.cores > 1.75)
         app_1.stop()
         time.sleep(wait_amount)
         component_monitor = self.dom.devMgrs[0].devs[0].component_monitor[0]
-        self.assertEquals(component_monitor.num_processes, 2)
+        self.assertEqual(component_monitor.num_processes, 2)
         self.assertTrue(component_monitor.cores > 0.75)
         self.assertTrue(component_monitor.cores < 1.75)
 
     def testDeadlock(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.dom.devMgrs[0].devs[0].threshold_cycle_time = 50
         count = 0
         while count < 20:
@@ -1567,12 +1568,12 @@ class ComponentTests_SystemReservations(DomainSupport):
             count += 1
     
     def testSystemReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1651,7 +1652,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         gpp_state =  self.comp._get_usageState()
         #print "state:", gpp_state
         self.assertClose(sub_now, extra_reservation+res_per_comp )
-        self.assertAlmostEquals(sub_now_pre, sub_now, 2)
+        self.assertAlmostEqual(sub_now_pre, sub_now, 2)
 
     def _verifyReservations(self, extra, application, wait_amount):
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
@@ -1659,7 +1660,7 @@ class ComponentTests_SystemReservations(DomainSupport):
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
         self.assertClose(sub_now, extra)
-        self.assertEquals(comp_load, 0)
+        self.assertEqual(comp_load, 0)
 
         application.start()
         time.sleep(wait_amount)
@@ -1677,15 +1678,15 @@ class ComponentTests_SystemReservations(DomainSupport):
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
         self.assertClose(sub_now, extra)
-        self.assertEquals(comp_load, 0)
+        self.assertEqual(comp_load, 0)
 
     def testAppReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1715,15 +1716,15 @@ class ComponentTests_SystemReservations(DomainSupport):
         base_util = self.dom.devMgrs[0].devs[0].utilization[0]
         sub_now = base_util['subscribed']
         comp_load = base_util['component_load']
-        self.assertEquals(sub_now, 0)
+        self.assertEqual(sub_now, 0)
 
     def testAppOverloadGenericReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1741,19 +1742,19 @@ class ComponentTests_SystemReservations(DomainSupport):
         system_load_base = base_util['system_load']
 
         extra_reservation = 4
-        _value=any.to_any(extra_reservation)
+        _value=any.to_any(extra_reservation*1.0)
         _value._t=CORBA.TC_double
         app_1=self.dom.createApplication('/waveforms/wav_floor_w/wav_floor_w.sad.xml','busy_w',[CF.DataType(id='SPECIALIZED_CPU_RESERVATION',value=any.to_any([CF.DataType(id='',value=_value)]))])
         time.sleep(wait_amount)
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
     def testAppOverloadSpecificReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1779,12 +1780,12 @@ class ComponentTests_SystemReservations(DomainSupport):
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
     def testAppOverloadTwoSpecificReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1810,12 +1811,12 @@ class ComponentTests_SystemReservations(DomainSupport):
         self._verifyReservations(extra_reservation, app_1, wait_amount)
 
     def testAppOverloadOneSpecificReservation(self):
-        self.assertEquals(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
-        self.assertEquals(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dom/mgr/DomainManager'),True)
+        self.assertEqual(os.path.isfile('sdr/dev/mgr/DeviceManager'),True)
         self._domainBooter, domMgr = self.launchDomainManager()
-        self.assertNotEquals(domMgr,None)
+        self.assertNotEqual(domMgr,None)
         self._deviceBooter, devMgr = self.launchDeviceManager("/nodes/DevMgr_sample/DeviceManager.dcd.xml")
-        self.assertNotEquals(devMgr,None)
+        self.assertNotEqual(devMgr,None)
         self.comp= self.dom.devMgrs[0].devs[0]
         cpus = self.dom.devMgrs[0].devs[0].processor_cores
         cpu_thresh = self.dom.devMgrs[0].devs[0].thresholds.cpu_idle
@@ -1874,7 +1875,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         self.assertNotEqual(devMgr, None)
         app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        self.assertEqual(app.comps[0].cwd, self.cwd_dir)
         pid = str(app._get_componentProcessIds()[0].processId)
         fp=open('/proc/'+pid+'/cmdline','r')
         cmdline = fp.read()
@@ -1882,7 +1883,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         _args = cmdline.split('\x00')
         idx = _args.index('RH::DEPLOYMENT_ROOT')
         deployment_root=_args[idx+1]
-        self.assertEquals(deployment_root, self.dom.devices[0].cacheDirectory)
+        self.assertEqual(deployment_root, self.dom.devices[0].cacheDirectory)
 
     def test_CompConfigCacheCWD(self):
         self.assertNotEqual(self.dom, None)
@@ -1890,7 +1891,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
         self.assertNotEqual(devMgr, None)
         app = self.dom.createApplication('/waveforms/check_cwd_w/check_cwd_w.sad.xml')
         self.assertNotEqual(app, None)
-        self.assertEquals(app.comps[0].cwd, self.cwd_dir)
+        self.assertEqual(app.comps[0].cwd, self.cwd_dir)
         found_dir = False
         for root, dirs, files in os.walk(self.base_dir):
             if 'check_cwd.py' in files:
@@ -1903,7 +1904,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
 if __name__ == "__main__":
     if False:
         # Debugging support: enable this conditional to dump NUMA topology
-        print "NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus))
+        print("NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus)))
         for node in topology.nodes:
-            print 'Node', node.node, 'CPUs:', node.cpus
+            print('Node', node.node, 'CPUs:', node.cpus)
     ossie.utils.testing.main()  # By default tests all implementations

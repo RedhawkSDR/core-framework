@@ -3016,7 +3016,7 @@ void GPP_i::updateProcessStats()
         cpu_idle_threshold = thresholds.cpu_idle;
     }
 
-    RH_DEBUG(_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+    RH_TRACE(_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
               " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
               " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
               "         idle avg: " << system_monitor->get_idle_average() << std::endl << 

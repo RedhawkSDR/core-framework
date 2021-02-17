@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,12 +19,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import os, sys, commands, logging, platform, shutil, socket
+import os, sys, subprocess, logging, platform, shutil, socket
 from ossie import parsers
 from ossie.utils.model import _uuidgen as uuidgen
 import traceback
 
-class ConfigurationError(StandardError):
+class ConfigurationError(Exception):
     pass
 
 class BaseConfigurator(object):
@@ -114,7 +114,7 @@ class BaseConfigurator(object):
         # Output some debug information
         if not self.options.silent:
             self._log.debug("System Information for: <" + self.hostname + ">")
-            k = self.props.keys()
+            k = list(self.props.keys())
             k.sort()
             for n in k:
                 self._log.debug("  %-30s %s ", n, self.props[n])
@@ -145,7 +145,7 @@ class BaseConfigurator(object):
 
         # If the multicast NIC isn't specified, attempt to locate using the default route
         if not self.options.mcastnic:
-            text = commands.getoutput("/sbin/route -n").split("\n")
+            text = subprocess.getoutput("/sbin/route -n").split("\n")
             for line in text[2:]:
                 fields = [x.strip() for x in line.split()]
                 if fields[0] == "224.0.0.0":
@@ -187,7 +187,7 @@ class BaseConfigurator(object):
             if not self.options.silent:
                 self._log.warn("You must run " + self.scriptname + " as root in order to get a calculated nic capacity for devices")
 
-        (exitstatus, ethtool_info) = commands.getstatusoutput("/sbin/ethtool " + testInterface)
+        (exitstatus, ethtool_info) = subprocess.getstatusoutput("/sbin/ethtool " + testInterface)
         if exitstatus != 0:
             if not self.options.silent:
                 self._log.debug("Invalid multicast NIC provided.")
@@ -279,7 +279,7 @@ class BaseConfigurator(object):
                     self._log.debug('PRF config, GPP Property: ' + str(pname) )
                 for values in self.props[pname]:
                     sv = parsers.PRFParser.structValue()
-                    for field_id, field_val in values.items():
+                    for field_id, field_val in list(values.items()):
                         if not self.options.silent:
                            self._log.debug('PRF config, GPP Property: ' + str(pname) + ' ' + str(self.props[pname]))
                         sv.add_simpleref(parsers.PRFParser.simpleRef(refid=field_id, value=str(field_val)))
@@ -312,7 +312,7 @@ class GppProfile(BaseConfigurator):
                                   "prf": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.prf.xml"),
                                   "scd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.scd.xml")}
 
-        for template in self.gpp_templates.values():
+        for template in list(self.gpp_templates.values()):
             if not os.path.exists(template):
                 raise ConfigurationError("%s missing" % template)
 
@@ -371,7 +371,7 @@ class DeviceManagerProfile(BaseConfigurator):
                                   "prf": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.prf.xml"),
                                   "scd": os.path.join(self.options.sdrroot, "dev", self.options.gpppath[1:], "GPP.scd.xml")}
 
-        for template in self.gpp_templates.values():
+        for template in list(self.gpp_templates.values()):
             if not os.path.exists(template):
                 raise ConfigurationError("%s missing" % template)
 
@@ -466,7 +466,7 @@ class DeviceManagerProfile(BaseConfigurator):
 
             if refid in self.props:
                 st=DCDParser.structref( refid )
-                for k,v in self.props[refid].iteritems():
+                for k,v in self.props[refid].items():
                     refid=k
                     if not self.options.silent:
                         self._log.debug('DCD config, GPP Property: ' + str(refid) + ' ' + str(v))
@@ -495,7 +495,7 @@ class DeviceManagerProfile(BaseConfigurator):
                     self._log.debug("Node directory already exists; skipping directory creation")
                 pass
         except OSError:
-            raise Exception, "Could not create device manager directory"
+            raise Exception("Could not create device manager directory")
 
         GPP_componentfile = 'GPP_' + uuidgen()
         if self.options.inplace:
@@ -653,6 +653,6 @@ if __name__ == "__main__":
             configurator.remove()
        configurator.generate()
 
-    except ConfigurationError, e:
+    except ConfigurationError as e:
         _log.error("%s", e)
         sys.exit(1)

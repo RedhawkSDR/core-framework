@@ -338,7 +338,7 @@ class RHTestLoader(unittest.TestLoader):
         elif (isinstance(obj, type) and
               issubclass(obj, unittest.TestCase)):
             return self.loadTestsFromTestCase(obj)
-        elif (type(obj) == types.UnboundMethodType and
+        elif (type(obj) == types.FunctionType and
               isinstance(parent, type) and
               issubclass(parent, unittest.TestCase)):
             return self.loadSpecificTestFromTestCase(parent, obj.__name__)
