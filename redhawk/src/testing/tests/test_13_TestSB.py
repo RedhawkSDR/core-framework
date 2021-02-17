@@ -33,6 +33,7 @@ import commands
 import struct
 import tempfile
 import numpy
+import psutil
 
 from omniORB import CORBA, any, tcInternal
 
@@ -299,6 +300,16 @@ class SBStdOutTest(scatest.CorbaTestCase):
         self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
         self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
         new_stdout.close()
+class SBInitCompTest(scatest.CorbaTestCase):
+    def test_cleanup(self):
+        comp = sb.launch('sdr/dom/components/TestCompInit/test_componentinit.spd.xml') 
+        pid = comp._pid
+        ppid = 0 
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+        result = psutil.pid_exists(pid)
+        self.assertEquals(result, False)
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -312,7 +323,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def assertComponentCount(self, count):
         self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
-
+        
     def tearDown(self):
         sb.release()
         sb.setDEBUG(False)
