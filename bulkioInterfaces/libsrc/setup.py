@@ -24,21 +24,10 @@ from setuptools import setup
 setup(name='bulkio',
       version='3.0.0',
       description='Python Classes for REDHAWK BULKIO Interfaces',
-      author="Redhawk Deployer",
-      author_email="redhawksdr@redhawksdr.org",
-      classifiers=[
-          'Development Status :: 5  - Production/Stable',
-          'License:: OSI Approved :: GNU LESSER GENERAL PUBLIC LICENSE',
-          'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: 3.6',
-          'Programming Language :: Python :: 3 :: Only',
-          "Operating System :: OS Independent",          
-          ],
-
       packages=['bulkio',
                 'bulkio.sandbox'],
       package_dir={ '' : 'python' },
       entry_points={'redhawk.sandbox.helpers':['StreamSink=bulkio.sandbox:StreamSink',
-                                               'StreamSource=bulkio.sandbox:StreamSource']},
-      install_requires= [ 'bulkioInterfaces']
+                                               'StreamSource=bulkio.sandbox:StreamSource']}
       )
+
