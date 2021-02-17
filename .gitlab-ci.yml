@@ -5,7 +5,7 @@ variables:
   redhawk_version: '2.3.0'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_branch: 'develop'
+  redhawk_branch: 'develop-2.3'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   redhawk_deps: $redhawk_branch
@@ -191,8 +191,10 @@ test-trigger:release:
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
+  variables:
+    redhawk_version: '2.2.5-rc1'
   script:
-    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME"
+    - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
                               -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
@@ -263,7 +265,7 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el7-createrepo
+  image: ${docker_registry}utils/s3cmd:el6-createrepo
   stage: deploy
   tags:
     - s3

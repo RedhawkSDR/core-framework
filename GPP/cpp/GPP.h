@@ -120,8 +120,13 @@ class GPP_i : public GPP_base
         int sigchld_handler( int sig );
 
         int redirected_io_handler( );
-        
+
+        /// Port: metrics_in
+        MessageConsumerPort *metrics_in;
+
         std::vector<component_monitor_struct> get_component_monitor();
+        std::vector<plugin_metric_status_template_struct> get_plugin_metric_status();
+        std::vector<plugin_status_template_struct> get_plugin_status();
         
         struct proc_values {
             float mem_rss;
@@ -181,10 +186,18 @@ class GPP_i : public GPP_base
         };
 
         void constructor();
+        void pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData);
+        void pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData);
+        void pluginMessage(const std::string& messageId, const plugin_message_struct& msgData);
+        void launchPlugins();
+
+        MessageSupplierPort* _set_threshold;
 
         protected:
 
         enum fork_msg { FORK_GO=1, FORK_WAIT=2 };
+        
+        std::map<std::string, CORBA::ULong> plugin_pid;
         
         struct check_fork_msg {
         check_fork_msg( GPP_i &gpp, const GPP_i::fork_msg &msg ):
@@ -202,6 +215,28 @@ class GPP_i : public GPP_base
             float measured;
             float allocated;
           };
+
+          struct plugin_description {
+              std::string name;
+              std::string description;
+              size_t status_idx;
+              bool ok;
+              bool alive;
+              std::vector<std::string> metric_names;
+          };
+
+          struct metric_description {
+              std::string name;
+              size_t status_idx;
+              bool busy;
+              std::string metric_reason;
+              std::string metric_threshold_value;
+              std::string metric_recorded_value;
+              CF::UTCTime metric_timestamp;
+          };
+
+          std::map< std::pair<std::string, std::string>, metric_description> _plugin_metrics;
+          bool _pluginBusy;
 
           //
           // base execution unit for partitioning a host system
@@ -382,6 +417,10 @@ class GPP_i : public GPP_base
           // Determine list of CPUs that are monitored
           //
           void _set_processor_monitor_list( const CpuList &cl );
+
+          //
+          // Update plugin threshold
+          void _plugin_threshold_changed(const plugin_set_threshold_struct& old_metric, const plugin_set_threshold_struct& new_metric);
 
           //
           // expand special characters in consoleOutputLog
