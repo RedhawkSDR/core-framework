@@ -38,15 +38,15 @@ public class DataTransfer< DT extends Object > {
     /** @generated */
     public final PrecisionUTCTime T;
     /** @generated */
-    public final boolean EOS;
+    public boolean EOS; // not final because this flag might be set when flush
     /** @generated */
     public final String streamID;
     /** @generated */
     public final StreamSRI SRI;
     /** @generated */
-    public final boolean inputQueueFlushed;
+    public boolean inputQueueFlushed;
     /** @generated */
-    public final boolean sriChanged;
+    public boolean sriChanged;
         
     /**
      * @generated
