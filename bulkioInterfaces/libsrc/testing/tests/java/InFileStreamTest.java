@@ -92,6 +92,37 @@ public class InFileStreamTest {
     }
 
     @Test
+    public void testGetCurrentStreamEmptyEos()
+    {
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("empty_eos");
+        corbaPort.pushSRI(sri);
+        helper.pushTestPacket(port, 1024, bulkio.time.utils.now(), false, sri.streamID);
+
+        // Get the input stream and read the first packet
+        InFileStream stream = port.getStream("empty_eos");
+        Assert.assertNotNull(stream);
+        FileDataBlock block = stream.read();
+        Assert.assertNotNull(block);
+        Assert.assertEquals(1024, block.buffer().length());
+        Assert.assertTrue(!stream.eos());
+
+        // Push an end-of-stream packet with no data and get the stream again
+        helper.pushTestPacket(port, 0, bulkio.time.utils.now(), true, sri.streamID);
+        stream = port.getCurrentStream(bulkio.Const.NON_BLOCKING);
+        Assert.assertNotNull(stream);
+        block = stream.read();
+        Assert.assertNull(block);
+
+        // There should be no current stream, because the failed read should have
+        // removed it
+        InFileStream next_stream = port.getCurrentStream(bulkio.Const.NON_BLOCKING);
+        Assert.assertNull(next_stream);
+
+        // The original stream should report end-of-stream
+        Assert.assertTrue(stream.eos());
+    }
+
+    @Test
     public void testGetCurrentStreamDataEos()
     {
         // Create a new stream and push some data to it
