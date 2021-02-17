@@ -80,6 +80,26 @@ public class InXMLStreamTest {
     }
 
     @Test
+    public void testTimestamp()
+    {
+        String stream_id = "time_stamp_2";
+
+        // Create a new stream and push some data to it
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create(stream_id);
+        corbaPort.pushSRI(sri);
+        helper.pushTestPacket(port, 16, bulkio.time.utils.notSet(), false, sri.streamID);
+
+        // Get the input stream and read the packet as a data block; it should not
+        // contain any timestamps
+        InXMLStream stream = port.getStream(stream_id);
+        Assert.assertNotNull(stream);
+        XMLDataBlock block = stream.read();
+        Assert.assertNotNull(block);
+        Assert.assertEquals(0, block.getTimestamps().length);
+        // Calling getStartTime() may seg fault, or otherwise behave unreliably
+    }
+
+    @Test
     public void testGetCurrentStreamEmptyPacket()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("empty_packet");

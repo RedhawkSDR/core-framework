@@ -80,6 +80,34 @@ public class InFileStreamTest {
     }
 
     @Test
+    public void testTimestamp()
+    {
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("time_stamp");
+        corbaPort.pushSRI(sri);
+
+        BULKIO.PrecisionUTCTime ts = bulkio.time.utils.create(1520883276, 0.8045831);
+        helper.pushTestPacket(port, 50, ts, false, sri.streamID);
+
+        InFileStream stream = port.getStream("time_stamp");
+        Assert.assertNotNull(stream);
+        FileDataBlock block = stream.read();
+        Assert.assertNotNull(block);
+        SampleTimestamp[] timestamps = block.getTimestamps();
+        Assert.assertEquals(1, timestamps.length);
+        Assert.assertEquals(ts, timestamps[0].time);
+        Assert.assertEquals(0, timestamps[0].offset);
+        Assert.assertEquals(false, timestamps[0].synthetic);
+
+        BULKIO.PrecisionUTCTime new_ts = null;
+        try {
+            new_ts = block.getStartTime();
+        } catch (Exception exc) {
+            Assert.assertNotNull(null);
+        }
+        Assert.assertEquals(ts, new_ts);
+    }
+
+    @Test
     public void testGetCurrentStreamEmptyPacket()
     {
         BULKIO.StreamSRI sri = bulkio.sri.utils.create("empty_packet");
