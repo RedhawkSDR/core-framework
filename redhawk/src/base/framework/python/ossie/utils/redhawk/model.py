@@ -1,4 +1,4 @@
-#
+ 
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
 # 
@@ -216,14 +216,14 @@ class DomainObjectList(object):
             # Track the identifiers of all the item in the new list. Any item whose
             # identifier is not in this set can be assumed to be stale.
             validIdentifiers = set()
-
-            for item in items:
-                try:
-                    identifier = self.__identifier(item)
-                    validIdentifiers.add(identifier)
-                    self.__add(identifier, item, self.__cached)
-                except:
-                    pass
+            if items: 
+                for item in items:
+                    try:
+                        identifier = self.__identifier(item)
+                        validIdentifiers.add(identifier)
+                        self.__add(identifier, item, self.__cached)
+                    except:
+                        pass
 
             # Remove stale items.
             for identifier in self.__data.keys():
