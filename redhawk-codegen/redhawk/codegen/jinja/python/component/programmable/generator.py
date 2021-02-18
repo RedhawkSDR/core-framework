@@ -23,7 +23,7 @@ from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.python import PythonCodeGenerator, PythonTemplate
 
 from redhawk.codegen.jinja.python.component.pull import PullComponentGenerator
-from mapping import ProgrammableComponentMapper
+from .mapping import ProgrammableComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -51,7 +51,7 @@ class ProgrammableComponentGenerator(PullComponentGenerator):
         dict['hasHwLoadRequestProp'] = False
         dict['hasHwLoadStatusProp'] = False
         for prop in dict['properties']:
-            if prop.has_key('structdef'):
+            if 'structdef' in prop:
                 if str(prop['structdef']['pyclass']) == "HwLoadRequest":
                     dict['hasHwLoadRequestProp'] = True
                 if str(prop['structdef']['pyclass']) == "HwLoadStatus":

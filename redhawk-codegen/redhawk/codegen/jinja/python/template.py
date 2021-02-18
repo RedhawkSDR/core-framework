@@ -35,7 +35,7 @@ class PythonTemplate(TemplateFile):
         }
 
     def filters(self):
-        import filters
+        from . import filters
         return {
             'tuple': filters.do_tuple
         }

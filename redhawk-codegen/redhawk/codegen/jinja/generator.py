@@ -27,7 +27,7 @@ import shutil
 from redhawk.codegen import utils
 from redhawk.codegen import versions
 
-from environment import CodegenEnvironment
+from .environment import CodegenEnvironment
 
 class Generator(object):
     def __init__(
@@ -86,10 +86,10 @@ class Generator(object):
         pass
 
     def loader(self, component):
-        raise NotImplementedError, 'CodeGenerator.loader'
+        raise NotImplementedError('CodeGenerator.loader')
 
     def templates(self, component):
-        raise NotImplementedError, 'CodeGenerator.templates'
+        raise NotImplementedError('CodeGenerator.templates')
 
     def filenames(self, softpkg):
         component = self.map(softpkg)
@@ -100,7 +100,7 @@ class Generator(object):
         Returns the list of files tracked by MD5 sums or CRC32s (for legacy
         projects).
         """
-        return self.md5sums.keys() + self.crcs.keys()
+        return list(self.md5sums.keys()) + list(self.crcs.keys())
 
     def fileChanged(self, filename, userfile=False):
         if userfile:
@@ -277,8 +277,8 @@ class Generator(object):
         # NB: To work with "md5sum -c", there must be two spaces between the
         #     MD5 digest and the filename.
         md5out = open(self.md5file, 'w')
-        for name, digest in self.md5sums.items():
-            print >>md5out, "%s  %s" % (digest, name)
+        for name, digest in list(self.md5sums.items()):
+            print("%s  %s" % (digest, name), file=md5out)
         md5out.close()
 
         return generated, skipped
@@ -295,7 +295,7 @@ class TopLevelGenerator(Generator):
         self.generators = {}
 
     def projectMapper(self):
-        raise NotImplementedError, 'TopLevelGenerator.projectMapper'
+        raise NotImplementedError('TopLevelGenerator.projectMapper')
 
     def map(self, softpkg):
         return self.projectMapper().mapProject(softpkg, self.generators)
@@ -309,16 +309,16 @@ class CodeGenerator(Generator):
         self.implId = implId
 
     def componentMapper(self):
-        raise NotImplementedError, 'CodeGenerator.componentMapper'
+        raise NotImplementedError('CodeGenerator.componentMapper')
 
     def propertyMapper(self):
-        raise NotImplementedError, 'CodeGenerator.propertyMapper'
+        raise NotImplementedError('CodeGenerator.propertyMapper')
 
     def portMapper(self):
-        raise NotImplementedError, 'CodeGenerator.portMapper'
+        raise NotImplementedError('CodeGenerator.portMapper')
 
     def portFactory(self):
-        raise NotImplementedError, 'CodeGenerator.portFactory'
+        raise NotImplementedError('CodeGenerator.portFactory')
 
     def map(self, softpkg):
         # Apply template-specific mapping for component.

@@ -54,7 +54,7 @@ from omniORB import any as _any
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id
             existing_alloc_id = allocation_id
-            if self.listeners.has_key(existing_alloc_id):
+            if existing_alloc_id in self.listeners:
                 existing_alloc_id = self.listeners[existing_alloc_id]
             self.listeners[listen_alloc_id] = existing_alloc_id
 
@@ -92,7 +92,7 @@ from omniORB import any as _any
 #{% endif %}
 
         def removeListener(self,listen_alloc_id):
-            if self.listeners.has_key(listen_alloc_id):
+            if listen_alloc_id in self.listeners:
                 del self.listeners[listen_alloc_id]
 
 #{% if component.hasmultioutport %}
@@ -123,7 +123,7 @@ from omniORB import any as _any
                 if entry.connection_id == allocation_id:
                     self.connectionTable.remove(entry)
 
-            for key,value in self.listeners.items():
+            for key,value in list(self.listeners.items()):
                 if (value == allocation_id):
                     for entry in list(self.connectionTable):
                         if entry.connection_id == key:
@@ -141,7 +141,7 @@ from omniORB import any as _any
                     if entry.stream_id == stream_id and entry.connection_id == allocation_id:
                         self.connectionTable.remove(entry)
 
-            for key,value in self.listeners.items():
+            for key,value in list(self.listeners.items()):
                 if (value == allocation_id):
                     for entry in list(self.connectionTable):
                         if entry.connection_id == key and entry.stream_id == stream_id:

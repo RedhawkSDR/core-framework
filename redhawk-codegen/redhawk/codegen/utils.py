@@ -28,13 +28,13 @@ def strenum(*values):
     return type('StringEnum', (), dict([(v.upper(), v) for v in values]))
 
 def parseBoolean(value):
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         if value.lower() in ('true', 'yes', '1'):
             return True
         elif value.lower() in ('false', 'no', '0'):
             return False
         else:
-            raise ValueError, "Invalid literal '%s' for boolean value" % value
+            raise ValueError("Invalid literal '%s' for boolean value" % value)
     else:
         return value
 

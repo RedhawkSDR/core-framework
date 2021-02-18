@@ -25,7 +25,7 @@ from redhawk.codegen.jinja.python import PythonCodeGenerator, PythonTemplate
 from redhawk.codegen.jinja.python.properties import PythonPropertyMapper
 from redhawk.codegen.jinja.python.ports import PythonPortMapper, PythonPortFactory
 
-from mapping import ServiceMapper
+from .mapping import ServiceMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

@@ -23,7 +23,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
         self.parent = parent
         self.name = name
         self.sri = None
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.port_lock = threading.Lock()
 #{% for operation in portgen.operations() %}
 

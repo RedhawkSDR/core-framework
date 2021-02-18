@@ -23,7 +23,7 @@ from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.cpp import CppTemplate
 
-from mapping import PersonaComponentMapper
+from .mapping import PersonaComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

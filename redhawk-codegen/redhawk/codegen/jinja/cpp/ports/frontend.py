@@ -25,7 +25,7 @@ from redhawk.codegen.lang import cpp
 from redhawk.codegen.jinja.ports import PortFactory
 from redhawk.codegen.jinja.cpp import CppTemplate
 
-from generator import CppPortGenerator
+from .generator import CppPortGenerator
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

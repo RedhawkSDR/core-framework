@@ -37,18 +37,14 @@ BuildArch:      noarch
 # BuildRoot required for el5
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires:       python
+Requires:       python3
 Requires:       redhawk >= 3.0.0
-%if 0%{?rhel} >= 7
-Requires:       python-jinja2
-BuildRequires:  python-jinja2
-%else
-Requires:       python-jinja2-26
-BuildRequires:  python-jinja2-26
-%endif
+Requires:       python36-jinja2
+BuildRequires:  python36-jinja2
+
 
 BuildRequires:  python-setuptools
-BuildRequires:  python-devel >= 2.4
+BuildRequires:  python3-devel >= 3.6
 
 # Turn off the brp-python-bytecompile script; our setup.py does byte compilation
 # (From https://fedoraproject.org/wiki/Packaging:Python#Bytecompiling_with_the_correct_python_version)

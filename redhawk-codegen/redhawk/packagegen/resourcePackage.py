@@ -173,7 +173,7 @@ class ResourcePackage(SoftPackage):
             code = code,
             programminglanguage = spd.programmingLanguage(name="Python"),
             humanlanguage = spd.humanLanguage(name = "EN"),
-            runtime = spd.runtime(version="2.4.4", name="python"))
+            runtime = spd.runtime(version="3.6.8", name="python3"))
         os = spd.os(name="Linux")
         implementation.add_os(value=os)
 
@@ -286,7 +286,7 @@ class ResourcePackage(SoftPackage):
         if len(values) > 0:
             if values[0] != "":
                 # only create value entries if there is actual content in the list
-                valuesXml = prf.values()
+                valuesXml = list(prf.values())
                 for value in values:
                     valuesXml.add_value(value=value)
                 simplesequence.values=valuesXml

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -45,17 +45,6 @@ Options:
 """ % os.path.basename(sys.argv[0])
 
 _bulkio_re = re.compile('BULKIO_data[A-Za-z]+_In_i')
-
-if not hasattr(__builtins__, 'next'):
-    # Python 2.4 does not have a free-standing next() function
-    def next(iterator, default):
-        """
-        Backwards compatibility next() equivalent for Python 2.4.
-        """
-        try:
-            return iterator.next()
-        except StopIteration:
-            return default
 
 def strip_comments(source):
     """
@@ -200,9 +189,9 @@ if __name__ == '__main__':
 
         dom = minidom.parse(wavedevFile)
         if DEBUG:
-            print "ORIGINAL wavedev file================================================"
+            print("ORIGINAL wavedev file================================================")
             os.system("cat " + str(wavedevFile)) 
-            print "============================================================"
+            print("============================================================")
         # Back up project before modifying
         backupFilename = compName + "_1.8.tar.gz"
         if not dirname or dirname == ".":
@@ -225,7 +214,7 @@ if __name__ == '__main__':
             isPython = False
             implId = node.attributes.get('key').value
             outputDir = implId
-            for name, value in valueNode.attributes.items():
+            for name, value in list(valueNode.attributes.items()):
                 if name == "template":
                     if value in _templateMapping:
                         valueNode.setAttribute(name,_templateMapping[value])
@@ -264,9 +253,9 @@ if __name__ == '__main__':
                 f.write('\n')
         f.close() 
         if DEBUG:
-            print "MODIFIED wavedev file ================================================"
+            print("MODIFIED wavedev file ================================================")
             os.system("cat " + str(wavedevFile)) 
-            print "============================================================"
+            print("============================================================")
 
         # Update .project file
         projectFile = os.path.join(dirname, ".project")
@@ -275,9 +264,9 @@ if __name__ == '__main__':
         if os.path.exists(projectFile):
             dom = minidom.parse(projectFile)
             if DEBUG:
-                print "ORIGINAL .project file================================================"
+                print("ORIGINAL .project file================================================")
                 os.system("cat " + str(projectFile))
-                print "============================================================"
+                print("============================================================")
 
             # Preserve open and closing tag for empty nodes 
             # minidom converts them automatically to a self-closing tag
@@ -306,11 +295,11 @@ if __name__ == '__main__':
                     f.write('\n')
             f.close() 
             if DEBUG:
-                print "MODIFIED project file ================================================"
+                print("MODIFIED project file ================================================")
                 os.system("cat " + str(projectFile))
-                print "============================================================"
+                print("============================================================")
 
         else:
-            raise SystemExit, '.project file does not exist'
+            raise SystemExit('.project file does not exist')
     else:
-        raise SystemExit, 'wavedev file ' + str(wavedevFile) + ' does not exist'
+        raise SystemExit('wavedev file ' + str(wavedevFile) + ' does not exist')

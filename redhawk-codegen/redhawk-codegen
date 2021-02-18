@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -33,7 +33,7 @@ from redhawk.codegen.generate import importTemplate
 # Check for Jinja2 up front
 try:
     import redhawk.codegen.jinja
-except ImportError, e:
+except ImportError as e:
     raise SystemExit(os.path.basename(sys.argv[0]) + " " + str(e))
 
 #
@@ -75,7 +75,7 @@ multiple implementations, must use --impl to specify which):
 
 Select from one of the following resource types when generating output:
 %s
-""" % (os.path.basename(sys.argv[0]), "\n".join( [ "    --" + x[0]+"\t\t"+x[1][1] for x in TemplateSetup.items() ] ) )
+""" % (os.path.basename(sys.argv[0]), "\n".join( [ "    --" + x[0]+"\t\t"+x[1][1] for x in list(TemplateSetup.items()) ] ) )
 
 Function = strenum('list', 'generate')
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     longopts = ['help', 'template=', 'impl=', 'impldir=', 'lang=', 'variant=',
                 'check-template=', 'header=', 'version']
     # add predefined template settings a full word options
-    longopts.extend(TemplateSetup.keys())
+    longopts.extend(list(TemplateSetup.keys()))
     # Deprecated options
     longopts += ['checkSupport']
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             implId = value
         elif key == '--template':
             overrides.template = value
-        elif key[2:] in TemplateSetup.keys():
+        elif key[2:] in list(TemplateSetup.keys()):
             resource_type=key[2:]
         elif key == '--impldir':
             overrides.outputDir = value
@@ -152,7 +152,7 @@ if __name__ == '__main__':
             overrides.properties[name] = value
         elif key == '--version':
             from redhawk.codegen import versions
-            print 'REDHAWK Code Generator', versions.codegen
+            print('REDHAWK Code Generator', versions.codegen)
             sys.exit(0)
 
     if checkSupport:
@@ -181,10 +181,10 @@ if __name__ == '__main__':
         raise SystemExit('Invalid SPD file '+spdFile)
 
     if resource_type and overrides.template:
-        raise SystemExit, '--template cannot be selected with a predefined resource type.'
+        raise SystemExit('--template cannot be selected with a predefined resource type.')
 
     if ignoreWavedev and ( resource_type==None or implId ==None ):
-        raise SystemExit, 'Ignore wavedev option, requires resource type and --impl options.'
+        raise SystemExit('Ignore wavedev option, requires resource type and --impl options.')
 
     # Any remaining arguments are filenames to be generated; place into bins
     # based on the first path component.
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         implList = [implId]
     elif settings:
         # Settings are available, generate all implementations with settings.
-        implList = settings.keys()
+        implList = list(settings.keys())
     else:
         # Generate all implementations in the SPD; this will fail without a
         # template argument, or with multiple implementations,
@@ -237,16 +237,16 @@ if __name__ == '__main__':
 
     # Check that at least one implementation has been selected.
     if len(implList) < 1:
-        raise SystemExit, 'No implementation specified and implementation(s) cannot be automatically determined.  Use --impl option.'
+        raise SystemExit('No implementation specified and implementation(s) cannot be automatically determined.  Use --impl option.')
 
     # Disallow invalid combinations of command-line arguments.
     if len(implList) > 1:
         if overrides.template:
-            raise SystemExit, 'Cannot specify template for multiple implementations'
+            raise SystemExit('Cannot specify template for multiple implementations')
         if overrides.outputDir:
-            raise SystemExit, 'Cannot override implementation directory for multiple implementations'
+            raise SystemExit('Cannot override implementation directory for multiple implementations')
         if overrides.properties:
-            raise SystemExit, 'Cannot override template-specific options for multiple implementations'
+            raise SystemExit('Cannot override template-specific options for multiple implementations')
 
     # Change to the output directory; all XML should have been processed, so
     # there are no worries about relative paths.
@@ -255,10 +255,10 @@ if __name__ == '__main__':
 
     # Pull out CRCs for top-level files.
     toplevelCRCs = {}
-    for implSettings in settings.itervalues():
+    for implSettings in settings.values():
         # Iterate through all items using a copy, because the source dictionary
         # will be modified.
-        for filename, checksum in implSettings.generatedFileCRCs.items():
+        for filename, checksum in list(implSettings.generatedFileCRCs.items()):
             if not filename.startswith('../'):
                 continue
             # Remove from implementation CRC list and put into top-level list.
@@ -325,17 +325,17 @@ if __name__ == '__main__':
                      elif pl.upper() == 'JAVA' :
                         tkey="java"
 
-                     overrides.template = filter( lambda  x: tkey in x.keys(), TemplateSetup[resource_type][0]  )[0][tkey]
+                     overrides.template = [x for x in TemplateSetup[resource_type][0] if tkey in list(x.keys())][0][tkey]
 
               except:
-                 raise SystemExit, 'Template override does not exist or --impl missing'
+                 raise SystemExit('Template override does not exist or --impl missing')
            else :
-                 raise SystemExit, 'Template override requires missing --impl option'
+                 raise SystemExit('Template override requires missing --impl option')
 
         # If this is a persona, verify the code type is SharedLibrary
         if (not overrides.template and 'persona' in implSettings.template) or ((resource_type and ('persona' in resource_type)) or (overrides.template and ('persona' in overrides.template))):
             if not implementation.isModule():
-                raise SystemExit, "Persona implementation must be of code type 'SharedLibrary' (ID: %s)\n" % implId
+                raise SystemExit("Persona implementation must be of code type 'SharedLibrary' (ID: %s)\n" % implId)
 
         # Get generation settings, from a combination of the command line and (optionally)
         # the .wavedev configuration file; the former has higher precedence.
@@ -371,10 +371,10 @@ if __name__ == '__main__':
         # command line.
         implTemplate = implSettings.template
         if not implTemplate:
-            availableTemplates = [ y.values()[0] for x in TemplateSetup.values()  for y in x[0] ]
-            raise SystemExit, "No generator template given for implementation '%s'\n" % implId + \
+            availableTemplates = [ list(y.values())[0] for x in list(TemplateSetup.values())  for y in x[0] ]
+            raise SystemExit("No generator template given for implementation '%s'\n" % implId + \
                               "Use --template option with one of the following:\n\t" + \
-                              "\n\t".join(availableTemplates)
+                              "\n\t".join(availableTemplates))
 
         # Find the code generator module from the template argument.
         try:
@@ -417,12 +417,12 @@ if __name__ == '__main__':
             else:
                 implFiles = []
             
-            print header
+            print(header)
             generated, skipped = generator.generate(softpkg, *implFiles)
             for filename, verb in skipped:
-                print >>sys.stderr, 'WARNING:', os.path.join(path, filename), 'has been modified or is a user file that must be explicitly updated, use -f to', verb
+                print('WARNING:', os.path.join(path, filename), 'has been modified or is a user file that must be explicitly updated, use -f to', verb, file=sys.stderr)
             for filename, verb in generated:
-                print ' ', os.path.join(path, filename), verb
+                print(' ', os.path.join(path, filename), verb)
         elif action == Function.LIST:
             for fileinfo in generator.fileinfo(softpkg):
                 # Convert file attributes to annotations; if the attribute is
@@ -437,4 +437,4 @@ if __name__ == '__main__':
                         attrs += mark
                     else:
                         attrs += ' '
-                print attrs, os.path.join(path, fileinfo['filename'])
+                print(attrs, os.path.join(path, fileinfo['filename']))

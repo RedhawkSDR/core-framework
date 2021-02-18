@@ -38,8 +38,8 @@ def importTemplate(template):
     """
     try:
         package = __import__(template)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         raise
 
     # Since the module name probably has dots, get the most specific module

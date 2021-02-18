@@ -23,7 +23,7 @@ import os
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate, AutomakeTemplate, AutoconfTemplate, PkgconfigTemplate
 from redhawk.codegen.jinja.cpp import CppCodeGenerator, CppTemplate
-from mapping import PluginMapper
+from .mapping import PluginMapper
 
 from redhawk.codegen.lang.automake import libtoolName
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -20,7 +20,7 @@
 #
 
 from ossie import parsers
-import os, sys, commands, shutil
+import os, sys, subprocess, shutil
 from ossie.utils import uuid
 from lxml import etree
 
@@ -37,11 +37,11 @@ class ModifyProject:
         
         #Check that spd Exists
         if not os.path.exists(self.spd_filename_input):
-            print 'File '+self.spd_filename_input+' does not exist'
+            print('File '+self.spd_filename_input+' does not exist')
             sys.exit(1)
         #Check that .project File Exists
         if not os.path.exists(os.path.dirname(os.path.realpath(self.spd_filename_input))+'/.project'):
-            print "Redhawk Project does not have a .project file"
+            print("Redhawk Project does not have a .project file")
             sys.exit(1)
 
     def copyDirectory(self):
@@ -54,7 +54,7 @@ class ModifyProject:
         parent_path = project_path.split(dirname)[0]
         new_project_path = parent_path+new_dirname
         if os.path.exists(new_project_path):
-            print "Directory for new namespaced version already exists"
+            print("Directory for new namespaced version already exists")
             sys.exit(1)
         shutil.copytree(project_path,new_project_path)
         filename = os.path.basename(self.spd_filename_input)
@@ -76,7 +76,7 @@ class ModifyProject:
             new_project_name = self.namespace + '.' + project_name.split('.')[-1]
             name_element.text=new_project_name
         else:
-            print "Unable to update .project file - xpath /projectDescription/name not found"
+            print("Unable to update .project file - xpath /projectDescription/name not found")
             sys.exit(-1)
 
         #Write out updated file
@@ -96,7 +96,7 @@ class ModifyProject:
 
         #Check that .cproject File Exists
         if not os.path.exists(cproject_file_name):
-            print "Redhawk Project does not have a .cproject file, skipping..."
+            print("Redhawk Project does not have a .cproject file, skipping...")
             return None
 
         parser = etree.XMLParser(remove_blank_text=True, ns_clean=True)
@@ -104,14 +104,14 @@ class ModifyProject:
         res=doc.xpath('/cproject/storageModule/project')
 
         for project_element in res:
-            if 'id' not in project_element.keys():
+            if 'id' not in list(project_element.keys()):
                 continue
             project_id = project_element.get('id')
             new_project_id = self.namespace + '.' + project_base_name + project_id.split(project_base_name)[-1]
             project_element.set('id', new_project_id)
             break
         else:
-            print "Unable to update .cproject file - xpath /cproject/storageModule/project with 'id' attribute not found"
+            print("Unable to update .cproject file - xpath /cproject/storageModule/project with 'id' attribute not found")
             sys.exit(-1)
 
         #Write out updated file
@@ -128,22 +128,22 @@ class ModifyProject:
         doc = etree.parse(self.spd_filename_input, parser)
         root = doc.getroot()
 
-        if 'name' in root.keys():
+        if 'name' in list(root.keys()):
             softpkg_name = root.get('name')
             new_softpkg_name = self.namespace + '.' + softpkg_name.split('.')[-1]
             root.set('name',new_softpkg_name)
         else:
-            print "Unable to update SPD - root tag '%s' has no 'name' attribute"%(root.tag)
+            print("Unable to update SPD - root tag '%s' has no 'name' attribute"%(root.tag))
             sys.exit(-1)
 
         if not self.options.reuseId:
-            if 'id' in root.keys():
+            if 'id' in list(root.keys()):
                 softpkg_id = root.get('id')
                 new_softpkg_id = generateDCE()
                 root.set('id',new_softpkg_id)
-                print 'Created new softpkg id %s. (old id=%s)'%(new_softpkg_id,softpkg_id)
+                print('Created new softpkg id %s. (old id=%s)'%(new_softpkg_id,softpkg_id))
             else:
-                print "Unable to update SPD - root tag '%s' has no 'id' attribute"%(root.tag)
+                print("Unable to update SPD - root tag '%s' has no 'id' attribute"%(root.tag))
                 sys.exit(-1)
 
         #Write out updated file
@@ -163,10 +163,10 @@ class ModifyProject:
         return number_spec_files
 
     def verifyModifications(self):
-        status, output = commands.getstatusoutput('redhawk-codegen -l '+self.spd_filename_input)
+        status, output = subprocess.getstatusoutput('redhawk-codegen -l '+self.spd_filename_input)
         if status != 0:
-            print "Unable to verify the project:"
-            print output
+            print("Unable to verify the project:")
+            print(output)
             sys.exit(-1)
         output_lines = output.split('\n')
         foundCollision = False
@@ -176,7 +176,7 @@ class ModifyProject:
                 for _file in self.files_must_modify:
                     if os.path.basename(filename) == _file:
                         foundCollision = True
-                        print 'Unable to update '+filename+'. The original file was hand-modified. Run moveComponentNamespace with the -f option'
+                        print('Unable to update '+filename+'. The original file was hand-modified. Run moveComponentNamespace with the -f option')
         if foundCollision:
             sys.exit(-1)
 
@@ -185,22 +185,22 @@ class ModifyProject:
         number_spec_files = self.countSpecFiles(search_loc)
         command_line = 'redhawk-codegen '+self.spd_filename_input
         #print command_line
-        status, output = commands.getstatusoutput(command_line)
+        status, output = subprocess.getstatusoutput(command_line)
         if status != 0:
-            print "Unable to update the project:"
-            print output
+            print("Unable to update the project:")
+            print(output)
             sys.exit(-1)
         if number_spec_files != 0:
             if number_spec_files < self.countSpecFiles(search_loc):
-                print 'Did not update modified spec file. New spec file created with namespace'
+                print('Did not update modified spec file. New spec file created with namespace')
         
     def baseModificationMinimal(self):
         search_loc = os.path.dirname(self.spd_filename_input) or '.'
         number_spec_files = self.countSpecFiles(search_loc)
-        status, output = commands.getstatusoutput('redhawk-codegen -l '+self.spd_filename_input)
+        status, output = subprocess.getstatusoutput('redhawk-codegen -l '+self.spd_filename_input)
         if status != 0:
-            print "Unable to verify the project:"
-            print output
+            print("Unable to verify the project:")
+            print(output)
             sys.exit(-1)
         output_lines = output.split('\n')
         found_files = []
@@ -213,14 +213,14 @@ class ModifyProject:
         for found_file in found_files:
             command_line += ' '+found_file
         #print command_line
-        status, output = commands.getstatusoutput(command_line)
+        status, output = subprocess.getstatusoutput(command_line)
         if status != 0:
-            print "Unable to update the project:"
-            print output
+            print("Unable to update the project:")
+            print(output)
             sys.exit(-1)
         if number_spec_files != 0:
             if number_spec_files < self.countSpecFiles(search_loc):
-                print 'Did not update modified spec file. New spec file created with namespace'
+                print('Did not update modified spec file. New spec file created with namespace')
 
 ###########################
 # Run from command line
@@ -252,17 +252,17 @@ if __name__ == "__main__":
         if not options.force:
             dn.verifyModifications()
         dn.copyDirectory()
-        print dn.modifyProjectFile()
+        print(dn.modifyProjectFile())
         #print dn.modifyCProjectFile()
-        print dn.modifySpd()
+        print(dn.modifySpd())
         if not options.all:
-            print "Generating minimal files..."
+            print("Generating minimal files...")
             dn.baseModificationMinimal()
         else:
-            print "Generating all files..."
+            print("Generating all files...")
             dn.baseModification()
             dn.baseModificationMinimal()
-    except Exception, e:
-        print 'The following error occurred:',e
+    except Exception as e:
+        print('The following error occurred:',e)
         sys.exit(1)
 
