@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from redhawk.frontendInterfaces import FRONTEND, FRONTEND__POA
 from bulkio.bulkioInterfaces import BULKIO
