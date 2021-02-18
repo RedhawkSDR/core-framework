@@ -179,7 +179,7 @@ class multiout_eos_i(multiout_eos_base):
         # TODO fill in your code here
         if self._usageState == CF.Device.IDLE:
             return NOOP
-        data = range(10)
+        data = list(range(10))
         self.port_dataShort_out.pushPacket(data, bulkio.timestamp.now(), False, 'hello')
         return NOOP
 

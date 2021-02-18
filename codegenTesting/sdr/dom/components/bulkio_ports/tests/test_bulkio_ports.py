@@ -58,7 +58,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
+            self.assertEqual(expectedProp.id in props, True)
         
         #######################################################################
         # Verify that all expected ports are available
@@ -257,7 +257,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
                        'uLong':_uLongData, 'uShort':_uShortData, 'xml':_xmlData, 'file':_fileData, 'longLong':_longLongData, 'uLongLong':_uLongLongData}
             
             for x in types:
-                self.assertNotEquals(None, recData[x], msg="No data was recieved for dataType (" + str(x) + ")")
+                self.assertNotEqual(None, recData[x], msg="No data was recieved for dataType (" + str(x) + ")")
             
             #############################################
             # Check that data received matches data sent
@@ -269,8 +269,8 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
             # original yields the same results
             restCharData = bulkio_helpers.restoreData(_charData, '8bit')
             restOctetData = bulkio_helpers.restoreData(_octetData, 'u8bit')
-            self.assertEquals(restCharData, charData)
-            self.assertEquals(restOctetData, octetData)
+            self.assertEqual(restCharData, charData)
+            self.assertEqual(restOctetData, octetData)
         
         self.comp_obj.stop()
                 
@@ -282,7 +282,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         newmqd = 10
         self.comp_obj.configure([ossie.cf.CF.DataType(id='mqd', value=CORBA.Any(CORBA.TC_short, newmqd))])
         currmqd = self.comp_obj.query([ossie.cf.CF.DataType(id=str('mqd'),value=any.to_any(None))])[0].value.value()
-        self.assertEquals(currmqd, newmqd)
+        self.assertEqual(currmqd, newmqd)
         
         #push the max + 1 packets, should see a flush on the last packet but not on any other
         #the reason the packets will be queuing up is because the component has not been started up.   
@@ -305,7 +305,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         newmqd = 250
         self.comp_obj.configure([ossie.cf.CF.DataType(id='mqd', value=CORBA.Any(CORBA.TC_short, newmqd))])
         currmqd = self.comp_obj.query([ossie.cf.CF.DataType(id=str('mqd'),value=any.to_any(None))])[0].value.value()
-        self.assertEquals(int(currmqd), newmqd)
+        self.assertEqual(int(currmqd), newmqd)
         
         #push the max packets (THERE IS ALREADY ONE PACKET IN THE QUEUE
         #should see a flush on the last packet but not on any other
@@ -331,7 +331,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         newmqd = -1
         self.comp_obj.configure([ossie.cf.CF.DataType(id='mqd', value=CORBA.Any(CORBA.TC_short, newmqd))])
         currmqd = self.comp_obj.query([ossie.cf.CF.DataType(id=str('mqd'),value=any.to_any(None))])[0].value.value()
-        self.assertEquals(int(currmqd), newmqd)
+        self.assertEqual(int(currmqd), newmqd)
         
         #push 1000 packets, should not see a flush at all
         newFlushTime = None 
@@ -350,7 +350,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         newmqd = 0
         self.comp_obj.configure([ossie.cf.CF.DataType(id='mqd', value=CORBA.Any(CORBA.TC_short, newmqd))])
         currmqd = self.comp_obj.query([ossie.cf.CF.DataType(id=str('mqd'),value=any.to_any(None))])[0].value.value()
-        self.assertEquals(int(currmqd), newmqd)
+        self.assertEqual(int(currmqd), newmqd)
         
         #push 100 packets, the pushPacket returns immediately, the queueShould not grow
         firstaqd = self.dataShortInput._get_statistics().averageQueueDepth
@@ -359,7 +359,7 @@ class FunctionalTests(ossie.utils.testing.ScaComponentTestCase):
         for x in range(5):
             self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), False, 'stream1')
             nextaqd = self.dataShortInput._get_statistics().averageQueueDepth
-            self.assertEquals(firstaqd, nextaqd)
+            self.assertEqual(firstaqd, nextaqd)
 
         
 #    def testSDDSPorts(self):

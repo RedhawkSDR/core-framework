@@ -47,21 +47,21 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.connect(snk_1, connectionId='some_connection')
         tuner_status = self.comp.frontend_tuner_status[0]
         alloc_id = alloc['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         self.comp.connect(snk_2, connectionId=alloc_id)
-        self.assertEquals(len(self.comp.connectionTable), 1)
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(len(self.comp.connectionTable), 1)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         sb.start()
         time.sleep(0.1)
         time.sleep(0.25)
         self.comp.deallocateCapacity(alloc)
         time.sleep(0.1)
         data_1 = snk_1.read(timeout=1)
-        self.assertEquals(data_1, None)
+        self.assertEqual(data_1, None)
         data_2 = snk_2.read(timeout=1)
-        self.assertEquals(data_2.streamID, 'my_data')
-        self.assertEquals(len(data_2.data), 25)
-        self.assertEquals(len(self.comp.connectionTable), 0)
+        self.assertEqual(data_2.streamID, 'my_data')
+        self.assertEqual(len(data_2.data), 25)
+        self.assertEqual(len(self.comp.connectionTable), 0)
         sb.stop()
 
     def testConnectBehavior(self):
@@ -74,22 +74,22 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.connect(snk_1, connectionId='some_connection')
         tuner_status = self.comp.frontend_tuner_status[0]
         alloc_id = alloc['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         self.comp.connect(snk_2)
-        self.assertEquals(len(self.comp.connectionTable), 2)
+        self.assertEqual(len(self.comp.connectionTable), 2)
         alloc_id = alloc_id + ',' + self.comp.connectionTable[1].connection_id
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         sb.start()
         time.sleep(0.1)
         time.sleep(0.25)
         self.comp.deallocateCapacity(alloc)
         time.sleep(0.1)
         data_1 = snk_1.read(timeout=1)
-        self.assertEquals(data_1, None)
+        self.assertEqual(data_1, None)
         data_2 = snk_2.read(timeout=1)
-        self.assertEquals(data_2.streamID, 'my_data')
-        self.assertEquals(len(data_2.data), 25)
-        self.assertEquals(len(self.comp.connectionTable), 0)
+        self.assertEqual(data_2.streamID, 'my_data')
+        self.assertEqual(len(data_2.data), 25)
+        self.assertEqual(len(self.comp.connectionTable), 0)
         sb.stop()
 
     def testDisconnectBehavior(self):
@@ -102,7 +102,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.connect(snk_1, connectionId='some_connection')
         tuner_status = self.comp.frontend_tuner_status[0]
         alloc_id = alloc['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         self.comp.connect(snk_2)
         sb.start()
         time.sleep(0.1)
@@ -110,11 +110,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.disconnect(snk_2)
         time.sleep(0.1)
         data_1 = snk_1.read(timeout=1)
-        self.assertEquals(data_1, None)
+        self.assertEqual(data_1, None)
         data_2 = snk_2.read(timeout=1)
-        self.assertEquals(data_2.streamID, 'my_data')
-        self.assertEquals(len(data_2.data), 25)
-        self.assertEquals(tuner_status.allocation_id_csv, alloc_id)
+        self.assertEqual(data_2.streamID, 'my_data')
+        self.assertEqual(len(data_2.data), 25)
+        self.assertEqual(tuner_status.allocation_id_csv, alloc_id)
         sb.stop()
 
 if __name__ == "__main__":

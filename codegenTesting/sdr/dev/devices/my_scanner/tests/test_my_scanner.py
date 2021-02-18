@@ -57,18 +57,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             if port.name == 'DigitalScanningTuner_in':
                 ref = port.ref
                 break
-        self.assertEquals(self.comp.strategy_request, 'initial')
+        self.assertEqual(self.comp.strategy_request, 'initial')
         scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.MANUAL_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
         ref.setScanStrategy('1', scan_strategy)
-        self.assertEquals(self.comp.strategy_request, 'manual')
+        self.assertEqual(self.comp.strategy_request, 'manual')
         scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.DISCRETE_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(discrete_freq_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
         ref.setScanStrategy('1', scan_strategy)
-        self.assertEquals(self.comp.strategy_request, 'discrete')
+        self.assertEqual(self.comp.strategy_request, 'discrete')
         scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(FRONTEND.ScanningTuner.SPAN_SCAN, FRONTEND.ScanningTuner.ScanModeDefinition(freq_scan_list=[]), FRONTEND.ScanningTuner.TIME_BASED, 0.0)
         ref.setScanStrategy('1', scan_strategy)
-        self.assertEquals(self.comp.strategy_request, 'span')
+        self.assertEqual(self.comp.strategy_request, 'span')
         status = ref.getScanStatus('1')
-        self.assertEquals(status.strategy.control_value, 123)
+        self.assertEqual(status.strategy.control_value, 123)
         self.comp.stop()
 
 if __name__ == "__main__":

@@ -95,28 +95,28 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             return False
 
         time.sleep(1)
-        self.assertEquals(get_eos(master), False)
-        self.assertEquals(get_eos(slave), False)
-        self.assertEquals(get_eos(another_slave), False)
+        self.assertEqual(get_eos(master), False)
+        self.assertEqual(get_eos(slave), False)
+        self.assertEqual(get_eos(another_slave), False)
 
         self.comp.deallocateCapacity(listen_alloc)
-        self.assertEquals(get_eos(master), False)
+        self.assertEqual(get_eos(master), False)
         # Save result so we dont call read() twice after eos.
         eos_slave = get_eos(slave, timeout=1, eos=True)
-        self.assertEquals(eos_slave, True)
-        self.assertEquals(get_eos(another_slave), False)
+        self.assertEqual(eos_slave, True)
+        self.assertEqual(get_eos(another_slave), False)
 
         self.comp.deallocateCapacity(alloc)
-        self.assertEquals(get_eos(master, timeout=1, eos=True), True)
-        self.assertEquals(eos_slave, True)
-        self.assertEquals(get_eos(another_slave, timeout=1, eos=True), True)
+        self.assertEqual(get_eos(master, timeout=1, eos=True), True)
+        self.assertEqual(eos_slave, True)
+        self.assertEqual(get_eos(another_slave, timeout=1, eos=True), True)
 
         sb.release()
         self.fp.close()
         self.fp = open(self.filename,'r')
         stuff = self.fp.read()
         self.fp.close()
-        self.assertEquals(stuff.find('the application attempted to invoke an operation on a nil reference'), -1)
+        self.assertEqual(stuff.find('the application attempted to invoke an operation on a nil reference'), -1)
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

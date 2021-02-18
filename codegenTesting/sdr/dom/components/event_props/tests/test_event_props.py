@@ -144,7 +144,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
             #test that the configure worked properly
             ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0] 
-            self.assertEquals(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
+            self.assertEqual(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
         
 
         ###NOW WE TEST THE REMAINING TYPES (eventBoolSimple, eventStringSimple, eventCharSimple)
@@ -177,7 +177,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0] 
-        self.assertEquals(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
+        self.assertEqual(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
         
         #test that an event is created for the first configure
         propID = 'eventStringSimple'
@@ -203,7 +203,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0] 
-        self.assertEquals(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
+        self.assertEqual(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
         
         #test that an event is created for the first configure
         propID = 'eventCharSimple'
@@ -231,7 +231,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0] 
-        self.assertEquals(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
+        self.assertEqual(ret.value.value(), val, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(val))
         
 
     def testSeqs(self):
@@ -287,7 +287,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
             #test that the configure worked properly
             ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0]
-            self.assertEquals(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
+            self.assertEqual(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
     
     
         ###NOW WE TEST THE REMAINING TYPES (eventBoolSeq, eventStringSeq, eventCharSeq, eventOctetSeq)
@@ -318,7 +318,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0]
-        self.assertEquals(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
+        self.assertEqual(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
         
         #test that an event is created for the first configure
         propID = 'eventStringSeq'
@@ -347,7 +347,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0]
-        self.assertEquals(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
+        self.assertEqual(ret.value.value(), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
         
         #test that an event is created for the first configure
         propID = 'eventCharSeq'
@@ -376,7 +376,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0]
-        self.assertEquals(str(ret.value.value()), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
+        self.assertEqual(str(ret.value.value()), values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
         
         #test that an event is created for the first configure
         propID = 'eventOctetSeq'
@@ -407,7 +407,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0]
-        self.assertEquals([x for x in struct.unpack('5b', ret.value.value())], values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
+        self.assertEqual([x for x in struct.unpack('5b', ret.value.value())], values, msg='configure failed for ' + str(propID) + ', ' + str(ret.value.value()) + ' != ' + str(values))
     
     
     def testStructs(self):
@@ -484,9 +484,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                                         [ossie.cf.CF.DataType(id='shortSimple', value=any.to_any( None)), 
                                          ossie.cf.CF.DataType(id='stringSimple', value=any.to_any( None))]))])[0]
         propDict = properties.prop_to_dict(ret)[propID]
-        self.assertEquals(propDict['shortSimple'], val, 
+        self.assertEqual(propDict['shortSimple'], val, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['shortSimple']) + ' != ' + str(val))
-        self.assertEquals(propDict['stringSimple'], phrase, 
+        self.assertEqual(propDict['stringSimple'], phrase, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['stringSimple']) + ' != ' + str(phrase))
 
 
@@ -546,13 +546,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #test that the configure worked properly
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id='eventStructSeq', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/AnySeq:1.0"), []))])[0]
         propDict = properties.prop_to_dict(ret)[propID][0]
-        self.assertEquals(propDict['ss_shortSimple'], val, 
+        self.assertEqual(propDict['ss_shortSimple'], val, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['ss_shortSimple']) + ' != ' + str(val))
-        self.assertEquals(propDict['ss_floatSimple'], val, 
+        self.assertEqual(propDict['ss_floatSimple'], val, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['ss_floatSimple']) + ' != ' + str(val))
-        self.assertEquals(propDict['ss_stringSimple'], phrase, 
+        self.assertEqual(propDict['ss_stringSimple'], phrase, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['ss_stringSimple']) + ' != ' + str(phrase))
-        self.assertEquals(propDict['ss_boolSimple'], flag, 
+        self.assertEqual(propDict['ss_boolSimple'], flag, 
                           msg='configure failed for ' + str(propID) + ', ' + str(propDict['ss_boolSimple']) + ' != ' + str(flag))
         
         

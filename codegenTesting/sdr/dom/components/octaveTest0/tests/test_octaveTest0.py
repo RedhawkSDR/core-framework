@@ -34,8 +34,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
     def pushDataAndCheck(
             self,
-            inputData        = range(100),
-            expectedOutput   = range(100),
+            inputData        = list(range(100)),
+            expectedOutput   = list(range(100)),
             pause            = PAUSE,
             streamID         = 'defaultStreamID',
             sampleRate       = 1.0,
@@ -74,15 +74,15 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         if streamData:
             retData = streamData.data
             retSri = streamData.sri
-        self.assertEquals(retData, expectedOutput)
+        self.assertEqual(retData, expectedOutput)
 
         # SRI tests
-        self.assertEquals(streamData.eos, False)
-        self.assertEquals(retSri.streamID, streamID)
+        self.assertEqual(streamData.eos, False)
+        self.assertEqual(retSri.streamID, streamID)
 
         # sample rate is checked via Xdelta
-        self.assertEquals(retSri.xdelta, 1./sampleRate)
-        self.assertEquals(retSri.mode, complexData)
+        self.assertEqual(retSri.xdelta, 1./sampleRate)
+        self.assertEqual(retSri.mode, complexData)
 
         # SRI keywords
         if len(SRIKeywords) != len(retSri.keywords):
@@ -91,7 +91,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
             found = False
             for retKeyword in retSri.keywords:
                 if retKeyword.id == expectedKeyword._name:
-                    self.assertEquals(str(retKeyword.value),
+                    self.assertEqual(str(retKeyword.value),
                                       str(any.to_any(expectedKeyword._value)))
                     found = True
                     break
@@ -106,8 +106,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         if streamData:
             retData = streamData.data
             retSri = streamData.sri
-        self.assertEquals(streamData.eos, True)
-        self.assertEquals(retSri.streamID, streamID)
+        self.assertEqual(streamData.eos, True)
+        self.assertEqual(retSri.streamID, streamID)
 
         source.releaseObject()
         sink.releaseObject()
@@ -121,7 +121,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
 
         self.launch(execparams)
 
-        inputData = range(100)
+        inputData = list(range(100))
 
         # test with default prop setting
         #
@@ -175,31 +175,31 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.stringPropIO1 = "foo"
         # need to push some data so that feval gets called
         self.pushDataAndCheck()
-        self.assertEquals(self.comp.stringPropIO1, "foo")
-        self.assertEquals(self.comp.stringPropOutput1, "output")
+        self.assertEqual(self.comp.stringPropIO1, "foo")
+        self.assertEqual(self.comp.stringPropOutput1, "output")
 
         # complex props
         self.comp.complexPropIO1 = complex(1.5, 2.5)
         # need to push some data so that feval gets called
         self.pushDataAndCheck()
-        self.assertEquals(self.comp.complexPropIO1, complex(1.5, 2.5))
-        self.assertEquals(self.comp.complexPropOutput1, complex(1, 2))
+        self.assertEqual(self.comp.complexPropIO1, complex(1.5, 2.5))
+        self.assertEqual(self.comp.complexPropOutput1, complex(1, 2))
 
         # test vector props
-        self.comp.vectorPropIO1 = range(10)
+        self.comp.vectorPropIO1 = list(range(10))
         complexVect = [complex(-1,-1), complex(0, 2), complex(5.0, 6)]
         self.comp.complexVectorPropIO1 = complexVect
         # need to push some data so that feval gets called
         self.pushDataAndCheck()
-        self.assertEquals(self.comp.vectorPropIO1, range(10))
-        self.assertEquals(self.comp.vectorPropOutput1, [-1, 0, 1, 2.5])
-        self.assertEquals(self.comp.complexVectorPropIO1, complexVect)
-        self.assertEquals(
+        self.assertEqual(self.comp.vectorPropIO1, list(range(10)))
+        self.assertEqual(self.comp.vectorPropOutput1, [-1, 0, 1, 2.5])
+        self.assertEqual(self.comp.complexVectorPropIO1, complexVect)
+        self.assertEqual(
             self.comp.complexVectorOutput1, 
             [complex(-1,-1), complex(0,0), complex(1,0), complex(2,2)])
 
         # test SRI keywords
-        inputData = xrange(100)
+        inputData = range(100)
         expectedOutput = []
         i = 0
         while i < len(inputData) - 1:
@@ -242,7 +242,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
+            self.assertEqual(expectedProp.id in props, True)
 
         #######################################################################
         # Verify that all expected ports are available

@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import unittest,os,sys,imp,commands,copy
+import unittest,os,sys,imp,subprocess,copy
 from optparse import OptionParser
 
 sys.path.append("helpers")
@@ -71,7 +71,7 @@ class TestCollector(unittest.TestSuite):
 
     def getTestNames(self, rootpath):
         rootpath = os.path.normpath(rootpath) + "/"
-        artifacts = commands.getoutput("ls %s" % rootpath)
+        artifacts = subprocess.getoutput("ls %s" % rootpath)
 
         if artifacts == '':
             return None
@@ -141,7 +141,7 @@ class TestCollector(unittest.TestSuite):
                                     if 'octaveTest' in subtest.artifact_name:
                                         subtest.octave_test_dir=True
                             self.addTest(test_list)
-                except TypeError, e:
+                except TypeError as e:
                     pass
 
 if __name__ == "__main__":

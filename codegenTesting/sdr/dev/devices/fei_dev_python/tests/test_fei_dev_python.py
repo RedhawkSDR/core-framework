@@ -78,7 +78,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.sample_rate_2 = port.ref.getTunerBandwidth('hello')
         time.sleep(1)
         thread.join()
-        self.assertEquals(self.sample_rate_1, self.sample_rate_2)
+        self.assertEqual(self.sample_rate_1, self.sample_rate_2)
 
     def testBasicBehavior(self):
         #######################################################################
@@ -91,8 +91,8 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
                 port = _port
                 break
         
-        print self.comp.frontend_tuner_status
-        self.assertEquals(len(self.comp.frontend_tuner_status),2)
+        print(self.comp.frontend_tuner_status)
+        self.assertEqual(len(self.comp.frontend_tuner_status),2)
         alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='hello',center_frequency=100)
         self.assertRaises(redhawk.frontendInterfaces.FRONTEND.FrontendException, port.ref.getTunerEnable, 'hello')
         
@@ -100,71 +100,71 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         listen_2_alloc = frontend.createTunerListenerAllocation('hello','hello_2_listen')
         
         retval = self.comp.allocateCapacity(listen_alloc)
-        self.assertEquals(retval, False)
+        self.assertEqual(retval, False)
         
         retval = self.comp.allocateCapacity(alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         
         retval = self.comp.allocateCapacity(listen_alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         retval = self.comp.allocateCapacity(listen_2_alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
 
         retval = port.ref.getTunerEnable('hello')
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         sample_rate = port.ref.getTunerOutputSampleRate('hello')
-        self.assertEquals(sample_rate, 0.0)
+        self.assertEqual(sample_rate, 0.0)
         port.ref.setTunerOutputSampleRate('hello',5)
         sample_rate = port.ref.getTunerOutputSampleRate('hello')
-        self.assertEquals(sample_rate, 5)
+        self.assertEqual(sample_rate, 5)
         port.ref.setTunerEnable('hello',False)
         retval = port.ref.getTunerEnable('hello')
-        self.assertEquals(retval, False)
+        self.assertEqual(retval, False)
         port.ref.setTunerEnable('hello',True)
         retval = port.ref.getTunerEnable('hello')
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         _id = port.ref.getTunerRfFlowId('hello')
-        self.assertEquals(_id, 'foo')
+        self.assertEqual(_id, 'foo')
         
-        self.assertEquals(self.comp.frontend_tuner_status[0].enabled, True)
-        self.assertEquals(self.comp.frontend_tuner_status[0].center_frequency, 100)
+        self.assertEqual(self.comp.frontend_tuner_status[0].enabled, True)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 100)
         
-        self.assertEquals(len(self.comp.connectionTable), 3)
+        self.assertEqual(len(self.comp.connectionTable), 3)
         
         allocation_id_csv = self.comp.frontend_tuner_status[0].allocation_id_csv
         allocations = allocation_id_csv.split(',')
-        self.assertEquals(len(allocations), 3)
-        self.assertEquals('hello' in allocations, True)
-        self.assertEquals('hello_2_listen' in allocations, True)
-        self.assertEquals('hello_listen' in allocations, True)
+        self.assertEqual(len(allocations), 3)
+        self.assertEqual('hello' in allocations, True)
+        self.assertEqual('hello_2_listen' in allocations, True)
+        self.assertEqual('hello_listen' in allocations, True)
         
         listen_alloc['FRONTEND::listener_allocation'].pop('FRONTEND::listener_allocation::existing_allocation_id')
         _old_id = [CF.DataType(id='FRONTEND::listener_allocation::listener_allocation_id',value=_any.to_any(listen_alloc['FRONTEND::listener_allocation']['FRONTEND::listener_allocation::listener_allocation_id']))]
         _listen_alloc = [CF.DataType(id='FRONTEND::listener_allocation',value=_any.to_any(_old_id))]
         self.comp.ref.deallocateCapacity(_listen_alloc)
         
-        self.assertEquals(self.comp.frontend_tuner_status[0].enabled, True)
-        self.assertEquals(self.comp.frontend_tuner_status[0].center_frequency, 100)
+        self.assertEqual(self.comp.frontend_tuner_status[0].enabled, True)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 100)
         
         allocation_id_csv = self.comp.frontend_tuner_status[0].allocation_id_csv
         allocations = allocation_id_csv.split(',')
-        self.assertEquals(len(allocations), 2)
-        self.assertEquals('hello' in allocations, True)
-        self.assertEquals('hello_2_listen' in allocations, True)
-        self.assertEquals('hello_listen' in allocations, False)
+        self.assertEqual(len(allocations), 2)
+        self.assertEqual('hello' in allocations, True)
+        self.assertEqual('hello_2_listen' in allocations, True)
+        self.assertEqual('hello_listen' in allocations, False)
         
         self.comp.deallocateCapacity(alloc)
-        self.assertEquals(self.comp.frontend_tuner_status[0].enabled, False)
-        self.assertEquals(self.comp.frontend_tuner_status[0].center_frequency, 0)
+        self.assertEqual(self.comp.frontend_tuner_status[0].enabled, False)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 0)
 
-        self.assertEquals(self.comp.frontend_tuner_status[0].enabled, False)
-        self.assertEquals(self.comp.frontend_tuner_status[0].center_frequency, 0)
+        self.assertEqual(self.comp.frontend_tuner_status[0].enabled, False)
+        self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 0)
         
         allocation_id_csv = self.comp.frontend_tuner_status[0].allocation_id_csv
         allocations = allocation_id_csv.split(',')
-        self.assertEquals(len(allocations), 1)
-        self.assertEquals(allocations[0], '')
-        self.assertEquals(len(self.comp.connectionTable), 0)
+        self.assertEqual(len(allocations), 1)
+        self.assertEqual(allocations[0], '')
+        self.assertEqual(len(self.comp.connectionTable), 0)
 
         self.assertRaises(redhawk.frontendInterfaces.FRONTEND.FrontendException, port.ref.getTunerEnable, 'hello')
 

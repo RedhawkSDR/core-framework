@@ -68,11 +68,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
-            print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-            print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-            print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-            print str(e)
+        except Exception as e:
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print(str(e))
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
@@ -109,15 +109,15 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
 
         #Check Tuner 1 SRI, letting data and SRI flow for up to 1s
         data = sink.read(timeout=1)
-        self.failIf(data is None)
-        print "SRI 1 1st Time" , data.sri
+        self.assertFalse(data is None)
+        print("SRI 1 1st Time" , data.sri)
         self.assertEqual(data.sri.streamID, allocationID, "SRI 1 Did not Match")
         self.assertAlmostEqual(data.sri.xdelta, 1.0/2.5e6,5)
 
@@ -131,8 +131,8 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Second Tuner
         try:
             retval = self.comp.allocateCapacity(alloc2)
-        except Exception, e:
-            print str(e)
+        except Exception as e:
+            print(str(e))
             self.assertFalse("Exception thrown on allocateCapactiy on second Tuner %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed on second Tuner")
@@ -142,15 +142,15 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
         #Check Tuner 1 SRI Again (should not change)
         data = sink.read(timeout=0)
-        self.failIf(data is None)
-        print "SRI 1 2nd Time" , data.sri
+        self.assertFalse(data is None)
+        print("SRI 1 2nd Time" , data.sri)
         self.assertEqual(data.sri.streamID, allocationID, "SRI 1 Did not Match Second Time")
         self.assertAlmostEqual(data.sri.xdelta, 1.0/2.5e6,5)
 
         #Check Tuner 2 SRI
         data2 = sink2.read(timeout=0)
-        print "SRI 2 " , data2.sri
-        print "allocationID2",  allocationID2
+        print("SRI 2 " , data2.sri)
+        print("allocationID2",  allocationID2)
         self.assertEqual(data2.sri.streamID, allocationID2,"SRI 2 Did not MAtch")
         self.assertAlmostEqual(data2.sri.xdelta, 1.0/5.0e6,5)
 
@@ -166,12 +166,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
         #Check that they sent EOS
         data = sink.read(timeout=1, eos=True)
-        self.failIf(data is None)
-        self.failUnless(data.eos)
+        self.assertFalse(data is None)
+        self.assertTrue(data.eos)
 
         data2 = sink2.read(timeout=1, eos=True)
-        self.failIf(data2 is None)
-        self.failUnless(data2.eos)
+        self.assertFalse(data2 is None)
+        self.assertTrue(data2.eos)
 
     def testValidRFInfoPacket(self):
         
@@ -191,7 +191,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
@@ -216,14 +216,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if retval:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
             pass
 
@@ -246,14 +246,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
             pass              
 
@@ -276,14 +276,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if retval:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
             pass        
 
@@ -306,14 +306,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if retval:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
             pass   
 
@@ -336,14 +336,14 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #Allocate a Tuner
         try:
             retval = self.comp.allocateCapacity(alloc)
-        except Exception, e:
+        except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if retval:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
-        except CF.Device.InvalidCapacity, e:
+        except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
             pass   
 
@@ -354,11 +354,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
     def testTuningException(self):
         alloc = self._generateAlloc(cf=111e6,sr=2.5e6,bw=2e6)
-        self.assertEquals(self.comp.allocateCapacity(alloc), False)
+        self.assertEqual(self.comp.allocateCapacity(alloc), False)
 
     def testBasicOkAllocation(self):
         alloc = self._generateAlloc(cf=112e6,sr=2.5e6,bw=2e6)
-        self.assertEquals(self.comp.allocateCapacity(alloc), True)
+        self.assertEqual(self.comp.allocateCapacity(alloc), True)
 
     def testTypoErrorAllocation(self):
         center_frequency = 110e6
@@ -366,12 +366,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         bandwidth = 2e6
         alloc = self._generateAlloc(cf=center_frequency,sr=sample_rate,bw=bandwidth)
         retval = self.comp.allocateCapacity(alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         _type = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type']
         _alloc_id = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         listen_alloc = [frontend.createTunerListenerAllocation(_alloc_id, listener_allocation_id='foo',returnDict=False)]
         retval = self.comp.allocateCapacity(listen_alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocateCapacity, listen_alloc)
         self.comp.deallocateCapacity(listen_alloc)
         self.comp.deallocateCapacity(alloc)
@@ -382,12 +382,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         bandwidth = 2e6
         alloc = self._generateAlloc(cf=center_frequency,sr=sample_rate,bw=bandwidth)
         retval = self.comp.allocateCapacity(alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         _type = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type']
         _alloc_id = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
         listen_alloc = [frontend.createTunerGenericListenerAllocation(_type, allocation_id='foo', center_frequency=center_frequency, bandwidth=bandwidth, sample_rate=sample_rate,returnDict=False)]
         retval = self.comp.allocateCapacity(listen_alloc)
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
         self.comp.deallocateCapacity(listen_alloc)
         self.comp.deallocateCapacity(alloc)
 

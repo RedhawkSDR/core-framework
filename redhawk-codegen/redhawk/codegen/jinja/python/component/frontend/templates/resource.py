@@ -250,7 +250,7 @@
 
     def get_gps_info(self,port_name):
         _time = bulkio.timestamp.now()
-        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
         return _gpsinfo
 
     def set_gps_info(self,port_name, gps_info):

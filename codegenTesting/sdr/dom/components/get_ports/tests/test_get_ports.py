@@ -89,19 +89,19 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
     def testGetPortSet(self):
         for port in self.comp.getPortSet():
             # Make sure the port object is non-nil
-            self.assertNotEquals(port.obj_ptr, None)
+            self.assertNotEqual(port.obj_ptr, None)
 
             # Look up the XML definition, making sure it's valid
             port_def = self.getPortDefinition(port.name, self.comp._scd)
-            self.assertNotEquals(port_def, None)
+            self.assertNotEqual(port_def, None)
 
             # Check that the runtime info matches the XML
-            self.assertEquals(port.repid, port_def['repid'])
+            self.assertEqual(port.repid, port_def['repid'])
             description = port_def['description']
             if description is None:
                 description = ''
-            self.assertEquals(port.description, description)
-            self.assertEquals(port.direction, port_def['direction'])
+            self.assertEqual(port.description, description)
+            self.assertEqual(port.direction, port_def['direction'])
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

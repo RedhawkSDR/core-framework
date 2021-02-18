@@ -59,7 +59,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         time.sleep(1)
         fake_master_alloc = frontend.createTunerListenerAllocation('master','master')
         self.assertRaises(CF.Device.InvalidCapacity, self.comp.deallocateCapacity, fake_master_alloc)
-        self.assertEquals(self.comp.frontend_tuner_status[0].allocation_id_csv[:6],'master')
+        self.assertEqual(self.comp.frontend_tuner_status[0].allocation_id_csv[:6],'master')
 
         def get_eos(streamSink, **kwargs):
             streamData = streamSink.read(**kwargs)
@@ -67,22 +67,22 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
                 return streamData.eos
             return False
 
-        self.assertEquals(get_eos(master), False)
-        self.assertEquals(get_eos(slave), False)
-        self.assertEquals(get_eos(another_slave), False)
+        self.assertEqual(get_eos(master), False)
+        self.assertEqual(get_eos(slave), False)
+        self.assertEqual(get_eos(another_slave), False)
 
         self.comp.deallocateCapacity(listen_alloc)
         time.sleep(0.5)
-        self.assertEquals(get_eos(master), False)
+        self.assertEqual(get_eos(master), False)
         # Save result so we dont call read() twice after eos.
         eos_slave = get_eos(slave, timeout=1, eos=True)
-        self.assertEquals(eos_slave, True)
-        self.assertEquals(get_eos(another_slave), False)
+        self.assertEqual(eos_slave, True)
+        self.assertEqual(get_eos(another_slave), False)
 
         self.comp.deallocateCapacity(alloc)
-        self.assertEquals(get_eos(master, timeout=1, eos=True), True)
-        self.assertEquals(eos_slave, True)
-        self.assertEquals(get_eos(another_slave, timeout=1, eos=True), True)
+        self.assertEqual(get_eos(master, timeout=1, eos=True), True)
+        self.assertEqual(eos_slave, True)
+        self.assertEqual(get_eos(another_slave, timeout=1, eos=True), True)
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

@@ -41,8 +41,8 @@ class struct_override_i(struct_override_base):
 
         """
         # TODO add customization here.
-        print self.Foobar.foo
-        print self._Foobar()
+        print(self.Foobar.foo)
+        print(self._Foobar())
         
     def process(self):
         """

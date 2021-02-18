@@ -9,31 +9,31 @@ import traceback
 import time
 
 def allocate(id=1, tuner_type='RX_DIGITIZER', dev_ior=None, verbose=False ):
-    import commands
+    import subprocess
     import os
     fpath=os.path.dirname(os.path.realpath(__file__))
     if verbose:
-        print "launching allocation ", id, tuner_type, dev_ior
+        print("launching allocation ", id, tuner_type, dev_ior)
     cmd=os.path.join(fpath,"allocate.py") + " " + " ".join([ str(id), tuner_type, dev_ior ] )
     if verbose:
-        print " issue cmd ", cmd
-    (status, output) = commands.getstatusoutput(cmd)
+        print(" issue cmd ", cmd)
+    (status, output) = subprocess.getstatusoutput(cmd)
     if verbose:
-        print "completed allocation ", id, tuner_type, " return values ", status, output
+        print("completed allocation ", id, tuner_type, " return values ", status, output)
     return status
 
 def deallocate(id=1, tuner_type='RX_DIGITIZER', dev_ior=None, verbose=False ):
-    import commands
+    import subprocess
     import os
     fpath=os.path.dirname(os.path.realpath(__file__))
     if verbose:
-        print "launching deallocation ", id, tuner_type, dev_ior
+        print("launching deallocation ", id, tuner_type, dev_ior)
     cmd=os.path.join(fpath,"deallocate.py") + " " + " ".join([ str(id), tuner_type, dev_ior ] )
     if verbose:
-        print " issue cmd ", cmd    
-    (status, output) = commands.getstatusoutput(cmd)
+        print(" issue cmd ", cmd)    
+    (status, output) = subprocess.getstatusoutput(cmd)
     if verbose:
-        print "completed deallocation  ", id, tuner_type, " return values ", status, output
+        print("completed deallocation  ", id, tuner_type, " return values ", status, output)
     return status
 
 
@@ -65,13 +65,13 @@ class SyncTest(ossie.utils.testing.RHTestCase):
         n_execs=None
         n_allocs=self.ntuners
         start_time=time.time()
-        allocations=range(1,n_allocs+1)
+        allocations=list(range(1,n_allocs+1))
 
         alloc_start_time=time.time()
         dev_ior=sb.orb.object_to_string(self.comp.ref)
         retvals=None
         if self.verbose:
-            print("Starting up tests, concurrent workers: {0} ".format(n_execs))
+            print(("Starting up tests, concurrent workers: {0} ".format(n_execs)))
         with concurrent.futures.ProcessPoolExecutor(max_workers=n_execs) as e1:
             retval=e1.map(allocate,
                           allocations,
@@ -81,7 +81,7 @@ class SyncTest(ossie.utils.testing.RHTestCase):
             e1.shutdown(wait=True)
 
         if self.verbose:
-            print("Total Allocate Elapsed Time: {0} seconds".format(time.time()-alloc_start_time))
+            print(("Total Allocate Elapsed Time: {0} seconds".format(time.time()-alloc_start_time)))
 
         # check return values
         for i, rv in zip( allocations, retval):
@@ -95,8 +95,8 @@ class SyncTest(ossie.utils.testing.RHTestCase):
         alloc_ids.sort()
         expected_ids=[ str(i) for i in allocations ]
         if self.verbose:
-            print " alloc id ", alloc_ids
-            print " expected id ", expected_ids
+            print(" alloc id ", alloc_ids)
+            print(" expected id ", expected_ids)
         self.assertEqual(checkEqual(alloc_ids, expected_ids),
                          True,
                          "Allocation Ids for allocate operation did not match: expected " + str(expected_ids) + " actual " + str(alloc_ids))
@@ -104,7 +104,7 @@ class SyncTest(ossie.utils.testing.RHTestCase):
 
         dealloc_start_time=time.time()
         retvals=None
-        print("Starting up tests, concurrent workers: {0} ".format(n_execs))
+        print(("Starting up tests, concurrent workers: {0} ".format(n_execs)))
         with concurrent.futures.ProcessPoolExecutor(max_workers=n_execs) as e1:
             retval=e1.map(deallocate,
                           allocations,
@@ -114,7 +114,7 @@ class SyncTest(ossie.utils.testing.RHTestCase):
             e1.shutdown(wait=True)
 
         if self.verbose:
-            print("Total Deallocate Elapsed Time: {0} seconds".format(time.time()-dealloc_start_time))
+            print(("Total Deallocate Elapsed Time: {0} seconds".format(time.time()-dealloc_start_time)))
 
         # check return values
         for i, rv in zip( allocations, retval):

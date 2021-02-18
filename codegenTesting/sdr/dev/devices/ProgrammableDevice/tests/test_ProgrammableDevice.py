@@ -31,10 +31,10 @@ class HwLoadRequest(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -92,10 +92,10 @@ class HwLoadStatus(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):

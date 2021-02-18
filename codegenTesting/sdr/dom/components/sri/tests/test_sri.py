@@ -23,7 +23,7 @@ import unittest
 import ossie.utils.testing
 import os
 from omniORB import any, CORBA
-import commands
+import subprocess
 
 from ossie.utils.bulkio import bulkio_helpers
 from ossie.utils import sb
@@ -63,7 +63,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
+            self.assertEqual(expectedProp.id in props, True)
         
         #######################################################################
         # Verify that all expected ports are available
@@ -115,10 +115,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pushPacket with no previous pushSRI, should have the correct streamIDs but the flags 
         #should not be set in either getPacket call
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(sriChanged)
         
         self.dataShortInput.pushSRI(s1_sri)
@@ -129,11 +129,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pushSRIs followed by pushPackets.  The flag should be set in both getPacket 
         #calls and the received SRIs should match the ones sent in 
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertTrue(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertTrue(sriChanged)
         
@@ -146,11 +146,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #in the first getPacket call and the streamID should be s1, also the SRI should match the new one.
         #The second getPacket call should return streamID s2, flag not set, and the SRI should match the old one
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertTrue(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertFalse(sriChanged)
         
@@ -163,11 +163,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), False, "s2")
         
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertFalse(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertTrue(sriChanged)
         
@@ -177,11 +177,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), False, "s2")
         
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertFalse(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertFalse(sriChanged)
         
@@ -195,7 +195,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), False, "s2")
         
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertTrue(sriChanged)
         
@@ -206,11 +206,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), True, "s2")
         
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertFalse(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's2')
+        self.assertEqual(streamID, 's2')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s2_sri))
         self.assertFalse(sriChanged)
         
@@ -225,11 +225,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.dataShortInput.pushPacket(shortData, bulkio_helpers.createCPUTimestamp(), False, "s1")
         
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertTrue(sriChanged)
         data, T, EOS, streamID, sri, sriChanged, flushed = self.helperShortInput.getPacket(-1)
-        self.assertEquals(streamID, 's1')
+        self.assertEqual(streamID, 's1')
         self.assertTrue(bulkio_helpers.compareSRI(sri, s1_sri))
         self.assertFalse(sriChanged)
         
@@ -257,7 +257,7 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.connect(sink)
         
         # Send numPackets without starting the component, should generate a flush
-        for x in xrange(numPackets):
+        for x in range(numPackets):
             source.write([x])
         source.start()
         source.close()
@@ -322,7 +322,7 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
             data = streamData.data
 
         # Should not have flushed, should have gotten all packets
-        self.assertEquals(len(data), numPackets)
+        self.assertEqual(len(data), numPackets)
 
         src_thread.stop()
         sink.stop()
@@ -364,7 +364,7 @@ class BackPressureTests(ossie.utils.testing.ScaComponentTestCase):
         
         #should not have flushed, should have gotten all packets     
         self.assertFalse(self.queueFlushed)
-        self.assertEquals(self.packetsReceived, numPackets*2)
+        self.assertEqual(self.packetsReceived, numPackets*2)
         self.comp.stop()
         
         #reset packetsReceived to 0
