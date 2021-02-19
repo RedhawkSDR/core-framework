@@ -215,7 +215,7 @@ class SoftPackage(object):
         dependency = spd.dependency(type_="runtime_requirements",
                                     softpkgref=softpkgref)
         return dependency
-
+ 
 
     def _find_matching_impls(self, s_impl, add_deps ):
         # get spd's and deps matching implementation
@@ -223,7 +223,7 @@ class SoftPackage(object):
         spd_oss = [ o.get_name() for o in  s_impl.get_os() ]
         spd_procs = [ p.get_name() for p in  s_impl.get_processor() ]
 
-        for k,dep in add_deps.items():
+        for k,dep in list(add_deps.items()):
             d_oss = [ o.get_name() for o in  dep.get_os() ]
             d_procs = [ p.get_name() for p in  dep.get_processor() ]
 

@@ -33,5 +33,5 @@ def CodegenLoader(default, depends=None):
     default = jinja2.PackageLoader(default)
     if not depends:
         return default
-    prefix = jinja2.PrefixLoader(dict((n, CodegenPackageLoader(p)) for n, p in depends.items()))
+    prefix = jinja2.PrefixLoader(dict((n, CodegenPackageLoader(p)) for n, p in list(depends.items())))
     return jinja2.ChoiceLoader([prefix, default])

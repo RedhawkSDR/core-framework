@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import traceback
 
 class GeneratorModule(object):
     def __init__(self, module):
@@ -39,6 +40,7 @@ def importTemplate(template):
     try:
         package = __import__(template)
     except Exception as e:
+        traceback.print_exc()
         print(e)
         raise
 

@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
     # Pull out CRCs for top-level files.
     toplevelCRCs = {}
-    for implSettings in settings.values():
+    for implSettings in list(settings.values()):
         # Iterate through all items using a copy, because the source dictionary
         # will be modified.
         for filename, checksum in list(implSettings.generatedFileCRCs.items()):

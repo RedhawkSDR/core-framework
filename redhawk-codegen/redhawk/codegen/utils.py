@@ -57,5 +57,5 @@ def fileMD5(filename):
     # has changed. 
     m = md5(usedforsecurity=False)
     for line in open(filename, 'r'):
-        m.update(line)
+        m.update(line.encode())
     return m.hexdigest()

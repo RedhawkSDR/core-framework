@@ -201,7 +201,7 @@ class Generator(object):
 
             # Initially, write the output to a temporary file to avoid trashing
             # the original file if the template is malformed
-            with tempfile.NamedTemporaryFile() as outfile:
+            with tempfile.NamedTemporaryFile(mode="w+t") as outfile:
                 # Start with the template-specific context, then add the mapped
                 # component and a reference to this generator with known names.
                 context = template.context()
