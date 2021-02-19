@@ -299,7 +299,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
                 print(status)
                 print(output)
             else:
-                print (output)
+                print(output)
             subprocess.getstatusoutput('rm '+input_file)
             fp = open(output_file,'r')
             out_str = fp.read()

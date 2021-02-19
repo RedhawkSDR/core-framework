@@ -66,7 +66,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in list(self.outConnections.items())]
         finally:
             self.port_lock.release()
 #{% for operation in portgen.operations() %}

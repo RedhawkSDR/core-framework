@@ -1,111 +1,28 @@
-#!/usr/bin/env python 
-#
-# This file is protected by Copyright. Please refer to the COPYRIGHT file
-# distributed with this source distribution.
-#
-# This file is part of REDHAWK codegenTesting.
-#
-# REDHAWK codegenTesting is free software: you can redistribute it and/or modify it under
-# the terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation, either version 3 of the License, or (at your option) any
-# later version.
-#
-# REDHAWK codegenTesting is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see http://www.gnu.org/licenses/.
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
 #
 # Source: event_props.spd.xml
-# Generated on: Mon Apr 30 1"):1"):")4 EDT 2012
-# Redhawk IDE
-# Version:T.1.X.X
-# Build id: v2012042':0self.port_propEvent.sendPropertyEvent("44-relif newvalue == '1")3
-from ossie.resource import Resource, start_component
+from ossie.resource import start_component
 import logging
 
-from event_props_base import * 
+from event_props_base import *
 
 class event_props_i(event_props_base):
     """<DESCRIPTION GOES HERE>"""
-    def onconfigure_prop_propToSend(self, oldvalue, newvalue):
-        self.eventSent = False
-        if newvalue == 'eventShortSimple':
-            self.port_propEvent.sendPropertyEvent("eventShortSimple")
-        elif newvalue == 'eventStringSimple':
-            self.port_propEvent.sendPropertyEvent("eventStringSimple")
-        elif newvalue == 'eventBoolSimple':
-            self.port_propEvent.sendPropertyEvent("eventBoolSimple")
-        elif newvalue == 'eventUlongSimple':
-            self.port_propEvent.sendPropertyEvent("eventUlongSimple")
-        elif newvalue == 'eventFloatSimple':
-            self.port_propEvent.sendPropertyEvent("eventFloatSimple")
-        elif newvalue == 'eventOctetSimple':
-            self.port_propEvent.sendPropertyEvent("eventOctetSimple")
-        elif newvalue == 'eventCharSimple':
-            self.port_propEvent.sendPropertyEvent("eventCharSimple")
-        elif newvalue == 'eventUshortSimple':
-            self.port_propEvent.sendPropertyEvent("eventUshortSimple")
-        elif newvalue == 'eventDoubleSimple':
-            self.port_propEvent.sendPropertyEvent("eventDoubleSimple")
-        elif newvalue == 'eventLongSimple':
-            self.port_propEvent.sendPropertyEvent("eventLongSimple")
-        elif newvalue == 'eventLonglongSimple':
-            self.port_propEvent.sendPropertyEvent("eventLonglongSimple")
-        elif newvalue == 'eventUlonglongSimple':
-            self.port_propEvent.sendPropertyEvent("eventUlonglongSimple")
-        elif newvalue == 'eventStringSeq':
-            self.port_propEvent.sendPropertyEvent("eventStringSeq")
-        elif newvalue == 'eventBoolSeq':
-            self.port_propEvent.sendPropertyEvent("eventBoolSeq")
-        elif newvalue == 'eventUlongSeq':
-            self.port_propEvent.sendPropertyEvent("eventUlongSeq")
-        elif newvalue == 'eventFloatSeq':
-            self.port_propEvent.sendPropertyEvent("eventFloatSeq")
-        elif newvalue == 'eventOctetSeq':
-            self.port_propEvent.sendPropertyEvent("eventOctetSeq")
-        elif newvalue == 'eventCharSeq':
-            self.port_propEvent.sendPropertyEvent("eventCharSeq")
-        elif newvalue == 'eventUshortSeq':
-            self.port_propEvent.sendPropertyEvent("eventUshortSeq")
-        elif newvalue == 'eventDoubleSeq':
-            self.port_propEvent.sendPropertyEvent("eventDoubleSeq")
-        elif newvalue == 'eventLongSeq':
-            self.port_propEvent.sendPropertyEvent("eventLongSeq")
-        elif newvalue == 'eventLonglongSeq':
-            self.port_propEvent.sendPropertyEvent("eventLonglongSeq")
-        elif newvalue == 'eventUlonglongSeq':
-            self.port_propEvent.sendPropertyEvent("eventUlonglongSeq")
-        elif newvalue == 'eventShortSeq':
-            self.port_propEvent.sendPropertyEvent("eventShortSeq")
-        elif newvalue == 'eventStruct':
-            self.port_propEvent.sendPropertyEvent("eventStruct")
-        elif newvalue == 'eventStructSeq':
-            self.port_propEvent.sendPropertyEvent("eventStructSeq")
-        self.eventSent = True
-    
-    def initialize(self):
+    def constructor(self):
         """
-        This is called by the framework immediately after your component registers with the NameService.
+        This is called by the framework immediately after your component registers with the system.
         
         In general, you should add customization here and not in the __init__ constructor.  If you have 
         a custom port implementation you can override the specific implementation here with a statement
         similar to the following:
           self.some_port = MyPortImplementation()
+
         """
-        event_props_base.initialize(self)
         # TODO add customization here.
-
-        # Autostart the Resource if necessary
-        if self.auto_start:
-            self.start()
         
-
     def process(self):
         """
         Basic functionality:
@@ -115,69 +32,152 @@ class event_props_i(event_props_base):
             FINISH or stop() is called on the component.  If no work is performed, then return NOOP.
             
         StreamSRI:
-            To create a StreamSRI object, use the following code:
-                self.sri = BULKIO.StreamSRI(1, 0.0, 0.0, BULKIO.UNITS_TIME, 0, 0.0, 0.0, BULKIO.UNITS_NONE, 0, self.stream_id, [])
+            To create a StreamSRI object, use the following code (this generates a normalized SRI that does not flush the queue when full):
+                sri = bulkio.sri.create("my_stream_id")
 
         PrecisionUTCTime:
             To create a PrecisionUTCTime object, use the following code:
-                tmp_time = time.time()
-                wsec = math.modf(tmp_time)[1]
-                fsec = math.modf(tmp_time)[0]
-                tstamp = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0, wsec, fsec)
+                tstamp = bulkio.timestamp.now() 
   
         Ports:
 
             Each port instance is accessed through members of the following form: self.port_<PORT NAME>
             
-            Data is obtained in the process function through the getPacket call (BULKIO only) on a
-            provides port member instance. The getPacket function call is non-blocking - if no data
-            is available, it will return immediately with all values == None.
-            
-            To send data, call the appropriate function in the port directly. In the case of BULKIO,
-            convenience functions have been added in the port classes that aid in output.
-            
+            Data is passed to the serviceFunction through by reading from input streams
+            (BulkIO only). UDP multicast (dataSDDS and dataVITA49) ports do not support
+            streams.
+
+            The input stream from which to read can be requested with the getCurrentStream()
+            method. The optional argument to getCurrentStream() is a floating point number that
+            specifies the time to wait in seconds. A zero value is non-blocking. A negative value
+            is blocking.  Constants have been defined for these values, bulkio.const.BLOCKING and
+            bulkio.const.NON_BLOCKING.
+
+            More advanced uses of input streams are possible; refer to the REDHAWK documentation
+            for more details.
+
+            Input streams return data blocks that include the SRI that was in effect at the time
+            the data was received, and the time stamps associated with that data.
+
+            To send data using a BulkIO interface, create an output stream and write the
+            data to it. When done with the output stream, the close() method sends and end-of-
+            stream flag and cleans up.
+
+            If working with complex data (i.e., the "mode" on the SRI is set to 1),
+            the data block's complex attribute will return True. Data blocks provide a
+            cxdata attribute that gives the data as a list of complex values:
+
+                if block.complex:
+                    outData = [val.conjugate() for val in block.cxdata]
+                    outputStream.write(outData, block.getStartTime())
+
             Interactions with non-BULKIO ports are left up to the component developer's discretion.
-            
+
+        Messages:
+    
+            To receive a message, you need (1) an input port of type MessageEvent, (2) a message prototype described
+            as a structure property of kind message, (3) a callback to service the message, and (4) to register the callback
+            with the input port.
+        
+            Assuming a property of type message is declared called "my_msg", an input port called "msg_input" is declared of
+            type MessageEvent, create the following code:
+        
+            def msg_callback(self, msg_id, msg_value):
+                print msg_id, msg_value
+        
+            Register the message callback onto the input port with the following form:
+            self.port_input.registerMessage("my_msg", event_props_i.MyMsg, self.msg_callback)
+        
+            To send a message, you need to (1) create a message structure, and (2) send the message over the port.
+        
+            Assuming a property of type message is declared called "my_msg", an output port called "msg_output" is declared of
+            type MessageEvent, create the following code:
+        
+            msg_out = event_props_i.MyMsg()
+            self.port_msg_output.sendMessage(msg_out)
+
+    Accessing the Device Manager and Domain Manager:
+    
+        Both the Device Manager hosting this Device and the Domain Manager hosting
+        the Device Manager are available to the Device.
+        
+        To access the Domain Manager:
+            dommgr = self.getDomainManager().getRef()
+        To access the Device Manager:
+            devmgr = self.getDeviceManager().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
             then accessing it (for reading or writing) is achieved in the following way: self.baudRate.
+
+            To implement a change callback notification for a property, create a callback function with the following form:
+
+            def mycallback(self, id, old_value, new_value):
+                pass
+
+            where id is the property id, old_value is the previous value, and new_value is the updated value.
+            
+            The callback is then registered on the component as:
+            self.addPropertyChangeListener('baudRate', self.mycallback)
+
+        Logging:
+
+            The member _baseLog is a logger whose base name is the component (or device) instance name.
+            New logs should be created based on this logger name.
+
+            To create a new logger,
+                my_logger = self._baseLog.getChildLogger("foo")
+
+            Assuming component instance name abc_1, my_logger will then be created with the 
+            name "abc_1.user.foo".
+            
             
         Example:
         
             # This example assumes that the component has two ports:
-            #   - A provides (input) port of type BULKIO.dataShort called dataShort_in
-            #   - A uses (output) port of type BULKIO.dataFloat called dataFloat_out
-            # The mapping between the port and the class if found in the component
+            #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
+            #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
+            # The mapping between the port and the class is found in the component
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude
             #   - A boolean called increaseAmplitude
             
-            data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.port_dataShort_in.getPacket()
-            
-            if data == None:
+            inputStream = self.port_dataShort_in.getCurrentStream()
+            if not inputStream:
                 return NOOP
-                
-            outData = range(len(data))
-            for i in range(len(data)):
-                if self.increaseAmplitude:
-                    outData[i] = float(data[i]) * self.amplitude
-                else:
-                    outData[i] = float(data[i])
-                
-            // NOTE: You must make at least one valid pushSRI call
-            if sriChanged:
-                self.port_dataFloat_out.pushSRI(sri);
-            }
-            self.port_dataFloat_out.pushPacket(outData, T, EOS, streamID)
+
+            outputStream = self.port_dataFloat_out.getStream(inputStream.streamID)
+            if not outputStream:
+                outputStream = self.port_dataFloat_out.createStream(inputStream.sri)
+
+            block = inputStream.read()
+            if not block:
+                if inputStream.eos():
+                    outputStream.close()
+                return NOOP
+
+            if self.increaseAmplitude:
+                scale = self.amplitude
+            else:
+                scale = 1.0
+            outData = [float(val) * scale for val in block.data]
+
+            if block.sriChanged:
+                outputStream.sri = block.sri
+
+            outputStream.write(outData, block.getStartTime())
             return NORMAL
             
         """
-        return NORMAL
-        
+
+        # TODO fill in your code here
+        self._baseLog.debug("process() example log message")
+        return NOOP
+
   
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.WARN)
+    logging.getLogger().setLevel(logging.INFO)
     logging.debug("Starting Component")
     start_component(event_props_i)
+

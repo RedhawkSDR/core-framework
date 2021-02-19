@@ -44,7 +44,7 @@ def fileCRC(filename, stripnewlines=False):
         # If requested, strip newlines (for backwards-compatibility with the IDE).
         if stripnewlines and line.endswith('\n'):
             line = line[:-1]
-        value = zlib.crc32(line, value)
+        value = zlib.crc32(line.encode(), value)
     # Return an unsigned value; zlib.crc32 typically returns a signed value, but
     # this may differ across Python versions or platforms. Note that this may
     # cause promotion to 'long' on 32-bit systems.
