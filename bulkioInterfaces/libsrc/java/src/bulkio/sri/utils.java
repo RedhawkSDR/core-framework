@@ -96,23 +96,23 @@ public class utils {
     {
         if (sriA.hversion != sriB.hversion) {
             return false;
-        } else if (sriA.xstart != sriB.xstart) {
+        } else if (Double.compare(sriA.xstart, sriB.xstart) != 0) {
             return false;
-        } else if (sriA.xdelta != sriB.xdelta) {
+        } else if (Double.compare(sriA.xdelta, sriB.xdelta) != 0) {
             return false;
         } else if (sriA.xunits != sriB.xunits) {
             return false;
         } else if (sriA.subsize != sriB.subsize) {
             return false;
-        } else if (sriA.ystart != sriB.ystart) {
+        } else if (Double.compare(sriA.ystart, sriB.ystart) != 0) {
             return false;
-        } else if (sriA.ydelta != sriB.ydelta) {
+        } else if (Double.compare(sriA.ydelta, sriB.ydelta) != 0) {
             return false;
         } else if (sriA.yunits != sriB.yunits) {
             return false;
         } else if (sriA.mode != sriB.mode) {
             return false;
-        } else if (sriA.streamID != sriB.streamID) {
+        } else if (!sriA.streamID.equals(sriB.streamID)) {
             return false;
         } else if (sriA.blocking != sriB.blocking) {
             return false;

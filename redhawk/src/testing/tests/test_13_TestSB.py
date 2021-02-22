@@ -32,6 +32,8 @@ import subprocess
 import commands
 import struct
 import tempfile
+import numpy
+import psutil
 
 from omniORB import CORBA, any, tcInternal
 
@@ -298,6 +300,16 @@ class SBStdOutTest(scatest.CorbaTestCase):
         self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
         self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
         new_stdout.close()
+class SBInitCompTest(scatest.CorbaTestCase):
+    def test_cleanup(self):
+        comp = sb.launch('sdr/dom/components/TestCompInit/test_componentinit.spd.xml') 
+        pid = comp._pid
+        ppid = 0 
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+        result = psutil.pid_exists(pid)
+        self.assertEquals(result, False)
 
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -311,7 +323,7 @@ class SBTestTest(scatest.CorbaTestCase):
 
     def assertComponentCount(self, count):
         self.assertEquals(len(sb.domainless._getSandbox().getComponents()), count)
-
+        
     def tearDown(self):
         sb.release()
         sb.setDEBUG(False)
@@ -1750,7 +1762,32 @@ class SBTestTest(scatest.CorbaTestCase):
         outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
         self.assertEqual(outDataInt[0], 0)
         self.assertEqual(outDataInt, [int(x) for x in outData])
-    
+
+    def test_ComplexNumpyListConversions(self):
+        # Test interleaved-to-complex
+        inData = range(4)
+        outData = bulkio_helpers.bulkioComplexToPythonComplexList(inData)
+        self.assertEqual(outData,[complex(0,1),complex(2,3)])
+
+        # Test complex-to-interleaved
+        cxData = [complex(x+0.5,0) for x in xrange(4)]
+        outData = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, itemType=float)
+        self.assertEqual(outData, [0.5,0.0,1.5,0.0,2.5,0.0,3.5,0.0])
+
+        # Ensure that conversion does not modify the original list
+        self.assertTrue(isinstance(cxData[0],complex))
+
+        # Test inline type conversion (should truncate)
+        outDataInt = bulkio_helpers.pythonComplexListToBulkioComplex(cxData, int)
+        self.assertEqual(outDataInt[0], 0)
+        self.assertEqual(outDataInt, [int(x) for x in outData])
+
+        # test native type is returned
+        numpyData = numpy.array([1+2j, 3+4j, 5+6j])
+        outnumpyData = bulkio_helpers.pythonComplexListToBulkioComplex(numpyData)
+        self.assertEqual(len(outnumpyData), 6)
+        self.assertEqual(type(outnumpyData[0]),float)
+
     def test_apiBeforeLaunch(self):
         try:
             sb.api("TestCppProps", destfile=sys.stdout)

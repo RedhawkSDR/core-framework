@@ -299,16 +299,16 @@ void DomainManager_impl::restoreEventChannels(const std::string& _db_uri) {
                 try {
                   if ( _eventChannelMgr ) _eventChannelMgr->restore( i->channel, i->name, i->boundName);
                 }
-                catch( CF::EventChannelManager::ChannelAlreadyExists){
+                catch( const CF::EventChannelManager::ChannelAlreadyExists&){
                   RH_INFO(this->_baseLog, "EventChannelManager::restore, Channel already exists: " << i->boundName);
                 }
-                catch( CF::EventChannelManager::InvalidChannelName){
+                catch( const CF::EventChannelManager::InvalidChannelName&){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Invalid Channel Name, " << i->boundName);
                 }
-                catch( CF::EventChannelManager::ServiceUnavailable){
+                catch( const CF::EventChannelManager::ServiceUnavailable&){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Event Service seems to be down. ");
                 }
-                catch( CF::EventChannelManager::OperationFailed){
+                catch( const CF::EventChannelManager::OperationFailed&){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Failed to recover Event Channel: " << i->boundName);
                 }
                 catch( ... ){

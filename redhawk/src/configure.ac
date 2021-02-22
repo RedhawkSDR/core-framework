@@ -19,7 +19,7 @@
 #
 
 dnl Update this version number immedately after a release
-AC_INIT([ossie],[2.2.6])
+AC_INIT([ossie],[2.3.0])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
 AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
@@ -177,9 +177,6 @@ if test "x$enable_java" != "xno"; then
   # Enable IDL-to-Java build rules
   RH_IDLJ_RULES
 
-  # Check vendor
-  RH_JAVA_VENDOR
-
   # Locate headers we need
   RH_JAVA_JNI_H
 
@@ -187,7 +184,6 @@ if test "x$enable_java" != "xno"; then
           "$JAVAC" != "no" -a \
           "$JAR" != "no" -a \
           "$IDLJ" != "no" -a \
-          "$JAVA_VENDOR" == "yes" -a \
           "$HAVE_JNI_H" == "yes"; then
     HAVE_JAVASUPPORT="yes"
     AC_SUBST(javadir, '${prefix}/lib')

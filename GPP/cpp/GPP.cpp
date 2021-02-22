@@ -391,10 +391,15 @@ GPP_i::GPP_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Propert
 
 GPP_i::~GPP_i()
 {
-
 }
 
 void GPP_i::_init() {
+
+    metrics_in = new MessageConsumerPort("metrics_in");
+    metrics_in->setLogger(this->_baseLog->getChildLogger("metrics_in", "ports"));
+    PortableServer::POA_var poa = metrics_in->_default_POA();
+    PortableServer::ObjectId_var oid = poa->activate_object(metrics_in);
+    metrics_in->initializePort();
 
   // get the user id
   uid_t tmp_user_id = getuid();
@@ -470,6 +475,8 @@ void GPP_i::_init() {
   utilization.push_back(cpu);
 
   setPropertyQueryImpl(this->component_monitor, this, &GPP_i::get_component_monitor);
+  setPropertyQueryImpl(this->plugin_status, this, &GPP_i::get_plugin_status);
+  setPropertyQueryImpl(this->plugin_metric_status, this, &GPP_i::get_plugin_metric_status);
 
   // tie allocation modifier callbacks to identifiers
 
@@ -492,6 +499,10 @@ void GPP_i::_init() {
   
   // check  reservation allocations 
   setAllocationImpl(this->redhawk__reservation_request, this, &GPP_i::allocate_reservation_request, &GPP_i::deallocate_reservation_request);
+
+  _set_threshold = new MessageSupplierPort("plugin_threshold_control");
+  oid = ossie::corba::RootPOA()->activate_object(_set_threshold);
+  _set_threshold->_remove_ref();
 
 }
 
@@ -528,7 +539,6 @@ void GPP_i::constructor()
     ProcStat::GetTicks(_systemTicks, _userTicks);
 }
 
-
 void GPP_i::postConstruction (std::string &profile, 
                                      std::string &registrar_ior, 
                                      const std::string &idm_channel_ior,
@@ -546,8 +556,162 @@ void GPP_i::postConstruction (std::string &profile,
     throw std::runtime_error("unable configure signal handler");
   }
 
+  _pluginBusy = false;
+  metrics_in->registerMessage("plugin::registration", this, &GPP_i::pluginRegistration);
+  metrics_in->registerMessage("plugin::heartbeat", this, &GPP_i::pluginHeartbeat);
+  metrics_in->registerMessage("plugin::message", this, &GPP_i::pluginMessage);
+  addPropertyListener(plugin_set_threshold, this, &GPP_i::_plugin_threshold_changed);
+  launchPlugins();
+
   _signalThread.start();
 
+}
+
+void GPP_i::_plugin_threshold_changed(const plugin_set_threshold_struct& old_metric, const plugin_set_threshold_struct& new_metric)
+{
+    plugin_set_threshold_struct update_message;
+    update_message.plugin_id = new_metric.plugin_id;
+    update_message.metric_name = new_metric.metric_name;
+    update_message.metric_threshold_value = new_metric.metric_threshold_value;
+    CF::Properties invalidProperties;
+    try {
+        _set_threshold->sendMessage(update_message);
+    } catch ( std::invalid_argument &e ) {
+        std::string msg("Invalid plugin id ");
+        msg += new_metric.plugin_id;
+        throw CF::PropertySet::InvalidConfiguration(msg.c_str(), invalidProperties);
+    }
+}
+
+void GPP_i::pluginRegistration(const std::string& messageId, const plugin_registration_struct& msgData)
+{
+    ReadLock rlock(monitorLock);
+
+    plugin_status_template_struct new_plugin;
+    new_plugin.id = msgData.id;
+    if (plugin_pid.find(msgData.id) != plugin_pid.end()) {
+        new_plugin.pid = plugin_pid[msgData.id];
+    } else {
+        new_plugin.pid = 0;
+    }
+    new_plugin.name = msgData.name;
+    new_plugin.description = msgData.description;
+    plugin_status.push_back(new_plugin);
+
+    try {
+        CORBA::Object_ptr object = ::ossie::corba::stringToObject(msgData.metric_port);
+        _set_threshold->connectPort(object, msgData.id.c_str());
+    } catch ( ... ) {
+    }
+}
+
+void GPP_i::pluginHeartbeat(const std::string& messageId, const plugin_heartbeat_struct& msgData)
+{
+    ReadLock rlock(monitorLock);
+}
+
+void GPP_i::pluginMessage(const std::string& messageId, const plugin_message_struct& msgData)
+{
+    ReadLock rlock(monitorLock);
+
+    std::pair<std::string, std::string> plugin_metric_tuple = std::make_pair(msgData.plugin_id, msgData.metric_name);
+    _plugin_metrics[plugin_metric_tuple].busy = msgData.busy;
+    _plugin_metrics[plugin_metric_tuple].name = msgData.metric_name;
+    _plugin_metrics[plugin_metric_tuple].metric_timestamp = msgData.metric_timestamp;
+    _plugin_metrics[plugin_metric_tuple].metric_reason = msgData.metric_reason;
+    _plugin_metrics[plugin_metric_tuple].metric_threshold_value = msgData.metric_threshold_value;
+    _plugin_metrics[plugin_metric_tuple].metric_recorded_value = msgData.metric_recorded_value;
+
+    for (unsigned int plugin_idx=0; plugin_idx<plugin_status.size(); ++plugin_idx) {
+      if (plugin_status[plugin_idx].id == msgData.plugin_id) {
+        bool found_metric = false;
+        for (std::vector<std::string>::iterator it=plugin_status[plugin_idx].metric_names.begin();it!=plugin_status[plugin_idx].metric_names.end();++it) {
+            if (*it == msgData.metric_name) {
+                found_metric = true;
+            }
+        }
+        if (not found_metric) {
+            plugin_status[plugin_idx].metric_names.push_back(msgData.metric_name);
+        }
+        break;
+      }
+    }
+}
+
+void GPP_i::launchPlugins() {
+
+    boost::filesystem::path dirPath(getenv( "SDRROOT" ));
+    dirPath /= "/dev/devices/GPP/plugins";
+
+    if (not boost::filesystem::exists(dirPath)) {
+      return;
+    }
+    
+    int gpp_pid = getpid();
+
+    const boost::filesystem::directory_iterator end_itr; // an end iterator (by boost definition)
+    for (boost::filesystem::directory_iterator itr = boost::filesystem::directory_iterator(dirPath); itr != end_itr; ++itr) {
+        if (boost::filesystem::is_directory(itr->path())) {
+            boost::filesystem::path found_plugin(itr->path());
+            found_plugin /= itr->path().filename();
+            std::string plugin_id(ossie::generateUUID());
+            if ((not boost::filesystem::is_directory(found_plugin)) and boost::filesystem::exists(found_plugin)) {
+                std::vector<std::string> args;
+                args.push_back(found_plugin.string());
+                args.push_back(ossie::corba::objectToString(this->metrics_in->_this()));
+                args.push_back(plugin_id);
+
+                std::vector<char*> argv(args.size()+1, NULL);
+                for (std::size_t i = 0; i < args.size(); ++i) {
+                    argv[i] = const_cast<char*> (args[i].c_str());
+                }
+                int pid = fork();
+                if (pid == 0) {
+                    setpgid(gpp_pid, 0);
+                    int returnval = execv(argv[0], &argv[0]);
+                    if (errno) {
+                        std::string error_msg("Unable to launch plugin '");
+                        error_msg += found_plugin.string();
+                        error_msg += "': ";
+                        switch (errno) {
+                            case E2BIG:
+                                std::cout<<error_msg<<"Argument list too long"<<std::endl;
+                                break;
+                            case EACCES:
+                                std::cout<<error_msg<<"Permission denied"<<std::endl;
+                                break;
+                            case ENAMETOOLONG:
+                                std::cout<<error_msg<<"File name too long"<<std::endl;
+                                break;
+                            case ENOENT:
+                                std::cout<<error_msg<<"No such file or directory"<<std::endl;
+                                break;
+                            case ENOEXEC:
+                                std::cout<<error_msg<<"Exec format error"<<std::endl;
+                                break;
+                            case ENOMEM:
+                                std::cout<<error_msg<<"Out of memory"<<std::endl;
+                                break;
+                            case ENOTDIR:
+                                std::cout<<error_msg<<"Not a directory"<<std::endl;
+                                break;
+                            case EPERM:
+                                std::cout<<error_msg<<"Operation not permitted"<<std::endl;
+                                break;
+                            default:
+                                std::cout<<error_msg<<"Error on fork with error number "<<errno<<std::endl;
+                                break;
+                        }
+                    }
+                    exit(returnval);
+                } else if (pid > 0) {
+                    plugin_pid[plugin_id] = pid;
+                } else if (pid < 0) {
+                    std::cout<<"failed to launch"<<std::endl;
+                }
+            }
+        }
+    }
 }
 
 void GPP_i::update_grp_child_pids() {
@@ -650,6 +814,50 @@ void GPP_i::update_grp_child_pids() {
     BOOST_FOREACH(const int &_pid, parsed_stat_to_erase) {
         parsed_stat.erase(_pid);
     }
+}
+
+std::vector<plugin_metric_status_template_struct> GPP_i::get_plugin_metric_status() {
+
+    ReadLock rlock(monitorLock);
+
+    std::vector<plugin_metric_status_template_struct> retval;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        plugin_metric_status_template_struct tmp;
+        tmp.busy = it->second.busy;
+        tmp.plugin_id = it->first.first;
+        tmp.metric_name = it->second.name;
+        tmp.metric_timestamp = it->second.metric_timestamp;
+        tmp.metric_reason = it->second.metric_reason;
+        tmp.metric_threshold_value = it->second.metric_threshold_value;
+        tmp.metric_recorded_value = it->second.metric_recorded_value;
+        retval.push_back(tmp);
+    }
+
+    return retval;
+}
+
+std::vector<plugin_status_template_struct> GPP_i::get_plugin_status() {
+    ReadLock rlock(monitorLock);
+
+    std::map<std::string, bool> tmp_metrics;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        std::string plugin_id = it->first.first;
+        if (tmp_metrics.find(plugin_id) == tmp_metrics.end()) {
+            tmp_metrics[plugin_id] = it->second.busy;
+        } else {
+            if (it->second.busy) {
+                tmp_metrics[plugin_id] = true;
+            }
+        }
+    }
+
+    for (std::vector<plugin_status_template_struct>::iterator _ps=plugin_status.begin(); _ps!=plugin_status.end(); ++_ps) {
+        if (tmp_metrics.find(_ps->id) != tmp_metrics.end()) {
+            _ps->busy = tmp_metrics[_ps->id];
+        }
+    }
+
+    return plugin_status;
 }
 
 std::vector<component_monitor_struct> GPP_i::get_component_monitor() {
@@ -1323,6 +1531,11 @@ void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::Releas
   _redirectedIO.stop();
   _redirectedIO.release();
   if ( odm_consumer ) odm_consumer.reset();
+  PortableServer::POA_var poa = metrics_in->_default_POA();
+  PortableServer::ObjectId_var oid = poa->servant_to_id(metrics_in);
+  poa->deactivate_object(oid);
+  delete metrics_in;
+
   GPP_base::releaseObject();
 }
 
@@ -1765,6 +1978,29 @@ void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CO
 
 bool GPP_i::_component_cleanup(const int pid, const int status)
 {
+    if (pid > 0) {
+      ReadLock rlock(monitorLock);
+      for (std::map<std::string, CORBA::ULong>::iterator _pid = plugin_pid.begin(); _pid != plugin_pid.end(); ++_pid) {
+          if (_pid->second == (CORBA::ULong) pid) {
+            for (unsigned int i=0; i<plugin_status.size(); ++i) {
+              if (plugin_status[i].id == _pid->first) {
+                plugin_status[i].alive = false;
+                plugin_status[i].busy = false;
+                plugin_status[i].description = std::string("plugin crashed. ") + plugin_status[i].description;
+              }
+            }
+            for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+                if (it->first.first == _pid->first) {
+                  it->second.busy = false;
+                  it->second.metric_timestamp = redhawk::time::utils::now();
+                  it->second.metric_reason = "plugin crashed";
+                  it->second.metric_recorded_value = "plugin crashed";
+                }
+            }
+            return false;
+          }
+      }
+    }
     component_description comp;
     try {
         comp = markPidReaped(pid);
@@ -1856,7 +2092,24 @@ void GPP_i::updateUsageState()
             " Threads threshold: " << gpp_limits.max_threads << " Actual: " << gpp_limits.current_threads << std::endl <<
             " NIC: " << std::endl << nic_message.str()
             );
-  
+
+    bool some_busy = false;
+    for (std::map< std::pair<std::string, std::string>, metric_description>::iterator it=_plugin_metrics.begin(); it!=_plugin_metrics.end(); ++it) {
+        if (it->second.busy) {
+            some_busy = true;
+            if (not _pluginBusy) {
+              std::ostringstream oss;
+              oss << "Threshold: " <<  it->second.metric_threshold_value << " Actual: " << it->second.metric_recorded_value;
+              _setBusyReason(it->second.metric_reason, oss.str());
+            }
+            _pluginBusy = true;
+            return;
+        }
+    }
+    if (not some_busy) {
+      _pluginBusy = false;
+    }
+
   if (_cpuIdleThresholdMonitor->is_threshold_exceeded()) {
       std::ostringstream oss;
       oss << "Threshold: " <<  modified_thresholds.cpu_idle << " Actual/Average: " << sys_idle << "/" << sys_idle_avg ;
@@ -1896,6 +2149,9 @@ void GPP_i::updateUsageState()
       std::ostringstream oss;
       oss << "Threshold: " << gpp_limits.max_open_files << " Actual: " << gpp_limits.current_open_files;
       _setBusyReason("ULIMIT (MAX_FILES)", oss.str());
+  }
+  else if (_pluginBusy) {
+      // avoid going into idle or active
   }
   else if (getPids().size() == 0) {
     RH_TRACE(_baseLog, "Usage State IDLE (trigger) pids === 0...  ");

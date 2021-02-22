@@ -37,7 +37,7 @@ max_throughput_percent_(max_throughput_percent),
 current_throughput_(current_throughput)
 {
   //std::cout << " NicAllocator allocatable nics....." << allocatable_nics.size() << std::endl;
-  AllocatableNics::const_iterator iter=allocatable_nics.begin();
+  //AllocatableNics::const_iterator iter=allocatable_nics.begin();
   //for(; iter!=allocatable_nics.end(); iter++ ) std::cout << " Allocatable Nic " << iter->second->get_interface() << std::endl;
 }
 

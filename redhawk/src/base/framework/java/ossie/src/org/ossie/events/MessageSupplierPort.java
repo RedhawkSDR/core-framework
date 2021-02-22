@@ -209,10 +209,8 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
                     removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.COMM_FAILURE ex ) {
-                    removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.OBJECT_NOT_EXIST ex ) {
-                    removeConnection( consumer );
                     continue;
                 } catch( final org.omg.CORBA.MARSHAL ex ) {
                     throw ex;

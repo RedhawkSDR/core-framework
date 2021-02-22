@@ -26,7 +26,9 @@
 
 #include <fnmatch.h>
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
 
 #include "ossie/FileSystem_impl.h"
 #include "ossie/File_impl.h"

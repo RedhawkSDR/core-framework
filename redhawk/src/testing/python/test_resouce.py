@@ -42,11 +42,11 @@ class ResourceTest(unittest.TestCase):
         name = 'hello'
         self.assertRaises(omniORB.PortableServer.POA.AdapterNonExistent, root_poa.find_POA, name, True)
         poa = resource.getPOA(orb, None, None)
-        self.assertEquals(poa.the_name, 'RootPOA')
+        self.assertEquals(poa._get_the_name(), 'RootPOA')
         poa = resource.getPOA(orb, None, name)
-        self.assertEquals(poa.the_name, name)
+        self.assertEquals(poa._get_the_name(), name)
         poa = resource.getPOA(orb, None, None)
-        self.assertEquals(poa.the_name, 'RootPOA')
+        self.assertEquals(poa._get_the_name(), 'RootPOA')
 
 if __name__ == '__main__':
     import runtests
