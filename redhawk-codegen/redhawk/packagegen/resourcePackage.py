@@ -286,7 +286,7 @@ class ResourcePackage(SoftPackage):
         if len(values) > 0:
             if values[0] != "":
                 # only create value entries if there is actual content in the list
-                valuesXml = list(prf.values())
+                valuesXml = prf.values()
                 for value in values:
                     valuesXml.add_value(value=value)
                 simplesequence.values=valuesXml

@@ -289,8 +289,7 @@ class Component(object):
       try:
           doc_prf = xml.dom.minidom.parse(self.prf_path)
       except ExpatError as msg:
-          print("Error reading <" + self.prf_path + ">", end=' ')
-          print(msg)
+          print("Error reading <{}> reason: {}".format(self.prf_path,msg))
           return None
 
       props_tag = doc_prf.documentElement
