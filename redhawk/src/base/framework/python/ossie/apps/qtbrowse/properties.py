@@ -115,6 +115,9 @@ def getPropertiesFromPRF (xmlfile, fs):
     for node in propNode.childNodes:
         if node.nodeType != node.ELEMENT_NODE:
             continue
+            
+        if 'description' in node.localName:
+            continue
         kinds = []
         for kindNode in node.getElementsByTagName('kind'):
             kinds.append(str(kindNode.getAttribute('kindtype')))

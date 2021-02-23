@@ -28,8 +28,11 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
 from ossie.utils import sb
 import copy
 from ossie.utils import redhawk,prop_helpers,type_helpers
@@ -153,9 +156,9 @@ def setPropSeqValue(prop, itemtext):
             except:
                 pass
 
-class TreeWidget(QTreeWidget):
+class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
-        QTreeWidget.__init__(self, parent)
+        QtWidgets.QTreeWidget.__init__(self, parent)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenuEvent)
         self.itemDoubleClicked.connect(self.onTreeWidgetItemDoubleClicked)
@@ -721,13 +724,13 @@ class TreeWidget(QTreeWidget):
                         else:
                             QMessageBox.critical(self, 'Bad type', "Element '"+newvalue[0]+"'. Expected type '"+newvalue[1]+"'", QMessageBox.Ok)
 
-class BrowseWindowBase(QMainWindow):
+class BrowseWindowBase(QtWidgets.QMainWindow):
     def __init__(self,parent = None,name = None,fl = 0,domainName=None):
-        QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         base = self.statusBar()
 
-        self.setCentralWidget(QWidget(self))
-        BrowseWindowBaseLayout = QVBoxLayout(self.centralWidget())
+        self.setCentralWidget(QtWidgets.QWidget(self))
+        BrowseWindowBaseLayout = QtWidgets.QVBoxLayout(self.centralWidget())
         windowWidth = 720
         windowHeight = 569
 
@@ -758,8 +761,10 @@ class BrowseWindowBase(QMainWindow):
         self.languageChange(domainName)
 
         self.resize(QSize(windowWidth,windowHeight).expandedTo(self.minimumSizeHint()))
-        self.connect(self.refreshButton,SIGNAL("clicked()"),self.refreshView)
-        self.connect(self.objectListView,SIGNAL("itemRenamed(PyQt_PyObject,int)"),self.propertyChanged)
+        self.refreshButton.clicked.connect(self.refreshView)
+        #
+        #self.connect(self.objectListView,SIGNAL("itemRenamed(PyQt_PyObject,int)"),self.propertyChanged)
+        #self.objectListView.itemChanged.connect(self.propertyChanged)
 
     def closeEvent(self, event):
         self.cleanupOnExit()
@@ -775,7 +780,7 @@ class BrowseWindowBase(QMainWindow):
         else:
             self.setWindowTitle(self.__tr("REDHAWK Domain Browser: "+domainName))
         self.textLabel1.setText(self.__tr("Domain:"))
-        self.domainLabel.setText(QString())
+        self.domainLabel.setText("")
         self.refreshButton.setText(self.__tr("&Refresh"))
 
     def setStatusBar(self):

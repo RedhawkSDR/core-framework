@@ -27,14 +27,15 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
 
-
-class StructDialogBase(QDialog):
+class StructDialogBase(QtWidgets.QDialog):
     def __init__(self):
-        QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
         self.mainlayout = QVBoxLayout(self)
         self.layout = QHBoxLayout()
         self.buttonOk = QPushButton('Ok')

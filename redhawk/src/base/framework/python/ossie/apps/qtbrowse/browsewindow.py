@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -22,12 +23,16 @@
 
 import sys
 import os
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
 import logging
 import threading
-
+import traceback
 from xml.dom import minidom
+
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
 
 from omniORB import CORBA, any
 from ossie.cf import CF
@@ -69,19 +74,26 @@ def setEditable(item, editable):
         flags = flags & ~Qt.ItemIsEditable
     item.setFlags(flags)
 
+TYPE_MAP = {
+    'boolean':     CORBA.TC_boolean, 
+    'char':        CORBA.TC_char, 
+    'double':      CORBA.TC_double, 
+    'float':       CORBA.TC_float, 
+    'long':        CORBA.TC_long,
+    'longdouble':  CORBA.TC_longdouble, 
+    'longlong':    CORBA.TC_longlong, 
+    'None':        CORBA.TC_null, 
+    'objref':      CORBA.TC_Object, 
+    'octet':       CORBA.TC_octet, 
+    'short':       CORBA.TC_short, 
+    'string':      CORBA.TC_string, 
+    'ulong':       CORBA.TC_ulong, 
+    'ulonglong':   CORBA.TC_ulonglong, 
+    'ushort':      CORBA.TC_ushort, 
+    'void':        CORBA.TC_void, 
+    'wchar':       CORBA.TC_char, 
+    'wstring':     CORBA.TC_string }
 
-TYPE_MAP = { "boolean"  : CORBA.TC_boolean,
-             "char"     : CORBA.TC_char,
-             "double"   : CORBA.TC_double,
-             "float"    : CORBA.TC_float,
-             "short"    : CORBA.TC_short,
-             "long"     : CORBA.TC_long,
-             "longlong" : CORBA.TC_longlong,
-             "objref"   : CORBA.TC_Object,
-             "octet"    : CORBA.TC_octet,
-             "string"   : CORBA.TC_string,
-             "ulong"    : CORBA.TC_ulong,
-             "ushort"   : CORBA.TC_ushort }
 
 def toAny (value, type):
     if type in ( "short", "long", "octet", "ulong", "ushort" ):
@@ -97,6 +109,19 @@ def toAny (value, type):
     return CORBA.Any(TYPE_MAP[type], value)
 
 class BrowseWindow(BrowseWindowBase):
+    refreshApplicationsSignal = pyqtSignal()
+    refreshDeviceManagersSignal = pyqtSignal()
+    parseDomainManagerSignal=pyqtSignal()
+    parseApplicationsSignal=pyqtSignal()
+    parseAllDeviceManagersSignal=pyqtSignal()
+    setupDomainSignal=pyqtSignal()
+    cleardomMgrItemSignal=pyqtSignal()
+    cleardevMgrItemSignal=pyqtSignal()
+    clearappsItemSignal=pyqtSignal()
+    setWindowTitleSignal=pyqtSignal(str,name="setWindowTitle")
+    releaseApplicationSignal=pyqtSignal(str,name="releaseApplication")
+    shutdownDeviceManagerSignal=pyqtSignal(str,name="shutdownDeviceManager")
+    refreshPropertySignal=pyqtSignal([str,str,str],name="refreshProperty")
 
     def __init__(self, domainName=None, verbose=False,
                  parent = None,name = None,fl = 0):
@@ -106,6 +131,7 @@ class BrowseWindow(BrowseWindowBase):
         self.apps = []
         self.devMgrs = []
         self.odmListener = None
+        self.worker=None
         
         self.log = logging.getLogger(BrowseWindow.__name__)
 
@@ -113,30 +139,33 @@ class BrowseWindow(BrowseWindowBase):
             domainName = self.findDomains()
         BrowseWindowBase.__init__(self,parent,name,fl, domainName)
         self._requests = queue.Queue()
-        self.worker = self.WorkThread(self._requests)
+        self.worker = self.WorkThread(self._requests, self)
         self.debug('Domain:', domainName)
-        self.connect(self.worker, SIGNAL('refreshApplications()'), self.refreshApplications)
-        self.connect(self.worker, SIGNAL('refreshDeviceManagers()'), self.refreshDeviceManagers)
-        self.connect(self.worker, SIGNAL('parseDomainManager()'), self.parseDomainManager)
-        self.connect(self.worker, SIGNAL('parseApplications()'), self.parseApplications)
-        self.connect(self.worker, SIGNAL('parseAllDeviceManagers()'), self.parseAllDeviceManagers)
-        self.connect(self.worker, SIGNAL('setupDomain()'), self.setupDomain)
-        self.connect(self.worker, SIGNAL('cleardomMgrItem()'), self.cleardomMgrItem)
-        self.connect(self.worker, SIGNAL('cleardevMgrItem()'), self.cleardevMgrItem)
-        self.connect(self.worker, SIGNAL('clearappsItem()'), self.clearappsItem)
-        self.connect(self.worker, SIGNAL('setWindowTitle(QString)'), self.setWindowTitle)
-        self.connect(self.worker, SIGNAL('releaseApplication(QString)'), self.releaseApplication)
-        self.connect(self.worker, SIGNAL('shutdownDeviceManager(QString)'), self.shutdownDeviceManager)
-        self.connect(self.worker, SIGNAL('refreshProperty(QString,QString,QString)'), self.refreshProperty)
-        self.worker.start()
+
+        self.refreshApplicationsSignal.connect(self.refreshApplications)
+        self.refreshDeviceManagersSignal.connect(self.refreshDeviceManagers)
+        self.parseDomainManagerSignal.connect(self.parseDomainManager)
+        self.parseApplicationsSignal.connect(self.parseApplications)
+        self.parseAllDeviceManagersSignal.connect(self.parseAllDeviceManagers)
+        self.setupDomainSignal.connect(self.setupDomain)
+        self.cleardomMgrItemSignal.connect(self.cleardomMgrItem)
+        self.cleardevMgrItemSignal.connect(self.cleardevMgrItem)
+        self.clearappsItemSignal.connect(self.clearappsItem)
+        self.setWindowTitleSignal.connect(self.setWindowTitle)
+        self.releaseApplicationSignal.connect(self.releaseApplication)
+        self.shutdownDeviceManagerSignal.connect(self.shutdownDeviceManager)
+        self.refreshPropertySignal.connect(self.refreshProperty)
+        if self.worker:
+            self.worker.start()
         if not domainName:
             return
         self.updateDomain(domainName)
 
     class WorkThread(QThread):
-        def __init__(self, request_queue):
+        def __init__(self, request_queue, parent):
             QThread.__init__(self)
             self.requests = request_queue
+            self.parent=parent
             self.exit = False
 
         def end(self):
@@ -153,31 +182,31 @@ class BrowseWindow(BrowseWindowBase):
                 if request == None:
                     continue
                 if request == 'refreshApplications':
-                    self.emit( SIGNAL('refreshApplications()'))
-                elif request[0] == 'releaseApplication(QString)':
-                    self.emit( SIGNAL('releaseApplication(QString)'), request[1])
-                elif request[0] == 'shutdownDeviceManager(QString)':
-                    self.emit( SIGNAL('shutdownDeviceManager(QString)'), request[1])
+                    self.parent.refreshApplicationsSignal.emit()
+                elif request[0] == 'releaseApplication':
+                    self.parent.releaseApplicationSignal.emit(request[1])
+                elif request[0] == 'shutdownDeviceManager':
+                    self.parent.shutdownDeviceManagerSignal.emit(request[1])
                 elif request == 'refreshDeviceManagers':
-                    self.emit( SIGNAL('refreshDeviceManagers()'))
+                    self.parent.refreshDeviceManagersSignal.emit()
                 elif request == 'parseDomainManager':
-                    self.emit( SIGNAL('parseDomainManager()'))
+                    self.parent.parseDomainManagerSignal.emit()
                 elif request == 'parseApplications':
-                    self.emit( SIGNAL('parseApplications()'))
+                    self.parent.parseApplicationsSignal.emit()
                 elif request == 'parseAllDeviceManagers':
-                    self.emit( SIGNAL('parseAllDeviceManagers()'))
+                    self.parent.parseAllDeviceManagersSignal.emit()
                 elif request == 'setupDomain':
-                    self.emit( SIGNAL('setupDomain()'))
+                    self.parent.setupDomainSignal.emit()
                 elif request == 'cleardomMgrItem':
-                    self.emit( SIGNAL('cleardomMgrItem()'))
+                    self.parent.cleardomMgrItemSignal.emit()
                 elif request == 'cleardevMgrItem':
-                    self.emit( SIGNAL('cleardevMgrItem()'))
+                    self.parent.cleardevMgrItemSignal.emit()
                 elif request == 'clearappsItem':
-                    self.emit( SIGNAL('clearappsItem()'))
+                    self.parent.clearappsItemSignal.emit()
                 elif request[0] == 'setWindowTitle':
-                    self.emit( SIGNAL('setWindowTitle(QString)'), request[1] )
+                    self.parent.setWindowTitleSignal.emit(request[1])
                 elif request[0] == 'refreshProperty':
-                    self.emit( SIGNAL('refreshProperty(QString,QString,QString)'), request[1], request[2], request[3] )
+                    self.parent.refreshPropertySignal.emit(request[1], request[2], request[3])
                 else:
                     print(request,"...unrecognized")
             return
@@ -207,7 +236,8 @@ class BrowseWindow(BrowseWindowBase):
     def cleanupOnExit(self):
         self.removeAllWidgets()
         self.disconnectFromODMChannel()
-        self.worker.end()
+        if self.worker:
+            self.worker.end()
 
     def removeAllWidgets(self):
         for app in self.apps:
@@ -241,14 +271,14 @@ class BrowseWindow(BrowseWindowBase):
     def findDomains(self):
         try:
             domainList = redhawk.scan()
-        except RuntimeError:
+        except Exception as e:
             return
         if len(domainList) == 1:
             return domainList[0]
-        stringlist = QStringList()
+        stringlist = []
         for entry in domainList:
-            stringlist.append(QString(entry))
-        retval = QInputDialog.getItem(None, QString("pick a domain"), QString("domains"), stringlist, 0, False)
+            stringlist.append(entry)
+        retval = QInputDialog.getItem(None, "pick a domain", "domains", stringlist, 0, False)
         if retval[1] == False:
             return None
         return str(retval[0])
@@ -275,12 +305,17 @@ class BrowseWindow(BrowseWindowBase):
 
     def updateDomain(self, domainName):
 
-        self.getDomain(domainName)
-        self.setupDomain()
+        try:
+            self.getDomain(domainName)
+            self.setupDomain()
 
-        self._requests.put('parseDomainManager')
-        self._requests.put('parseApplications')
-        self._requests.put('parseAllDeviceManagers')
+            self._requests.put('parseDomainManager')
+            self._requests.put('parseApplications')
+            self._requests.put('parseAllDeviceManagers')
+        except Exception as e:
+            traceback.print_exc()
+            print("Unable to access Domain: {}".format(domainName))
+            
 
     def cleardomMgrItem(self):
         clearChildren(self.domMgrItem)
@@ -292,33 +327,38 @@ class BrowseWindow(BrowseWindowBase):
         clearChildren(self.appsItem)
 
     def refreshView (self):
-        runsetup = False
-        if self.currentDomain == "":
-            domainName = self.findDomains()
-            if not domainName:
-                return
-            runsetup = True
-        elif self.currentDomain not in redhawk.scan():
-            domainName = self.findDomains()
-            self.objectListView.clear()
-            runsetup = True
-        else:
-            domainName = self.currentDomain
+        domainName=None
+        try:
+            runsetup = False
+            if self.currentDomain == "":
+                domainName = self.findDomains()
+                if not domainName:
+                    return
+                runsetup = True
+            elif self.currentDomain not in redhawk.scan():
+                domainName = self.findDomains()
+                self.objectListView.clear()
+                runsetup = True
+            else:
+                domainName = self.currentDomain
 
-        self.getDomain(domainName)
-        if runsetup:
-            self.setupDomain()
-        self._requests.put('cleardomMgrItem')
-        self._requests.put('cleardevMgrItem')
-        self._requests.put('clearappsItem')
-        self._requests.put('parseDomainManager')
-        self._requests.put('parseApplications')
-        self._requests.put('parseAllDeviceManagers')
+            self.getDomain(domainName)
+            if runsetup:
+                self.setupDomain()
+            self._requests.put('cleardomMgrItem')
+            self._requests.put('cleardevMgrItem')
+            self._requests.put('clearappsItem')
+            self._requests.put('parseDomainManager')
+            self._requests.put('parseApplications')
+            self._requests.put('parseAllDeviceManagers')
 
-        if domainName == None:
-            self._requests.put(('setWindowTitle', "REDHAWK Domain Browser"))
-        else:
-            self._requests.put(('setWindowTitle', "REDHAWK Domain Browser: "+domainName))
+            if domainName == None:
+                self._requests.put(('setWindowTitle', "REDHAWK Domain Browser"))
+            else:
+                self._requests.put(('setWindowTitle', "REDHAWK Domain Browser: "+domainName))
+        except Exception as e:
+            print("Unable to process Domain {}".format(domainName))
+            
 
     def getAttribute (self, item, attribute):
         child = item.firstChild()
@@ -403,14 +443,16 @@ class BrowseWindow(BrowseWindowBase):
         #     lookup method.
         id = str(item.text(3))
         value = str(item.text(1))
+        if id in [ None, '' ]:
+            return
         try:
             value = eval(value)
         except:
             pass
-        
         if parent.text(0) == 'Domain Manager':
-            propset = self.domManager
-            value = toAny(value, self.domMgrProps[id]['type'])
+            if id in self.domMgrProps:
+                propset = self.domManager
+                value = toAny(value, self.domMgrProps[id]['type'])
         else:
             element = self.getAttribute(parent, 'Naming Element')
             if not element:
@@ -419,7 +461,8 @@ class BrowseWindow(BrowseWindowBase):
             value = any.to_any(value)
         
         try:
-            propset.configure([CF.DataType(id, value)])
+            if id:
+                propset.configure([CF.DataType(id, value)])
         except:
             pass
 
@@ -630,6 +673,10 @@ class BrowseWindow(BrowseWindowBase):
 
 
     def parseDomainManager (self):
+
+        if not self.fileMgr or not self.domManager:
+            self.error("Missing DomainManger and FileManager for {}".format(self.currentDomain))
+        
         identifier = self.addTreeWidgetItem(self.domMgrItem, 'Identifier:', self.domManager._get_identifier())
         profile = self.addTreeWidgetItem(self.domMgrItem, 'Profile:', self.domManager._get_domainManagerProfile())
         self.domMgrPropsItem = self.addTreeWidgetItem(self.domMgrItem, 'Properties')
@@ -725,5 +772,8 @@ class BrowseWindow(BrowseWindowBase):
         if not self.verbose:
             return
         for arg in args:
-            print(arg, end=' ')
-        print()
+            print("{}".format(arg))
+
+    def error(self, *args):
+        for arg in args:
+            print("{}".format(arg))

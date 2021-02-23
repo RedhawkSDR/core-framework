@@ -28,13 +28,14 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
-
-class InstallDialogBase(QDialog):
+class InstallDialogBase(QtWidgets.QDialog):
     def __init__(self,parent = None,name = None,modal = 0,fl = 0):
-        QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
 
         InstallDialogBaseLayout = QHBoxLayout(self)
 
