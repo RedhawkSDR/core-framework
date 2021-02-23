@@ -55,7 +55,7 @@ Note!!:  If calling sdrlint with the '-p' option, checking of <localfile>
 
 import os
 import pprint
-import commands
+import subprocess
 import sys
 import re
 import xml.dom
@@ -78,16 +78,16 @@ SDRROOT = None
 SDR_FS_ROOT = None # Either 'dev' or 'dom'
 
 def check_msg(msg):
-    print msg
+    print(msg)
 
 def check_info(msg, location=""):
-    print " %s: info : %s" % (location, msg)
+    print(" %s: info : %s" % (location, msg))
 
 def check_warning(msg, location=""):
-    print " %s: warning : %s" % (location, msg)
+    print(" %s: warning : %s" % (location, msg))
 
 def check_error(msg, location=""):
-    print " %s: error : %s" % (location, msg)
+    print(" %s: error : %s" % (location, msg))
 
 def getReadonly(sdrroot):
     """Get a dictionary of all the elements with a mode attribute
@@ -110,8 +110,8 @@ def getReadonly(sdrroot):
                 except:
                     continue
                 for element in xmlRoot.getiterator():
-                    if (element.attrib.has_key('mode') and 
-                        element.attrib.has_key('id') and
+                    if ('mode' in element.attrib and 
+                        'id' in element.attrib and
                         element.attrib['mode'] == 'readonly'):
                         result[element.attrib['id']] = os.path.join(root, fName)
     return result
@@ -143,14 +143,14 @@ def getErrorInfo(error):
     try:
         oMatch = orderPat.search(err)
     except:
-        print "error in search"
+        print("error in search")
     if oMatch is not None:
         expected = oMatch.groups()[0]
         expected = re.sub(r'[,()*+?|]', ' ', expected)
         expected = expected.split()
         es = [e.strip() for e in expected]
         expected = {}
-        for e,n  in zip(es, xrange(1,100000)):
+        for e,n  in zip(es, range(1,100000)):
             expected[e] = n
         return element, expected
     else: return element, []
@@ -188,7 +188,7 @@ def fixOrder(fPath, output):
                     children = []
                     for child in element.childNodes:
                         if (child.nodeType == xml.dom.Node.ELEMENT_NODE and
-                            child.tagName in expected.keys()):
+                            child.tagName in list(expected.keys())):
                             children.append(child)
                     fixElementOrder(element, expected, children)
     pxml = d.toprettyxml(encoding="utf-8").split('\n')
@@ -225,8 +225,8 @@ def checkUUIDs(fPath):
 
         def startElement(self, name, attrs):
             if name in uuidTags:
-                if not attrs.has_key("id"):
-                    print name, "DOESN'T HAVE KEY"
+                if "id" not in attrs:
+                    print(name, "DOESN'T HAVE KEY")
                 if not isDCE_UUID(attrs["id"]):
                     if self._locator != None:
                         location = "%s:%s" % (fPath, self._locator.getLineNumber())
@@ -424,7 +424,7 @@ def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=Tru
     try:
         logging.debug("Checking document doc type %s", fPath)
         rootElem, docType = checkDTD(root, fPath)
-    except Exception, e:
+    except Exception as e:
         check_error("unexpected failure while trying to check/fix dtd", location=fPath)
         xmlStatus[fPath] = 'failed DTD'
         logging.exception("")
@@ -452,7 +452,7 @@ def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=Tru
     cmd = "xmllint --nowarning --nonet --noout --dtdvalid '%s' %s" % (dtdLocation, fPath)
     logging.debug("Running %s", cmd)
 
-    status, output = commands.getstatusoutput(cmd)
+    status, output = subprocess.getstatusoutput(cmd)
     if status == 0:
         xmlStatus[fPath] = 'OK'
     else:
@@ -464,14 +464,14 @@ def checkFile(root, fPath, opts, referencedFiles, readonlyIds, localFileRefs=Tru
             for i in range(5):
                 retval = 1
                 fixOrder(fPath, output)
-                status, output = commands.getstatusoutput(cmd)
+                status, output = subprocess.getstatusoutput(cmd)
                 if status == 0:
                     xmlStatus[fPath] = 'OK'
                     break
             else:
                 xmlStatus[fPath] = '  Fail DTD validation'
-                print "  <<<<DTD check not valid"
-                print "    %s" % output.split('\n')[0]
+                print("  <<<<DTD check not valid")
+                print("    %s" % output.split('\n')[0])
 
     # Check that elements that are required to have UUIDS, do have UUIDS
     #checkUUIDs(fPath)
@@ -508,22 +508,22 @@ if __name__ == "__main__":
 # THIS ISN'T VERY RELIABLE SO DON'T PROVIDE IT
 #    parser.add_option("-m", "--modify", 
 #                      action="store_true", 
-#		      dest="modify", 
-#		      default=False, 
-#		      help="when possible attempt to fix problems in the XML; currently only fixes out of order subelements.  Also sets fixDTD to true")
+#                     dest="modify", 
+#                     default=False, 
+#                     help="when possible attempt to fix problems in the XML; currently only fixes out of order subelements.  Also sets fixDTD to true")
     parser.add_option("-c", "--catalogs", 
                       type="string",
-		      dest="catalogs", 
-		      default=None, 
-		      metavar="CATALOG_FILES",
-		      help="use DTD catalogs from CATALOG_FILES  [default: /etc/xml/catalog]")
+                      dest="catalogs", 
+                      default=None, 
+                      metavar="CATALOG_FILES",
+                      help="use DTD catalogs from CATALOG_FILES  [default: /etc/xml/catalog]")
     parser.add_option("-p", "--profile", 
             type="string",
             action="append",
-		      dest="profiles", 
-		      default=None, 
-		      metavar="PROFILES",
-		      help="lint only the xml in dir-tree given by PROFILES  [default: None]")	      
+                      dest="profiles", 
+                      default=None, 
+                      metavar="PROFILES",
+                      help="lint only the xml in dir-tree given by PROFILES  [default: None]")        
     parser.add_option("-u", "--strict-uuids", 
                       action="store_true",
                       dest="strictUUIDS",
@@ -536,9 +536,9 @@ if __name__ == "__main__":
         SDRROOT = args[0]
     except IndexError:
         try:
-	    SDRROOT = os.environ["SDRROOT"]
-	except KeyError:
-	    parser.error("SDRROOT not defined")
+            SDRROOT = os.environ["SDRROOT"]
+        except KeyError:
+            parser.error("SDRROOT not defined")
 
     # Use the logging facility for internal messages
     # Output destinted for the user should use print, 
@@ -578,15 +578,15 @@ if __name__ == "__main__":
                 if os.path.splitext(f)[1] == '.xml':
                     fAbsPath = os.path.abspath(os.path.join(root, f))
                     try:
-                        print "\nCHECKING FILE:", fAbsPath
+                        print("\nCHECKING FILE:", fAbsPath)
                         xmlStatus = checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs )
                         checkedFiles.update(xmlStatus)
-                    except Exception, e:
+                    except Exception as e:
                         check_error("unexpected exception checking file '%s'" % str(e), location=fAbsPath)
                         logging.exception("")
-    print "\n" 
-    print "Checked files: %s" % (len(checkedFiles))
-    unchecked = [x for x in referencedFiles.keys() if x not in checkedFiles.keys()]
+    print("\n") 
+    print("Checked files: %s" % (len(checkedFiles)))
+    unchecked = [x for x in list(referencedFiles.keys()) if x not in list(checkedFiles.keys())]
     logging.debug(" %s of %s referencedFiles remain unchecked", len(referencedFiles), len(unchecked))
 
     for fPath in unchecked:
@@ -596,6 +596,6 @@ if __name__ == "__main__":
             localFileRefs = False
             fAbsPath = os.path.join(root, f)
             checkFile(root, fAbsPath, opts, referencedFiles, readonlyIds, localFileRefs)
-        except Exception, e:
+        except Exception as e:
             check_error("unexpected error %s while checking file" % str(e), location=fAbsPath)
             logging.exception("")

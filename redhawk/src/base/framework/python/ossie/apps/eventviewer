@@ -69,7 +69,7 @@ class Consumer_i(CosEventComm__POA.PushConsumer):
             printString = pattern.search(stringToPrint)
 
         if (printString):
-            print stringToPrint
+            print(stringToPrint)
 
     def getPrettyPrintFormat(self, event):
         prettyStr = ""
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     
     if not foundChannel:
         if not options.force:
-            print "No such channel exists"
+            print("No such channel exists")
             sys.exit(-1)
     
     excludeList = []
@@ -144,6 +144,6 @@ if __name__ == '__main__':
     except CF.DomainManager.InvalidEventChannelName:
         parser.error(channelname+" is an invalid channel name")
     
-    raw_input("Receiving events. Press 'enter' key to exit\n")
+    input("Receiving events. Press 'enter' key to exit\n")
 
     dom.unregisterFromEventChannel(os.environ['USER']+str(os.getpid()), channelname)
