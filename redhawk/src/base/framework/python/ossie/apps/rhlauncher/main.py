@@ -20,16 +20,17 @@
 import os
 import sys
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
 
 from .launcherwindow import LauncherWindow
 
 def main():
-    sdrroot = os.environ.get('SDRROOT', None)
-    if not sdrroot:
+    if 'SDRROOT' not in os.environ:
         raise SystemExit('SDRROOT must be set')
 
-    app = QtGui.QApplication(sys.argv)
+    sdrroot=os.environ['SDRROOT']
+    app = QtWidgets.QApplication(sys.argv)
     mainwindow = LauncherWindow(sdrroot)
     mainwindow.show()
     sys.exit(app.exec_())
