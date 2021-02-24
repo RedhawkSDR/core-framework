@@ -23,6 +23,8 @@
 %{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
 %{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
 %global _prefix %{_ossiehome}
+%global __python %{__python3}
+
 Prefix:         %{_ossiehome}
 Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
@@ -60,6 +62,7 @@ Requires:       omniORB-devel > 4.2.2
 %endif
 Requires:       python36-numpy
 Requires:       python36-qt5
+Requires:       python36-qt5-base
 Requires:       python36-lxml
 Requires:       python36-jinja2
 Requires:       binutils
@@ -76,6 +79,7 @@ BuildRequires:  python3-devel >= 3.6
 BuildRequires:  python36-lxml
 BuildRequires:  python36-numpy
 BuildRequires:  python36-qt5
+BuildRequires:  python36-qt5-base
 BuildRequires:  python36-qt5-devel
 BuildRequires:  python36-jinja2
 BuildRequires:  log4cxx-devel >= 0.10
@@ -98,7 +102,7 @@ REDHAWK is a Software Defined Radio framework.
 Summary:        PyQt Tools
 Group:          Applications/Engineering
 Requires:       %{name} = %{version}-%{release}
-Requires:       PyQt4
+Requires:       python36-qt5
 
 %description qt-tools
 PyQt-based applications (qtbrowse and rhlauncher)
@@ -170,6 +174,7 @@ This package ensures that all requirements for REDHAWK development are installed
 # build the core framework
 cd src
 ./reconf
+export PYTHON=%{__python3}
 %configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests
 
 make %{?_smp_mflags}

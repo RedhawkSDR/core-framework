@@ -162,17 +162,17 @@ setup.py: Makefile.am
 	@echo ")" >> $@
 
 $(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py setup.py
-	python setup.py build --build-lib build/lib
+	$(PYTHON) setup.py build --build-lib build/lib
 	touch $(PY_BUILD_OUT_DIR)
 
 all-python: $(PY_BUILD_OUT_DIR)
 
 install-python: $(PY_BUILT_SRCS) setup.py
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	$(PYTHON) setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python: setup.py
 	rm -rf src/python
-	python setup.py clean
+	$(PYTHON) setup.py clean
 	rm setup.py
 
 ###############################################################################

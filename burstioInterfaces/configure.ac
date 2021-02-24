@@ -40,7 +40,7 @@ if test "$IDL" = no; then
   AC_MSG_ERROR([cannot find omniidl program])
 fi
 AC_LANG_PUSH([C++])
-PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
+PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.2.2])
 
 PKG_CHECK_MODULES(OSSIE, ossie >= 3.0.0,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])

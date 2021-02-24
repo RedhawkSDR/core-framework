@@ -8,7 +8,7 @@ variables:
   redhawk_branch: 'develop'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
-  redhawk_deps: $redhawk_branch
+  redhawk_deps: releng-1128
   commit: $CI_COMMIT_SHA
   datetime: ""
 
@@ -47,7 +47,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/py3/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -265,36 +265,37 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  image: ${docker_registry}utils/s3cmd:el7-createrepo
   stage: deploy
   tags:
     - s3
   script:
-    - CI_COMMIT_REF_SLUG_NO_RC=${CI_COMMIT_REF_SLUG%-rc[0-9]*};
+    - cf_only_bucket="s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_NAME/py3/$dist/"
+    - cf_and_deps_bucket="s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_NAME/py3/$dist/"
+    # remove old repos
+    - s3cmd rm -rf $cf_only_bucket
+    - s3cmd rm -rf $cf_and_deps_bucket
+    # make repo directories for redhawk only and redhawk with deps
     - mkdir -p $arch
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
+    # create and push just redhawk rpms
     - createrepo $arch
-    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
-    - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
-        /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
+    - s3cmd sync -F -v -P $arch $cf_only_bucket
+    # Add in redhawk-deps to redhawk rpms
+    - s3cmd sync s3://redhawk-dependencies/redhawk-dependencies/yum/${redhawk_deps}/py3/$dist/ ./
+    - createrepo $arch
+    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch $cf_and_deps_bucket
+    # For RC builds, create a RC repo
+    - |
+      if [ "$CI_COMMIT_TAG"x != x ]; 
+      then
+        CI_COMMIT_REF_NAME_NO_RC=${CI_COMMIT_REF_NAME%-rc[0-9]*};
+        cf_rc_bucket="s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_NAME_NO_RC/py3/$dist/"
+        s3cmd rm -rf $cf_rc_bucket
+        s3cmd cp -r  $cf_only_bucket $cf_rc_bucket
       fi
-    # Pull down dependencies to create aggregated "cf-and-deps" repo
-    - mkdir -p cf-and-deps/$arch
-    - curl ${s3_repo_url}/redhawk-dependencies/redhawk-dependencies/yum/${redhawk_deps}/$dist/$arch/redhawk-dependencies.repo > /etc/yum.repos.d/redhawk-dependencies.repo
-    - reposync --download_path=tmp
-               --newest-only
-               --repoid=redhawk-dependencies
-    - for file in `find tmp -name *.rpm`; do
-        cp $file cf-and-deps/$arch;
-      done
-    - for file in `find output -name *.rpm`; do
-        cp $file cf-and-deps/$arch;
-      done
-    - createrepo cf-and-deps/$arch
-    - cd cf-and-deps
-    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/

@@ -19,6 +19,7 @@
 #
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?_ossiehome:  %define _ossiehome  /usr/local/redhawk/core}
+%global __python %{__python3}
 %define _prefix %{_ossiehome}
 Prefix:         %{_prefix}
 
@@ -68,6 +69,7 @@ REDHAWK Code Generators
 rm -rf $RPM_BUILD_ROOT
 %{__python} setup.py install --skip-build -O1 --home=%{_prefix} --root=%{buildroot}
 rm $RPM_BUILD_ROOT%{_prefix}/lib/python/redhawk/__init__.py*
+rm -rf $RPM_BUILD_ROOT%{_prefix}/lib/python/redhawk/__pycache__
 
 
 %clean
