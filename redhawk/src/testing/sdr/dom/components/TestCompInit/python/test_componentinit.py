@@ -22,7 +22,7 @@ class test_componentinit_i(test_componentinit_base):
 
         """
         # TODO add customization here.
-       # raise CF.LifeCycle.InitializeError('failing')
+        raise CF.LifeCycle.InitializeError('failing')
         
     def process(self):
         """
