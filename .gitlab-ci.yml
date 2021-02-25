@@ -1,14 +1,14 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  other_repos: ${s3_repo_url}redhawk-dependencies/redhawk-dependencies
+  redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
+  other_repos: ${s3_repo_url}${redhawk_deps_loc}
   redhawk_version: '2.2.7'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_branch: 'develop-2.2'
+  redhawk_lts_branch: 'develop-2.2'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
-  redhawk_deps: develop-2.2-EVO_transition #$redhawk_branch
   commit: $CI_COMMIT_SHA
   datetime: ""
 
@@ -16,6 +16,7 @@ stages:
  - package-redhawk-codegen
  - package-bulkio-gpp
  - package-burstio-fei
+ - abi
  - deploy
 
 .rpmbuild: &rpmbuild
@@ -46,7 +47,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_lts_branch}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}toa/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -147,7 +148,7 @@ frontend:el7:
     # typically be a develop branch. Feature branches trigger a test pipeline
     # using the develop branch from which they were forked unless overridden
     # here.
-    redhawk_testing_ref: $redhawk_branch
+    redhawk_testing_ref: $redhawk_lts_branch
   script:
     - curl --insecure -X POST -F ref=$redhawk_testing_ref
                               -F token=$test_token
@@ -188,6 +189,71 @@ test-trigger:release:
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
+.abi-common: &abi-common
+  image: ${docker_registry}toa/rpmbuild:el7-x86_64
+  stage: abi
+  tags:
+      - docker
+      - redhawk
+  script:
+    - yum install -y libabigail
+    - echo "s3url =>  s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-${base_ver_release}.el7.x86_64.rpm"
+    - s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-${base_ver_release}.el7.x86_64.rpm
+    - s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-debuginfo-${base_ver_release}.el7.x86_64.rpm
+    - if s3cmd ls s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/ | grep -q "${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm"; then
+        s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm
+        devel="--devel-pkg1 ${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm";
+        devel="$devel --devel-pkg2 output/${rpm_name}-devel-*.el7.x86_64.rpm";
+      fi
+    - abipkgdiff ${rpm_name}-${base_ver_release}.el7.x86_64.rpm
+                 output/${rpm_name}-[0-9]*.el7.x86_64.rpm
+                 --debug-info-pkg1 ${rpm_name}-debuginfo-${base_ver_release}.el7.x86_64.rpm
+                 --debug-info-pkg2 output/${rpm_name}-debuginfo-*.el7.x86_64.rpm
+                 $devel
+      | tee ${rpm_name}-abi-results.txt || true
+  artifacts:
+    paths:
+      - $rpm_name-abi-results.txt
+    expire_in: 30 days
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+redhawk:abi:
+  variables:
+    s3_yum_location: '2-2-0-rc5'
+    rpm_name: 'redhawk'
+    base_ver_release: '2.2.0-5'
+  dependencies:
+    - redhawk:el7
+  <<: *abi-common
+
+bulkio:abi:
+  variables:
+    s3_yum_location: '2-2-0-rc5'
+    rpm_name: 'bulkioInterfaces'
+    base_ver_release: '2.2.0-5'
+  dependencies:
+    - bulkio:el7
+  <<: *abi-common
+
+frontend:abi:
+  variables:
+    s3_yum_location: '2-2-0-rc5'
+    rpm_name: 'frontendInterfaces'
+    base_ver_release: '2.4.3-5'
+  dependencies:
+    - frontend:el7
+  <<: *abi-common
+
+burstio:abi:
+  variables:
+    s3_yum_location: '2-2-0-rc5'
+    rpm_name: 'burstioInterfaces'
+    base_ver_release: '2.2.0-5'
+  dependencies:
+    - burstio:el7
+  <<: *abi-common
+
 .s3: &s3
   image: ${docker_registry}toa/rpmbuild:$dist-$arch-onbuild
   stage: deploy
@@ -196,34 +262,24 @@ test-trigger:release:
     - redhawk
   script:
     - CI_COMMIT_REF_SLUG_NO_RC=${CI_COMMIT_REF_SLUG%-rc[0-9]*};
+    # Collect our rpms for this branch, make a repo, and push it to 'redhawk/core-framework/yum/<branch>'.
     - mkdir -p $arch
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
     - createrepo $arch
     - ls -la $arch
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
+    - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
+    # if this is a release candidate ...
     - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
-        /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
+        s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
       fi
-    # Pull down dependencies to create aggregated "cf-and-deps" repo
-    - mkdir -p cf-and-deps/$arch
-    - printf "[redhawk-dependencies]\nname=REDHAWK dependencies\nbaseurl=${s3_repo_url}redhawk-dependencies/redhawk-dependencies/yum/$CI_COMMIT_REF_NAME/$dist/$arch\ns3_enabled=1\nregion=us-east-1\n" > /etc/yum.repos.d/redhawk-dependencies.repo
-    - cat /etc/yum.repos.d/redhawk-dependencies.repo
-    - yum clean all
-    - reposync --plugins
-               --download_path=tmp
-               --newest-only
-               --repoid=redhawk-dependencies
-    - for file in `find tmp -name *.rpm`; do
-        cp $file cf-and-deps/$arch;
-      done
-    - for file in `find output -name *.rpm`; do
-        cp $file cf-and-deps/$arch;
-      done
-    - createrepo cf-and-deps/$arch
-    - cd cf-and-deps
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
+    # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
+    - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_lts_branch/${dist}/${arch}/ $arch
+    - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
+    - createrepo $arch
+    - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/
