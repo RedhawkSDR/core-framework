@@ -34,10 +34,6 @@ import struct
 import tempfile
 import numpy
 import psutil
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 from omniORB import CORBA, any, tcInternal
 
 from ossie import properties
