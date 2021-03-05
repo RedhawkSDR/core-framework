@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="ASCII"?>
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="python">
+    <value outputDir="python" template="redhawk.codegen.jinja.python.component.pull" generatorId="gov.redhawk.ide.codegen.jinja.python.PythonGenerator"/>
+  </implSettings>
+</codegen:WaveDevSettings>
