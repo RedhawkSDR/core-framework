@@ -192,7 +192,7 @@ test-trigger:release:
   stage: deploy
   dependencies: []
   variables:
-    redhawk_version: '2.3.0-rc1'
+    redhawk_version: '2.3.0-rc2'
   script:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token
