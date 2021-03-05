@@ -122,7 +122,8 @@ NicFacade::get_or_insert_nic_state( const std::string& interface )
     if( nic_states_.end() == i )
     {
       RH_NL_DEBUG( "GPP", __FUNCTION__ << ": Adding NicState (" << interface << ")" );
-      i = nic_states_.insert( std::make_pair(interface, boost::make_shared<NicState>(NicState(interface))) ).first;
+      NicStatePtr nc( new NicState(interface ));
+      i = nic_states_.insert( std::make_pair(interface, nc)).first;
     }
     return i->second;
 }
