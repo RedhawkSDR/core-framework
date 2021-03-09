@@ -26,6 +26,7 @@
 
 from ossie.cf import CF
 from omniORB import any, CORBA, tcInternal
+import copy
 import ossie.parsers.prf
 import sys
 import traceback
@@ -1323,7 +1324,12 @@ class simpleseq_property(_sequence_property):
         values = any.from_any(value)
         if values is None:
             return None
-        if self.type_ in ('char', 'octet'):
+        if self.type_ == 'char':
+           if type(value._v) == bytes:
+               return value._v.decode()
+           return values
+        if self.type_ == 'octet':
+            # return list(values)
             return values
         if not isinstance(values, list):
             raise ValueError('value is not a sequence')
@@ -1332,12 +1338,25 @@ class simpleseq_property(_sequence_property):
     def _toAny(self, value):
         if value is None:
             return any.to_any(value)
-        
         result = any.to_any(None)
         if self.type_ == "char":
-            result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), str(value))
+            _v=copy.copy(value)
+            if type(value) == list:
+                # if user passes old style byte strings convert to string
+                if len(value) and type(value[0]) == bytes:
+                    _v=''.join([x.decode() for x in value])
+                else:
+                    _v=bytes(value).decode()
+            else:
+                _v=str(value)
+            result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), _v)
         elif self.type_ == "octet":
-            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq), bytes(value))
+            _v=copy.copy(value)
+            if type(value) == str:
+                _v=_v.encode()
+            if type(value) == list:
+                _v=bytes(_v)
+            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq),_v )
         else:
             if self._complex:
                 # type code for CF::complex sequence is looked up

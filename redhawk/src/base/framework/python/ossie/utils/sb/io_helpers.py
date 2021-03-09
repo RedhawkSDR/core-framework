@@ -1356,7 +1356,7 @@ class DataSource(_SourceBase):
                 pass
             candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                              "defaultStreamID", self._blocking, keywords)
-            if self._sampleRate > 0.0:
+            if self._sampleRate and self._sampleRate > 0.0:
                 candidateSri.xdelta = 1.0/float(self._sampleRate)
 
             if self._complexData and self._complexData == True:

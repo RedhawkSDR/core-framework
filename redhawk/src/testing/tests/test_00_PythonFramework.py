@@ -1294,7 +1294,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         self.assertEqual(p._t._t, CORBA.TypeCode(CORBA.OctetSeq)._t)
         v = any.from_any(p)
         for e in v:
-            self.assertEqual(type(e), str)
+            self.assertEqual(type(e), int)
 
     def test_PythonToAnyConversion(self):
         # Basic conversion 

@@ -368,7 +368,7 @@ class TestAllTypes(scatest.CorbaTestCase):
                         r.value = any.to_any([])
                         r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/StringSeq:1.0")
                     elif r.id == 'simple_sequence_octet':
-                        r.value = any.to_any('')
+                        r.value = any.to_any(''.encode())
                         r.value._t = CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0")
                     elif r.id == 'simple_sequence_short':
                         r.value = any.to_any([])
@@ -481,7 +481,7 @@ class TestAllTypes(scatest.CorbaTestCase):
             self.checkValue(res, 'simple_short', 45)
             self.checkValue(res, 'simple_float', 46.0)
             self.checkValue(res, 'simple_octet', 47)
-            self.checkValue(res, 'simple_char', struct.pack('b', 48))
+            self.checkValue(res, 'simple_char', '0')
             self.checkValue(res, 'simple_ushort', 49)
             self.checkValue(res, 'simple_double', 50.0)
             self.checkValue(res, 'simple_long', 51)
