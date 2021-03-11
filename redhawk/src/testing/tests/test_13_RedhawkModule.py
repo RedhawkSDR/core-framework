@@ -840,6 +840,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             if _port.name == 'resource_out':
                 break
 
+        print("port type(_port) {} {}".format(type(_port),_port))
         self.assertEqual(len(_port._get_connections()), 0)
 
         ep1=rhconnection.makeEndPoint(_comp, 'resource_out')

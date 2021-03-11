@@ -24,7 +24,7 @@ import collections
 import copy
 import time
 import struct
-
+import sys as _sys
 from ossie.utils import uuid
 from ossie.cf import CF
 from ossie.utils.notify import notification
@@ -633,7 +633,8 @@ class InCharPort(InNumericPort, BULKIO__POA.dataChar):
 
     def _reformat(self, data):
         # Unpack the binary string as a list of signed bytes
-        return list(data.encode())
+        return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in data ]
+        #return list(data.encode())
 
 class InOctetPort(InNumericPort, BULKIO__POA.dataOctet):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100):

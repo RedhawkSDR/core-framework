@@ -63,6 +63,7 @@ class BlueFileHelpers(unittest.TestCase):
         for tempfile in self._tempfiles:
             try:
                 os.unlink(tempfile)
+                pass
             except:
                 pass
         sb.release()
@@ -157,7 +158,7 @@ class BlueFileHelpers(unittest.TestCase):
             self.assertEqual(streamData.sri.mode, True)
             if dataFormat in ('char', 'short', 'long'):
                 outdata = bulkio_helpers.pythonComplexListToBulkioComplex(outdata, itemType=int)
-                outdata = numpy.reshape(outdata, (len(outdata)/2, 2))
+                outdata = numpy.reshape(outdata, (len(outdata)//2, 2))
         else:
             self.assertEqual(streamData.sri.mode, 0)
         self.assertTrue(numpy.array_equal(indata, outdata), msg='%s != %s' % (indata, outdata))
@@ -193,7 +194,7 @@ class BlueFileHelpers(unittest.TestCase):
         else:
             sri.mode = 0
         sri.subsize = subsize
-        sri.ystart = subsize / -2.0
+        sri.ystart = subsize // -2.0
         sri.ydelta = 1.0
         sri.yunits = 3
 
@@ -205,7 +206,7 @@ class BlueFileHelpers(unittest.TestCase):
             samples *= 2
         if dataFormat == 'char':
             indata = numpy.arange(samples, dtype=numpy.int8)
-            packet = indata.tostring()
+            packet = indata.tobytes().decode('ISO-8859-1')
         else:
             indata = [dataType(x) for x in range(samples)]
             packet = indata

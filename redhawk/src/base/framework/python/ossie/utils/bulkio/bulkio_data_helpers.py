@@ -20,12 +20,14 @@
 
 from ossie.cf import CF, CF__POA
 import struct
+import sys
 import os
 import array
 import threading
 from . import bulkio_helpers
 import time
 import logging
+import traceback
 from ossie.utils.redhawk.base import attach
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -100,9 +102,12 @@ class ArraySource(object):
                 for connId, port in list(self.outPorts.items()):
                     if port != None:
                         interface = self.port_type._NP_RepositoryId
-                        if interface == 'IDL:BULKIO/dataChar:1.0' or interface == 'IDL:BULKIO/dataOctet:1.0':
+                        if interface == 'IDL:BULKIO/dataChar:1.0' or interface == 'IDL:BULKIO/dataOctet:1.0': 
                             if len(data) == 0:
                                 data = ''
+                        if interface == 'IDL:BULKIO/dataOctet:1.0':
+                            if type(data) == str:
+                                 data=data.encode('ISO-8859-1')
                         port.pushPacket(data, T, EOS, streamID)
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
@@ -122,7 +127,7 @@ class ArraySource(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass',
-                             (object,CF__POA.Port,),
+                             (CF__POA.Port,object,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -341,7 +346,7 @@ class ArraySink(object):
                 else:
                     retval = []
                     frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
-                    for idx in range(length/frameLength):
+                    for idx in range(length//frameLength):
                         retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
                 del self.data[:length]
                 return (retval, rettime)
@@ -355,7 +360,7 @@ class ArraySink(object):
             else:
                 retval = []
                 frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
-                for idx in range(length/frameLength):
+                for idx in range(length//frameLength):
                     retval.append(self.data[idx*frameLength:(idx+1)*frameLength])
                 rettime = self.timestamps
             self.data = []
@@ -391,7 +396,7 @@ class ArraySink(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass',
-                             (object,self.port_type,),
+                             (self.port_type,object,),
                              {'pushPacket':self.pushPacket,
                               'pushSRI':self.pushSRI})
 
@@ -533,7 +538,7 @@ class ProbeSink(object):
         else:
             pushPacket = self.pushPacket
         PortClass = type('PortClass',
-                             (object,self.port_type,),
+                             (self.port_type,object,),
                              {'pushPacket':pushPacket,
                               'pushSRI':self.pushSRI})
 
@@ -710,7 +715,7 @@ class SDDSSource(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass',
-                             (object,CF__POA.Port,),
+                             (CF__POA.Port,object,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -885,8 +890,16 @@ class FileSource(object):
                             data = struct.unpack(fmt,new_data_str)
 
                         if self.port_type == BULKIO__POA.dataXML:
+                            if type(data) == bytes:
+                                data=''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in data ])
                             port.pushPacket(data, EOS, streamID)
                         else:
+                            if (self.port_type == BULKIO__POA.dataOctet):
+                                if type(data) == str:
+                                    data = data.encode('ISO-8859-1')
+                            if (self.port_type == BULKIO__POA.dataChar):
+                                if type(data) == bytes:
+                                    data=''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in data ])
                             port.pushPacket(data, T, EOS, streamID)
             except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
@@ -910,7 +923,7 @@ class FileSource(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass',
-                             (object,CF__POA.Port,),
+                             (CF__POA.Port,object,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -970,11 +983,16 @@ class FileSource(object):
                 self.EOS = True
             signalData = byteData
             if self.structFormat not in ('b', 'B', 'c'):
-                dataSize = len(byteData)/self.byte_per_sample
+                dataSize = len(byteData)//self.byte_per_sample
                 fmt = self._byteswap + str(dataSize) + self.structFormat
                 signalData = struct.unpack(fmt, byteData)
             else:
-                dataSize = len(byteData)                                                                     
+                dataSize = len(byteData)
+                if self.structFormat == 'B':
+                    if type(byteData) == str:
+                        signalData=byteData.encode('ISO-8859-1')
+                        dataSize = len(SignalData)
+                
             if self.sri.mode == 1:                                                                                 
                 dataSize = dataSize/2                                                                      
 
@@ -991,7 +1009,10 @@ class FileSource(object):
             if self.structFormat not in ('b', 'B', 'c'):
                 self.pushPacket([], T, True, self.sri.streamID)
             else:
-                self.pushPacket('', T, True, self.sri.streamID)
+                data=''
+                if self.structFormat == 'B':
+                    data=data.encode('ISO-8859-1')
+                self.pushPacket(data, T, True, self.sri.streamID)
             self.file_d.close()
         else:
             pass
@@ -1061,7 +1082,7 @@ class SDDSSink(object):
 
     def getPort(self):
         PortClass = type('PortClass',
-                             (object,BULKIO__POA.dataSDDS,),
+                             (BULKIO__POA.dataSDDS,object,),
                              {'_get_attachmentIds':self._get_attachmentIds,
                               '_get_attachedStreams':self._get_attachedStreams,
                               '_get_usageState':self._get_usageState,
@@ -1242,7 +1263,7 @@ class FileSink(object):
         else:
             self.gotEOS = False
         try:
-            self.outFile.write(data)
+            self.outFile.write(data.encode())
             # If end of stream is true, close the output file
             if EOS == True:
                 if self.outFile != None:
@@ -1281,7 +1302,7 @@ class FileSink(object):
         else:
             pushPacket = self.pushPacket
         PortClass = type('PortClass',
-                             (object,self.port_type,),
+                             (self.port_type,object,),
                              {'pushPacket':pushPacket,
                               'pushSRI':self.pushSRI})
 

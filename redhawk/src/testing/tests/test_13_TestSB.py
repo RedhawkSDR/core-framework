@@ -2115,6 +2115,7 @@ class BulkioTest(unittest.TestCase):
         # Check that the input and output files match
         xmldata = self.readFile(infile)
         data = self.readFile(self.TEMPFILE)
+        self.maxDiff=None
         self.assertEqual(xmldata, data)
 
     def test_DataSourceEOS(self):
@@ -2497,9 +2498,9 @@ class BulkioTest(unittest.TestCase):
             snk = sb.DataSink(sinkClass=self.customSink)
         src.connect(snk)
         sb.start()
-        src.push([1,2,3,4,5],sampleRate=100)
-        src.push([1,2,3,4,5],sampleRate=1000)
-        src.push([1,2,3,4,5],sampleRate=10000)
+        src.push([1.0,2.0,3.0,4.0,5.0],sampleRate=100)
+        src.push([1.0,2.0,3.0,4.0,5.0],sampleRate=1000)
+        src.push([1.0,2.0,3.0,4.0,5.0],sampleRate=10000)
         wait_on_data(snk, 3)
         data=snk.getData(tstamps=True)
         self.assertEqual(snk._sink.sri.xdelta, 0.0002)

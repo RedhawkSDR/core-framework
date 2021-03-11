@@ -25,7 +25,7 @@ from omniORB import CORBA
 from .utils import corba
 import copy
 
-class Iterator:
+class Iterator(object):
     def __init__(self, object_type, _list=[]):
         self.list_ = copy.deepcopy(_list)
         self._offset = 0
@@ -66,7 +66,7 @@ class Iterator:
 
         obj = gcpoa.activateGCObject(poa, _iter, ttl)
 
-        return obj
+        return _iter
 
 def construct(object_type):
     return corba.constructDefaultType(object_type)

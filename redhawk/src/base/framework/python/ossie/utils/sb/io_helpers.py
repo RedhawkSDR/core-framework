@@ -47,6 +47,7 @@ import queue as _Queue
 import struct as _struct
 import logging as _logging
 import socket as _socket
+import math as _math
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
 from omniORB import tcInternal
@@ -510,7 +511,7 @@ class _DataPortBase(helperBase, PortSupplier):
         self.supportedPorts = {
              "char"      : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
-                            "format"         : 'b',
+                            "format"         : 's',
                             "portType" : "_BULKIO__POA.dataChar",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataChar:1.0",
                                           "Port Name"      : "char"}},
@@ -600,7 +601,6 @@ class _DataPortBase(helperBase, PortSupplier):
         associated with the key 'key' of that port.
 
         """
-
         for port in list(self.supportedPorts.values()):
             if port["portDict"]["Port Name"] == portName:
                 return port[key]
@@ -702,7 +702,7 @@ class _SourceBase(_DataPortBase):
         # Determine number of elements per pushPacket
         # NOTE: complex data is treated real data with alternating real and
         # imaginary values
-        self._pktSize = self.bytesPerPush / port["bytesPerSample"]
+        self._pktSize = self.bytesPerPush // port["bytesPerSample"]
         port["pktSize"] = self._pktSize
 
     def _buildAPI(self):
@@ -1652,6 +1652,7 @@ class DataSource(_SourceBase):
         # If necessary, break data into chunks of pktSize for each pushPacket
         if isinstance(data, list):
             # Stride through the data by packet size
+            pktSize=_math.floor(pktSize)
             for startIdx in range(0, len(data), pktSize):
                 # Calculate the time offset per packet
                 _data = data[startIdx:startIdx+pktSize]
@@ -1699,9 +1700,10 @@ class DataSource(_SourceBase):
             if type(data) != list:
                 log.error("data must be a list of values for the specified data type")
                 return
+
         if len(data)>0:
-                data = _bulkio_helpers.formatData(data,
-                                                  BULKIOtype=eval(srcPortType))
+            data = _bulkio_helpers.formatData(data,
+                                              BULKIOtype=eval(srcPortType))
 
         if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
             T= currentSampleTime
@@ -1839,7 +1841,7 @@ class DataSink(_SinkBase):
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
-                return [_struct.unpack('b',ch)[0] for ch in data]
+                return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in data ]
 
             # If SRI is known, and the data is framed, apply conversion on a
             # per-frame basis

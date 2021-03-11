@@ -28,6 +28,7 @@ import weakref
 import inspect
 from ossie.cf import CF as _CF
 from omniORB import any as _any
+import traceback
 import string as _string
 import struct as _struct
 from ossie.utils import log4py as _log4py
@@ -1590,16 +1591,7 @@ class _Port(object):
     def __getattribute__(self, name):
         try:
             if name in object.__getattribute__(self,'extendedFunctionList'):
-                # the intercepted call to a port's supported interface has to be dynamically mapped.
-                #  the use of exec is a bit awkward, but retrieves the function pointer
-                #  when the base class does not implement __getattr__, __getattribute__, or __call__,
-                #  which apparently can happen in the CORBA mapping to Python
-                try:
-                    retreiveFunc = "functionref = object.__getattribute__(self,'ref')."+name
-                    exec(retreiveFunc)
-                except:
-                    raise AttributeError
-                return functionref
+                return object.__getattribute__(self.ref,name)
             else:
                 return object.__getattribute__(self,name)
         except AttributeError:

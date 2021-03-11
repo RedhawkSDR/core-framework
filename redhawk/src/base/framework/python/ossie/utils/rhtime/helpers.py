@@ -160,7 +160,7 @@ def _gt(t1, t2):
 
 def _ge(t1, t2):
     if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
-        return false 
+        return False 
     ret=(t1.twsec>t2.twsec)
     if not ret and isclose(t1.twsec,t2.twsec):
          ret=(t1.tfsec >= t2.tfsec)

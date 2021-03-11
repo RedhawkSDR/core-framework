@@ -78,12 +78,12 @@ def compare(t1, t2):
 
 def _equal(t1, t2):
      if not isinstance(t1, Time) or  not isinstance(t2, Time):
-          return false
+          return False
      return isclose(t1.ps250_,t2.ps250_) and isclose(t1.pf250_,t2.pf250_)
 
 def _lt(t1, t2):
      if not isinstance(t1, Time) or  not isinstance(t2, Time):
-          return false
+          return False
      ret=(t1.ps250_ < t2.ps250_)
      if not ret and isclose(t1.ps250_,t2.ps250_):
           ret=(t1.pf250_ < t2.pf250_)
@@ -91,7 +91,7 @@ def _lt(t1, t2):
 
 def _le(t1, t2):
      if not isinstance(t1, Time) or  not isinstance(t2, Time):
-          return false
+          return False
      ret=(t1.ps250_ < t2.ps250_)
      if not ret and isclose(t1.ps250_,t2.ps250_):
           ret=(t1.pf250_ <= t2.pf250_)
@@ -99,7 +99,7 @@ def _le(t1, t2):
 
 def _gt(t1, t2):
      if not isinstance(t1, Time) or  not isinstance(t2, Time):
-          return false
+          return False
      ret=(t1.ps250_ > t2.ps250_)
      if not ret and isclose(t1.ps250_,t2.ps250_):
           ret=(t1.pf250_ > t2.pf250_)
@@ -107,7 +107,7 @@ def _gt(t1, t2):
 
 def _ge(t1, t2):
      if not isinstance(t1, Time) or  not isinstance(t2, Time):
-          return false
+          return False
      ret=(t1.ps250_ > t2.ps250_)
      if not ret and isclose(t1.ps250_,t2.ps250_):
           ret=(t1.pf250_ >= t2.pf250_)

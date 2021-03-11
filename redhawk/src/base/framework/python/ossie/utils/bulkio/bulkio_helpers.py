@@ -19,8 +19,10 @@
 #
 
 import threading, struct, time, queue, copy, random
+import sys
 from omniORB import any, CORBA
 from ossie.cf import CF
+
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
     haveBulkio = True
@@ -214,10 +216,9 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 if type(elem) != str and type(elem) != int:
                     raise BadParamException('dataSet contains values which can not be interpreted as type character:', elem, ' -- ', type(elem))
             if type(dataSet[0]) == str:
-                fmt = str(len(dataSet)) + 'c'
+                return ''.join(dataSet)
             else:
-                fmt = str(len(dataSet)) + 'b'
-            return struct.pack(fmt, *[i for i in dataSet])
+                return ''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in dataSet ])
     elif dataType == 'dataDouble':
         validDataTypes = [int, int, float]
         for elem in dataSet:
@@ -248,7 +249,7 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         return (list)(dataSet)
     elif dataType == 'dataOctet':
         if dataSetType == str:
-            return dataSet
+            return dataSet.encode('ISO-8859-1')
         else:
             for elem in dataSet:
                 if type(elem) == str and len(elem) != 1:
@@ -260,10 +261,9 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 if type(elem) != str and type(elem) != int:
                     raise BadParamException('dataSet contains values which can not be interpreted as type octet:', elem, ' -- ', type(elem))
             if type(dataSet[0]) == str:
-                fmt = str(len(dataSet)) + 'c'
+                return ''.join(dataSet).encode('ISO-8859-1')
             else:
-                fmt = str(len(dataSet)) + 'B'
-            return struct.pack(fmt, *[i for i in dataSet])
+                return bytes(dataSet)
     elif dataType == 'dataShort':
         validDataTypes = [int, int]
         for elem in dataSet:
@@ -554,7 +554,7 @@ def createBULKIOInputPort(portType):
     # to mimic an SDDS input port
     if portType == BULKIO__POA.dataSDDS:
         PortClass = type('Port',
-                             (object,portType),
+                             (portType,object,),
                              {'pushSRI':SDDS_pushSRI,
                               'attach':attach,
                               'detach':detach,
@@ -567,7 +567,7 @@ def createBULKIOInputPort(portType):
         return retval
     else:
         PortClass = type('PortClass',
-                         (object,portType),
+                         (portType,object),
                              {'pushPacket':pushPacket,
                               'getPacket':getPacket,
                               'pushSRI':pushSRI,

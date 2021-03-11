@@ -474,7 +474,8 @@ class OutCharPort(OutNumericPort):
     def _reformat(self, data):
         if isinstance(data, str):
             return data
-        return bytes(data).decode()
+        return ''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in data ])
+        #return bytes(data).decode()
 
 class OutOctetPort(OutNumericPort):
     TRANSFER_TYPE = 'B'

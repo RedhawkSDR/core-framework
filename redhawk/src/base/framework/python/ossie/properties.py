@@ -1307,7 +1307,7 @@ class simpleseq_property(_sequence_property):
             units=self.units,
             action=ossie.parsers.prf.action(type_=self.action))
 
-        values = list(ossie.parsers.prf.values())
+        values = ossie.parsers.prf.values()
         if self.defvalue:
             for v in self.defvalue:
                 values.add_value(to_xmlvalue(v, self.type_))
@@ -1325,12 +1325,11 @@ class simpleseq_property(_sequence_property):
         if values is None:
             return None
         if self.type_ == 'char':
-           if type(value._v) == bytes:
-               return value._v.decode()
-           return values
-        if self.type_ == 'octet':
-            # return list(values)
+            #return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in value._v ]
             return values
+        if self.type_ == 'octet':
+            return list(values)
+            #return values
         if not isinstance(values, list):
             raise ValueError('value is not a sequence')
         return [to_pyvalue(v, self.type_) for v in values]
@@ -1342,11 +1341,10 @@ class simpleseq_property(_sequence_property):
         if self.type_ == "char":
             _v=copy.copy(value)
             if type(value) == list:
-                # if user passes old style byte strings convert to string
                 if len(value) and type(value[0]) == bytes:
-                    _v=''.join([x.decode() for x in value])
+                    _v =''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in value ])
                 else:
-                    _v=bytes(value).decode()
+                    _v=bytes(value).decode('ISO-8859-1')
             else:
                 _v=str(value)
             result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), _v)

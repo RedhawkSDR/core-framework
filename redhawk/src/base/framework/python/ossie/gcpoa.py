@@ -33,7 +33,7 @@ class SingletonThread(threading.Thread):
                 SingletonThread()
         return SingletonThread.__instance
 
-    def __init__(self, delay):
+    def __init__(self, delay=0.10):
         if SingletonThread.__instance != None:
             raise Exception("SingletonThread is a singleton")
         SingletonThread.__instance = self
@@ -103,21 +103,27 @@ class GCServantLocator(PortableServer__POA.ServantLocator):
         pass
 
     def preinvoke(self, oid, adapter, operation, the_cookie=0):
+        print("GCServantLocators preinvoke {} {} ".format(oid, time.time()))
         with self.activeMapMutex_:
             if oid not in self.activeMap_:
                 raise CORBA.OBJECT_NOT_EXIST()
 
             servant = self.activeMap_[oid].servant
             if self.activeMap_[oid].destroy == operation:
+                print("GCServantLocators Destory servant {}  {} ".format(oid,time.time()))
                 self.activeMap_.pop(oid)
 
+            print("GCServantLocators time 2222 {} ".format(time.time()))
             self.activeMap_[oid].last_access = time.time()
             return servant, the_cookie
 
     def postinvoke(self, oid, adapter, operation, the_cookie, the_servant):
+        print("GCServantLocators postinvoke {} {} ".format(oid, time.time()))
         pass
 
     def register_servant(self, oid, servant, ttl, destroy):
+        print("GCServantLocators registering oid {}  servant {} ttl {} time  {} ".format( oid, servant, ttl ,
+                                                                                          time.time()))
         with self.activeMapMutex_:
             if oid in self.activeMap_:
                 raise PortableServer.POA.ObjectAlreadyActive()
@@ -130,8 +136,10 @@ class GCServantLocator(PortableServer__POA.ServantLocator):
             for _iter in self.activeMap_:
                 age = time.time() - self.activeMap_[_iter].last_access
                 if age > self.activeMap_[_iter].ttl:
+                    print("GCServantLocators EXPIRED age  {} iter  {} exp {} ".format(age,_iter, self.activeMap_[_iter].ttl))
                     keys_to_remove.append(_iter)
             for key in keys_to_remove:
+                print("GCServantLocators Remove key {}  ".format(key))
                 self.activeMap_.pop(key)
 
 def createGCPOA(parent, name):
@@ -149,6 +157,7 @@ def createGCPOA(parent, name):
     manager = GCServantLocator()
     manager_ref = manager._this()
     poa.set_servant_manager(manager_ref)
+    print("createGCPOA ", manager)
 
     return poa
 
@@ -162,4 +171,5 @@ def activateGCObject(poa, servant, ttl=60, destroy="destroy"):
     obj = poa.create_reference(servant._NP_RepositoryId)
     oid = poa.reference_to_id(obj)
     mgr_servant.register_servant(oid, servant, ttl, destroy)
+    print("activateGCObject mgr_servant {}  servant {} oid {} ttl {} ".format(mgr_servant,servant, oid, ttl))
     return obj

@@ -315,7 +315,7 @@ class BlueFileReader(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass',
-                             (object,CF__POA.Port,),
+                             (CF__POA.Port,object,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -397,7 +397,7 @@ class BlueFileReader(object):
             
             # X-Midas returns an array, so we need to generate a list
             if hdr['format'].endswith('B'):
-                d = dataset.tostring()
+                d = dataset.tostring().decode('ISO-8859-1')
             else:
                 d = dataset.tolist()
             start = end
@@ -549,12 +549,18 @@ class BlueFileWriter(object):
 
             if self.header and self.header['format'][1] == 'B':
                 # convert back from string to array of 8-bit integers
-                try:
-                    data = numpy.fromstring(data, numpy.int8)
-                except TypeError:
+                if type(data) == str:
+                    try:
+                        data = numpy.fromstring(data.encode('ISO-8859-1'), numpy.int8)
+                    except TypeError:
+                        data = numpy.array(data, numpy.int8)
+                elif type(data) == bytes:
+                    try:
+                        data = numpy.fromstring(data, numpy.int8)
+                    except TypeError:
+                        data = numpy.array(data, numpy.int8)
+                else:
                     data = numpy.array(data, numpy.int8)
-
-            # If complex data, need to convert data back from array of scalar values
             # to some form of complex values
             if self.header and self.header['format'][0] == 'C':
                 # float and double are handled by numpy
@@ -609,7 +615,7 @@ class BlueFileWriter(object):
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
         PortClass = type('PortClass', 
-                             (object,self.port_type,), 
+                             (self.port_type,object,), 
                              {'pushPacket':self.pushPacket,
                               'pushSRI':self.pushSRI})
 

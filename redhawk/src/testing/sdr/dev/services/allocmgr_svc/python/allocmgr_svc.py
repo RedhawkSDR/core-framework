@@ -17,11 +17,11 @@ from ossie.cf import CF__POA
 import copy
 from ossie import gcpoa, iterators
 
-class deviterator(iterators.Iterator, CF__POA.DeviceLocationIterator):
+class deviterator(CF__POA.DeviceLocationIterator, iterators.Iterator):
     def __init__(self, _list=[]):
         iterators.Iterator.__init__(self, CF.AllocationManager.DeviceLocationType, _list)
 
-class allociterator(iterators.Iterator, CF__POA.AllocationStatusIterator):
+class allociterator(CF__POA.AllocationStatusIterator, iterators.Iterator):
     def __init__(self, _list=[]):
         iterators.Iterator.__init__(self, CF.AllocationManager.AllocationStatusType, _list)
 
@@ -72,7 +72,7 @@ class allocmgr_svc(CF__POA.AllocationManager):
         if deviter == None:
             return [], None
         devlist = deviter.next_n(count)[1]
-        return devlist, deviter
+        return devlist, deviter._this()
 
     def allocate(self, requests):
         pass
@@ -94,13 +94,18 @@ class allocmgr_svc(CF__POA.AllocationManager):
         pass
 
     def listAllocations(self, allocScope, how_many):
-        alloclist = []
-        #allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
-        allociter = allociterator.get_list_iterator(self.allocation_list, 0.2)
-        if allociter == None:
-            return [], None
-        alloclist = allociter.next_n(how_many)[1]
-        return alloclist, allociter
+        import traceback
+        try:
+            alloclist = []
+            #allociter = iterators.get_list_iterator(self.allocation_list, allociterator, 0.2)
+            allociter = allociterator.get_list_iterator(self.allocation_list)
+            if allociter == None:
+                return [], None
+            alloclist = allociter.next_n(how_many)[1]
+            return alloclist, allociter._this()
+        except:
+            traceback.print_exc()
+        
 
     def _get_allDevices(self):
         # TODO
