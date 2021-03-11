@@ -140,22 +140,15 @@ frontend:el7:
 
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
-  image: ${docker_registry}toa/centos:centos7
   stage: deploy
-  dependencies: []
   variables:
-    # Default to the redhawk branch named in the global variables, which will
-    # typically be a develop branch. Feature branches trigger a test pipeline
-    # using the develop branch from which they were forked unless overridden
-    # here.
-    redhawk_testing_ref: $redhawk_lts_branch
-  script:
-    - curl --insecure -X POST -F ref=$redhawk_testing_ref
-                              -F token=$test_token
-                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
-                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
-                              $test_url
+    triggering_ref_name: $CI_COMMIT_REF_NAME
+    triggering_ref_slug: $CI_COMMIT_REF_SLUG
+  trigger:
+    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    # Feature branches trigger a test pipeline using the develop branch
+    # from which they were forked unless overridden here.
+    branch: $redhawk_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
 test-trigger:branch:
@@ -174,16 +167,12 @@ test-trigger:develop:
     - /^develop.*$/
 
 test-trigger:release:
-  image: ${docker_registry}toa/centos:centos7
   stage: deploy
-  dependencies: []
-  script:
-    - curl --insecure -X POST -F ref=$CI_COMMIT_REF_NAME"
-                              -F token=$test_token
-                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
-                              -F "variables[output_name]=$CI_COMMIT_REF_NAME"
-                              $test_url
+  variables:
+    triggering_ref_name: $CI_COMMIT_REF_NAME
+  trigger:
+    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    branch: $CI_COMMIT_REF_NAME
   only:
     - tags
   except:
