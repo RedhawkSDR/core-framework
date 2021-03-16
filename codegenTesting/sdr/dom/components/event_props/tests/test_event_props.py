@@ -208,23 +208,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #test that an event is created for the first configure
         propID = 'eventCharSimple'
         val = 'a'
-        data = struct.pack('1c', val)
-        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, data))])
+        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, val))])
         event = consumerPort.getEvent()
         if not event:
             self.fail("No event was generated for " + str(propID) + " for value " + str(val))
         ret = self.comp_obj.query([ossie.cf.CF.DataType(id=propID,value=any.to_any(None))])[0] 
 
         #test that an event is not created if the value is not changed
-        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, data))])
+        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, val))])
         event = consumerPort.getEvent()
         if event:
             self.fail("An event was generated for " + str(propID) + " when the value was not changed")
         
         #test that an event is created when the value is changed
         val = 'b'
-        data = struct.pack('1c', val)
-        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, data))])
+        self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TC_char, val))])
         event = consumerPort.getEvent()
         if not event:
             self.fail("No event was generated for " + str(propID) + " for value " + str(val))
@@ -432,7 +430,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         phrase = 'hello'
         flag = True
         char = 'a'
-        chardata = struct.pack('1c', char)
         configValue = [ossie.cf.CF.DataType(id='shortSimple', value=CORBA.Any(CORBA.TC_short, val)), 
                        ossie.cf.CF.DataType(id='stringSimple', value=CORBA.Any(CORBA.TC_string, phrase)),
                        ossie.cf.CF.DataType(id='boolSimple', value=CORBA.Any(CORBA.TC_boolean, flag)),
@@ -444,7 +441,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                        ossie.cf.CF.DataType(id='longSimple', value=CORBA.Any(CORBA.TC_long, val)),
                        ossie.cf.CF.DataType(id='longlongSimple', value=CORBA.Any(CORBA.TC_longlong, val)),
                        ossie.cf.CF.DataType(id='ulonglongSimple', value=CORBA.Any(CORBA.TC_ulonglong, val)),
-                       ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, chardata))]
+                       ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, char))]
         self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), configValue))])
         event = consumerPort.getEvent()
         if not event:
@@ -461,7 +458,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         phrase = 'goodbye'
         flag = False
         char = 'b'
-        chardata = struct.pack('1c', char)
         configValue = [ossie.cf.CF.DataType(id='shortSimple', value=CORBA.Any(CORBA.TC_short, val)), 
                        ossie.cf.CF.DataType(id='stringSimple', value=CORBA.Any(CORBA.TC_string, phrase)),
                        ossie.cf.CF.DataType(id='boolSimple', value=CORBA.Any(CORBA.TC_boolean, flag)),
@@ -473,7 +469,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                        ossie.cf.CF.DataType(id='longSimple', value=CORBA.Any(CORBA.TC_long, val)),
                        ossie.cf.CF.DataType(id='longlongSimple', value=CORBA.Any(CORBA.TC_longlong, val)),
                        ossie.cf.CF.DataType(id='ulonglongSimple', value=CORBA.Any(CORBA.TC_ulonglong, val)),
-                       ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, chardata))]
+                       ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, char))]
         self.comp_obj.configure([ossie.cf.CF.DataType(id=propID, value=CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), configValue))])
         event = consumerPort.getEvent()
         if not event:

@@ -160,7 +160,7 @@ class custom_port_check_i(custom_port_check_base):
         except PortCallError as e:
             self.retval_state = str(e)
 
-        out_data = ''
+        out_data = ''.encode()
         self.in_state = "ok"
         try:
             self.port_file_out.write(out_data)

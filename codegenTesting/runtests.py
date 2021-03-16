@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     try:
         import xmlrunner
-        stream = open(options.xmlfile, "w")
+        stream = open(options.xmlfile, "w+b")
         runner = xmlrunner.XMLTestRunner(stream, verbosity=options.verbosity)
     except ImportError:
         runner = unittest.TextTestRunner(verbosity=options.verbosity)

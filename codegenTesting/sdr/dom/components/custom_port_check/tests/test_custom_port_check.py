@@ -9,7 +9,7 @@ class FilePort(CF__POA.File):
     def __init__(self):
         pass
     def read(self, length):
-        return ''
+        return ''.encode()
     def write(self, data):
         pass
 

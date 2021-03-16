@@ -322,16 +322,13 @@ def restoreData(dataSet, dataType):
                 msg = msg + str(x) + ', '
         raise BadParamException(msg)
 
-    fmt = str(len(dataSet))
-    if dataType == 'char':
-        fmt = fmt + 'c'
-    elif dataType == '8bit':
-        fmt = fmt + 'b'
-    elif dataType == 'u8bit':
-        fmt = fmt + 'B'
-
     try:
-        return [x for x in struct.unpack(fmt, dataSet)]
+        if dataType == 'char':
+            return [ int.from_bytes(d.encode('ISO-8859-1'),sys.byteorder,signed=True) for d in dataSet ]
+        elif dataType == '8bit':
+            return [ int.from_bytes(d.encode('ISO-8859-1'),sys.byteorder,signed=True) for d in dataSet ]
+        elif dataType == 'u8bit':
+            return list(dataSet)
     except:
         raise Exception("Was not able to restore data to type: " + dataType)
 
