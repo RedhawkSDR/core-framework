@@ -20,7 +20,7 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: ${docker_registry}toa/docker:latest-git
+  image: ${docker_registry}redhawk/docker:latest-git
   tags:
     - docker
     - redhawk
@@ -32,13 +32,13 @@ stages:
     - echo "commit hash => ${commit:0:8}"
     - datetime=$(git show -s --format=%cd ${commit})
     - echo "commit date => ${datetime}"
-    - printf "FROM ${docker_registry}${rpmbuild_repository}toa/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}${rpmbuild_repository}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
-    - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
-    - docker build --tag=${docker_registry}toa/redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
+    - docker login ${docker_registry} -u ${docker_user_redhawk} -p ${docker_password_redhawk}
+    - docker build --tag=${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --pull
                    --no-cache
                    --build-arg "commit=${commit:0:8}"
@@ -50,7 +50,7 @@ stages:
                    --build-arg "other_repos=${other_repos}/yum/${redhawk_lts_branch}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
-    - id=$(docker create -it ${docker_registry}toa/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
+    - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
                                                 for file in `find /usr/src/yum /root/rpmbuild/RPMS -name '*.rpm'`; do
                                                 cp -v $file /tmp/repo;
                                                 done;
@@ -179,7 +179,7 @@ test-trigger:release:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .abi-common: &abi-common
-  image: ${docker_registry}toa/rpmbuild:el7-x86_64
+  image: ${docker_registry}redhawk/rpmbuild:el7-x86_64
   stage: abi
   tags:
       - docker
@@ -244,7 +244,7 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}toa/rpmbuild:$dist-$arch-onbuild
+  image: ${docker_registry}redhawk/rpmbuild:$dist-$arch-onbuild
   stage: deploy
   tags:
     - docker
