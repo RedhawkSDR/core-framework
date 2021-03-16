@@ -20,7 +20,7 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: ${docker_registry}redhawk/docker:latest-git
+  image: ${docker_registry}redhawk/alpine-dockerd-plus-utils
   tags:
     - docker
     - redhawk
