@@ -132,9 +132,9 @@ rm -rf $RPM_BUILD_ROOT
 #{$ block files $}
 %defattr(-,redhawk,redhawk,-)
 #{$ set subdirs = component.sdrpath $}
-#{$ for subdir in component.name.split('.') $}
-#{$ set subdirs = subdirs+'/'+subdir $}
-%dir %{_sdrroot}/{{subdirs}}
+#{$ set spaths = component.name.split('.') $}
+#{$ for subdir in spaths $}
+%dir %{_sdrroot}/{{subdirs+'/'+spaths[:loop.index]|join('/')}}
 #{$ endfor $}
 #{$ for xmlfile in component.profile.values() $}
 %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{xmlfile}}

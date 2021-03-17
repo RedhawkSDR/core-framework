@@ -64,7 +64,7 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
 
     def testSpecFile(self):
         specfile = os.path.join(os.path.dirname(__file__), '../namespace.test.comp.spec')
-        with open(specfile, 'r') as fp:
+        with open(specfile, 'r+t') as fp:
             text = fp.read()
         self.assertNotEqual(text.find('%dir %{_sdrroot}/dom/components/namespace\n'), -1)
         self.assertNotEqual(text.find('%dir %{_sdrroot}/dom/components/namespace/test\n'), -1)
