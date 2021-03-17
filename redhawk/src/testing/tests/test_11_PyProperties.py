@@ -502,11 +502,13 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                                 ]))
                     self.assertRaises(CF.PropertySet.InvalidConfiguration, self._app.configure, [my_struct])
 
+
+
     def test_pythonPropsRangeSeq(self):
         self._app = self._launchApp('TestPythonPropsRange')
 
         # Test upper and lower bounds
-        seq_octet = CF.DataType(id='seq_octet', value=any.to_any([CORBA.Any(CORBA.TC_long, 0), CORBA.Any(CORBA.TC_long, 255)]))
+        seq_octet = CF.DataType(id='seq_octet', value=any.to_any(bytes([0,255])))
         seq_short = CF.DataType(id='seq_short', value=any.to_any([-32768, 32767]))
         seq_ushort = CF.DataType(id='seq_ushort', value=any.to_any([0, 65535]))
         seq_long = CF.DataType(id='seq_long', value=any.to_any([-2147483648, 2147483647]))

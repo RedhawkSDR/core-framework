@@ -493,6 +493,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
 		    #elif v.id == 'struct_seq_ulonglong':
 		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
+
     def test_cppPropsRangeSeq(self):
         self.preconditions()
 

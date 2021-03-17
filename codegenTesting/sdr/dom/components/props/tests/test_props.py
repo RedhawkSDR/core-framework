@@ -168,7 +168,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         numTestRuns = 10
         val = 15
         charval = 'a'
-        chardata = struct.pack('1c', charval)
 
         flag = True
         for x in range(numTestRuns):
@@ -183,7 +182,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.comp_obj.configure([ossie.cf.CF.DataType(id='shortSimple', value=CORBA.Any(CORBA.TC_short, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='floatSimple', value=CORBA.Any(CORBA.TC_float, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='octetSimple', value=CORBA.Any(CORBA.TC_octet, val))])
-            self.comp_obj.configure([ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, chardata))])
+            self.comp_obj.configure([ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, charval))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='ushortSimple', value=CORBA.Any(CORBA.TC_ushort, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='doubleSimple', value=CORBA.Any(CORBA.TC_double, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='longSimple', value=CORBA.Any(CORBA.TC_long, val))])
@@ -242,7 +241,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         values = [1,2,3,4,5]
         phrases = ['one','two','three','four','five']
         phrase = 'testing'
-        octetData = struct.pack('5b', *[x for x in values]) #octet data must be packed bytes
+        octetData = bytes(values) #octet data must be packed bytes
         flags = [True, False, True, False]
         
         values_r = copy.deepcopy(values)

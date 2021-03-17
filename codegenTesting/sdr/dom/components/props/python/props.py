@@ -107,12 +107,9 @@ class props_i(props_base):
 
     def onconfigure_prop_octetSeq(self, oldvalue, newvalue):
         if newvalue:
-            list = [x for x in newvalue]
-            list.reverse()
-            tmp = ''
-            for x in list:
-                tmp = tmp+x
-            self.octetSeq = tmp
+            _list = [x for x in newvalue]
+            _list.reverse()
+            self.octetSeq = _list[:]
 
     def onconfigure_prop_charSeq(self, oldvalue, newvalue):
         if newvalue:
