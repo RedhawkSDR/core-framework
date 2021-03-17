@@ -45,10 +45,10 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
     def checkProperties(self):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
-	self.assertEqual( self.comp.hex_octet, 255 )
-	self.assertEqual( self.comp.hex_short, 65535 )
-	self.assertEqual( self.comp.hex_long, 4660 )
-	self.assertEqual( self.comp.hex_ulonglong, 3735928559 )
+        self.assertEqual( self.comp.hex_octet, 255 )
+        self.assertEqual( self.comp.hex_short, 65535 )
+        self.assertEqual( self.comp.hex_long, 4660 )
+        self.assertEqual( self.comp.hex_ulonglong, 3735928559 )
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations
