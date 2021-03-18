@@ -40,6 +40,7 @@ import warnings as _warnings
 from ossie.utils.type_helpers import OutOfRangeException, EnumValueError
 from ossie.utils.formatting import TablePrinter
 from ossie.parsers.prf import configurationKind as _configurationKind
+import traceback
 SCA_TYPES = globals()['_SCA_TYPES']
 
 _warnings.filterwarnings('once',category=DeprecationWarning)
@@ -617,6 +618,7 @@ class Property(object):
     __int__ = proxy_operator(int)
     __float__ = proxy_operator(float)
     __nonzero__ = proxy_operator(bool)
+    __bool__ = proxy_operator(bool)
 
     # Base conversion
     __oct__ = proxy_operator(oct)
@@ -755,11 +757,11 @@ class simpleProperty(Property):
         if value is None:
             return None
 
-        value = value.value()
+        _value = value.value()
         if self.valueType.find("complex") != -1:
-            return _convertToComplex(value)
+            return _convertToComplex(_value)
         else:
-            return value
+            return _value
 
     def toAny(self, value):
         '''
@@ -822,7 +824,7 @@ class sequenceProperty(Property):
           mode      - Mode for the property, must be in MODES (default: 'readwrite')
         """
         if valueType not in SCA_TYPES and valueType != 'structSeq':
-            raise '"'
+            raise Exception('"{}" is not a valid valueType, choose from {}\n'.format(valueType,SCA_TYPES))
         
         # Initialize the parent Property
         Property.__init__(self, id, type=valueType, kinds=kinds, compRef=compRef, parent=parent, mode=mode, action='external',
