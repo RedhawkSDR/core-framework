@@ -1,0 +1,6 @@
+8bfcd22353c3a57fee561ad86ee2a56b  reconf
+6204d7ea898edd5593adfe5e7ed9f7cc  test_componentinit.py
+5a1bd3323975a5dde34af15c539327aa  configure.ac
+40e58cce1ac8d23c05dfa081e0789c69  test_componentinit_base.py
+986574a956a5653b822603c4d090741f  Makefile.am.ide
+d4adaa50d85f73a0e30deb67f502626f  Makefile.am

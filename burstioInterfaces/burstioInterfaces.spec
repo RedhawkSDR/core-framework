@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           burstioInterfaces
-Version:        2.2.7
-Release:        1%{?dist}
+Version:        2.3.0
+Release:        5%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
 Group:          Applications/Engineering

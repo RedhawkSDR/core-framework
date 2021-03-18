@@ -203,10 +203,8 @@ public class OutPortTestImpl<E extends BULKIO.updateSRIOperations,A> {
         try {
             port.disconnectPort("connection_bad");
             Assert.fail("No exception thrown on invalid connectionId");
-        } catch (RuntimeException exc) {
+        } catch (CF.PortPackage.InvalidPort exc) {
             // Test passed
-            // NB: For API backwards-compatibility reasons, Java ports do not
-            //     throw CF.PortPackage.InvalidPort in disconnectPort()
         }
 
         // Disconnect the default stub; port should go to idle

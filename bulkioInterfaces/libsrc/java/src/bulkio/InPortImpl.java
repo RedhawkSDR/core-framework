@@ -109,7 +109,7 @@ class InPortImpl<A> {
      * This queue stores all packets received from pushPacket.
      * 
      */
-    private ArrayDeque<DataTransfer<A>> workQueue;
+    protected ArrayDeque<DataTransfer<A>> workQueue;
 
     private DataHelper<A> helper;
 
@@ -600,4 +600,134 @@ class InPortImpl<A> {
 
         return p;
     }
+
+    /**
+     * 
+     */
+    public DataTransfer<A> peekPacket(long wait)
+    {
+        try {
+            if (wait < 0) {
+                this.dataSem.acquire();
+            } else {
+                this.dataSem.tryAcquire(wait, TimeUnit.MILLISECONDS);
+            }
+        } catch (InterruptedException ex) {
+            return null;
+        }
+
+        DataTransfer<A> p = null;
+        synchronized (this.dataBufferLock) {
+            p = this.workQueue.peekFirst();
+        }
+
+        this.dataSem.release();
+
+        return p;
+    }
+
+    public ArrayDeque<DataTransfer<A>> getQueue()
+    {
+        return this.workQueue;
+    }
+
+    /**
+     * 
+     */
+    public DataTransfer<A> getPacket(long wait, String streamID)
+    {
+        try {
+            if (wait < 0) {
+                if (( logger != null ) && (logger.isTraceEnabled())) {
+                    logger.trace("bulkio.InPort getPacket PORT:" + name +" Block until data arrives" );
+                }
+                this.dataSem.acquire();
+            } else {
+                if (( logger != null ) && (logger.isTraceEnabled())) {
+                    logger.trace("bulkio.InPort getPacket PORT:" + name +" TIMED WAIT:" + wait );
+                }
+                this.dataSem.tryAcquire(wait, TimeUnit.MILLISECONDS);
+            }
+        } catch (InterruptedException ex) {
+            if (( logger != null ) && (logger.isTraceEnabled())) {
+                logger.trace("bulkio.InPort getPacket EXIT (port=" + name +")" );
+            }
+            return null;
+        }
+
+        DataTransfer<A> p = null;
+        synchronized (this.dataBufferLock) {
+            for (DataTransfer<A> item: this.workQueue) {
+                if (item.streamID.equals(streamID)) {
+                    this.workQueue.remove(item);
+                    if (item.getEndOfStream()) {
+                        synchronized (this.sriUpdateLock) {
+                            boolean stillBlocking = false;
+                            if (this.currentHs.containsKey(item.getStreamID())) {
+                                Iterator<sriState> iter = currentHs.values().iterator();
+                                while (iter.hasNext()) {
+                                    if (iter.next().getSRI().blocking) {
+                                        stillBlocking = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!stillBlocking) {
+                                blocking = false;
+                            }
+                        }
+                    }
+        
+                    if (blocking) {
+                        queueSem.release();
+                    }
+                    return item;
+                }
+            }
+        }
+        return p;
+    }
+
+    public DataTransfer<A> fetchPacket(String streamID)
+    {
+        if ((streamID == null) || (streamID.equals(""))) {
+            if (this.workQueue.size() == 0) {
+                return null;
+            }
+            return this.workQueue.poll();
+        }
+
+        if (workQueue == null) {
+            return null;
+        }
+
+        Iterator<DataTransfer<A>> itr = workQueue.iterator();
+        while (itr.hasNext()) {
+            DataTransfer<A> elem = itr.next();
+            if (elem.streamID.equals(streamID)) {
+                workQueue.remove(elem);
+                return elem;
+            }
+        }
+
+        return null;
+    }
+
+    public void discardPacketsForStream(String streamID)
+    {
+        if ((streamID == null) || (streamID.equals(""))) {
+            return;
+        }
+        Iterator<DataTransfer<A>> itr = workQueue.iterator();
+        while (itr.hasNext()) {
+            DataTransfer<A> elem = itr.next();
+            if (elem.streamID.equals(streamID)) {
+                if (elem.EOS) {
+                    break;
+                }
+                workQueue.remove(elem);
+            }
+        }
+    }
+  
 }

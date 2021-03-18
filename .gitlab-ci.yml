@@ -2,10 +2,10 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
-  redhawk_version: '2.2.7'
+  redhawk_version: '2.3.0'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_branch: 'develop-2.2'
+  redhawk_branch: 'develop-2.3'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   redhawk_deps: $redhawk_branch
@@ -74,70 +74,6 @@ stages:
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/
-
-redhawk:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk
-    specfile: src/releng/redhawk.spec
-    local_repo: ""
-  <<: *rpmbuild
-
-redhawk-codegen:el6:
-  stage: package-redhawk-codegen
-  variables:
-    dist: el6
-    arch: x86_64
-    project: redhawk-codegen
-    local_repo: ""
-  <<: *rpmbuild
-
-bulkio:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: bulkioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-gpp:el6:
-  stage: package-bulkio-gpp
-  dependencies:
-    - redhawk:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: GPP
-    local_repo: output
-  <<: *rpmbuild
-
-burstio:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: burstioInterfaces
-    local_repo: output
-  <<: *rpmbuild
-
-frontend:el6:
-  stage: package-burstio-fei
-  dependencies:
-    - bulkio:el6
-  variables:
-    dist: el6
-    arch: x86_64
-    project: frontendInterfaces
-    version: $fei_version
-    local_repo: output
-  <<: *rpmbuild
 
 redhawk:el7:
   stage: package-redhawk-codegen
@@ -231,7 +167,7 @@ deploy:
     - curl --insecure -X POST -F ref=$redhawk_testing_ref
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name] = develop-2.2.7"
+                              -F "variables[triggering_ref_name] = develop-2.3.0"
                               -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
 
@@ -256,12 +192,12 @@ test-trigger:release:
   stage: deploy
   dependencies: []
   variables:
-    redhawk_version: '2.2.7-rc1'
+    redhawk_version: '2.3.0-rc5'
   script:
     - curl --insecure -X POST -F ref=$redhawk_version
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name] = develop-2.2.7"
+                              -F "variables[triggering_ref_name] = develop-2.3.0"
                               -F "variables[output_name]=$CI_COMMIT_REF_NAME"
                               $test_url
   only:
@@ -289,6 +225,8 @@ test-trigger:release:
     paths:
       - $rpm_name-abi-results.txt
     expire_in: 30 days
+  except:
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 redhawk:abi:
   variables:
@@ -372,17 +310,4 @@ deploy-el7:
     - frontend:el7
     - gpp:el7
     - redhawk-codegen:el7
-  <<: *s3
-
-deploy-el6:
-  variables:
-    dist: el6
-    arch: x86_64
-  dependencies:
-    - redhawk:el6
-    - bulkio:el6
-    - burstio:el6
-    - frontend:el6
-    - gpp:el6
-    - redhawk-codegen:el6
   <<: *s3

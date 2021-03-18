@@ -54,6 +54,7 @@ class CppDeviceBusyState(scatest.CorbaTestCase):
         self.assertFalse(res)
         dev.releaseObject()
 
+    @scatest.requireJava
     def test_BusyAllocJava(self):
         dev=sb.launch('devj')
 

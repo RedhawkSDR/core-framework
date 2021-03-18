@@ -101,7 +101,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
     /**
      * Breaks a connection.
      */
-    public void disconnectPort(String connectionId)
+    public void disconnectPort(String connectionId) throws CF.PortPackage.InvalidPort
     {
         if (_portLog != null) {
             _portLog.trace("bulkio.OutPort disconnectPort ENTER (port=" + name +")");
@@ -110,7 +110,7 @@ public abstract class OutDataPort<E extends BULKIO.updateSRIOperations,A> extend
         synchronized (this.updatingPortsLock) {
             final E port = this.outConnections.remove(connectionId);
             if (port == null) {
-                throw new IllegalArgumentException("No connection "+connectionId);
+                throw new CF.PortPackage.InvalidPort((short) 2, "No connection "+connectionId);
             }
 
             // Create an empty data packet with an invalid timestamp to send
