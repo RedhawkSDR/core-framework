@@ -421,8 +421,8 @@ class bitbuffer(object):
             value = (value << 1) | bit
         return value
 
-    def __hex__(self):
-        return hex(int(self))
+    def __index__(self):
+        return self.__int__()
 
     def __copy__(self):
         # Make a copy of the data array so that modifications to the copy do

@@ -42,8 +42,8 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(0xBADC0DE, 28)
         self.assertEqual(28, len(buf))
         data = buf.bytes()
-        self.assertEqual('\xBA\xDC\x0D', data[:3])
-        self.assertEqual(0xE0, ord(data[3]) & 0xF0)
+        self.assertEqual(b'\xBA\xDC\x0D', data[:3])
+        self.assertEqual(0xE0, data[3] & 0xF0)
 
         # Ignore some of the most significant bits
         # 00(11 0100 0101 0110 0111 1000)
@@ -54,8 +54,8 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(0x12345678, 22)
         self.assertEqual(22, len(buf))
         data = buf.bytes()
-        self.assertEqual('\xD1\x59', data[:2])
-        self.assertEqual(0xE0, ord(data[2]) & 0xFC)
+        self.assertEqual(b'\xD1\x59', data[:2])
+        self.assertEqual(0xE0, data[2] & 0xFC)
 
         # Since value is right-aligned, any higher bits are 0
         # 1111 0101 1010 1101
@@ -66,13 +66,13 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(0xF5AD, 23)
         self.assertEqual(23, len(buf))
         data = buf.bytes()
-        self.assertEqual('\x01\xEB', data[:2])
-        self.assertEqual(0x5A, ord(data[2]) & 0xFE)
+        self.assertEqual(b'\x01\xEB', data[:2])
+        self.assertEqual(0x5A, data[2] & 0xFE)
 
     def testFromArray(self):
         # Test with a large array, using the default behavior for number of
         # bits (8 bits for each byte) and start offset (0)
-        array = bytearray('\x01\x23\x45\x67\x89\xAB\xCD\xEF\x11\x22')
+        array = bytearray('\x01\x23\x45\x67\x89\xAB\xCD\xEF\x11\x22'.encode('ISO-8859-1'))
         buf = bitbuffer(array)
         self.assertEqual(len(array)*8, len(buf))
         self.assertEqual(array, buf.bytes())
@@ -89,7 +89,7 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(bool(x%4) for x in range(48))
         self.assertEqual(48, len(buf))
         expected = '\x77'*6
-        self.assertEqual(expected, buf.bytes())
+        self.assertEqual(expected.encode(), buf.bytes())
 
     def testFromList(self):
         # Integers
@@ -123,7 +123,7 @@ class BitBufferTest(unittest.TestCase):
         buf = bitbuffer(0xB552B4E1, 32)
         data = buf.bytes()
         self.assertEqual(4, len(data))
-        self.assertEqual(b'\xB5\x52\xB4\xE1', data)
+        self.assertEqual('\xB5\x52\xB4\xE1'.encode('ISO-8859-1'), data)
 
         # Offset, not byte-aligned slice; bytes() should create a new copy of
         # the byte array
@@ -131,8 +131,8 @@ class BitBufferTest(unittest.TestCase):
         #     10101010|1001010x = 0xAA94
         data = buf[3:18].bytes()
         self.assertEqual(2, len(data))
-        self.assertEqual('\xAA', data[0])
-        self.assertEqual(0x94, ord(data[1]) & 0xFE)
+        self.assertEqual(0xAA, data[0])
+        self.assertEqual(0x94, data[1] & 0xFE)
 
     def testEquals(self):
         # Fill a bit buffer with a known pattern
@@ -268,24 +268,24 @@ class BitBufferTest(unittest.TestCase):
         # Basic bit setting
         buf[3] = 1
         data = buf.bytes()
-        self.assertEqual(0x10, ord(data[0]), 'Set bit')
+        self.assertEqual(0x10, data[0], 'Set bit')
 
         # Two bits in the same byte
         buf[8] = 1
         buf[13] = 1
         data = buf.bytes()
-        self.assertEqual(0x84, ord(data[1]), 'Set two bits in same byte')
+        self.assertEqual(0x84, data[1], 'Set two bits in same byte')
 
         # Any non-zero integer should be interpreted as a 1
         buf[18] = 2
         buf[22] = -5289
         data = buf.bytes()
-        self.assertEqual(0x22, ord(data[2]), 'Set non-zero integer')
+        self.assertEqual(0x22, data[2], 'Set non-zero integer')
 
         # 0 should clear an existing bit
         buf[8] = 0
         data = buf.bytes()
-        self.assertEqual(0x04, ord(data[1]), 'Clear bit')
+        self.assertEqual(0x04, data[1], 'Clear bit')
 
         # Use a slice to test that offsets are accounted for (the slice shares
         # the same backing byte array)
@@ -319,13 +319,13 @@ class BitBufferTest(unittest.TestCase):
         dest[22:35] = src[4:17]
         data = dest.bytes()
         self.assertEqual(b'\x03\x31', data[2:4])
-        self.assertEqual(0xA0, ord(data[4]) & 0xF0)
+        self.assertEqual(0xA0, data[4] & 0xF0)
 
         # Negative indices should be from end; invert first 3 of the last 4
         # bits (prior value above is 1010)
         dest[-4:-1] = bitbuffer('010')
         data = dest.bytes()
-        self.assertEqual(0x40, ord(data[4]) & 0xF0)
+        self.assertEqual(0x40, data[4] & 0xF0)
 
     def testToInt(self):
         # Use a 96-bit long
@@ -446,7 +446,7 @@ class BitBufferTest(unittest.TestCase):
         # Use ASCII text, where the high bit is always zero; a start offset is
         # required
         msg = 'Here is some text'
-        buf = bitbuffer(bytearray(msg))
+        buf = bitbuffer(bytearray(msg.encode('ISO-8859-1')))
         ascii = buf.takeskip(7, 1, start=1)
 
         # Reconstruct the input text by taking 7 bits at a time
@@ -470,8 +470,8 @@ class BitBufferTest(unittest.TestCase):
         result = buf1 + buf2
         self.assertEqual(34, len(result))
         data = result.bytes()
-        self.assertEqual('\x56\xEB\x03\x79', data[:4])
-        self.assertEqual(0x40, ord(data[4]) & 0xC0)
+        self.assertEqual('\x56\xEB\x03\x79'.encode('ISO-8859-1'), data[:4])
+        self.assertEqual(0x40, data[4] & 0xC0)
 
     def testHex(self):
         # Using hex conversion should give same results as equivalent integer
