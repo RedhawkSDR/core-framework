@@ -276,8 +276,7 @@ if __name__ == "__main__":
     if options.xmlfile == None:
         runner = unittest.TextTestRunner(verbosity=options.verbosity)
     else:
-        stream = open(options.xmlfile, "w")
-        runner = xmlrunner.XMLTestRunner(stream)
+        runner = xmlrunner.XMLTestRunner(options.xmlfile,verbosity=options.verbosity,buffer=False)
     if options.debug:
         import pdb
         pdb.run("runner.run(suite)")
