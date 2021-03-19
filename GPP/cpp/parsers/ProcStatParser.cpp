@@ -85,7 +85,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
                 cstat.idx= boost::lexical_cast<int>( ids );
               }
             }
-            catch( boost::bad_lexical_cast ){
+            catch( const boost::bad_lexical_cast& ){
             }
             // save off stat line for this cpu
             cstat.jiffies.resize( values.size()-1 );
@@ -94,7 +94,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 cstat.jiffies[i-1] = boost::lexical_cast<ProcStat::Counter>( values[i] );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( const boost::bad_lexical_cast& ){
               }
             }
 
@@ -121,7 +121,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 stat_list.push_back( boost::lexical_cast<ProcStat::Counter>( values[i] ) );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( const boost::bad_lexical_cast& ){
               }
             }
             data.interrupts.swap( stat_list );
@@ -134,7 +134,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 stat_list.push_back( boost::lexical_cast<ProcStat::Counter>( values[i] ) );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( const boost::bad_lexical_cast& ){
               }
             }
             data.soft_irqs.swap( stat_list );

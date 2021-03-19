@@ -326,6 +326,9 @@ void DeviceManager_impl::createDeviceThread(
             rh_logger::LoggerPtr __logger = rh_logger::StdOutLogger::getRootLogger();
             __logger->setLevel(lvl);
 
+            // set the forked device/service as the process group leader
+            setpgid(getpid(), 0);
+
             // apply environment changes for the process
             myenv.apply();
 

@@ -29,7 +29,7 @@
 #include <boost/filesystem/path.hpp>
 #include "ossie/Autocomplete.h"
 
-typedef std::multimap<std::string, std::string, std::less<std::string>, std::allocator<std::pair<std::string, std::string> > >
+typedef std::multimap<std::string, std::string, std::less<std::string>, std::allocator<std::pair<const std::string, std::string> > >
 copiedFiles_type;
 
 /*

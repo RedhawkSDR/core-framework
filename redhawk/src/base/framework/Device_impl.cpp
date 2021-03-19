@@ -310,6 +310,10 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
     RH_TRACE(_deviceLog, "in allocate");
     CF::Device::Allocations_var result = new CF::Device::Allocations();
 
+    if (isBusy()) {
+        return false;
+    }
+
     if (capacities.length() == 0) {
         // Nothing to do, return
         RH_TRACE(_deviceLog, "no capacities to configure.");
@@ -458,7 +462,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         try {
             // Get all properties currently in device
             query (currentCapacities);
-        } catch (CF::UnknownProperties) {
+        } catch (const CF::UnknownProperties&) {
         }
 
         SCOPED_LOCK(propertySetAccess);

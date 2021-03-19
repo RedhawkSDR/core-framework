@@ -857,26 +857,33 @@ namespace bulkio {
               if ( port ) { port->updateStats(connectionId);}
           } catch (typename PortType::AttachError& ex) {
               LOG_ERROR(logger,  "AttachError occurred: " << ex.msg );
+              throw;
           } catch (typename PortType::StreamInputError& ex) {
               LOG_ERROR(logger, "StreamInputError occurred: " << ex.msg );
+              throw;
           } catch (std::exception& ex) {
               LOG_ERROR(logger,  "An unknown error occurred while attaching: " << ex.what() )
+              throw;
           } catch( CORBA::TRANSIENT &ex ) {
               if ( port and port->reportConnectionErrors(connectionId) ) {
                   LOG_ERROR( logger, "ATTACH FAILED (Transient), CONNECTION: " << connectionId);
               }
+              throw;
           } catch( CORBA::COMM_FAILURE &ex) {
               if ( port and port->reportConnectionErrors(connectionId) ) {
                   LOG_ERROR( logger, "ATTACH FAILED (CommFailure), CONNECTION: " << connectionId); 
               }
+              throw;
           } catch( CORBA::SystemException &ex) {
               if ( port and port->reportConnectionErrors(connectionId) ) {
                   LOG_ERROR( logger, "ATTACH FAILED (SystemException), ONNECTION: " << connectionId );
               }
+              throw;
           } catch(...) {
               if ( port and port->reportConnectionErrors(connectionId) ) {
                   LOG_ERROR( logger, "ATTACH FAILED, (UnknownException) CONNECTION: " << connectionId );
               }
+              throw;
           }
       }
       
@@ -1097,10 +1104,13 @@ namespace bulkio {
                       iter->createNewAttachment(connectionId, port);
                   } catch (typename PortType::AttachError& ex) {
                       LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                      throw;
                   } catch (typename PortType::StreamInputError& ex) {
                       LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                      throw;
                   } catch(...) {
                       LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << connectionId );
+                      throw;
                   }
               }
           }
@@ -1119,10 +1129,13 @@ namespace bulkio {
                       iter->createNewAttachment(connectionId, port);
                   } catch (typename PortType::AttachError& ex) {
                       LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                      throw;
                   } catch (typename PortType::StreamInputError& ex) {
                       LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                      throw;
                   } catch(...) {
                       LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << connectionId );
+                      throw;
                   }
               }
           }
@@ -1709,7 +1722,7 @@ namespace bulkio {
     if ( sri_iter == currentSRIs.end() ) {
       // need to use insert since we do not have default CTOR for AttachableSriMapStruct
       AttachableSriMapStruct sri_ctx(H,T);
-      currentSRIs.insert(std::make_pair(H.streamID, sri_ctx));
+      currentSRIs.insert(std::make_pair(sid, sri_ctx));
       sri_iter=  currentSRIs.find( sid );
     }
     else {
@@ -1919,8 +1932,12 @@ namespace bulkio {
   {
     // TODO: ADD DEPRECATION WARNING HERE
     this->streamContainer.removeStreamByStreamId(std::string(stream.id));
-    user_id = userid;
-    this->addStream(stream); 
+    user_id = userid;    
+    if( this->addStream(stream) == false ){
+      std::ostringstream os;
+      os << "Attach failed to create new stream " << stream.id;
+      throw typename PortType::AttachError(os.str().c_str());
+    }
     return CORBA::string_dup("");
   }
 
@@ -1997,14 +2014,19 @@ namespace bulkio {
                     newStream->createNewAttachment(i->second, i->first);
                 } catch (typename PortType::AttachError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                    throw;
                 } catch (typename PortType::StreamInputError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                    throw;
                 } catch(...) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
+                    throw;
                 }
 
              } catch(...) {
                 LOG_ERROR( _portLog, "UNABLE TO CREATE ATTACHMENT, PORT/CONNECTION: " << this->name << "/" << i->second );
+                delete newStream;
+                return false;
              }
           }
        }
@@ -2018,14 +2040,24 @@ namespace bulkio {
       }
       // Route new stream to all connections
       for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
-        try {
+        try{
+          try {
             newStream->createNewAttachment(i->second, i->first);
-        } catch (typename PortType::AttachError& ex) {
+          } catch (typename PortType::AttachError& ex) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
-        } catch (typename PortType::StreamInputError& ex) {
+            throw;
+          } catch (typename PortType::StreamInputError& ex) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
-        } catch(...) {
+            throw;
+          } catch(...) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
+            throw;
+          }
+        }
+        catch (...) {
+          // delete created stream and return false
+          delete newStream;
+          return false;
         }
       }
     }

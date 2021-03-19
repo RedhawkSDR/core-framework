@@ -100,7 +100,7 @@ namespace bulkio {
             write(length);
             size_t offset = _data.size();
             _data.resize(offset + length);
-            strncpy(&_data[offset], data, length);
+            memcpy(&_data[offset], data, length);
         }
 
         inline void _checkRead(size_t bytes)

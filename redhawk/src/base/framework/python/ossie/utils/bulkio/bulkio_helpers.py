@@ -107,8 +107,13 @@ def pythonComplexListToBulkioComplex(pythonComplexListInput, itemType=float):
     def _collapse(values):
         for val in values:
             try:
-                yield val.real
-                yield val.imag
+                # deal with lists of numpy
+                if hasattr(val, 'item'):
+                    yield val.item().real
+                    yield val.item().imag
+                else:
+                    yield val.real
+                    yield val.imag
             except:
                 # Python 2.4 does not support .real or .imag for simple types,
                 # which may occur in the list if mixed input is given. As a

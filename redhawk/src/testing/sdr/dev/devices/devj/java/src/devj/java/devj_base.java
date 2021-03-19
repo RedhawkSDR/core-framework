@@ -1,6 +1,8 @@
 package devj.java;
 
+
 import java.util.Properties;
+import org.ossie.component.RHLogger;
 
 import org.apache.log4j.Logger;
 
@@ -16,6 +18,7 @@ import org.ossie.component.*;
 import org.ossie.properties.*;
 
 
+
 /**
  * This is the device code. This file contains all the access points
  * you need to use to be able to access all input and output ports,
@@ -26,7 +29,8 @@ import org.ossie.properties.*;
  * @generated
  */
 
-public abstract class devj_base extends ThreadedDevice {
+public abstract class devj_base extends ThreadedDevice 
+{
     /**
      * @generated
      */
@@ -81,6 +85,38 @@ public abstract class devj_base extends ThreadedDevice {
             );
     
     /**
+     * The property busy_state
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final BooleanProperty busy_state =
+        new BooleanProperty(
+            "busy_state", //id
+            "busy_state", //name
+            false, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.PROPERTY}
+            );
+    
+    /**
+     * The property a_number
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final ShortProperty a_number =
+        new ShortProperty(
+            "a_number", //id
+            "a_number", //name
+            (short)100, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.ALLOCATION}
+            );
+    
+    /**
      * @generated
      */
     public devj_base()
@@ -97,17 +133,16 @@ public abstract class devj_base extends ThreadedDevice {
 
         addProperty(LOGGING_CONFIG_URI);
 
+        addProperty(busy_state);
+
+        addProperty(a_number);
+
     }
 
-    public void start() throws CF.ResourcePackage.StartError
-    {
-        super.start();
+
+    protected void setupPortLoggers() {
     }
 
-    public void stop() throws CF.ResourcePackage.StopError
-    {
-        super.stop();
-    }
 
 
     /**

@@ -544,6 +544,10 @@ public abstract class Device extends Resource implements DeviceOperations {
 
         this._deviceLog.debug("allocateCapacity : " + capacities.toString());
 
+        if (UsageType.BUSY.value() == this.usageState().value()) {
+            return false;
+        }
+
         // Checks for empty
         if (capacities.length == 0){
             this._deviceLog.trace("No capacities to allocate.");

@@ -48,7 +48,7 @@ class Iterator:
 
         return True, ret_list
 
-    def destroy():
+    def destroy(self):
         pass
 
     @classmethod

@@ -104,8 +104,8 @@ void Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::tearDown()
 //
 //   Test pushing out SRI to a single port and ensure other ports did not receive the SRI data
 //
-template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF >
-void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_multiout_sri( ) {
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::test_multiout_sri( ) {
 
   RH_DEBUG(this->logger, "Multiout SRI Filtered - BEGIN " );
 
@@ -158,8 +158,8 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
 //
 // Test pushing out SRI to each port and ensure other ports did not receive the SRI data
 //
-template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF >
-void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_multiout_sri_filtered( ) {
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::test_multiout_sri_filtered( ) {
 
   RH_DEBUG(this->logger, "Multiout SRI Filtered - BEGIN " );
   std::ostringstream msg;
@@ -175,10 +175,10 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   this->port->connectPort( this->ip4->_this(), "connection_4");
   this->port->updateConnectionFilter( this->desc_list );
 
-  this->ip1->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
-  this->ip2->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
-  this->ip3->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
-  this->ip4->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
+  this->ip1->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF,BASE_EXCEPTION>::newSriCallback);
+  this->ip2->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF,BASE_EXCEPTION>::newSriCallback);
+  this->ip3->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF,BASE_EXCEPTION>::newSriCallback);
+  this->ip4->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF,BASE_EXCEPTION>::newSriCallback);
 
   //
   // Push SRI for IP1
@@ -373,8 +373,8 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
 //
 // test_multiout_attach()
 //
-template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF >
-void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_multiout_attach( ) {
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::test_multiout_attach( ) {
 
   RH_DEBUG(this->logger, "Multiout SRI Filtered - BEGIN " );
 
@@ -428,12 +428,98 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   delete attIds;
 }
 
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+void Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::detach(const char* attachId) {
+}
+
+#define GOOD_PORT 12345
+#define BAD_PORT 54321
+
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+char* Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid)
+            throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError) {
+
+    std::ostringstream ret_attach_id;
+    ret_attach_id << "hello_" << attachIdCount++;
+    if (stream.port == BAD_PORT) {
+        throw BULKIO::dataSDDS::AttachError();
+    }
+    return CORBA::string_dup(ret_attach_id.str().c_str());
+}
+
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+char* Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::attach(const BULKIO::VITA49StreamDefinition& stream, const char* userid)
+            throw (BULKIO::dataVITA49::AttachError, BULKIO::dataVITA49::StreamInputError) {
+
+    std::ostringstream ret_attach_id;
+    ret_attach_id << "hello_" << attachIdCount++;
+    if (stream.port == BAD_PORT) {
+        throw BULKIO::dataVITA49::AttachError();
+    }
+    return CORBA::string_dup(ret_attach_id.str().c_str());
+}
+
+//
+// test_multiout_fail_attach()
+//
+template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
+void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::test_multiout_fail_attach( ) {
+
+  ExtendedCF::UsesConnectionSequence *clist = this->port->connections();
+  CPPUNIT_ASSERT( clist != NULL );
+  delete clist;
+
+  this->port->connectPort( this->ip1->_this(), "connection_1");
+  this->ip1->setNewAttachDetachCallback(this);
+
+  attachIdCount = 0;
+
+  //
+  // Push SRI for IP1
+  //
+
+  // Validate that no attachments exist before stream is defined
+  BULKIO::StringSequence* attIds; 
+
+  attIds= this->ip1->attachmentIds();
+  CPPUNIT_ASSERT( attIds->length() == 0 );
+  delete attIds;
+
+  STREAM_DEF newStreamDef;
+  DefinitionGenerator::generateDefinition("stream-1-1", GOOD_PORT, newStreamDef);
+  bool retval = this->port->addStream(newStreamDef);
+  CPPUNIT_ASSERT( retval );
+
+  attIds= this->ip1->attachmentIds();
+  CPPUNIT_ASSERT( attIds->length() == 1 );
+  delete attIds;
+
+  STREAM_DEF invalidStreamDef;
+  DefinitionGenerator::generateDefinition("stream-1-2", BAD_PORT, invalidStreamDef);
+  CPPUNIT_ASSERT(this->port->addStream(invalidStreamDef) == false);
+  CPPUNIT_ASSERT_THROW(this->port->attach(invalidStreamDef, "some_user"), BASE_EXCEPTION);
+
+  attIds= this->ip1->attachmentIds();
+  CPPUNIT_ASSERT( attIds->length() == 1 );
+  delete attIds;
+
+  STREAM_DEF validStreamDef;
+  DefinitionGenerator::generateDefinition("stream-1-2", GOOD_PORT, invalidStreamDef);
+  retval = this->port->addStream(invalidStreamDef);
+  CPPUNIT_ASSERT( retval );
+
+  attIds= this->ip1->attachmentIds();
+  CPPUNIT_ASSERT( attIds->length() == 2 );
+  delete attIds;
+
+}
+
 
 // Registers the fixture into the 'registry'
 // this also worked sans type name in output CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt8 );
 CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutSDDS_Port );
 CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutVITA49_Port );
 
-template class Bulkio_MultiOut_Attachable_Port< bulkio::OutSDDSPort, bulkio::InSDDSPort, BULKIO::SDDSStreamDefinition>;
-template class Bulkio_MultiOut_Attachable_Port< bulkio::OutVITA49Port, bulkio::InVITA49Port, BULKIO::VITA49StreamDefinition >;
+template class Bulkio_MultiOut_Attachable_Port< bulkio::OutSDDSPort, bulkio::InSDDSPort, BULKIO::SDDSStreamDefinition, BULKIO::dataSDDS::AttachError >;
+template class Bulkio_MultiOut_Attachable_Port< bulkio::OutVITA49Port, bulkio::InVITA49Port, BULKIO::VITA49StreamDefinition, BULKIO::dataVITA49::AttachError >;
 

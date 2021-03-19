@@ -563,12 +563,36 @@ namespace frontend {
     template < typename TunerStatusStructType >
     CORBA::Boolean FrontendTunerDevice<TunerStatusStructType>::allocateCapacity(const CF::Properties & capacities)
     throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
+
+        RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
+        exclusive_lock lock(allocation_id_mapping_lock);
+        checkValidIds(capacities);
+
+        bool has_listener = false;
+        for (CORBA::ULong listen_idx = 0; listen_idx < capacities.length(); ++listen_idx) {
+            const std::string id = (const char*) capacities[listen_idx].id;
+            if (id == "FRONTEND::listener_allocation") {
+                has_listener = true;
+            }
+        }
+        if (not has_listener) {
+            for (CORBA::ULong listen_idx = 0; listen_idx < capacities.length(); ++listen_idx) {
+                const std::string id = (const char*) capacities[listen_idx].id;
+                if (id == "FRONTEND::tuner_allocation") {
+                    if (not frontend_tuner_allocation.device_control) {
+                        has_listener = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if ((not has_listener) and (isBusy())) {
+            return false;
+        }
         if (this->tuner_allocation_ids.size() != this->frontend_tuner_status.size()) {
             this->tuner_allocation_ids.resize(this->frontend_tuner_status.size());
         }
-        RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
-        exclusive_lock lock(allocation_id_mapping_lock);        
-        checkValidIds(capacities);
+
         CORBA::ULong ii;
         try{
             for (ii = 0; ii < capacities.length(); ++ii) {

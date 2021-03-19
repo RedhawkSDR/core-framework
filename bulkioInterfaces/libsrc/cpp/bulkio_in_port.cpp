@@ -642,17 +642,29 @@ namespace bulkio {
       } else {
         if (packetQueue.size() >= maxQueue) { // reached maximum queue depth - flush the queue
           LOG_DEBUG( _portLog, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << packetQueue.size() << ")" );
-          flushToReport = true;
 
           // Need to hold the SRI mutex while flushing the queue because it may
           // update SRI change state
           SCOPED_LOCK lock(sriUpdateLock);
           _flushQueue();
 
-          // Update the SRI change flag for this stream, which may have been
-          // modified during the queue flush
-          sriChanged = currentHs[streamID].second;
-          currentHs[streamID].second = false;
+          //
+          // throw away first same stream id if EOS==False, update sriChanged with saved state
+          //
+          for (typename PacketQueue::reverse_iterator riter = packetQueue.rbegin(); riter != packetQueue.rend(); ++riter) {
+              Packet* saved_packet = *riter;
+              if ( streamID == saved_packet->streamID ) {
+                  if ( saved_packet->EOS == false  ) {
+                      sriChanged = saved_packet->sriChanged;
+                      currentHs[streamID].second = false;
+                      packetQueue.erase( --riter.base());
+                      delete saved_packet;
+                      flushToReport = true;
+                  }
+                  // no need to search further
+                  break;
+              }
+          }
         }
       }
 
@@ -660,12 +672,12 @@ namespace bulkio {
       stats->update(length, (float)(packetQueue.size()+1)/(float)maxQueue, EOS, streamID, flushToReport);
       Packet *tmpIn;
       if (is_copy_required(data)) {
-          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, false);
+          tmpIn = new Packet(copy_data(data), T, EOS, sri, sriChanged, flushToReport);
       } else {
-          tmpIn = new Packet(data, T, EOS, sri, sriChanged, false);
+          tmpIn = new Packet(data, T, EOS, sri, sriChanged, flushToReport);
       }
       packetQueue.push_back(tmpIn);
-
+	
       if (EOS) {
           SCOPED_LOCK lock(sriUpdateLock);
           SriTable::iterator target = currentHs.find(streamID);
@@ -674,12 +686,6 @@ namespace bulkio {
           }
       }
 
-      // If a flush occurred, always set the flag on the first packet; this may
-      // not be the packet that was just inserted if there were any EOS packets
-      // on the queue
-      if (flushToReport) {
-        packetQueue.front()->inputQueueFlushed = true;
-      }
       dataAvailable.notify_all();
     }
 
@@ -692,41 +698,82 @@ namespace bulkio {
   template <typename PortType>
   void InPort<PortType>::_flushQueue()
   {
-    std::set<std::string> sri_changed;
-    PacketQueue saved_packets;
-    for (typename PacketQueue::iterator iter = packetQueue.begin(); iter != packetQueue.end(); ++iter) {
-      Packet* packet = *iter;
-      if (packet->EOS) {
-        // Remove the SRI change flag for this stream, as further SRI changes
-        // apply to a different stream; set the SRI change flag for the EOS
-        // packet if there was one for this stream earlier in the queue
-        if (sri_changed.erase(packet->streamID)) {
-          packet->sriChanged = true;
-        }
+      // Work in reverse order to track last packet of each stream. 
+      //
+      // Save off the last packet of each stream last_packets. This will be the packets
+      // that are swapped back.  We add packets into front of last_packets to 
+      // maintain proper seqeuence when the swap occurs with packetQueue
+      //
+      // active_streams is a map of each stream id  and the current last packet for that stream
+      //  
 
-        // Discard data and preserve the EOS packet
-        packet->buffer = BufferType();
-        saved_packets.push_back(packet);
-      } else {
-        if (packet->sriChanged) {
-          sri_changed.insert(packet->streamID);
-        }
-        delete packet;
-      }
-    }
-    packetQueue.swap(saved_packets);
+    // map stream id, the last packet of that active stream
+    typedef   std::map< std::string, Packet *> ActiveStreams;
+    ActiveStreams  active_streams;
+    PacketQueue last_packets;
 
-    // Save any SRI change flags that were collected and not applied to an EOS
-    // packet
-    for (std::set<std::string>::iterator stream_id = sri_changed.begin();
-         stream_id != sri_changed.end(); ++stream_id) {
-      // It should be safe to assume that an entry exists for the stream ID,
-      // but just in case, use find instead of operator[]
-      SriTable::iterator currH = currentHs.find(*stream_id);
-      if (currH != currentHs.end()) {
-        currH->second.second = true;
-      }
+    // iterate through the current packet queue starting from back
+    for (typename PacketQueue::reverse_iterator iter = packetQueue.rbegin(); iter != packetQueue.rend(); ++iter) {
+
+        Packet* packet = *iter;
+          
+        // search for streamID in the active_streams map 
+        typename ActiveStreams::iterator active_stream = active_streams.find(packet->streamID);
+      
+        // if the stream id is in the active_streams map 
+        if ( active_stream != active_streams.end() ) {
+            
+            // get packet (i.e last packet) stored in the active_streams map
+            Packet* active_packet = active_stream->second;
+
+            // if current packet is EOS then we have streamID reuse
+            if ( packet->EOS ) {
+                // stream id reuse.. save this packet as last packet for this streamID reuse
+                last_packets.push_front(packet);
+
+                // save this packet as the last seen packet in active_streams
+                active_streams[packet->streamID]=packet;
+                continue;
+            }
+
+            // ensure last packet contains data, if not swap data and timestamps with an earlier 
+            // packet in the stream that has data
+            if ( active_packet->buffer.size() == 0 && packet->buffer.size() > 0 ) {
+
+                // the last packet for that stream is empty so swap buffers and timestamps with this
+                // earlier packet
+                active_packet->buffer.swap(packet->buffer);
+                active_packet->T = packet->T;
+            }
+
+            // Only enable inputQueueFlush for a stream if we delete packets for a stream contained data.
+            // This check needs to happen after empty buffer check to correctly account a valid flush condition
+            if ( packet->buffer.size() > 0 ) {
+                active_packet->inputQueueFlushed=true;
+            }
+                    
+            // track SRI changes from any prior packets for this stream. We don't need to swap SRI
+            // data since we are the last packet for the stream
+            if (packet->sriChanged ) {
+                // enable sriCheck for the stream's last active packet
+                active_packet->sriChanged=true;
+            }
+
+            // delete the packet
+            delete packet;
+        }
+        else {
+          // new stream id not found so save off as the last packet
+          last_packets.push_front(packet);
+
+          // save this packet as the last seen packet in active_streams
+          active_streams[packet->streamID]=packet;
+        }
     }
+
+    // swap the queues..
+    packetQueue.swap(last_packets);
+
   }
 
 

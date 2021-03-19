@@ -440,6 +440,8 @@ class Device(resource.Resource):
             
     def allocate(self, properties):
         self._deviceLog.debug("allocate(%s)", properties)
+        if self._usageState == CF.Device.BUSY:
+            return False
         # Validate
         self._validateAllocProps(properties)
         # Consume
@@ -478,6 +480,8 @@ class Device(resource.Resource):
             otherwise
         """
         self._deviceLog.debug("allocateCapacity(%s)", properties)
+        if self._usageState == CF.Device.BUSY:
+            return False
         retval = self.allocate(properties)
         if len(retval) == 0:
             return False

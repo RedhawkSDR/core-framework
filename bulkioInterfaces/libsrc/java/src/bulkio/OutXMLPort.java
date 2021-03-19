@@ -21,14 +21,22 @@ package bulkio;
 
 import org.apache.log4j.Logger;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
+
 import BULKIO.PrecisionUTCTime;
 import BULKIO.StreamSRI;
 import BULKIO.dataXMLOperations;
+import bulkio.OutXMLStream;
 
 /**
  * BulkIO output port implementation for dataXML.
  */
 public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
+
+    protected Map<String, OutXMLStream> streams;
+    public Object streamsMutex;
 
     public OutXMLPort(String portName) {
         this(portName, null, null);
@@ -43,6 +51,8 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
         if (this.logger != null) {
             this.logger.debug("bulkio.OutPort CTOR port: " + portName); 
         }
+        this.streams = new HashMap<String, OutXMLStream>();
+        this.streamsMutex = new Object();
     }
 
     public String getRepid() {
@@ -62,6 +72,58 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
 
     protected void sendPacket(dataXMLOperations port, String data, PrecisionUTCTime time, boolean endOfStream, String streamID) {
         port.pushPacket(data, endOfStream, streamID);
+    }
+
+    public OutXMLStream getStream(String streamID)
+    {
+        synchronized (this.updatingPortsLock) {
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+        }
+        return null;
+    }
+  
+    public OutXMLStream[] getStreams()
+    {
+        OutXMLStream[] retval = null;
+        Iterator<OutXMLStream> streams_iter = streams.values().iterator();
+        synchronized (this.streamsMutex) {
+            retval = new OutXMLStream[streams.size()];
+            int streams_idx = 0;
+            while (streams_iter.hasNext()) {
+                retval[streams_idx] = streams_iter.next();
+                streams_idx++;
+            }
+        }
+        return retval;
+    }
+  
+    public OutXMLStream createStream(String streamID)
+    {
+        OutXMLStream stream = null;
+        synchronized (this.updatingPortsLock) {
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+            stream = new OutXMLStream(bulkio.sri.utils.create(streamID), this);
+            streams.put(streamID, stream);
+        }
+        return stream;
+    }
+  
+    public OutXMLStream createStream(BULKIO.StreamSRI sri)
+    {
+        OutXMLStream stream = null;
+        synchronized (this.updatingPortsLock) {
+            String streamID = sri.streamID;
+            if (streams.containsKey(streamID)) {
+                return streams.get(streamID);
+            }
+            stream = new OutXMLStream(sri, this);
+            streams.put(streamID, stream);
+        }
+        return stream;
     }
 }
 

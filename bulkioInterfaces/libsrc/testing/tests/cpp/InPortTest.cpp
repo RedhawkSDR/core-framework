@@ -270,6 +270,8 @@ void InPortTest<Port>::testQueueDepth()
     // The port had better start with an empty queue
     CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
 
+    port->setMaxQueueDepth(4);
+
     // Use a non-blocking stream to allow queue flushing
     BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
     sri.blocking = false;
@@ -277,7 +279,7 @@ void InPortTest<Port>::testQueueDepth()
 
     // Push some test packets, the queue should start growing
     for (int ii = 0; ii < 4; ii++) {
-        this->_pushTestPacket(1, bulkio::time::utils::now(), false, stream_id);
+        this->_pushTestPacket(ii+1, bulkio::time::utils::now(), false, stream_id);
     }
     CPPUNIT_ASSERT_EQUAL(4, port->getCurrentQueueDepth());
 
@@ -289,19 +291,23 @@ void InPortTest<Port>::testQueueDepth()
 
     // Reduce the max queue size and push another packet, causing a flush
     port->setMaxQueueDepth(3);
-    this->_pushTestPacket(1, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(5, bulkio::time::utils::now(), false, stream_id);
     CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
 
     // Read the packet and make sure the flush is reported
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL((size_t)5, packet->dataBuffer.size());
 
     // One more packet, should not report a flush
-    this->_pushTestPacket(1, bulkio::time::utils::now(), false, stream_id);
+    this->_pushTestPacket(6, bulkio::time::utils::now(), false, stream_id);
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
-    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT_EQUAL((size_t)6, packet->dataBuffer.size());
 }
 
 template <class Port>
@@ -462,8 +468,469 @@ void InPortTest<Port>::testDiscardEmptyPacket()
     boost::scoped_ptr<PacketType> packet;
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(!packet);
-}    
-    
+}
+
+template <class Port>
+void NumericInPortTest<Port>::testQueueFlushScenarios()
+{
+    // Establish all the streams as "active"
+    BULKIO::PrecisionUTCTime ts = bulkio::time::utils::create(100.0, 0.5);
+
+    // Push 1 packet for stream_A
+    BULKIO::StreamSRI stream_A = bulkio::sri::create("stream_A");
+    stream_A.blocking = false;
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(1, ts, false, stream_A.streamID);
+
+    // Push 1 packet for stream_B
+    BULKIO::StreamSRI stream_B = bulkio::sri::create("stream_B");
+    stream_B.blocking = false;
+    port->pushSRI(stream_B);
+    this->_pushTestPacket(2, ts+0.1, false, stream_B.streamID);
+
+    // Push 1 packet for stream_C
+    BULKIO::StreamSRI stream_C = bulkio::sri::create("stream_C");
+    stream_C.blocking = false;
+    port->pushSRI(stream_C);
+    this->_pushTestPacket(3, ts+0.2, false, stream_C.streamID);
+
+    // empty the queue
+    boost::scoped_ptr<PacketType> packet;
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    BULKIO::StreamSRISequence_var active_sris = port->activeSRIs();
+    int number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 1
+    this->_pushTestPacket(4, ts+1.0, false, stream_B.streamID);
+    this->_pushTestPacket(5, ts+2.0, false, stream_C.streamID);
+    this->_pushTestPacket(6, ts+3.0, false, stream_B.streamID);
+    this->_pushTestPacket(7, ts+4.0, false, stream_C.streamID);
+    port->setMaxQueueDepth(4);
+    // flush
+    this->_pushTestPacket(8, ts+5.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+3.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)6, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+4.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)7, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+5.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)8, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 2
+    port->setMaxQueueDepth(6);
+    this->_pushTestPacket(7, ts+4.0, false, stream_A.streamID);
+    this->_pushTestPacket(8, ts+5.0, false, stream_B.streamID);
+    this->_pushTestPacket(9, ts+6.0, false, stream_C.streamID);
+    this->_pushTestPacket(10, ts+7.0, false, stream_A.streamID);
+    this->_pushTestPacket(11, ts+8.0, false, stream_B.streamID);
+    this->_pushTestPacket(12, ts+9.0, false, stream_C.streamID);
+    // flush
+    this->_pushTestPacket(13, ts+10.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+8.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)11, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+9.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)12, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+10.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)13, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    port->setMaxQueueDepth(5);
+    // Test case 3
+    this->_pushTestPacket(11, ts+11.0, false, stream_B.streamID);
+    this->_pushTestPacket(12, ts+12.0, false, stream_B.streamID);
+    this->_pushTestPacket(0, ts+13.0, true, stream_B.streamID);
+    this->_pushTestPacket(13, ts+14.0, false, stream_C.streamID);
+    this->_pushTestPacket(14, ts+15.0, false, stream_C.streamID);
+    // flush
+    this->_pushTestPacket(15, ts+16.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+12.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)12, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+15.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)14, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+16.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)15, packet->dataBuffer.size());
+
+    // Establish all the streams as "active"
+    port->setMaxQueueDepth(3);
+    // Push 1 packet for stream_A
+    stream_A = bulkio::sri::create("stream_A");
+    stream_A.blocking = false;
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(14, ts+17.0, false, stream_A.streamID);
+
+    // Push 1 packet for stream_B
+    stream_B = bulkio::sri::create("stream_B");
+    stream_B.blocking = false;
+    port->pushSRI(stream_B);
+    this->_pushTestPacket(15, ts+18.0, false, stream_B.streamID);
+
+    // Push 1 packet for stream_C
+    stream_C = bulkio::sri::create("stream_C");
+    stream_C.blocking = false;
+    port->pushSRI(stream_C);
+    this->_pushTestPacket(16, ts+19.0, false, stream_C.streamID);
+
+    // empty the queue
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 4
+    port->setMaxQueueDepth(3);
+    this->_pushTestPacket(0, ts+20.0, true, stream_B.streamID);
+    this->_pushTestPacket(17, ts+21.0, false, stream_C.streamID);
+    this->_pushTestPacket(18, ts+22.0, false, stream_C.streamID);
+    // flush
+    this->_pushTestPacket(19, ts+23.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+20.0);
+    CPPUNIT_ASSERT(packet->dataBuffer.empty());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+22.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)18, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+23.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)19, packet->dataBuffer.size());
+
+    // Establish all the streams as "active"
+    port->setMaxQueueDepth(3);
+    // Push 1 packet for stream_A
+    stream_A = bulkio::sri::create("stream_A");
+    stream_A.blocking = false;
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(19, ts+24.0, false, stream_A.streamID);
+
+    // Push 1 packet for stream_B
+    stream_B = bulkio::sri::create("stream_B");
+    stream_B.blocking = false;
+    port->pushSRI(stream_B);
+    this->_pushTestPacket(20, ts+25.0, false, stream_B.streamID);
+
+    // Push 1 packet for stream_C
+    stream_C = bulkio::sri::create("stream_C");
+    stream_C.blocking = false;
+    port->pushSRI(stream_C);
+    this->_pushTestPacket(21, ts+26.0, false, stream_C.streamID);
+
+    // empty the queue
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 5
+    port->setMaxQueueDepth(3);
+    this->_pushTestPacket(22, ts+27.0, false, stream_A.streamID);
+    this->_pushTestPacket(0, ts+28.0, true, stream_A.streamID);
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(23, ts+29.0, false, stream_A.streamID);
+    // flush
+    this->_pushTestPacket(24, ts+30.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+27.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)22, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+30.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)24, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 5a
+    port->setMaxQueueDepth(4);
+    this->_pushTestPacket(21, ts+31.0, false, stream_A.streamID);
+    this->_pushTestPacket(22, ts+32.0, false, stream_A.streamID);
+    this->_pushTestPacket(0, ts+33.0, true, stream_A.streamID);
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(23, ts+34.0, false, stream_A.streamID);
+    // flush
+    this->_pushTestPacket(24, ts+35.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+32.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)22, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+35.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)24, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 6
+    port->setMaxQueueDepth(3);
+    this->_pushTestPacket(0, ts+36.0, true, stream_A.streamID);
+    this->_pushTestPacket(25, ts+37.0, false, stream_B.streamID);
+    this->_pushTestPacket(26, ts+38.0, false, stream_B.streamID);
+    // flush
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(27, ts+39.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT(packet->dataBuffer.empty());
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+36.0);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+38.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)26, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+39.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)27, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    port->setMaxQueueDepth(2);
+    if (stream_A.mode) {
+        stream_A.mode = 0;
+    } else {
+        stream_A.mode = 1;
+    }
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(28, ts+40.0, false, stream_A.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+40.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)28, packet->dataBuffer.size());
+
+    // Test case 7
+    port->setMaxQueueDepth(4);
+    if (stream_A.mode) {
+        stream_A.mode = 0;
+    } else {
+        stream_A.mode = 1;
+    }
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(28, ts+41.0, false, stream_A.streamID);
+    this->_pushTestPacket(29, ts+42.0, false, stream_C.streamID);
+    this->_pushTestPacket(30, ts+43.0, false, stream_A.streamID);
+    this->_pushTestPacket(31, ts+44.0, false, stream_C.streamID);
+    // flush
+    this->_pushTestPacket(32, ts+45.0, false, stream_B.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+43.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)30, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+44.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)31, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+45.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)32, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+
+    // Test case 8
+    port->setMaxQueueDepth(3);
+    if (stream_A.mode) {
+        stream_A.mode = 0;
+    } else {
+        stream_A.mode = 1;
+    }
+    port->pushSRI(stream_A);
+    this->_pushTestPacket(28, ts+46.0, false, stream_A.streamID);
+    this->_pushTestPacket(29, ts+47.0, false, stream_C.streamID);
+    this->_pushTestPacket(30, ts+48.0, false, stream_A.streamID);
+    // flush
+    this->_pushTestPacket(32, ts+49.0, false, stream_B.streamID);
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_C.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+47.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)29, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_A.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+48.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)30, packet->dataBuffer.size());
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(stream_B.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL(packet->T, ts+49.0);
+    CPPUNIT_ASSERT_EQUAL((size_t)32, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(port->getCurrentQueueDepth(), 0);
+    active_sris = port->activeSRIs();
+    number_alive_streams = active_sris->length();
+    CPPUNIT_ASSERT_EQUAL(number_alive_streams, 3);
+}
+
 template <class Port>
 void InPortTest<Port>::testQueueFlushFlags()
 {
@@ -508,38 +975,54 @@ void InPortTest<Port>::testQueueFlushFlags()
     port->pushSRI(sri_change);
     this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri_change.streamID);
 
+    this->_pushTestPacket(3, bulkio::time::utils::now(), false, sri_change.streamID);
+
     // Cause a queue flush by lowering the ceiling and pushing packets
-    port->setMaxQueueDepth(3);
-    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
-    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri_data.streamID);
+    port->setMaxQueueDepth(4);
+
+    this->_pushTestPacket(4, bulkio::time::utils::now(), false, sri_data.streamID);
+    // the following push forces the flush
+    this->_pushTestPacket(5, bulkio::time::utils::now(), false, sri_data.streamID);
+    port->setMaxQueueDepth(6);
 
     // Push another packet for the SRI change stream
-    this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri_change.streamID);
+    this->_pushTestPacket(6, bulkio::time::utils::now(), false, sri_change.streamID);
 
     // 1st packet should be for EOS stream, with no data or SRI change flag
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT_EQUAL(std::string(sri_eos.streamID), packet->streamID);
-    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
     CPPUNIT_ASSERT(packet->EOS);
-    CPPUNIT_ASSERT(!packet->sriChanged);
+    CPPUNIT_ASSERT(not packet->sriChanged);
     CPPUNIT_ASSERT(packet->dataBuffer.empty());
 
-    // 2nd packet should be for data stream, with no EOS or SRI change flag
-    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
-    CPPUNIT_ASSERT(packet);
-    CPPUNIT_ASSERT_EQUAL(std::string(sri_data.streamID), packet->streamID);
-    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
-    CPPUNIT_ASSERT(!packet->EOS);
-    CPPUNIT_ASSERT(!packet->sriChanged);
-
-    // 3rd packet should contain the "lost" SRI change flag
+    // 2nd packet should be for no EOS stream, data from the third packet on the queue, with "lost" SRI change flag from the second packet
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
-    CPPUNIT_ASSERT(!packet->inputQueueFlushed);
-    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
     CPPUNIT_ASSERT(packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL((size_t)3, packet->dataBuffer.size());
+
+    // 3rd packet should be for no EOS stream, with data (since it did the push that flushed the queue), no SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_data.streamID), packet->streamID);
+    CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(!packet->EOS);
+    CPPUNIT_ASSERT(!packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL((size_t)5, packet->dataBuffer.size());
+
+    // 4th packet should be for stream_sri stream, with no EOS or SRI change flag
+    packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
+    CPPUNIT_ASSERT(packet);
+    CPPUNIT_ASSERT_EQUAL(std::string(sri_change.streamID), packet->streamID);
+    CPPUNIT_ASSERT(not packet->inputQueueFlushed);
+    CPPUNIT_ASSERT(not packet->EOS);
+    CPPUNIT_ASSERT(not packet->sriChanged);
+    CPPUNIT_ASSERT_EQUAL((size_t)6, packet->dataBuffer.size());
 }
 
 template <class Port>
@@ -555,13 +1038,19 @@ void InPortTest<Port>::testQueueSize()
         this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
     }
     CPPUNIT_ASSERT_EQUAL(10, port->getCurrentQueueDepth());
-    this->_pushTestPacket(1, bulkio::time::utils::now(), false, sri.streamID);
+    // force a flush
+    this->_pushTestPacket(2, bulkio::time::utils::now(), false, sri.streamID);
+    // the queue has the last "flushed" packet and the packet that caused the flush
     CPPUNIT_ASSERT_EQUAL(1, port->getCurrentQueueDepth());
 
+    // pop the last "flushed" packet
     boost::scoped_ptr<PacketType> packet;
     packet.reset(port->getPacket(bulkio::Const::NON_BLOCKING));
     CPPUNIT_ASSERT(packet);
     CPPUNIT_ASSERT(packet->inputQueueFlushed);
+    CPPUNIT_ASSERT_EQUAL((size_t)2, packet->dataBuffer.size());
+
+    CPPUNIT_ASSERT_EQUAL(0, port->getCurrentQueueDepth());
 
     // Set queue depth to unlimited and push a lot of packets
     port->setMaxQueueDepth(-1);
@@ -577,7 +1066,7 @@ void InPortTest<Port>::testQueueSize()
     }
 }
 
-#define CREATE_TEST(x,BITS)                                             \
+/*#define CREATE_TEST(x,BITS)                                             \
     class In##x##PortTest : public InPortTest<bulkio::In##x##Port>      \
     {                                                                   \
         CPPUNIT_TEST_SUB_SUITE(In##x##PortTest, InPortTest<bulkio::In##x##Port>); \
@@ -586,17 +1075,31 @@ void InPortTest<Port>::testQueueSize()
     template <>                                                         \
     const size_t InPortTest<bulkio::In##x##Port>::BITS_PER_ELEMENT = BITS; \
     CPPUNIT_TEST_SUITE_REGISTRATION(In##x##PortTest);
+*/
 
-CREATE_TEST(Octet, 8);
-CREATE_TEST(Char, 8);
-CREATE_TEST(Short, 16);
-CREATE_TEST(UShort, 16);
-CREATE_TEST(Long, 32);
-CREATE_TEST(ULong, 32);
-CREATE_TEST(LongLong, 64);
-CREATE_TEST(ULongLong, 64);
-CREATE_TEST(Float, 32);
-CREATE_TEST(Double, 64);
-CREATE_TEST(Bit, 1);
-CREATE_TEST(XML, 8);
-CREATE_TEST(File, 8);
+#define CREATE_TEST(x, BASE, BITS)                                            \
+    class In##x##PortTest : public BASE<bulkio::In##x##Port>          \
+    {                                                                   \
+        CPPUNIT_TEST_SUB_SUITE(In##x##PortTest, BASE<bulkio::In##x##Port>); \
+        CPPUNIT_TEST_SUITE_END();                                       \
+    };                                                                  \
+    template <>                                                         \
+    const size_t InPortTest<bulkio::In##x##Port>::BITS_PER_ELEMENT = BITS; \
+    CPPUNIT_TEST_SUITE_REGISTRATION(In##x##PortTest);
+
+#define CREATE_BASIC_TEST(x, BITS) CREATE_TEST(x, InPortTest, BITS)
+#define CREATE_NUMERIC_TEST(x, BITS) CREATE_TEST(x, NumericInPortTest, BITS)
+
+CREATE_NUMERIC_TEST(Octet, 8);
+CREATE_NUMERIC_TEST(Char, 8);
+CREATE_NUMERIC_TEST(Short, 16);
+CREATE_NUMERIC_TEST(UShort, 16);
+CREATE_NUMERIC_TEST(Long, 32);
+CREATE_NUMERIC_TEST(ULong, 32);
+CREATE_NUMERIC_TEST(LongLong, 64);
+CREATE_NUMERIC_TEST(ULongLong, 64);
+CREATE_NUMERIC_TEST(Float, 32);
+CREATE_NUMERIC_TEST(Double, 64);
+CREATE_NUMERIC_TEST(Bit, 1);
+CREATE_BASIC_TEST(XML, 8);
+CREATE_BASIC_TEST(File, 8);

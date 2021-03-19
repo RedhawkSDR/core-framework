@@ -26,7 +26,9 @@
 
 #include <fnmatch.h>
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
 
 #include "ossie/FileSystem_impl.h"
 #include "ossie/File_impl.h"
@@ -322,25 +324,26 @@ CF::FileSystem::FileInformationSequence* FileSystem_impl::list (const char* patt
             } else {
                 result[index].name = CORBA::string_dup(filename.c_str());
             }
-            if (fsops.is_directory(*itr)) {
-                result[index].kind = CF::FileSystem::DIRECTORY;
-                result[index].size = 0;
-            } else {
-                try {
+            CORBA::ULongLong modtime = 0;
+            try {
+                if (fsops.is_directory(*itr)) {
+                    result[index].kind = CF::FileSystem::DIRECTORY;
+                    result[index].size = 0;
+                } else {
                     result[index].kind = CF::FileSystem::PLAIN;
                     result[index].size = fs::file_size(*itr);
-                } catch ( ... ) {
-                    // this file is not good (i.e.: bad link)
-                    result->length(index);
-                    RH_WARN(_fileSysLog, "File cannot be evaluated, excluding from list: " << filename);
-                    continue;
                 }
+                modtime = fs::last_write_time(*itr);
+            } catch ( ... ) {
+                // this file is not good (i.e.: bad link)
+                result->length(index);
+                RH_WARN(_fileSysLog, "File cannot be evaluated, excluding from list: " << filename);
+                continue;
             }
 
             const std::string localFilename = itr->path().string();
             bool readonly = access(localFilename.c_str(), W_OK);
             bool executable = !access(localFilename.c_str(), X_OK);
-            CORBA::ULongLong modtime = fs::last_write_time(*itr);
 
             redhawk::PropertyMap& props = redhawk::PropertyMap::cast(result[index].fileProperties);
             props[CF::FileSystem::CREATED_TIME_ID] = modtime;

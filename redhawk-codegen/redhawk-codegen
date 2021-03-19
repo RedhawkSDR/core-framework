@@ -40,7 +40,7 @@ except ImportError, e:
 # dict: for each resource type :  ( [ list of maps: impl:template name ], help text )
 #
 TemplateSetup = {
-    "frontend": ( [ {"cpp" : "redhawk.codegen.jinja.cpp.component.frontend"} ], "Generate a frontend compliant device" ),
+    "frontend": ( [ {"cpp" : "redhawk.codegen.jinja.cpp.component.frontend"}, {"java" : "redhawk.codegen.jinja.java.component.frontend"}, {"python" : "redhawk.codegen.jinja.python.component.frontend"} ], "Generate a frontend compliant device" ),
     "octave"  : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.octave"} ], "Generate an octave component" ),
     "persona"  : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.persona"} ], "Generate a persona device" ),
     "pgdevice" : ( [ { "cpp": "redhawk.codegen.jinja.cpp.component.programmable"} ], "Generate programmable device"),
@@ -333,7 +333,7 @@ if __name__ == '__main__':
                  raise SystemExit, 'Template override requires missing --impl option'
 
         # If this is a persona, verify the code type is SharedLibrary
-        if ('persona' in implSettings.template and not overrides.template) or ((resource_type and ('persona' in resource_type)) or (overrides.template and ('persona' in overrides.template))):
+        if (not overrides.template and 'persona' in implSettings.template) or ((resource_type and ('persona' in resource_type)) or (overrides.template and ('persona' in overrides.template))):
             if not implementation.isModule():
                 raise SystemExit, "Persona implementation must be of code type 'SharedLibrary' (ID: %s)\n" % implId
 

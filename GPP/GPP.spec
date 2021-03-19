@@ -41,8 +41,8 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-Requires(post): redhawk = %{version}
-BuildRequires:  redhawk-devel = %{version}
+Requires(post): redhawk >= 2.2.6
+BuildRequires:  redhawk-devel >= 2.2.6
 BuildRequires:  numactl-devel >= 2.0
 Obsoletes:      %{name} < 2.0
 

@@ -42,7 +42,7 @@ fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 
-PKG_CHECK_MODULES(OSSIE, ossie >= 3.0,,exit)
+PKG_CHECK_MODULES(OSSIE, ossie >= 3.0.0,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 PKG_CHECK_MODULES([BULKIO], [bulkio >= 3.0])
