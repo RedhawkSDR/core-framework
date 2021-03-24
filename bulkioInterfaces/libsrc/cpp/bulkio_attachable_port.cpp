@@ -1930,8 +1930,12 @@ namespace bulkio {
   {
     // TODO: ADD DEPRECATION WARNING HERE
     this->streamContainer.removeStreamByStreamId(std::string(stream.id));
-    user_id = userid;
-    this->addStream(stream); 
+    user_id = userid;    
+    if( this->addStream(stream) == false ){
+      std::ostringstream os;
+      os << "Attach failed to create new stream " << stream.id;
+      throw typename PortType::AttachError(os.str().c_str());
+    }
     return CORBA::string_dup("");
   }
 
@@ -2008,22 +2012,19 @@ namespace bulkio {
                     newStream->createNewAttachment(i->second, i->first);
                 } catch (typename PortType::AttachError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
-                    delete newStream;
                     throw;
                 } catch (typename PortType::StreamInputError& ex) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
-                    delete newStream;
                     throw;
                 } catch(...) {
                     LOG_ERROR( _portLog, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
-                    delete newStream;
                     throw;
                 }
 
              } catch(...) {
                 LOG_ERROR( _portLog, "UNABLE TO CREATE ATTACHMENT, PORT/CONNECTION: " << this->name << "/" << i->second );
                 delete newStream;
-                throw;
+                return false;
              }
           }
        }
@@ -2037,20 +2038,24 @@ namespace bulkio {
       }
       // Route new stream to all connections
       for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
-        try {
+        try{
+          try {
             newStream->createNewAttachment(i->second, i->first);
-        } catch (typename PortType::AttachError& ex) {
+          } catch (typename PortType::AttachError& ex) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
-            delete newStream;
             throw;
-        } catch (typename PortType::StreamInputError& ex) {
+          } catch (typename PortType::StreamInputError& ex) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
-            delete newStream;
             throw;
-        } catch(...) {
+          } catch(...) {
             LOG_ERROR( _portLog, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
-            delete newStream;
             throw;
+          }
+        }
+        catch (...) {
+          // delete created stream and return false
+          delete newStream;
+          return false;
         }
       }
     }

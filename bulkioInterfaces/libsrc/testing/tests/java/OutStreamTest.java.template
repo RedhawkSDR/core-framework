@@ -1,0 +1,723 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK bulkioInterfaces.
+ *
+ * REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+/*
+ * WARNING: This file is generated from NumericOutPortTest.java.template.
+ *          Do not modify directly.
+ */
+
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.omg.PortableServer.Servant;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.Any;
+
+import org.junit.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import helpers.ArrayData;
+import helpers.@name@TestHelper;
+import stubs.Stub;
+import bulkio.Out@name@Port;
+import bulkio.Out@name@Stream;
+
+@RunWith(JUnit4.class)
+public class Out@name@StreamTest {
+
+    /**
+     * Input port being tested
+     */
+    protected Out@name@Port port;
+    protected Stub<@type@> stub;
+    protected List<Servant> servants = new ArrayList<Servant>();
+
+    /**
+     * External CORBA interface to the tested port.
+     */
+    protected BULKIO.@idl@Operations corbaPort;
+
+    protected @name@TestHelper helper;
+
+    public Out@name@StreamTest()
+    {
+        this.helper = new @name@TestHelper();
+    }
+
+    protected Stub<@type@> _createStub() throws org.omg.CORBA.UserException
+    {
+        Stub<@type@> new_stub = helper.createStub();
+        org.omg.PortableServer.Servant servant = new_stub.servant();
+        org.ossie.corba.utils.RootPOA().activate_object(servant);
+        servants.add(servant);
+        return new_stub;
+    }
+
+    protected void _writeSinglePacket(Out@name@Stream stream, int size)
+    {
+        BULKIO.PrecisionUTCTime t = bulkio.time.utils.now();
+        this._writeSinglePacket(stream, size, t);
+    }
+
+    protected void _writeSinglePacket(Out@name@Stream stream, int size, BULKIO.PrecisionUTCTime time)
+    {
+        @type@ buffer = new @elem@[size];
+        stream.write(buffer, time);
+    }
+
+    protected void _writeTimestampsImpl(Out@name@Stream stream, boolean complexData)
+    {
+        // Generate a ramp using the scalar type; if the data needs to be pushed as
+        // complex, it will be reintepreted there
+        @type@ scalars = new @elem@[200];
+        for (int ii = 0; ii < scalars.length; ++ii) {
+            scalars[ii] = (@elem@)ii;
+        }
+        int sample_count = scalars.length;
+        if (stream.complex()) {
+            sample_count /= 2;
+        }
+
+        // Create 3 timestamps, breaking the input data at the 1/4 and 5/8 points
+        // (taking real/complex mode of the stream into account)
+        BULKIO.PrecisionUTCTime start = bulkio.time.utils.now();
+        bulkio.SampleTimestamp[] tstamps = new bulkio.SampleTimestamp[3];
+        tstamps[0] = new bulkio.SampleTimestamp(start, 0, false);
+        int offset = sample_count / 4;
+        tstamps[1] = new bulkio.SampleTimestamp(bulkio.time.utils.add(start, offset), offset, false);
+        offset = sample_count * 5 / 8;
+        tstamps[2] = new bulkio.SampleTimestamp(bulkio.time.utils.add(start, offset), offset, false);
+
+        if (complexData) {
+            CF.complex@name@[] data = new CF.complex@name@[scalars.length/2];
+            for (int index=0; index<scalars.length/2; index++) {
+                data[index] = new CF.complex@name@();
+                data[index].real = scalars[index*2];
+                data[index].imag = scalars[index*2+1];
+            }
+            stream.write(data, tstamps);
+        } else {
+            stream.write(scalars, tstamps);
+        }
+
+        // Data should have been broken into one chunk per timestamp
+        Assert.assertEquals(tstamps.length, stub.packets.size());
+
+        // Check that the packets are at the right offsets (implicitly checking
+        // that the prior packet was the right size) and have the correct time
+        int scalars_received = 0;
+        for (int ii = 0; ii < stub.packets.size(); ++ii) {
+            // Take complex data into account for the expected timestamp offset
+            int expected_offset = tstamps[ii].offset;
+            if (stream.complex()) {
+                expected_offset *= 2;
+            }
+            Assert.assertEquals(bulkio.time.utils.compare(tstamps[ii].time, stub.packets.get(ii).T), 0);
+            Assert.assertEquals(expected_offset, scalars_received);
+            scalars_received += stub.packets.get(ii).data.length;
+        }
+        Assert.assertEquals(scalars_received, scalars.length);
+    }
+
+    protected boolean _checkLastTimestamp(BULKIO.PrecisionUTCTime time)
+    {
+        int difference = bulkio.time.utils.compare(time,stub.packets.get(stub.packets.size()-1).T);
+        return (difference == 0);
+    }
+
+    @Before
+    @SuppressWarnings("unchecked")
+    public void setUp() throws org.omg.CORBA.UserException
+    {
+        String name = helper.getName() + "_out";
+        port = helper.createOutPort(name);
+        org.ossie.corba.utils.RootPOA().activate_object(port);
+
+        stub = _createStub();
+
+        org.omg.CORBA.Object objref = stub._this();
+        port.connectPort(objref, "connection_1");
+    }
+
+    @Test
+    public void testOperators()
+    {
+        // Create a new stream
+        Out@name@Stream good_stream = this.port.createStream("test_operators");
+        Assert.assertNotNull(good_stream);
+
+        // Get another handle to the same stream, should be equal
+        Out@name@Stream same_stream = port.getStream("test_operators");
+        Assert.assertEquals(same_stream, good_stream);
+
+        // Create a new stream, should not be equal
+        Out@name@Stream other_stream = port.createStream("test_operators_2");
+        Assert.assertNotEquals(other_stream, good_stream);
+    }
+
+    @Test
+    public void testBasicWrite()
+    {
+        Out@name@Stream stream = port.createStream("test_basic_write");
+        Assert.assertTrue(stub.packets.isEmpty());
+
+        BULKIO.PrecisionUTCTime time = bulkio.time.utils.now();
+        _writeSinglePacket(stream, 256, time);
+        Assert.assertEquals(stub.packets.size(), 1);
+        Assert.assertEquals(256, stub.packets.get(0).data.length);
+        Assert.assertFalse(stub.packets.get(0).EOS);
+        Assert.assertTrue(_checkLastTimestamp(time));
+        Assert.assertEquals(stream.streamID(), stub.packets.get(0).streamID);
+    }
+
+    @Test
+    public void testSriFields()
+    {
+        BULKIO.StreamSRI sri = bulkio.sri.utils.create("test_sri");
+        sri.xstart = -2.5;
+        sri.xdelta = 0.125;
+        sri.xunits = BULKIO.UNITS_FREQUENCY.value;
+        sri.subsize = 1024;
+        sri.ystart = 2.5;
+        sri.ydelta = 1.0;
+        sri.yunits = BULKIO.UNITS_TIME.value;
+        sri.mode = 1;
+        sri.blocking = true;
+        sri.keywords = new CF.DataType[2];
+        sri.keywords[0] = new CF.DataType();
+        sri.keywords[0].value = ORB.init().create_any();
+        sri.keywords[0].id = "string";
+        sri.keywords[0].value.insert_string("value");
+        sri.keywords[1] = new CF.DataType();
+        sri.keywords[1].value = ORB.init().create_any();
+        sri.keywords[1].id = "number";
+        sri.keywords[1].value.insert_long(100);
+    
+        // Create a stream from the SRI; assign to a const variable to ensure that
+        // all accessors are const-safe
+        Out@name@Stream stream = port.createStream(sri);
+        Assert.assertTrue(stream.streamID().equals(sri.streamID));
+        Assert.assertTrue(stream.xstart() == sri.xstart);
+        Assert.assertTrue(stream.xdelta() == sri.xdelta);
+        Assert.assertTrue(stream.xunits() == sri.xunits);
+        Assert.assertTrue(stream.subsize() == sri.subsize);
+        Assert.assertTrue(stream.ystart() == sri.ystart);
+        Assert.assertTrue(stream.ydelta() == sri.ydelta);
+        Assert.assertTrue(stream.yunits() == sri.yunits);
+        Assert.assertTrue(stream.complex());
+        Assert.assertTrue(stream.blocking());
+        Assert.assertTrue(sri.keywords.length == stream.keywords().length);
+        String value = stream.getKeyword("string").extract_string();
+        Assert.assertTrue(value.equals("value"));
+        Assert.assertEquals(100, stream.getKeyword("number").extract_long());
+    }
+
+    // Test that the SRI is not pushed when not needed.
+    // Calls to set attributes of the SRI, or set or erase SRI keywords should
+    // only cause the SRI to be pushed if a change was made.
+    @Test
+    public void testSriNoChange()
+    {
+        int expected_H_size = 0;
+
+        Out@name@Stream stream = port.createStream("test_sri_no_change");
+        BULKIO.StreamSRI sri = stream.sri();
+
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        _writeSinglePacket(stream, 10);
+        expected_H_size++;
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        //BULKIO.StreamSRI changed_sri = stream.sri();
+        //changed_sri.streamID = "changed_sri";
+        stream.sri(sri);
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        stream.xdelta(3.0);
+        expected_H_size++;
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        stream.xdelta(3.0);
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        CF.DataType[] props = new CF.DataType[2];
+        props[0] = new CF.DataType();
+        props[0].value = ORB.init().create_any();
+        props[0].id = "foo";
+        props[0].value.insert_string("word1");
+        props[1] = new CF.DataType();
+        props[1].value = ORB.init().create_any();
+        props[1].id = "bar";
+        props[1].value.insert_string("word2");
+        stream.keywords(props);
+        expected_H_size++;
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        stream.setKeyword("foo", "word8");
+        expected_H_size++;
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        stream.eraseKeyword("bar");
+        expected_H_size++;
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+
+        stream.eraseKeyword("bar");
+        _writeSinglePacket(stream, 10);
+        Assert.assertEquals(stub.H.size(), expected_H_size);
+    }
+
+    @Test
+    public void testSriUpdate()
+    {
+        // Create initial stream; all changes should be queued up for the first
+        // write
+        Out@name@Stream stream = port.createStream("test_sri_update");
+        double xdelta = 1.0 / 1.25e6;
+        stream.xdelta(xdelta);
+        stream.blocking(true);
+        Assert.assertTrue(stub.H.isEmpty());
+
+        // Write data to trigger initial SRI update
+        _writeSinglePacket(stream, 10);
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).blocking);
+        Assert.assertEquals(Double.compare(xdelta, stub.H.get(stub.H.size()-1).xdelta), 0);
+
+        // Update xdelta; no SRI update should occur
+        double new_xdelta = 1.0/2.5e6;
+        stream.xdelta(new_xdelta);
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertEquals(Double.compare(xdelta, stub.H.get(stub.H.size()-1).xdelta), 0);
+
+        // Write data to trigger SRI update
+        _writeSinglePacket(stream, 25);
+        Assert.assertTrue(stub.H.size() == 2);
+        Assert.assertEquals(Double.compare(new_xdelta, stub.H.get(stub.H.size()-1).xdelta), 0);
+
+        // Change blocking flag, then trigger an SRI update
+        stream.blocking(false);
+        Assert.assertTrue(stub.H.size() == 2);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).blocking);
+        _writeSinglePacket(stream, 25);
+        Assert.assertTrue(stub.H.size() == 3);
+        Assert.assertFalse(stub.H.get(stub.H.size()-1).blocking);
+
+        // Change multiple fields, but only one SRI update should occur (after the
+        // next write)
+        stream.complex(true);
+        stream.subsize(16);
+        stream.xstart(-Math.PI);
+        stream.xdelta(2.0 * Math.PI / 1024.0);
+        stream.xunits(BULKIO.UNITS_FREQUENCY.value);
+        stream.ydelta(1024.0 / 1.25e6);
+        stream.yunits(BULKIO.UNITS_TIME.value);
+        Assert.assertTrue(stub.H.size() == 3);
+
+        // Trigger SRI update and verify that it matches
+        _writeSinglePacket(stream, 1024);
+        Assert.assertTrue(stub.H.size() == 4);
+        bulkio.sri.DefaultComparator comparator = new bulkio.sri.DefaultComparator();
+
+        Assert.assertTrue(comparator.compare(stream.sri(), stub.H.get(stub.H.size()-1)));
+    }
+
+    @Test
+    public void testKeywords()
+    {
+        Out@name@Stream stream = port.createStream("test_keywords");
+        _writeSinglePacket(stream, 1);
+        Assert.assertTrue(stub.H.size() == 1);
+
+        // Set/get keywords
+        stream.setKeyword("integer", 250);
+        stream.setKeyword("string", "value");
+        stream.setKeyword("double", 101.1e6);
+        stream.setKeyword("boolean", false);
+        Assert.assertEquals(250, stream.getKeyword("integer").extract_long());
+        Assert.assertEquals("value", stream.getKeyword("string").extract_string());
+        Assert.assertEquals(Double.compare(101.1e6, stream.getKeyword("double").extract_double()), 0);
+        Assert.assertTrue(!stream.getKeyword("boolean").extract_boolean());
+
+        // Erase and check for presence of keywords
+        stream.eraseKeyword("string");
+        Assert.assertTrue(stream.hasKeyword("integer"));
+        Assert.assertTrue(!stream.hasKeyword("string"));
+        Assert.assertTrue(stream.hasKeyword("double"));
+        Assert.assertTrue(stream.hasKeyword("boolean"));
+
+        // Write a packet to trigger an SRI update
+        Assert.assertTrue(stub.H.size() == 1);
+        _writeSinglePacket(stream, 1);
+        Assert.assertTrue(stub.H.size() == 2);
+        {
+            CF.DataType[] keywords = stub.H.get(stub.H.size()-1).keywords;
+            Assert.assertEquals(stream.keywords().length, keywords.length);
+            CF.DataType _integer = null;
+            CF.DataType _double = null;
+            CF.DataType _boolean = null;
+            for (int ii=0; ii<keywords.length; ii++) {
+                if (keywords[ii].id.equals("integer")) {
+                    _integer = keywords[ii];
+                } else if (keywords[ii].id.equals("double")) {
+                    _double = keywords[ii];
+                } else if (keywords[ii].id.equals("boolean")) {
+                    _boolean = keywords[ii];
+                }
+            }
+            Assert.assertNotNull(_integer);
+            Assert.assertNotNull(_double);
+            Assert.assertNotNull(_boolean);
+
+            Assert.assertEquals(stream.getKeyword("integer").extract_long(), _integer.value.extract_long());
+            Assert.assertEquals(Double.compare(stream.getKeyword("double").extract_double(), _double.value.extract_double()), 0);
+            Assert.assertEquals(stream.getKeyword("boolean").extract_boolean(), _boolean.value.extract_boolean());
+        }
+
+        // Replace keywords with a new set
+        CF.DataType[] new_keywords = new CF.DataType[2];
+        new_keywords[0] = new CF.DataType();
+        new_keywords[0].value = ORB.init().create_any();
+        new_keywords[0].id = "COL_RF";
+        new_keywords[0].value.insert_double(100.0e6);
+        new_keywords[1] = new CF.DataType();
+        new_keywords[1].value = ORB.init().create_any();
+        new_keywords[1].id = "CHAN_RF";
+        new_keywords[1].value.insert_double(101.1e6);
+        stream.keywords(new_keywords);
+        Assert.assertEquals(2, stream.keywords().length);
+        Assert.assertEquals(Double.compare(100.0e6, stream.getKeyword("COL_RF").extract_double()), 0);
+        Assert.assertEquals(Double.compare(101.1e6, stream.getKeyword("CHAN_RF").extract_double()), 0);
+
+        // Trigger another SRI update
+        Assert.assertTrue(stub.H.size() == 2);
+        _writeSinglePacket(stream, 1);
+        Assert.assertTrue(stub.H.size() == 3);
+        {
+            CF.DataType[] keywords = stub.H.get(stub.H.size()-1).keywords;
+            Assert.assertEquals(stream.keywords().length, keywords.length);
+            CF.DataType _COL_RF = null;
+            CF.DataType _CHAN_RF = null;
+            for (int ii=0; ii<keywords.length; ii++) {
+                if (keywords[ii].id.equals("COL_RF")) {
+                    _COL_RF = keywords[ii];
+                } else if (keywords[ii].id.equals("CHAN_RF")) {
+                    _CHAN_RF = keywords[ii];
+                }
+            }
+            Assert.assertNotNull(_COL_RF);
+            Assert.assertNotNull(_CHAN_RF);
+            Assert.assertEquals(Double.compare(stream.getKeyword("COL_RF").extract_double(), _COL_RF.value.extract_double()), 0);
+            Assert.assertEquals(Double.compare(stream.getKeyword("CHAN_RF").extract_double(), _CHAN_RF.value.extract_double()), 0);
+        }
+    }
+
+    @Test
+    public void testSendEosOnClose()
+    {
+        Out@name@Stream stream = port.createStream("close_eos");
+
+        Assert.assertTrue(stub.H.size() == 0);
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        _writeSinglePacket(stream, 16);
+
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertTrue(stub.packets.size() == 1);
+        Assert.assertTrue(!stub.packets.get(stub.packets.size()-1).EOS);
+
+        stream.close();
+        Assert.assertTrue(stub.packets.size() == 2);
+        Assert.assertTrue(stub.packets.get(stub.packets.size()-1).EOS);
+    }
+
+    @Test
+    public void testBufferedWrite()
+    {
+        // Initial state is unbuffered; turn on buffering
+        Out@name@Stream stream = port.createStream("test_buffered_write");
+        Assert.assertEquals(0, stream.bufferSize());
+        stream.setBufferSize(128);
+        Assert.assertEquals(128, stream.bufferSize());
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // First write is below the buffer size
+        @type@ buffer = new @elem@[48];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // The second write is still below the buffer size
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // The third write goes beyond the buffer size and should trigger a push,
+        // but only up to the buffer size (48*3 == 144)
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 1);
+        Assert.assertEquals(stream.bufferSize(), stub.packets.get(stub.packets.size()-1).data.length);
+
+        // There should now be 16 samples in the queue; writing another 48 should
+        // not trigger a push
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 1);
+
+        // Flush the stream and make sure we get as many samples as expected
+        stream.flush();
+        Assert.assertTrue(stub.packets.size() == 2);
+        Assert.assertEquals(64, stub.packets.get(stub.packets.size()-1).data.length);
+
+        // Disable buffering; push should happen immediately
+        stream.setBufferSize(0);
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 3);
+    }
+
+    @Test
+    public void testWriteSkipBuffer()
+    {
+        // Turn on buffering
+        Out@name@Stream stream = port.createStream("test_skip_buffer");
+        stream.setBufferSize(100);
+
+        // With an empty queue, large write should go right through
+        @type@ buffer = new @elem@[256];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 1);
+        Assert.assertEquals(buffer.length, stub.packets.get(stub.packets.size()-1).data.length);
+
+        // Queue up a bit of data
+        buffer = new @elem@[16];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 1);
+
+        // With queued data, the large write should get broken up into a buffer-
+        // sized packet
+        buffer = new @elem@[128];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 2);
+        Assert.assertEquals(stream.bufferSize(), stub.packets.get(stub.packets.size()-1).data.length);
+    }
+
+    @Test
+    public void testFlush()
+    {
+        // Turn on buffering
+        Out@name@Stream stream = port.createStream("test_flush");
+        stream.setBufferSize(64);
+
+        // Queue data (should not flush)
+        @type@ buffer = new @elem@[48];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.H.size() == 0);
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // Make sure flush sends a packet
+        stream.flush();
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertTrue(stub.packets.size() == 1);
+        Assert.assertEquals(buffer.length, stub.packets.get(stub.packets.size()-1).data.length);
+    }
+
+    @Test
+    public void testFlushOnClose()
+    {
+        Out@name@Stream stream = port.createStream("test_flush_close");
+        stream.setBufferSize(64);
+
+        // Queue data (should not flush)
+        @type@ buffer = new @elem@[48];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.H.size() == 0);
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // Close the stream; should cause a flush
+        stream.close();
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertTrue(stub.packets.size() == 1);
+    }
+
+    @Test
+    public void testFlushOnSriChange()
+    {
+        // Start with known values for important stream metadata
+        Out@name@Stream stream = port.createStream("test_flush_sri");
+        stream.setBufferSize(64);
+        stream.xdelta(0.125);
+        stream.complex(false);
+        stream.blocking(false);
+        stream.subsize(0);
+
+        // Queue data (should not flush)
+        @type@ buffer = new @elem@[48];
+        stream.write(buffer, bulkio.time.utils.now());
+
+        // Change the xdelta to cause a flush; the received data should be using
+        // the old xdelta
+        Assert.assertTrue(stub.packets.size() == 0);
+        stream.xdelta(0.25);
+        Assert.assertTrue(stub.packets.size() == 1);
+        Assert.assertEquals(Double.compare(0.125, stub.H.get(stub.H.size()-1).xdelta), 0);
+
+        // Queue more data (should not flush)
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.H.size() == 1);
+        Assert.assertTrue(stub.packets.size() == 1);
+
+        // Change the mode to complex to cause a flush; the mode shouldn't change
+        // yet, but xdelta should be up-to-date now
+        stream.complex(true);
+        Assert.assertTrue(stub.packets.size() == 2);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).mode == 0);
+        Assert.assertEquals(Double.compare(stream.xdelta(), stub.H.get(stub.H.size()-1).xdelta), 0);
+
+        // Queue more data (should not flush)
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.H.size() == 2);
+        Assert.assertTrue(stub.packets.size() == 2);
+
+        // Change the blocking mode to cause a flush; the blocking flag shouldn't
+        // change yet, but mode should be up-to-date now
+        stream.blocking(true);
+        Assert.assertTrue(stub.packets.size() == 3);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).blocking == false);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).mode != 0);
+
+        // Queue more data (should not flush)
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.H.size() == 3);
+        Assert.assertTrue(stub.packets.size() == 3);
+
+        // Change the subsize to cause a flush; the subsize shouldn't change yet,
+        // but blocking should be up-to-date now
+        stream.subsize(16);
+        Assert.assertTrue(stub.packets.size() == 4);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).subsize == 0);
+        Assert.assertTrue(stub.H.get(stub.H.size()-1).blocking);
+    }
+
+    @Test
+    public void testFlushOnBufferSizeChange()
+    {
+        Out@name@Stream stream = port.createStream("test_flush_buffer_size");
+        stream.setBufferSize(64);
+
+        // Queue data (should not flush)
+        @type@ buffer = new @elem@[48];
+        stream.write(buffer, bulkio.time.utils.now());
+        Assert.assertTrue(stub.packets.size() == 0);
+
+        // Reduce the buffer size smaller than the current queue, should trigger a
+        // flush
+        stream.setBufferSize(32);
+        Assert.assertTrue(stub.packets.size() == 1);
+
+        // Reduce the buffer size again, but not down to the queue size, should not
+        // trigger a flush
+        buffer = new @elem@[16];
+        stream.write(buffer, bulkio.time.utils.now());
+        stream.setBufferSize(24);
+        Assert.assertTrue(stub.packets.size() == 1);
+
+        // Boundary condition: exact size
+        stream.setBufferSize(16);
+        Assert.assertTrue(stub.packets.size() == 2);
+
+        // Increasing the buffer size should not trigger a flush
+        buffer = new @elem@[8];
+        stream.write(buffer, bulkio.time.utils.now());
+        stream.setBufferSize(128);
+        Assert.assertTrue(stub.packets.size() == 2);
+
+        // Disabling buffering must flush
+        stream.setBufferSize(0);
+        Assert.assertTrue(stub.packets.size() == 3);
+    }
+
+    @Test
+    public void testStreamWriteCheck()
+    {
+        Out@name@Stream stream = port.createStream("compound_push");
+        // Generate a ramp using the scalar type; if the data needs to be pushed as
+        // complex, it will be reintepreted there
+        int number_tstamps = 10;
+        int payload_tstamps = 9;
+        int single_push_size = 100;
+        int push_size = 801;
+        @type@ scalars = new @elem@[push_size];
+        for (int ii = 0; ii < scalars.length; ++ii) {
+            scalars[ii] = (@elem@)ii;
+        }
+        int sample_count = scalars.length;
+
+        // Create 9 timestamps
+        BULKIO.PrecisionUTCTime start = bulkio.time.utils.now();
+        bulkio.SampleTimestamp[] tstamps = new bulkio.SampleTimestamp[number_tstamps];
+        for (int tstamp_idx=0; tstamp_idx<number_tstamps; tstamp_idx++) {
+            tstamps[tstamp_idx] = new bulkio.SampleTimestamp(bulkio.time.utils.add(start,tstamp_idx), single_push_size*tstamp_idx, false);
+        }
+
+        stream.write(scalars, tstamps);
+
+        // Data should have been broken into one chunk per timestamp
+        Assert.assertEquals(payload_tstamps, stub.packets.size());
+
+        // Check that the packets are at the right offsets (implicitly checking
+        // that the prior packet was the right size) and have the correct time
+        int scalars_received = 0;
+        for (int ii = 0; ii < payload_tstamps; ++ii) {
+            // Take complex data into account for the expected timestamp offset
+            int expected_offset = tstamps[ii].offset;
+            Assert.assertEquals(0, bulkio.time.utils.compare(tstamps[ii].time, stub.packets.get(ii).T));
+            Assert.assertEquals(expected_offset, scalars_received);
+            scalars_received += stub.packets.get(ii).data.length;
+        }
+        Assert.assertEquals(scalars_received, push_size);
+    }
+
+    @Test
+    public void testWriteTimestampsReal()
+    {
+        Out@name@Stream stream = port.createStream("write_timestamps_real");
+        _writeTimestampsImpl(stream, false);
+    }
+
+    @Test
+    public void testWriteTimestampsComplex()
+    {
+        Out@name@Stream stream = port.createStream("write_timestamps_complex");
+        stream.complex(true);
+        _writeTimestampsImpl(stream, true);
+    }
+
+    @Test
+    public void testWriteTimestampsMixed()
+    {
+    Out@name@Stream stream = port.createStream("write_timestamps_mixed");
+    stream.complex(true);
+    _writeTimestampsImpl(stream, false);
+    }
+}

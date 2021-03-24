@@ -494,7 +494,7 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEP
 
   STREAM_DEF invalidStreamDef;
   DefinitionGenerator::generateDefinition("stream-1-2", BAD_PORT, invalidStreamDef);
-  CPPUNIT_ASSERT_THROW(this->port->addStream(invalidStreamDef), BASE_EXCEPTION);
+  CPPUNIT_ASSERT(this->port->addStream(invalidStreamDef) == false);
   CPPUNIT_ASSERT_THROW(this->port->attach(invalidStreamDef, "some_user"), BASE_EXCEPTION);
 
   attIds= this->ip1->attachmentIds();
