@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(burstio, 2.2.7)
+AC_INIT(burstio, 2.2.8)
 AC_CONFIG_SRCDIR([src/cpp/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -42,7 +42,7 @@ fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 
-PKG_CHECK_MODULES(OSSIE, ossie >= 2.2.7,,exit)
+PKG_CHECK_MODULES(OSSIE, ossie >= 2.2.8,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 PKG_CHECK_MODULES([BULKIO], [bulkio >= 2.2])
