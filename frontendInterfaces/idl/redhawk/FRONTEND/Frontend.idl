@@ -187,6 +187,8 @@ module FRONTEND {
     struct RFCapabilities {
         FreqRange freq_range;
         FreqRange bw_range;
+        Range sample_rate_range;
+        Range gain_range;
     };
     
     /** Lists path delay */
