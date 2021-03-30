@@ -279,6 +279,7 @@ module FRONTEND {
     
     /** Device Kind */
     const string FE_TUNER_DEVICE_KIND = "FRONTEND::TUNER";
+    const string FE_PARENT_DEVICE_KIND = "FRONTEND::PARENT";
 
     /** Output format for digital tuners */
     const long REFERENCE_SOURCE_INTERNAL = 0; 
