@@ -3,7 +3,7 @@
 <properties>
   <simple id="DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d" mode="readonly" name="device_kind" type="string">
     <description>This specifies the device kind</description>
-    <value>FRONTEND::TUNER</value>
+    <value>FRONTEND::PARENT</value>
     <kind kindtype="allocation"/>
     <action type="eq"/>
   </simple>
