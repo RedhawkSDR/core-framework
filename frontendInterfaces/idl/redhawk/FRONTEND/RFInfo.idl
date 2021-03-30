@@ -68,6 +68,8 @@ module FRONTEND
         /** Gives information regarding sensor*/
         SensorInfo sensor;
         PathDelays ext_path_delays;
+        FreqDependentDeviations tdoa_sigma;
+        FreqDependentDeviations fdoa_sigma;
         RFCapabilities capabilities;
         
         /** Allows for expansion*/
