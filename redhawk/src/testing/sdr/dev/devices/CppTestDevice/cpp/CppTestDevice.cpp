@@ -54,7 +54,7 @@ CppTestDevice_i::~CppTestDevice_i()
 {
 }
 
-void CppTestDevice_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void CppTestDevice_i::initialize()
 {
 	CppTestDevice_base::initialize();
 	setAllocationImpl("memory_allocation", this, &CppTestDevice_i::allocate_memory, &CppTestDevice_i::deallocate_memory);

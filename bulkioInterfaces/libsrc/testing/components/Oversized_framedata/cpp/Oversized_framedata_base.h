@@ -32,11 +32,11 @@ class Oversized_framedata_base : public Resource_impl, protected ThreadedCompone
         Oversized_framedata_base(const char *uuid, const char *label);
         ~Oversized_framedata_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

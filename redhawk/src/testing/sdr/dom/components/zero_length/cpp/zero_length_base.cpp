@@ -25,13 +25,13 @@ zero_length_base::~zero_length_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void zero_length_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void zero_length_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void zero_length_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void zero_length_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -39,7 +39,7 @@ void zero_length_base::stop() throw (CORBA::SystemException, CF::Resource::StopE
     }
 }
 
-void zero_length_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void zero_length_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

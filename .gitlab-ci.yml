@@ -32,7 +32,7 @@ stages:
     - echo "commit hash => ${commit:0:8}"
     - datetime=$(git show -s --format=%cd ${commit})
     - echo "commit date => ${datetime}"
-    - printf "FROM ${docker_registry}${rpmbuild_repository}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')

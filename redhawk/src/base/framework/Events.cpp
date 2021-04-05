@@ -580,7 +580,7 @@ namespace events {
   // Request a Publisher on a specified Event Channel
   //
   PublisherPtr Manager::Publisher( const std::string &channel_name, const std::string &registrationId ) 
-    throw (RegistrationExists, RegistrationFailed) {
+  {
     SCOPED_LOCK(_mgr_lock);
 
     RH_DEBUG(_eventManagerLog,  "Requesting Publisher for Channel:" << channel_name  << " resource:" << _obj_id );
@@ -638,7 +638,7 @@ namespace events {
   }
 
   SubscriberPtr  Manager::Subscriber( const std::string &channel_name, const std::string &registrationId )
-    throw (RegistrationExists, RegistrationFailed) {
+  {
 
     SCOPED_LOCK(_mgr_lock);
 
@@ -927,7 +927,7 @@ namespace events {
     _disconnectReceiver(NULL)
     {
       // if user passes a bad param then throw...
-      if ( CORBA::is_nil(inChannel) == true ) throw (CF::EventChannelManager::OperationNotAllowed());
+      if ( CORBA::is_nil(inChannel) == true ) throw CF::EventChannelManager::OperationNotAllowed();
       channel = ossie::events::EventChannel::_duplicate(inChannel);
 
       // create a local disconnect object 
@@ -1343,7 +1343,7 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
   Subscriber::Subscriber(  ossie::events::EventChannel_ptr  inChannel ):
     consumer(NULL)
   {
-    if ( CORBA::is_nil(inChannel) == true ) throw (CF::EventChannelManager::OperationNotAllowed());
+    if ( CORBA::is_nil(inChannel) == true ) throw CF::EventChannelManager::OperationNotAllowed();
     _init( inChannel );
   }
 
@@ -1353,7 +1353,7 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
     consumer(NULL)
   {
     dataArrivedCB =  boost::shared_ptr< DataArrivedListener >(newListener, null_deleter());
-    if ( CORBA::is_nil(inChannel) == true ) throw (CF::EventChannelManager::OperationNotAllowed());
+    if ( CORBA::is_nil(inChannel) == true ) throw CF::EventChannelManager::OperationNotAllowed();
     _init( inChannel );
   }
 
@@ -1363,7 +1363,7 @@ int Publisher::disconnect(const int retries,  const int retry_wait )
     consumer(NULL)
   {
     dataArrivedCB =  boost::make_shared< StaticDataArrivedListener >( newListener );
-    if ( CORBA::is_nil(inChannel) == true ) throw (CF::EventChannelManager::OperationNotAllowed());
+    if ( CORBA::is_nil(inChannel) == true ) throw CF::EventChannelManager::OperationNotAllowed();
     _init( inChannel );
   }
 

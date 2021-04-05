@@ -371,7 +371,7 @@ void DeviceManager_impl::domainRefreshChanged(float oldValue, float newValue)
         std::string message("DOMAIN_REFRESH can only be set when the Domain Manager persistence is enabled");
         redhawk::PropertyMap query_props;
         query_props["DOMAIN_REFRESH"] = redhawk::Value(newValue);
-        throw(CF::PropertySet::InvalidConfiguration(message.c_str(), query_props));
+        throw CF::PropertySet::InvalidConfiguration(message.c_str(), query_props);
     }
     this->DOMAIN_REFRESH = newValue;
     this->DomainWatchThread->updateDelay(this->DOMAIN_REFRESH);
@@ -406,7 +406,7 @@ void DeviceManager_impl::reset()
     postConstructor(_domainName.c_str());
 }
 
-void DeviceManager_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier)
+void DeviceManager_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel )
 {
     BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
         CF::Device_var device_ref = _device->device;
@@ -419,7 +419,7 @@ void DeviceManager_impl::setLogLevel( const char *logger_id, const CF::LogLevel 
     Logging_impl::setLogLevel(logger_id, newLevel);
 }
 
-CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
+CF::LogLevel DeviceManager_impl::getLogLevel( const char *logger_id )
 {
     BOOST_FOREACH(DeviceNode* _device, _registeredDevices) {
         CF::Device_var device_ref = _device->device;
@@ -930,8 +930,6 @@ bool DeviceManager_impl::getDeviceOrService(
  */
 void DeviceManager_impl::postConstructor (
         const char* overrideDomainName) 
-    throw (CORBA::SystemException, std::runtime_error)
-
 {
     myObj = _this();
 
@@ -1614,42 +1612,37 @@ DeviceManager_impl::getDomainManagerReference (const std::string& domainManagerN
 
 
 char* DeviceManager_impl::deviceConfigurationProfile ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_deviceConfigurationProfile.c_str());
 }
 
 
-CF::FileSystem_ptr DeviceManager_impl::fileSys ()throw (CORBA::
-                                                        SystemException)
+CF::FileSystem_ptr DeviceManager_impl::fileSys ()
 {
     return CF::FileSystem::_duplicate(_fileSys);
 }
 
 
 char* DeviceManager_impl::identifier ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup (_identifier.c_str());
 }
 
 
 char* DeviceManager_impl::label ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup (_label.c_str());
 }
 
 
-CF::DomainManager_ptr DeviceManager_impl::domMgr ()throw (CORBA::
-                                                        SystemException)
+CF::DomainManager_ptr DeviceManager_impl::domMgr ()
 {
     return CF::DomainManager::_duplicate(this->_dmnMgr);
 }
 
 
 CF::DeviceManager::ServiceSequence *
-DeviceManager_impl::registeredServices ()throw (CORBA::SystemException)
+DeviceManager_impl::registeredServices ()
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
@@ -1671,11 +1664,10 @@ DeviceManager_impl::registeredServices ()throw (CORBA::SystemException)
 
 void
 DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
-throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
   if (CORBA::is_nil (registeringDevice)) {
     RH_WARN(this->_baseLog, "Attempted to register NIL device")
-      throw (CF::InvalidObjectReference("[DeviceManager::registerDevice] Cannot register Device. registeringDevice is a nil reference."));
+      throw CF::InvalidObjectReference("[DeviceManager::registerDevice] Cannot register Device. registeringDevice is a nil reference.");
   }
 
   if (*_internalShutdown) // do not service a registration request if the Device Manager is shutting down
@@ -1701,7 +1693,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       std::ostringstream eout;
       eout << "Loading Device's SPD failed, device:" <<  deviceLabel;
           RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
   }
 
   // This lock needs to be here because we add the device to
@@ -1745,30 +1737,30 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
       eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been initialized correctly; "
            << "Call to initializeProperties() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
       RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch(CF::PropertySet::PartialConfiguration& e) {
       std::ostringstream eout;
       eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
            << "Call to initializeProperties() resulted in PartialConfiguration exception.";
       RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch ( std::exception& ex ) {
       std::ostringstream eout;
       eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initalizeProperties for  "<<deviceLabel<<". Device registration with Device Manager failed";
       RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
       std::ostringstream eout;
       eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initializeProperties for "<<deviceLabel<<". Device registration with Device Manager failed";
       RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch( ... ) {
       std::ostringstream eout;
       eout << "Failed to initialize device properties: '";
       eout << deviceLabel << "' with device id: '" << spd_id;
       eout << "'initializeProperties' failed with Unknown Exception" << "Device registration with Device Manager failed ";
       RH_ERROR(this->_baseLog, eout.str());
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
     }
   }
 
@@ -1779,17 +1771,17 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     std::ostringstream eout;
     eout << "Device "<< deviceLabel << " threw a CF::LifeCycle::InitializeError exception"<<". Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   } catch ( std::exception& ex ) {
     std::ostringstream eout;
     eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   } catch ( const CORBA::Exception& ex ) {
     std::ostringstream eout;
     eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to initialize Device " << deviceLabel<<". Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   }
 
   //configure properties
@@ -1807,23 +1799,23 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
          << "Call to configure() resulted in PartialConfiguration exception.";
     RH_ERROR(this->_baseLog, eout.str())
-      throw(CF::InvalidObjectReference(eout.str().c_str()));
+      throw CF::InvalidObjectReference(eout.str().c_str());
   } catch (CF::PropertySet::InvalidConfiguration& ex) {
     std::ostringstream eout;
     eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
          << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   } catch ( std::exception& ex ) {
     std::ostringstream eout;
     eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   } catch ( const CORBA::Exception& ex ) {
     std::ostringstream eout;
     eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
     RH_ERROR(this->_baseLog, eout.str());
-    throw(CF::InvalidObjectReference(eout.str().c_str()));
+    throw CF::InvalidObjectReference(eout.str().c_str());
   }
 
   // Register the device with the Device manager, unless it is already
@@ -1893,7 +1885,6 @@ bool DeviceManager_impl::serviceIsRegistered (const char* serviceName)
 
 void
 DeviceManager_impl::unregisterDevice (CF::Device_ptr registeredDevice)
-throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
 
     std::string dev_id;
@@ -1909,7 +1900,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 //registeredDevices attribute.
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
         RH_ERROR(this->_baseLog, "Attempt to unregister nil device")
-        throw (CF::InvalidObjectReference("Cannot unregister Device. registeringDevice is a nil reference."));
+        throw CF::InvalidObjectReference("Cannot unregister Device. registeringDevice is a nil reference.");
     }
 
 //The unregisterDevice operation shall remove the input registeredDevice from the
@@ -1919,12 +1910,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
         dev_name = ossie::corba::returnString(registeredDevice->label());
     } catch ( std::exception& ex ) {
         RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while trying to retrieve the identifier and label of the registered device")
-        throw(CF::InvalidObjectReference());
+        throw CF::InvalidObjectReference();
     } catch ( const CORBA::Exception& ex ) {
         RH_ERROR(this->_baseLog, "The following CORBA exception occurred: "<<ex._name()<<" while trying to retrieve the identifier and label of the registered device")
-        throw(CF::InvalidObjectReference());
+        throw CF::InvalidObjectReference();
     } catch ( ... ) {
-        throw (CF:: InvalidObjectReference("Cannot Unregister Device. Invalid reference"));
+        throw CF:: InvalidObjectReference("Cannot Unregister Device. Invalid reference");
     }
 
 //Look for registeredDevice in _registeredDevices
@@ -1932,7 +1923,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
     if (!deviceFound) {
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
         RH_ERROR(this->_baseLog, "Cannot unregister Device. registeringDevice was not registered.")
-        throw (CF::InvalidObjectReference("Cannot unregister Device. registeringDevice was not registered."));
+        throw CF::InvalidObjectReference("Cannot unregister Device. registeringDevice was not registered.");
     }
 }
 
@@ -2021,7 +2012,6 @@ void DeviceManager_impl::stopOrder()
 
 void
 DeviceManager_impl::shutdown ()
-throw (CORBA::SystemException)
 {
     if (DomainWatchThread)
         this->DomainWatchThread->stop();
@@ -2103,13 +2093,12 @@ throw (CORBA::SystemException)
 void
 DeviceManager_impl::registerService (CORBA::Object_ptr registeringService,
                                      const char* name)
-throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
     RH_INFO(this->_baseLog, "Registering service " << name)
 
     if (CORBA::is_nil (registeringService)) {
-        throw (CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference."));
+        throw CF::InvalidObjectReference("Cannot register service, registeringService is a nil reference.");
     }
 
     ossie::corba::overrideBlockingCall(registeringService,getClientWaitTime());
@@ -2170,13 +2159,12 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 void
 DeviceManager_impl::unregisterService (CORBA::Object_ptr registeredService,
                                        const char* name)
-throw (CORBA::SystemException, CF::InvalidObjectReference)
 {
     RH_INFO(this->_baseLog, "Unregistering service " << name)
 
     if (CORBA::is_nil (registeredService)) {
         /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.); */
-        throw (CF::InvalidObjectReference("Cannot unregister Service. registeringService is a nil reference."));
+        throw CF::InvalidObjectReference("Cannot unregister Service. registeringService is a nil reference.");
     }
 
     //Look for registeredDevice in _registeredDevices
@@ -2194,7 +2182,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
 
 //If it didn't find registeredDevice, then throw an exception
     /*writeLogRecord(FAILURE_ALARM,invalid reference input parameter.);*/
-    throw (CF::InvalidObjectReference("Cannot unregister Service. registeringService was not registered."));
+    throw CF::InvalidObjectReference("Cannot unregister Service. registeringService was not registered.");
 //The unregisterService operation shall write a FAILURE_ALARM log record, when it cannot
 //successfully remove a registeredService from the DeviceManagers registeredServices.
 //The unregisterService operation shall raise the CF InvalidObjectReference when the input
@@ -2253,7 +2241,6 @@ local_spd::ProgramProfile *DeviceManager_impl::findProfile (const std::string &u
 
 
 char * DeviceManager_impl::getComponentImplementationId (const char* componentInstantiationId)
-throw (CORBA::SystemException)
 {
 //The getComponentImplementationId operation shall return the SPD implementation elements
 //ID attribute that matches the SPD implementation element used to create the component
@@ -2741,7 +2728,7 @@ bool DeviceManager_impl::deviceIsRegistered (CF::Device_ptr registeredDevice)
     return false;
 }
 
-CF::DeviceSequence* DeviceManager_impl::registeredDevices () throw (CORBA::SystemException)
+CF::DeviceSequence* DeviceManager_impl::registeredDevices ()
 {
     boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
     CF::DeviceSequence_var result;
@@ -3043,7 +3030,7 @@ void DeviceManager_impl::tryResourceStartup( CORBA::Object_ptr registeringServic
             std::ostringstream eout;
             eout << "Unable to find componentplacement information for for Service:" << svc_name;
             RH_WARN(this->_baseLog, eout.str());
-            throw(CF::InvalidObjectReference(eout.str().c_str()));
+            throw CF::InvalidObjectReference(eout.str().c_str());
         }
 
         //

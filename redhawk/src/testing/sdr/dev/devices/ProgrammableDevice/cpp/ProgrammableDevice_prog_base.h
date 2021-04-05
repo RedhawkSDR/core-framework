@@ -201,12 +201,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
         void load ( CF::FileSystem_ptr           fs, 
                     const char*                  fileName, 
                     CF::LoadableDevice::LoadType loadKind )
-            throw ( 
-                CF::LoadableDevice::LoadFail, 
-                CF::InvalidFileName, 
-                CF::LoadableDevice::InvalidLoadKind,
-                CF::Device::InvalidState, 
-                CORBA::SystemException ) 
         {
             bool isSharedLibrary = (loadKind == CF::LoadableDevice::SHARED_LIBRARY);
             bool existsOnDevFS   = _deviceManager->fileSys()->exists(fileName);
@@ -226,14 +220,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
                         const char*             name, 
                         const CF::Properties&   options, 
                         const CF::Properties&   parameters )
-            throw (
-                CF::ExecutableDevice::ExecuteFail, 
-                CF::InvalidFileName, 
-                CF::ExecutableDevice::InvalidOptions, 
-                CF::ExecutableDevice::InvalidParameters,
-                CF::ExecutableDevice::InvalidFunction, 
-                CF::Device::InvalidState, 
-                CORBA::SystemException )
         {
             LOG_DEBUG(ProgrammableDevice_prog_base, __FUNCTION__ << 
                     ": Instantiating persona '" << name << "'... ");
@@ -247,7 +233,7 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
             if (persona == NULL) {
                 LOG_FATAL(ProgrammableDevice_prog_base, __FUNCTION__ << 
                     ": Unable to instantiate '" << name << "'");
-                throw (CF::ExecutableDevice::ExecuteFail());
+                throw CF::ExecutableDevice::ExecuteFail();
             }
            
             // Grab the name from the instantiated object 
@@ -264,10 +250,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
         }
         
         void terminate (CF::ExecutableDevice::ProcessID_Type processId) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::ExecutableDevice::InvalidProcess, 
-                CORBA::SystemException ) 
         {
             // Initialize local variables
             ProcessMapIter processIter;
@@ -294,11 +276,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
         }
         
         CORBA::Boolean allocateCapacity(const CF::Properties& capacities) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::Device::InvalidCapacity, 
-                CF::Device::InsufficientCapacity, 
-                CORBA::SystemException ) 
         {
             boost::mutex::scoped_lock lock(_allocationMutex);
 
@@ -375,10 +352,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
         }
         
         void deallocateCapacity(const CF::Properties& capacities) 
-            throw (
-                CF::Device::InvalidState, 
-                CF::Device::InvalidCapacity, 
-                CORBA::SystemException ) 
         {
             // Initialize local variables
             bool deallocationSuccess = false;
@@ -439,8 +412,6 @@ class ProgrammableDevice_prog_base : public ProgrammableDevice_base
         }
         
         void releaseObject() 
-            throw ( CF::LifeCycle::ReleaseError, 
-                    CORBA::SystemException)
         {
             // Initialize local variables
             ProcessMapIter processIter;

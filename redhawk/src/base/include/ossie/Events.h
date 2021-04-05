@@ -359,17 +359,21 @@ namespace events {
     //
     virtual ~Manager();
 
-    //
-    // Request a Publisher on a specified Event Channel
-    //
-    PublisherPtr Publisher( const std::string &channelName, const std::string &registrationId="" ) 
-      throw(RegistrationExists, RegistrationFailed );
+    /**
+     * Request a Publisher on a specified Event Channel
+     *
+     * @throw RegistrationExists
+     * @throw RegistrationFailed
+     */
+    PublisherPtr Publisher( const std::string &channelName, const std::string &registrationId="" );
  
-    //
-    // Request a Subscriber to a specified Event Channel
-    //
-    SubscriberPtr  Subscriber( const std::string &channelName, const std::string &registrationId="" )
-      throw (RegistrationExists, RegistrationFailed );
+    /**
+     * Request a Subscriber on a specified Event Channel
+     *
+     * @throw RegistrationExists
+     * @throw RegistrationFailed
+     */
+    SubscriberPtr  Subscriber( const std::string &channelName, const std::string &registrationId="" );
 
   private:
 

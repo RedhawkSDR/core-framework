@@ -21,6 +21,12 @@
 
 #include "ossie/Port_impl.h"
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 Port_impl::Port_impl()
 {
 }
@@ -52,7 +58,7 @@ namespace redhawk {
     PortCallError::PortCallError( const std::string &msg, const std::vector<std::string> &connectionids ) :
         std::runtime_error(PortCallError::makeMessage(msg, connectionids)) {}
 
-    PortCallError::~PortCallError() throw () {}
+    PortCallError::~PortCallError() NOEXCEPT {}
 
     std::string PortCallError::makeMessage(const std::string& msg, const std::vector<std::string>& connectionids) {
         std::ostringstream cnvt;

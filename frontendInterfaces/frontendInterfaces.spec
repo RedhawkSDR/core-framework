@@ -46,6 +46,7 @@ Requires:       bulkioInterfaces >= 3.0.0
 BuildRequires:  redhawk-devel >= 3.0.0
 BuildRequires:  bulkioInterfaces >= 3.0.0
 BuildRequires:  cppunit-devel
+BuildRequires:  autoconf-archive
 
 %description
 Libraries and interface definitions for frontend.

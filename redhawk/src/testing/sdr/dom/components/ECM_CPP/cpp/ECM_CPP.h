@@ -29,8 +29,8 @@ class ECM_CPP_i : public ECM_CPP_base
         ECM_CPP_i(const char *uuid, const char *label);
         ~ECM_CPP_i();
         int serviceFunction();
-        void initialize() throw  (CF::LifeCycle::InitializeError, CORBA::SystemException);
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void initialize();
+        void releaseObject();
 
         void dataArrived( const CORBA::Any &data );
         void enableChanged( const bool *ov, bool const *nv );

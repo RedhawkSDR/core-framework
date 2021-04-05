@@ -33,6 +33,12 @@
 #include "ossie/Autocomplete.h"
 #include "ossie/logging/rh_logger.h"
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 namespace _seqVector {
 
 template<typename _Tp>
@@ -51,17 +57,17 @@ template<typename _Tp>
             typedef seqVectorAllocator<_Tp1> other;
         };
 
-        seqVectorAllocator() throw() {
+        seqVectorAllocator() NOEXCEPT {
         }
 
-        seqVectorAllocator(const seqVectorAllocator&) throw() {
+        seqVectorAllocator(const seqVectorAllocator&) NOEXCEPT {
         }
 
         template<typename _Tp1>
-        seqVectorAllocator(const seqVectorAllocator<_Tp1>&) throw() {
+        seqVectorAllocator(const seqVectorAllocator<_Tp1>&) NOEXCEPT {
         }
 
-        ~seqVectorAllocator() throw() {
+        ~seqVectorAllocator() NOEXCEPT {
         }
 
         pointer address(reference __x) const {
@@ -85,7 +91,7 @@ template<typename _Tp>
             ::operator delete[](__p);
         }
 
-        size_type max_size() const throw() {
+        size_type max_size() const NOEXCEPT {
             return size_t(-1) / sizeof(_Tp);
         }
 
@@ -120,7 +126,7 @@ namespace redhawk {
     public:
         PortCallError( const std::string &msg, const std::vector<std::string> &connectionids );
 
-        ~PortCallError() throw ();
+        ~PortCallError() NOEXCEPT ;
 
     private:
         static std::string makeMessage(const std::string& msg, const std::vector<std::string>& connectionids);

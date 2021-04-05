@@ -32,11 +32,11 @@ class prop_trigger_timing_base : public Component, protected ThreadedComponent
         prop_trigger_timing_base(const char *uuid, const char *label);
         ~prop_trigger_timing_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

@@ -745,14 +745,12 @@ uint32_t  DomainManager_impl::getServiceWaitTime() {
 
 char *
 DomainManager_impl::identifier (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_identifier.c_str());
 }
 
 char *
 DomainManager_impl::name (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(this->_domainName.c_str());
 }
@@ -760,21 +758,18 @@ throw (CORBA::SystemException)
 
 char *
 DomainManager_impl::domainManagerProfile (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_domainManagerProfile.c_str());
 }
 
 
-CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void) throw (CORBA::
-                                                              SystemException)
+CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void)
 {
     return _allocationMgr->_this();
 }
 
 
-CF::EventChannelManager_ptr DomainManager_impl::eventChannelMgr (void) throw (CORBA::
-                                                              SystemException)
+CF::EventChannelManager_ptr DomainManager_impl::eventChannelMgr (void) 
 {
     return _eventChannelMgr->_this();
 }
@@ -796,22 +791,20 @@ namespace {
 }
 
 
-CF::FileManager_ptr DomainManager_impl::fileMgr (void) throw (CORBA::
-SystemException)
+CF::FileManager_ptr DomainManager_impl::fileMgr (void)
 {
     return CF::FileManager::_duplicate(_fileMgr);
 }
 
 
-CF::ConnectionManager_ptr DomainManager_impl::connectionMgr (void) throw (CORBA::SystemException)
+CF::ConnectionManager_ptr DomainManager_impl::connectionMgr (void)
 {
     return _connectionMgr->_this();
 }
 
 
 CF::DomainManager::ApplicationFactorySequence *
-DomainManager_impl::applicationFactories (void) throw (CORBA::
-                                                       SystemException)
+DomainManager_impl::applicationFactories (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -823,7 +816,7 @@ DomainManager_impl::applicationFactories (void) throw (CORBA::
 
 
 CF::DomainManager::ApplicationSequence *
-DomainManager_impl::applications (void) throw (CORBA::SystemException)
+DomainManager_impl::applications (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -835,7 +828,7 @@ DomainManager_impl::applications (void) throw (CORBA::SystemException)
 
 
 CF::DomainManager::DeviceManagerSequence *
-DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
+DomainManager_impl::deviceManagers (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -851,7 +844,7 @@ DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
 
 
 CF::DomainManager::DomainManagerSequence *
-DomainManager_impl::remoteDomainManagers (void) throw (CORBA::SystemException)
+DomainManager_impl::remoteDomainManagers (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -902,8 +895,6 @@ ossie::DomainManagerList::iterator DomainManager_impl::findDomainManagerById (co
 
 void
 DomainManager_impl::registerRemoteDomainManager (CF::DomainManager_ptr domainMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     try {
@@ -942,8 +933,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
 void
 DomainManager_impl::unregisterRemoteDomainManager (CF::DomainManager_ptr domainMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     if (CORBA::is_nil(domainMgr)) {
@@ -973,8 +962,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
 void
 DomainManager_impl::registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(deviceMgr,getManagerWaitTime());
@@ -990,7 +977,7 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     if (CORBA::is_nil (deviceMgr)) {
-        throw (CF::InvalidObjectReference("Cannot register DeviceManager. It is a nil reference."));
+        throw CF::InvalidObjectReference("Cannot register DeviceManager. It is a nil reference.");
     }
 
     // Per the specification two conditions can arise if the device manager is already registered
@@ -1054,7 +1041,7 @@ void DomainManager_impl::_local_registerDeviceManager (CF::DeviceManager_ptr dev
         } catch ( ossie::parser_error& e ) {
             std::string parser_error_line = ossie::retrieveParserErrorLineNumber(e.what());
             RH_ERROR(this->_baseLog, "Failed device manager registration; error parsing device manager DCD: " << deviceMgr->deviceConfigurationProfile() << ". " << parser_error_line << " The XML parser returned the following error: " << e.what())
-            throw(CF::DomainManager::RegisterError());
+            throw CF::DomainManager::RegisterError();
         }
 
         const std::vector<Connection>& connections = dcdParser->getConnections();
@@ -1160,8 +1147,6 @@ void DomainManager_impl::mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr)
 
 void
 DomainManager_impl::unregisterDeviceManager (CF::DeviceManager_ptr deviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -1286,9 +1271,6 @@ ossie::DeviceManagerList::iterator DomainManager_impl::removeDeviceManager (ossi
 void
 DomainManager_impl::registerDevice (CF::Device_ptr registeringDevice,
                                     CF::DeviceManager_ptr registeredDeviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
-       CF::DomainManager::DeviceManagerNotRegistered,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(registeringDevice,getDeviceWaitTime());
@@ -1308,8 +1290,8 @@ void DomainManager_impl::_local_registerDevice (CF::Device_ptr registeringDevice
     //Verify they are not a nil reference
     if (CORBA::is_nil (registeringDevice)
             || CORBA::is_nil (registeredDeviceMgr)) {
-        throw (CF::InvalidObjectReference
-               ("[DomainManager::registerDevice] Cannot register Device. Either Device or DeviceMgr is a nil reference."));
+        throw CF::InvalidObjectReference
+               ("[DomainManager::registerDevice] Cannot register Device. Either Device or DeviceMgr is a nil reference.");
     }
 
     //Verify that input is a registered DeviceManager
@@ -1447,8 +1429,6 @@ DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringServic
 
 void
 DomainManager_impl::unregisterDevice (CF::Device_ptr unregisteringDevice)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -1586,11 +1566,6 @@ CF::Application_ptr DomainManager_impl::createApplication(const char* profileFil
 //              --              ApplicationInstallationError
 
 void DomainManager_impl::installApplication (const char* profileFileName)
-throw (CORBA::SystemException, 
-       CF::InvalidProfile, 
-       CF::InvalidFileName,
-       CF::DomainManager::ApplicationInstallationError, 
-       CF::DomainManager::ApplicationAlreadyInstalled)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_installApplication(profileFileName);
@@ -1673,8 +1648,6 @@ void DomainManager_impl::_local_installApplication (const std::string& profileFi
 
 void
 DomainManager_impl::uninstallApplication (const char* applicationId)
-throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
-       CF::DomainManager::ApplicationUninstallationError)
 {
     RH_INFO(this->_baseLog, "Uninstalling application " << applicationId);
     boost::mutex::scoped_lock lock(interfaceAccess);
@@ -1856,9 +1829,6 @@ DomainManager_impl::registerWithEventChannel (CORBA::
                                               Object_ptr registeringObject,
                                               const char* registeringId,
                                               const char* eventChannelName)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::InvalidEventChannelName,
-       CF::DomainManager::AlreadyConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_registerWithEventChannel(registeringObject, registeringId, eventChannelName);
@@ -1901,8 +1871,6 @@ void DomainManager_impl::_local_registerWithEventChannel (CORBA::Object_ptr regi
 void
 DomainManager_impl::unregisterFromEventChannel (const char* unregisteringId,
                                                 const char* eventChannelName)
-throw (CORBA::SystemException, CF::DomainManager::InvalidEventChannelName,
-       CF::DomainManager::NotConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_unregisterFromEventChannel(unregisteringId, eventChannelName);
@@ -1928,7 +1896,6 @@ void DomainManager_impl::_local_unregisterFromEventChannel (const std::string& u
 
 
 void DomainManager_impl::registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
-    throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(registeringService,getServiceWaitTime());
@@ -2201,7 +2168,6 @@ void DomainManager_impl::restoreEventChannelRegistrations(const std::string& _db
 }
 
 void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringService, const char* name)
-    throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 

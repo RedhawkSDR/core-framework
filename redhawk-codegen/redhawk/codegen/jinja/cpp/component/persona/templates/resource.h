@@ -51,10 +51,19 @@ class ${className} : public ${baseClass}
         ~${className}();
         int serviceFunction();
 //% if component is device
-        CORBA::Boolean allocateCapacity(const CF::Properties& capacities) 
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
-        void deallocateCapacity(const CF::Properties& capacities) 
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
+        /**
+         * @throw CF::Device::InvalidState
+         * @throw CF::Device::InvalidCapacity
+         * @throw CF::Device::InsufficientCapacity
+         * @throw CORBA::SystemException
+         */
+        CORBA::Boolean allocateCapacity(const CF::Properties& capacities);
+        /**
+         * @throw CF::Device::InvalidState
+         * @throw CF::Device::InvalidCapacity
+         * @throw CORBA::SystemException
+         */
+        void deallocateCapacity(const CF::Properties& capacities);
 
     protected:
         void hwLoadRequest(CF::Properties& request);

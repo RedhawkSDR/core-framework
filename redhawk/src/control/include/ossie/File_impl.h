@@ -46,19 +46,49 @@ public:
 
     ~File_impl ();
 
-    char* fileName () throw (CORBA::SystemException);
-    void read (CF::OctetSequence_out data, CORBA::ULong length) throw (CF::File::IOException, CORBA::SystemException);
-    void write (const CF::OctetSequence& data) throw (CF::File::IOException, CORBA::SystemException);
-    void close () throw (CF::FileException, CORBA::SystemException);
-    void setFilePointer (CORBA::ULong _filePointer) throw (CF::FileException, CF::File::InvalidFilePointer, CORBA::SystemException);
-    CORBA::ULong filePointer () throw (CORBA::SystemException);
-    CORBA::ULong sizeOf () throw (CF::FileException, CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    char* fileName ();
+    /**
+     * @throw CF::File::IOException
+     * @throw CORBA::SystemException
+     */
+    void read (CF::OctetSequence_out data, CORBA::ULong length);
+    /**
+     * @throw CF::File::IOException
+     * @throw CORBA::SystemException
+     */
+    void write (const CF::OctetSequence& data);
+    /**
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    void close ();
+    /**
+     * @throw CF::FileException
+     * @throw CF::File::InvalidFilePointer
+     * @throw CORBA::SystemException
+     */
+    void setFilePointer (CORBA::ULong _filePointer);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CORBA::ULong filePointer ();
+    /**
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    CORBA::ULong sizeOf ();
     void setIOR( const std::string &ior);
 
 private:
     File_impl (const char* fileName, FileSystem_impl *ptrFs, bool readOnly, bool create);
 
-    CORBA::ULong getSize () throw (CF::FileException);
+    /**
+     * @throw CF::FileException
+     */
+    CORBA::ULong getSize ();
 
     std::string fName;
     std::string fullFileName;

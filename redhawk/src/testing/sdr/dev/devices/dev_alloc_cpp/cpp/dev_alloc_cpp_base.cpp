@@ -52,13 +52,13 @@ void dev_alloc_cpp_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void dev_alloc_cpp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void dev_alloc_cpp_base::start()
 {
     Device_impl::start();
     ThreadedComponent::startThread();
 }
 
-void dev_alloc_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void dev_alloc_cpp_base::stop()
 {
     Device_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -66,7 +66,7 @@ void dev_alloc_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
     }
 }
 
-void dev_alloc_cpp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void dev_alloc_cpp_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

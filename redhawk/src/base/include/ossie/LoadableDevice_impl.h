@@ -171,26 +171,44 @@ public:
     LoadableDevice_impl (char*, char*, char*, char*, CF::Properties capacities, char*);
     virtual ~LoadableDevice_impl ();
 
-    // Externally visible function call to load a file
-    void  load (CF::FileSystem_ptr fs, const char* fileName,
-          CF::LoadableDevice::LoadType loadKind)
-    throw (CF::LoadableDevice::LoadFail, CF::InvalidFileName,
-           CF::LoadableDevice::InvalidLoadKind, CF::Device::InvalidState,
-           CORBA::SystemException);
-    // Internal operation that loads the file
-    void do_load (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind)
-    throw (CF::LoadableDevice::LoadFail, CF::InvalidFileName,
-           CF::LoadableDevice::InvalidLoadKind, CF::Device::InvalidState,
-           CF::FileException, CORBA::SystemException);
+    /**
+     * Externally visible function call to load a file
+     * 
+     * @throw CF::LoadableDevice::LoadFail
+     * @throw CF::InvalidFileName
+     * @throw CF::LoadableDevice::InvalidLoadKind
+     * @throw CF::Device::InvalidState
+     * @throw CORBA::SystemException
+     */
+    void  load (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind);
+    /**
+     * Internal operation that loads the file
+     * 
+     * @throw CF::LoadableDevice::LoadFail
+     * @throw CF::InvalidFileName
+     * @throw CF::LoadableDevice::InvalidLoadKind
+     * @throw CF::Device::InvalidState
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    void do_load (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind);
 
-    // Externally visible function call to unload a file
-    void  unload (const char* fileName)
-    throw (CF::InvalidFileName, CF::Device::InvalidState,
-           CORBA::SystemException);
-    // Internal operation that unloads the file
-    void do_unload (const char* fileName) 
-    throw (CF::InvalidFileName, CF::Device::InvalidState,
-           CORBA::SystemException);
+    /**
+     * Externally visible function call to unload a file
+     * 
+     * @throw CF::InvalidFileName
+     * @throw CF::Device::InvalidState
+     * @throw CORBA::SystemException
+     */
+    void  unload (const char* fileName);
+    /**
+     * Internal operation that unloads the file
+     * 
+     * @throw CF::InvalidFileName
+     * @throw CF::Device::InvalidState
+     * @throw CORBA::SystemException
+     */
+    void do_unload (const char* fileName);
 
     // Check to see if a particular file has already been loaded
     bool isFileLoaded (const char* fileName);
@@ -216,8 +234,22 @@ protected:
     // Map that keeps track of the files that have been copied
     copiedFiles_type copiedFiles;
     boost::recursive_mutex load_execute_lock;
-    void update_ld_library_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind) throw (CORBA::SystemException, CF::Device::InvalidState, CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName, CF::LoadableDevice::LoadFail);
-    void update_octave_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind) throw (CORBA::SystemException, CF::Device::InvalidState, CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName, CF::LoadableDevice::LoadFail);
+    /**
+     * @throw CORBA::SystemException
+     * @throw CF::Device::InvalidState
+     * @throw CF::LoadableDevice::InvalidLoadKind
+     * @throw CF::InvalidFileName
+     * @throw CF::LoadableDevice::LoadFail
+     */
+    void update_ld_library_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind);
+    /**
+     * @throw CORBA::SystemException
+     * @throw CF::Device::InvalidState
+     * @throw CF::LoadableDevice::InvalidLoadKind
+     * @throw CF::InvalidFileName
+     * @throw CF::LoadableDevice::LoadFail
+     */
+    void update_octave_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind);
     void merge_front_environment_path( const char* environment_variable, const std::string& path ) const;
     std::map<std::string, sharedLibraryStorage> sharedPkgs;
     envStateContainer initialState;

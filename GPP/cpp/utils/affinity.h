@@ -55,9 +55,9 @@ namespace gpp
         
         @param "socket" or "cpu"
         @param context  numalib parsable string to specify node or cpu lists (all returns all cpus)x
+        @throw redhawk::affinity::AffinityFailed
       */
-      redhawk::affinity::CpuList get_cpu_list( const std::string &pol, const std::string &context ) 
-        throw (redhawk::affinity::AffinityFailed);
+      redhawk::affinity::CpuList get_cpu_list( const std::string &pol, const std::string &context );
 
       /**
          set_affinity 
@@ -86,11 +86,11 @@ namespace gpp
             cgroup  Assign task to a Cgroup.
             cpu     Assign task to a list of CPU Ids
 
+         @throw redhawk::affinity::AffinityFailed
       */
       int set_affinity( const redhawk::affinity::AffinityDirectives &spec, 
                         const pid_t pid, 
-                        const redhawk::affinity::CpuList &blacklist = redhawk::affinity::CpuList(0))
-        throw (redhawk::affinity::AffinityFailed);
+                        const redhawk::affinity::CpuList &blacklist = redhawk::affinity::CpuList(0));
 
     };  // affinity namespace
     

@@ -137,7 +137,7 @@ std::string ExecutableDevice_impl::get_component_name_from_exec_params(const CF:
     throw CF::ExecutableDevice::InvalidParameters(parameters);
 }
 
-CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const char* name, const CF::Properties& options, const CF::Properties& parameters, const CF::StringSequence& deps) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const char* name, const CF::Properties& options, const CF::Properties& parameters, const CF::StringSequence& deps)
 {
     boost::recursive_mutex::scoped_lock lock;
     try
@@ -173,7 +173,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::executeLinked (const
     return execute(name, options, arguments);
 }
 
-CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters)
 {
     boost::recursive_mutex::scoped_lock lock;
     try
@@ -228,7 +228,7 @@ void ExecutableDevice_impl::set_resource_affinity( const CF::Properties& options
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args)
 {
     CF::Properties invalidOptions;
     std::string path;
@@ -449,7 +449,7 @@ CF::ExecutableDevice::ProcessID_Type ExecutableDevice_impl::do_execute (const ch
     - terminates a process on the device
 ******************************************************************* */
 void
-ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
+ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId)
 {
     std::vector< std::pair< int, float > > _signals;
     _signals.push_back(std::make_pair(SIGINT, 2));
@@ -458,9 +458,8 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
 // validate device state
     if (isLocked () || isDisabled ()) {
         printf ("Cannot terminate. System is either LOCKED or DISABLED.");
-        throw (CF::Device::
-               InvalidState
-               ("Cannot terminate. System is either LOCKED or DISABLED."));
+        throw CF::Device::InvalidState
+               ("Cannot terminate. System is either LOCKED or DISABLED.");
     }
 
   // go ahead and terminate the process
@@ -504,8 +503,6 @@ ExecutableDevice_impl::terminate (CF::ExecutableDevice::ProcessID_Type processId
 }
 
 void  ExecutableDevice_impl::configure (const CF::Properties& capacities)
-throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
-       InvalidConfiguration, CORBA::SystemException)
 {
     Device_impl::configure(capacities);
 }

@@ -44,13 +44,13 @@ PropertyChange_C1_base::~PropertyChange_C1_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void PropertyChange_C1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void PropertyChange_C1_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void PropertyChange_C1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void PropertyChange_C1_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void PropertyChange_C1_base::stop() throw (CORBA::SystemException, CF::Resource:
     }
 }
 
-void PropertyChange_C1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void PropertyChange_C1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

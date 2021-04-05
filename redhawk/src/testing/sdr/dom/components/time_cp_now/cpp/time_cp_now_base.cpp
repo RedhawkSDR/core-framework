@@ -27,13 +27,13 @@ time_cp_now_base::~time_cp_now_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void time_cp_now_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void time_cp_now_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void time_cp_now_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void time_cp_now_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -41,7 +41,7 @@ void time_cp_now_base::stop() throw (CORBA::SystemException, CF::Resource::StopE
     }
 }
 
-void time_cp_now_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void time_cp_now_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

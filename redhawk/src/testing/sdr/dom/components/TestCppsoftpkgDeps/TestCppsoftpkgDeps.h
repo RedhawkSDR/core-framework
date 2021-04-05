@@ -42,8 +42,7 @@ public:
     TestCppsoftpkgDeps (const char* uuid, const char* label);
     ~TestCppsoftpkgDeps (void);
 
-    void runTest (CORBA::ULong testID, CF::Properties& testValues)
-        throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException);
+    void runTest (CORBA::ULong testID, CF::Properties& testValues);
 
     void propertyChanged (const std::string&);
 

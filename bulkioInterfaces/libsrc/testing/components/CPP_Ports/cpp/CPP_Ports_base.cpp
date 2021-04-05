@@ -46,7 +46,6 @@ parent(p)
 {}
 
 char *CPP_Ports_base::MySddsCallback::attach( const BULKIO::SDDSStreamDefinition& stream, const char* userid )
-      throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError)
 {
 
   std::string aid = ossie::generateUUID();
@@ -206,11 +205,11 @@ void CPP_Ports_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void CPP_Ports_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void CPP_Ports_base::initialize()
 {
 }
 
-void CPP_Ports_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void CPP_Ports_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -233,7 +232,7 @@ void CPP_Ports_base::start() throw (CORBA::SystemException, CF::Resource::StartE
     }
 }
 
-void CPP_Ports_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void CPP_Ports_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -259,7 +258,7 @@ void CPP_Ports_base::stop() throw (CORBA::SystemException, CF::Resource::StopErr
     }
 }
 
-CORBA::Object_ptr CPP_Ports_base::getPort(const char* _id) throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
+CORBA::Object_ptr CPP_Ports_base::getPort(const char* _id)
 {
 
     std::map<std::string, Port_Provides_base_impl *>::iterator p_in = inPorts.find(std::string(_id));
@@ -340,10 +339,10 @@ CORBA::Object_ptr CPP_Ports_base::getPort(const char* _id) throw (CORBA::SystemE
         return CF::Port::_duplicate(p_out->second);
     }
 
-    throw (CF::PortSupplier::UnknownPort());
+    throw CF::PortSupplier::UnknownPort();
 }
 
-void CPP_Ports_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void CPP_Ports_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

@@ -62,7 +62,7 @@ issue_111_cpp_i::~issue_111_cpp_i()
 {
 }
 
-void issue_111_cpp_i::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void issue_111_cpp_i::start()
 {
     issue_111_cpp_base::start();
     _usageState = CF::Device::ACTIVE;

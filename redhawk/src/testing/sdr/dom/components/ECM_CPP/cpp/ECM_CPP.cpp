@@ -45,7 +45,6 @@ ECM_CPP_i::~ECM_CPP_i()
 }
 
 void ECM_CPP_i::initialize()
-throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
 {
     ecm = redhawk::events::Manager::GetManager( this );
     pub = ecm->Publisher("test1");
@@ -53,7 +52,6 @@ throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
 }
 
 void ECM_CPP_i::releaseObject() 
-throw (CF::LifeCycle::ReleaseError, CORBA::SystemException) 
 {
   pub.reset();
   sub.reset();

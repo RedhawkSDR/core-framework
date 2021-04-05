@@ -52,13 +52,13 @@ void zero_length_dev_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void zero_length_dev_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void zero_length_dev_base::start()
 {
     Device_impl::start();
     ThreadedComponent::startThread();
 }
 
-void zero_length_dev_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void zero_length_dev_base::stop()
 {
     Device_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -66,7 +66,7 @@ void zero_length_dev_base::stop() throw (CORBA::SystemException, CF::Resource::S
     }
 }
 
-void zero_length_dev_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void zero_length_dev_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

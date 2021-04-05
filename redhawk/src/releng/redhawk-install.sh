@@ -47,6 +47,10 @@ fi
 
 nproc=`/usr/bin/getconf _NPROCESSORS_ONLN`
 
+cp $core/src/releng/redhawk-devtoolset-disable.sh $OSSIEHOME/bin/
+cp $core/src/releng/redhawk-devtoolset-enable.sh $OSSIEHOME/bin/
+. $OSSIEHOME/redhawk-devtoolset-enable.sh
+
 pushd $core/src
 ./reconf
 ./configure

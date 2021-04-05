@@ -44,13 +44,13 @@ TestLoggingAPI_base::~TestLoggingAPI_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void TestLoggingAPI_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void TestLoggingAPI_base::start()
 {
     Resource_impl::start();
     ThreadedComponent::startThread();
 }
 
-void TestLoggingAPI_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void TestLoggingAPI_base::stop()
 {
     Resource_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void TestLoggingAPI_base::stop() throw (CORBA::SystemException, CF::Resource::St
     }
 }
 
-void TestLoggingAPI_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void TestLoggingAPI_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

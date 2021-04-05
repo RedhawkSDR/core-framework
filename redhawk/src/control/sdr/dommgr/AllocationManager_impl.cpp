@@ -99,7 +99,7 @@ void AllocationManager_impl::unfilledRequests(CF::AllocationManager::AllocationR
     }
 }
 
-CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocate(const CF::AllocationManager::AllocationRequestSequence &requests) throw (CF::AllocationManager::AllocationError)
+CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocate(const CF::AllocationManager::AllocationRequestSequence &requests)
 {
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
@@ -143,7 +143,7 @@ CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::alloc
 }
 
 /* Allocates a set of dependencies only inside the local Domain */
-CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName) throw (CF::AllocationManager::AllocationError)
+CF::AllocationManager::AllocationResponseSequence* AllocationManager_impl::allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName)
 {
     RH_TRACE(_allocMgrLog, "Attempting local allocation for " << requests.length()
              << " request(s)");
@@ -545,7 +545,7 @@ bool AllocationManager_impl::checkPartitionMatching( ossie::DeviceNode& node,
 
 
 /* Deallocates a set of allocations */
-void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
+void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs)
 {
     if (allocationIDs.length() > 0) {
         deallocate(allocationIDs.get_buffer(), allocationIDs.get_buffer() + allocationIDs.length());
@@ -553,7 +553,7 @@ void AllocationManager_impl::deallocate(const CF::AllocationManager::allocationI
 }
 
 /* Returns all current allocations on all Domains */
-CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
+CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs)
 {
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
     
@@ -606,7 +606,7 @@ CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::allocat
 }
 
 /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated */
-CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId)
+CF::AllocationManager::AllocationStatusSequence* AllocationManager_impl::localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs)
 {
     boost::recursive_mutex::scoped_lock lock(allocationAccess);
 

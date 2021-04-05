@@ -28,7 +28,7 @@ using namespace ossie;
 // When the XSD changes you will need to update these functions.
 PREPARE_CF_LOGGING(DomainManagerConfiguration)
 
-DomainManagerConfiguration::DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error) : _dmd(0) {
+DomainManagerConfiguration::DomainManagerConfiguration(std::istream& input) : _dmd(0) {
     this->load(input);
 }
 
@@ -62,7 +62,7 @@ const char* DomainManagerConfiguration::toString() const {
     return "";
 }
 
-void DomainManagerConfiguration::load(std::istream& input) throw (ossie::parser_error) 
+void DomainManagerConfiguration::load(std::istream& input)
 {
     _dmd = ossie::internalparser::parseDMD(input);
 }

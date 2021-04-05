@@ -23,7 +23,7 @@ AC_INIT([ossie],[3.0.0])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
 AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
-dnl Update these verion numbers immedately before a release
+dnl Update these version numbers immedately before a release
 dnl
 dnl The version number is in the format "current:revision:age"
 dnl
@@ -51,6 +51,7 @@ OSSIE_OSSIEHOME_AS_PREFIX
 OSSIE_SDRROOT_IGNORE_PREFIX
 
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(14, noext)
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL

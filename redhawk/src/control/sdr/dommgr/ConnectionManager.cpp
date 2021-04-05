@@ -91,7 +91,7 @@ ossie::Endpoint* ConnectionManager_impl::requestToEndpoint(const CF::ConnectionM
         endpoint->setIdentifier(this->_domainManager->_domainName);
         break;
     case CF::ConnectionManager::ENDPOINT_DEVICEMANAGER:
-        throw(CF::Port::InvalidPort(1, "Unsupported endpoint. DeviceManager endpoint is not supported"));
+        throw CF::Port::InvalidPort(1, "Unsupported endpoint. DeviceManager endpoint is not supported");
     }
 
     const std::string portName(request.portName);
@@ -118,7 +118,7 @@ char* ConnectionManager_impl::connect(const CF::ConnectionManager::EndpointReque
     } catch (ossie::InvalidConnection &e){
         std::ostringstream err;
         err << "Unable to create a connection: "<<e.what();
-        throw (CF::Port::InvalidPort(1, err.str().c_str()));
+        throw CF::Port::InvalidPort(1, err.str().c_str());
     }
     std::string connectionRecordId = _domainManager->_connectionManager.restoreConnection(requesterId, connection);
     return CORBA::string_dup(connectionRecordId.c_str());
@@ -131,7 +131,7 @@ void ConnectionManager_impl::disconnect(const char* connectionRecordId)
     } catch ( ossie::InvalidConnection &e) {
         std::ostringstream err;
         err << "Unable to remove a connection: "<<e.what();
-        throw (CF::Port::InvalidPort(1, err.str().c_str()));
+        throw CF::Port::InvalidPort(1, err.str().c_str());
     }
 }
 

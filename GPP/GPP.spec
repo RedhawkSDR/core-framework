@@ -44,6 +44,7 @@ Vendor:         REDHAWK
 Requires(post): redhawk >= 2.2.6
 BuildRequires:  redhawk-devel >= 2.2.6
 BuildRequires:  numactl-devel >= 2.0
+BuildRequires:  autoconf-archive
 Obsoletes:      %{name} < 2.0
 
 
