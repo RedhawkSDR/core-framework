@@ -2,7 +2,7 @@ variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
   other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
-  redhawk_version: '2.3.0'
+  redhawk_version: '2.2.8'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   redhawk_branch: 'develop-2.3'
@@ -167,7 +167,7 @@ deploy:
     - curl --insecure -X POST -F ref=$redhawk_testing_ref
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name] = develop-2.3.0"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
                               -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
                               $test_url
 
@@ -191,13 +191,11 @@ test-trigger:release:
   image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
-  variables:
-    redhawk_version: '2.3.0-rc5'
   script:
-    - curl --insecure -X POST -F ref=$redhawk_version
+    - curl --insecure -X POST -F ref=$redhawk_branch
                               -F token=$test_token
                               -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name] = develop-2.3.0"
+                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
                               -F "variables[output_name]=$CI_COMMIT_REF_NAME"
                               $test_url
   only:

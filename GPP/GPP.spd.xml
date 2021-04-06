@@ -19,7 +19,7 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 <!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
-<softpkg id="DCE:4e20362c-4442-4656-af6d-aedaaf13b275" name="GPP" type="sca_compliant" version="2.3.0">
+<softpkg id="DCE:4e20362c-4442-4656-af6d-aedaaf13b275" name="GPP" type="sca_compliant" version="2.2.8">
   <title>Redhawk GPP</title>
   <author>
     <name>null</name>

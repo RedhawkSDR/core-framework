@@ -41,7 +41,7 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.3.0])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.8])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 # If you depend on other IDL modules, such as CF or BULKIO add them here
