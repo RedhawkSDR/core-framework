@@ -511,6 +511,7 @@ if maxcpus == 2:
 else:
     if maxcpus < 9 or maxcpus < 11 :
         affinity_test_src["8-10"] = all_cpus
+    if maxcpus < 5 :
         affinity_test_src["5"] = all_cpus
 
 print "numa_layout:", numa_layout
