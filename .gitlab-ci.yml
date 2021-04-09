@@ -29,10 +29,11 @@ stages:
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
+    - echo "pwd => $(pwd)"
     - echo "commit hash => ${commit:0:8}"
     - datetime=$(git show -s --format=%cd ${commit})
     - echo "commit date => ${datetime}"
-    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-onbuild-cpp14" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
