@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 2.2.7)
+AC_INIT(bulkioInterfaces, 2.2.8)
 AC_CONFIG_MACRO_DIR([m4])
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [3:0:1])
 
@@ -44,7 +44,7 @@ fi
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 RH_PKG_IDLDIR([OMNIORB], [omniORB4])
 
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.7])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.8])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 PKG_CHECK_MODULES([OMNICOS], [omniCOS4 >= 4.0.0])
 RH_PKG_IDLDIR([OMNICOS], [omniCOS4])
