@@ -176,10 +176,6 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
   void EventChannelManager::markForRegistrations( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
      SCOPED_LOCK(_mgrlock);
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
@@ -190,7 +186,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
 
     // channel registration entry does not exists 
     if ( reg == NULL ) {
-      throw (CF::EventChannelManager::ChannelDoesNotExist());
+      throw CF::EventChannelManager::ChannelDoesNotExist();
     }
 
     reg->autoRelease = true;
@@ -198,12 +194,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
 
-  void EventChannelManager::forceRelease( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
-      
+  void EventChannelManager::forceRelease( const char *channel_name) {
     SCOPED_LOCK(_mgrlock);
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
@@ -217,7 +208,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     // channel registration entry does not exists 
     if ( reg == NULL ) {
       RH_DEBUG(_eventChannelMgrLog, " Registration DOES NOT EXISTS event channel: " << channel_name );    
-      throw (CF::EventChannelManager::ChannelDoesNotExist());
+      throw CF::EventChannelManager::ChannelDoesNotExist();
     }
 
     // check if anyone is still registered
@@ -231,34 +222,19 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     
   }
 
-  void EventChannelManager::release( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
+  void EventChannelManager::release( const std::string &channel_name) {
      SCOPED_LOCK(_mgrlock);
     _release(channel_name.c_str() );
   }
 
 
-  void EventChannelManager::release( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
+  void EventChannelManager::release( const char *channel_name) {
     SCOPED_LOCK(_mgrlock);
     _release(channel_name);
   }
 
 
   void EventChannelManager::_release( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
 
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
@@ -273,7 +249,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     // channel registration entry does not exists 
     if ( reg == NULL ) {
       RH_DEBUG(_eventChannelMgrLog, " Registration DOES NOT EXISTS event channel: " << channel_name );    
-      throw (CF::EventChannelManager::ChannelDoesNotExist());
+      throw CF::EventChannelManager::ChannelDoesNotExist();
     }
 
     // check if anyone is still registered
@@ -282,7 +258,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
       // mark channel for deletion when registrations are emptied
       reg->autoRelease = true;
       reg->release = true;
-      throw (CF::EventChannelManager::RegistrationsExists());
+      throw CF::EventChannelManager::RegistrationsExists();
     }
 
     //
@@ -300,11 +276,11 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
     catch(CORBA::SystemException& ex) {
       // this will happen if channel is destroyed but 
       RH_WARN(_eventChannelMgrLog, " Event Channel RELEASE operation, System exception occured, ex " << ex._name() );
-      throw (CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
     catch(CORBA::Exception& ex) {
       RH_WARN(_eventChannelMgrLog, " Event Channel RELEASE operation, CORBA exception occured, ex " << ex._name() );
-      throw (CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
     
     _domainManager->sendRemoveEvent(channel_name.c_str(), channel_name.c_str(), channel_name.c_str(), StandardEvent::EVENT_CHANNEL);
@@ -315,47 +291,35 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
 
 
 ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
       return _create( channel_name );
     }
     catch(const CF::EventChannelManager::InvalidChannelName&){
-      throw(CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
   }
 
 
 
   ossie::events::EventChannel_ptr EventChannelManager::create( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
       return _create( channel_name );
     }catch(const CF::EventChannelManager::InvalidChannelName&){
-      throw(CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
   }
 
 ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
       return _get( channel_name );
     }catch(const CF::EventChannelManager::InvalidChannelName&){
-      throw(CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }    
 
   }
@@ -363,43 +327,30 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 
 
   ossie::events::EventChannel_ptr EventChannelManager::get( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
       return _get( channel_name );
     }catch(const CF::EventChannelManager::InvalidChannelName&){
-      throw(CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }        
   }
 
 
   ossie::events::EventChannel_ptr EventChannelManager::createForRegistrations( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try {
       return _create( channel_name, true );
     }
     catch(CF::EventChannelManager::InvalidChannelName&){
-      throw(CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
     
   }
 
 
   ossie::events::EventChannel_ptr EventChannelManager::_create( const std::string &channel_name, const bool autoRelease) 
-    throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
@@ -408,7 +359,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw (CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     }
 
     //
@@ -416,7 +367,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
     //
     if ( _channelExists( channel_name ) ) {
       RH_DEBUG(_eventChannelMgrLog, "Event channel: "<< channel_name << " exists, in the local domain");
-      throw (CF::EventChannelManager::ChannelAlreadyExists());
+      throw CF::EventChannelManager::ChannelAlreadyExists();
     }
 
     //
@@ -444,7 +395,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 
     if ( CORBA::is_nil(event_channel) == true ) {
       RH_ERROR(_eventChannelMgrLog, "Create Event Channel failed.  channel: "<< channel_name );
-      throw (CF::EventChannelManager::OperationFailed());      
+      throw CF::EventChannelManager::OperationFailed();
     }
 
     RH_TRACE(_eventChannelMgrLog, 
@@ -461,17 +412,12 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
   }
 
   ossie::events::EventChannel_ptr EventChannelManager::_get( const std::string &channel_name ) 
-    throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     //
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw ( CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     }
 
     //
@@ -501,7 +447,7 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
       }
     }
     RH_DEBUG(_eventChannelMgrLog, "Event channel: "<< channel_name << " does not exist in the local domain");
-    throw (CF::EventChannelManager::ChannelDoesNotExist());
+    throw CF::EventChannelManager::ChannelDoesNotExist();
   }
 
 
@@ -509,11 +455,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel, 
                                    const std::string &channel_name, 
                                    const std::string &fqn_name) 
-  throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
@@ -522,7 +463,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw ( CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     }
 
     //
@@ -530,7 +471,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
     //
     if ( _channelExists( channel_name ) ) {
       RH_DEBUG(_eventChannelMgrLog, "Event channel: "<< channel_name << " exists, in the local domain");
-      throw (CF::EventChannelManager::ChannelAlreadyExists());
+      throw CF::EventChannelManager::ChannelAlreadyExists();
     }
 
     //
@@ -572,7 +513,7 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
 
     if ( CORBA::is_nil(event_channel) == true ) {
       RH_ERROR(_eventChannelMgrLog, "Create Event Channel failed.  channel: "<< channel_name );
-      throw (CF::EventChannelManager::OperationFailed());      
+      throw CF::EventChannelManager::OperationFailed();
     }
 
     //
@@ -583,22 +524,12 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
 
 
 ossie::events::EventChannelReg_ptr EventChannelManager::registerResource( const ossie::events::EventRegistration &request)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-        CF::EventChannelManager::RegistrationAlreadyExists,
-        CF::EventChannelManager::OperationFailed, 
-        CF::EventChannelManager::OperationNotAllowed,
-        CF::EventChannelManager::ServiceUnavailable )
 {
     SCOPED_LOCK(_mgrlock);
     return _registerResource( request );
 }
 
 ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const ossie::events::EventRegistration &request)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-        CF::EventChannelManager::RegistrationAlreadyExists,
-        CF::EventChannelManager::OperationFailed, 
-        CF::EventChannelManager::OperationNotAllowed,
-        CF::EventChannelManager::ServiceUnavailable )
   {
 
     RH_DEBUG(_eventChannelMgrLog, "REQUEST REGISTRATION , REG-ID:" << request.reg_id << " CHANNEL:" << request.channel_name );
@@ -618,14 +549,14 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       }
     }
     if (  _regIdExists( channel_name, regid ) == true ) {
-      throw ( CF::EventChannelManager::RegistrationAlreadyExists());
+      throw CF::EventChannelManager::RegistrationAlreadyExists();
     }
 
     //
     // validate channel name...
     //
     if ( _validateChannelName( channel_name ) == false ) {
-      throw (CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     }
     //
     // check if a registration record exists for this channel .. 
@@ -633,7 +564,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
     ChannelRegistrationPtr creg = _getChannelRegistration( channel_name );
     if ( creg ) {
       // channel is marked for deletion..... 
-      if (creg->release ) throw ( CF::EventChannelManager::OperationNotAllowed());    
+      if (creg->release ) throw CF::EventChannelManager::OperationNotAllowed();
     }
     else {
 
@@ -643,10 +574,10 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       }
       catch( const CF::EventChannelManager::ChannelAlreadyExists& ){
         RH_ERROR(_eventChannelMgrLog, "REGISTRATION ERROR, REG-ID:" << regid << " CHANNEL:" << channel_name  << " Channel exists in EventService" );
-        throw (CF::EventChannelManager::OperationFailed());    
+        throw CF::EventChannelManager::OperationFailed();
       }
       creg = _getChannelRegistration( channel_name );
-      if ( creg == NULL ) throw ( CF::EventChannelManager::OperationFailed());    
+      if ( creg == NULL ) throw CF::EventChannelManager::OperationFailed();
     }
 
     ossie::events::EventChannelReg_ptr reg = new ossie::events::EventChannelReg();
@@ -667,11 +598,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
   }
   
   ossie::events::EventChannelReg_ptr EventChannelManager::registerConsumer( CosEventComm::PushConsumer_ptr consumer, const ossie::events::EventRegistration &req)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-            CF::EventChannelManager::RegistrationAlreadyExists,
-            CF::EventChannelManager::OperationFailed, 
-            CF::EventChannelManager::OperationNotAllowed,
-            CF::EventChannelManager::ServiceUnavailable ) {
+  {
       SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
@@ -687,11 +614,11 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
               channel = _create(_channel_name);
           }
           catch(...) {
-              throw (CF::EventChannelManager::OperationFailed());
+              throw CF::EventChannelManager::OperationFailed();
           }
       }
       if ( CORBA::is_nil(channel)) {
-          throw (CF::EventChannelManager::OperationFailed());
+          throw CF::EventChannelManager::OperationFailed();
       }
 
       do
@@ -713,7 +640,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       ossie::events::EventSubscriber_var _proxy;
         
       if ( CORBA::is_nil(consumer_admin) )
-          throw (CF::EventChannelManager::OperationFailed());
+          throw CF::EventChannelManager::OperationFailed();
       tries=retries;
       do {
           try {
@@ -730,7 +657,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
           tries--;
       } while ( tries );
       if ( CORBA::is_nil(_proxy) )
-          throw (CF::EventChannelManager::OperationFailed());
+          throw CF::EventChannelManager::OperationFailed();
       tries=retries;
       do {
           try {
@@ -738,7 +665,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
           }
           catch (CORBA::BAD_PARAM& ex) {
               RH_DEBUG(_eventChannelMgrLog, "Unable to connect consumer to the Event channel" );
-              throw (CF::EventChannelManager::OperationFailed());
+              throw CF::EventChannelManager::OperationFailed();
           }
           catch (CosEventChannelAdmin::AlreadyConnected& ex) {
               break;
@@ -769,11 +696,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
   }
   
   ossie::events::PublisherReg_ptr EventChannelManager::registerPublisher( const ossie::events::EventRegistration &req, CosEventComm::PushSupplier_ptr disconnectReceiver)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-            CF::EventChannelManager::RegistrationAlreadyExists,
-            CF::EventChannelManager::OperationFailed, 
-            CF::EventChannelManager::OperationNotAllowed,
-            CF::EventChannelManager::ServiceUnavailable ) {
+  {
       SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
@@ -791,11 +714,11 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
               channel = _create(_channel_name);
           }
           catch(...) {
-              throw (CF::EventChannelManager::OperationFailed());
+              throw CF::EventChannelManager::OperationFailed();
           }
       }
       if ( CORBA::is_nil(channel)) {
-          throw (CF::EventChannelManager::OperationFailed());          
+          throw CF::EventChannelManager::OperationFailed();
       }
       do
       {
@@ -812,7 +735,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       } while ( tries );
 
       if ( CORBA::is_nil(supplier_admin) )
-          throw (CF::EventChannelManager::OperationFailed());;
+          throw CF::EventChannelManager::OperationFailed();
 
       tries=retries;
       do {
@@ -852,9 +775,6 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
      Unregister from an event channel and invalidates the context
   */
   void EventChannelManager::unregister( const ossie::events::EventRegistration &reg ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-	    CF::EventChannelManager::RegistrationDoesNotExist,
-	    CF::EventChannelManager::ServiceUnavailable ) 
   {
     SCOPED_LOCK(_mgrlock);
 
@@ -872,9 +792,6 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
      Unregister from an event channel and invalidates the context
   */
   void EventChannelManager::_unregister( const ossie::events::EventRegistration &reg ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-	    CF::EventChannelManager::RegistrationDoesNotExist,
-	    CF::EventChannelManager::ServiceUnavailable ) 
   {
     RH_DEBUG(_eventChannelMgrLog, "START:  ID:" << reg.reg_id );
     //
@@ -1038,13 +955,12 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
 
 
 void EventChannelManager::_getEventChannelFactory ()
-    throw  ( CF::EventChannelManager::ServiceUnavailable )
   {
 
     RH_TRACE(_eventChannelMgrLog, " .. Checking ORB Context");
     if ( CORBA::is_nil(_orbCtx.orb) == true ) {
       RH_TRACE(_eventChannelMgrLog, " ... ORB Context is invalid...");
-      throw (CF::EventChannelManager::ServiceUnavailable() );
+      throw CF::EventChannelManager::ServiceUnavailable();
     }
 
     if ( CORBA::is_nil(_event_channel_factory )  ) {
@@ -1077,7 +993,7 @@ void EventChannelManager::_getEventChannelFactory ()
 
     if ( CORBA::is_nil(_event_channel_factory) ) {
       RH_TRACE(_eventChannelMgrLog, "EventChannelFactory unavailable.");
-      throw (CF::EventChannelManager::ServiceUnavailable() );
+      throw CF::EventChannelManager::ServiceUnavailable();
     }
 
   }
@@ -1087,10 +1003,6 @@ void EventChannelManager::_getEventChannelFactory ()
   ossie::events::EventChannel_ptr EventChannelManager::_createChannel( const std::string &cname, 
                                                                       const std::string &fqn, 
                                                                        const std::string &nc_name )
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // resolve factory.... this throws.... ServiceUnavailable
     _getEventChannelFactory();
@@ -1108,7 +1020,7 @@ void EventChannelManager::_getEventChannelFactory ()
     RH_TRACE(_eventChannelMgrLog, " Check EventChannelFactory API" );
     if(!_event_channel_factory->supports(key)) {
       RH_WARN(_eventChannelMgrLog, " EventChannelFactory does not support Event Channel Interface!" );
-      throw (CF::EventChannelManager::OperationNotAllowed());
+      throw CF::EventChannelManager::OperationNotAllowed();
     }
 
     std::string insName = fqn;   // create channel based on fully qualified name
@@ -1131,7 +1043,7 @@ void EventChannelManager::_getEventChannelFactory ()
     }
     catch (CosLifeCycle::CannotMeetCriteria& ex) /* create_object() */ {
       RH_ERROR(_eventChannelMgrLog, "Create failed, CHANNEL: " << cname << " REASON: CannotMeetCriteria " );
-      throw (CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
     catch (CosLifeCycle::InvalidCriteria& ex) /* create_object() */ {
       RH_ERROR(_eventChannelMgrLog, "Create failed, CHANNEL: " << cname << " REASON: InvalidCriteria " );
@@ -1152,7 +1064,7 @@ void EventChannelManager::_getEventChannelFactory ()
 	}
       }
     
-      throw (CF::EventChannelManager::OperationFailed());
+      throw CF::EventChannelManager::OperationFailed();
     }
     catch( CORBA::Exception &ex ) {
       RH_ERROR(_eventChannelMgrLog, " Create failed, CHANNEL:" << cname << " REASON: corba exception" );
@@ -1229,7 +1141,7 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
       }
     } catch(const CosNaming::NamingContext::InvalidName&e) {
       RH_ERROR(_eventChannelMgrLog, "Invalid channel name: <" << fqn << ">" );
-      throw(CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1251,7 +1163,7 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
       }
     } catch(const CosNaming::NamingContext::InvalidName&e) {
       RH_ERROR(_eventChannelMgrLog, "Invalid channel name: <" << cname << ">" );
-      throw(CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1273,7 +1185,7 @@ ossie::events::EventChannel_ptr EventChannelManager::_resolve_ns( const std::str
         found = true;
       }
     } catch(const CosNaming::NamingContext::InvalidName&e) {
-      throw(CF::EventChannelManager::InvalidChannelName());
+      throw CF::EventChannelManager::InvalidChannelName();
     } catch (const CosNaming::NamingContext::NotFound&) {
       // The channel does not exist and can be safely created.
     } catch (const CORBA::Exception& e) {
@@ -1314,8 +1226,6 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
      @returns true -  publisher registration id was found for the specified channel
   */
   bool EventChannelManager::_regExists( const std::string &cname, const std::string &regid ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-            CF::EventChannelManager::RegistrationDoesNotExist )
   {
 
     bool retval = false;
@@ -1326,15 +1236,15 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
           retval = true;
         }
         else {
-          throw ( CF::EventChannelManager::RegistrationDoesNotExist());
+          throw CF::EventChannelManager::RegistrationDoesNotExist();
         }
       }
       else {
-        throw ( CF::EventChannelManager::ChannelDoesNotExist());
+        throw CF::EventChannelManager::ChannelDoesNotExist();
       }
     }
     else {
-      throw ( CF::EventChannelManager::RegistrationDoesNotExist());
+      throw CF::EventChannelManager::RegistrationDoesNotExist();
     }
 
     return retval;

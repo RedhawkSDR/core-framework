@@ -108,8 +108,7 @@ class CPP_Ports_base : public Resource_impl
 
   public:
 
-    char* attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid)
-      throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError);
+    char* attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid);
 
     void detach(const char* attachId);
 
@@ -128,15 +127,15 @@ class CPP_Ports_base : public Resource_impl
  public:
         CPP_Ports_base(const char *uuid, const char *label);
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        CORBA::Object_ptr getPort(const char* _id) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
+        CORBA::Object_ptr getPort(const char* _id);
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
         void loadProperties();
 

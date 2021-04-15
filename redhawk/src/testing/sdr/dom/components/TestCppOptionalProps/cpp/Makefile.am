@@ -40,6 +40,6 @@ distclean-local:
 # you wish to manually control these options.
 TestCppOptionalProps_SOURCES = main.cpp TestCppOptionalProps.cpp TestCppOptionalProps.h TestCppOptionalProps_base.cpp TestCppOptionalProps_base.h struct_props.h
 TestCppOptionalProps_LDADD =  $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
-TestCppOptionalProps_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto) -I$(CFDIR)/include
+TestCppOptionalProps_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto) -I$(CFDIR)/include -Wno-deprecated-declarations
 TestCppOptionalProps_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) 
 

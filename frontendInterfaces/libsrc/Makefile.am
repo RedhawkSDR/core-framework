@@ -68,7 +68,7 @@ library_include_HEADERS = \
 ## shipped with the source tarball.
 #frontend_libincludedir = $(libdir)/frontend-$(FRONTEND_API_VERSION)/include
 
-libfrontend_@FRONTEND_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libfrontend_@FRONTEND_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(FRONTEND_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS) -Wno-deprecated-declarations
 
 SUBDIRS = . testing/tests/cpp
 

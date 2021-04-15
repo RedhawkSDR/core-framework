@@ -287,7 +287,7 @@ void DomainConnectionManager::breakConnection(const std::string& connectionRecor
     std::map< std::string, std::pair<std::string, std::string> >::iterator _gC_it = _globalConnections.find(connectionRecordId);
     if (_gC_it == _globalConnections.end()) {
         // connection already broken
-        throw (InvalidConnection("Connection already broken"));
+        throw InvalidConnection("Connection already broken");
     }
     std::string deviceManagerId = _gC_it->second.first;
     std::string connectionId = _gC_it->second.second;

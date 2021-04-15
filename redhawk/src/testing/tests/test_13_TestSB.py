@@ -33,7 +33,7 @@ import subprocess
 import struct
 import tempfile
 import numpy
-
+import psutil
 from omniORB import CORBA, any, tcInternal
 
 from ossie import properties
@@ -299,7 +299,14 @@ class SBStdOutTest(scatest.CorbaTestCase):
         self.assertFalse('TRACE C2_1.system.Resource' in stdout_contents)
         self.assertTrue('serviceFunction() example log message - DEBUG' in stdout_contents)
         new_stdout.close()
-
+class SBInitCompTest(scatest.CorbaTestCase):
+    def test_cleanup(self):
+        comp = sb.launch('sdr/dom/components/TestCompInit/test_componentinit.spd.xml') 
+        process_id = comp._pid 
+        if sb.domainless._sandbox:
+            sb.domainless._sandbox.shutdown()
+            sb.domainless._sandbox = None
+        self.assertFalse(psutil.pid_exists(process_id))
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)

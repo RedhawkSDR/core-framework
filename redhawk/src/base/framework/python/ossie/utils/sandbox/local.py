@@ -319,9 +319,11 @@ class LocalLauncher(SandboxLauncher):
                 comp.initializeProperties(initvals)
             except:
                 log.exception('Failure in component property initialization')
-
-            # Actually initialize the component
-            comp.initialize()
+            try:
+                # Actually initialize the component
+                comp.initialize()
+            except:
+                log.exception('Failed to initialize component')
 
         # Configure component with default values unless requested not to (e.g.,
         # when launched from a SAD file).

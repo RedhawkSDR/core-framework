@@ -369,7 +369,10 @@ namespace ossie {
             POACreator() {}
             virtual ~POACreator() { }
 
-            virtual CORBA::Boolean unknown_adapter(PortableServer::POA_ptr parent, const char* name) throw(CORBA::SystemException);
+            /**
+             * @throw CORBA::SystemException
+             */
+            virtual CORBA::Boolean unknown_adapter(PortableServer::POA_ptr parent, const char* name);
         private:
             // copy not supported
             POACreator(const POACreator&);

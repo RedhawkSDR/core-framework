@@ -44,7 +44,7 @@ LongDevice_i::~LongDevice_i()
 
 }
 
-void LongDevice_i::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void LongDevice_i::stop()
 {
     if ( delay == 0 ) {
         RH_NL_INFO("LongDevice", "Stopping the wait.......");
@@ -70,50 +70,49 @@ void LongDevice_i::_delay( const std::string &from ) {
     }
 }
 
-char* LongDevice_i::identifier () throw (CORBA::SystemException) {
+char* LongDevice_i::identifier () {
     _delay("identifier");
     return Resource_impl::identifier();
 }
 
 
-char* LongDevice_i::softwareProfile ()  throw (CORBA::SystemException)  {
+char* LongDevice_i::softwareProfile () {
     _delay("softwareProfile");
     return Resource_impl::softwareProfile();
 }
 
-CORBA::Boolean LongDevice_i::started () throw (CORBA::SystemException)  {
+CORBA::Boolean LongDevice_i::started () {
     _delay("started");
     return Resource_impl::started();
 }
 
-CF::Device::UsageType LongDevice_i::usageState () throw (CORBA::SystemException)  {
+CF::Device::UsageType LongDevice_i::usageState () {
     _delay("usageState");
     return Device_impl::usageState();
 }
-CF::Device::AdminType LongDevice_i::adminState ()  throw (CORBA::SystemException) {
+CF::Device::AdminType LongDevice_i::adminState () {
     _delay("adminstate");
     return Device_impl::adminState();
 }
 
-CF::Device::OperationalType LongDevice_i::operationalState () throw (CORBA::SystemException)  {
+CF::Device::OperationalType LongDevice_i::operationalState () {
     _delay("operatinalState");
     return Device_impl::operationalState();
 }
 
-char * LongDevice_i::label()  throw (CORBA::SystemException) {
+char * LongDevice_i::label() {
     _delay("label");
     return Device_impl::label();
 }
 
 CORBA::Boolean LongDevice_i::allocateCapacity(const CF::Properties &props )
- throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
 {
     _delay("allocateCapacity");
     return Device_impl::allocateCapacity(props);
 }
 
 void LongDevice_i::deallocateCapacity(const CF::Properties &props)
-    throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException) {
+{
     _delay("deallocateCapacity");
     return Device_impl::deallocateCapacity(props);
 }

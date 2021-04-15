@@ -56,21 +56,33 @@ public:
      */
     void setExecparamProperties(std::map<std::string, char*>&);
 
+    /**
+     * @throw CF::PropertyEmitter::AlreadyInitialized
+     * @throw CF::PropertySet::PartialConfiguration
+     * @throw CF::PropertySet::InvalidConfiguration
+     * @throw CORBA::SystemException
+     */
     void
-    initializeProperties(const CF::Properties& initialProperties)
-    throw (CF::PropertyEmitter::AlreadyInitialized, CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+    initializeProperties(const CF::Properties& initialProperties);
 
-    // The core framework provides an implementation for this method.
+    /**
+     * The core framework provides an implementation for this method.
+     * 
+     * @throw CF::PropertySet::PartialConfiguration
+     * @throw CF::PropertySet::InvalidConfiguration
+     * @throw CORBA::SystemException
+     */
     void
-    configure (const CF::Properties& configProperties)
-    throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+    configure (const CF::Properties& configProperties);
 
-    // The core framework provides an implementation for this method.
+    /**
+     * The core framework provides an implementation for this method.
+     * 
+     * @throw CF::UnknownProperties
+     * @throw CORBA::SystemException
+     */
     void
-    query (CF::Properties& configProperties)
-    throw (CF::UnknownProperties, CORBA::SystemException);
+    query (CF::Properties& configProperties);
 
 
     // Preferred new-style properties.
@@ -81,10 +93,15 @@ public:
         propertyChangePort = _propertyChangePort;
     };
 
-   char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval)
-      throw(CF::UnknownProperties, CF::InvalidObjectReference);
-   void unregisterPropertyListener( const char *reg_id )  
-      throw(CF::InvalidIdentifier);
+   /**
+    * @throw CF::UnknownProperties
+    * @throw CF::InvalidObjectReference
+    */
+   char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval);
+   /**
+    * @throw CF::InvalidIdentifier
+    */
+   void unregisterPropertyListener( const char *reg_id );
 
    //
    // calls to start and stop property change service function

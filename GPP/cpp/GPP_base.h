@@ -18,11 +18,23 @@ class GPP_base : public ExecutableDevice_impl, protected ThreadedComponent
         GPP_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~GPP_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StartError
+         * @throw CORBA::SystemException
+         */
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StopError
+         * @throw CORBA::SystemException
+         */
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
+        void releaseObject();
 
         void loadProperties();
 

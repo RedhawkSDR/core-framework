@@ -214,6 +214,9 @@ namespace frontend {
     struct frontend_scanner_allocation_struct {
         frontend_scanner_allocation_struct ()
         {
+            min_freq = 0.0;
+            max_freq = 0.0;
+            control_limit = 0.0;
         }
 
         static std::string getId() {

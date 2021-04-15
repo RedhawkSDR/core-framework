@@ -55,7 +55,10 @@ namespace ossie {
              */
             DomainManagerConfiguration() : _dmd(0) {};
 
-            DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error);
+            /**
+             * @throw ossie::parser_error
+             */
+            DomainManagerConfiguration(std::istream& input);
 
             ~DomainManagerConfiguration();
 
@@ -64,7 +67,10 @@ namespace ossie {
         //////////
         // Methods
         public:
-            void load(std::istream& input) throw (ossie::parser_error);
+            /**
+             * @throw ossie::parser_error
+             */
+            void load(std::istream& input);
 
             const char* getID() const;
 

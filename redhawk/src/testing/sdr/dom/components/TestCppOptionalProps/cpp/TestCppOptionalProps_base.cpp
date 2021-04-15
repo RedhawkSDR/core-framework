@@ -44,13 +44,13 @@ TestCppOptionalProps_base::~TestCppOptionalProps_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void TestCppOptionalProps_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void TestCppOptionalProps_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void TestCppOptionalProps_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void TestCppOptionalProps_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void TestCppOptionalProps_base::stop() throw (CORBA::SystemException, CF::Resour
     }
 }
 
-void TestCppOptionalProps_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void TestCppOptionalProps_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -84,7 +84,6 @@ void TestCppOptionalProps_base::loadProperties()
 }
 
 void TestCppOptionalProps_base::runTest (CORBA::ULong TestID, CF::Properties& testValues)
-    throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException)
 {
 	if (TestID == 0) {
 		this->testOptional(testValues);

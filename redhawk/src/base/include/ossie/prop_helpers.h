@@ -33,6 +33,12 @@
 #include <stdexcept>
 #include <sstream>
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 namespace redhawk {
   namespace time {
     namespace utils {
@@ -85,8 +91,8 @@ namespace ossie
     class badConversion : public std::runtime_error {
     public:
         badConversion(std::string value, std::string type) : std::runtime_error("Unable to perform conversion"), _value(value), _type(type) {};
-        ~badConversion() throw() {};
-        virtual const char* what() const throw()
+        ~badConversion() NOEXCEPT {};
+        virtual const char* what() const NOEXCEPT
         {
             std::ostringstream _msg;
             _msg << std::runtime_error::what() << ": '"<<_value<<"' to type '"<<_type << "'";

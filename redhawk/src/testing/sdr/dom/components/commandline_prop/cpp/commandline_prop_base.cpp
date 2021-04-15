@@ -44,13 +44,13 @@ commandline_prop_base::~commandline_prop_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void commandline_prop_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void commandline_prop_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void commandline_prop_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void commandline_prop_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void commandline_prop_base::stop() throw (CORBA::SystemException, CF::Resource::
     }
 }
 
-void commandline_prop_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void commandline_prop_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

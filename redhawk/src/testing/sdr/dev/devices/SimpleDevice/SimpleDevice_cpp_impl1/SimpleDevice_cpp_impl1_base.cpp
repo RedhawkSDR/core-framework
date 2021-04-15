@@ -65,11 +65,11 @@ void SimpleDevice_cpp_impl1_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void SimpleDevice_cpp_impl1_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void SimpleDevice_cpp_impl1_base::initialize()
 {
 }
 
-void SimpleDevice_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void SimpleDevice_cpp_impl1_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -78,7 +78,7 @@ void SimpleDevice_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Res
     }
 }
 
-void SimpleDevice_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void SimpleDevice_cpp_impl1_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -91,7 +91,7 @@ void SimpleDevice_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Reso
 }
 
 
-void SimpleDevice_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void SimpleDevice_cpp_impl1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -108,7 +108,7 @@ void SimpleDevice_cpp_impl1_base::releaseObject() throw (CORBA::SystemException,
     ExecutableDevice_impl::releaseObject();
 }
 
-void SimpleDevice_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void SimpleDevice_cpp_impl1_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }

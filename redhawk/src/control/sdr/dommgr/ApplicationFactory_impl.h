@@ -64,14 +64,16 @@ public:
                              DomainManager_impl* domainManager);
     ~ApplicationFactory_impl ();
 
+    /**
+     * @throw CF::ApplicationFactory::InvalidInitConfiguration
+     * @throw CF::ApplicationFactory::CreateApplicationRequestError
+     * @throw CF::ApplicationFactory::CreateApplicationInsufficientCapacityError
+     * @throw CF::ApplicationFactory::CreateApplicationError
+     * @throw CORBA::SystemException
+     */
     CF::Application_ptr create (const char* name,
                                 const CF::Properties& initConfiguration,
-                                const CF::DeviceAssignmentSequence& deviceAssignments)
-    throw (CF::ApplicationFactory::InvalidInitConfiguration,
-           CF::ApplicationFactory::CreateApplicationRequestError,
-           CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
-           CF::ApplicationFactory::CreateApplicationError,
-           CORBA::SystemException);
+                                const CF::DeviceAssignmentSequence& deviceAssignments);
 
     rh_logger::LoggerPtr returnLogger() const {
         return _appFactoryLog;
@@ -83,15 +85,25 @@ public:
     };
 
     // getters for attributes
-    char* name () throw (CORBA::SystemException) {
+
+    /**
+     * @throw CORBA::SystemException
+     */
+    char* name () {
         return CORBA::string_dup(_name.c_str());
     }
 
-    char* identifier () throw (CORBA::SystemException) {
+    /**
+     * @throw CORBA::SystemException
+     */
+    char* identifier () {
         return CORBA::string_dup(_identifier.c_str());
     }
 
-    char* softwareProfile () throw (CORBA::SystemException) {
+    /**
+     * @throw CORBA::SystemException
+     */
+    char* softwareProfile () {
         return CORBA::string_dup(_softwareProfile.c_str());
     }
 

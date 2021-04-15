@@ -48,19 +48,19 @@ svc_stuck_cpp_base::svc_stuck_cpp_base(const char *uuid, const char *label) :
 svc_stuck_cpp_base::~svc_stuck_cpp_base()
 {
 }
-void svc_stuck_cpp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void svc_stuck_cpp_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
-void svc_stuck_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void svc_stuck_cpp_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
         throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
     }
 }
-void svc_stuck_cpp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void svc_stuck_cpp_base::releaseObject()
 {
     try {
         stop();

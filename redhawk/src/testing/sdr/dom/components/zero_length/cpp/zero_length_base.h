@@ -13,11 +13,11 @@ class zero_length_base : public Component, protected ThreadedComponent
         zero_length_base(const char *uuid, const char *label);
         ~zero_length_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

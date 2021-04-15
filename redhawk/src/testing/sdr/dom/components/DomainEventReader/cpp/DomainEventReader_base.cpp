@@ -46,13 +46,13 @@ DomainEventReader_base::~DomainEventReader_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void DomainEventReader_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void DomainEventReader_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void DomainEventReader_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void DomainEventReader_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -60,7 +60,7 @@ void DomainEventReader_base::stop() throw (CORBA::SystemException, CF::Resource:
     }
 }
 
-void DomainEventReader_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void DomainEventReader_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

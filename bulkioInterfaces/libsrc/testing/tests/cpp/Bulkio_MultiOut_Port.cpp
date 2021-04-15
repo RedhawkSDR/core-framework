@@ -437,8 +437,7 @@ void Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPT
 
 template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
 char* Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid)
-            throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError) {
-
+{
     std::ostringstream ret_attach_id;
     ret_attach_id << "hello_" << attachIdCount++;
     if (stream.port == BAD_PORT) {
@@ -449,8 +448,7 @@ char* Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEP
 
 template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF, typename BASE_EXCEPTION >
 char* Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF, BASE_EXCEPTION >::attach(const BULKIO::VITA49StreamDefinition& stream, const char* userid)
-            throw (BULKIO::dataVITA49::AttachError, BULKIO::dataVITA49::StreamInputError) {
-
+{
     std::ostringstream ret_attach_id;
     ret_attach_id << "hello_" << attachIdCount++;
     if (stream.port == BAD_PORT) {

@@ -39,13 +39,13 @@ BasicAC_cpp_impl1_i::~BasicAC_cpp_impl1_i()
 {
 }
 
-void BasicAC_cpp_impl1_i::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void BasicAC_cpp_impl1_i::start()
 {
     BasicAC_cpp_impl1_base::start();
     resourceOut->start();
 }
 
-void BasicAC_cpp_impl1_i::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void BasicAC_cpp_impl1_i::stop()
 {
     BasicAC_cpp_impl1_base::stop();
     resourceOut->stop();

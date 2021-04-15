@@ -124,6 +124,7 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/events/MessageListener.java \
 		   src/org/ossie/events/Publisher.java \
 		   src/org/ossie/events/Subscriber.java \
+	           src/org/ossie/buffer/bitbuffer.java \
 		   src/org/ossie/corba/utils.java \
 		   src/org/ossie/properties/AbstractSequenceProperty.java \
 		   src/org/ossie/properties/AbstractSimpleProperty.java \

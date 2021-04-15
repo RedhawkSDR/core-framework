@@ -28,7 +28,10 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::PRF> parsePRF(std::istream& input) throw (ossie::parser_error);
+        /**
+         * @throw ossie::parser_error
+         */
+        std::auto_ptr<ossie::PRF> parsePRF(std::istream& input);
     }
 }
 #endif

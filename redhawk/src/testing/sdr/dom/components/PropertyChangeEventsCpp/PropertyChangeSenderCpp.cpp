@@ -98,7 +98,7 @@ PropertyChangeSenderCpp::~PropertyChangeSenderCpp (void)
 
 }
 
-CORBA::Object_ptr PropertyChangeSenderCpp::getPort (const char* name) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException)
+CORBA::Object_ptr PropertyChangeSenderCpp::getPort (const char* name)
 {
     if (strcmp(name, "propEvent") != 0) {
         throw CF::PortSupplier::UnknownPort();
@@ -107,7 +107,7 @@ CORBA::Object_ptr PropertyChangeSenderCpp::getPort (const char* name) throw (CF:
     return propEvent->_this();
 }
 
-void PropertyChangeSenderCpp::releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void PropertyChangeSenderCpp::releaseObject (void)
 {
     PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
     PortableServer::ObjectId_var oid = root_poa->servant_to_id(propEvent);
@@ -116,7 +116,7 @@ void PropertyChangeSenderCpp::releaseObject (void) throw (CORBA::SystemException
     Resource_impl::releaseObject();
 }
 
-void PropertyChangeSenderCpp::start (void) throw (CF::Resource::StartError)
+void PropertyChangeSenderCpp::start (void)
 {
     some_struct_struct tmp = (*&structseq_prop)[0];
     double a_number = (*&some_struct).some_number;

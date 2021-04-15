@@ -143,7 +143,7 @@ ${self.constructorBody()}
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
 /*{% block start %}*/
-void ${className}::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void ${className}::start()
 {
     ${baseClass}::start();
     ThreadedComponent::startThread();
@@ -151,7 +151,7 @@ void ${className}::start() throw (CORBA::SystemException, CF::Resource::StartErr
 /*{% endblock %}*/
 
 /*{% block stop %}*/
-void ${className}::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void ${className}::stop()
 {
     ${baseClass}::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -161,7 +161,7 @@ void ${className}::stop() throw (CORBA::SystemException, CF::Resource::StopError
 /*{% endblock %}*/
 
 /*{% block releaseObject %}*/
-void ${className}::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void ${className}::releaseObject()
 {
     // This function clears the ${artifactType} running condition so main shuts down everything
     try {

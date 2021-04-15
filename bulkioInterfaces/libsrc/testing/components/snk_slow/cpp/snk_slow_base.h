@@ -13,11 +13,11 @@ class snk_slow_base : public Component, protected ThreadedComponent
         snk_slow_base(const char *uuid, const char *label);
         ~snk_slow_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

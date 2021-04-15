@@ -60,7 +60,10 @@ class optional_property
             return _p.get();
         }
 
-        T& operator*() const throw (std::runtime_error) {
+        /**
+         * @throw std::runtime_error
+         */
+        T& operator*() const {
             if (_p.get() == 0) {
                 throw std::runtime_error("Attempted to use unset optional property.");
             }

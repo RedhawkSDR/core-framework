@@ -47,6 +47,7 @@ Requires:       bulkioInterfaces = %{version}
 BuildRequires:  bulkioInterfaces = %{version}
 
 BuildRequires:  cppunit-devel
+BuildRequires:  autoconf-archive
 
 %description
 BURSTIO interfaces for REDHAWK

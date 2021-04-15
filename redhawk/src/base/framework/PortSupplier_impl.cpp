@@ -24,7 +24,7 @@ PortSupplier_impl::PortSupplier_impl ()
 {
 }
 
-CORBA::Object* PortSupplier_impl::getPort (const char* name) throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
+CORBA::Object* PortSupplier_impl::getPort (const char* name)
 {
     PortServantMap::iterator port = _portServants.find(name);
     if (port != _portServants.end()) {

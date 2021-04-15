@@ -1,11 +1,12 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  other_repos: $s3_repo_url/redhawk-dependencies/redhawk-dependencies
+  redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
+  other_repos: ${s3_repo_url}${redhawk_deps_loc}
   redhawk_version: '3.0.0'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_branch: 'develop'
+  redhawk_lts_branch: 'develop'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   redhawk_deps: releng-1128
@@ -20,25 +21,26 @@ stages:
  - deploy
 
 .rpmbuild: &rpmbuild
-  image: ${docker_registry}utils/docker:latest-git
+  image: ${docker_registry}redhawk/alpine-dockerd-plus-utils
   tags:
-    - cf
     - docker
+    - redhawk
   script:
     # Use RPM release from specfile if this is a tag
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
+    - echo "pwd => $(pwd)"
     - echo "commit hash => ${commit:0:8}"
     - datetime=$(git show -s --format=%cd ${commit})
     - echo "commit date => ${datetime}"
-    - printf "FROM ${docker_registry}${rpmbuild_repository}rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-onbuild-cpp14" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
-    - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
-    - docker build --tag=${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
+    - docker login ${docker_registry} -u ${docker_user_redhawk} -p ${docker_password_redhawk}
+    - docker build --tag=${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-${dist}-${arch}
                    --pull
                    --no-cache
                    --build-arg "commit=${commit:0:8}"
@@ -47,10 +49,10 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/py3/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
-    - id=$(docker create -it ${docker_registry}redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
+    - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
                                                 for file in `find /usr/src/yum /root/rpmbuild/RPMS -name '*.rpm'`; do
                                                 cp -v $file /tmp/repo;
                                                 done;
@@ -138,38 +140,17 @@ frontend:el7:
     local_repo: output
   <<: *rpmbuild
 
-deploy:
-  image: ${docker_registry}centos:7
-  stage: deploy
-  dependencies: []
-  before_script:
-    - echo "Deploying to $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`"
-  script:
-    - if [ -n "$jenkins_url" ]; then
-        curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-`basename $CI_COMMIT_REF_NAME`/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
-      fi
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
-    - master
-
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
-  image: ${docker_registry}centos:7
   stage: deploy
-  dependencies: []
   variables:
-    # Default to the redhawk branch named in the global variables, which will
-    # typically be a develop branch. Feature branches trigger a test pipeline
-    # using the develop branch from which they were forked unless overridden
-    # here.
-    redhawk_testing_ref: $redhawk_branch
-  script:
-    - curl --insecure -X POST -F ref=$redhawk_testing_ref
-                              -F token=$test_token
-                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
-                              -F "variables[triggering_ref_slug]=$CI_COMMIT_REF_SLUG"
-                              $test_url
+    triggering_ref_name: $CI_COMMIT_REF_NAME
+    triggering_ref_slug: $CI_COMMIT_REF_SLUG
+  trigger:
+    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    # Feature branches trigger a test pipeline using the develop branch
+    # from which they were forked unless overridden here.
+    branch: $redhawk_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
 test-trigger:branch:
@@ -188,30 +169,30 @@ test-trigger:develop:
     - /^develop.*$/
 
 test-trigger:release:
-  image: ${docker_registry}centos:7
   stage: deploy
-  dependencies: []
   variables:
-    redhawk_version: '2.2.5-rc1'
-  script:
-    - curl --insecure -X POST -F ref=$redhawk_version
-                              -F token=$test_token
-                              -F "variables[triggering_ref]=$CI_COMMIT_SHA"
-                              -F "variables[triggering_ref_name]=$CI_COMMIT_REF_NAME"
-                              -F "variables[output_name]=$CI_COMMIT_REF_NAME"
-                              $test_url
+    triggering_ref_name: $CI_COMMIT_REF_NAME
+  trigger:
+    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    branch: $CI_COMMIT_REF_NAME
   only:
     - tags
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .abi-common: &abi-common
-  image: ${docker_registry}${rpmbuild_repository}rpmbuild:el7-x86_64
+  image: ${docker_registry}redhawk/rpmbuild:el7-x86_64
   stage: abi
+  tags:
+      - docker
+      - redhawk
   script:
     - yum install -y libabigail
-    - curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-{,debuginfo-}${base_ver_release}.el7.x86_64.rpm"
-    - if curl -f -O "$s3_repo_url/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm"; then
+    - echo "s3url =>  s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-${base_ver_release}.el7.x86_64.rpm"
+    - s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-${base_ver_release}.el7.x86_64.rpm
+    - s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-debuginfo-${base_ver_release}.el7.x86_64.rpm
+    - if s3cmd ls s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/ | grep -q "${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm"; then
+        s3cmd get -v s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$s3_yum_location/el7/x86_64/${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm
         devel="--devel-pkg1 ${rpm_name}-devel-${base_ver_release}.el7.x86_64.rpm";
         devel="$devel --devel-pkg2 output/${rpm_name}-devel-*.el7.x86_64.rpm";
       fi
@@ -265,37 +246,32 @@ burstio:abi:
   <<: *abi-common
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el7-createrepo
+  image: ${docker_registry}redhawk/rpmbuild:$dist-$arch-onbuild
   stage: deploy
   tags:
-    - s3
+    - docker
+    - redhawk
   script:
-    - cf_only_bucket="s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_NAME/py3/$dist/"
-    - cf_and_deps_bucket="s3://$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_NAME/py3/$dist/"
-    # remove old repos
-    - s3cmd rm -rf $cf_only_bucket
-    - s3cmd rm -rf $cf_and_deps_bucket
-    # make repo directories for redhawk only and redhawk with deps
+    - CI_COMMIT_REF_SLUG_NO_RC=${CI_COMMIT_REF_SLUG%-rc[0-9]*};
+    # Collect our rpms for this branch, make a repo, and push it to 'redhawk/core-framework/yum/<branch>'.
     - mkdir -p $arch
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
     # create and push just redhawk rpms
     - createrepo $arch
-    - s3cmd sync -F -v -P $arch $cf_only_bucket
-    # Add in redhawk-deps to redhawk rpms
-    - s3cmd sync s3://redhawk-dependencies/redhawk-dependencies/yum/${redhawk_deps}/py3/$dist/ ./
-    - createrepo $arch
-    - /usr/bin/s3cmd sync -F -v -P --delete-removed $arch $cf_and_deps_bucket
-    # For RC builds, create a RC repo
-    - |
-      if [ "$CI_COMMIT_TAG"x != x ]; 
-      then
-        CI_COMMIT_REF_NAME_NO_RC=${CI_COMMIT_REF_NAME%-rc[0-9]*};
-        cf_rc_bucket="s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_NAME_NO_RC/py3/$dist/"
-        s3cmd rm -rf $cf_rc_bucket
-        s3cmd cp -r  $cf_only_bucket $cf_rc_bucket
+    - ls -la $arch
+    - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
+    # if this is a release candidate ...
+    - if [ "$CI_COMMIT_REF_SLUG_NO_RC" != "$CI_COMMIT_REF_SLUG" ]; then
+        s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG_NO_RC/$dist/;
       fi
+    # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
+    - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_lts_branch/${dist}/${arch}/ $arch
+    - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
+    - createrepo $arch
+    - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
   except:
     - master
     - /^(\d+\.)?(\d+)?(\.\d+)$/

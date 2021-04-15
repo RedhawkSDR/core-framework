@@ -24,6 +24,12 @@
 #include <cstddef>
 #include <string>
 
+#if __cplusplus >= 201103L
+# define NOEXCEPT noexcept
+#else
+# define NOEXCEPT throw()
+#endif
+
 namespace redhawk {
 
     namespace shm {
@@ -54,18 +60,18 @@ namespace redhawk {
                 typedef Allocator<U> other;
             };
 
-            Allocator() throw() :
+            Allocator() NOEXCEPT :
                 base()
             {
             }
 
-            Allocator(const Allocator& other) throw() :
+            Allocator(const Allocator& other) NOEXCEPT :
                 base(other)
             {
             }
 
             template <typename U>
-            Allocator(const Allocator<U>& other) throw() :
+            Allocator(const Allocator<U>& other) NOEXCEPT :
                 base(other)
             {
             }
@@ -100,18 +106,18 @@ namespace redhawk {
                 typedef HybridAllocator<U> other;
             };
 
-            HybridAllocator() throw() :
+            HybridAllocator() NOEXCEPT :
                 base()
             {
             }
 
-            HybridAllocator(const HybridAllocator& other) throw() :
+            HybridAllocator(const HybridAllocator& other) NOEXCEPT :
                 base(other)
             {
             }
 
             template <typename U>
-            HybridAllocator(const HybridAllocator<U>& other) throw() :
+            HybridAllocator(const HybridAllocator<U>& other) NOEXCEPT :
                 base(other)
             {
             }

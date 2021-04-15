@@ -358,7 +358,7 @@ class App(_CF__POA.Application, Resource):
             if name in self._externalProps:
                 propId, compRefId = self._externalProps[name]
                 for curr_comp in self.comps:
-                    if curr_comp._get_identifier().find(compRefId) != -1:
+                    if curr_comp._get_identifier().split(':')[0] == compRefId:
                         try:
                             return getattr(curr_comp, propId)
                         except AttributeError:
@@ -384,7 +384,7 @@ class App(_CF__POA.Application, Resource):
         if name in self._externalProps:
             propId, compRefId = self._externalProps[name]
             for curr_comp in self.comps:
-                if curr_comp._get_identifier().find(compRefId) != -1:
+                if curr_comp._get_identifier().split(':')[0] == compRefId:
                     try:
                         return setattr(curr_comp, propId, value)
                     except AttributeError:

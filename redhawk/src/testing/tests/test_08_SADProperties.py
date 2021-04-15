@@ -23,6 +23,7 @@ from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
 from _unitTestHelpers import runtestHelpers
+from ossie.utils import sb, rhtime, redhawk
 
 java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
@@ -78,6 +79,49 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         sadpath = "/waveforms/zero_length_w/zero_length_w.sad.xml"
 
         self._app = self._domMgr.createApplication('/waveforms/zero_length_w/zero_length_w.sad.xml', 'zero_length_w', [], [])
+
+    def test_DelegateSBExternalProps(self):
+        dom=redhawk.attach(scatest.getTestDomainName())
+        app=dom.createApplication("/waveforms/TestAppPropDelegate/TestAppPropDelegate.sad.xml")
+        self.assertNotEqual(app, None)
+        foo10=None
+        foo1=None
+        if app.comps[0].instanceName == 'foo10':
+            foo10=app.comps[0]
+        elif app.comps[1].instanceName == 'foo10':
+            foo10=app.comps[1]
+        if app.comps[0].instanceName == 'foo1':
+            foo1=app.comps[0]
+        elif app.comps[1].instanceName == 'foo1':
+            foo1=app.comps[1]
+        self.assertNotEqual(foo10, None)
+        self.assertNotEqual(foo1, None)
+        self.assertEquals(foo1.test_float, app.sometest)
+        app.sometest = foo10.test_float*10
+        self.assertEquals(foo1.test_float, foo10.test_float*10)
+        self.assertEquals(foo1.test_float, app.sometest)
+
+    def test_DelegateExternalProps(self):
+        dom=redhawk.attach(scatest.getTestDomainName())
+        app=dom.createApplication("/waveforms/TestAppPropDelegate/TestAppPropDelegate.sad.xml")
+        self.assertNotEqual(app, None)
+        foo10=None
+        foo1=None
+        if app.comps[0].instanceName == 'foo10':
+            foo10=app.comps[0]
+        elif app.comps[1].instanceName == 'foo10':
+            foo10=app.comps[1]
+        if app.comps[0].instanceName == 'foo1':
+            foo1=app.comps[0]
+        elif app.comps[1].instanceName == 'foo1':
+            foo1=app.comps[1]
+        self.assertNotEqual(foo10, None)
+        self.assertNotEqual(foo1, None)
+        self.assertEquals(foo1.test_float, app.sometest)
+        prop = CF.DataType(id='sometest', value=any.to_any(foo10.test_float*10))
+        app.ref.configure([prop])
+        self.assertEquals(foo1.test_float, foo10.test_float*10)
+        self.assertEquals(foo1.test_float, app.sometest)
 
     def test_ExternalProps(self):
         self._createApp("")
