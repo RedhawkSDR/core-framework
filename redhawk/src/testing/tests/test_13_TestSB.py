@@ -34,7 +34,6 @@ import struct
 import tempfile
 import numpy
 import psutil
-
 from omniORB import CORBA, any, tcInternal
 
 from ossie import properties
@@ -303,14 +302,11 @@ class SBStdOutTest(scatest.CorbaTestCase):
 class SBInitCompTest(scatest.CorbaTestCase):
     def test_cleanup(self):
         comp = sb.launch('sdr/dom/components/TestCompInit/test_componentinit.spd.xml') 
-        pid = comp._pid
-        ppid = 0 
+        process_id = comp._pid 
         if sb.domainless._sandbox:
             sb.domainless._sandbox.shutdown()
             sb.domainless._sandbox = None
-        result = psutil.pid_exists(pid)
-        self.assertEquals(result, False)
-
+        self.assertFalse(psutil.pid_exists(process_id))
 class SBTestTest(scatest.CorbaTestCase):
     def setUp(self):
         sb.setDEBUG(False)
