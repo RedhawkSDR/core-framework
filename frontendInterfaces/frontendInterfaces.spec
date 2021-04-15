@@ -41,10 +41,10 @@ Group:          REDHAWK/Interfaces
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-Requires:       redhawk >= 2.2.7
-Requires:       bulkioInterfaces >= 2.2.7
-BuildRequires:  redhawk-devel >= 2.2.7
-BuildRequires:  bulkioInterfaces >= 2.2.7
+Requires:       redhawk >= 2.2.8
+Requires:       bulkioInterfaces >= 2.2.8
+BuildRequires:  redhawk-devel >= 2.2.8
+BuildRequires:  bulkioInterfaces >= 2.2.8
 BuildRequires:  cppunit-devel
 
 %description

@@ -3,7 +3,7 @@ variables:
   specfile: $project.spec
   redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
   other_repos: ${s3_repo_url}${redhawk_deps_loc}
-  redhawk_version: '2.2.7'
+  redhawk_version: '2.2.8'
   # The REDHAWK branch variable tracks the mainline branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   redhawk_lts_branch: 'develop-2.2'
