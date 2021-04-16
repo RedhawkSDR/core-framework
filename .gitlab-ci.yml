@@ -268,7 +268,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_deps/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
