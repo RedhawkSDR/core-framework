@@ -32,6 +32,7 @@ LT_INIT([dlopen])
 #{% block acChecks %}
 AC_PROG_CC
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(14, noext)
 AC_PROG_INSTALL
 #{% endblock %}
 
