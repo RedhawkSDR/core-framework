@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-bin_SCRIPTS = redhawk-softpkg
+bin_SCRIPTS = redhawk-softpkg redhawk-devtoolset-disable.sh redhawk-devtoolset-enable.sh
 bin_PROGRAMS = redhawk-shminfo redhawk-shmclean
 
 OSSIE_LIBS = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
