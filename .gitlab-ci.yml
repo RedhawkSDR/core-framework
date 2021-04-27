@@ -146,7 +146,7 @@ frontend:el7:
     triggering_ref_name: $CI_COMMIT_REF_NAME
     triggering_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    project: MPF/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
     # from which they were forked unless overridden here.
     branch: $redhawk_lts_branch
@@ -172,7 +172,7 @@ test-trigger:release:
   variables:
     triggering_ref_name: $CI_COMMIT_REF_NAME
   trigger:
-    project: MPF/rf/redhawk-testing/rhtest-core-framework
+    project: MPF/rf/redhawk-testing/core-framework
     branch: $CI_COMMIT_REF_NAME
   only:
     - tags
