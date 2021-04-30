@@ -51,6 +51,9 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  redhawk-devel >= 2.0
 BuildRequires:  autoconf automake libtool
+#{$ if 'C++' in component.languages and component.languages $}
+BuildRequires:  autoconf-archive
+#{$ endif $}
 
 #{$ block requireExtensions $}
 #{$ endblock $}

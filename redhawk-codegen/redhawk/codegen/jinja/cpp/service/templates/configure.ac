@@ -23,6 +23,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CC
 AC_PROG_CXX
+AC_MSG_NOTICE([A C++14 compiler can be installed with `sudo yum install devtoolset-9-gcc-c++`])
+AX_CXX_COMPILE_STDCXX(14, noext)
 AC_PROG_INSTALL
 
 AC_CORBA_ORB
