@@ -311,7 +311,7 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
     CF::Device::Allocations_var result = new CF::Device::Allocations();
 
     if (isBusy()) {
-        return false;
+        return result._retn();
     }
 
     if (capacities.length() == 0) {
