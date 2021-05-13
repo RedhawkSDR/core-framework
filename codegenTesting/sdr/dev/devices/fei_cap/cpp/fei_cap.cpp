@@ -52,7 +52,11 @@ void fei_cap_i::constructor()
      The incoming request for tuning contains a string describing the requested tuner
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
-    this->setNumChannels(2, "RX_DIGITIZER");
+    this->setNumChannels(1, "RX_DIGITIZER");
+    for (unsigned int i=0; i<2; i++) {
+        std::ostringstream rdc_name;
+        RDCs.push_back(this->addChild<RDC_i>(rdc_name.str()));
+    }
 }
 
 /***********************************************************************************************
@@ -302,6 +306,185 @@ int fei_cap_i::serviceFunction()
     return NOOP;
 }
 
+CORBA::Boolean fei_cap_i::allocateCapacity(const CF::Properties & capacities)
+throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
+
+    std::string allocation_id;
+
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
+    CF::Properties local_capacities;
+    redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
+    local_props = props;
+
+    if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
+        redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+        if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
+            std::string requested_alloc = tuner_alloc["FRONTEND::tuner_allocation::allocation_id"].toString();
+            if (not requested_alloc.empty()) {
+                if (_delegatedAllocations.find(requested_alloc) == _delegatedAllocations.end()) {
+                    allocation_id = requested_alloc;
+                } else {
+                    throw frontend::AllocationAlreadyExists("ALLOCATION_ID ALREADY IN USE", capacities);
+                }
+                tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
+            }
+        }
+    }
+
+    for (std::vector<RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
+        bool result = (*it)->allocateCapacity(capacities);
+        if (result) {
+            CF::Device::Allocations_var alloc_response = new CF::Device::Allocations();
+            alloc_response->length(1);
+            alloc_response[0].device_ref = CF::Device::_duplicate((*it)->_this());
+            _delegatedAllocations[allocation_id] = alloc_response;
+            _usageState = updateUsageState();
+            return true;
+        }
+    }
+    
+    return fei_cap_base::allocateCapacity(capacities);
+}
+
+void fei_cap_i::deallocateCapacity (const CF::Properties& capacities)
+throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
+{
+    std::string allocation_id;
+
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
+    CF::Properties local_capacities;
+    redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
+    local_props = props;
+
+    if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
+        redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+        if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
+            std::string requested_alloc = tuner_alloc["FRONTEND::tuner_allocation::allocation_id"].toString();
+            if (not requested_alloc.empty()) {
+                allocation_id = requested_alloc;
+            }
+        }
+    }
+    if (_delegatedAllocations.find(allocation_id) != _delegatedAllocations.end()) {
+        _delegatedAllocations[allocation_id][0].device_ref->deallocateCapacity(capacities);
+        _delegatedAllocations.erase(allocation_id);
+        _usageState = updateUsageState();
+        return;
+    }
+    
+    fei_cap_base::deallocateCapacity(capacities);
+    return;
+}
+
+CF::Device::Allocations* fei_cap_i::allocate(const CF::Properties& capacities)
+throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
+{
+    CF::Device::Allocations_var result = new CF::Device::Allocations();
+
+    if (capacities.length() == 0) {
+        RH_TRACE(this->_baseLog, "no capacities to configure.");
+        return result._retn();
+    }
+
+    std::string allocation_id = ossie::generateUUID();
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
+
+    // copy the const properties to something that is modifiable
+    CF::Properties local_capacities;
+    redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
+    local_props = props;
+
+    if (local_props.find("FRONTEND::coherent_feeds") != local_props.end()) {
+        /*redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+        if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
+            std::string requested_alloc = tuner_alloc["FRONTEND::tuner_allocation::allocation_id"].toString();
+            if (not requested_alloc.empty()) {
+                if (_delegatedAllocations.find(requested_alloc) == _delegatedAllocations.end()) {
+                    allocation_id = requested_alloc;
+                } else {
+                    allocation_id = "_"+allocation_id;
+                    allocation_id = requested_alloc+allocation_id;
+                }
+                tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
+            }
+        }*/
+    }
+    if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
+        redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+        if (tuner_alloc.find("FRONTEND::tuner_allocation::allocation_id") != tuner_alloc.end()) {
+            std::string requested_alloc = tuner_alloc["FRONTEND::tuner_allocation::allocation_id"].toString();
+            if (not requested_alloc.empty()) {
+                if (_delegatedAllocations.find(requested_alloc) == _delegatedAllocations.end()) {
+                    allocation_id = requested_alloc;
+                } else {
+                    throw frontend::AllocationAlreadyExists("ALLOCATION_ID ALREADY IN USE", capacities);
+                }
+                tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
+            }
+        }
+    }
+    /*if (local_props.find("FRONTEND::tuner_allocation") != local_props.end()) {
+        redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::tuner_allocation"].asProperties());
+        if (tuner_alloc.find("FRONTEND::tuner_allocation::tuner_type") != tuner_alloc.end()) {
+            std::string requested_device = tuner_alloc["FRONTEND::tuner_allocation::tuner_type"].toString();
+            if (not requested_alloc.empty()) {
+                if (_delegatedAllocations.find(requested_alloc) == _delegatedAllocations.end()) {
+                    allocation_id = requested_alloc;
+                } else {
+                    allocation_id = "_"+allocation_id;
+                    allocation_id = requested_alloc+allocation_id;
+                }
+                tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
+            }
+        }
+    }*/
+
+    // Verify that the device is in a valid state
+    if (!isUnlocked() || isDisabled() || isError()) {
+        const char* invalidState;
+        if (isLocked()) {
+            invalidState = "LOCKED";
+        } else if (isDisabled()) {
+            invalidState = "DISABLED";
+        } else if (isError()) {
+            invalidState = "ERROR";
+        } else {
+            invalidState = "SHUTTING_DOWN";
+        }
+        throw CF::Device::InvalidState(invalidState);
+    }
+    
+    for (std::vector<RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
+        result = (*it)->allocate(local_capacities);
+        if (result->length() > 0) {
+            _delegatedAllocations[allocation_id] = result;
+            _usageState = updateUsageState();
+            return result._retn();
+        }
+    }
+    
+    result = fei_cap_base::allocate(capacities);
+
+    return result._retn();
+}
+
+void fei_cap_i::deallocate (const char* alloc_id)
+throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
+{
+    std::string _alloc_id = ossie::corba::returnString(alloc_id);
+    if (_delegatedAllocations.find(_alloc_id) != _delegatedAllocations.end()) {
+        for (size_t i=0; i<_delegatedAllocations[_alloc_id]->length(); i++) {
+            CF::Device_ptr dev = _delegatedAllocations[_alloc_id][i].device_ref;
+            dev->deallocate(alloc_id);
+            _usageState = updateUsageState();
+            return;
+        }
+    }
+    _usageState = updateUsageState();
+    CF::Properties invalidProps;
+    throw CF::Device::InvalidCapacity("Capacities do not match allocated ones in the child devices", invalidProps);
+}
+
 /*************************************************************
 Functions supporting tuning allocation
 *************************************************************/
@@ -463,6 +646,19 @@ double fei_cap_i::getTunerOutputSampleRate(const std::string& allocation_id){
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     return frontend_tuner_status[idx].sample_rate;
 }
+
+void fei_cap_i::configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("configureTuner not supported");
+}
+
+CF::Properties* fei_cap_i::getTunerSettings(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerSettings not supported");
+}
+
 
 /*************************************************************
 Functions servicing the RFInfo port(s)

@@ -444,8 +444,14 @@ namespace frontend {
         if (tunerAllocated == 0)
             return CF::Device::IDLE;
         // If all tuners are allocated, device is busy
-        if (tunerAllocated == tuner_allocation_ids.size())
+        if (tunerAllocated == tuner_allocation_ids.size()) {
+            for (std::vector<Device_impl*>::iterator it=_dynamicComponents.begin(); it!=_dynamicComponents.end(); ++it) {
+                if (((*it)->usageState() == CF::Device::ACTIVE) or ((*it)->usageState() == CF::Device::IDLE)) {
+                    return CF::Device::ACTIVE;
+                }
+            }
             return CF::Device::BUSY;
+        }
         // Else, device is active
         return CF::Device::ACTIVE;
     }
@@ -499,6 +505,8 @@ namespace frontend {
         CF::Properties local_capacities;
         redhawk::PropertyMap& local_props = redhawk::PropertyMap::cast(local_capacities);
         local_props = props;
+        redhawk::PropertyMap& stored_props = redhawk::PropertyMap::cast(local_capacities);
+        stored_props = props;
 
         if (local_props.find("FRONTEND::coherent_feeds") != local_props.end()) {
             // needs to be handled by the implementation
@@ -514,11 +522,33 @@ namespace frontend {
                     if (_allocationTracker.find(requested_alloc) == _allocationTracker.end()) {
                         allocation_id = requested_alloc;
                     } else {
-                        allocation_id = "_"+allocation_id;
-                        allocation_id = requested_alloc+allocation_id;
+                        throw CF::Device::InvalidCapacity("Requested ALLOCATION_ID already being used", capacities);
                     }
                     tuner_alloc["FRONTEND::tuner_allocation::allocation_id"] = allocation_id;
                 }
+            } else {
+                throw CF::Device::InvalidCapacity("Missing allocation ID element (may be an empty string)", capacities);
+            }
+        } else if (local_props.find("FRONTEND::listener_allocation") != local_props.end()) {
+            redhawk::PropertyMap& tuner_alloc = redhawk::PropertyMap::cast(local_props["FRONTEND::listener_allocation"].asProperties());
+            if (tuner_alloc.find("FRONTEND::listener_allocation::existing_allocation_id") != tuner_alloc.end()) {
+                if (_allocationTracker.find(tuner_alloc["FRONTEND::listener_allocation::existing_allocation_id"].toString()) == _allocationTracker.end()) {
+                    throw CF::Device::InvalidCapacity("Requested existing ALLOCATION_ID invalid", capacities);
+                }
+                std::string existing_alloc_id = tuner_alloc["FRONTEND::listener_allocation::existing_allocation_id"].toString();
+                if (_allocationTracker.find(existing_alloc_id) != _allocationTracker.end()) {
+                    if (tuner_alloc.find("FRONTEND::listener_allocation::listener_allocation_id") == tuner_alloc.end()) {
+                        throw CF::Device::InvalidCapacity("Missing listener_allocation_id", capacities);
+                        std::string listener_alloc_id = tuner_alloc["FRONTEND::listener_allocation::listener_allocation_id"].toString();
+                        if (listener_alloc_id.empty()) {
+                            tuner_alloc["FRONTEND::listener_allocation::listener_allocation_id"] = allocation_id;
+                        }
+                    }
+                } else {
+                    throw CF::Device::InvalidCapacity("Missing listener allocation ID element (may be an empty string)", capacities);
+                }
+            } else {
+                throw CF::Device::InvalidCapacity("Missing existing allocation ID element (may be an empty string)", capacities);
             }
         }
 
@@ -539,6 +569,7 @@ namespace frontend {
         }
 
         bool retval;
+        newly_allocated_tuner[allocation_id] = -1;
         retval = allocateCapacity(local_capacities);
 
         if (retval) {
@@ -554,7 +585,8 @@ namespace frontend {
             }
             result[0].allocated = local_capacities;
             result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
-            _allocationTracker[allocation_id] = props;
+            stored_props["SelectedTunerId"] = newly_allocated_tuner[allocation_id];
+            _allocationTracker[allocation_id] = stored_props;
         }
 
         return result._retn();
@@ -566,6 +598,7 @@ namespace frontend {
 
         RH_TRACE(_deviceLog,__PRETTY_FUNCTION__);
         exclusive_lock lock(allocation_id_mapping_lock);
+
         checkValidIds(capacities);
 
         bool has_listener = false;
@@ -724,6 +757,7 @@ namespace frontend {
                             }
                         }
                         _usageState = updateUsageState();
+                        newly_allocated_tuner[frontend_tuner_allocation.allocation_id] = tuner_id;
                         return true;
                     }
                     // if we made it here, we failed to find an available tuner
@@ -889,6 +923,8 @@ namespace frontend {
                 const std::string id = (const char*) capacities[ii].id;
                 if (id == "FRONTEND::scanner_allocation")
                     continue;
+                if (id == "SelectedTunerId")
+                    continue;
                 if (id != "FRONTEND::tuner_allocation" && id != "FRONTEND::listener_allocation"){
                     RH_INFO(_deviceLog,"deallocateCapacity: UNKNOWN ALLOCATION PROPERTY");
                     throw CF::Device::InvalidCapacity("UNKNOWN ALLOCATION PROPERTY", capacities);
@@ -951,6 +987,14 @@ namespace frontend {
             }
         }
         _usageState = updateUsageState();
+    }
+
+    template < typename TunerStatusStructType >
+    CF::Device::UsageType FrontendTunerDevice<TunerStatusStructType>::usageState ()
+    throw (CORBA::SystemException)
+    {
+        updateUsageState();
+        return Device_impl::usageState();
     }
 
     /*****************************************************************/

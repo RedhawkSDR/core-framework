@@ -115,4 +115,66 @@ False: Does not need control and can just attach to any currently tasked device 
     </struct>
     <configurationkind kindtype="property"/>
   </structsequence>
+  <struct id="device_characteristics" mode="readonly" name="device_characteristics">
+    <description>Describes the channels found in the DLSR</description>
+      <simple id="device_characteristics::ch_name" mode="readonly" name="ch_name" type="string">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::tuner_type" mode="readonly" name="tuner_type" type="string">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::chan_num" mode="writeonly" name="chan_num" type="short">
+        <description>This is the per tuner type channel number. This means that there could be a tuner 0 for an RX and a tuner 0 for a TX.</description>
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::antenna" mode="readonly" name="antenna" type="string">
+        <action type="external"/>
+      </simple>
+      <simplesequence id="device_characteristics::available_antennas" name="available_antennas" type="string">
+        <description>List of antennas available for this device.</description>
+      </simplesequence>
+      <simple id="device_characteristics::bandwidth_current" mode="readonly" name="bandwidth_current" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::bandwidth_min" mode="readwrite" name="bandwidth_min" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::bandwidth_max" mode="readwrite" name="bandwidth_max" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::rate_current" mode="readonly" name="rate_current" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::rate_min" mode="readonly" name="rate_min" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::rate_max" mode="readonly" name="rate_max" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::freq_current" mode="readonly" name="freq_current" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::freq_min" mode="readonly" name="freq_min" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::freq_max" mode="readonly" name="freq_max" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::gain_current" mode="readonly" name="gain_current" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::gain_min" mode="readonly" name="gain_min" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::gain_max" mode="readonly" name="gain_max" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::clock_min" mode="readwrite" name="clock_min" type="double">
+        <action type="external"/>
+      </simple>
+      <simple id="device_characteristics::clock_max" mode="readwrite" name="clock_max" type="double">
+        <action type="external"/>
+      </simple>
+    <configurationkind kindtype="property"/>
+  </struct>
 </properties>

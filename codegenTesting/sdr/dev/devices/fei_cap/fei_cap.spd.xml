@@ -24,4 +24,12 @@
     <processor name="x86"/>
     <processor name="x86_64"/>
   </implementation>
+  <child name="RDC">
+    <childPropertyFile>
+        <localfile name="RDC.prf.xml"/>
+    </childPropertyFile>
+    <childDescriptorFile>
+        <localfile name="RDC.scd.xml"/>
+    </childDescriptorFile>
+  </child>
 </softpkg>

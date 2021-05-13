@@ -21,6 +21,7 @@
 #define FE_TUNER_DEVICE_BASE_H
 
 #include <ossie/Device_impl.h>
+#include <ossie/DynamicComponent.h>
 #include <uuid/uuid.h>
 #include <redhawk/FRONTEND/Frontend.h>
 
@@ -155,7 +156,7 @@ namespace frontend {
      *    Frontend tuner class definition
      */
     template < typename TunerStatusStructType >
-    class FrontendTunerDevice : public Device_impl
+    class FrontendTunerDevice : public Device_impl, public virtual DynamicComponent
     {
         ENABLE_LOGGING
 
@@ -175,6 +176,7 @@ namespace frontend {
             virtual CORBA::Boolean allocateCapacity(const CF::Properties & capacities) throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
             virtual void deallocate (const char* alloc_id) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
             virtual void deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+            CF::Device::UsageType usageState () throw (CORBA::SystemException);
 
         protected:
             typedef std::map<std::string, size_t> string_number_mapping;
@@ -187,6 +189,7 @@ namespace frontend {
             frontend::frontend_listener_allocation_struct frontend_listener_allocation;
             frontend::frontend_transmitter_allocation_struct frontend_transmitter_allocation;
             std::vector<TunerStatusStructType> frontend_tuner_status;
+            std::map<std::string, int> newly_allocated_tuner;
 
             virtual bool callDeviceSetTuning(size_t tuner_id);
             virtual void checkValidIds(const CF::Properties & capacities);

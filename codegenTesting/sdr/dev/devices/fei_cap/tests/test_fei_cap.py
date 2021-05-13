@@ -46,48 +46,69 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.start()
         self.comp.stop()
         a=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
-        b=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='2',returnDict=False)
-        c=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='3',returnDict=False)
-        a_bad=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
+        b=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='2',returnDict=False)
+        c=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='3',returnDict=False)
+        d=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='4',returnDict=False)
+        a_bad=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='1',returnDict=False)
         a_bad.id = 'foo'
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
-        self.assertEquals(self.comp.allocateCapacity([a]), True)
+        ret_a = self.comp.allocate([a])
+        self.assertEquals(len(ret_a), 1)
+        #self.assertEquals(self.comp.allocateCapacity([a]), True)
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
-        self.assertEquals(self.comp.allocateCapacity([b]), True)
+        ret_b = self.comp.allocate([b])
+        self.assertEquals(len(ret_b), 1)
+        #self.assertEquals(self.comp.allocateCapacity([b]), True)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        ret_c = self.comp.allocate([c])
+        self.assertEquals(len(ret_c), 1)
+        #self.assertEquals(self.comp.allocateCapacity([b]), True)
         self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
-        self.assertEquals(self.comp.allocateCapacity([c]), False)
+        ret_d = self.comp.allocate([d])
+        self.assertEquals(len(ret_d), 0)
+        #self.assertEquals(self.comp.allocateCapacity([c]), False)
         self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
         try:
-            self.comp.deallocateCapacity([b, a_bad])
-        except:
+            self.comp.deallocate('bad_id')
+        except Exception, e:
+            pass
+        try:
+            self.comp.deallocate('2')
+        except Exception, e:
             pass
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
 
-    def testTunerFrameworkCall(self):
+    def testOldAllocationCall(self):
         #######################################################################
         # test the allocate api over allocateCapacity
         self.comp.start()
         self.comp.stop()
         a=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
-        b=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='2',returnDict=False)
-        c=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='3',returnDict=False)
-        a_bad=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
+        b=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='2',returnDict=False)
+        c=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='3',returnDict=False)
+        d=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='4',returnDict=False)
+        a_bad=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='1',returnDict=False)
         a_bad.id = 'foo'
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
-        retval_a = self.comp.allocate([a])
-        self.assertEquals(len(retval_a), 1)
+        retval_a = self.comp.allocateCapacity([a])
+        self.assertEquals(retval_a, True)
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
-        retval_b = self.comp.allocate([b])
-        self.assertEquals(len(retval_b), 1)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
-        retval_c = self.comp.allocate([c])
-        self.assertEquals(len(retval_c), 0)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
-        self.comp.deallocate(retval_b[0].alloc_id)
+        retval_b = self.comp.allocateCapacity([b])
+        self.assertEquals(retval_b, True)
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
-        self.comp.deallocate(retval_a[0].alloc_id)
+        retval_c = self.comp.allocateCapacity([c])
+        self.assertEquals(retval_c, True)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        retval_d = self.comp.allocateCapacity([d])
+        self.assertEquals(retval_d, False)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        self.comp.deallocateCapacity([b])
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.comp.deallocateCapacity([c])
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.comp.deallocateCapacity([a])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
 
     def testRFInfo(self):
@@ -101,9 +122,9 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         _feedinfo=FRONTEND.FeedInfo('testFeed','testPol',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('testMission','testCollector','testRX',_antennainfo,_feedinfo)
         _pathdelays=[FRONTEND.PathDelay(100,200), FRONTEND.PathDelay(300,400)]
-        _rfcapabilities=FRONTEND.RFCapabilities(FRONTEND.FreqRange(1,2,[]),FRONTEND.FreqRange(3,4,[]))
+        _rfcapabilities=FRONTEND.RFCapabilities(FRONTEND.FreqRange(1,2,[]),FRONTEND.FreqRange(3,4,[]), FRONTEND.Range(1,2,[]), FRONTEND.Range(4,5,[]))
         _additionalinfo = [CF.DataType(id='a',value=any.to_any(1)), CF.DataType(id='b',value=any.to_any(2)), CF.DataType(id='c',value=any.to_any(3))]
-        _rfinfopkt=FRONTEND.RFInfoPkt('TestID',256.0,101.0,412.0,False,_sensorinfo,_pathdelays,_rfcapabilities,_additionalinfo)
+        _rfinfopkt=FRONTEND.RFInfoPkt('TestID',256.0,101.0,412.0,False,_sensorinfo,_pathdelays,[],[],_rfcapabilities,_additionalinfo)
         _port.ref._set_rfinfo_pkt(_rfinfopkt)
 
 if __name__ == "__main__":
