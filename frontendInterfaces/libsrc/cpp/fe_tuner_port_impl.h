@@ -287,7 +287,7 @@ namespace frontend {
             void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
                 boost::mutex::scoped_lock lock(this->portAccess);
                 std::string _id(id);
-                std::auto_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
+                std::unique_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
                 this->parent->setScanStrategy(_id, _strat.get());
             };
             std::string getRepid() const {
@@ -319,7 +319,7 @@ namespace frontend {
             void setScanStrategy(const char* id, const FRONTEND::ScanningTuner::ScanStrategy& scan_strategy) {
                 boost::mutex::scoped_lock lock(this->portAccess);
                 std::string _id(id);
-                std::auto_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
+                std::unique_ptr<frontend::ScanStrategy> _strat(returnScanStrategy(scan_strategy));
                 this->parent->setScanStrategy(_id, _strat.get());
             };
             std::string getRepid() const {
