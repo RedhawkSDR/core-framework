@@ -294,7 +294,7 @@ namespace frontend {
 
     class ScanStatus {
     public:
-        std::auto_ptr<ScanStrategy> strategy;
+        std::unique_ptr<ScanStrategy> strategy;
         BULKIO::PrecisionUTCTime start_time;
         Frequencies center_tune_frequencies;
         bool started;
