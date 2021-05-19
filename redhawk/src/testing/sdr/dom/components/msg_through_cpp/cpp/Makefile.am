@@ -36,6 +36,6 @@ distclean-local:
 
 msg_through_cpp_SOURCES = msg_through_cpp.cpp msg_through_cpp.h msg_through_cpp_base.cpp msg_through_cpp_base.h main.cpp struct_props.h
 msg_through_cpp_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)  -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-msg_through_cpp_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS)
+msg_through_cpp_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS)
 msg_through_cpp_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

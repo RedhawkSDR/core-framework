@@ -27,4 +27,4 @@ noinst_PROGRAMS = slow_stop_cpp
 
 slow_stop_cpp_SOURCES = slow_stop_cpp.cpp slow_stop_cpp.h slow_stop_cpp_base.cpp slow_stop_cpp_base.h main.cpp
 slow_stop_cpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include
-slow_stop_cpp_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+slow_stop_cpp_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

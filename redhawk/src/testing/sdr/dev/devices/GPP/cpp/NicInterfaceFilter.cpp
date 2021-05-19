@@ -19,13 +19,12 @@
  */
 #include "NicInterfaceFilter.h"
 
-#include <boost/regex.hpp>
 #include <string>
 #include <iostream>
 
 NicInterfaceFilterRegex::NicInterfaceFilterRegex( const NicInterfaceRegexes& nic_interface_regexes ):
 nic_interface_regexes_(nic_interface_regexes),
-regex_(new boost::regex())
+regex_(new std::regex())
 {
     compile_regex();
 }
@@ -36,7 +35,7 @@ NicInterfaceFilterRegex::match( const std::string& nic )
     if( is_regex_out_of_date() )
         compile_regex();
     
-    return boost::regex_match( nic, *regex_ );
+    return std::regex_match( nic, *regex_ );
 }
 
 bool

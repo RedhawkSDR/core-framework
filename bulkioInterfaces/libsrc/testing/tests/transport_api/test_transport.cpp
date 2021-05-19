@@ -19,7 +19,7 @@
  */
 #include <iostream>
 #include <getopt.h>
-#include <boost/regex.hpp>
+#include <regex>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
@@ -109,22 +109,22 @@ int main(int argc, char* argv[])
   CppUnit::Test *suite = all_suite;
   if ( prefix != "" ) {
     CppUnit::TestSuite *filter_suite=new CppUnit::TestSuite();
-    boost::regex expr(prefix);
-    boost::regex subt_expr(subtest);
+    std::regex expr(prefix);
+    std::regex subt_expr(subtest);
     int tcnt=all_suite->getChildTestCount();
     if ( verbose_flag )   std::cout << "child cnt = " << tcnt << std::endl;
     for (int i=0; i< tcnt; i++ ) {
       CppUnit::Test *t = all_suite->getChildTestAt(i);
       std::string tname = t->getName();
       if (verbose_flag ) std::cout << "reg = " << prefix << " test ... " << tname << std::endl;
-      if ( boost::regex_search( tname,  expr )  ) {
+      if ( std::regex_search( tname,  expr )  ) {
         if ( subtest != "" ) {
             int tcnt=t->getChildTestCount();
             for (int i=0; i< tcnt; i++ ) {
                 CppUnit::Test *subt = t->getChildTestAt(i);
                 std::string sub_tname = subt->getName();
                 if (verbose_flag ) std::cout << "(sub) reg = " << subtest << " test ... " << sub_tname << std::endl;
-                if ( boost::regex_search( sub_tname,  subt_expr )  ) {
+                if ( std::regex_search( sub_tname,  subt_expr )  ) {
                     if (verbose_flag ) std::cout << "Adding via method : test ... " << sub_tname << std::endl;
                     filter_suite->addTest(subt);
                 }

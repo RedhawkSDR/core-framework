@@ -47,5 +47,5 @@ distclean-local:
 # you wish to manually control these options.
 TestAllPropTypes_SOURCES = main.cpp port_impl.cpp TestAllPropTypes_base.cpp TestAllPropTypes.cpp port_impl.h struct_props.h TestAllPropTypes_base.h TestAllPropTypes.h
 TestAllPropTypes_CXXFLAGS = -Wall -I$(CFDIR)/include -I$(CFDIR)/parser $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) $(BOOST_CPPFLAGS)
-TestAllPropTypes_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/parser/libossieparser.la $(CFDIR)/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_FILESYSTEM_LIB) $(BOOST_REGEX_LIB) $(BOOST_THREAD_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
+TestAllPropTypes_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/parser/libossieparser.la $(CFDIR)/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
 

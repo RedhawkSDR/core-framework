@@ -19,12 +19,12 @@
  */
 
 
+#include <regex>
 #include <string>
 #include <uuid/uuid.h>
 #include <string.h>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/regex.hpp>
 #include <omniORB4/CORBA.h>
 #include <omniORB4/omniURI.h>
 #include <omniORB4/omniORB.h>
@@ -67,9 +67,9 @@ std::string ossie::generateUUID()
 static std::string _trim_addr( const std::string &addr, const std::string &exp="(.*):([^:]*)$" )
 {
     std::string ret;
-    boost::regex expr(exp.c_str());
-    boost::smatch what;
-    if (boost::regex_search(addr, what, expr))
+    std::regex expr(exp.c_str());
+    std::smatch what;
+    if (std::regex_search(addr, what, expr))
         {
             ret =  what[1];
         }

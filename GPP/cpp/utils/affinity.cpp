@@ -19,6 +19,7 @@
  */
 #include <iostream>
 #include <fstream>
+#include <regex>
 #include <sstream>
 #include <list>
 #include <string>
@@ -27,7 +28,6 @@
 #include <dirent.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -148,21 +148,21 @@ namespace  gpp {
         }
 
         RH_TRACE(get_affinity_logger(), "Searching /proc/interrupts for: " << lscan );
-        const boost::regex  line_scan(lscan);
+        const std::regex  line_scan(lscan);
         std::string line;
         while( std::getline( in, line ) ) {
             // check if the device is our interface
             RH_TRACE(get_affinity_logger(), "Processing /proc/interrupts.... line:" << line );
-            if ( boost::regex_search(line,line_scan) ) {
+            if ( std::regex_search(line,line_scan) ) {
                 std::istringstream iss(line);
                 int parts=0;
                 do {
                     std::string tok;
                     iss>>tok;
                     // skip interrupt number and iface
-                    const boost::regex num_scan("^\\b\\d+\\b$");
-                    RH_TRACE(get_affinity_logger(), "identify cpu interrupts: tok : (" << tok << ") res " << boost::regex_search(tok,num_scan));
-                    if ( parts > 0 and boost::regex_search(tok,num_scan) ) {
+                    const std::regex num_scan("^\\b\\d+\\b$");
+                    RH_TRACE(get_affinity_logger(), "identify cpu interrupts: tok : (" << tok << ") res " << std::regex_search(tok,num_scan));
+                    if ( parts > 0 and std::regex_search(tok,num_scan) ) {
                         std::istringstream iss(tok);
                         int icnt;
                         iss >> icnt;

@@ -23,4 +23,4 @@ noinst_PROGRAMS = huge_msg_cpp
 
 huge_msg_cpp_SOURCES = huge_msg_cpp.cpp huge_msg_cpp.h huge_msg_cpp_base.cpp huge_msg_cpp_base.h main.cpp
 huge_msg_cpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-huge_msg_cpp_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+huge_msg_cpp_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

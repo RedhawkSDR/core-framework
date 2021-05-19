@@ -23,5 +23,5 @@ noinst_PROGRAMS = base_programmable
 
 base_programmable_SOURCES = base_programmable_base.cpp base_programmable_base.h base_programmable.cpp base_programmable.h entry_point.h base_programmable_prog_base.h main.cpp
 base_programmable_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-base_programmable_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) -ldl $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+base_programmable_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) -ldl $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 

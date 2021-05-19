@@ -25,5 +25,5 @@ noinst_PROGRAMS = CppTestDevice
 
 CppTestDevice_SOURCES = CppTestDevice.cpp CppTestDevice.h CppTestDevice_base.cpp CppTestDevice_base.h main.cpp struct_props.h
 CppTestDevice_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) -I$(CFDIR)/include
-CppTestDevice_LDADD = $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+CppTestDevice_LDADD = $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 CppTestDevice_LDFLAGS = -Wall

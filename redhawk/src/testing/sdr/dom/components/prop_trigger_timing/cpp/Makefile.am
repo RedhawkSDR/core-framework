@@ -23,4 +23,4 @@ noinst_PROGRAMS = prop_trigger_timing
 
 prop_trigger_timing_SOURCES = prop_trigger_timing.cpp prop_trigger_timing.h prop_trigger_timing_base.cpp prop_trigger_timing_base.h main.cpp struct_props.h
 prop_trigger_timing_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-prop_trigger_timing_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+prop_trigger_timing_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

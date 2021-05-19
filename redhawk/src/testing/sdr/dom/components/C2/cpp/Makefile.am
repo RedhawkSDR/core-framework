@@ -41,6 +41,6 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 C2_SOURCES = $(redhawk_SOURCES_auto)
-C2_LDADD =  $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
+C2_LDADD =  $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
 C2_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto) -I$(CFDIR)/include
 C2_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)

@@ -21,13 +21,14 @@
 #include <fstream>
 #include <sstream>
 #include <list>
+#include <numeric>
+#include <regex>
 #include <string>
 #include <sched.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -243,27 +244,27 @@ namespace  redhawk {
         // default regex to looking for interface string
         std::string  lscan("("+iface+")");
         if ( irqs.size() ) { 
-            std::vector< std::string >::iterator i=irqs.begin();
-            for ( ; i != irqs.end(); i++ ) *i = "\\b"+*i+":"; 
-            lscan = "(\\b"+boost::algorithm::join(irqs,"|")+")";
+            for (auto i = irqs.begin(); i != irqs.end(); i++ ) *i = "\\b"+*i+":"; 
+            lscan = std::accumulate(irqs.begin(), irqs.end(), std::string{},
+                [](std::string &accum, const std::string &elem) { return accum.empty() ? elem : accum + "|" + elem; });
         }
 
         RH_TRACE(_affinity_logger, "Searching /proc/interrupts for: " << lscan );
-        const boost::regex line_scan(lscan);
+        const std::regex line_scan(lscan);
         std::string line;
         while( std::getline( in, line ) ) {
             // check if the device is our interface
             RH_TRACE(_affinity_logger, "Processing /proc/interrupts.... line:" << line );
-            if ( boost::regex_search(line,line_scan) ) {
+            if ( std::regex_search(line, line_scan) ) {
                 std::istringstream iss(line);
                 int parts=0;
                 do {
                     std::string tok;
                     iss>>tok;
                     // skip interrupt number and iface
-                    const boost::regex num_scan("^\\b\\d+\\b$");
-                    RH_TRACE(_affinity_logger, "identify cpu interrupts: tok : (" << tok << ") res " << boost::regex_search(tok,num_scan));
-                    if ( parts > 0 and boost::regex_search(tok,num_scan) ) {
+                    const std::regex num_scan("^\\b\\d+\\b$");
+                    RH_TRACE(_affinity_logger, "identify cpu interrupts: tok : (" << tok << ") res " << std::regex_search(tok, num_scan));
+                    if ( parts > 0 and std::regex_search(tok, num_scan) ) {
                         std::istringstream iss(tok);
                         int icnt;
                         iss >> icnt;

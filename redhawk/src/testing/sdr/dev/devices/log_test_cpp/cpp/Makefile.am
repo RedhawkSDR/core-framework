@@ -26,5 +26,5 @@ noinst_PROGRAMS = log_test_cpp
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 log_test_cpp_SOURCES = $(redhawk_SOURCES_auto)
-log_test_cpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+log_test_cpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 log_test_cpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie

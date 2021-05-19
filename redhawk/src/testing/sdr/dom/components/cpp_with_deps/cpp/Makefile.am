@@ -53,7 +53,7 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 cpp_with_deps_SOURCES = $(redhawk_SOURCES_auto)
-cpp_with_deps_LDADD =  $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(SOFTPKG_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
+cpp_with_deps_LDADD =  $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(SOFTPKG_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
 cpp_with_deps_CXXFLAGS = -Wall $(SOFTPKG_CFLAGS) $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto )  -I$(CFDIR)/include
 cpp_with_deps_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

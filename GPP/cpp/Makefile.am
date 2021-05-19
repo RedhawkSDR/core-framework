@@ -58,6 +58,6 @@ install-data-hook:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 GPP_SOURCES = $(redhawk_SOURCES_auto)
-GPP_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) -lboost_iostreams $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+GPP_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) -lboost_iostreams $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
 GPP_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) -I. $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 GPP_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)

@@ -14,5 +14,5 @@ redhawk_SOURCES_auto += LongDevice_base.cpp
 redhawk_SOURCES_auto += LongDevice_base.h
 redhawk_SOURCES_auto += main.cpp
 LongDevice_SOURCES = $(redhawk_SOURCES_auto)
-LongDevice_LDADD =  $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+LongDevice_LDADD =  $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 LongDevice_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include

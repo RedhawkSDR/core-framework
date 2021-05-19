@@ -47,6 +47,6 @@ distclean-local:
 # you wish to manually control these options.
 TestComplexProps_SOURCES = main.cpp port_impl.cpp TestComplexProps_base.cpp TestComplexProps.cpp port_impl.h struct_props.h TestComplexProps_base.h TestComplexProps.h
 TestComplexProps_CXXFLAGS = -Wall -I$(CFDIR)/include -I$(CFDIR)/parser $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) $(BOOST_CPPFLAGS)
-TestComplexProps_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/parser/libossieparser.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNIDYNAMIC_LIBS) $(BOOST_THREAD_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
+TestComplexProps_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/parser/libossieparser.la $(CFDIR)/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(OMNIDYNAMIC_LIBS) $(BOOST_THREAD_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
 TestComplexProps_LDFLAGS = -Wall
 

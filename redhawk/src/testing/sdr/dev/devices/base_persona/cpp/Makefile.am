@@ -29,6 +29,6 @@ CFDIR = $(top_srcdir)/base
 lib_LTLIBRARIES = libbase_persona.la
 libbase_persona_la_SOURCES = base_persona_base.cpp base_persona.cpp base_persona_persona_base.cpp main.cpp base_persona_base.h base_persona.h base_persona_persona_base.h entry_point.h
 libbase_persona_la_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-libbase_persona_la_LDFLAGS = -Wall $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+libbase_persona_la_LDFLAGS = -Wall $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 libdir = $(prefix)/dev/devices/base_persona/cpp/.libs
 

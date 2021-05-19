@@ -21,6 +21,7 @@
 #include <iostream>
 #include <uuid/uuid.h>
 #include <errno.h>
+#include <regex>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -28,7 +29,6 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <boost/regex.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -518,7 +518,7 @@ namespace ossie {
       // from context map
       //
       MacroTable::const_iterator iter=ctx.begin();
-      boost::regex         e1;
+      std::regex         e1;
       std::string          token_exp;        // create list of regex to search for
       std::string          match_exp;        // create list of substitutions when match occurrs
       {
@@ -550,7 +550,7 @@ namespace ossie {
       std::ostream_iterator<char, char> oi(convertedText);
 
       // process regex against source text
-      boost::regex_replace(oi, src.begin(), src.end(),e1, match_exp, boost::match_default | boost::format_all);
+      std::regex_replace(oi, src.begin(), src.end(), e1, match_exp, match_default | format_all);
 
 #if 0
       std::cout << "IN: >>" << src << std::endl;

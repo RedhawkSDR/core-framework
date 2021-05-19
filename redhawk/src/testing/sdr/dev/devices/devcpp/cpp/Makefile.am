@@ -23,4 +23,4 @@ noinst_PROGRAMS = devcpp
 
 devcpp_SOURCES = devcpp.cpp devcpp.h devcpp_base.cpp devcpp_base.h main.cpp
 devcpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include
-devcpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+devcpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la

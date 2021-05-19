@@ -19,10 +19,10 @@
  */
 #ifndef NIC_INTERFACE_FILTER_H_
 #define NIC_INTERFACE_FILTER_H_
+#include <regex>
 #include <string>
 #include <vector>
 #include <map>
-#include <boost/regex_fwd.hpp>
 #include <boost/shared_ptr.hpp>
 #include "states/NicState.h"
 
@@ -43,7 +43,7 @@ private:
 private:
     const NicInterfaceRegexes& nic_interface_regexes_;
     NicInterfaceRegexes cached_nic_interface_regexes_;
-    boost::shared_ptr<boost::regex> regex_;
+    boost::shared_ptr<std::regex> regex_;
 };
 
 

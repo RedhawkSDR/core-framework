@@ -35,6 +35,6 @@ noinst_PROGRAMS = ticket2093
 #include $(srcdir)/Makefile.am.ide
 ticket2093_SOURCES = main.cpp  port_impl.cpp  ticket2093_base.cpp  ticket2093.cpp port_impl.h  struct_props.h  ticket2093_base.h  ticket2093.h
 ticket2093_CXXFLAGS = -I$(CFDIR)/include $(OMNIORB_CFLAGS) $(OMNITHREAD_CFLAGS) $(OMNIDYNAMIC_CFLAGS) $(BOOST_CPPFLAGS)
-ticket2093_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
+ticket2093_LDADD = $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la $(OMNIORB_LIBS) $(OMNITHREAD_LIBS) $(OMNIDYNAMIC_LIBS) $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -lboost_serialization $(BOOST_SYSTEM_LIB)
 #ticket2093_LDFLAGS = $(redhawk_LDFLAGS_auto)
 

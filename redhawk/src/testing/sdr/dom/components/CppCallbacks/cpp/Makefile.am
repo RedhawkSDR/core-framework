@@ -23,5 +23,5 @@ noinst_PROGRAMS = CppCallbacks
 
 CppCallbacks_SOURCES = CppCallbacks.cpp CppCallbacks.h CppCallbacks_base.cpp CppCallbacks_base.h main.cpp struct_props.h
 CppCallbacks_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include
-CppCallbacks_LDADD = $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+CppCallbacks_LDADD = $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
 

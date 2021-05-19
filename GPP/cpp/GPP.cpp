@@ -27,6 +27,7 @@
 **************************************************************************/
 #include <iostream>
 #include <fstream>
+#include <regex>
 #include <stdexcept>
 #include <limits>
 #include <linux/limits.h>
@@ -51,7 +52,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #ifdef  HAVE_LIBNUMA
 #include <numa.h>
@@ -136,10 +136,10 @@ const std::string  __ExpandEnvVars(const std::string& original) {
   typedef std::list< std::pair<const std::string,const std::string> > t2StrLst;
 
   std::string result = original;
-  const boost::regex envscan("\\$([0-9A-Za-z_]*)");
-  const boost::sregex_iterator end;
+  const std::regex envscan("\\$([0-9A-Za-z_]*)");
+  const std::sregex_iterator end;
   t2StrLst replacements;
-  for (boost::sregex_iterator rit(result.begin(), result.end(), envscan); rit != end; ++rit)
+  for (std::sregex_iterator rit(result.begin(), result.end(), envscan); rit != end; ++rit)
       replacements.push_back(std::make_pair((*rit)[0],(*rit)[1]));
   for (t2StrLst::const_iterator lit = replacements.begin(); lit != replacements.end(); ++lit)  {
     const char* expanded = std::getenv(lit->second.c_str());
@@ -150,8 +150,8 @@ const std::string  __ExpandEnvVars(const std::string& original) {
 
   replacements.clear();
 
-  const boost::regex envscan2("\\$\\{([0-9A-Za-z_]*)\\}");
-  for (boost::sregex_iterator rit(result.begin(), result.end(), envscan2); rit != end; ++rit)
+  const std::regex envscan2("\\$\\{([0-9A-Za-z_]*)\\}");
+  for (std::sregex_iterator rit(result.begin(), result.end(), envscan2); rit != end; ++rit)
     replacements.push_back(std::make_pair((*rit)[0],(*rit)[1]));
   for (t2StrLst::const_iterator lit = replacements.begin(); lit != replacements.end(); ++lit)
     {
@@ -167,11 +167,11 @@ const std::string  __ExpandEnvVars(const std::string& original) {
 
 const std::string  __ExpandProperties(const std::string& original, const CF::Properties &props) {
   std::string result = original;
-  const boost::regex envscan("@([0-9A-Za-z_]*)@");
-  const boost::sregex_iterator end;
+  const std::regex envscan("@([0-9A-Za-z_]*)@");
+  const std::sregex_iterator end;
   typedef std::list< std::pair<const std::string,const std::string> > t2StrLst;
   t2StrLst replacements;
-  for (boost::sregex_iterator rit(result.begin(), result.end(), envscan); rit != end; ++rit)
+  for (std::sregex_iterator rit(result.begin(), result.end(), envscan); rit != end; ++rit)
     replacements.push_back(std::make_pair((*rit)[0],(*rit)[1]));
   const redhawk::PropertyMap& pmap = redhawk::PropertyMap::cast(props);
   for (t2StrLst::const_iterator lit = replacements.begin(); lit != replacements.end(); ++lit)
@@ -732,7 +732,7 @@ void GPP_i::update_grp_child_pids() {
         }
     }
     globfree(&globbuf);
-    boost::regex re_("-?\\d+|[[:alpha:]]+|\\(.*\\)");
+    std::regex re_("-?\\d+|[[:alpha:]]+|\\(.*\\)");
     BOOST_FOREACH(const int &_pid, pids_now) {
         if (parsed_stat.find(_pid) == parsed_stat.end()) { // it is not on the map
             std::stringstream stat_filename;
@@ -744,8 +744,8 @@ void GPP_i::update_grp_child_pids() {
             try {
                 std::ifstream istr(stat_filename.str().c_str());
                 std::getline(istr, line);
-                boost::sregex_token_iterator j;
-                boost::sregex_token_iterator i(line.begin(), line.end(), re_);
+                std::sregex_token_iterator j;
+                std::sregex_token_iterator i(line.begin(), line.end(), re_);
                 try {
                     for( fcnt=0; i != j; i++, fcnt++) {
                         if ( fcnt == 23 ) {  // rss pages

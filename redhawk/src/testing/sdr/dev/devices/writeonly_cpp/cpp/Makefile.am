@@ -23,4 +23,4 @@ noinst_PROGRAMS = writeonly_cpp
 
 writeonly_cpp_SOURCES = writeonly_cpp.cpp writeonly_cpp.h writeonly_cpp_base.cpp writeonly_cpp_base.h main.cpp
 writeonly_cpp_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) -I$(CFDIR)/include -I$(CFDIR)/include/ossie
-writeonly_cpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
+writeonly_cpp_LDADD = ../../../../dom/deps/cpp_dep1/cpp/libcpp_dep1.la $(BOOST_SYSTEM_LIB) $(BOOST_THREAD_LIB) $(OMNIDYNAMIC_LIBS) $(OMNICOS_LIBS) $(CFDIR)/framework/libossiecf.la $(CFDIR)/framework/idl/libossieidl.la
