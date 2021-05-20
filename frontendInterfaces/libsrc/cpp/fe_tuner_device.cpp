@@ -259,6 +259,27 @@ namespace frontend {
     {
         Resource_impl::_started = false;
         loadProperties();
+        setPropertyQueryImpl(this->frontend_tuner_status, this, &FrontendTunerDevice<TunerStatusStructType>::get_frontend_tuner_status);
+    }
+
+    template < typename TunerStatusStructType >
+    std::vector<TunerStatusStructType> FrontendTunerDevice<TunerStatusStructType>::get_frontend_tuner_status() {
+        std::vector<TunerStatusStructType> retval;
+        retval = frontend_tuner_status;
+        for (std::vector<Device_impl*>::iterator it=_dynamicComponents.begin(); it!=_dynamicComponents.end(); it++) {
+            redhawk::PropertyMap result;
+            result["FRONTEND::tuner_status"] = redhawk::Value();
+            (*it)->query(result);
+            TunerStatusStructType child_val;
+            redhawk::ValueSequence& fts = result["FRONTEND::tuner_status"].asSequence();
+            for (unsigned int ii=0; ii<fts.size(); ++ii) {
+                if (fts[ii] >>= child_val) {
+                    retval.push_back(child_val);
+                }
+            }
+        }
+        return retval;
+        //return this->frontend_tuner_status;
     }
 
     template < typename TunerStatusStructType >
@@ -435,25 +456,44 @@ namespace frontend {
     /*****************************************************************/
     template < typename TunerStatusStructType >
     CF::Device::UsageType FrontendTunerDevice<TunerStatusStructType>::updateUsageState() {
+
+        CF::Device::UsageType current_usage = CF::Device::IDLE;
+
         size_t tunerAllocated = 0;
         for (size_t tuner_id = 0; tuner_id < tuner_allocation_ids.size(); tuner_id++) {
             if (!tuner_allocation_ids[tuner_id].control_allocation_id.empty())
                 tunerAllocated++;
         }
         // If no tuners are allocated, device is idle
-        if (tunerAllocated == 0)
-            return CF::Device::IDLE;
+        if (tunerAllocated == 0) {
+            current_usage = CF::Device::IDLE;
+        } else if (tunerAllocated == tuner_allocation_ids.size()) {
+            current_usage = CF::Device::BUSY;
+        } else {
+            // doesn't matter whether children are busy or idle
+            return CF::Device::ACTIVE;
+        }
+
         // If all tuners are allocated, device is busy
-        if (tunerAllocated == tuner_allocation_ids.size()) {
+        if (current_usage == CF::Device::BUSY) {
             for (std::vector<Device_impl*>::iterator it=_dynamicComponents.begin(); it!=_dynamicComponents.end(); ++it) {
                 if (((*it)->usageState() == CF::Device::ACTIVE) or ((*it)->usageState() == CF::Device::IDLE)) {
+                    // child has spare capacity
                     return CF::Device::ACTIVE;
                 }
             }
             return CF::Device::BUSY;
         }
+        // parent device is idle
+        for (std::vector<Device_impl*>::iterator it=_dynamicComponents.begin(); it!=_dynamicComponents.end(); ++it) {
+            if (((*it)->usageState() == CF::Device::ACTIVE) or ((*it)->usageState() == CF::Device::BUSY)) {
+                // child has spare capacity
+                return CF::Device::ACTIVE;
+            }
+        }
+
         // Else, device is active
-        return CF::Device::ACTIVE;
+        return current_usage;
     }
 
     template < typename TunerStatusStructType >

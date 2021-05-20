@@ -177,6 +177,7 @@ namespace frontend {
             virtual void deallocate (const char* alloc_id) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
             virtual void deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
             CF::Device::UsageType usageState () throw (CORBA::SystemException);
+            std::vector<TunerStatusStructType> get_frontend_tuner_status();
 
         protected:
             typedef std::map<std::string, size_t> string_number_mapping;
