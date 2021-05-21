@@ -78,7 +78,80 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             pass
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.comp.deallocateCapacity([c])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
+
+    def testListenerBehavior(self):
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        self.comp.start()
+        self.comp.stop()
+        b=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='2',returnDict=False)
+        c=frontend.createTunerAllocation(tuner_type='RDC',allocation_id='3',returnDict=False)
+        d=frontend.createTunerListenerAllocation('2','4',returnDict=False)
+
+        fts=self.comp.frontend_tuner_status
+        self.assertEquals(len(fts), 3)
+        for f in fts:
+            self.assertEquals(f['FRONTEND::tuner_status::allocation_id_csv'], '')
+
+        ret_b = self.comp.allocate([b])
+        self.assertEquals(len(ret_b), 1)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        fts=self.comp.frontend_tuner_status
+        found_id=False
+        for f in fts:
+            if f['FRONTEND::tuner_status::allocation_id_csv'] == '2':
+                found_id = True
+                break
+        self.assertTrue(found_id)
+
+        ret_c = self.comp.allocate([c])
+        self.assertEquals(len(ret_c), 1)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        fts=self.comp.frontend_tuner_status
+        found_id=False
+        for f in fts:
+            if f['FRONTEND::tuner_status::allocation_id_csv'] == '3':
+                found_id = True
+                break
+        self.assertTrue(found_id)
+
+        ret_d = self.comp.allocate([d])
+        self.assertEquals(len(ret_d), 1)
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        fts=self.comp.frontend_tuner_status
+        found_id=False
+        for f in fts:
+            if f['FRONTEND::tuner_status::allocation_id_csv'] == '2,4':
+                found_id = True
+                break
+        self.assertTrue(found_id)
+
+        try:
+            self.comp.deallocate('bad_id')
+        except Exception, e:
+            pass
+        try:
+            self.comp.deallocate('2')
+        except Exception, e:
+            pass
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        fts=self.comp.frontend_tuner_status
+        found_id=False
+        for f in fts:
+            if f['FRONTEND::tuner_status::allocation_id_csv'] == '2' or f['FRONTEND::tuner_status::allocation_id_csv'] == '2,4':
+                found_id = True
+                break
+        self.assertFalse(found_id)
+
+        self.comp.deallocate('3')
+        self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
+        fts=self.comp.frontend_tuner_status
+        self.assertEquals(len(fts), 3)
+        for f in fts:
+            self.assertEquals(f['FRONTEND::tuner_status::allocation_id_csv'], '')
 
     def testOldAllocationCall(self):
         #######################################################################
@@ -106,9 +179,9 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
         self.comp.deallocateCapacity([b])
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
-        self.comp.deallocateCapacity([c])
-        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
+        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.comp.deallocateCapacity([c])
         self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
 
     def testRFInfo(self):
