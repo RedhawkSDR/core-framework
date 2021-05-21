@@ -265,6 +265,7 @@ namespace frontend {
     template < typename TunerStatusStructType >
     std::vector<TunerStatusStructType> FrontendTunerDevice<TunerStatusStructType>::get_frontend_tuner_status() {
         std::vector<TunerStatusStructType> retval;
+        frontend_tuner_status.resize(tuner_allocation_ids.size());
         retval = frontend_tuner_status;
         for (std::vector<Device_impl*>::iterator it=_dynamicComponents.begin(); it!=_dynamicComponents.end(); it++) {
             redhawk::PropertyMap result;
@@ -279,7 +280,6 @@ namespace frontend {
             }
         }
         return retval;
-        //return this->frontend_tuner_status;
     }
 
     template < typename TunerStatusStructType >
