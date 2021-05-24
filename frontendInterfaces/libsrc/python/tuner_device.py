@@ -517,12 +517,23 @@ class FrontendTunerDevice(Device):
         # tuner_allocation_ids is exclusively paired with property frontend_tuner_status.
         # tuner_allocation_ids tracks allocation ids while frontend_tuner_status provides tuner information.
         self.tuner_allocation_ids = []
-    
+        self._delegatedAllocations = {}
+
         # Provides mapping from unique allocation ID to internal tuner (channel) number
         self.allocation_id_to_tuner_id = {}
         self.allocation_id_mapping_lock = threading.RLock()
         self.supports_scan = False
 
+    def query(self, props):
+        _props = Device.query(self, props)
+        for prop in _props:
+            if prop.id == 'FRONTEND::tuner_status':
+                for dev in self._dynamicComponents:
+                    dev_props = dev.query([CF.DataType(id='FRONTEND::tuner_status', value=any.to_any(None))])
+                    if len(dev_props) == 1:
+                        prop.value._v += dev_props[0].value._v
+        return _props
+    
     def allocate(self, properties):
         self._deviceLog.debug("allocateCapacity(%s)", properties)
 
@@ -540,18 +551,28 @@ class FrontendTunerDevice(Device):
 
         alloc_id = model._uuidgen()
         if propdict.has_key('FRONTEND::tuner_allocation'):
-            retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop, alloc_id)
+            #retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop, alloc_id)
+            retval = self.allocateCapacity(properties)
             if retval:
-                self._allocationTracker[alloc_id] = properties
                 return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
             else:
                 return []
         if propdict.has_key('FRONTEND::listener_allocation'):
-            return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+            #return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+            retval = self.allocateCapacity(properties)
+            if retval:
+                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+            else:
+                return []
 
         raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
 
     def deallocate(self, alloc_id):
+        if not self._allocationTracker.has_key(alloc_id):
+            for dev in self._dynamicComponents:
+                dev.deallocate(alloc_id)
+            self._usageState = self.updateUsageState()
+            return
         properties = self._allocationTracker[alloc_id]
         propdict = {}
         for prop in properties:
@@ -608,23 +629,6 @@ class FrontendTunerDevice(Device):
                 if len(properties) == 0 and len(props) == 0:
                     self.deallocate(prop_key)
                     return
-                found = False
-                for prop in props:
-                    found = False
-                    if prop.id != 'FRONTEND::tuner_allocation':
-                        continue
-                    for _req_prop in prop.value._v:
-                        if _sub_prop.id != 'FRONTEND::tuner_allocation::allocation_id':
-                            continue
-                        request_allocation_id = _sub_prop.value._v
-                        break
-                        if request_allocation_id == allocation_id:
-                            found = True
-                            break
-                    if found:
-                        break
-                if not found:
-                    continue
                 self.deallocate(prop_key)
                 return
         raise CF.Device.InvalidCapacity("Allocation for capacity not found", properties)
@@ -665,16 +669,27 @@ class FrontendTunerDevice(Device):
                 if tuner.control_allocation_id:
                     tunerAllocated+=1
 
+            current_usage = CF.Device.IDLE
             # If no tuners are allocated, device is idle
             if tunerAllocated == 0:
-                return CF.Device.IDLE
+                current_usage = CF.Device.IDLE
             # If all tuners are allocated, device is busy
-            if tunerAllocated == len(self.tuner_allocation_ids):
+            elif tunerAllocated == len(self.tuner_allocation_ids):
+                current_usage = CF.Device.BUSY
+            else:
+                current_usage = CF.Device.ACTIVE
+            if current_usage == CF.Device.BUSY:
+                for dev in self._dynamicComponents:
+                    if dev._get_usageState() == CF.Device.ACTIVE or dev._get_usageState() == CF.Device.IDLE:
+                        return CF.Device.ACTIVE
                 return CF.Device.BUSY
+            for dev in self._dynamicComponents:
+                if dev._get_usageState() == CF.Device.ACTIVE or dev._get_usageState() == CF.Device.BUSY:
+                    return CF.Device.ACTIVE
         finally:
             self.allocation_id_mapping_lock.release()
         # Else, device is active
-        return CF.Device.ACTIVE
+        return current_usage
 
     # This sets the number of entries in the frontend_tuner_status struct sequence property
     # as well as the tuner_allocation_ids vector. Call this function during initialization
@@ -707,7 +722,6 @@ class FrontendTunerDevice(Device):
                 raise CF.Device.InvalidCapacity("UNKNOWN ALLOCATION PROPERTY "+prop_key, [CF.DataType(id=prop_key,value=any.to_any(propdict[prop_key]))])
 
     def allocateCapacity(self, properties):
-
         propdict = {}
         for prop in properties:
             propdef = self._props.getPropDef(prop.id)
@@ -731,9 +745,15 @@ class FrontendTunerDevice(Device):
             scanner_prop = propdict['FRONTEND::scanner_allocation']
 
         if propdict.has_key('FRONTEND::tuner_allocation'):
-            return self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
+            retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop)
+            if retval:
+                self._allocationTracker[propdict['FRONTEND::tuner_allocation'].allocation_id] = properties
+                return True
         if propdict.has_key('FRONTEND::listener_allocation'):
-            return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+            retval = self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
+            if retval:
+                self._allocationTracker[propdict['FRONTEND::listener_allocation'].listener_allocation_id] = properties
+                return True
 
         raise CF.Device.InvalidCapacity("Unable to allocate this FEI device because FRONTEND::tuner_allocation and FRONTEND::listener_allocation not present", properties)
 
@@ -940,11 +960,11 @@ class FrontendTunerDevice(Device):
             if not frontend_listener_allocation.existing_allocation_id:
                 self._deviceLog.info("allocate_frontend_listener_allocation: MISSING EXISTING ALLOCATION ID")
                 raise CF.Device.InvalidCapacity("MISSING EXISTING ALLOCATION ID", struct_to_props(frontend_listener_allocation))
-            
+
             if not frontend_listener_allocation.listener_allocation_id:
                 self._deviceLog.info("allocate_frontend_listener_allocation: MISSING LISTENER ALLOCATION ID")
                 raise CF.Device.InvalidCapacity("MISSING LISTENER ALLOCATION ID", struct_to_props(frontend_listener_allocation))
-            
+
             # Check if listener allocation ID has already been used
             if self.getTunerMapping(frontend_listener_allocation.listener_allocation_id) >= 0:
                 self._deviceLog.info("allocate_frontend_listener_allocation: LISTENER ALLOCATION ID ALREADY IN USE: [" + str(frontend_listener_allocation.listener_allocation_id + "]"))
@@ -973,6 +993,7 @@ class FrontendTunerDevice(Device):
             return True
                 
         except RuntimeError, e:
+            print '_allocate_frontend_listener_allocation (4)'
             return False
 
         except AllocationAlreadyExists, e:
