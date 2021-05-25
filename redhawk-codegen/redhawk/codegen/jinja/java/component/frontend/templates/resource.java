@@ -262,7 +262,7 @@ import CF.InvalidObjectReference;
         return frontend_tuner_status.getValue().get(idx).sample_rate.getValue();
     }
 
-    public void configureTuner(String allocation_id, final DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException
+    public void configureTuner(String allocation_id, final CF.DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
@@ -271,12 +271,12 @@ import CF.InvalidObjectReference;
         // set provided tuner settings
     }
 
-    public DataType[] getTunerSettings(String allocation_id) throws FrontendException, BadParameterException, NotSupportedException
+    public CF.DataType[] getTunerSettings(String allocation_id) throws FrontendException, BadParameterException, NotSupportedException
     {
         int idx = getTunerMapping(allocation_id);
         if (idx < 0) throw new FRONTEND.FrontendException("Invalid allocation id");
         // return tuner settings in a CF.DataType sequence
-        DataType[] props = new DataType[0];
+        CF.DataType[] props = new CF.DataType[0];
         return props;
     }
 /*{% endif %}*/

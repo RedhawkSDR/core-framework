@@ -19,12 +19,21 @@
 #
 
 from redhawk.codegen.jinja.generator import CodeGenerator
+from redhawk.codegen.jinja.java import JavaTemplate
 from redhawk.codegen import versions
+
+import os
 
 class JavaCodeGenerator(CodeGenerator):
     def sourceFiles(self, component):
         for template in self.templates(component):
             if template.filename.endswith('.java'):
+                yield template.filename
+        for _template in self.templatesChildren(component):
+            child = _template.keys()[0]
+            template = _template.values()[0]
+            filename, ext = os.path.splitext(template.filename)
+            if ext in ('.java'):
                 yield template.filename
 
     def rpmRequires(self):
@@ -32,3 +41,33 @@ class JavaCodeGenerator(CodeGenerator):
 
     def rpmBuildRequires(self):
         return super(JavaCodeGenerator,self).rpmRequires() + ['java-devel >= '+versions.java]
+
+    def templatesChildren(self, component):
+        templates = []
+        if not component.has_key('children'):
+            return templates
+
+        pkgpath = os.path.join('src', *component['package'].split('.')) #os.path.join(pkgpath, userfile)
+        for child_key in component['children']:
+            templates.append({child_key: JavaTemplate('resource.java', os.path.join(pkgpath, child_key+'/'+component['children'][child_key]['userclass']['file']), userfile=True)})
+            templates.append({child_key: JavaTemplate('resource_base.java', os.path.join(pkgpath, child_key+'/'+component['children'][child_key]['baseclass']['file']))})
+            #templates.append({child_key: JavaTemplate('resource.java', child_key+'/'+component['children'][child_key]['userclass']['file'], userfile=True)})
+            #templates.append({child_key: JavaTemplate('resource_base.java', child_key+'/'+component['children'][child_key]['baseclass']['file'])})
+            #if component['children'][child_key]['structdefs']:
+            #    templates.append({child_key: JavaTemplate('struct_props.h', child_key+'/'+child_key+'_struct_props.h')})
+            #if len(self.getPortTemplates(component['children'][child_key])) > 0:
+            #    for fn in self.getPortTemplates(component['children'][child_key]):
+            #        templates.append({child_key: JavaTemplate('pull/'+fn, child_key+'/'+child_key+'_'+fn)})
+
+            portpkg = component['package'] + '.' + 'ports'
+            portpkgpath = os.path.join(pkgpath, child_key+'/ports')
+            for generator in component['children'][child_key]['portgenerators']:
+                if not generator.hasImplementation():
+                    continue
+                generator.package = portpkg
+                template = generator.implementation()
+                filename = os.path.join(portpkgpath, generator.className()+'.java')
+                context = {'portgenerator': generator}
+                templates.append(JavaTemplate(template, filename, package=portpkg, context=context))
+
+        return templates
