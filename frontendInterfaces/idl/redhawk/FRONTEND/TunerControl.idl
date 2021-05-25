@@ -214,8 +214,7 @@ module FRONTEND {
                         || FRONTEND::transmitter_allocation::max_power 
                         || double 
                         || In Watts. max_power => transmitted power (-1 for ignore)
-            (7) ****** DEPRECATED ******  FRONTEND::listener_allocation
-                this allocation is no longer needed
+            (7) FRONTEND::listener_allocation is no longer needed but is still supported
                     Name 
                         || ID 
                         || Type 
