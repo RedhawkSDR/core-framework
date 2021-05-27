@@ -48,6 +48,10 @@ void PortSupplier_impl::addPort (const std::string& name, PortBase* servant)
     // Allow additional post-activation initialization
     RH_TRACE(_portsupplierLog, "Initializing port '" << name << "'");
     servant->initializePort();
+    redhawk::UsesPort *register_port = dynamic_cast<redhawk::UsesPort*>(servant);
+    if (servant) {
+        register_port->registerParent(this->_this());
+    }
 }
 
 void PortSupplier_impl::setLogger(rh_logger::LoggerPtr logptr)

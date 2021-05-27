@@ -92,6 +92,8 @@ namespace redhawk {
         virtual void disconnectPort(const char* connectionId);
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
+        
+        virtual void registerParent(const CORBA::Object_ptr parent);
 
     protected:
         class Connection {
@@ -172,6 +174,8 @@ namespace redhawk {
         bool _hasConnection(const std::string& connectionId);
 
         ConnectionList _connections;
+        
+        CORBA::Object_ptr _parent;
 
     private:
         ossie::notification<void (const std::string&)> _portConnected;

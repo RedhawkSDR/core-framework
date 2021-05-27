@@ -79,7 +79,12 @@ namespace redhawk {
     UsesPort::UsesPort(const std::string& name) :
         Port_Uses_base_impl(name)
     {
+        _parent = CORBA::Object::_nil();
     }
+    
+    void UsesPort::registerParent(const CORBA::Object_ptr parent) {
+        _parent = parent;
+    };
 
     UsesPort::~UsesPort()
     {
@@ -112,6 +117,13 @@ namespace redhawk {
             }
 
             Connection* connection = _createConnection(object, connection_id);
+            CF::UpstreamRegistrar_ptr _up = CF::UpstreamRegistrar::_narrow(object);
+            if ( !CORBA::is_nil(_up) ) {
+                CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
+                up_reg->upstream = _parent;
+                up_reg->port = this->_this();
+                _up->setUpstream(up_reg);
+            }
             _connections.push_back(connection);
 
             RH_DEBUG(_portLog, "Using transport '" << connection->transport->transportType()
@@ -140,6 +152,13 @@ namespace redhawk {
             UsesTransport* transport = (*connection)->transport;
             try {
                 (*connection)->disconnected();
+                CF::UpstreamRegistrar_ptr _up = CF::UpstreamRegistrar::_narrow((*connection)->objref);
+                if ( !CORBA::is_nil(_up) ) {
+                    CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
+                    up_reg->upstream = _parent;
+                    up_reg->port = this->_this();
+                    _up->setUpstream(up_reg);
+                }
             } catch (const std::exception& exc) {
                 if (transport->isAlive()) {
                     RH_WARN(_portLog, "Exception disconnecting '" << connectionId << "': "

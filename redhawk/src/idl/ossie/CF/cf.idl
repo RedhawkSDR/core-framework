@@ -1010,6 +1010,19 @@ module CF {
 
         };
 
+    struct UpstreamTuple {
+        Object upstream;
+        Object port;
+    };
+    
+    typedef sequence <UpstreamTuple> UpstreamSequence;
+    
+    interface UpstreamRegistrar {
+        void setUpstream(in UpstreamTuple src);
+        void removeUpstream(in UpstreamTuple src);
+        readonly attribute UpstreamSequence upstreams;
+    };
+
     /* The ApplicationRegistrar interface provides the registration structure into the Application. */
     interface ApplicationRegistrar : CosNaming::NamingContext {
       /* This attribute is the Application onto which the Component is registering. */

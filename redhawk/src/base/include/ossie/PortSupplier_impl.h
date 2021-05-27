@@ -27,6 +27,7 @@
 
 #include "CF/cf.h"
 #include "Port_impl.h"
+#include "UsesPort.h"
 #include "debug.h"
 #include "ossie/Autocomplete.h"
 
