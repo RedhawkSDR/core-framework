@@ -140,6 +140,21 @@ public:
     void disconnectPort(const char* connectionId);
 };
 
+class UpstreamRegistrar
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+: public virtual POA_CF::UpstreamRegistrar
+#endif
+{
+public:
+    UpstreamRegistrar();
+    ~UpstreamRegistrar();
+    void setUpstream(const CF::UpstreamTuple &src);
+    void removeUpstream(const CF::UpstreamTuple &src);
+    CF::UpstreamSequence* upstreams();
+protected:
+    std::vector<CF::UpstreamTuple> _upstreams;
+};
+
 template <class PortType, class ComponentType>
 class Port_Uses_impl
 {

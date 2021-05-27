@@ -47,6 +47,38 @@ void PortBase::setLogger(LOGGER newLogger)
     _portLog = newLogger;
 }
 
+UpstreamRegistrar::UpstreamRegistrar() {
+}
+
+UpstreamRegistrar::~UpstreamRegistrar() {
+}
+
+void UpstreamRegistrar::setUpstream(const CF::UpstreamTuple &src) {
+    for (std::vector<CF::UpstreamTuple>::iterator itr=_upstreams.begin(); itr!=_upstreams.end(); ++itr) {
+        if ((itr->upstream->_is_equivalent(src.upstream)) and (itr->port->_is_equivalent(src.port))) {
+            return;
+        }
+    }
+    _upstreams.push_back(src);
+}
+
+void UpstreamRegistrar::removeUpstream(const CF::UpstreamTuple &src) {
+    for (std::vector<CF::UpstreamTuple>::iterator itr=_upstreams.begin(); itr!=_upstreams.end(); ++itr) {
+        if ((itr->upstream->_is_equivalent(src.upstream)) and (itr->port->_is_equivalent(src.port))) {
+            _upstreams.erase(itr);
+        }
+    }
+}
+
+CF::UpstreamSequence* UpstreamRegistrar::upstreams() {
+    CF::UpstreamSequence_var retval = new CF::UpstreamSequence();
+    retval->length(_upstreams.size());
+    for (unsigned int i=0; i<retval->length(); i++) {
+        retval[i] = _upstreams[i];
+    }
+    return retval._retn();
+}
+
 namespace redhawk {
 
     PortCallError::PortCallError( const std::string &msg, const std::vector<std::string> &connectionids ) :
