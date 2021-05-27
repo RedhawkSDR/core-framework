@@ -70,7 +70,7 @@ module FRONTEND
     /************************/
     /**      INTERFACE      */
     /************************/
-    interface NavData {
+    interface NavData : CF::UpstreamRegistrar {
     	attribute NavigationPacket nav_packet;
     };
 

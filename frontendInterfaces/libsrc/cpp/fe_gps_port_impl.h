@@ -42,7 +42,7 @@ namespace frontend {
     // ----------------------------------------------------------------------------------------
     // InGPSPort declaration
     // ----------------------------------------------------------------------------------------
-    class InGPSPort : public POA_FRONTEND::GPS, public Port_Provides_base_impl
+    class InGPSPort : public POA_FRONTEND::GPS, public Port_Provides_base_impl, public UpstreamRegistrar
     {
         public:
             InGPSPort(std::string port_name, gps_delegation *_parent) : 

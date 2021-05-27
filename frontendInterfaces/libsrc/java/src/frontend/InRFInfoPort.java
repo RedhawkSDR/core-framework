@@ -98,6 +98,17 @@ public class InRFInfoPort extends FRONTEND.RFInfoPOA implements PortBase {
         }
     }
 
+    public void setUpstream(CF.UpstreamTuple data) {
+    }
+
+    public void removeUpstream(CF.UpstreamTuple data) {
+    }
+
+    public CF.UpstreamTuple[] upstreams() {
+        CF.UpstreamTuple[] retval = new CF.UpstreamTuple[0];
+        return retval;
+    }
+
     public void rfinfo_pkt(RFInfoPkt data) {
         synchronized(this.portAccess){
             try{

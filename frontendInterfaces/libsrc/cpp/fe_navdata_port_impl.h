@@ -37,7 +37,7 @@ namespace frontend {
     // ----------------------------------------------------------------------------------------
     // InNavDataPort declaration
     // ----------------------------------------------------------------------------------------
-    class InNavDataPort : public POA_FRONTEND::NavData, public Port_Provides_base_impl
+    class InNavDataPort : public POA_FRONTEND::NavData, public Port_Provides_base_impl, public UpstreamRegistrar
     {
         public:
             InNavDataPort(std::string port_name, nav_delegation *_parent) : 

@@ -42,7 +42,7 @@ namespace frontend {
     };
     
     
-    class InRFInfoPort : public POA_FRONTEND::RFInfo, public Port_Provides_base_impl
+    class InRFInfoPort : public POA_FRONTEND::RFInfo, public Port_Provides_base_impl, public UpstreamRegistrar
     {
         public:
             InRFInfoPort(std::string port_name, rfinfo_delegation *_parent) : 

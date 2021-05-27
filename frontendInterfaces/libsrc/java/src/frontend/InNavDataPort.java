@@ -85,6 +85,17 @@ public class InNavDataPort extends FRONTEND.NavDataPOA implements PortBase {
         }
     }
 
+    public void setUpstream(CF.UpstreamTuple data) {
+    }
+
+    public void removeUpstream(CF.UpstreamTuple data) {
+    }
+
+    public CF.UpstreamTuple[] upstreams() {
+        CF.UpstreamTuple[] retval = new CF.UpstreamTuple[0];
+        return retval;
+    }
+
     public void setDelegate( NavDataDelegate d ) {
         delegate = d;
     }

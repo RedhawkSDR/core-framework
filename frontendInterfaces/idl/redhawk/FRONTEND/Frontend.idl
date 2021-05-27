@@ -22,6 +22,7 @@
 #define _FRONTEND_IDL_
 
 #include "ossie/CF/DataType.idl"
+#include "ossie/CF/Port.idl"
 
 
 /************************************************************************/

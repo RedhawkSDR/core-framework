@@ -82,7 +82,7 @@ module FRONTEND
     /*******************************/
     /**      RFInfo INTERFACE      */
     /*******************************/
-    interface RFInfo {
+    interface RFInfo : CF::UpstreamRegistrar {
     	/** unique string that flows with data to describe its RF source*/
     	attribute string rf_flow_id;  
     	
@@ -93,7 +93,7 @@ module FRONTEND
     /*********************************/
     /**      RFSource INTERFACE      */
     /*********************************/
-    interface RFSource {
+    interface RFSource : CF::UpstreamRegistrar {
     	/** A list of all possible rf inputs that this source could switch to **/
     	attribute RFInfoPktSequence available_rf_inputs;
     	

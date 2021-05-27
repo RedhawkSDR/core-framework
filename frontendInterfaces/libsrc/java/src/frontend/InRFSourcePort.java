@@ -114,6 +114,17 @@ public class InRFSourcePort extends FRONTEND.RFSourcePOA implements PortBase {
         }
     }
 
+    public void setUpstream(CF.UpstreamTuple data) {
+    }
+
+    public void removeUpstream(CF.UpstreamTuple data) {
+    }
+
+    public CF.UpstreamTuple[] upstreams() {
+        CF.UpstreamTuple[] retval = new CF.UpstreamTuple[0];
+        return retval;
+    }
+
     public void setDelegate( RFSourceDelegate d ) {
         delegate = d;
     }

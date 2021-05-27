@@ -116,7 +116,7 @@ module FRONTEND {
     /************************/
     /**      INTERFACE      */
     /************************/      
-    interface GPS {
+    interface GPS : CF::UpstreamRegistrar {
     
     	/** Updates as necessary */
     	attribute GPSInfo gps_info;

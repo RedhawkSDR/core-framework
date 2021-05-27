@@ -41,7 +41,7 @@ namespace frontend {
             }
     };
     
-    class InRFSourcePort : public POA_FRONTEND::RFSource, public Port_Provides_base_impl
+    class InRFSourcePort : public POA_FRONTEND::RFSource, public Port_Provides_base_impl, public UpstreamRegistrar
     {
         public:
             InRFSourcePort(std::string port_name, rfsource_delegation *_parent) : 
