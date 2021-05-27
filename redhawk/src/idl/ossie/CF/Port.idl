@@ -46,6 +46,19 @@ module CF {
             raises (CF::Port::InvalidPort);
     };
 
+    struct UpstreamTuple {
+        Object upstream;
+        Object port;
+    };
+    
+    typedef sequence <UpstreamTuple> UpstreamSequence;
+    
+    interface UpstreamRegistrar {
+        void setUpstream(in UpstreamTuple src);
+        void removeUpstream(in UpstreamTuple src);
+        readonly attribute UpstreamSequence upstreams;
+    };
+
 };
 
 #endif
