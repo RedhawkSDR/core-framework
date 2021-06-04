@@ -49,6 +49,7 @@ module CF {
     struct UpstreamTuple {
         Object upstream;
         Object port;
+        string connection_id;
     };
     
     typedef sequence <UpstreamTuple> UpstreamSequence;
