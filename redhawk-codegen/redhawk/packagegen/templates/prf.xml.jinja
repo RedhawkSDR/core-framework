@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+{#
+   property element attributes
+#}
+{% macro property_element_attrs ( attrs ) %}
+id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 'commandline', 'type' ] -%}{%if attr_name in attrs and attrs[attr_name] %} {{attr_name}}="{{attrs[attr_name]}}"{% endif %}{% endfor -%}
+{% endmacro %}
+
+{#-
+   simple element
+-#}
+{% macro single_element( element_name, value ) %}
+{%  if value is defined and value %}
+<{{element_name}}>{{value}}</{{element_name}}>
+{%  endif %}
+{% endmacro %}
+
+{#-
+   simple element using attr
+-#}
+{% macro single_element_using_attr( element_name, attr_name, value ) %}
+{%  if value is defined and value  %}
+<{{element_name}} {{attr_name}}="{{value}}" />
+{%  endif %}
+{% endmacro %}
+
+{#-
+   list_element_using_attr
+-#}
+{% macro list_element_using_attr( element_name, attr_name, values ) %}
+{% if values is defined and values %}
+{%   for v in values %}
+<{{element_name}} {{attr_name}}="{{v}}"/>
+{%   endfor %}
+{% endif %}
+{% endmacro %}
+
+{#-
+   list_element_using_value
+-#}
+{% macro list_element_using_value( element_name, values ) %}
+{% if values is defined and values %}
+<{{element_name}}>
+{%   for v in values %}
+  <value>{{v}}</value>
+{%   endfor %}
+</{{element_name}}>
+{% endif %}
+{% endmacro %}
+
+
+{#-
+   list_enumerations
+-#}
+{% macro list_enumerations( element_name, enum_label, enums ) -%}
+{% if enums is defined and enums -%}
+<{{element_name}}>
+{%   for enum in enums %}
+  </{{enum_label}} label="{{enum.label}}", value="{{enum.value}}"/>
+{%   endfor %}
+</{{element_name}}>
+{% endif %}
+{% endmacro %}
+
+
+{#-
+   simple property contents so indent works
+-#}
+{% macro simple_property_contents(prop ) %}
+{{  single_element( 'description', prop.description) -}}
+{{  single_element( 'value', prop.value ) -}}
+{{  single_element( 'units', prop.units ) -}}
+{{  single_element( 'range', prop.range ) -}}
+{{  list_enumerations( 'enumerations', 'enumeration', prop.enumeration ) -}}
+{{  list_element_using_attr( 'kind', 'kindtype', prop.kind ) -}}
+{{  single_element_using_attr( 'action', 'type', prop.action ) -}}
+{% endmacro %}
+
+{#-
+   simple_property element definition
+-#}
+{% macro simple_property_element( prop ) %}
+<simple {{ property_element_attrs(prop.attrs) }} >
+{{  simple_property_contents( prop )|indent(4,first=True) -}}
+</simple>
+{% endmacro %}
+
+{#-
+   sequence contents so indent works
+-#}
+{% macro simple_sequence_contents(prop ) %}
+{{  single_element( 'description', prop.description) -}}
+{{  list_element_using_value( 'values', prop.value ) -}}
+{{  single_element( 'units', prop.units ) -}}
+{{  single_element( 'range', prop.range ) -}}
+{{  list_enumerations( 'enumerations', 'enumeration', prop.enums ) -}}
+{{  list_element_using_attr( 'kind', 'kindtype', prop.kind ) -}}
+{{  single_element_using_attr( 'action', 'type', prop.action ) -}}
+{% endmacro %}
+
+{#-
+   simplesequence property element definition
+-#}
+{% macro simple_sequence_property_element( prop ) %}
+<simplesequence {{ property_element_attrs(prop.attrs) }} >
+{{  simple_sequence_contents( prop )|indent(4,first=True) -}}
+</simplesequence>
+{% endmacro %}
+
+{#-
+   struct property element definition
+-#}
+{% macro struct_property_element( attrs, props ) %}
+<struct {{ property_element_attrs(attrs) }} >
+{{single_element( 'description', attrs.description) -}}
+{%  for prop_def in props %}
+{%   for prop_id, p in prop_def.items() %}
+{%      if p.attrs.ptype == 'simple' -%}
+{{         simple_property_element( p )|indent(4,first=True) -}}
+{%     endif %}
+{%     if p.attrs.ptype == 'simpleseq' %}
+{{        simple_sequence_property_element( p )|indent(4,first=True) -}}
+{%     endif %}
+{%   endfor %}
+{% endfor %}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,first=True) -}}
+</struct>
+{% endmacro %}
+{#-
+   structseq property element definition
+-#}
+{% macro structseq_property_element( attrs, struct ) %}
+<structsequence {{property_element_attrs(attrs)}} >
+{{single_element( 'description', attrs.description) -}}
+{{struct_property_element(struct[0].attrs,struct[1:])|indent(4,first=True) -}}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,first=True) -}}
+</structsequence>
+{% endmacro %}
+
+{#-
+  Generate property elements for different property types
+-#}
+{% for prop_def in properties %}
+{%   for prop_id, prop in prop_def.items() %}
+{%     if prop is mapping %}
+{%       if prop.attrs.ptype == 'simple' %}
+{{        simple_property_element( prop ) -}}
+{%       endif %}
+{%       if prop.attrs.ptype == 'simpleseq' %}
+{{        simple_sequence_property_element( prop ) -}}
+{%       endif %}
+{%     else %}
+{%        if prop[0].attrs.ptype == 'struct' %}
+{{           struct_property_element( prop[0].attrs,prop[1:] ) -}}
+{%        endif %}
+{%        if prop[0].attrs.ptype == 'structseq' %}
+{{          structseq_property_element( prop[0].attrs, prop[1].struct ) -}}
+{%        endif %}
+{%     endif %}
+{%  endfor %}
+{% endfor %}
+</properties>

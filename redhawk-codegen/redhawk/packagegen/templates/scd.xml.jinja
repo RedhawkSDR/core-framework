@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
+<softwarecomponent>
+  <corbaversion>2.2</corbaversion>
+  <componentrepid repid="{{scd.implemented_interface}}:1.0"/>
+  <componenttype>device</componenttype>
+  <componentfeatures>
+{% for repoid, iname in scd.get_supported_interfaces(scd.implemented_interface) %}
+    <supportsinterface repid="{{repoid}}" supportsname="{{iname}}"/>
+{% endfor %}
+{% if scd.input_ports is defined or scd.output_ports is defined %}
+    <ports>
+{% for p in scd.input_ports %}
+      <provides repid="IDL:{{p.itype}}:1.0" providesname="{{p.name}}">
+      <porttype type="{{p.type}}"/>
+      </provides>
+{% endfor %}
+{% for p in scd.output_ports %}
+      <uses repid="IDL:{{p.itype}}:1.0" usesname="{{p.name}}">
+      <porttype type="{{p.type}}"/>
+      </uses>
+{% endfor %}
+    </ports>
+{% endif %}
+  </componentfeatures>
+  <interfaces>
+{% for iface in scd.get_interface_hierarchy(scd) %}
+{% if iface[1] %}
+    <interface name="{{iface[0][1]}}" repid="{{iface[0][0]}}">
+{% for parent in iface[1] %}
+      <inheritsinterface repid="{{parent}}"/>
+{% endfor %}
+    </interface>
+{% else %}
+    <interface name="{{iface[0][1]}}" repid="{{iface[0][0]}}">
+{% endif %}
+{% endfor %}
+  </interfaces>
+</softwarecomponent>

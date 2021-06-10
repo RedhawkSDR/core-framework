@@ -1,0 +1,13 @@
+{% extends "fei3_devices.yml.jinja" %}
+
+{% block parent %}
+{{ fei3_spec.PARENT[0] }}:
+    <<: *simple_parent
+    properties:
+    ports:
+    children:
+     {% for child_name in fei3_spec.PARENT_CHILDREN %}
+       - {{child_name}}
+     {% endfor %}
+
+{% endblock %}

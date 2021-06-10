@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="{{spd.id}}" name="{% if spd.ns is defined and spd.ns %}{{spd.ns}}.{%endif%}{{spd.name}}" type="{{spd.version}}">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="{{spd.name}}.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="{{spd.name}}.scd.xml"/>
+  </descriptor>
+  <implementation id="{{spd.lang}}">
+    <description>The implementation contains descriptive information about the template for a software resource.</description>
+    <code type="{{spd.impl_codetype}}">
+{% if spd.lang == 'cpp' %}
+      <localfile name="cpp/{{spd.name}}{{spd.impl_ext}}"/>
+      <entrypoint>cpp/{{spd.name}}{{spd.impl_ext}}</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.4.7"/>
+    <programminglanguage name="C++"/>
+{% endif %}
+{% if spd.lang == 'python' %}
+      <localfile name="python"/>
+      <entrypoint>python/{{spd.name}}{{spd.impl_ext}}</entrypoint>
+    </code>
+    <compiler name="/usr/bin/python3" version="3.6.0"/>
+    <programminglanguage name="Python"/>
+{% endif %}
+{% if spd.lang == 'java' %}
+      <localfile name="java"/>
+      <entrypoint>java/startJava.sh</entrypoint>
+    </code>
+    <compiler name="/usr/bin/java" version="1.8.0"/>
+    <programminglanguage name="Java"/>
+{% endif %}
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+{% if spd.dependencies is defined and spd.dependencies %}
+{%  for dep in spd.dependencies %}
+    <dependency type="runtime">
+      <softpkgref >
+        <localfile name="{{dep}}"/>
+      </softpkgref>
+    </dependency>
+{% endfor %}
+{% endif %}
+{% if spd.children is defined and spd.children %}
+{%   for child in spd.children %}
+    <dependency type="child">
+      <softpkgref id="{{child.name}}" >
+{%         if spd.ns_path is defined and spd.ns_path %}
+        <localfile name="/devices/{{spd.ns_path}}/{{child.name}}/{{child.name}}.spd.xml" />
+{%         else %}
+        <localfile name="/devices/{{child.name}}/{{child.name}}.spd.xml" />
+{%         endif %}
+      </softpkgref>
+    </dependency>
+{%  endfor %}
+{% endif %}
+  </implementation>
+</softpkg>

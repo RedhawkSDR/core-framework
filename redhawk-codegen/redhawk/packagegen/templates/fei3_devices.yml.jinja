@@ -1,0 +1,1181 @@
+
+#
+# REDHAWK Property Types
+#
+
+#
+# Attribute defintions for each property type
+#
+
+simple_attributes: &simple_attributes
+    id:
+    name:
+    type:
+    mode: readwrite              # readwrite, readonly, writeonly
+    complex:
+    commandline:
+    ptype:  simple               # property type simple, simpleseq
+
+struct_attributes: &struct_attributes
+    id:
+    name:
+    mode: readwrite              # readwrite, readonly, writeonly
+    kind: [ property ]
+    description:
+    ptype:  struct
+
+structseq_attributes: &structseq_attributes
+    id:
+    name:
+    mode: readwrite              # readwrite, readonly, writeonly
+    kind: [ property ]
+    description:
+    ptype:  structseq
+
+#
+# Base atomic data types
+#
+
+boolean_type: &boolean_type
+    type: boolean
+
+char_type: &char_type
+    type: char
+
+octet_type: &octet_type
+    type: char
+
+short_type: &short_type
+    type: short
+
+long_type: &long_type
+    type: long
+
+longlong_type: &longlong_type
+    type: longlong
+
+double_type: &double_type
+    type: double
+
+float_type: &float_type
+    type: float
+
+ushort_type: &ushort_type
+    type: ushort
+
+ulong_type: &ulong_type
+    type: ulong
+
+ulonglong_type: &ulonglong_type
+    type: ulonglong
+
+string_type: &string_type
+    type: string
+
+
+#
+# Simple attributes for each data types
+#
+
+boolean_attrs: &boolean_attrs
+    <<: *simple_attributes
+    type: boolean
+
+char_attrs: &char_attrs
+    <<: *simple_attributes
+    type: char
+
+octet_attrs: &octet_attrs
+    <<: *simple_attributes
+    type: char
+
+short_attrs: &short_attrs
+    <<: *simple_attributes
+    type: short
+
+long_attrs: &long_attrs
+    <<: *simple_attributes
+    type: long
+
+longlong_attrs: &longlong_attrs
+    <<: *simple_attributes
+    type: longlong
+
+double_attrs: &double_attrs
+    <<: *simple_attributes
+    type: double
+
+float_attrs: &float_attrs
+    <<: *simple_attributes
+    type: float
+
+ushort_attrs: &ushort_attrs
+    <<: *simple_attributes
+    type: ushort
+
+ulong_attrs: &ulong_attrs
+    <<: *simple_attributes
+    type: ulong
+
+ulonglong_attrs: &ulonglong_attrs
+    <<: *simple_attributes
+    type: ulonglong
+
+string_attrs: &string_attrs
+    <<: *simple_attributes
+    type: string
+
+utctime_attrs: &utctime_attrs
+    <<: *simple_attributes
+    type: utctime
+
+property_elements: &property_elements
+    kind: [ property ]       # property, allocation, message, event
+    action: external
+    value:
+    enumeration:
+    units:
+    description:
+    sequence: false
+
+simple_property: &simple_property
+    attrs:
+        <<: *simple_attributes
+        ptype: simple
+    <<: *property_elements
+
+simple_sequence_property: &simple_sequence_property
+    <<: *simple_property
+    attrs:
+        <<:  *simple_attributes
+        ptype: simpleseq
+    sequence: true
+
+char_property: &char_property
+    attrs:
+        <<:  *char_attrs
+    <<: *simple_property
+
+boolean_property: &boolean_property
+    attrs:
+        <<:  *boolean_attrs
+    <<: *simple_property
+
+octet_property: &octet_property
+    attrs:
+        <<: *octet_attrs
+    <<: *simple_property
+
+
+short_property: &short_property
+    attrs:
+        <<: *short_attrs
+    <<: *simple_property
+
+long_property: &long_property
+    attrs:
+        <<: *long_attrs
+    <<: *simple_property
+
+longlong_property: &longlong_property
+    attrs:
+        <<: *longlong_attrs
+    <<: *simple_property
+
+ushort_property: &ushort_property
+    attrs:
+        <<: *ushort_attrs
+    <<: *simple_property
+
+ulong_property: &ulong_property
+    attrs:
+        <<: *ulong_attrs
+    <<: *simple_property
+
+ulonglong_property: &ulonglong_property
+    attrs:
+        <<: *ulonglong_attrs
+    <<: *simple_property
+
+double_property: &double_property
+    attrs:
+        <<: *double_attrs
+    <<: *simple_property
+
+float_property: &float_property
+    attrs:
+        <<: *float_attrs
+    <<: *simple_property
+
+string_property: &string_property
+    attrs:
+        <<: *string_attrs
+    <<: *simple_property
+
+utctime_property: &utctime_property
+    attrs:
+        <<: *utctime_attrs
+    <<: *simple_property
+
+#
+# Simple Sequence Properties
+#
+#
+
+char_sequence_property: &char_sequence_property
+    attrs:
+        <<: *char_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+boolean_sequence_property: &boolean_sequence_property
+    attrs:
+        <<: *boolean_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+octet_sequence_property: &octet_sequence_property
+    attrs:
+        <<: *octet_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+short_sequence_property: &short_sequence_property
+    attrs:
+        <<: *short_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+long_sequence_property: &long_sequence_property
+    attrs:
+        <<: *long_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+longlong_sequence_property: &longlong_sequence_property
+    attrs:
+        <<: *longlong_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+double_sequence_property: &double_sequence_property
+    attrs:
+        <<: *double_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+float_sequence_property: &float_sequence_property
+    attrs:
+        <<: *float_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+string_sequence_property: &string_sequence_property
+    attrs:
+        <<: *string_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+utctime_sequence_property: &utctime_sequence_property
+    attrs:
+        <<: *utctime_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+ushort_sequence_property: &ushort_sequence_property
+    attrs:
+        <<: *ushort_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+ulong_sequence_property: &ulong_sequence_property
+    attrs:
+        <<: *ulong_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+ulonglong_sequence_property: &ulonglong_sequence_property
+    attrs:
+        <<: *ulonglong_attrs
+        ptype: simpleseq
+    <<: *simple_sequence_property
+
+#
+# Base message property attributes
+#
+message_attrs: &message_attrs
+   <<: *struct_attributes
+   mode: readonly
+   kind : [ message ]
+   ptype: struct
+
+
+#
+# Bulkio Data Port Types
+#
+
+bulkio_bit: &bulkio_bit
+    itype: BULKIO/dataBit
+    type: data
+
+bulkio_octet: &bulkio_octet
+    itype: BULKIO/dataOctet
+    type: data
+
+bulkio_char: &bulkio_char
+    itype: BULKIO/dataChar
+    type: data
+
+bulkio_short: &bulkio_short
+    itype: BULKIO/dataShort
+    type: data
+
+bulkio_long: &bulkio_long
+    itype: BULKIO/dataLong
+    type: data
+
+bulkio_longlong: &bulkio_longlong
+    itype: BULKIO/dataLongLong
+    type: data
+
+bulkio_ushort: &bulkio_ushort
+    itype: BULKIO/dataUshort
+    type: data
+
+bulkio_ulong: &bulkio_ulong
+    itype: BULKIO/dataUlong
+    type: data
+
+bulkio_ulonglong: &bulkio_ulonglong
+    itype: BULKIO/dataUlongLong
+    type: data
+
+bulkio_float: &bulkio_float
+    itype: BULKIO/dataFloat
+    type: data
+
+bulkio_double: &bulkio_double
+    itype: BULKIO/dataDouble
+    type: data
+
+bulkio_sdds: &bulkio_sdds
+    itype: BULKIO/dataSDDS
+    type: data
+
+bulkio_vita49: &bulkio_vita49
+    itype: BULKIO/dataVITA49
+    type: data
+
+bulkio_file: &bulkio_file
+    itype: BULKIO/dataFile
+    type: data
+
+bulkio_xml: &bulkio_xml
+    itype: BULKIO/dataXML
+    type: data
+
+#
+# Message Port Type
+#
+message_port: &message_port
+    itype: ExtendedEvent/MessageEvent
+    type: data
+
+#
+# FRONTEND Port Types
+#
+analog_tuner_port: &analog_tuner_port
+     itype: FRONTEND/AnalogTuner
+     type: control
+
+analog_scanner_port: &analog_scanner_port
+     itype: FRONTEND/AnalogScanningTuner
+     type: control
+
+digital_tuner_port: &digital_tuner_port
+     itype: FRONTEND/DigitalTuner
+     type: control
+
+digital_scanner_port: &digital_scanner_port
+     itype: FRONTEND/DigitalScanningTuner
+     type: control
+
+rf_info_port: &rf_info_port
+     itype: FRONTEND/RFInfo
+     type: control
+
+rf_source_port: &rf_source_port
+     itype: FRONTEND/RFSource
+     type: control
+
+gps_port: &gps_port
+     itype: FRONTEND/GPS
+     type: control
+
+navdata_port: &navdata_port
+     itype: FRONTEND/NavData
+     type: control
+
+transmit_control_port: &transmit_control_port
+     itype: FRONTEND/TransmitControl
+     type: control
+
+transmit_status_port: &transmit_status_port
+     itype: FRONTEND/TransmitDeviceStatus
+     type: control
+
+#
+# FEI Property Structures
+#
+
+#
+# FRONTEND::tuner_status_struct_struct
+#
+fei_tuner_status: &fei_tuner_status
+    - attrs:
+        <<: *struct_attributes
+        id: 'FRONTEND::tuner_status_struct'
+        name: 'frontend_tuner_status_struct'
+        mode: readonly
+        kind:
+        ptype: struct
+
+    - allocation_id_csv:
+        <<: *string_property
+        description: "Comma separated list of current Allocation IDs."
+        kind:
+        action:
+    - bandwidth:
+        <<: *double_property
+        units: Hz
+        description: "Current bandwidth in Hz"
+        kind:
+        action:
+    - center_frequency:
+        <<: *double_property
+        units: Hz
+        description: "Current center frequency in Hz"
+        kind:
+        action:
+    - sample_rate:
+        <<: *double_property
+        units: sps
+        description: "Current sample rate in samples per second"
+        kind:
+        action:
+    - enabled:
+        <<: *boolean_property
+        description: "Indicates if tuner is enabled, in reference to the output state of the tuner."
+        kind:
+        action:
+    - group_id:
+        <<: *string_property
+        description: "Unique ID that specifies a group of Device."
+        kind:
+        action:
+    - rf_flow_id:
+        <<: *string_property
+        description: "Assigned RF flow id to allocation against."
+        kind:
+        action:
+    - tuner_type:
+        <<: *string_property
+        description:  "Tuner Types: TX, RX, RDC, TDC, RX_DIGITIZER, RX_ARRAY"
+        kind:
+        action:
+    - bandwidth_tolerance:
+        <<: *double_property
+        units: "%"
+        description:  "Allowable percentage over requested bandwidth. This value is provided by the requester during allocation."
+        kind:
+        action:
+    - sample_rate_tolerance:
+        <<: *double_property
+        units: "%"
+        description:  "Allowable percentage over requested sample rate. This value is provided by the requester during allocation."
+        kind:
+        action:
+
+
+#
+# FRONTEND::tuner_status_struct  sequence
+#
+fei_tuner_status_sequence: &fei_tuner_status_sequence
+    - attrs:
+        <<: *structseq_attributes
+        id: 'FRONTEND::tuner_status'
+        name: 'frontend_tuner_status'
+        mode: readonly
+        kind: [ property ]
+
+    - struct:
+        <<: *fei_tuner_status
+
+#
+# FRONTEND::scanner_allocation structure
+#
+fei_scanner_allocation: &fei_scanner_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::scanner_allocation
+        name: frontend_scanner_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - min_freq:
+        <<: *double_property
+        units: Hz
+        kind:
+        action:
+    - max_freq:
+        <<: *double_property
+        units: Hz
+        kind:
+        action:
+    - mode:
+        <<: *string_property
+        kind:
+        action:
+        enumeration: [ SPAN_SCAN, DISCRETE_SCAN ]
+    - control_mode:
+        <<: *string_property
+        kind:
+        action:
+        enumeration: [ TIME_BASED, SAMPLE_BASED ]
+
+#
+# FRONTEND::tuner_allocation structure
+#
+fei_tuner_allocation: &fei_tuner_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::tuner_allocation
+        name: frontend_tuner_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - tuner_type:
+          <<: *string_property
+          description: "Example Tuner Types: RX, TX, RDC, TDC"
+    - allocation_id:
+          <<: *string_property
+          description: "The allocation_id set by the caller. Used by the caller to reference the allocation uniquely"
+    - center_frequency:
+          <<: *double_property
+          description: "Requested center frequency"
+          units: Hz
+    - bandwidth:
+          <<: *double_property
+          description: "Requested bandwidth"
+          units: Hz
+    - bandwidth_tolerance:
+          <<: *double_property
+          description: "Allowable Percent above requested bandwidth  (ie - 100 would be up to twice)"
+          units: percent
+    - sample_rate:
+          <<: *double_property
+          description: "Requested sample rate"
+          units: Hz
+    - sample_rate_tolerance:
+          <<: *double_property
+          description: "Allowable Percent above requested sample rate  (ie - 100 would be up to twice)"
+          units: percent
+    - device_control:
+          <<: *boolean_property
+          description: "True: Has control over the device to make changes"
+    - group_id:
+          <<: *string_property
+          description: "Unique identifier that specifies the group a device must be in. Must match group_id on the device"
+    - rf_flow_id:
+          <<: *string_property
+          description: "Optional. Specifies the RF flow of a specific input source to allocate against. If left empty, it will match all FrontEnd devices"
+
+
+#
+# FRONTEND::listener_allocation structure
+#
+fei_listener_allocation: &fei_listener_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::listener_allocation
+        name: frontend_listener_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - existing_allocation_id:
+          <<: *string_property
+          kind:
+          action:
+    - listener_allocation_id:
+          <<: *string_property
+          kind:
+          action:
+
+#
+# SCA Required properties for all devices
+#
+
+required_device_properties: &required_device_properties
+    - device_kind :
+        <<: *string_property
+        value: DEVICE
+        kind: [ allocation ]
+        description: "This specifies the device kind"
+        action: eq
+        attrs:
+            <<: *string_attrs
+            id : DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d
+            mode : readonly
+
+    - device_model :
+        <<: *string_property
+        kind: [ allocation ]
+        description: "This specifies the specific device"
+        action: eq
+        attrs:
+            <<: *string_attrs
+            id : DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb
+            mode : readonly
+
+
+#
+# FEI required properties for all devices
+#
+
+fei_device_required_properties: &fei_device_required_properties
+    - device_kind :
+        <<: *string_property
+        value: FRONTEND::FRONTEND
+        kind: [ allocation ]
+        description: "This specifies the device kind"
+        action: eq
+        attrs:
+            <<: *string_attrs
+            id : DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d
+            mode : readonly
+
+    - device_model :
+        <<: *string_property
+        kind: [ allocation ]
+        description: "This specifies the specific device"
+        action: eq
+        attrs:
+            <<: *string_attrs
+            id : DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb
+            mode : readonly
+
+#
+# Simple Aggregate Device that will manage FEI children tuner types
+#
+# Ports are just defined as inputs and outputs and require port type
+#  e.g
+#  output_ports:
+#        - dataShort_out:
+#              <<: *bulkio_short
+#
+simple_parent: &simple_parent
+    sca_type: AGGREGATE_PLAIN_DEVICE
+    codetype: Executable
+    required_properties:
+         <<: *required_device_properties
+    properties:
+    output_ports:
+    input_ports:
+    children:
+    dependencies:
+
+#
+# FEI Base Tuner type
+#
+fei_base_tuner: &fei_base_tuner
+    fei_type:
+    codetype: SharedLibrary
+    sca_type: DEVICE
+    scanning: false
+    required_properties:
+         <<: *fei_device_required_properties
+    properties:
+    tuner_status:
+    additional_tuner_status:
+    messages:
+    data_output:
+    data_inputs:
+    control_inputs:
+    control_outputs:
+    rf_info_inputs:
+    rf_info_outputs:
+    gps_inputs:
+    gps_outputs:
+    nav_inputs:
+    nav_outputs:
+    message_inputs:
+    message_outputs:
+    dependencies:
+
+#
+# FEI Base Antenna Type
+#
+fei_base_antenna: &fei_base_antenna
+    fei_type: ANTENNA
+    codetype: Exectuable
+    sca_type: DEVICE
+    scanning: false
+    required_properties:
+         <<: *fei_device_required_properties
+    properties:
+    tuner_status:
+    additional_tuner_status:
+    messages:
+    data_output:
+    data_inputs:
+    rf_source_inputs:
+        - RFSource_in
+    rf_info_outputs:
+        - RFInfo_out
+    gps_inputs:
+    gps_outputs:
+    nav_inputs:
+    nav_outputs:
+    message_inputs:
+    message_outputs:
+    dependencies:
+
+#
+# FEI Base Analog Receiver Type
+#
+fei_base_analog_receiver: &fei_base_analog_receiver
+    <<: *fei_base_tuner
+    fei_type: RX
+    control_inputs:
+          - AnalogTuner_in:
+             <<: *analog_tuner_port
+    rf_info_inputs:
+        - RFInfo_in
+    rf_info_outputs:
+        - RFInfo_out
+
+#
+# FEI Base Digital Receiver Type
+#
+fei_base_digital_receiver: &fei_base_digital_receiver
+    <<: *fei_base_tuner
+    fei_type: RDC
+    data_outputs:
+        - dataShort_out:
+             <<: *bulkio_short
+    control_inputs:
+          - DigitalTuner_in:
+             <<: *digital_tuner_port
+    rf_info_inputs:
+        - RFInfo_in
+
+#
+# FEI Base Analog Transmitter Type
+#
+fei_base_analog_transmitter: &fei_base_analog_transmitter
+    <<: *fei_base_tuner
+    fei_type: TX
+    control_inputs:
+          - AnalogTransmitter_in:
+             <<: *transmit_control_port
+    rf_info_inputs:
+        - RFInfo_in
+    rf_info_outputs:
+        - RFInfo_out
+
+#
+# FEI Base Digital Transmit Type
+#
+fei_base_digital_transmitter: &fei_base_digital_transmitter
+    <<: *fei_base_tuner
+    fei_type: TDC
+    data_inputs:
+        - dataShort_in:
+             <<: *bulkio_short
+    control_inputs:
+          - DigitalTransmit_in:
+             <<: *transmit_control_port
+    rf_info_inputs:
+        - RFInfo_in
+
+#
+# FEI Antenna
+#
+antenna: &antenna
+    <<: *fei_base_antenna
+
+
+# FEI Analog Receiver Types
+#    receiver type: RX, RX_ARRAY, ABOT
+#    frontend tuner status
+#    Ports:
+#      AnalogTuner_in
+#      RFInfo_in
+#      RFInfo_out
+#
+
+
+#
+# FEI RX Analog Tuner
+#
+rx_analog: &rx_analog
+    <<: *fei_base_analog_receiver
+
+#
+# FEI RX Array Tuner
+#
+rx_array: &rx_array
+    <<: *fei_base_analog_receiver
+    fei_type: RX_ARRAY
+
+#
+# FEI Analog Input Bank of Tuners
+#
+analog_tuner_bank: &analog_tuner_bank
+    <<: *fei_base_analog_receiver
+    fei_type: ABOT
+
+#
+# Hybrid (AnalogIn/DigitalOut) Receivers
+#
+#
+
+#
+# FEI Analog Input/Digital Out Receiver
+#
+rx_analog_digital: &rx_analog_digital
+    <<: *fei_base_digital_receiver
+    fei_type: ARDC
+
+
+#
+# FEI Digital Receiver Types
+#    receiver types: RDC, DBOT, SRDC, DRDC
+#    scanning off
+#    frontend tuner status
+#    Ports:
+#      dataShort_out
+#      DigitalTuner_in
+#      RFInfo_in
+#
+
+#
+# FEI Digital Input Bank of tuners
+#
+digital_tuner_bank: &digital_tuner_bank
+    <<: *fei_base_digital_receiver
+    fei_type: DBOT
+
+#
+# FEI RDC Digital Tuner
+#
+rdc_tuner: &rdc_tuner
+    <<: *fei_base_digital_receiver
+    fei_type: RDC
+
+#
+# FEI Digital Snapshot Device
+#
+digital_snapshot: &digital_snapshot
+    <<: *fei_base_digital_receiver
+    fei_type: SRDC
+
+#
+# FEI Digital Delay Device
+#
+digital_delay: &digital_delay
+    <<: *fei_base_digital_receiver
+    fei_type: DRDC
+
+#
+# FEI Analog Transmitter Types
+#    specific tuner type TX
+#    frontend tuner status
+#    Ports:
+#      RFInfo_in
+#
+
+#
+# FEI TX Analog Transmitter
+#
+tx_analog: &tx_analog
+    <<: *fei_base_analog_transmitter
+    fei_type: TDC
+
+#
+# FEI Digital Transmitter Types
+#    specific tuner type TDC, TX_ARRAY
+#    frontend tuner status
+#    Ports:
+#      dataShort_in
+#      DigitalTransmit_in
+#      RFInfo_in
+#
+
+#
+# FEI TDC Digital Transmitter
+#
+tdc_tuner: &tdc_tuner
+    <<: *fei_base_digital_transmitter
+    fei_type: TDC
+#
+# FEI TX Transmitter Array
+#
+tx_array: &tx_array
+    <<: *fei_base_digital_transmitter
+    fei_type: TX_ARRAY
+
+
+#
+# Creating a device definition for XML generation
+#
+# This file contains the basic device definitions from step1-yaml. If the arguments contained a parent/child
+# relationship then the devices are auto namespace during XML generation and the namespace can be overriden
+# using the --ns parameter or disable via --disable ns.
+#
+# It is preferred that you define device types (rx, rdc, etc) to be generated using fei3-generator script.
+#
+# A device Definition consists of the following:
+#
+# - <DeviceClassName> :
+#    <<: *<type of tuner devices: rx_analog, rx_digitizer, rdc_tuner, rx_array, tdc_tuner, tx_array>
+#    properties:
+#       - <prop name> :                      # follow "Adding properties" section
+#    additional_tuner_status:                # follow "Adding properties" section, additional tuner status entries to add to default
+#    messages:                               # follow "Adding properties" section
+#    <ports type>:                           # different port type mappings, by default dataShort_out is defined
+#                                            # for data_outputs:
+#
+
+
+#
+# Adding Properties:
+#
+#    addition_tuner_status:                ## Generator will properly namespace ID values
+#        - <property name>:
+#              <<: *<simple/seq property macro from above>
+#
+#    properties:
+#        - <simple/seq property name>:
+#              <<: *<simple/seq property macro from above>
+#
+#        - <struct name>:         ## Generator will properly namespace ID values when generating xml defintion
+#            - attrs:
+#                 <<:* struct_attributes
+
+#            - prop_name1:
+#                 <<: **<simple/seq property macro from above>
+#
+#        - <structseq name>:         ## Generator will properly namespace ID values when generating xml defintion
+#            - attrs:
+#                 <<:* struct_attributes
+#                 ptype: structseq
+
+#            - struct:
+#                  - prop_name1:
+#                        <<: *<simple/seq property macro from above>
+#
+#    messages:
+#        - <message name>:         ## Generator will properly namespace ID when generating xml defintion
+#            - <property name>:
+#                  <<: *<simple/seq property macro from above>
+#
+#
+#  Customizing properties:
+#  For each property type can be customized the following
+#      kind:                 # list of kinds [ property, allocation, message ]
+#      action:               # default is external
+#      value:                # provide a default value, sequences types use python list []
+#      enumeration:          # list of enumerations as [ (label,value) .. ] or [ label, .. ]  and value determined from type
+#      units:                # provide a units string
+#      description:          # provide a description string
+#      attrs:                # over ride property attributes, you will need to repeat the type context
+#        <<: *short_attrs    # Then you can override the following
+#        id:                 # (optional) this will default to property name, will auto-namespace for structs
+#        name:                # (optional) this will default to property name
+#        mode: readwrite      # readwrite, readonly, writeonly#
+#        complex:             # True/False for complex values
+#        commandline:         # Pass property on command line true, false
+
+
+#
+# Port Customization
+#
+#    data_outputs:
+#      - <port name>:
+#           <<: *<bulkio type port>
+#
+#    data_inputs:
+#      - <port name>:
+#           <<: *<bulkio type port>
+#
+#    rf_info_inputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    rf_info_outputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    gps_inputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    gps_outputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    nav_inputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    nav_outputs:
+#      - port_name             # just port name, type will automatically be set
+#
+#    messages_inputs:
+#      - <port name>            # just port name, type will automatically be set
+#
+#    messages_outputs:
+#      - <port name>            # just port name, type will automatically be set
+#
+#    control_inputs:
+#      - port_name:
+#           <<: *<fei control port types>
+#       or
+#      - port name:
+#           type: <namespaced IDL definition, e.g CF::Resource >
+#
+#    control_outputs:
+#      - port_name:
+#           <<: *<fei control port types>
+#       or
+#      - port name:
+#           itype: <namespaced IDL definition, e.g CF::Resource >
+#           type: data or control
+#
+
+#
+# Dependencies
+# List softpkg dependencies for a device definitoin
+# dependencies:
+#      - <name> : namespaced name of to default dependency path in SDRROOT
+#                  rh.RedhawkDevUtils
+#                 or
+#                 absolute using %%deps%% macro or directory sdr/dom
+#  Examples
+#    - rh.RedhawkDevUtils
+#       or
+#    - rh.RedhawkDevUitls: %%deps%%/rh/RedhawkDevUtils/RedhawkDevUtils.spd.xml
+#        or
+#    - rh.RedhawkDevUitls: /var/redhawk/sdr/dom/depsrh/RedhawkDevUtils/RedhawkDevUtils.spd.xml
+#
+#
+#
+#
+
+
+DEVICES:
+
+{% if fei3_spec.PARENT is defined %}
+{% block parent %}
+- {{fei3_spec.PARENT}}:
+{% if fei3_spec.parent_type != 'simple_parent' %}
+     <<: *{{fei3_spec.parent_type}}
+     codetype: Executable
+     sca_type: AGGREGATE_PLAIN_DEVICE
+{% else %}
+     <<: *simple_parent
+{% endif %}
+     properties:
+     messages:
+     ports:
+     dependencies:
+     children:
+{%-   for child_name in fei3_spec.PARENT_CHILDREN %}
+        - {{child_name -}}
+{%   endfor %}
+
+{% endblock %}
+{% endif %}
+
+{%- block antenna %}
+{% for ant in fei3_spec.ANTENNA %}
+- {{ant}}:
+     <<: *antenna
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+{% endfor %}
+{% endblock %}
+
+
+{%- block rx_analog %}
+{% for rx in fei3_spec.RX %}
+- {{rx}}:
+     <<: *rx_analog
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{%- block rx_digitizer %}
+{% for rx_digi in fei3_spec.RX_DIGITIZER %}
+- {{rx_digi}}:
+     <<: *rx_digitizer
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{%- block rdc %}
+{% for rdc_tuner in fei3_spec.RDC %}
+- {{rdc_tuner}}:
+     <<: *rdc_tuner
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{%- block rx_array %}
+{% for rx_array in fei3_spec.RX_ARRAY %}
+- {{rx_array}}:
+     <<: *rx_array
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{%- block tdc %}
+{% for tdc_tuner in fei3_spec.TDC %}
+- {{tdc_tuner}}:
+     <<: *tdc_tuner
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{%- block tx_array %}
+{% for tx_array in fei3_spec.TX_ARRAY %}
+- {{tx_array}}:
+     <<: *tx_array
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}

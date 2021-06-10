@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+import logging
+import os
+import urllib.parse
+
+
+from redhawk.packagegen import fei3
+
+if __name__ == "__main__":
+
+    # process command line
+    args, remaining_args=fei3.process_command_line()
+
+    # configure logging environment
+    fei3.configureLogging(args.debug, args.log)
+
+    logging.debug("{}".format(args))
+
+    # create output directory
+    if args.output_dir :
+        if not os.path.exists(args.output_dir):
+                os.makedirs(args.output_dir)
+        logger.info("Using  output directory {}".format(args.output_dir))
+
+    # perform the selected menu function
+    args.func(args)

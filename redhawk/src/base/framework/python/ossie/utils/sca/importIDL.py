@@ -24,7 +24,7 @@ from ossie.utils.idl import _omniidl
 import os
 import threading
 from omniORB import CORBA
-
+import traceback
 #import base
 
 _lock = threading.Lock()
@@ -252,8 +252,16 @@ class InterfaceVisitor(idlvisitor.AstVisitor):
             call.accept(self)
 
         # find and store any inheritances
-        self.interface.inherited_names = [(i.scopedName()[0],i.identifier()) for i in node.inherits()]
         self.interface.inherits = self._getInheritedRepoIDs(node)
+
+        # scopedName bug: only returns first level of namespacing, will miss omg.org/Cos.../
+        self.interface.inherited_names=[]
+        _ih_names = [(i.scopedName()[0],i.identifier()) for i in node.inherits()]
+        for name in _ih_names:
+            for repoid in self.interface.inherits:
+                fqn=repoid.split(':')[1].split('/')
+                if set(name).issubset(set(fqn)):
+                      self.interface.inherited_names.append(( '/'.join(fqn[:-1]),fqn[-1]))
 
     def visitAttribute(self, node):
         # create the Attribute object
