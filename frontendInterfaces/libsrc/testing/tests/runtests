@@ -9,7 +9,7 @@ frontend_top=$(cd ../../..;pwd)
 frontend_libsrc_top=$frontend_top/libsrc
 export LD_LIBRARY_PATH=$frontend_libsrc_top/.libs:$frontend_top/.libs:$frontend_top/jni/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$frontend_libsrc_top/python:${PYTHONPATH}
-export CLASSPATH=${frontend_libsrc_top}/frontend.jar:${frontend_top}/frontendInterfaces.jar:${CLASSPATH}
+export CLASSPATH=${frontend_libsrc_top}/frontend.jar:${frontend_top}/FRONTENDInterfaces.jar:${CLASSPATH}
 
 # Limit the number of threads Java uses for the garbage collector to avoid
 # misleading Java "out of memory" errors that in all actuality  appear to be

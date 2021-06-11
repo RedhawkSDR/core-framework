@@ -601,7 +601,6 @@ bool Endpoint::isTerminated() const
 CORBA::Object_ptr Endpoint::resolve(ConnectionManager& manager)
 {
     if (!isResolved()) {
-        RH_TRACE(connectionSupportLog, "Resolving endpoint");
         object_ = resolve_(manager);
     }
     return CORBA::Object::_duplicate(object_);

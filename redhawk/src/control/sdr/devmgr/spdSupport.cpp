@@ -207,6 +207,8 @@ void ImplementationInfo::setCodeType(const SPD::Code::CodeType _type)
     case SPD::Code::DRIVER:
         codeType = CF::LoadableDevice::DRIVER;
         break;
+    case SPD::Code::CONTAINER:
+	codeType = CF::LoadableDevice::CONTAINER;
     default:
         RH_WARN(spdSupportLog, "Bad code type " << _type);
     }

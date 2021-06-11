@@ -262,6 +262,7 @@ class Sandbox(object):
         if not launcher:
             raise NotImplementedError("No support for component type '%s'" % comptype)
         comp._launcher = launcher
+        comp._descriptor = descriptor
 
         # Launch the component
         comp._kick()

@@ -19,6 +19,7 @@
  */
 
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 
 #include <ossie/FileStream.h>
 #include <ossie/prop_utils.h>
@@ -33,6 +34,13 @@ using namespace ossie;
 
 PREPARE_CF_LOGGING(ApplicationDeployment);
 
+ComponentDeployment::ComponentDeployment(const ossie::SoftPkg* softpkg,
+                                     const ossie::ComponentInstantiation* instantiation,
+                                     const std::string& identifier) :
+    GeneralDeployment(softpkg, instantiation, identifier)
+{
+}
+
 ContainerDeployment::ContainerDeployment(const ossie::SoftPkg* softpkg,
                                          ossie::ComponentInstantiation* instantiation,
                                          const std::string& identifier) :
@@ -40,6 +48,7 @@ ContainerDeployment::ContainerDeployment(const ossie::SoftPkg* softpkg,
     instance(instantiation)
 {
 }
+
 
 ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
                                              const std::string& instanceName,
@@ -51,20 +60,18 @@ ApplicationDeployment::ApplicationDeployment(const SoftwareAssembly& sad,
     // (e.g. "Application_1").
     identifier(sad.getID() + ":" + instanceName),
     instanceName(instanceName),
-    initConfiguration(initConfiguration),
-    ac(0)
+    initConfiguration(initConfiguration)
 {
 }
 
 ApplicationDeployment::~ApplicationDeployment()
 {
-    ac=NULL;
-    BOOST_FOREACH(ComponentDeployment* component, components) {
+    /*BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> component, components) {
         delete component;
     }
-    BOOST_FOREACH(ContainerDeployment* container, containers) {
+    BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> container, containers) {
         delete container;
-    }
+    }*/
 }
 
 
@@ -73,20 +80,30 @@ const std::string& ApplicationDeployment::getIdentifier() const
     return identifier;
 }
 
-ComponentDeployment* ApplicationDeployment::getAssemblyController()
+boost::shared_ptr<redhawk::GeneralDeployment> ApplicationDeployment::getAssemblyController()
 {
-    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+    BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> deployment, components) {
         if (deployment->isAssemblyController()) {
             return deployment;
         }
     }
-    return 0;
+    BOOST_FOREACH(boost::shared_ptr<GeneralDeployment> deployment, cluster) {
+        if (deployment->isAssemblyController()) {
+            return deployment;
+        }
+    }
+    return boost::shared_ptr<GeneralDeployment>();
 }
 
 redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
 {
     redhawk::PropertyMap properties;
-    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+    BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> deployment, components) {
+        if (deployment->isAssemblyController()) {
+            properties = deployment->getAllocationContext();
+        }
+    }
+    BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> deployment, cluster) {
         if (deployment->isAssemblyController()) {
             properties = deployment->getAllocationContext();
         }
@@ -94,7 +111,15 @@ redhawk::PropertyMap ApplicationDeployment::getAllocationContext() const
     return properties;
 }
 
-ComponentDeployment* ApplicationDeployment::createComponentDeployment(const SoftPkg* softpkg,
+void ApplicationDeployment::addDeploymentToCluster(boost::shared_ptr<GeneralDeployment> deployment) {
+    cluster.push_back(boost::move(deployment));
+}
+
+void ApplicationDeployment::addDeploymentToComponent(boost::shared_ptr<GeneralDeployment> deployment) {
+    components.push_back(boost::move(deployment));
+}
+
+boost::shared_ptr<GeneralDeployment> ApplicationDeployment::createComponentDeployment(const SoftPkg* softpkg,
                                                                       const ComponentInstantiation* instantiation)
 {
     // Create a unique identifier for this component instance by appending the
@@ -112,8 +137,8 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
         return ac;
     }
 
-    ComponentDeployment* deployment = new ComponentDeployment(softpkg, instantiation, component_id);
-    components.push_back(deployment);
+    boost::shared_ptr<redhawk::GeneralDeployment> deployment;
+    deployment = boost::make_shared<redhawk::GeneralDeployment>(ComponentDeployment(softpkg, instantiation, component_id));
 
     // Override properties from initial configuration
     if (instantiation->getID() == sad.getAssemblyControllerRefId()) {
@@ -128,10 +153,11 @@ ComponentDeployment* ApplicationDeployment::createComponentDeployment(const Soft
     return deployment;
 }
 
-ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCache& cache,
-                                                            const boost::shared_ptr<ossie::DeviceNode>& device)
+boost::shared_ptr<GeneralDeployment> ApplicationDeployment::createContainer(redhawk::ProfileCache& cache,
+                                             const std::string& deviceId, const std::string& deviceLabel)
 {
-    ContainerDeployment* container = getContainer(device->identifier);
+    boost::shared_ptr<GeneralDeployment> container;
+    container = getContainer(deviceId);
     if (container) {
         RH_DEBUG(_appDeploymentLog, "Using existing container " << container->getIdentifier());
         return container;
@@ -139,19 +165,28 @@ ContainerDeployment* ApplicationDeployment::createContainer(redhawk::ProfileCach
 
     const ossie::SoftPkg* softpkg = cache.loadSoftPkg("/mgr/rh/ComponentHost/ComponentHost.spd.xml");
 
+    bool isCluster = false;
+    if (softpkg->getImplementations()[0].getCodeType() == SPD::Code::CONTAINER) {
+        //set flag
+        RH_TRACE(_appDeploymentLog, "Setting container to be a cluster type")
+        isCluster = true;
+    }
+
     // Create an instantiation with the ID and naming service name based on the
     // device label; the deployment will own this object
     ossie::ComponentInstantiation* instantiation = new ossie::ComponentInstantiation;
-    instantiation->instantiationId = "ComponentHost_" + device->label;
+    instantiation->instantiationId = "ComponentHost_" + deviceLabel;
     instantiation->namingservicename = instantiation->instantiationId;
 
     // Use the same pattern as components to generate the unique runtime ID
     RH_DEBUG(_appDeploymentLog, "Creating component host " << instantiation->getID());
     std::string container_id = instantiation->getID() + ":" + instanceName;
 
-    container = new ContainerDeployment(softpkg, instantiation, container_id);
-    containers.push_back(container);
-    return container;
+    boost::shared_ptr<GeneralDeployment> deployment ( new ContainerDeployment(softpkg, instantiation, container_id));
+    deployment->setIsCluster(isCluster);
+    containers.push_back(deployment);
+
+    return deployment;
 }
 
 const ApplicationDeployment::ComponentList& ApplicationDeployment::getComponentDeployments()
@@ -164,31 +199,46 @@ const ApplicationDeployment::ContainerList& ApplicationDeployment::getContainerD
     return containers;
 }
 
-ComponentDeployment* ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
+const ApplicationDeployment::ClusterList& ApplicationDeployment::getClusterDeployments()
+{
+    return cluster;
+}
+
+boost::shared_ptr<GeneralDeployment> ApplicationDeployment::getComponentDeployment(const std::string& instantiationId)
 {
     for (ComponentList::iterator comp = components.begin(); comp != components.end(); ++comp) {
         if (instantiationId == (*comp)->getInstantiation()->getID()) {
             return *comp;
         }
     }
+    for (ClusterList::iterator comp = cluster.begin(); comp != cluster.end(); ++comp) {
+        if (instantiationId == (*comp)->getInstantiation()->getID()) {
+            return *comp;
+        }
+    }
 
-    return 0;
+    return boost::shared_ptr<GeneralDeployment>();
 }
 
-ComponentDeployment* ApplicationDeployment::getComponentDeploymentByUniqueId(const std::string& identifier)
+boost::shared_ptr<GeneralDeployment> ApplicationDeployment::getComponentDeploymentByUniqueId(const std::string& identifier)
 {
-    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+    BOOST_FOREACH(boost::shared_ptr<GeneralDeployment> deployment, components) {
+        if (identifier == deployment->getIdentifier()) {
+            return deployment;
+        }
+    }
+    BOOST_FOREACH(boost::shared_ptr<GeneralDeployment> deployment, cluster) {
         if (identifier == deployment->getIdentifier()) {
             return deployment;
         }
     }
 
-    return 0;
+    return boost::shared_ptr<GeneralDeployment>();
 }
 
 void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservations)
 {
-    BOOST_FOREACH(ComponentDeployment* deployment, components) {
+    BOOST_FOREACH(boost::shared_ptr<redhawk::GeneralDeployment> deployment, components) {
         CpuReservations::const_iterator reserved = reservations.find(deployment->getIdentifier());
         if (reserved == reservations.end()) {
             // NB: Check for the usage name for consistency with 2.0, although
@@ -205,7 +255,7 @@ void ApplicationDeployment::applyCpuReservations(const CpuReservations& reservat
     }
 }
 
-void ApplicationDeployment::overrideAssemblyControllerProperties(ComponentDeployment* deployment)
+void ApplicationDeployment::overrideAssemblyControllerProperties(boost::shared_ptr<GeneralDeployment> deployment)
 {
     BOOST_FOREACH(const redhawk::PropertyType& override, initConfiguration) {
         const std::string propid = override.getId();
@@ -223,7 +273,7 @@ void ApplicationDeployment::overrideAssemblyControllerProperties(ComponentDeploy
     }
 }
 
-void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* deployment)
+void ApplicationDeployment::overrideExternalProperties(boost::shared_ptr<GeneralDeployment> deployment)
 {
     const std::string& instantiation_id = deployment->getInstantiation()->getID();
     BOOST_FOREACH(const SoftwareAssembly::Property& property, sad.getExternalProperties()) {
@@ -242,7 +292,7 @@ void ApplicationDeployment::overrideExternalProperties(ComponentDeployment* depl
     }
 }
 
-void ApplicationDeployment::overrideImpliedProperties(ComponentDeployment* deployment) {
+void ApplicationDeployment::overrideImpliedProperties(boost::shared_ptr<GeneralDeployment> deployment) {
     BOOST_FOREACH(const redhawk::PropertyType& override, initConfiguration) {
         const std::string propid = override.getId();
         if (propid == "LOGGING_CONFIG_URI") {
@@ -251,19 +301,19 @@ void ApplicationDeployment::overrideImpliedProperties(ComponentDeployment* deplo
     }
 }
 
-ContainerDeployment* ApplicationDeployment::getContainer(const std::string& deviceId)
+boost::shared_ptr<GeneralDeployment> ApplicationDeployment::getContainer(const std::string& deviceId)
 {
-    BOOST_FOREACH(ContainerDeployment* container, containers) {
+    BOOST_FOREACH(boost::shared_ptr<GeneralDeployment> container, containers) {
         if (container->getAssignedDevice() && container->getAssignedDevice()->identifier == deviceId) {
             return container;
         }
     }
-    return 0;
+    return boost::shared_ptr<GeneralDeployment>();
 }
 
 CF::Resource_ptr ApplicationDeployment::lookupComponentByInstantiationId(const std::string& identifier)
 {
-    ComponentDeployment* deployment = getComponentDeployment(identifier);
+    boost::shared_ptr<GeneralDeployment> deployment = getComponentDeployment(identifier);
     if (deployment) {
         return deployment->getResourcePtr();
     }
@@ -274,7 +324,7 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceThatLoadedComponentInstantiati
 {
     RH_TRACE(_appDeploymentLog, "[DeviceLookup] Lookup device that loaded component " << componentId);
 
-    ComponentDeployment* deployment = getComponentDeployment(componentId);
+    boost::shared_ptr<GeneralDeployment> deployment = getComponentDeployment(componentId);
     if (!deployment) {
         throw ossie::LookupError("component '" + componentId + "' not found");
     }
@@ -293,7 +343,7 @@ CF::Device_ptr ApplicationDeployment::lookupDeviceUsedByComponentInstantiationId
 {
     RH_TRACE(_appDeploymentLog, "[DeviceLookup] Lookup device used by component " << componentId);
 
-    ComponentDeployment* deployment = getComponentDeployment(componentId);
+    boost::shared_ptr<GeneralDeployment> deployment = getComponentDeployment(componentId);
     if (!deployment) {
         throw ossie::LookupError("component '" + componentId + "' not found");
     }

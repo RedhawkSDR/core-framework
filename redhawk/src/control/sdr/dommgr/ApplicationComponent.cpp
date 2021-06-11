@@ -26,6 +26,7 @@
 #include "Application_impl.h"
 
 using redhawk::ApplicationComponent;
+using redhawk::componentProcess;
 
 // TODO: Should probably use its own logger; using Application_impl's for
 // consistency with old code
@@ -35,8 +36,9 @@ ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
     _name(identifier),
     _isVisible(true),
-    _processId(0),
-    _componentHost(0)
+    _processId(0, ""),
+    _componentHost(0),
+    _isCluster(false)
 {
 }
 
@@ -113,6 +115,16 @@ void ApplicationComponent::setComponentHost(ApplicationComponent* componentHost)
     }
 }
 
+void ApplicationComponent::setIsCluster(bool isCluster)
+{
+    _isCluster = isCluster;
+}
+
+bool ApplicationComponent::getIsCluster()
+{
+    return _isCluster;
+}
+
 const std::vector<ApplicationComponent*>& ApplicationComponent::getChildren() const
 {
     return _children;
@@ -120,15 +132,32 @@ const std::vector<ApplicationComponent*>& ApplicationComponent::getChildren() co
 
 unsigned long ApplicationComponent::getProcessId() const
 {
-    if (_componentHost) {
+    if (_componentHost && _componentHost->getIsCluster()) {
+        return 505;
+    }
+    else if (_componentHost) {
+        RH_TRACE(_appComponentLog, "ComponentHost component detected");
         return _componentHost->getProcessId();
     }
-    return _processId;
+    else if (_isCluster) {
+        // map output status to a fake pid to return
+        
+        if (!_clusterMgr->isTerminated(_identifier)) {
+                return 0; //fake pid DANGER
+        } else {
+               RH_WARN(_appComponentLog, "Component pod " + _identifier + " has a status other than Running");
+               return 0;
+        }
+
+    }
+
+    RH_TRACE(_appComponentLog, "Not a cluster therefore get the pid for id " <<  _identifier);
+    return _processId.getProcessId();
 }
 
 void ApplicationComponent::setProcessId(unsigned long processId)
 {
-    _processId = processId;
+    _processId.setProcessId(processId);
 }
 
 bool ApplicationComponent::isResource() const
@@ -138,7 +167,16 @@ bool ApplicationComponent::isResource() const
 
 bool ApplicationComponent::isTerminated() const
 {
-    return (getProcessId() == 0);
+    if (_isCluster) {
+
+        RH_TRACE(_appComponentLog, "Component is of cluster type and using cluster logic");
+        return _clusterMgr->isTerminated(_identifier);
+    }
+    else {
+        int pid = getProcessId();
+        RH_TRACE(_appComponentLog, "ProcessId reported for " << _identifier << " is " << pid);
+        return (pid == 0);
+    }
 }
 
 bool ApplicationComponent::isRegistered() const
@@ -249,6 +287,13 @@ void ApplicationComponent::releaseObject()
         unsigned long timeout = 3; // seconds;
         omniORB::setClientCallTimeout(_resource, timeout * 1000);
         _resource->releaseObject();
+
+        if (_isCluster) {
+            _clusterMgr->deleteComponent(_identifier);
+            if(!_clusterMgr->pollStatusTerminated(_identifier)) {
+                RH_ERROR(_appComponentLog, "Failed to terminate component with name " << _identifier << " after polling it");
+            }
+        }
     } catch (const CORBA::SystemException& exc) {
         if (!isTerminated()) {
             RH_ERROR(_appComponentLog, "Failed to release component '" << _identifier << "'; "
@@ -262,6 +307,22 @@ void ApplicationComponent::releaseObject()
 
 void ApplicationComponent::terminate()
 {
+    if (_isCluster) {
+            try {
+                    RH_TRACE(_appComponentLog, "terminate is attempting to delete pod " + _identifier);
+
+                    if (isTerminated()) {
+                            RH_TRACE(_appComponentLog, "DEBUG pod " << _identifier << " already deleted");
+                            return;
+                    }
+                    _clusterMgr->deleteComponent(_identifier);
+            } catch (...) {
+                    RH_ERROR(_appComponentLog, "ERROR Attempt to terminate pod " + _identifier + " has failed");
+            }
+
+            return;
+    }
+
     // If the process already terminated, or the component is running inside of
     // a ComponentHost instance, skip termination
     if (isTerminated() || _componentHost) {
@@ -277,7 +338,7 @@ void ApplicationComponent::terminate()
               << "' on device '" << _assignedDevice->label
               << "' (" << _assignedDevice->identifier << ")");
     try {
-        _assignedDevice->executableDevice->terminate(_processId);
+      _assignedDevice->executableDevice->terminate(_processId.getProcessId());
     } catch (const CF::ExecutableDevice::InvalidProcess& ip) {
         RH_ERROR(_appComponentLog, "Failed to terminate process for component '" << _identifier
                   << "': invalid process");
@@ -310,4 +371,25 @@ void ApplicationComponent::unloadFiles()
             _assignedDevice->loadableDevice->unload(file.c_str());
         } CATCH_RH_WARN(_appComponentLog, "Unable to unload file " << file);
     }
+}
+
+componentProcess::componentProcess() {
+        _processId = 0;
+        _processName = "";
+
+}
+
+componentProcess::componentProcess(int pid, std::string pname){
+        _processId = pid;
+        _processName = pname;
+}
+
+componentProcess::~componentProcess() {}
+
+unsigned long componentProcess::getProcessId() const{
+        return _processId;
+}
+
+void componentProcess::setProcessId(unsigned long pid){
+        _processId = pid;
 }

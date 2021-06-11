@@ -29,6 +29,9 @@
 #include <ossie/PropertyMap.h>
 #include "PersistenceStore.h"
 
+#include <ossie/cluster/ClusterManagerResolver.h>
+#include <ossie/cluster/clusterhelpers.h>
+
 namespace redhawk {
 
     extern rh_logger::LoggerPtr deploymentLog;
@@ -99,14 +102,16 @@ namespace redhawk {
         DeploymentList dependencies;
     };
 
-    class ComponentDeployment : public SoftPkgDeployment, public UsesDeviceDeployment
+    class GeneralDeployment : public SoftPkgDeployment, public UsesDeviceDeployment
     {
     public:
         typedef ossie::ComponentInstantiation::LoggingConfig    LoggingConfig;
 
-        ComponentDeployment(const ossie::SoftPkg* softpkg,
-                            const ossie::ComponentInstantiation* instantiation,
-                            const std::string& identifier);
+        GeneralDeployment(const ossie::SoftPkg* softpkg,
+                   const ossie::ComponentInstantiation* instantiation,
+                   const std::string& identifier);
+
+        void overrideProperty(const std::string& id, const CORBA::Any& value);
 
         /**
          * @brief  Returns the component's runtime identifier
@@ -114,9 +119,6 @@ namespace redhawk {
         const std::string& getIdentifier() const;
 
         const ossie::ComponentInstantiation* getInstantiation() const;
-
-        void setContainer(ComponentDeployment* container);
-        ComponentDeployment* getContainer();
 
         bool isResource() const;
         bool isConfigurable() const;
@@ -153,8 +155,6 @@ namespace redhawk {
          */
         redhawk::PropertyMap getCommandLineParameters() const;
 
-        void overrideProperty(const std::string& id, const CORBA::Any& value);
-
         void setAssignedDevice(const boost::shared_ptr<ossie::DeviceNode>& device);
         const boost::shared_ptr<ossie::DeviceNode>& getAssignedDevice() const;
 
@@ -189,7 +189,28 @@ namespace redhawk {
          */
         void configure();
 
+        void setIsCluster(const bool isCluster) {
+            _isCluster = isCluster;
+        }
+
+        const bool getIsCluster() const {
+            return _isCluster;
+        }
+
+	void setContainer(boost::shared_ptr<redhawk::GeneralDeployment> container)
+        {
+            this->container = container;
+        }
+
+        boost::shared_ptr<redhawk::GeneralDeployment> getContainer()
+        {
+            return container;
+        }
+
     protected:
+        bool _isCluster;
+	    boost::shared_ptr<redhawk::GeneralDeployment> container;
+        ossie::cluster::ClusterManagerResolverPtr _clusterMgr;
 
         /**
          * Returns the properties used for the initial call to configure()
@@ -208,19 +229,17 @@ namespace redhawk {
 
         void initializeProperties();
 
+        boost::shared_ptr<ossie::DeviceNode> assignedDevice;
+        CF::Resource_var resource;
+        std::string nicAssignment;
+        
+        ossie::optional_value<float> cpuReservation;
         const ossie::ComponentInstantiation* instantiation;
         const std::string identifier;
         bool assemblyController;
-
-        boost::shared_ptr<ossie::DeviceNode> assignedDevice;
-        ComponentDeployment* container;
-        CF::Resource_var resource;
-
         redhawk::ApplicationComponent* appComponent;
 
         redhawk::PropertyMap overrides;
-        std::string nicAssignment;
-        ossie::optional_value<float> cpuReservation;
         redhawk::PropertyMap affinityOptions;
         redhawk::PropertyMap deviceRequires;
         redhawk::PropertyMap loggingConfig;
