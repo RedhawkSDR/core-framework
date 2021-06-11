@@ -122,6 +122,7 @@ namespace redhawk {
                 CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
                 up_reg->upstream = _parent;
                 up_reg->port = this->_this();
+                up_reg->connection_id = CORBA::string_dup(connection_id.c_str());
                 _up->setUpstream(up_reg);
             }
             _connections.push_back(connection);
