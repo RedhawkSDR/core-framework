@@ -320,8 +320,8 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
         std::string allocation_id = ossie::generateUUID();
         result->length(1);
         result[0].device_ref = CF::Device::_duplicate(this->_this());
-        result[0].data_port = CORBA::Object::_nil();
-        result[0].control_port = CORBA::Object::_nil();
+        result[0].data_ports.length(0);
+        result[0].control_ports.length(0);
         result[0].allocated = capacities;
         result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
         _allocationTracker[allocation_id] = redhawk::PropertyMap::cast(capacities);
@@ -356,13 +356,17 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
         std::string allocation_id = ossie::generateUUID();
         result->length(1);
         result[0].device_ref = CF::Device::_duplicate(this->_this());
-        result[0].data_port = CORBA::Object::_nil();
         if (not CORBA::is_nil(this->_dataPort)) {
-            result[0].data_port = CORBA::Object::_duplicate(this->_dataPort);
+            result[0].data_ports.length(1);
+            CF::Device::PortDescription tmp;
+            tmp.port_ref = CORBA::Object::_duplicate(this->_dataPort);
+            result[0].data_ports[0] = tmp;
         }
-        result[0].control_port = CORBA::Object::_nil();
         if (not CORBA::is_nil(this->_controlPort)) {
-            result[0].control_port = CORBA::Object::_duplicate(this->_controlPort);
+            result[0].control_ports.length(1);
+            CF::Device::PortDescription tmp;
+            tmp.port_ref = CORBA::Object::_duplicate(this->_controlPort);
+            result[0].control_ports[0] = tmp;
         }
         result[0].allocated = capacities;
         result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
