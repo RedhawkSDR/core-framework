@@ -2,7 +2,7 @@
 <!DOCTYPE softwarecomponent PUBLIC "-//JTRS//DTD SCA V2.2.2 SCD//EN" "softwarecomponent.dtd">
 <softwarecomponent>
   <corbaversion>2.2</corbaversion>
-  <componentrepid repid="{{scd.implemented_interface}}:1.0"/>
+  <componentrepid repid="IDL:{{scd.implemented_interface}}:1.0"/>
   <componenttype>device</componenttype>
   <componentfeatures>
 {% for repoid, iname in scd.get_supported_interfaces(scd.implemented_interface) %}
