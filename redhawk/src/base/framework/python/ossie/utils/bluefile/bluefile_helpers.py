@@ -22,14 +22,13 @@ import os
 import threading
 import time
 import numpy
-from new import classobj
 
 from ossie.cf import CF, CF__POA
 import ossie.properties
 from ossie.utils.bulkio import bulkio_helpers
 from ossie.utils.log4py import logging
 
-import bluefile
+from . import bluefile
 try:
     import bulkio
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -100,10 +99,10 @@ def hdr_to_sri(hdr, stream_id):
     kwds = []        
 
     # Getting all the items in the extended header
-    if hdr.has_key('ext_header'):
+    if 'ext_header' in hdr:
         ext_hdr = hdr['ext_header']
         if isinstance(ext_hdr, dict):            
-            for key, value in ext_hdr.iteritems():
+            for key, value in ext_hdr.items():
                 try:
                     data=item[1]
                     if isinstance(item[1], numpy.generic):
@@ -123,7 +122,7 @@ def hdr_to_sri(hdr, stream_id):
                     dt = CF.DataType(item[0], dtv )
                     #print "DEBUG (list) AFTER dt.value:", dt.value, dt.value.value(), type(dt.value.value())
                     kwds.append(dt)
-                except Exception, e:
+                except Exception as e:
                     continue
             
     return BULKIO.StreamSRI(hversion, xstart, xdelta, xunits, 
@@ -218,7 +217,7 @@ def compare_bluefiles(file1=None, file2=None):
     
     are_the_same = True
     # check each element in the data
-    for i, item1, item2 in zip(range(0, sz1), data1, data2):
+    for i, item1, item2 in zip(list(range(0, sz1)), data1, data2):
         if item1 != item2:
             log.error("Item[%d]:\t%s  <==>   %s are not the same" % 
                                             (i, str(item1), str(item2)))
@@ -273,12 +272,12 @@ class BlueFileReader(object):
         self.defaultStreamSRI = H
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushSRI(H)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -293,12 +292,12 @@ class BlueFileReader(object):
 
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushPacket(data, T, EOS, streamID)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
-                log.warn(msg)
+                log.warning(msg)
         finally:
             self.port_lock.release()
 
@@ -315,8 +314,8 @@ class BlueFileReader(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass',
-                             (CF__POA.Port,),
+        PortClass = type('PortClass',
+                             (CF__POA.Port,object,),
                              {'connectPort':self.connectPort,
                               'disconnectPort':self.disconnectPort})
 
@@ -368,7 +367,7 @@ class BlueFileReader(object):
         # NOTE: midas time is seconds since Jan. 1 1950
         #       Redhawk time is seconds since Jan. 1 1970
         currentSampleTime = 0.0
-        if hdr.has_key('timecode'):
+        if 'timecode' in hdr:
             # Set sample time to seconds since Jan. 1 1970 
             currentSampleTime = j1950_to_unix(hdr['timecode'])
             if currentSampleTime < 0:
@@ -398,7 +397,7 @@ class BlueFileReader(object):
             
             # X-Midas returns an array, so we need to generate a list
             if hdr['format'].endswith('B'):
-                d = dataset.tostring()
+                d = dataset.tostring().decode('ISO-8859-1')
             else:
                 d = dataset.tolist()
             start = end
@@ -550,12 +549,18 @@ class BlueFileWriter(object):
 
             if self.header and self.header['format'][1] == 'B':
                 # convert back from string to array of 8-bit integers
-                try:
-                    data = numpy.fromstring(data, numpy.int8)
-                except TypeError:
+                if type(data) == str:
+                    try:
+                        data = numpy.fromstring(data.encode('ISO-8859-1'), numpy.int8)
+                    except TypeError:
+                        data = numpy.array(data, numpy.int8)
+                elif type(data) == bytes:
+                    try:
+                        data = numpy.fromstring(data, numpy.int8)
+                    except TypeError:
+                        data = numpy.array(data, numpy.int8)
+                else:
                     data = numpy.array(data, numpy.int8)
-
-            # If complex data, need to convert data back from array of scalar values
             # to some form of complex values
             if self.header and self.header['format'][0] == 'C':
                 # float and double are handled by numpy
@@ -609,8 +614,8 @@ class BlueFileWriter(object):
         #    bases:       A tuple containing all the base classes to use
         #    dct:         A dictionary containing all the attributes such as
         #                 functions, and class variables
-        PortClass = classobj('PortClass', 
-                             (self.port_type,), 
+        PortClass = type('PortClass', 
+                             (self.port_type,object,), 
                              {'pushPacket':self.pushPacket,
                               'pushSRI':self.pushSRI})
 

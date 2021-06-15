@@ -29,6 +29,22 @@ class FileManagerTest(scatest.CorbaTestCase):
     def setUp(self):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
+        self._cleanup=[]
+
+    def tearDown(self):
+
+        if self._cleanup:
+            for ctx in self._cleanup:
+                fileMgr=ctx['filemgr']
+                files = ctx['files']
+                if fileMgr:
+                    for f in files:
+                        try:
+                            fileMgr.remove(f)
+                        except:
+                            pass
+                        
+        scatest.CorbaTestCase.tearDown(self)
 
     def test_BasicOperation(self):
         self.assertNotEqual(self._domMgr, None)
@@ -127,7 +143,7 @@ class FileManagerTest(scatest.CorbaTestCase):
 
         try:
             myfile = fileMgr.create(devnewfile)
-            myfile.write(str_to_write_dev)
+            myfile.write(str_to_write_dev.encode())
             myfile.close()
         except:
             self.fail("Something bad happened in fileMgr.create(devnewfile) for mountPoint lookup")
@@ -138,7 +154,7 @@ class FileManagerTest(scatest.CorbaTestCase):
 
         try:
             myfile = fileMgr.create(domnewfile)
-            myfile.write(str_to_write_dom)
+            myfile.write(str_to_write_dom.encode())
             myfile.close()
         except:
             self.fail("Something bad happened in fileMgr.create(domnewfile) for domain (local fs) lookup")
@@ -165,15 +181,24 @@ class FileManagerTest(scatest.CorbaTestCase):
         #################
         self.assertNotEqual(self._domMgr, None)
         fileMgr = self._domMgr._get_fileMgr()
-
+        
+        files=[]
         devfile = "/ExecutableDevice_node/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml"
         domfile = "/waveforms/CommandWrapper/CommandWrapper_DAS.xml"
         devcopyfiledst = "/ExecutableDevice_node/nodes/testcopy_dev_DeviceManager.dcd.xml"
+        files.append(devcopyfiledst)        
         domcopyfiledst = "/waveforms/testcopy_dom_CommandWrapper_DAS.xml"
+        files.append(domcopyfiledst)
         domdevcopyfiledst = "/ExecutableDevice_node/nodes/testcopy_domdev_CommandWrapper_DAS.xml"
+        files.append(domdevcopyfiledst)        
         devdomcopyfiledst = "/waveforms/testcopy_devdom_DeviceManager.dcd.xml"
+        files.append(devdomcopyfiledst)                
         devbigfile = "/ExecutableDevice_node/nodes/bigfile_test.large"
+        files.append(devbigfile)
         dombigfile = "/waveforms/bigfile_test.large"
+        files.append(dombigfile)
+        self._cleanup.append( {'filemgr' : fileMgr,
+                               'files' : files } )
 
         # test mounted fs to same mounted fs
         try:
@@ -229,7 +254,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         bigfile = fileMgr.create(devbigfile)
         datastr = 'A'*1024*100
         for x in range(100):
-            bigfile.write(datastr)
+            bigfile.write(datastr.encode())
         bigfile.close()
 
         # now copy it
@@ -237,15 +262,6 @@ class FileManagerTest(scatest.CorbaTestCase):
             fileMgr.copy(devbigfile, dombigfile)
         except:
             self.fail("Something bad happened in fileMgr.copy(devbigfile, dombigfile) for big file case")
-        self.assertEqual(self.filesEqual(devdomcopyfiledst, devcopyfiledst, fileMgr), True) # make sure
-
-        # Clean up
-        fileMgr.remove(devcopyfiledst)
-        fileMgr.remove(domcopyfiledst)
-        fileMgr.remove(domdevcopyfiledst)
-        fileMgr.remove(devdomcopyfiledst)
-        fileMgr.remove(devbigfile)
-        fileMgr.remove(dombigfile)
 
     def filesEqual(self, file1, file2, fileMgr):
         # read file1
@@ -371,14 +387,14 @@ class FileManagerTest(scatest.CorbaTestCase):
         # Test query of '/'.  It should show the contents of '/'
         rootFiles = self._devMgr._get_fileSys().list("/")
         # Compare the length against the local directory (ignoring hidden files)
-        localFiles = filter(lambda x: not x.startswith('.'), os.listdir("sdr/dev"))
+        localFiles = [x for x in os.listdir("sdr/dev") if not x.startswith('.')]
         self.assertEqual(len(rootFiles), len(localFiles))
         files = {}
         for fi in rootFiles:
             files[fi.name] = fi
-        self.assert_(files.has_key("nodes"))
-        self.assert_(files.has_key("devices"))
-        self.assert_(files.has_key("mgr"))
+        self.assertTrue("nodes" in files)
+        self.assertTrue("devices" in files)
+        self.assertTrue("mgr" in files)
 
         rootFiles = fileMgr.list("/")
         files = {}
@@ -386,13 +402,13 @@ class FileManagerTest(scatest.CorbaTestCase):
             files[fi.name] = fi
 
         # Test a few expected directories, but don't be exhaustive
-        self.assert_(files.has_key("waveforms"))
+        self.assertTrue("waveforms" in files)
         self.assertEqual(files["waveforms"].kind, CF.FileSystem.DIRECTORY)
-        self.assert_(files.has_key("components"))
+        self.assertTrue("components" in files)
         self.assertEqual(files["components"].kind, CF.FileSystem.DIRECTORY)
 
         # Check that the DeviceManager mount point is listed
-        self.assert_(files.has_key("ExecutableDevice_node"))
+        self.assertTrue("ExecutableDevice_node" in files)
         self.assertEqual(files["ExecutableDevice_node"].kind, CF.FileSystem.FILE_SYSTEM)
 
         os.system("chmod 444 "+devlistdir.replace('/ExecutableDevice_node','sdr/dev')+'/'+dir_file_list_xml[0])
@@ -583,6 +599,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         fileMgr = self._domMgr._get_fileMgr()
 
         # Test move on the same file system
+        files=[]
         original = os.path.join(scatest.getSdrPath(), "dom/mgr/DomainManager.spd.xml")
         domoldfile = "/components/old.txt"
         domnewfile = "/waveforms/new.txt"
@@ -590,6 +607,10 @@ class FileManagerTest(scatest.CorbaTestCase):
         domlocaloldfile = os.path.join(scatest.getSdrPath(), 'dom' + domoldfile)
         domlocalnewfile = os.path.join(scatest.getSdrPath(), 'dom' + domnewfile)
         devlocalfile = os.path.join(scatest.getSdrPath(), "dev/nodes/dev.txt")
+        files.append(devlocalfile)
+        self._cleanup.append( {'filemgr' : fileMgr,
+                               'files' : files } )
+        
 
         shutil.copyfile(original, domlocaloldfile)
         if os.path.exists(domlocalnewfile):
@@ -602,7 +623,7 @@ class FileManagerTest(scatest.CorbaTestCase):
         self.assertEqual(fileMgr.exists(domoldfile), False)
         self.assertEqual(fileMgr.exists(domnewfile), True)
 
-        self.assertEqual(file(original).read(), file(domlocalnewfile).read())
+        self.assertEqual(open(original).read(), open(domlocalnewfile).read())
 
         # Test move across file systems
         if os.path.exists(devlocalfile):
@@ -614,9 +635,8 @@ class FileManagerTest(scatest.CorbaTestCase):
         self.assertEqual(fileMgr.exists(domnewfile), False)
         self.assertEqual(fileMgr.exists(devfile), True)
 
-        self.assertEqual(file(original).read(), file(devlocalfile).read())
+        self.assertEqual(open(original).read(), open(devlocalfile).read())
 
-        os.remove(devlocalfile)
 
     def test_EmptyFilename(self):
         #################
@@ -640,9 +660,9 @@ class FileManagerTest(scatest.CorbaTestCase):
         dirname = '/noaccess'
         testdir = os.path.join(scatest.getSdrPath(), 'dom' + dirname)
         if not os.path.exists(testdir):
-            os.mkdir(testdir, 0644)
+            os.mkdir(testdir, 0o644)
         else:
-            os.chmod(testdir, 0644)
+            os.chmod(testdir, 0o644)
 
         try:
             self.assertFalse(os.access(testdir, os.R_OK|os.X_OK), 'Current user can still access directory')
@@ -664,7 +684,7 @@ class ThreadedListWorker:
         while number_files != 0:
             try:
                 number_files = len(self.dommgr._get_fileMgr().list(self.basedir+'/'))
-            except CF.FileException, e:
+            except CF.FileException as e:
                 # this happens when $SDRROOT/dom/tmp (self.basedir) is deleted
                 if e.errorNumber != CF.CF_EEXIST:
                     raise

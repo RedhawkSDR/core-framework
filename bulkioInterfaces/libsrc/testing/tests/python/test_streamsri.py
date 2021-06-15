@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -29,7 +29,7 @@ from bulkio.bulkioInterfaces import BULKIO
 
 class StreamSRITest(unittest.TestCase):
     def assertSRIFieldsEqual(self, fields, sri):
-        for field, expected in fields.iteritems():
+        for field, expected in fields.items():
             actual = getattr(sri, field)
             self.assertEqual(expected, actual, "sri.%s: expected '%s', actual '%s'" % (field, expected, actual))
 
@@ -126,9 +126,9 @@ class StreamSRITest(unittest.TestCase):
         sri.keywords.append(CF.DataType('string', to_any('first')))
         sri.keywords.append(CF.DataType('number', to_any(2.0)))
         
-        self.failUnless(bulkio.sri.hasKeyword(sri, 'string'))
-        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
-        self.failIf(bulkio.sri.hasKeyword(sri, 'missing'))
+        self.assertTrue(bulkio.sri.hasKeyword(sri, 'string'))
+        self.assertTrue(bulkio.sri.hasKeyword(sri, 'number'))
+        self.assertFalse(bulkio.sri.hasKeyword(sri, 'missing'))
 
     def testGetKeyword(self):
         sri = bulkio.sri.create('get_keyword')
@@ -175,16 +175,16 @@ class StreamSRITest(unittest.TestCase):
         sri.keywords.append(CF.DataType('number', to_any(2.0)))
 
         # Basic erase
-        self.failUnless(bulkio.sri.hasKeyword(sri, 'string'))
+        self.assertTrue(bulkio.sri.hasKeyword(sri, 'string'))
         bulkio.sri.eraseKeyword(sri, 'string')
         self.assertEqual(1, len(sri.keywords))
-        self.failIf(bulkio.sri.hasKeyword(sri, 'string'))
-        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
+        self.assertFalse(bulkio.sri.hasKeyword(sri, 'string'))
+        self.assertTrue(bulkio.sri.hasKeyword(sri, 'number'))
 
         # Non-existant key, no modification
         bulkio.sri.eraseKeyword(sri, 'missing')
         self.assertEqual(1, len(sri.keywords))
-        self.failUnless(bulkio.sri.hasKeyword(sri, 'number'))
+        self.assertTrue(bulkio.sri.hasKeyword(sri, 'number'))
 
         # Add some more keywords, including a duplicate; erasing the duplicate
         # should only erase the first instance

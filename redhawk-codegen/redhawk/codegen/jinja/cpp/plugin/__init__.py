@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import GPPPluginGenerator, loader
+from .generator import GPPPluginGenerator, loader
 
 def factory(**opts):
     return GPPPluginGenerator(**opts)

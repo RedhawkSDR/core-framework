@@ -25,7 +25,7 @@ from redhawk.codegen import utils
 from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 
-from mapping import BaseComponentMapper
+from .mapping import BaseComponentMapper
 from redhawk.codegen.jinja.java import JavaCodeGenerator, JavaTemplate
 from redhawk.codegen.jinja.java.ports import JavaPortMapper, JavaPortFactory
 from redhawk.codegen.jinja.java.properties import JavaPropertyMapper

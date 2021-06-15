@@ -1,8 +1,8 @@
 
 from  binascii import hexlify as _hexify
-from   StringIO import StringIO
+from   io import StringIO
 import ossie.utils.sb.helpers as _helpers
-import sdds_pkt as _sdds_pkt
+from . import sdds_pkt as _sdds_pkt
 import traceback
 
 __all__ = [ 'SDDSAnalyzer' ]
@@ -119,14 +119,14 @@ class SDDSAnalyzer(object):
         res = StringIO()
         for i, line in enumerate(genf,pkt_start):
             if i <  pkt_end:
-                print >>res, 'pkt:'+str(i) + ' ' + line
+                print('pkt:'+str(i) + ' ' + line, file=res)
             else:
                 break
 
         if use_pager:
             _helpers.Pager( res.getvalue() )
         else:
-            print res.getvalue()
+            print(res.getvalue())
 
     def dumpPackets(self, pkt_start=0, pkt_end=None, payload_start=0, payload_end=40, raw_payload=False, header_only=False, use_pager=True ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
@@ -137,15 +137,15 @@ class SDDSAnalyzer(object):
         res = StringIO()
         for i, pkt in enumerate(genf,pkt_start):
             if i < pkt_end:
-                print >>res, 'Packet: ', str(i)
-                print >>res, pkt.header_and_payload(payload_start, payload_end, header_only=header_only, raw=raw_payload )
+                print('Packet: ', str(i), file=res)
+                print(pkt.header_and_payload(payload_start, payload_end, header_only=header_only, raw=raw_payload ), file=res)
             else:
                 break
 
         if use_pager:
             _helpers.Pager( res.getvalue() )
         else:
-            print res.getvalue()
+            print(res.getvalue())
 
     def _cmp_pkt( self, res, last_pkt, next_pkt, last_tstamp, last_nsamps ):
         if last_pkt:
@@ -210,7 +210,7 @@ class SDDSAnalyzer(object):
         last_nsamps=0
         for i, pkt in enumerate(genf,pkt_start):
             if ( i % repeat_header ) == 0:
-                print >>res, hdr_fmt.format( **dict(zip(keys,hdrs)))
+                print(hdr_fmt.format( **dict(list(zip(keys,hdrs)))), file=res)
 
             cmp_res = dict.fromkeys( keys, self._TRACK_OK_ )
             if i == pkt_start :
@@ -220,7 +220,7 @@ class SDDSAnalyzer(object):
             cmp_res['pkt']=i
 
             dline=line_fmt.format( **cmp_res )
-            print >>res, dline
+            print(dline, file=res)
             if pkt.get_ttv() : 
                 last_tstamp=pkt.get_SDDSTime()
                 last_nsamp=0
@@ -232,7 +232,7 @@ class SDDSAnalyzer(object):
         if use_pager:
             _helpers.Pager( res.getvalue() )
         else:
-            print res.getvalue()
+            print(res.getvalue())
 
     def getPacketIterator(self, pkt_start=0, pkt_end=None ):
         genf=self._gen_packet( self.raw_data_, pkt_start ) 
@@ -261,16 +261,16 @@ class SDDSAnalyzer(object):
     def _gen_hex_dump( self, data, pkt_start, pkt_len, max_row_width=80, bytes_per_group=2 ):
         # break on pkt length
         bstart = pkt_start*self.pkt_len_
-        pkt_iter=xrange( bstart, len(data), pkt_len)
+        pkt_iter=range( bstart, len(data), pkt_len)
         for x in pkt_iter:
             raw_pkt = data[x:x+max_row_width]
-            d_iter = xrange(0, len(raw_pkt), bytes_per_group)
+            d_iter = range(0, len(raw_pkt), bytes_per_group)
             yield  '  '.join( [ _hexify(raw_pkt[i:i+bytes_per_group]) for i in d_iter ] )
 
     def _gen_packet( self, data, pkt_start ):
         # break on pkt length
         bstart = pkt_start*self.pkt_len_
-        pkt_iter=xrange( bstart, len(data), self.pkt_len_ )
+        pkt_iter=range( bstart, len(data), self.pkt_len_ )
         for x in pkt_iter:
            raw_pkt = data[x:x+self.pkt_len_]
            pkt=_sdds_pkt.sdds_packet(raw_pkt)

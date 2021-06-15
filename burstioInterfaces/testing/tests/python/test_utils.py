@@ -39,7 +39,7 @@ sys.path = [ '../../build/lib' ] + sys.path
 from redhawk.burstio import *
 
 def str_to_class(s):
-    if s in globals() and isinstance(globals()[s], types.ClassType):
+    if s in globals() and isinstance(globals()[s], type):
         return globals()[s]
     return None
 
@@ -48,7 +48,7 @@ class BurstioUtils_Tests(unittest.TestCase):
         unittest.TestCase.__init__(self, methodName)
 
     def setUp(self):
-        self.seq = range(10)
+        self.seq = list(range(10))
 
     def test_sri_create(self):
         sri = utils.createSRI("test_stream_id")

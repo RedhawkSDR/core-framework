@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -27,44 +27,44 @@
 
 PROPERTIES = (
               (
-               u'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
-               u'os_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
+               'os_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'Linux', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
-               u'processor_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
+               'processor_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'i686', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
-               u'memCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
+               'memCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
-               u'BogoMipsCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
+               'BogoMipsCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
              )
 

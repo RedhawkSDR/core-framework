@@ -128,11 +128,11 @@ import CF.DevicePackage.InvalidCapacity;
         for (int i=0; i<this.${port_out.javaname}.connections().length; i++) {
             String connection_id = tmp[i].connectionId;
             if (connection_id.equals(listen_alloc_id)) {
-                try{
-                    this.${port_out.javaname}.disconnectPort(connection_id);
-                }
-                catch(final Throwable t){
-                }
+		try{
+		    this.${port_out.javaname}.disconnectPort(connection_id);
+		}
+		catch( final Throwable t ) {
+		}
             }
         }
 /*{%   endfor %}*/

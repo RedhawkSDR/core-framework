@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -51,7 +51,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.start()
         sink.start()
         if isLong:
-            expectedOutput = [long(0)] * self.comp.numSamples
+            expectedOutput = [int(0)] * self.comp.numSamples
         elif isOctet:
             expectedOutput = ['\x00'] * self.comp.numSamples
         else:
@@ -63,7 +63,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         # If this assertion fails, make sure the length of the vectors match.
         # if they do not, try increasing the value of pause
-        self.assertEquals(streamData.data, expectedOutput)
+        self.assertEqual(streamData.data, expectedOutput)
         self.comp.stop()
 
     def test_push(self):
@@ -95,7 +95,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         )
 
         for connection in connections:
-            print connection.uses
+            print(connection.uses)
             if connection.uses.lower().find("long") != -1:
                 isLong = True
             else:
@@ -110,6 +110,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 sink,
                 usesPortName=connection.uses,
                 providesPortName=connection.provides)
+            print("Checking data for sink ", sink)
             self.checkData(sink, isLong=isLong, isOctet=isOctet)
             self.comp.disconnect(sink)
 
@@ -124,7 +125,6 @@ if __name__ == "__main__":
             import use_nose_test
             main=use_nose_test.NoseTestProgram
     except:
-        traceback.print_exc()
         pass
 
     main("../TestLargePush.spd.xml") # By default tests all implementations

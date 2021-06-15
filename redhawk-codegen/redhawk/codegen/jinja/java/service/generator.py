@@ -28,7 +28,7 @@ from redhawk.codegen.jinja.java.ports.generic import GenericPortFactory
 from redhawk.codegen import utils
 import os
 
-from mapping import ServiceMapper
+from .mapping import ServiceMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

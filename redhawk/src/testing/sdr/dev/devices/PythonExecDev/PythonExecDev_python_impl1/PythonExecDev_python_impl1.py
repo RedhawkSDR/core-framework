@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -47,7 +47,7 @@ class PythonExecDev_python_impl1_i(PythonExecDev_python_impl1_base):
     @returns false otherwise'''
         
     def _allocateCapacities(self, props):
-        if props.has_key("a") and props.has_key("b") and props.has_key("c"):
+        if "a" in props and "b" in props and "c" in props:
             return True
         return False
     

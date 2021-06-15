@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import PullComponentGenerator, loader
+from .generator import PullComponentGenerator, loader
 
 def factory(**opts):
     return PullComponentGenerator(**opts)

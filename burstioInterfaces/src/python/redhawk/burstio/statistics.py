@@ -54,7 +54,7 @@ class BurstStatistics(object):
     def retrieve (self):
         totals = {}
         for stat in self._statistics:
-            for key, value in stat.iteritems():
+            for key, value in stat.items():
                 totals[key] = totals.get(key, 0) + value
 
         if totals:

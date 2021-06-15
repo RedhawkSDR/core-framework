@@ -256,7 +256,7 @@ class SoftpkgMapper(object):
         elif softpkg.type() == ComponentTypes.SHAREDPACKAGE:
             return 'sharedpackage'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
 
 
 class ProjectMapper(SoftpkgMapper):

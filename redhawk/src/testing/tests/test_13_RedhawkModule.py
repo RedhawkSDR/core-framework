@@ -22,7 +22,7 @@ import unittest
 from _unitTestHelpers import scatest
 import time
 import contextlib
-import cStringIO
+import io
 import tempfile
 import re
 import resource
@@ -31,8 +31,8 @@ from omniORB import CORBA
 from omniORB import any as _any
 from xml.dom import minidom
 import os as _os
-import Queue
-import StringIO
+import queue
+import io
 from ossie.cf import CF
 from ossie.utils import redhawk
 from ossie.utils import type_helpers
@@ -77,7 +77,7 @@ class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
         data = _any.to_any(payload)
         pub.push(data)
         rec_data = self._waitData(sub, 1.0)
-        self.assertEquals(rec_data, payload)
+        self.assertEqual(rec_data, payload)
         pub.terminate()
         sub.terminate()
 
@@ -88,19 +88,19 @@ class RedhawkModuleEventChannelTest(scatest.CorbaTestCase):
         data = _any.to_any(payload)
         pub.push(data)
         rec_data = self._waitData(sub, 1.0)
-        self.assertEquals(rec_data, payload)
+        self.assertEqual(rec_data, payload)
         self.ecm.forceRelease(self.channelName)
         self.assertRaises(CF.EventChannelManager.ChannelDoesNotExist, self.ecm.release, self.channelName)
         
     def test_eventChannelCB(self):
-        queue = Queue.Queue()
-        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=queue.put)
+        _queue = queue.Queue()
+        sub = Subscriber(self._domMgr, self.channelName, dataArrivedCB=_queue.put)
         pub = Publisher(self._domMgr, self.channelName)
         payload = 'hello'
         data = _any.to_any(payload)
         pub.push(data)
-        rec_data = queue.get(timeout=1.0)
-        self.assertEquals(rec_data._v, payload)
+        rec_data = _queue.get(timeout=1.0)
+        self.assertEqual(rec_data._v, payload)
         pub.terminate()
         sub.terminate()
 
@@ -109,7 +109,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_ExecutableDevice_node/DeviceManager.dcd.xml")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def tearDown(self):
         # Do all application shutdown before calling the base class tearDown,
@@ -138,40 +138,40 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         for entry in orig_api:
             if entry in not_remap:
                 continue
-            self.assertEquals(entry in remap_api, True)
+            self.assertEqual(entry in remap_api, True)
             
         orig_api = dir(self._rhDom.devMgrs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0])
         for entry in orig_api:
             if entry in not_remap:
                 continue
-            self.assertEquals(entry in remap_api, True)
+            self.assertEqual(entry in remap_api, True)
             
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         orig_api = dir(self._rhDom.apps[0].comps[0].ref)
         remap_api = dir(self._rhDom.apps[0].comps[0])
         for entry in orig_api:
             if entry in not_remap:
                 continue
-            self.assertEquals(entry in remap_api, True)
+            self.assertEqual(entry in remap_api, True)
 
         orig_api = dir(self._rhDom.apps[0].ref)
         remap_api = dir(self._rhDom.apps[0])
         for entry in orig_api:
             if entry in not_remap:
                 continue
-            self.assertEquals(entry in remap_api, True)
+            self.assertEqual(entry in remap_api, True)
 
         orig_api = dir(self._rhDom.devMgrs[0].devs[0].ref)
         remap_api = dir(self._rhDom.devMgrs[0].devs[0])
         for entry in orig_api:
             if entry in not_remap:
                 continue
-            self.assertEquals(entry in remap_api, True)
+            self.assertEqual(entry in remap_api, True)
 
     def test_createBadCompApplication(self):
         # Automatically clean up
@@ -180,16 +180,16 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app = self._rhDom.createApplication("/waveforms/svc_fn_error_cpp_w/svc_fn_error_cpp_w.sad.xml")
         app_2 = self._rhDom.createApplication("/waveforms/svc_one_error_w/svc_one_error_w.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 2)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom._get_applications()), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app.start()
         app_2.start()
 
         time.sleep(0.5)
 
-        self.assertEquals(app.comps, [])
-        self.assertEquals(len(app_2.comps), 2)
+        self.assertEqual(app.comps, [])
+        self.assertEqual(len(app_2.comps), 2)
 
     def test_createApplication1(self):
         # Automatically clean up
@@ -197,11 +197,11 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
-        _destfile=StringIO.StringIO()
+        _destfile=io.StringIO()
         try:
             app.api(destfile=_destfile)
         except:
@@ -209,17 +209,17 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         app2 = self._rhDom.createApplication("TestCppProps")
         self.assertNotEqual(app2, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 2)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom._get_applications()), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app.releaseObject()
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         # Use exit functions from module to release other launched app
         redhawk.core._cleanUpLaunchedApps()
-        self.assertEquals(len(self._rhDom.apps), 0)
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom.apps), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
 
     def test_createApplication_namespaced(self):
@@ -228,35 +228,35 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("simple_ns.c2_comp")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
 
         app2 = self._rhDom.createApplication("c2_comp")
         self.assertNotEqual(app2, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 2)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom._get_applications()), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app.releaseObject()
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         self.assertRaises(CF.DomainManager.ApplicationInstallationError,self._rhDom.createApplication, "this.should.fail.c2_comp")
 
         # Use exit functions from module to release other launched app
         redhawk.core._cleanUpLaunchedApps()
-        self.assertEquals(len(self._rhDom.apps), 0)
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom.apps), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def test_createApplicationNoCleanup(self):
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         # Ensure that api() works.
-        _destfile=StringIO.StringIO()
+        _destfile=io.StringIO()
         try:
             app.api(destfile=_destfile)
         except:
@@ -264,17 +264,17 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         app2 = self._rhDom.createApplication("TestCppProps")
         self.assertNotEqual(app2, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 2)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom._get_applications()), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app.releaseObject()
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         # Use exit functions from module to release other launched app
         redhawk.core._cleanUpLaunchedApps()
-        self.assertEquals(len(self._rhDom.apps), 1)
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
 
     def test_cleanup_multiple_waves(self):
         # Automatically clean up
@@ -282,30 +282,30 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Create Application from $SDRROOT path
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         app2 = self._rhDom.createApplication("TestCppProps")
         self.assertNotEqual(app2, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 2)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom._get_applications()), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app3 = self._rhDom.createApplication("TestCppProps")
         self.assertNotEqual(app3, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 3)
-        self.assertEquals(len(self._rhDom.apps), 3)
+        self.assertEqual(len(self._rhDom._get_applications()), 3)
+        self.assertEqual(len(self._rhDom.apps), 3)
 
         # Use exit functions from module to release launched apps
         redhawk.core._cleanUpLaunchedApps()
-        self.assertEquals(len(self._rhDom.apps), 0)
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom.apps), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def test_largeShutdown(self):
         for i in range(16):
             self._rhDom.createApplication('TestCppProps')
 
-        self.assertEquals(len(self._rhDom._get_applications()), 16)
-        self.assertEquals(len(self._rhDom.apps), 16)
+        self.assertEqual(len(self._rhDom._get_applications()), 16)
+        self.assertEqual(len(self._rhDom.apps), 16)
 
         apps = self._rhDom.apps
 
@@ -314,32 +314,32 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             a.stop()
             a.releaseObject()
 
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
-        self.assertEquals(len(self._rhDom.apps), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom.apps), 0)
 
     def test_apiHostCollocation(self):
         app = self._rhDom.createApplication("/waveforms/through_w/through_w.sad.xml")
         provides_ports = object.__getattribute__(app,'_providesPortDict')
-        self.assertEquals(provides_ports, {})
+        self.assertEqual(provides_ports, {})
         uses_ports = object.__getattribute__(app,'_usesPortDict')
-        self.assertEquals(uses_ports, {})
-        _destfile=StringIO.StringIO()
+        self.assertEqual(uses_ports, {})
+        _destfile=io.StringIO()
         app.api(destfile=_destfile)
         provides_ports = object.__getattribute__(app,'_providesPortDict')
-        self.assertEquals(len(provides_ports), 1)
-        self.assertEquals(provides_ports.keys()[0], 'input')
-        self.assertEquals(provides_ports['input']['Port Interface'], 'IDL:CF/LifeCycle:1.0')
-        self.assertEquals(provides_ports['input']['Port Name'], 'input')
+        self.assertEqual(len(provides_ports), 1)
+        self.assertEqual(list(provides_ports.keys())[0], 'input')
+        self.assertEqual(provides_ports['input']['Port Interface'], 'IDL:CF/LifeCycle:1.0')
+        self.assertEqual(provides_ports['input']['Port Name'], 'input')
         uses_ports = object.__getattribute__(app,'_usesPortDict')
-        self.assertEquals(uses_ports.keys()[0], 'output')
-        self.assertEquals(uses_ports['output']['Port Interface'], 'IDL:CF/LifeCycle:1.0')
-        self.assertEquals(uses_ports['output']['Port Name'], 'output')
+        self.assertEqual(list(uses_ports.keys())[0], 'output')
+        self.assertEqual(uses_ports['output']['Port Interface'], 'IDL:CF/LifeCycle:1.0')
+        self.assertEqual(uses_ports['output']['Port Name'], 'output')
         
     def test_appListSync(self):
         app = self._rhDom.createApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
         self.assertNotEqual(app, None, "Application not created")
-        self.assertEquals(len(self._rhDom._get_applications()), 1)
-        self.assertEquals(len(self._rhDom.apps), 1)
+        self.assertEqual(len(self._rhDom._get_applications()), 1)
+        self.assertEqual(len(self._rhDom.apps), 1)
 
         # Make sure that an app created outside of the redhawk module still updates the app list inside
         self._domMgr.installApplication('/waveforms/TestCppProps/TestCppProps.sad.xml')
@@ -347,14 +347,14 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app2 = appFact.create(appFact._get_name(), [], [])
         # Give the domain a moment to process the ODM event
         time.sleep(0.1)
-        self.assertEquals(len(self._rhDom.apps), 2)
+        self.assertEqual(len(self._rhDom.apps), 2)
 
         app2.releaseObject()
         app.releaseObject()
         # Give the domain a moment to process the ODM event
         time.sleep(0.1)
-        self.assertEquals(len(self._rhDom.apps), 0)
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom.apps), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def test_simplePropertyRange(self):
         # Make sure setters and getters all work for simples
@@ -368,13 +368,13 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.my_ulong_name = 4294967295
         app.my_longlong_name = 9223372036854775807
         app.my_ulonglong_name = 18446744073709551615
-        self.assertEquals(app.my_octet_name, 255)
-        self.assertEquals(app.my_short_name, 32767)
-        self.assertEquals(app.my_ushort_name, 65535)
-        self.assertEquals(app.my_long_name, 2147483647)
-        self.assertEquals(app.my_ulong_name, 4294967295)
-        self.assertEquals(app.my_longlong_name, 9223372036854775807)
-        self.assertEquals(app.my_ulonglong_name, 18446744073709551615)
+        self.assertEqual(app.my_octet_name, 255)
+        self.assertEqual(app.my_short_name, 32767)
+        self.assertEqual(app.my_ushort_name, 65535)
+        self.assertEqual(app.my_long_name, 2147483647)
+        self.assertEqual(app.my_ulong_name, 4294967295)
+        self.assertEqual(app.my_longlong_name, 9223372036854775807)
+        self.assertEqual(app.my_ulonglong_name, 18446744073709551615)
 
         # Test lower range
         app.my_octet_name = 0
@@ -384,13 +384,13 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.my_ulong_name = 0
         app.my_longlong_name = -9223372036854775808
         app.my_ulonglong_name = 0
-        self.assertEquals(app.my_octet_name, 0)
-        self.assertEquals(app.my_short_name, -32768)
-        self.assertEquals(app.my_ushort_name, 0)
-        self.assertEquals(app.my_long_name, -2147483648)
-        self.assertEquals(app.my_ulong_name, 0)
-        self.assertEquals(app.my_longlong_name, -9223372036854775808)
-        self.assertEquals(app.my_ulonglong_name, 0)
+        self.assertEqual(app.my_octet_name, 0)
+        self.assertEqual(app.my_short_name, -32768)
+        self.assertEqual(app.my_ushort_name, 0)
+        self.assertEqual(app.my_long_name, -2147483648)
+        self.assertEqual(app.my_ulong_name, 0)
+        self.assertEqual(app.my_longlong_name, -9223372036854775808)
+        self.assertEqual(app.my_ulonglong_name, 0)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, app.my_octet_name.configureValue, 256)
@@ -430,19 +430,19 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.my_struct_name.struct_seq_ulong_name[1] = 4294967295
         app.my_struct_name.struct_seq_longlong_name[1] = 9223372036854775807
         #app.my_struct_name.struct_seq_ulonglong_name[1] = 18446744073709551615
-        self.assertEquals(app.my_struct_name.struct_octet_name, 255)
-        self.assertEquals(app.my_struct_name.struct_short_name, 32767)
-        self.assertEquals(app.my_struct_name.struct_ushort_name, 65535)
-        self.assertEquals(app.my_struct_name.struct_long_name, 2147483647)
-        self.assertEquals(app.my_struct_name.struct_ulong_name, 4294967295)
-        self.assertEquals(app.my_struct_name.struct_longlong_name, 9223372036854775807)
-        self.assertEquals(app.my_struct_name.struct_ulonglong_name, 18446744073709551615)
-        self.assertEquals(app.my_struct_name.struct_seq_octet_name[1], 255)
-        self.assertEquals(app.my_struct_name.struct_seq_short_name[1], 32767)
-        self.assertEquals(app.my_struct_name.struct_seq_ushort_name[1], 65535)
-        self.assertEquals(app.my_struct_name.struct_seq_long_name[1], 2147483647)
-        self.assertEquals(app.my_struct_name.struct_seq_ulong_name[1], 4294967295)
-        self.assertEquals(app.my_struct_name.struct_seq_longlong_name[1], 9223372036854775807)
+        self.assertEqual(app.my_struct_name.struct_octet_name, 255)
+        self.assertEqual(app.my_struct_name.struct_short_name, 32767)
+        self.assertEqual(app.my_struct_name.struct_ushort_name, 65535)
+        self.assertEqual(app.my_struct_name.struct_long_name, 2147483647)
+        self.assertEqual(app.my_struct_name.struct_ulong_name, 4294967295)
+        self.assertEqual(app.my_struct_name.struct_longlong_name, 9223372036854775807)
+        self.assertEqual(app.my_struct_name.struct_ulonglong_name, 18446744073709551615)
+        self.assertEqual(app.my_struct_name.struct_seq_octet_name[1], 255)
+        self.assertEqual(app.my_struct_name.struct_seq_short_name[1], 32767)
+        self.assertEqual(app.my_struct_name.struct_seq_ushort_name[1], 65535)
+        self.assertEqual(app.my_struct_name.struct_seq_long_name[1], 2147483647)
+        self.assertEqual(app.my_struct_name.struct_seq_ulong_name[1], 4294967295)
+        self.assertEqual(app.my_struct_name.struct_seq_longlong_name[1], 9223372036854775807)
         #self.assertEquals(app.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
 
         # Test lower range
@@ -460,20 +460,20 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.my_struct_name.struct_seq_ulong_name[0] = 0
         app.my_struct_name.struct_seq_longlong_name[0] = -9223372036854775808
         app.my_struct_name.struct_seq_ulonglong_name[0] = 0
-        self.assertEquals(app.my_struct_name.struct_octet_name, 0)
-        self.assertEquals(app.my_struct_name.struct_short_name, -32768)
-        self.assertEquals(app.my_struct_name.struct_ushort_name, 0)
-        self.assertEquals(app.my_struct_name.struct_long_name, -2147483648)
-        self.assertEquals(app.my_struct_name.struct_ulong_name, 0)
-        self.assertEquals(app.my_struct_name.struct_longlong_name, -9223372036854775808)
-        self.assertEquals(app.my_struct_name.struct_ulonglong_name, 0)
-        self.assertEquals(app.my_struct_name.struct_seq_octet_name[0], 0)
-        self.assertEquals(app.my_struct_name.struct_seq_short_name[0], -32768)
-        self.assertEquals(app.my_struct_name.struct_seq_ushort_name[0], 0)
-        self.assertEquals(app.my_struct_name.struct_seq_long_name[0], -2147483648)
-        self.assertEquals(app.my_struct_name.struct_seq_ulong_name[0], 0)
-        self.assertEquals(app.my_struct_name.struct_seq_longlong_name[0], -9223372036854775808)
-        self.assertEquals(app.my_struct_name.struct_seq_ulonglong_name[0], 0)
+        self.assertEqual(app.my_struct_name.struct_octet_name, 0)
+        self.assertEqual(app.my_struct_name.struct_short_name, -32768)
+        self.assertEqual(app.my_struct_name.struct_ushort_name, 0)
+        self.assertEqual(app.my_struct_name.struct_long_name, -2147483648)
+        self.assertEqual(app.my_struct_name.struct_ulong_name, 0)
+        self.assertEqual(app.my_struct_name.struct_longlong_name, -9223372036854775808)
+        self.assertEqual(app.my_struct_name.struct_ulonglong_name, 0)
+        self.assertEqual(app.my_struct_name.struct_seq_octet_name[0], 0)
+        self.assertEqual(app.my_struct_name.struct_seq_short_name[0], -32768)
+        self.assertEqual(app.my_struct_name.struct_seq_ushort_name[0], 0)
+        self.assertEqual(app.my_struct_name.struct_seq_long_name[0], -2147483648)
+        self.assertEqual(app.my_struct_name.struct_seq_ulong_name[0], 0)
+        self.assertEqual(app.my_struct_name.struct_seq_longlong_name[0], -9223372036854775808)
+        self.assertEqual(app.my_struct_name.struct_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, app.my_struct_name.struct_octet_name.configureValue, 256)
@@ -511,10 +511,10 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # NB: This test used to use names instead of ids, which silently failed in 1.8.
         new_value = {'struct_octet': 100, 'struct_short': 101, 'struct_ushort': 102, 'struct_long': 103,
                      'struct_ulong': 104, 'struct_longlong': 105, 'struct_ulonglong': 106, 'struct_seq_octet': [100, 101],
-                     'struct_seq_short': [102, 103], 'struct_seq_ushort': [104, 105], 'struct_seq_long': [106L, 107L],
-                     'struct_seq_ulong': [108L, 109L], 'struct_seq_longlong': [110L, 111L], 'struct_seq_ulonglong': [112L, 113L]}
+                     'struct_seq_short': [102, 103], 'struct_seq_ushort': [104, 105], 'struct_seq_long': [106, 107],
+                     'struct_seq_ulong': [108, 109], 'struct_seq_longlong': [110, 111], 'struct_seq_ulonglong': [112, 113]}
         app.my_struct_name = new_value
-        self.assertEquals(app.my_struct_name, new_value)
+        self.assertEqual(app.my_struct_name, new_value)
 
 
     def test_seqPropertyRange(self):
@@ -536,19 +536,19 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.seq_longlong_name[1] = 9223372036854775807
         app.seq_ulonglong_name[0] = 0
         #app.seq_ulonglong_name[1] = 18446744073709551615
-        self.assertEquals(app.seq_octet_name[0], 0)
-        self.assertEquals(app.seq_octet_name[1], 255)
-        self.assertEquals(app.seq_short_name[0], -32768)
-        self.assertEquals(app.seq_short_name[1], 32767)
-        self.assertEquals(app.seq_ushort_name[0], 0)
-        self.assertEquals(app.seq_ushort_name[1], 65535)
-        self.assertEquals(app.seq_long_name[0], -2147483648)
-        self.assertEquals(app.seq_long_name[1], 2147483647)
-        self.assertEquals(app.seq_ulong_name[0], 0)
-        self.assertEquals(app.seq_ulong_name[1], 4294967295)
-        self.assertEquals(app.seq_longlong_name[0], -9223372036854775808)
-        self.assertEquals(app.seq_longlong_name[1], 9223372036854775807)
-        self.assertEquals(app.seq_ulonglong_name[0], 0)
+        self.assertEqual(app.seq_octet_name[0], 0)
+        self.assertEqual(app.seq_octet_name[1], 255)
+        self.assertEqual(app.seq_short_name[0], -32768)
+        self.assertEqual(app.seq_short_name[1], 32767)
+        self.assertEqual(app.seq_ushort_name[0], 0)
+        self.assertEqual(app.seq_ushort_name[1], 65535)
+        self.assertEqual(app.seq_long_name[0], -2147483648)
+        self.assertEqual(app.seq_long_name[1], 2147483647)
+        self.assertEqual(app.seq_ulong_name[0], 0)
+        self.assertEqual(app.seq_ulong_name[1], 4294967295)
+        self.assertEqual(app.seq_longlong_name[0], -9223372036854775808)
+        self.assertEqual(app.seq_longlong_name[1], 9223372036854775807)
+        self.assertEqual(app.seq_ulonglong_name[0], 0)
         #self.assertEquals(app.seq_ulonglong_name[1], 18446744073709551615)
 
         # Test one beyond upper bound
@@ -576,8 +576,8 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
 
         app.seq_char_name[0] = 'X'
         app.seq_char_name[1] = 'Y'
-        self.assertEquals(app.seq_char_name[0], 'X')
-        self.assertEquals(app.seq_char_name[1], 'Y')
+        self.assertEqual(app.seq_char_name[0], 'X')
+        self.assertEqual(app.seq_char_name[1], 'Y')
 
 
     def test_structSeqPropertyRange(self):
@@ -613,34 +613,34 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         app.my_structseq_name[1].ss_seq_longlong_name[0] = -9223372036854775808
         #app.my_structseq_name[0].ss_seq_ulonglong_name[1] = 18446744073709551615
         app.my_structseq_name[1].ss_seq_ulonglong_name[0] = 0
-        self.assertEquals(app.my_structseq_name[0].ss_octet_name, 255)
-        self.assertEquals(app.my_structseq_name[1].ss_octet_name, 0)
-        self.assertEquals(app.my_structseq_name[0].ss_short_name, 32767)
-        self.assertEquals(app.my_structseq_name[1].ss_short_name, -32768)
-        self.assertEquals(app.my_structseq_name[0].ss_ushort_name, 65535)
-        self.assertEquals(app.my_structseq_name[1].ss_ushort_name, 0)
-        self.assertEquals(app.my_structseq_name[0].ss_long_name, 2147483647)
-        self.assertEquals(app.my_structseq_name[1].ss_long_name, -2147483648)
-        self.assertEquals(app.my_structseq_name[0].ss_ulong_name, 4294967295)
-        self.assertEquals(app.my_structseq_name[1].ss_ulong_name, 0)
-        self.assertEquals(app.my_structseq_name[0].ss_longlong_name, 9223372036854775807)
-        self.assertEquals(app.my_structseq_name[1].ss_longlong_name, -9223372036854775808)
-        self.assertEquals(app.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
-        self.assertEquals(app.my_structseq_name[1].ss_ulonglong_name, 0)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_octet_name[1], 255)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_octet_name[0], 0)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_short_name[1], 32767)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_short_name[0], -32768)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_ushort_name[1], 65535)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_ushort_name[0], 0)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_long_name[1], 2147483647)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_long_name[0], -2147483648)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_ulong_name[1], 4294967295)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_ulong_name[0], 0)
-        self.assertEquals(app.my_structseq_name[0].ss_seq_longlong_name[1], 9223372036854775807)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_longlong_name[0], -9223372036854775808)
+        self.assertEqual(app.my_structseq_name[0].ss_octet_name, 255)
+        self.assertEqual(app.my_structseq_name[1].ss_octet_name, 0)
+        self.assertEqual(app.my_structseq_name[0].ss_short_name, 32767)
+        self.assertEqual(app.my_structseq_name[1].ss_short_name, -32768)
+        self.assertEqual(app.my_structseq_name[0].ss_ushort_name, 65535)
+        self.assertEqual(app.my_structseq_name[1].ss_ushort_name, 0)
+        self.assertEqual(app.my_structseq_name[0].ss_long_name, 2147483647)
+        self.assertEqual(app.my_structseq_name[1].ss_long_name, -2147483648)
+        self.assertEqual(app.my_structseq_name[0].ss_ulong_name, 4294967295)
+        self.assertEqual(app.my_structseq_name[1].ss_ulong_name, 0)
+        self.assertEqual(app.my_structseq_name[0].ss_longlong_name, 9223372036854775807)
+        self.assertEqual(app.my_structseq_name[1].ss_longlong_name, -9223372036854775808)
+        self.assertEqual(app.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
+        self.assertEqual(app.my_structseq_name[1].ss_ulonglong_name, 0)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_octet_name[1], 255)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_octet_name[0], 0)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_short_name[1], 32767)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_short_name[0], -32768)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_ushort_name[1], 65535)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_ushort_name[0], 0)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_long_name[1], 2147483647)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_long_name[0], -2147483648)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_ulong_name[1], 4294967295)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_ulong_name[0], 0)
+        self.assertEqual(app.my_structseq_name[0].ss_seq_longlong_name[1], 9223372036854775807)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_longlong_name[0], -9223372036854775808)
         #self.assertEquals(app.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
-        self.assertEquals(app.my_structseq_name[1].ss_seq_ulonglong_name[0], 0)
+        self.assertEqual(app.my_structseq_name[1].ss_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, app.my_structseq_name[0].ss_octet_name.configureValue, 256)
@@ -677,19 +677,19 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Make sure entire struct seq can be set without error
         new_value = [{'ss_octet': 100, 'ss_short': 101, 'ss_ushort': 102, 'ss_long': 103,
                       'ss_ulong': 104, 'ss_longlong': 105, 'ss_ulonglong': 106, 'ss_seq_octet': [100, 101],
-                      'ss_seq_short': [102, 103], 'ss_seq_ushort': [104, 105], 'ss_seq_long': [106L, 107L],
-                      'ss_seq_ulong': [108L, 109L], 'ss_seq_longlong': [110L, 111L], 'ss_seq_ulonglong': [112L, 113L]},
+                      'ss_seq_short': [102, 103], 'ss_seq_ushort': [104, 105], 'ss_seq_long': [106, 107],
+                      'ss_seq_ulong': [108, 109], 'ss_seq_longlong': [110, 111], 'ss_seq_ulonglong': [112, 113]},
                      {'ss_octet': 107, 'ss_short': 108, 'ss_ushort': 109, 'ss_long': 110,
                       'ss_ulong': 111, 'ss_longlong': 112, 'ss_ulonglong': 113, 'ss_seq_octet': [114, 115],
-                      'ss_seq_short': [116, 117], 'ss_seq_ushort': [118, 119], 'ss_seq_long': [120L, 121L],
-                      'ss_seq_ulong': [122L, 123L], 'ss_seq_longlong': [124L, 125L], 'ss_seq_ulonglong': [126L, 127L]}]
+                      'ss_seq_short': [116, 117], 'ss_seq_ushort': [118, 119], 'ss_seq_long': [120, 121],
+                      'ss_seq_ulong': [122, 123], 'ss_seq_longlong': [124, 125], 'ss_seq_ulonglong': [126, 127]}]
         app.my_structseq_name = new_value
         self.assertEqual(app.my_structseq_name, new_value)
 
         # Make sure individual structs can be set without error
         # NB: This test used to use names instead of ids, which silently failed in 1.8.
         for item in new_value:
-            for name in item.iterkeys():
+            for name in item.keys():
                 if isinstance(item[name], list):
                     for i in item[name]:
                         i += 100
@@ -710,12 +710,12 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # Create an app and make sure that the given name was used as a prefix
         app1 = self._rhDom.createApplication(sadfile, name)
         self.assertNotEqual(app1, None, 'Application not created')
-        self.assert_(app1.ns_name.startswith(name))
+        self.assertTrue(app1.ns_name.startswith(name))
 
         # Create a second instance, and verify that the names are unique
         app2 = self._rhDom.createApplication(sadfile, name)
         self.assertNotEqual(app2, None, 'Application not created')
-        self.assert_(app2.ns_name.startswith(name))
+        self.assertTrue(app2.ns_name.startswith(name))
         self.assertNotEqual(app1.ns_name, app2.ns_name)
 
     def test_createApplicationDeviceAssignment(self):
@@ -736,13 +736,13 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         devAssignment[0].assignedDeviceId = dev_1
         app = self._rhDom.createApplication(sadfile, name, {}, devAssignment)
         self.assertNotEqual(app, None, 'Application not created')
-        self.assertEquals(app._get_componentDevices()[0].assignedDeviceId, dev_1)
+        self.assertEqual(app._get_componentDevices()[0].assignedDeviceId, dev_1)
         app.releaseObject()
         
         devAssignment[0].assignedDeviceId = dev_2
         app = self._rhDom.createApplication(sadfile, name, {}, devAssignment)
         self.assertNotEqual(app, None, 'Application not created')
-        self.assertEquals(app._get_componentDevices()[0].assignedDeviceId, dev_2)
+        self.assertEqual(app._get_componentDevices()[0].assignedDeviceId, dev_2)
         app.releaseObject()
 
     def test_createApplication1InitConfig(self):
@@ -756,7 +756,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         # supports the use of property IDs
         props = {'my_long':1000}
         app1 = self._rhDom.createApplication(sadfile, initConfiguration=props)
-        for name, value in props.iteritems():
+        for name, value in props.items():
             self.assertEqual(getattr(app1, name), value)
 
         # Use CF.Properties to override the properties
@@ -831,7 +831,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         foundcomp=False
         for _comp in app1.comps:
             if _comp._id[:33] == 'PortTest1:PortConnectExternalPort':
-                self.assertEquals(_comp.instanceName, "PortTest1")
+                self.assertEqual(_comp.instanceName, "PortTest1")
                 foundcomp = True
                 break
         self.assertTrue(foundcomp)
@@ -840,16 +840,17 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
             if _port.name == 'resource_out':
                 break
 
-        self.assertEquals(len(_port._get_connections()), 0)
+        print("port type(_port) {} {}".format(type(_port),_port))
+        self.assertEqual(len(_port._get_connections()), 0)
 
         ep1=rhconnection.makeEndPoint(_comp, 'resource_out')
-        print ep1
+        print(ep1)
         ep2=rhconnection.makeEndPoint(app2, '')
-        print ep2
+        print(ep2)
         cMgr = self._rhDom._get_connectionMgr()
         cMgr.connect(ep1,ep2)
 
-        self.assertEquals(len(_port._get_connections()), 1)
+        self.assertEqual(len(_port._get_connections()), 1)
 
 class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -857,7 +858,7 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/dev_alloc_node/DeviceManager.dcd.xml")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
         self.am=self._rhDom._get_allocationMgr()
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def tearDown(self):
         # Do all application shutdown before calling the base class tearDown,
@@ -876,8 +877,8 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         prop = allocations.createProps({'si_prop':3})
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
-        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.assertEqual(len(resp),1)
+        self.assertEqual(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
 
     def test_allocMgrSimSeq(self):
@@ -887,13 +888,13 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         prop = allocations.createProps({'se_prop':[1.0,2.0]})
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
+        self.assertEqual(len(resp),1)
         self.am.deallocate([resp[0].allocationID])
         prop = allocations.createProps({'se_prop':[1.0,2.0]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
-        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.assertEqual(len(resp),1)
+        self.assertEqual(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
 
     def test_allocMgrStruct(self):
@@ -903,13 +904,13 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}})
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
+        self.assertEqual(len(resp),1)
         self.am.deallocate([resp[0].allocationID])
         prop = allocations.createProps({'s_prop':{'s_prop::a':'hello','s_prop::b':5}}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
-        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.assertEqual(len(resp),1)
+        self.assertEqual(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
 
     def test_allocMgrStrSeq(self):
@@ -919,13 +920,13 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]})
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
+        self.assertEqual(len(resp),1)
         self.am.deallocate([resp[0].allocationID])
         prop = allocations.createProps({'sq_prop':[{'sq_prop::b':'hello','sq_prop::a':5},{'sq_prop::b':'another','sq_prop::a':7}]}, prf='sdr/dev/devices/dev_alloc_cpp/dev_alloc_cpp.prf.xml')
         rq=self.am.createRequest('foo',prop)
         resp = self.am.allocate([rq])
-        self.assertEquals(len(resp),1)
-        self.assertEquals(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
+        self.assertEqual(len(resp),1)
+        self.assertEqual(self.am.listAllocations(CF.AllocationManager.LOCAL_ALLOCATIONS, 100)[0][0].allocationID, resp[0].allocationID)
         self.am.deallocate([resp[0].allocationID])
 
     def test_allocMgrListAllocationsDefaults(self):
@@ -935,12 +936,12 @@ class RedhawkModuleAllocationMgrTest(scatest.CorbaTestCase):
         prop = allocations.createProps({'si_prop':3})
         request = self.am.createRequest('first', prop)
         response = self.am.allocate([request])
-        self.assertEquals(len(response), 1)
+        self.assertEqual(len(response), 1)
         # Default arguments are a scope of all allocations and count of 0,
         # which yields an empty list and an iterator
         allocs, iterator = self.am.listAllocations()
-        self.assertEquals(len(allocs), 0)
-        self.failIf(iterator is None)
+        self.assertEqual(len(allocs), 0)
+        self.assertFalse(iterator is None)
 
 class MixedRedhawkSandboxTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -1023,7 +1024,7 @@ class DomainMgrLoggingAPI(scatest.CorbaTestCase):
         ## remove extra white space
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_logconfig(self):
@@ -1038,7 +1039,7 @@ class DomainMgrLoggingAPI(scatest.CorbaTestCase):
         c_cfg=self.dom.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_macro_config(self):
@@ -1054,14 +1055,14 @@ class DomainMgrLoggingAPI(scatest.CorbaTestCase):
 
         res=c_cfg.find(scatest.getTestDomainName())
 
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
     def test_macro_config2(self):
         cfg = "@@@DOMAIN.NAME@@@"
         self.dom.ref.setLogConfig(cfg)
         c_cfg=self.dom.ref.getLogConfig()
         res=c_cfg.find(scatest.getTestDomainName())
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
 class RedhawkModuleAttachTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -1100,12 +1101,12 @@ class RedhawkStartup(scatest.CorbaTestCase):
     def tearDown(self):
         redhawk.base._cleanup_domain()
         scatest.CorbaTestCase.tearDown(self)
-        import commands
+        import subprocess
         try:
-            s,o = commands.getstatusoutput('pkill -9 -f nodeBooter ')
-            s,o = commands.getstatusoutput('pkill -9 -f dev/devices ')
-            s,o = commands.getstatusoutput('pkill -9 -f DomainManager ')
-            s,o = commands.getstatusoutput('pkill -9 -f DeviceManager ')
+            s,o = subprocess.getstatusoutput('pkill -9 -f nodeBooter ')
+            s,o = subprocess.getstatusoutput('pkill -9 -f dev/devices ')
+            s,o = subprocess.getstatusoutput('pkill -9 -f DomainManager ')
+            s,o = subprocess.getstatusoutput('pkill -9 -f DeviceManager ')
         except:
             pass
 
@@ -1130,19 +1131,19 @@ class RedhawkStartup(scatest.CorbaTestCase):
 
         time.sleep(2)
         new_stdout=open(tmpfile,'r')
-        for k, epat in epatterns.iteritems():
+        for k, epat in epatterns.items():
             epat.setdefault('results',[])
 
         for x in new_stdout.readlines():
             #print "Line -> ", x
-            for k, pat in epatterns.iteritems():
+            for k, pat in epatterns.items():
                 for epat in pat['patterns' ]:
                     m=re.search( epat, x )
                     if m :
                         #print "MATCH  -> ", epat, " LINE ", x
                         pat['results'].append(True)
 
-        for k,pat in epatterns.iteritems():
+        for k,pat in epatterns.items():
             if type(pat['match']) == list:
                 lmatch = len(pat['results']) == len(pat['match']) and pat['results'] == pat['match']
                 self.assertEqual(lmatch, True )
@@ -1150,7 +1151,7 @@ class RedhawkStartup(scatest.CorbaTestCase):
             if type(pat['match']) == tuple:
                    reslen=len(pat['results'])
                    c=pat['match']
-	           res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
+                   res=eval("'" + str(reslen) + " " + str(c[0]) + " " + str(c[1]) + "'")
                    self.assertTrue(res)
 
             if type(pat['match']) == int:

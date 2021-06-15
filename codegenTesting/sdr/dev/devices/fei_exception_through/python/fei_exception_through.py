@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -213,7 +213,7 @@ class fei_exception_through_i(fei_exception_through_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
+        print("deviceEnable(): Enable the given tuner  *********")
         fts.enabled = True
         return
 
@@ -223,7 +223,7 @@ class fei_exception_through_i(fei_exception_through_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
+        print("deviceDisable(): Disable the given tuner  *********")
         fts.enabled = False
         return
 
@@ -242,7 +242,7 @@ class fei_exception_through_i(fei_exception_through_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceSetTuningScan(self, request, scan_alloc, fts, tuner_id):
@@ -260,7 +260,7 @@ class fei_exception_through_i(fei_exception_through_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -269,7 +269,7 @@ class fei_exception_through_i(fei_exception_through_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        print("deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         return True
 
     '''

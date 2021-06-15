@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import ossie.utils.testing
 from ossie.utils import sb
@@ -50,20 +50,20 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         c=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='3',returnDict=False)
         a_bad=frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='1',returnDict=False)
         a_bad.id = 'foo'
-        self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
-        self.assertEquals(self.comp.allocateCapacity([a]), True)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
-        self.assertEquals(self.comp.allocateCapacity([b]), True)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
-        self.assertEquals(self.comp.allocateCapacity([c]), False)
-        self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp.allocateCapacity([a]), True)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.assertEqual(self.comp.allocateCapacity([b]), True)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.BUSY)
+        self.assertEqual(self.comp.allocateCapacity([c]), False)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.BUSY)
         try:
             self.comp.deallocateCapacity([b, a_bad])
         except:
             pass
-        self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
-        self.assertEquals(self.comp._get_usageState(), CF.Device.IDLE)
+        self.assertEqual(self.comp._get_usageState(), CF.Device.IDLE)
 
     def testRFInfo(self):
         _port = None

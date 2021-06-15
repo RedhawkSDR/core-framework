@@ -43,7 +43,7 @@ class SoftwareComponent(object):
             port = self._findPort(uses.usesname)
             if port is not None:
                 if port.repid() != uses.repid:
-                    raise ValueError, 'Duplicate port name for different interfaces'
+                    raise ValueError('Duplicate port name for different interfaces')
                 port._setUses(True)
             else:
                 self.__ports.append(UsesPort(uses))

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -32,7 +32,7 @@ from FailStartup_base import *
 class FailStartup_i(FailStartup_base):
     def __init__(self, identifier, execparams):
         if execparams['FAIL_AT'] == 'constructor':
-            raise StandardError
+            raise Exception
         FailStartup_base.__init__(self, identifier, execparams)
 
     def _get_identifier(self):

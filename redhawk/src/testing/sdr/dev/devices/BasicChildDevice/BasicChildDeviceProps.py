@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -27,24 +27,24 @@
 
 PROPERTIES = (
               (
-               u'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
-               u'DeviceKind', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
+               'DeviceKind', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'BasicChildDevice', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:28022916-4e5e-4bba-97bf-99bc5bbbf471', # ID
-               u'someCapacity', # NAME
-               u'float', # TYPE
-               u'readonly', # MODE
+               'DCE:28022916-4e5e-4bba-97bf-99bc5bbbf471', # ID
+               'someCapacity', # NAME
+               'float', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
              )
 

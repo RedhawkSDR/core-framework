@@ -21,6 +21,7 @@
 # By default, the RPM will install to the standard REDHAWK SDR root location (/var/redhawk/sdr)
 # You can override this at install time using --prefix /new/sdr/root when invoking rpm (preferred method, if you must)
 %{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
+%global __python %{__python3}
 %define _prefix %{_sdrroot}
 Prefix: %{_prefix}
 
@@ -41,8 +42,8 @@ URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-Requires(post): redhawk >= 2.2.6
-BuildRequires:  redhawk-devel >= 2.2.6
+Requires(post): redhawk >= 3.0.0
+BuildRequires:  redhawk-devel >= 3.0.0
 BuildRequires:  numactl-devel >= 2.0
 BuildRequires:  autoconf-archive
 Obsoletes:      %{name} < 2.0
@@ -51,8 +52,8 @@ Obsoletes:      %{name} < 2.0
 %package profile
 Summary:        Basic GPP profile
 Group:          Redhawk/Framework
-Requires(post): redhawk >= 2.0
-Requires(post): redhawk-sdrroot-dev-mgr >= 2.0
+Requires(post): redhawk >= 3.0
+Requires(post): redhawk-sdrroot-dev-mgr >= 3.0
 Requires(post): %{name} = %{version}-%{release}
 Obsoletes:      %{name}-profile < 2.0
 

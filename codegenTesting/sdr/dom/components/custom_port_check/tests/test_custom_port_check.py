@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import time
 import ossie.utils.testing
@@ -9,7 +9,7 @@ class FilePort(CF__POA.File):
     def __init__(self):
         pass
     def read(self, length):
-        return ''
+        return ''.encode()
     def write(self, data):
         pass
 
@@ -70,11 +70,11 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         self.comp.start()
         time.sleep(0.5)
         self.comp.stop()
-        self.assertEquals(self.comp.inout_state, "No connections available.")
-        self.assertEquals(self.comp.retval_state, "No connections available.")
-        self.assertEquals(self.comp.out_state, "No connections available.")
-        self.assertEquals(self.comp.in_state, "ok")
-        self.assertEquals(self.comp.bad_connection, "No connections available.")
+        self.assertEqual(self.comp.inout_state, "No connections available.")
+        self.assertEqual(self.comp.retval_state, "No connections available.")
+        self.assertEqual(self.comp.out_state, "No connections available.")
+        self.assertEqual(self.comp.in_state, "ok")
+        self.assertEqual(self.comp.bad_connection, "No connections available.")
         testableobject_port = self.comp.getPort('testableobject_out')
         propertyemitter_port = self.comp.getPort('propertyemitter_out')
         file_port = self.comp.getPort('file_out')
@@ -85,11 +85,11 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         self.comp.start()
         time.sleep(0.5)
         self.comp.stop()
-        self.assertEquals(self.comp.inout_state, "ok")
-        self.assertEquals(self.comp.retval_state, "ok")
-        self.assertEquals(self.comp.out_state, "ok")
-        self.assertEquals(self.comp.in_state, "ok")
-        self.assertEquals(self.comp.bad_connection, "The requested connection id (invalid_connectionid) does not exist.Connections available: abc")
+        self.assertEqual(self.comp.inout_state, "ok")
+        self.assertEqual(self.comp.retval_state, "ok")
+        self.assertEqual(self.comp.out_state, "ok")
+        self.assertEqual(self.comp.in_state, "ok")
+        self.assertEqual(self.comp.bad_connection, "The requested connection id (invalid_connectionid) does not exist.Connections available: abc")
         testableobject_port.connectPort(self._testableObjectPort_2._this(), 'def')
         propertyemitter_port.connectPort(self._propertyEmitterPort_2._this(), 'def')
         file_port.connectPort(self._filePort_2._this(), 'def')
@@ -97,11 +97,11 @@ class ComponentTests(ossie.utils.testing.RHTestCase):
         self.comp.start()
         time.sleep(0.5)
         self.comp.stop()
-        self.assertEquals(self.comp.inout_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
-        self.assertEquals(self.comp.retval_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
-        self.assertEquals(self.comp.out_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
-        self.assertEquals(self.comp.in_state, "ok")
-        self.assertEquals(self.comp.bad_connection, "The requested connection id (invalid_connectionid) does not exist.Connections available: abc, def")
+        self.assertEqual(self.comp.inout_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
+        self.assertEqual(self.comp.retval_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
+        self.assertEqual(self.comp.out_state, "Returned parameters require either a single connection or a populated __connection_id__ to disambiguate the call.Connections available: abc, def")
+        self.assertEqual(self.comp.in_state, "ok")
+        self.assertEqual(self.comp.bad_connection, "The requested connection id (invalid_connectionid) does not exist.Connections available: abc, def")
 
 if __name__ == "__main__":
     ossie.utils.testing.main() # By default tests all implementations

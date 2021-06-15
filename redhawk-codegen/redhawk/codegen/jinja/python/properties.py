@@ -39,7 +39,7 @@ class PythonPropertyMapper(PropertyMapper):
     def mapSimpleProperty(self, simple):
         pyprop = self.mapProperty(simple)
         pyprop['isComplex'] = simple.isComplex()
-	pyprop['isOptional'] = simple.isOptional()
+        pyprop['isOptional'] = simple.isOptional()
         if simple.hasValue():
             pyprop['pyvalue'] = python.literal(simple.value(), 
                                                simple.type(), 
@@ -56,7 +56,7 @@ class PythonPropertyMapper(PropertyMapper):
     def mapSimpleSequenceProperty(self, simplesequence):
         pyprop = self.mapProperty(simplesequence)
         pyprop['isComplex'] = simplesequence.isComplex()
-	pyprop['isOptional'] = simplesequence.isOptional()
+        pyprop['isOptional'] = simplesequence.isOptional()
         if simplesequence.hasValue():
             pyprop['pyvalue'] = python.sequenceValue(simplesequence.value(), 
                                                      simplesequence.type(), 

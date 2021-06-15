@@ -815,20 +815,20 @@ GPP_i::initializeNetworkMonitor()
     std::vector<std::string> filtered_devices( nic_facade->get_filtered_devices() );
     for( size_t i=0; i<nic_devices.size(); ++i )
     {
-        LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
-        NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(_identifier,
+        for ( size_t ii=0; ii < filtered_devices.size(); ii++ ) {
+          if ( nic_devices[i] == filtered_devices[ii] ) {
+            LOG_INFO(GPP_i, __FUNCTION__ << ": Adding interface (" << nic_devices[i] << ")" );
+            NicMonitorPtr nic_m = NicMonitorPtr( new NicThroughputThresholdMonitor(_identifier,
                                                                                    nic_devices[i],
                                                                                    MakeCref<CORBA::Long, float>(modified_thresholds.nic_usage),
                                                                                    boost::bind(&NicFacade::get_throughput_by_device, nic_facade, nic_devices[i]) ) );
 
-        // monitors that affect busy state...
-        for ( size_t ii=0; ii < filtered_devices.size(); ii++ ) {
-            if ( nic_devices[i] == filtered_devices[ii] ) {
-                nic_monitors.push_back(nic_m);
-                break;
-            }
+            // monitors that affect busy state...
+            nic_monitors.push_back(nic_m);
+            addThresholdMonitor(nic_m);
+            break;
+          }
         }
-        addThresholdMonitor(nic_m);
     }
 }
 

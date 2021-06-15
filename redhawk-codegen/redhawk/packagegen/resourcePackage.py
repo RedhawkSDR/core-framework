@@ -173,7 +173,7 @@ class ResourcePackage(SoftPackage):
             code = code,
             programminglanguage = spd.programmingLanguage(name="Python"),
             humanlanguage = spd.humanLanguage(name = "EN"),
-            runtime = spd.runtime(version="2.4.4", name="python"))
+            runtime = spd.runtime(version="3.6.8", name="python3"))
         os = spd.os(name="Linux")
         implementation.add_os(value=os)
 

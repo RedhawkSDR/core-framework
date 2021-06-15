@@ -17,20 +17,23 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
-import ui
+from . import ui
 
-class CommandWidget(QtGui.QWidget):
+class CommandWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CommandWidget,self).__init__(*args, **kwargs)
         ui.load('commandwidget.ui', self)
 
         self._process = QtCore.QProcess(self)
-        QtCore.QObject.connect(self._process, QtCore.SIGNAL('readyReadStandardOutput()'), self.readStandardOutput)
-        QtCore.QObject.connect(self._process, QtCore.SIGNAL('readyReadStandardError()'), self.readStandardError)
-        QtCore.QObject.connect(self._process, QtCore.SIGNAL('finished(int,QProcess::ExitStatus)'), self.processExited)
-        QtCore.QObject.connect(self._process, QtCore.SIGNAL('stateChanged(QProcess::ProcessState)'), self.processStateChanged)
+        self._process.readyReadStandardOutput.connect(self.readStandardOutput)
+        self._process.readyReadStandardError.connect(self.readStandardError)
+        self._process.finished.connect(self.processExited)
+        self._process.stateChanged.connect(self.processStateChanged)
 
     def executeCommand(self, command, args):
         if self.processActive():

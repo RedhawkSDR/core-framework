@@ -20,6 +20,7 @@
 
 # By default, the RPM will install to the standard REDHAWK OSSIE root location (/usr/local/redhawk/core)
 %{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
+%global __python %{__python3}
 %define _prefix %{_ossiehome}
 Prefix: %{_prefix}
 

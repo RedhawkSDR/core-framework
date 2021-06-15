@@ -19,20 +19,23 @@
 #
 import os
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+
 
 from ossie.parsers import dmd
 
-from commandwidget import CommandWidget
-from domaindialog import DomainDialog
-from devicedialog import DeviceDialog
-import ui
+from .commandwidget import CommandWidget
+from .domaindialog import DomainDialog
+from .devicedialog import DeviceDialog
+from . import ui
 
-class LauncherWindow(QtGui.QMainWindow):
+class LauncherWindow(QtWidgets.QMainWindow):
     def __init__(self, sdrroot, *args, **kwargs):
         super(LauncherWindow,self).__init__(*args, **kwargs)
         ui.load('launcherwindow.ui', self)
-
         self._sdrroot = sdrroot
         dmdfile = os.path.join(self._sdrroot, 'dom/domain/DomainManager.dmd.xml')
         if os.path.exists(dmdfile):
@@ -43,17 +46,17 @@ class LauncherWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         if self.childrenActive():
-            buttons = QtGui.QMessageBox.Yes | QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel
-            status = QtGui.QMessageBox.question(self, 'Processes active', """There are active processes. Do you want to terminate them?""", buttons)
-            if status == QtGui.QMessageBox.Cancel:
+            buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel
+            status = QtWidgets.QMessageBox.question(self, 'Processes active', """There are active processes. Do you want to terminate them?""", buttons)
+            if status == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
                 return
-            elif status == QtGui.QMessageBox.Yes:
+            elif status == QtWidgets.QMessageBox.Yes:
                 self.terminateChildren()
-        QtGui.QMainWindow.closeEvent(self, event)
+        event.accept()
 
     def processWidgets(self):
-        return [self.nodeTabs.widget(index) for index in xrange(self.nodeTabs.count())]
+        return [self.nodeTabs.widget(index) for index in range(self.nodeTabs.count())]
 
     def terminateChildren(self):
         for widget in self.processWidgets():
@@ -96,9 +99,7 @@ class LauncherWindow(QtGui.QMainWindow):
         domainTab.executeCommand('nodeBooter', args)
 
     def launchDevice(self):
-        dialog = DeviceDialog(self)
-        dialog.setSdrRoot(self._sdrroot)
-        
+        dialog = DeviceDialog(self, sdrroot=self._sdrroot)
         if not dialog.exec_():
             return
 

@@ -20,20 +20,29 @@
 import os
 import glob
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 from ossie.parsers import dcd
 from ossie.utils import redhawk
 
-import ui
+from . import ui
 
-class DeviceDialog(QtGui.QDialog):
+class DeviceDialog(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
+        self._sdrroot=None
+        if 'sdrroot' in kwargs:
+            self._sdrroot=kwargs['sdrroot']
+            del kwargs['sdrroot']
         super(DeviceDialog,self).__init__(*args, **kwargs)
         ui.load('devicedialog.ui', self)
         for domain in redhawk.scan():
             self.domainNameEdit.addItem(domain)
         self.nodeTreeWidget.itemDoubleClicked.connect(self.onTreeWidgetItemDoubleClicked)
+        if self._sdrroot:
+            self.setSdrRoot(self._sdrroot)
 
     def setSdrRoot(self, sdrroot):
         self.nodeTreeWidget.clear()
@@ -47,7 +56,7 @@ class DeviceDialog(QtGui.QDialog):
                 dcdfile = dcdfile.replace(os.path.join(sdrroot,'dev'), '')
                 # Add the node to the tree widget, including the default domain
                 # as a hidden column
-                QtGui.QTreeWidgetItem(self.nodeTreeWidget, [name, dcdfile, domain])
+                QtWidgets.QTreeWidgetItem(self.nodeTreeWidget, [name, dcdfile, domain])
             except:
                 pass
         # Readjust the column widths to ensure that the entire name is shown
@@ -77,7 +86,9 @@ class DeviceDialog(QtGui.QDialog):
         return self.logLevelComboBox.currentIndex()
 
     def nodeName(self):
-        return str(self.nodeTreeWidget.currentItem().text(0))
+        if self.nodeTreeWidget.currentItem():
+            return str(self.nodeTreeWidget.currentItem().text(0))
 
     def dcdFile(self):
-        return str(self.nodeTreeWidget.currentItem().text(1))
+        if self.nodeTreeWidget.currentItem():
+            return str(self.nodeTreeWidget.currentItem().text(1))

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -30,3 +30,4 @@ setup(name='bulkio',
       entry_points={'redhawk.sandbox.helpers':['StreamSink=bulkio.sandbox:StreamSink',
                                                'StreamSource=bulkio.sandbox:StreamSource']}
       )
+

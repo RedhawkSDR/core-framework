@@ -28,13 +28,16 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
 from ossie.utils import sb
 import copy
 from ossie.utils import redhawk,prop_helpers,type_helpers
 from ossie.cf import CF
-import structdialog
+from . import structdialog
 
 def createPlotMenu(parent):
     plotMenu = parent.addMenu('Plot')
@@ -96,7 +99,7 @@ def typeStructDict(structDef, structDict):
     retval = {}
     badConversion = False
     for member in structDef.members:
-        if structDict.has_key(member):
+        if member in structDict:
             _type = structDef.members[member].type
             if _type == 'string' or _type == 'char':
                 retval[member] = structDict[member]
@@ -153,9 +156,9 @@ def setPropSeqValue(prop, itemtext):
             except:
                 pass
 
-class TreeWidget(QTreeWidget):
+class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
-        QTreeWidget.__init__(self, parent)
+        QtWidgets.QTreeWidget.__init__(self, parent)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenuEvent)
         self.itemDoubleClicked.connect(self.onTreeWidgetItemDoubleClicked)
@@ -237,9 +240,9 @@ class TreeWidget(QTreeWidget):
         contname = propitem.parent().parent().parent().parent().text(0)
         compname = propname = ''
         prop = None
-        if containers[0].has_key('application'):
+        if 'application' in containers[0]:
             ref_key = 'app_ref'
-        elif containers[0].has_key('devMgr'):
+        elif 'devMgr' in containers[0]:
             ref_key = 'devMgr_ref'
         for cont in containers:
             if cont[ref_key].name == contname:
@@ -339,9 +342,9 @@ class TreeWidget(QTreeWidget):
         foundCont = foundComp = False
         if len(containers) == 0:
             return contref, contTrack, comp
-        if containers[0].has_key('application'):
+        if 'application' in containers[0]:
             ref_key = 'app_ref'
-        elif containers[0].has_key('devMgr'):
+        elif 'devMgr' in containers[0]:
             ref_key = 'devMgr_ref'
         for cont in containers:
             if cont[ref_key].name == container_name:
@@ -383,15 +386,15 @@ class TreeWidget(QTreeWidget):
             contref, contTrack, comp = self.getRefs(containers, container_name, compname)
             if contref == None:
                 if item.parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Application: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Application: "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find Device Manager: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Device Manager: "+container_name)
                 return
             if comp == None:
                 if item.parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Component ("+compname+") on Application ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Component ("+compname+") on Application ("+container_name+")")
                 else:
-                    self.callbackObject.log.warn("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
                 return
             pos = self.getPos(item, item.parent())
             if pos is not None:
@@ -418,7 +421,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(plot)
                         contTrack['widgets'].append((comp, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -430,7 +433,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(sound)
                         contTrack['widgets'].append((comp, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -440,7 +443,7 @@ class TreeWidget(QTreeWidget):
             appname = item.text(0)
             contref, contTrack, comp = self.getRefs(self.callbackObject.apps, appname)
             if contref == None:
-                self.callbackObject.log.warn("Unable to find Application: "+appname)
+                self.callbackObject.log.warning("Unable to find Application: "+appname)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -481,7 +484,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         contref.connect(plot)
                         contTrack['widgets'].append((contref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific Port in the Application Port list to plot', QMessageBox.Ok)
@@ -493,7 +496,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         contref.connect(sound)
                         contTrack['widgets'].append((contref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -512,15 +515,15 @@ class TreeWidget(QTreeWidget):
             contref, contTrack, comp = self.getRefs(containers, container_name, compname)
             if contref == None:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Application: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Application: "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find Device Manager: "+container_name)
+                    self.callbackObject.log.warning("Unable to find Device Manager: "+container_name)
                 return
             if comp == None:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find Component ("+compname+") on Application ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Component ("+compname+") on Application ("+container_name+")")
                 else:
-                    self.callbackObject.log.warn("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
+                    self.callbackObject.log.warning("Unable to find Device ("+compname+") on Device Manager ("+container_name+")")
                 return
             foundPort = False
             for port in comp.ports:
@@ -529,9 +532,9 @@ class TreeWidget(QTreeWidget):
                     break
             if not foundPort:
                 if item.parent().parent().parent().text(0) == "Components":
-                    self.callbackObject.log.warn("Unable to find port "+portname+" in component "+compname+" on application "+container_name)
+                    self.callbackObject.log.warning("Unable to find port "+portname+" in component "+compname+" on application "+container_name)
                 else:
-                    self.callbackObject.log.warn("Unable to find port "+portname+" in device "+compname+" on device manager "+container_name)
+                    self.callbackObject.log.warning("Unable to find port "+portname+" in device "+compname+" on device manager "+container_name)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -550,7 +553,7 @@ class TreeWidget(QTreeWidget):
                         if port._using != None:
                             comp.connect(plot,usesPortName=str(portname))
                         contTrack['widgets'].append((contref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         QMessageBox.critical(self, 'Connection failed.', e.__str__(), QMessageBox.Ok)
                 elif resp == 'Sound':
@@ -559,7 +562,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(sound)
                         contTrack['widgets'].append((contref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -570,7 +573,7 @@ class TreeWidget(QTreeWidget):
             portname = item.text(0)[:-7]
             appref, appTrack, comp = self.getRefs(self.callbackObject.apps, appname)
             if appref == None:
-                self.callbackObject.log.warn("Unable to find Application: "+appname)
+                self.callbackObject.log.warning("Unable to find Application: "+appname)
                 return
             foundPort = False
             for port in appref.ports:
@@ -578,7 +581,7 @@ class TreeWidget(QTreeWidget):
                     foundPort = True
                     break
             if not foundPort:
-                self.callbackObject.log.warn("Unable to find port "+portname+" on application "+appname)
+                self.callbackObject.log.warning("Unable to find port "+portname+" on application "+appname)
                 return
             pos = self.getPos(item, item.parent())
             retval = None
@@ -597,7 +600,7 @@ class TreeWidget(QTreeWidget):
                         if port._using != None:
                             appref.connect(plot,usesPortName=str(portname))
                         appTrack['widgets'].append((appref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         QMessageBox.critical(self, 'Connection failed.', e.__str__(), QMessageBox.Ok)
                 elif resp == 'Sound':
@@ -606,7 +609,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         appref.connect(sound)
                         appTrack['widgets'].append((appref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -640,7 +643,7 @@ class TreeWidget(QTreeWidget):
                     foundDevMgr = True
                     break
             if not foundDevMgr:
-                self.callbackObject.log.warn("Unable to find Device Manager: "+devMgrname)
+                self.callbackObject.log.warning("Unable to find Device Manager: "+devMgrname)
                 return
             itemrect = self.visualItemRect(item)
             pos = self.mapToGlobal(itemrect.center())
@@ -721,13 +724,13 @@ class TreeWidget(QTreeWidget):
                         else:
                             QMessageBox.critical(self, 'Bad type', "Element '"+newvalue[0]+"'. Expected type '"+newvalue[1]+"'", QMessageBox.Ok)
 
-class BrowseWindowBase(QMainWindow):
+class BrowseWindowBase(QtWidgets.QMainWindow):
     def __init__(self,parent = None,name = None,fl = 0,domainName=None):
-        QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         base = self.statusBar()
 
-        self.setCentralWidget(QWidget(self))
-        BrowseWindowBaseLayout = QVBoxLayout(self.centralWidget())
+        self.setCentralWidget(QtWidgets.QWidget(self))
+        BrowseWindowBaseLayout = QtWidgets.QVBoxLayout(self.centralWidget())
         windowWidth = 720
         windowHeight = 569
 
@@ -758,8 +761,10 @@ class BrowseWindowBase(QMainWindow):
         self.languageChange(domainName)
 
         self.resize(QSize(windowWidth,windowHeight).expandedTo(self.minimumSizeHint()))
-        self.connect(self.refreshButton,SIGNAL("clicked()"),self.refreshView)
-        self.connect(self.objectListView,SIGNAL("itemRenamed(PyQt_PyObject,int)"),self.propertyChanged)
+        self.refreshButton.clicked.connect(self.refreshView)
+        #
+        #self.connect(self.objectListView,SIGNAL("itemRenamed(PyQt_PyObject,int)"),self.propertyChanged)
+        #self.objectListView.itemChanged.connect(self.propertyChanged)
 
     def closeEvent(self, event):
         self.cleanupOnExit()
@@ -775,17 +780,17 @@ class BrowseWindowBase(QMainWindow):
         else:
             self.setWindowTitle(self.__tr("REDHAWK Domain Browser: "+domainName))
         self.textLabel1.setText(self.__tr("Domain:"))
-        self.domainLabel.setText(QString())
+        self.domainLabel.setText("")
         self.refreshButton.setText(self.__tr("&Refresh"))
 
     def setStatusBar(self):
         self.textLabel2.setText(self.__tr("NameService not found"))
 
     def refreshView(self):
-        print "BrowseWindowBase.refreshView(): Not implemented yet"
+        print("BrowseWindowBase.refreshView(): Not implemented yet")
 
     def propertyChanged(self):
-        print "BrowseWindowBase.propertyChanged(): Not implemented yet"
+        print("BrowseWindowBase.propertyChanged(): Not implemented yet")
 
     def __tr(self,s,c = None):
         return qApp.translate("BrowseWindowBase",s,c)

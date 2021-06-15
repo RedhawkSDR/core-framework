@@ -9,6 +9,7 @@ variables:
   redhawk_lts_branch: 'develop'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
+  redhawk_deps: releng-1128
   commit: $CI_COMMIT_SHA
   datetime: ""
 
@@ -48,7 +49,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${redhawk_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -257,6 +258,7 @@ burstio:abi:
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
+    # create and push just redhawk rpms
     - createrepo $arch
     - ls -la $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
@@ -266,7 +268,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_deps/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/

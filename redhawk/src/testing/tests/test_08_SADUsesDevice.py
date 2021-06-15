@@ -56,7 +56,7 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
         for dev in self._devMgr._get_registeredDevices():
             if dev._get_label() == device_name:
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value(), expected_value)
+        self.assertEqual(allocRes[0].value.value(), expected_value)
 
     def test_Matching(self):
         appFact = self.createAppFact("Eq")
@@ -110,10 +110,10 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
         for dev in self._devMgr._get_registeredDevices():
             if dev._get_label() == 'BasicTestDevice1':
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value()[0].value.value(), 90)
-        self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 0.9)
-        self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 45)
-	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 450)
+        self.assertEqual(allocRes[0].value.value()[0].value.value(), 90)
+        self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 0.9)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 45)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 450)
 
         # Make sure values are deallocated on release
         self._app.releaseObject()
@@ -122,10 +122,10 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
         for dev in self._devMgr._get_registeredDevices():
             if dev._get_label() == 'BasicTestDevice1':
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value()[0].value.value(), 100)
-        self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 1.0)
-	self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 50)
-	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 500)
+        self.assertEqual(allocRes[0].value.value()[0].value.value(), 100)
+        self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 1.0)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
 
     def test_connections(self):
         appFact = self.createAppFact("ConnectionDevProvides")
@@ -146,11 +146,11 @@ class SADUsesDeviceTest(scatest.CorbaTestCase):
                 allocRes = dev.query([prop])
             elif dev._get_label() == "SADUsesDevice_1":
                 allocRes2 = dev.query([prop2])
-        self.assertEquals(allocRes[0].value.value()[0].value.value(), 100)
-        self.assertAlmostEquals(allocRes[0].value.value()[1].value.value(), 1.0)
-	self.assertEquals(allocRes[0].value.value()[2].value.value()[0], 50)
-	self.assertEquals(allocRes[0].value.value()[2].value.value()[1], 500)
-        self.assertEquals(allocRes2[0].value.value(), 10)
+        self.assertEqual(allocRes[0].value.value()[0].value.value(), 100)
+        self.assertAlmostEqual(allocRes[0].value.value()[1].value.value(), 1.0)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[0], 50)
+        self.assertEqual(allocRes[0].value.value()[2].value.value()[1], 500)
+        self.assertEqual(allocRes2[0].value.value(), 10)
 
 
     def test_math(self):

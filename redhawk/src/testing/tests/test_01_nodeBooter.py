@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -108,15 +108,15 @@ class NodeBooterTest(scatest.CorbaTestCase):
 
         args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user','domuser','--group','somegroup' ]
         nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
-        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+        self.assertNotEqual(nb.stderr.read().find(b'If either group or user are specified, daemon must be set'),-1)
 
         args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--group','somegroup' ]
         nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
-        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+        self.assertNotEqual(nb.stderr.read().find(b'If either group or user are specified, daemon must be set'),-1)
 
         args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user','domuser' ]
         nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
-        self.assertNotEqual(nb.stderr.read().find('If either group or user are specified, daemon must be set'),-1)
+        self.assertNotEqual(nb.stderr.read().find(b'If either group or user are specified, daemon must be set'),-1)
 
     def test_BadUserOrBadGroup(self):
         """Test that we read the correct domainname from the DMD file, the test domain
@@ -131,11 +131,11 @@ class NodeBooterTest(scatest.CorbaTestCase):
 
         args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--user=domuser']
         nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
-        self.assertNotEqual(nb.stderr.read().find('Separator must be a space'),-1)
+        self.assertNotEqual(nb.stderr.read().find(b'Separator must be a space'),-1)
 
         args = ["../../control/framework/nodeBooter","-D","-debug", "9","--nopersist",'--group=somegroup']
         nb = Popen( args, cwd=scatest.getSdrPath(), stderr=PIPE, stdout=PIPE)
-        self.assertNotEqual(nb.stderr.read().find('Separator must be a space'),-1)
+        self.assertNotEqual(nb.stderr.read().find(b'Separator must be a space'),-1)
 
     def test_nodeBooterShutdown(self):
         """Test that nodeBooter correctly cleans up.

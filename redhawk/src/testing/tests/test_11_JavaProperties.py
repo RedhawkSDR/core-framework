@@ -50,7 +50,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                     "structseq_prop",
                     "readOnly" )
         for prop in expected:
-            self.assert_(prop in ids, "'%s' not in default query" % prop)
+            self.assertTrue(prop in ids, "'%s' not in default query" % prop)
 
     def test_SimpleProps(self):
         # Check expected default
@@ -116,15 +116,15 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                                 CF.DataType(id='struct_ushort', value=CORBA.Any(CORBA.TC_ushort, 65535)),
                                 CF.DataType(id='struct_long', value=CORBA.Any(CORBA.TC_long, 2147483647)),
                                 CF.DataType(id='struct_ulong', value=CORBA.Any(CORBA.TC_ulong, 4294967295)),
-                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807L)),
-                                CF.DataType(id='struct_ulonglong', value=CORBA.Any(CORBA.TC_ulonglong, 18446744073709551615L)),
+                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807)),
+                                CF.DataType(id='struct_ulonglong', value=CORBA.Any(CORBA.TC_ulonglong, 18446744073709551615)),
  				CF.DataType(id='struct_string', value=CORBA.Any(CORBA.TC_string, "new string")),
 				CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
                                 CF.DataType(id='struct_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [0, 32767])),
                                 CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
                                 CF.DataType(id='struct_seq_long', value=any.to_any([0, 2147483647])),
                                 CF.DataType(id='struct_seq_ulong', value=any.to_any([0, 4294967295])),
-                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807L])),
+                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807])),
                                 #CF.DataType(id='struct_seq_ulonglong', value=any.to_any([0, 9223372036854775807L]))
                                 ]))
         comp.configure([my_struct])
@@ -134,40 +134,39 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                 val = r.value.value()
                 for v in val:
                     if v.id == 'struct_octet':
-                        self.assertEquals(v.value.value(), 255)
+                        self.assertEqual(v.value.value(), 255)
                     elif v.id == 'struct_short':
-                        self.assertEquals(v.value.value(), 32767)
+                        self.assertEqual(v.value.value(), 32767)
                     elif v.id == 'struct_ushort':
-                        self.assertEquals(v.value.value(), 65535)
+                        self.assertEqual(v.value.value(), 65535)
                     elif v.id == 'struct_long':
-                        self.assertEquals(v.value.value(), 2147483647)
+                        self.assertEqual(v.value.value(), 2147483647)
                     elif v.id == 'struct_ulong':
-                        self.assertEquals(v.value.value(), 4294967295)
+                        self.assertEqual(v.value.value(), 4294967295)
                     elif v.id == 'struct_longlong':
-                        self.assertEquals(v.value.value(), 9223372036854775807L)
+                        self.assertEqual(v.value.value(), 9223372036854775807)
                     elif v.id == 'struct_ulonglong':
-                        self.assertEquals(v.value.value(), 18446744073709551615L)
+                        self.assertEqual(v.value.value(), 18446744073709551615)
                     elif v.id == 'struct_string':
-                        self.assertEquals(v.value.value(), "new string")
-		    elif v.id == 'struct_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEquals(v.value.value(), [0, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEquals(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEquals(v.value.value(), [0, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                        self.assertEqual(v.value.value(), "new string")
+                    elif v.id == 'struct_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
 		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
 
@@ -178,7 +177,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                                 CF.DataType(id='struct_ushort', value=CORBA.Any(CORBA.TC_ushort, 65535)),
                                 #CF.DataType(id='struct_long', value=CORBA.Any(CORBA.TC_long, 2147483647)),
                                 CF.DataType(id='struct_ulong', value=CORBA.Any(CORBA.TC_ulong, 4294967295)),
-                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807L)),
+                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807)),
                                 #CF.DataType(id='struct_ulonglong', value=CORBA.Any(CORBA.TC_ulonglong, 18446744073709551615L)),
  				CF.DataType(id='struct_string', value=CORBA.Any(CORBA.TC_string, "new string")),
 				CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
@@ -186,7 +185,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                                 #CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
                                 CF.DataType(id='struct_seq_long', value=any.to_any([0, 2147483647])),
                                 CF.DataType(id='struct_seq_ulong', value=any.to_any([0, 4294967295])),
-                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807L])),
+                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807])),
                                 #CF.DataType(id='struct_seq_ulonglong', value=any.to_any([0, 9223372036854775807L]))
                                 ]))
         comp.configure([my_struct])
@@ -202,34 +201,33 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                 self.assertTrue('struct_seq_ulonglong' not in valIds)
                 for v in val:
                     if v.id == 'struct_octet':
-                        self.assertEquals(v.value.value(), 255)
+                        self.assertEqual(v.value.value(), 255)
                     if v.id == 'struct_short':
-                        self.assertEquals(v.value.value(), 32767)
+                        self.assertEqual(v.value.value(), 32767)
                     elif v.id == 'struct_ushort':
-                        self.assertEquals(v.value.value(), 65535)
+                        self.assertEqual(v.value.value(), 65535)
                     elif v.id == 'struct_ulong':
-                        self.assertEquals(v.value.value(), 4294967295)
+                        self.assertEqual(v.value.value(), 4294967295)
                     elif v.id == 'struct_longlong':
-                        self.assertEquals(v.value.value(), 9223372036854775807L)
+                        self.assertEqual(v.value.value(), 9223372036854775807)
                     elif v.id == 'struct_string':
-                        self.assertEquals(v.value.value(), "new string")
+                        self.assertEqual(v.value.value(), "new string")
                     elif v.id == 'struct_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEquals(v.value.value(), [0, 32767])
-		    elif v.id == 'struct_seq_long':
-		        self.assertEquals(v.value.value(), [0, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 
 
 
@@ -255,7 +253,7 @@ class LegacyJavaPropertiesTest(scatest.CorbaTestCase):
                     "exec_param",
                     "DCE:23a6d333-55fb-4425-a102-185e6e998782")
         for prop in expected:
-            self.assert_(prop in ids, "'%s' not in default query" % prop)
+            self.assertTrue(prop in ids, "'%s' not in default query" % prop)
 
     def test_SimpleProps(self):
         # Check expected default
@@ -335,22 +333,22 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
         my_ushort = CF.DataType(id='my_ushort', value=CORBA.Any(CORBA.TC_ushort, 65535))
         my_long = CF.DataType(id='my_long', value=CORBA.Any(CORBA.TC_long, 2147483647))
         my_ulong = CF.DataType(id='my_ulong', value=CORBA.Any(CORBA.TC_ulong, 4294967295))
-        my_longlong = CF.DataType(id='my_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807L))
+        my_longlong = CF.DataType(id='my_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807))
         self._app.configure([my_octet, my_short, my_ushort, my_long, my_ulong, my_longlong])
         res = self._app.query([])
         for r in res:
             if r.id == 'my_octet':
-                self.assertEquals(r.value.value(), 255)
+                self.assertEqual(r.value.value(), 255)
             elif r.id == 'my_short':
-                self.assertEquals(r.value.value(), 32767)
+                self.assertEqual(r.value.value(), 32767)
             elif r.id == 'my_ushort':
-                self.assertEquals(r.value.value(), 65535)
+                self.assertEqual(r.value.value(), 65535)
             elif r.id == 'my_long':
-                self.assertEquals(r.value.value(), 2147483647)
+                self.assertEqual(r.value.value(), 2147483647)
             elif r.id == 'my_ulong':
-                self.assertEquals(r.value.value(), 4294967295)
+                self.assertEqual(r.value.value(), 4294967295)
             elif r.id == 'my_longlong':
-                self.assertEquals(r.value.value(), 9223372036854775807)
+                self.assertEqual(r.value.value(), 9223372036854775807)
 
         # Test lower bound
         my_octet = CF.DataType(id='my_octet', value=CORBA.Any(CORBA.TC_long, 0))
@@ -358,22 +356,22 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
         my_ushort = CF.DataType(id='my_ushort', value=CORBA.Any(CORBA.TC_ushort, 0))
         my_long = CF.DataType(id='my_long', value=CORBA.Any(CORBA.TC_long, -2147483648))
         my_ulong = CF.DataType(id='my_ulong', value=CORBA.Any(CORBA.TC_ulong, 0))
-        my_longlong = CF.DataType(id='my_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808L))
+        my_longlong = CF.DataType(id='my_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808))
         self._app.configure([my_octet, my_short, my_ushort, my_long, my_ulong, my_longlong])
         res = self._app.query([])
         for r in res:
             if r.id == 'my_octet':
-                self.assertEquals(r.value.value(), 0)
+                self.assertEqual(r.value.value(), 0)
             elif r.id == 'my_short':
-                self.assertEquals(r.value.value(), -32768)
+                self.assertEqual(r.value.value(), -32768)
             elif r.id == 'my_ushort':
-                self.assertEquals(r.value.value(), 0)
+                self.assertEqual(r.value.value(), 0)
             elif r.id == 'my_long':
-                self.assertEquals(r.value.value(), -2147483648)
+                self.assertEqual(r.value.value(), -2147483648)
             elif r.id == 'my_ulong':
-                self.assertEquals(r.value.value(), 0)
+                self.assertEqual(r.value.value(), 0)
             elif r.id == 'my_longlong':
-                self.assertEquals(r.value.value(), -9223372036854775808)
+                self.assertEqual(r.value.value(), -9223372036854775808)
 
     def test_javaPropsRangeStruct(self):
         self.assertNotEqual(self._domMgr, None, "DomainManager not available")
@@ -381,76 +379,20 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None, "Failed to launch app")
 
         # Test upper bounds
-	octet_val = struct.pack('B', 0) + struct.pack('B', 255)
+        octet_val = struct.pack('B', 0) + struct.pack('B', 255)
         my_struct = CF.DataType(id='my_struct', value=any.to_any([
                                 CF.DataType(id='struct_octet', value=CORBA.Any(CORBA.TC_octet, 255)),
                                 CF.DataType(id='struct_short', value=CORBA.Any(CORBA.TC_short, 32767)),
                                 CF.DataType(id='struct_ushort', value=CORBA.Any(CORBA.TC_ushort, 65535)),
                                 CF.DataType(id='struct_long', value=CORBA.Any(CORBA.TC_long, 2147483647)),
                                 CF.DataType(id='struct_ulong', value=CORBA.Any(CORBA.TC_ulong, 4294967295)),
-                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807L)),
+                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807)),
 				CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
                                 CF.DataType(id='struct_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [0, 32767])),
                                 CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
                                 CF.DataType(id='struct_seq_long', value=any.to_any([0, 2147483647])),
                                 CF.DataType(id='struct_seq_ulong', value=any.to_any([0, 4294967295])),
-                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807L])),
-                                CF.DataType(id='struct_seq_ulonglong', value=any.to_any([0, 9223372036854775807L]))
-                                ]))
-        self._app.configure([my_struct])
-        res = self._app.query([])
-        for r in res:
-            if r.id == 'my_struct':
-                val = r.value.value()
-                for v in val:
-                    if v.id == 'struct_octet':
-                        self.assertEquals(v.value.value(), 255)
-                    elif v.id == 'struct_short':
-                        self.assertEquals(v.value.value(), 32767)
-                    elif v.id == 'struct_ushort':
-                        self.assertEquals(v.value.value(), 65535)
-                    elif v.id == 'struct_long':
-                        self.assertEquals(v.value.value(), 2147483647)
-                    elif v.id == 'struct_ulong':
-                        self.assertEquals(v.value.value(), 4294967295)
-                    elif v.id == 'struct_longlong':
-                        self.assertEquals(v.value.value(), 9223372036854775807L)
-		    elif v.id == 'struct_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEquals(v.value.value(), [0, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEquals(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEquals(v.value.value(), [0, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
-		    elif v.id == 'struct_seq_ulonglong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
-
-        # Test lower bounds
-        my_struct = CF.DataType(id='my_struct', value=any.to_any([
-                                CF.DataType(id='struct_octet', value=CORBA.Any(CORBA.TC_octet, 0)),
-                                CF.DataType(id='struct_short', value=CORBA.Any(CORBA.TC_short, -32768)),
-                                CF.DataType(id='struct_ushort', value=CORBA.Any(CORBA.TC_ushort, 0)),
-                                CF.DataType(id='struct_long', value=CORBA.Any(CORBA.TC_long, -2147483648)),
-                                CF.DataType(id='struct_ulong', value=CORBA.Any(CORBA.TC_ulong, 0)),
-                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808L)),
-				CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
-                                CF.DataType(id='struct_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [-32768, 32767])),
-                                CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
-                                CF.DataType(id='struct_seq_long', value=any.to_any([-2147483648, 2147483647])),
-                                CF.DataType(id='struct_seq_ulong', value=any.to_any([0, 4294967295])),
-                                CF.DataType(id='struct_seq_longlong', value=any.to_any([-9223372036854775808L, 9223372036854775807L])),
+                                CF.DataType(id='struct_seq_longlong', value=any.to_any([0, 9223372036854775807])),
                                 CF.DataType(id='struct_seq_ulonglong', value=any.to_any([0, 9223372036854775807]))
                                 ]))
         self._app.configure([my_struct])
@@ -460,38 +402,92 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                 val = r.value.value()
                 for v in val:
                     if v.id == 'struct_octet':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 255)
                     elif v.id == 'struct_short':
-                        self.assertEquals(v.value.value(), -32768)
+                        self.assertEqual(v.value.value(), 32767)
                     elif v.id == 'struct_ushort':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 65535)
                     elif v.id == 'struct_long':
-                        self.assertEquals(v.value.value(), -2147483648)
+                        self.assertEqual(v.value.value(), 2147483647)
                     elif v.id == 'struct_ulong':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 4294967295)
                     elif v.id == 'struct_longlong':
-                        self.assertEquals(v.value.value(), -9223372036854775808L)
-		    elif v.id == 'struct_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'struct_seq_short':
-			self.assertEquals(v.value.value(), [-32768, 32767])
-		    elif v.id == 'struct_seq_ushort':
-			self.assertEquals(v.value.value(), [0, 65535])
-		    elif v.id == 'struct_seq_long':
-			self.assertEquals(v.value.value(), [-2147483648, 2147483647])
-		    elif v.id == 'struct_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'struct_seq_longlong':
-			self.assertEquals(v.value.value(), [-9223372036854775808L, 9223372036854775807L])
-		    elif v.id == 'struct_seq_ulonglong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                        self.assertEqual(v.value.value(), 9223372036854775807)
+                    elif v.id == 'struct_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
+                    elif v.id == 'struct_seq_ulonglong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
+
+        # Test lower bounds
+        my_struct = CF.DataType(id='my_struct', value=any.to_any([
+                                CF.DataType(id='struct_octet', value=CORBA.Any(CORBA.TC_octet, 0)),
+                                CF.DataType(id='struct_short', value=CORBA.Any(CORBA.TC_short, -32768)),
+                                CF.DataType(id='struct_ushort', value=CORBA.Any(CORBA.TC_ushort, 0)),
+                                CF.DataType(id='struct_long', value=CORBA.Any(CORBA.TC_long, -2147483648)),
+                                CF.DataType(id='struct_ulong', value=CORBA.Any(CORBA.TC_ulong, 0)),
+                                CF.DataType(id='struct_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808)),
+				CF.DataType(id='struct_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
+                                CF.DataType(id='struct_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [-32768, 32767])),
+                                CF.DataType(id='struct_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
+                                CF.DataType(id='struct_seq_long', value=any.to_any([-2147483648, 2147483647])),
+                                CF.DataType(id='struct_seq_ulong', value=any.to_any([0, 4294967295])),
+                                CF.DataType(id='struct_seq_longlong', value=any.to_any([-9223372036854775808, 9223372036854775807])),
+                                CF.DataType(id='struct_seq_ulonglong', value=any.to_any([0, 9223372036854775807]))
+                                ]))
+        self._app.configure([my_struct])
+        res = self._app.query([])
+        for r in res:
+            if r.id == 'my_struct':
+                val = r.value.value()
+                for v in val:
+                    if v.id == 'struct_octet':
+                        self.assertEqual(v.value.value(), 0)
+                    elif v.id == 'struct_short':
+                        self.assertEqual(v.value.value(), -32768)
+                    elif v.id == 'struct_ushort':
+                        self.assertEqual(v.value.value(), 0)
+                    elif v.id == 'struct_long':
+                        self.assertEqual(v.value.value(), -2147483648)
+                    elif v.id == 'struct_ulong':
+                        self.assertEqual(v.value.value(), 0)
+                    elif v.id == 'struct_longlong':
+                        self.assertEqual(v.value.value(), -9223372036854775808)
+                    elif v.id == 'struct_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'struct_seq_short':
+                        self.assertEqual(v.value.value(), [-32768, 32767])
+                    elif v.id == 'struct_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'struct_seq_long':
+                        self.assertEqual(v.value.value(), [-2147483648, 2147483647])
+                    elif v.id == 'struct_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'struct_seq_longlong':
+                        self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
+                    elif v.id == 'struct_seq_ulonglong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 
 
     def test_javaPropsRangeSeq(self):
@@ -512,7 +508,7 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                                                             ))
         seq_long = CF.DataType(id='seq_long', value=any.to_any([-2147483648, 2147483647]))
         seq_ulong = CF.DataType(id='seq_ulong', value=any.to_any([0,4294967295]))
-        seq_longlong = CF.DataType(id='seq_longlong', value=any.to_any([-9223372036854775808L, 9223372036854775807L]))
+        seq_longlong = CF.DataType(id='seq_longlong', value=any.to_any([-9223372036854775808, 9223372036854775807]))
         self._app.configure([seq_octet, seq_short, seq_ushort, seq_long, seq_ulong, seq_longlong])
 
         res = self._app.query([])
@@ -522,25 +518,24 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                 stored_vals = r.value.value()
                 vals = []
                 for num in stored_vals:
-                    curr = struct.unpack('B', num)
-                    vals.append(curr[0])
-                self.assertEquals(vals[0], 0)
-                self.assertEquals(vals[1], 255)
+                    vals.append(num)
+                self.assertEqual(vals[0], 0)
+                self.assertEqual(vals[1], 255)
             elif r.id == 'seq_short':
-                self.assertEquals(r.value.value()[0], -32768)
-                self.assertEquals(r.value.value()[1], 32767)
+                self.assertEqual(r.value.value()[0], -32768)
+                self.assertEqual(r.value.value()[1], 32767)
             elif r.id == 'seq_ushort':
-                self.assertEquals(r.value.value()[0], 0)
-                self.assertEquals(r.value.value()[1], 65535)
+                self.assertEqual(r.value.value()[0], 0)
+                self.assertEqual(r.value.value()[1], 65535)
             elif r.id == 'seq_long':
-                self.assertEquals(r.value.value()[0], -2147483648)
-                self.assertEquals(r.value.value()[1], 2147483647)
+                self.assertEqual(r.value.value()[0], -2147483648)
+                self.assertEqual(r.value.value()[1], 2147483647)
             elif r.id == 'seq_ulong':
-                self.assertEquals(r.value.value()[0], 0)
-                self.assertEquals(r.value.value()[1], 4294967295)
+                self.assertEqual(r.value.value()[0], 0)
+                self.assertEqual(r.value.value()[1], 4294967295)
             elif r.id == 'seq_longlong':
-                self.assertEquals(r.value.value()[0], -9223372036854775808L)
-                self.assertEquals(r.value.value()[1], 9223372036854775807L)
+                self.assertEqual(r.value.value()[0], -9223372036854775808)
+                self.assertEqual(r.value.value()[1], 9223372036854775807)
 
 
     def test_javaPropsRangeStructSeq(self):
@@ -549,21 +544,21 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
         self.assertNotEqual(self._app, None, "Failed to launch app")
 
         # Struct with upper bound
-	octet_val = struct.pack('B', 0) + struct.pack('B', 255)
+        octet_val = struct.pack('B', 0) + struct.pack('B', 255)
         upper = CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), [
 			    CF.DataType(id='ss_octet', value=CORBA.Any(CORBA.TC_octet, 255)),
                 	    CF.DataType(id='ss_short', value=CORBA.Any(CORBA.TC_short, 32767)),
 	                    CF.DataType(id='ss_ushort', value=CORBA.Any(CORBA.TC_ushort, 65535)),
             	  	    CF.DataType(id='ss_long', value=CORBA.Any(CORBA.TC_long, 2147483647)),
                 	    CF.DataType(id='ss_ulong', value=CORBA.Any(CORBA.TC_ulong, 4294967295)),
-                	    CF.DataType(id='ss_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807L)),
+                	    CF.DataType(id='ss_longlong', value=CORBA.Any(CORBA.TC_longlong, 9223372036854775807)),
                 	    CF.DataType(id='ss_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
                             CF.DataType(id='ss_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [0, 32767])),
                             CF.DataType(id='ss_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
                 	    CF.DataType(id='ss_seq_long', value=any.to_any([0, 2147483647])),
                 	    CF.DataType(id='ss_seq_ulong', value=any.to_any([0, 4294967295])),
-                	    CF.DataType(id='ss_seq_longlong', value=any.to_any([0, 9223372036854775807L])),
-                	    CF.DataType(id='ss_seq_ulonglong', value=any.to_any([0, 9223372036854775807L]))
+                	    CF.DataType(id='ss_seq_longlong', value=any.to_any([0, 9223372036854775807])),
+                	    CF.DataType(id='ss_seq_ulonglong', value=any.to_any([0, 9223372036854775807]))
                 ])
         # Struct with lower bound
         lower = CORBA.Any(CORBA.TypeCode("IDL:CF/Properties:1.0"), [
@@ -572,14 +567,14 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                             CF.DataType(id='ss_ushort', value=CORBA.Any(CORBA.TC_ushort, 0)),
                             CF.DataType(id='ss_long', value=CORBA.Any(CORBA.TC_long, -2147483648)),
                             CF.DataType(id='ss_ulong', value=CORBA.Any(CORBA.TC_ulong, 0)),
-                            CF.DataType(id='ss_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808L)),
+                            CF.DataType(id='ss_longlong', value=CORBA.Any(CORBA.TC_longlong, -9223372036854775808)),
 			    CF.DataType(id='ss_seq_octet', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/OctetSeq:1.0"), octet_val)),
                             CF.DataType(id='ss_seq_short', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/ShortSeq:1.0"), [-32768, 32767])),
                             CF.DataType(id='ss_seq_ushort', value=CORBA.Any(CORBA.TypeCode("IDL:omg.org/CORBA/UShortSeq:1.0"), [0, 65535])),
                             CF.DataType(id='ss_seq_long', value=any.to_any([-2147483648, 2147483647])),
                             CF.DataType(id='ss_seq_ulong', value=any.to_any([0, 4294967295])),
-                            CF.DataType(id='ss_seq_longlong', value=any.to_any([-9223372036854775808L, 9223372036854775807L])),
-                            CF.DataType(id='ss_seq_ulonglong', value=any.to_any([0, 9223372036854775807L]))
+                            CF.DataType(id='ss_seq_longlong', value=any.to_any([-9223372036854775808, 9223372036854775807])),
+                            CF.DataType(id='ss_seq_ulonglong', value=any.to_any([0, 9223372036854775807]))
                             ])
 
         my_structseq = CF.DataType(id='my_structseq',
@@ -596,72 +591,70 @@ class JavaPropertiesRangeTest(scatest.CorbaTestCase):
                 lower = r.value.value()[1]
                 for v in upper.value():
                     if v.id == 'ss_octet':
-                        self.assertEquals(v.value.value(), 255)
+                        self.assertEqual(v.value.value(), 255)
                     elif v.id == 'ss_short':
-                        self.assertEquals(v.value.value(), 32767)
+                        self.assertEqual(v.value.value(), 32767)
                     elif v.id == 'ss_ushort':
-                        self.assertEquals(v.value.value(), 65535)
+                        self.assertEqual(v.value.value(), 65535)
                     elif v.id == 'ss_long':
-                        self.assertEquals(v.value.value(), 2147483647)
+                        self.assertEqual(v.value.value(), 2147483647)
                     elif v.id == 'ss_ulong':
-                        self.assertEquals(v.value.value(), 4294967295)
+                        self.assertEqual(v.value.value(), 4294967295)
                     elif v.id == 'ss_longlong':
-                        self.assertEquals(v.value.value(), 9223372036854775807L)
-		    elif v.id == 'ss_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'ss_seq_short':
-			self.assertEquals(v.value.value(), [0, 32767])
-		    elif v.id == 'ss_seq_ushort':
-			self.assertEquals(v.value.value(), [0, 65535])
-		    elif v.id == 'ss_seq_long':
-			self.assertEquals(v.value.value(), [0, 2147483647])
-		    elif v.id == 'ss_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'ss_seq_longlong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
-		    elif v.id == 'ss_seq_ulonglong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                        self.assertEqual(v.value.value(), 9223372036854775807)
+                    elif v.id == 'ss_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'ss_seq_short':
+                        self.assertEqual(v.value.value(), [0, 32767])
+                    elif v.id == 'ss_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'ss_seq_long':
+                        self.assertEqual(v.value.value(), [0, 2147483647])
+                    elif v.id == 'ss_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'ss_seq_longlong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
+                    elif v.id == 'ss_seq_ulonglong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
                 for v in lower.value():
                     if v.id == 'ss_octet':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 0)
                     elif v.id == 'ss_short':
-                        self.assertEquals(v.value.value(), -32768)
+                        self.assertEqual(v.value.value(), -32768)
                     elif v.id == 'ss_ushort':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 0)
                     elif v.id == 'ss_long':
-                        self.assertEquals(v.value.value(), -2147483648)
+                        self.assertEqual(v.value.value(), -2147483648)
                     elif v.id == 'ss_ulong':
-                        self.assertEquals(v.value.value(), 0)
+                        self.assertEqual(v.value.value(), 0)
                     elif v.id == 'ss_longlong':
-                        self.assertEquals(v.value.value(), -9223372036854775808L)
-		    elif v.id == 'ss_seq_octet':
-			# Octets need to be unpacked
-                	stored_vals = v.value.value()
-                	vals = []
-                	for num in stored_vals:
-                    	    curr = struct.unpack('B', num)
-                    	    vals.append(curr[0])
-                	self.assertEquals(vals[0], 0)
-                	self.assertEquals(vals[1], 255)
-		    elif v.id == 'ss_seq_short':
-			self.assertEquals(v.value.value(), [-32768, 32767])
-		    elif v.id == 'ss_seq_ushort':
-			self.assertEquals(v.value.value(), [0, 65535])
-		    elif v.id == 'ss_seq_long':
-			self.assertEquals(v.value.value(), [-2147483648, 2147483647])
-		    elif v.id == 'ss_seq_ulong':
-			self.assertEquals(v.value.value(), [0, 4294967295])
-		    elif v.id == 'ss_seq_longlong':
-			self.assertEquals(v.value.value(), [-9223372036854775808L, 9223372036854775807L])
-		    elif v.id == 'ss_seq_ulonglong':
-			self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                        self.assertEqual(v.value.value(), -9223372036854775808)
+                    elif v.id == 'ss_seq_octet':
+                        # Octets need to be unpacked
+                        stored_vals = v.value.value()
+                        vals = []
+                        for num in stored_vals:
+                            vals.append(num)
+                        self.assertEqual(vals[0], 0)
+                        self.assertEqual(vals[1], 255)
+                    elif v.id == 'ss_seq_short':
+                        self.assertEqual(v.value.value(), [-32768, 32767])
+                    elif v.id == 'ss_seq_ushort':
+                        self.assertEqual(v.value.value(), [0, 65535])
+                    elif v.id == 'ss_seq_long':
+                        self.assertEqual(v.value.value(), [-2147483648, 2147483647])
+                    elif v.id == 'ss_seq_ulong':
+                        self.assertEqual(v.value.value(), [0, 4294967295])
+                    elif v.id == 'ss_seq_longlong':
+                        self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
+                    elif v.id == 'ss_seq_ulonglong':
+                        self.assertEqual(v.value.value(), [0, 9223372036854775807])
 
 
 @scatest.requireJava
@@ -710,17 +703,17 @@ class JAVAPropertyTest(scatest.CorbaTestCase):
         c=None
         d=redhawk.attach(scatest.getTestDomainName())
         a=d.apps[0]
-        c=filter( lambda c : c.name == 'Property_JAVA', a.comps )[0]
+        c=[c for c in a.comps if c.name == 'Property_JAVA'][0]
         self.assertNotEqual(c,None)
         ps = c.ref._narrow(CF.PropertySet)
         self.assertNotEqual(ps,None)
         
-        self.assertEquals(c.p1,"prop1")
-        self.assertAlmostEquals(c.p2,123.4)
-        self.assertEquals(c.p3,567)
-        self.assertEquals(c.p4.p4sub1,"prop2")
+        self.assertEqual(c.p1,"prop1")
+        self.assertAlmostEqual(c.p2,123.4)
+        self.assertEqual(c.p3,567)
+        self.assertEqual(c.p4.p4sub1,"prop2")
         t1=int(c.p4.p4sub2)
-        self.assertEquals(t1,890)
+        self.assertEqual(t1,890)
 
         c.p1 = "testing"
         c.p2 = 100.0
@@ -728,12 +721,12 @@ class JAVAPropertyTest(scatest.CorbaTestCase):
         c.p4.p4sub1="testing2"
         c.p4.p4sub2=200.0
 
-        self.assertEquals(c.p1,"testing")
-        self.assertAlmostEquals(c.p2,100.0)
-        self.assertEquals(c.p3,100)
-        self.assertEquals(c.p4.p4sub1,"testing2")
+        self.assertEqual(c.p1,"testing")
+        self.assertAlmostEqual(c.p2,100.0)
+        self.assertEqual(c.p3,100)
+        self.assertEqual(c.p4.p4sub1,"testing2")
         t1=int(c.p4.p4sub2)
-        self.assertEquals(t1,200)
+        self.assertEqual(t1,200)
 
 
         app.releaseObject()
@@ -770,17 +763,17 @@ class JavaUTCTimeTest(scatest.CorbaTestCase):
     def test_UTCTimeJava(self):
         prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
         datetime = time.gmtime(prop[0].value.value().twsec)
-        self.assertEquals(datetime.tm_year,2017)
-        self.assertEquals(datetime.tm_mon,2)
-        self.assertEquals(datetime.tm_mday,1)
-        self.assertEquals(datetime.tm_hour,10)
-        self.assertEquals(datetime.tm_min,1)
-        self.assertEquals(datetime.tm_sec,0)
-        self.assertEquals(prop[0].value.value().tfsec,0.123)
+        self.assertEqual(datetime.tm_year,2017)
+        self.assertEqual(datetime.tm_mon,2)
+        self.assertEqual(datetime.tm_mday,1)
+        self.assertEqual(datetime.tm_hour,10)
+        self.assertEqual(datetime.tm_min,1)
+        self.assertEqual(datetime.tm_sec,0)
+        self.assertEqual(prop[0].value.value().tfsec,0.123)
         self._app.configure([CF.DataType('reset_utctime', any.to_any(True))])
         prop = self._app.query([CF.DataType('simple_utctime', any.to_any(None))])
         now = time.time()
-        self.assertEquals(abs(now-(prop[0].value.value().twsec+prop[0].value.value().tfsec))<0.1,True)
+        self.assertEqual(abs(now-(prop[0].value.value().twsec+prop[0].value.value().tfsec))<0.1,True)
 
 @scatest.requireJava
 class JavaPropertiesReadOnly(scatest.CorbaTestCase):
@@ -814,7 +807,7 @@ class JavaPropertiesReadOnly(scatest.CorbaTestCase):
         self.assertEqual(props[0].value._v, "set_once")
 
         # try and configure the component
-        comp=filter( lambda c : c.name == 'TestJavaProps', self._app.comps )[0]
+        comp=[c for c in self._app.comps if c.name == 'TestJavaProps'][0]
         self.assertNotEqual(comp,None)
         readonly_prop=CF.DataType("readOnly", any.to_any("try_again"))
         self.assertRaises(CF.PropertySet.InvalidConfiguration, comp.configure, [ readonly_prop ] )

@@ -42,7 +42,7 @@ class metaSynchronized(type):
         rlock = threading.RLock()
         newdict['__rlock__'] = rlock
 
-        for k, v in classdict.items():
+        for k, v in list(classdict.items()):
             # Don't syncronize special methods
             if k.startswith("__") and k.endswith("__"):
                 continue
@@ -52,6 +52,5 @@ class metaSynchronized(type):
             newdict[k] = synchronize(v, rlock)
         return type.__new__(cls, classname, bases, newdict)
 
-class Synchronized(object):
+class Synchronized(object, metaclass=metaSynchronized):
     """A convient way add the syncronized metaclass via inheritence"""
-    __metaclass__ = metaSynchronized

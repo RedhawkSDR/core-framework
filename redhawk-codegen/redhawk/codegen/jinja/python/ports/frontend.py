@@ -21,8 +21,8 @@
 from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen.jinja.ports import PortGenerator
 from redhawk.codegen.jinja.ports import PortFactory
-from generator import PythonPortGenerator
-from generic import GenericPortGenerator
+from .generator import PythonPortGenerator
+from .generic import GenericPortGenerator
 from redhawk.codegen.lang import python 
 
 class FrontendPortFactory(PortFactory):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -21,11 +21,11 @@
 
 from ossie.cf import CF, CF__POA
 from ossie.device import ExecutableDevice, AggregateDevice,start_device
-import commands, os, sys
+import subprocess, os, sys
 import logging
 import WorkModule
 from BasicTestDevice_python_impl1Props import PROPERTIES
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -96,7 +96,7 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
     def releaseObject(self):
         try:
             self.stop()
-        except Exception, e:
+        except Exception as e:
             if self._log != None :
                 self._log.exception("Error stopping: ", e)
         ExecutableDevice.releaseObject(self)
@@ -127,8 +127,8 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
             self._props[self.__mem_id] = self.allocated_mem
             return True 
         except:
-            print "\tAlloc Failed: Allocated Memory: %d" % self.allocated_mem
-            print "\tAlloc Failed: Current Memory Usage: %d" % self._props[self.__mem_id]
+            print("\tAlloc Failed: Allocated Memory: %d" % self.allocated_mem)
+            print("\tAlloc Failed: Current Memory Usage: %d" % self._props[self.__mem_id])
             return False
         
     # overrides allocateCapacity for BogoMipsCapacity
@@ -143,15 +143,15 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
             self._props[self.__bog_id] = self.allocated_bog
             return True
         except:
-            print "\tAlloc Failed: Allocated BogoMips: %d" % self.allocated_bog
-            print "\tAlloc Failed: Current BogoMips Usage: %d" % self._props[self.__bog_id]
+            print("\tAlloc Failed: Allocated BogoMips: %d" % self.allocated_bog)
+            print("\tAlloc Failed: Current BogoMips Usage: %d" % self._props[self.__bog_id])
         
             return False
 
     def allocateCapacities(self, propDict):
         try:
             successfulAllocations = []
-            keys = propDict.keys()
+            keys = list(propDict.keys())
             if self.__mem_id in keys:
                 val = propDict[self.__mem_id]
                 success = self.allocate_memCapacity(val)
@@ -186,8 +186,8 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
             self._props[self.__mem_id] = self.allocated_mem
             return True 
             
-        except Exception, e:
-            print "\tGot an error while deallocationg Memory: %s" % str(e)
+        except Exception as e:
+            print("\tGot an error while deallocationg Memory: %s" % str(e))
             return False
         
     # overrides allocateCapacity for BogoMipsCapacity
@@ -201,8 +201,8 @@ class BasicTestDevice_python_impl1(CF__POA.AggregateExecutableDevice,ExecutableD
             self.allocated_bog = tmp_val
             self._props[self.__bog_id] = self.allocated_bog
             return True
-        except Exception, e:
-            print "\tGot an error while deallocationg BogoMips: %s" % str(e)
+        except Exception as e:
+            print("\tGot an error while deallocationg BogoMips: %s" % str(e))
             return False
                         
     def updateUsageState(self):

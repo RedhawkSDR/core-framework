@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -24,7 +24,7 @@ from ossie.cf import CF, CF__POA
 from ossie.device import ExecutableDevice, start_device
 from ossie.properties import simple_property
 from ossie.resource import usesport, providesport
-import commands, os, sys
+import subprocess, os, sys
 import logging
 
 
@@ -48,7 +48,7 @@ class testOut_i(CF__POA.Port):
         self.outPorts[str(connectionId)] = port
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)   
 
     def query(self, propsIn):
@@ -69,7 +69,7 @@ class devicemanagerOut_i(CF__POA.Port):
         self.outPorts[str(connectionId)] = port
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)   
 
     def getIdentifiers(self):
@@ -116,7 +116,7 @@ class PortDevice_impl(CF__POA.ExecutableDevice, ExecutableDevice):
                                        defvalue=100000000,
                                        mode='readonly',
                                        action='external',
-                                       kinds=(u'allocation',))
+                                       kinds=('allocation',))
 
     def __init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams):
         ExecutableDevice.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams)

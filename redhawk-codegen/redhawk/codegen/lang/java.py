@@ -22,7 +22,7 @@ from redhawk.codegen.utils import strenum, parseBoolean
 from ossie.utils.prop_helpers import parseComplexString
 from ossie import properties
 
-from idl import CorbaTypes
+from .idl import CorbaTypes
 
 NULL = 'null'
 TRUE = 'true'
@@ -156,7 +156,7 @@ def literal(value, typename, complex=False):
             return value
     elif typename in (Types.LONG, BoxTypes.LONG):
         value, base = checkValue(value)
-        return repr(long(value,base))
+        return repr(int(value,base))+"L"
     elif typename in (Types.BOOLEAN, BoxTypes.BOOLEAN):
         return translateBoolean(value)
     elif typename in (Types.BYTE, BoxTypes.BYTE):

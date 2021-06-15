@@ -21,7 +21,7 @@
 import sys
 import time
 import threading
-import Queue
+import queue
 import copy
 import traceback
 import logging
@@ -45,11 +45,14 @@ class EM_Publisher(Publisher):
         self._creg = creg
 
     def __del__(self):
-        self.terminate()
+        try:
+            self.terminate()
+        except:
+            pass
 
     def terminate(self):
         if self._ecm:
-            self._ecm._unregister( self._creg )
+                self._ecm._unregister( self._creg )
         Publisher.terminate(self)
 
 class EM_Subscriber(Subscriber):
@@ -59,7 +62,10 @@ class EM_Subscriber(Subscriber):
         self._creg = creg
 
     def __del__(self):
-        self.terminate()
+        try:
+            self.terminate()
+        except:
+            pass
 
     def terminate(self):
         if self._ecm:
@@ -97,7 +103,7 @@ class Manager:
                 Manager._manager = Manager( resource )
             except:
                 #print traceback.format_exc()
-                logging.getLogger("ossie.events.Manager").warn("Unable to resolve Event Manager")
+                logging.getLogger("ossie.events.Manager").warning("Unable to resolve Event Manager")
  
         return Manager._manager
 

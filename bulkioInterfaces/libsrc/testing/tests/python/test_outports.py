@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -139,7 +139,7 @@ class OutPortTest(object):
 
         # Check that the statistics report the right element size
         stats = uses_stats[0].statistics
-        self.failUnless(stats.elementsPerSecond > 0.0)
+        self.assertTrue(stats.elementsPerSecond > 0.0)
         bits_per_element = int(round(stats.bitsPerSecond / stats.elementsPerSecond))
         self.assertEqual(self.helper.BITS_PER_ELEMENT, bits_per_element)
 
@@ -252,9 +252,9 @@ class ChunkingOutPortTest(OutPortTest):
         self._testPushOversizedPacket(bulkio.timestamp.notSet(), True, stream_id)
 
         # Check that only the final packet has end-of-stream set
-        self.failUnless(self.stub.packets[-1].EOS, 'Last packet does not have EOS set')
+        self.assertTrue(self.stub.packets[-1].EOS, 'Last packet does not have EOS set')
         for packet in self.stub.packets[:-1]:
-            self.failIf(packet.EOS, 'Intermediate packet has EOS set')
+            self.assertFalse(packet.EOS, 'Intermediate packet has EOS set')
 
     def testPushChunkingSubsize(self):
         # Set up a 2-dimensional stream
@@ -276,15 +276,15 @@ class ChunkingOutPortTest(OutPortTest):
         # span multiple packets
         max_bits = 8 * bulkio.const.MAX_TRANSFER_BYTES
         bits_per_element = self.helper.BITS_PER_ELEMENT
-        count = 2 * max_bits / bits_per_element
+        count = 2 * max_bits // bits_per_element
         self._pushTestPacket(count, time, eos, streamID)
 
         # More than one packet must have been received, and no packet can
         # exceed the max transfer size
-        self.failUnless(len(self.stub.packets) > 1)
+        self.assertTrue(len(self.stub.packets) > 1)
         for packet in self.stub.packets:
             packet_bits = self.helper.packetLength(packet.data) * bits_per_element
-            self.failUnless(packet_bits < max_bits, 'Packet too large')
+            self.assertTrue(packet_bits < max_bits, 'Packet too large')
 
 class NumericOutPortTest(ChunkingOutPortTest):
     def testPushChunkingComplex(self):

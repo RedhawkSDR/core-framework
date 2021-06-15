@@ -25,8 +25,8 @@ import struct
 from bulkio.bulkioInterfaces import BULKIO
 from redhawk.burstioInterfaces import BURSTIO__POA
 
-import statistics
-import traits
+from . import statistics
+from . import traits
 
 __all__ = ('BurstByteIn', 'BurstUbyteIn',
            'BurstShortIn', 'BurstUshortIn',

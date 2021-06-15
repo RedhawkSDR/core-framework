@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,7 +19,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from setuptools import setup
+from setuptools import setup, find_packages
+from distutils import sysconfig
 import sys
 
 try:
@@ -27,64 +28,40 @@ try:
 except ImportError:
     pass
 else:
-    import StringIO
+    import io
     stdout, stderr = sys.stdout, sys.stderr
-    sys.stdout = co = StringIO.StringIO()
-    sys.stderr = ce = StringIO.StringIO()
+    sys.stdout = co = io.StringIO()
+    sys.stderr = ce = io.StringIO()
     # Tabnanny doesn't provide any mechanism other than print outs so we have
     # to capture the output
     tabnanny.check("ossie")
     sys.stdout = stdout
     sys.stderr = stderr
     if len(co.getvalue().strip()) != 0:
-        print "Incosistent tab usage:"
-        print co.getvalue()
+        print("Incosistent tab usage:")
+        print(co.getvalue())
         sys.exit(-1)
 
 import ossie.version
 
 setup(name='ossiepy',
       version=ossie.version.__version__,
-      description='OSSIE Python',
-      packages=['ossie',
-                'ossie/apps',
-                'ossie/apps/qtbrowse',
-                'ossie/apps/rhlauncher',
-                'ossie/apps/rhlauncher/ui',
-                'ossie/cf',
-                'ossie/cf/CF',
-                'ossie/cf/CF__POA',
-                'ossie/cf/PortTypes',
-                'ossie/cf/PortTypes__POA',
-                'ossie/cf/StandardEvent',
-                'ossie/cf/StandardEvent__POA',
-                'ossie/cf/ExtendedEvent',
-                'ossie/cf/ExtendedEvent__POA',
-                'ossie/cf/ExtendedCF',
-                'ossie/cf/ExtendedCF__POA',
-                'ossie/cf/ExtendedCF/WKP',
-                'ossie/cf/ExtendedCF__POA/WKP',
-                'ossie/events',
-                'ossie/logger',
-                'ossie/parsers',
-                'ossie/utils',
-                'ossie/utils/bluefile',
-                'ossie/utils/bulkio',
-                'ossie/utils/log4py',
-                'ossie/utils/model',
-                'ossie/utils/redhawk',
-                'ossie/utils/sandbox',
-                'ossie/utils/sb',
-                'ossie/utils/sca',
-                'ossie/utils/testing',
-                'ossie/utils/tools',
-                'ossie/utils/sdds',
-                'ossie/utils/rhtime',
-                'ossie/utils/rhconnection',
-                'ossie/utils/allocations',
-                'redhawk'],
+      description='OSSIE Python3',
+      author="Redhawk Deployer",
+      author_email="redhawksdr@redhawksdr.org",
+      classifiers=[
+          'Development Status :: 5  - Production/Stable',
+          'License:: OSI Approved :: GNU LESSER GENERAL PUBLIC LICENSE',
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.6',
+          "Operating System :: OS Independent",          
+          ],
+
+      packages=find_packages(include=[ "ossie", "ossie.*", "redhawk", "redhawk.*"]),
+    
       package_data={'ossie/apps/rhlauncher':['ui/*.ui',
                                              'ui/icons/*']},
+      
       scripts=['ossie/utils/tools/prf2py.py',
                'ossie/apps/qtbrowse/qtbrowse',
                'ossie/apps/rhlauncher/rhlauncher',
@@ -101,5 +78,11 @@ setup(name='ossiepy',
                                                'LinePSD=ossie.utils.sb.plots:LinePSD',
                                                'RasterPlot=ossie.utils.sb.plots:RasterPlot',
                                                'RasterPSD=ossie.utils.sb.plots:RasterPSD',
-                                               'XYPlot=ossie.utils.sb.plots:XYPlot']}
+                                               'XYPlot=ossie.utils.sb.plots:XYPlot']},
+      install_requires=[
+          'PyQt5',
+          'jinja2',
+          'numpy',
+          'lxml',
+          ]
       )

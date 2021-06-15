@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import unittest, os, signal, time, sys, commands, copy, shutil
+import unittest, os, signal, time, sys, subprocess, copy, shutil
 from xml.dom.minidom import parse, parseString
 from omniORB import URI, any
 from ossie.cf import CF, CF__POA

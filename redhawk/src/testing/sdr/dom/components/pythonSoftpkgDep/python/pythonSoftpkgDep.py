@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -32,7 +32,7 @@ class pythonSoftpkgDep_i(pythonSoftpkgDep_base):
         pythonSoftpkgDep_base.start(self)
         self.prop1 = self.h1.c['goober']
         self.prop2 = self.h2.c['jones']
-        self.prop3 = self.h3.c.keys()[2]
+        self.prop3 = ' '.join(sorted(self.h3.c.keys()))
 
     def process(self):
         """

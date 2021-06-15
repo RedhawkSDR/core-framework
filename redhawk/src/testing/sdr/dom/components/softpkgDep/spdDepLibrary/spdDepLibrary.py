@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-print "hello world"
+print("hello world")
 
 class bar:
   def __init__(self):

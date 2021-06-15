@@ -34,8 +34,8 @@ from ossie.cf import CF
 
 from ossie.utils.model import CorbaObject
 
-from base import SdrRoot, Sandbox, SandboxLauncher
-from model import SandboxComponent, SandboxDevice
+from .base import SdrRoot, Sandbox, SandboxLauncher
+from .model import SandboxComponent, SandboxDevice
 
 log = logging.getLogger(__name__)
 
@@ -89,10 +89,10 @@ class IDELauncher(SandboxLauncher):
 
     def launch(self, comp):
         # Pack the execparams into an array of string-valued properties
-        properties = [CF.DataType(k, to_any(str(v))) for k, v in self._execparams.iteritems()]
+        properties = [CF.DataType(k, to_any(str(v))) for k, v in self._execparams.items()]
         # Pack the remaining props by having the component do the conversion
-        properties.extend(comp._itemToDataType(k,v) for k,v in self._initProps.iteritems())
-        properties.extend(comp._itemToDataType(k,v) for k,v in self._configProps.iteritems())
+        properties.extend(comp._itemToDataType(k,v) for k,v in self._initProps.items())
+        properties.extend(comp._itemToDataType(k,v) for k,v in self._configProps.items())
 
         # Tell the IDE to launch a specific implementation, if given
         if comp._impl is not None:
@@ -220,7 +220,7 @@ class IDESandbox(Sandbox):
                 comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
                 comp.ref = resource
                 self.__components[instanceName] = comp
-            except Exception, e:
+            except Exception as e:
                 log.error("Could not wrap resource with profile %s': %s", desc.profile, e)
         
         # Clean up stale components
@@ -254,13 +254,13 @@ class IDESandbox(Sandbox):
 
     def catalog(self, searchPath=None, objType=None):
         if searchPath:
-            log.warn("IDE sandbox does not support alternate paths")
+            log.warning("IDE sandbox does not support alternate paths")
 
         return super(IDESandbox,self).catalog(searchPath, objType)
 
     def browse(self, searchPath=None, objType=None, withDescription=False):
         if searchPath:
-            log.warn("IDE sandbox does not support alternate paths")
+            log.warning("IDE sandbox does not support alternate paths")
 
         sdrroot = self.getSdrRoot()
 
@@ -275,7 +275,7 @@ class IDESandbox(Sandbox):
             elif profile.find("/services") != -1:
                 rsrcType = "services"
             spd, scd, prf = sdrroot.readProfile(profile)
-            if rsrcDict.has_key(rsrcType) == False:
+            if (rsrcType in rsrcDict) == False:
                 rsrcDict[rsrcType] = []
             if withDescription == True:
                 new_item = {}
@@ -292,7 +292,7 @@ class IDESandbox(Sandbox):
             else:
                 rsrcDict[rsrcType].append(spd.get_name())
 
-        for key in sorted(rsrcDict.iterkeys()):
+        for key in sorted(rsrcDict.keys()):
             output_text += "************************ " + str(key) + " ***************************\n"
 
             value = rsrcDict[key]
@@ -318,7 +318,7 @@ class IDESandbox(Sandbox):
                 for v1,v2,v3,v4 in zip(l1,l2,l3,l4):
                     output_text += '%-30s%-30s%-30s%-30s\n' % (v1,v2,v3,v4)
                 output_text += "\n"
-        print output_text
+        print(output_text)
 
     def getComponent(self, name):
         self._scanChalkboard()
@@ -330,7 +330,7 @@ class IDESandbox(Sandbox):
 
     def getComponents(self):
         self._scanChalkboard()
-        return self.__components.values()
+        return list(self.__components.values())
 
     def getService(self, name):
         self._scanServices()
@@ -338,7 +338,7 @@ class IDESandbox(Sandbox):
 
     def getServices(self):
         self._scanServices()
-        return self.__services.values()
+        return list(self.__services.values())
 
     def getType(self):
         return 'IDE'

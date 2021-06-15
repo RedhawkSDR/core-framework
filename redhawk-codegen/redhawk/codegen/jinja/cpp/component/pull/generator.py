@@ -26,7 +26,7 @@ from redhawk.codegen.jinja.cpp.properties import CppPropertyMapper
 from redhawk.codegen.jinja.cpp.ports import CppPortMapper, CppPortFactory
 from redhawk.codegen.jinja.template import TemplateFile
 
-from mapping import PullComponentMapper
+from .mapping import PullComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

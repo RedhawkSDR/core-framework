@@ -17,11 +17,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-from PyQt4 import QtGui
 
-import ui
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
-class DomainDialog(QtGui.QDialog):
+from . import ui
+
+class DomainDialog(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
         super(DomainDialog,self).__init__(*args, **kwargs)
         ui.load('domaindialog.ui', self)

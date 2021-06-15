@@ -20,7 +20,7 @@
 
 from redhawk.codegen.jinja.ports import PortFactory
 
-from generator import BuiltinPythonPort
+from .generator import BuiltinPythonPort
 
 class MessagePortFactory(PortFactory):
     REPID = 'IDL:ExtendedEvent/MessageEvent:1.0'

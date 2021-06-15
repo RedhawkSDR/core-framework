@@ -25,7 +25,7 @@ from redhawk.codegen.lang import java
 from redhawk.codegen.jinja.ports import PortFactory
 from redhawk.codegen.jinja.java import JavaTemplate
 
-from generator import JavaPortGenerator
+from .generator import JavaPortGenerator
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

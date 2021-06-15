@@ -18,13 +18,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 
 class Terminal(object):
     def __init__(self, command, title):
-        status, self.__command = commands.getstatusoutput('which '+command)
+        status, self.__command = subprocess.getstatusoutput('which '+command)
         if status:
-            raise RuntimeError, command + ' cannot be found'
+            raise RuntimeError(command + ' cannot be found')
         self._title = title
 
     def _termOpts(self):

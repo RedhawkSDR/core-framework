@@ -33,19 +33,19 @@ from omniORB import any as _any
 from ossie.cf import CF
 
 from redhawk.frontendInterfaces import FRONTEND
-import tuner_device
-import fe_types
+from frontend import tuner_device
+from frontend import fe_types
 from ossie.properties import struct_property
 
 class ValidateRequestTest(unittest.TestCase):
 
     def testFrontendAllocationStruct(self):
         frontend_scanner_allocation = struct_property(id_="FRONTEND::scanner_allocation",name="frontend_scanner_allocation",structdef=fe_types.frontend_scanner_allocation,configurationkind=("allocation",),mode="writeonly",description="""Frontend Interfaces v2.0 scanner allocation structure""")
-        self.assertEquals(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::min_freq'][1].type_, 'double')
-        self.assertEquals(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::max_freq'][1].type_, 'double')
-        self.assertEquals(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::mode'][1].type_, 'string')
-        self.assertEquals(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::control_mode'][1].type_, 'string')
-        self.assertEquals(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::control_limit'][1].type_, 'double')
+        self.assertEqual(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::min_freq'][1].type_, 'double')
+        self.assertEqual(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::max_freq'][1].type_, 'double')
+        self.assertEqual(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::mode'][1].type_, 'string')
+        self.assertEqual(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::control_mode'][1].type_, 'string')
+        self.assertEqual(frontend_scanner_allocation.fields['FRONTEND::scanner_allocation::control_limit'][1].type_, 'double')
 
 if __name__ == '__main__':
     import runtests

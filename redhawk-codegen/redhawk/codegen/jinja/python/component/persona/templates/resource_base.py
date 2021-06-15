@@ -20,7 +20,7 @@
 #% set className = component.baseclass.name
 #% set superclass = component.superclasses[0].name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -47,7 +47,7 @@ from ossie.properties import struct_property
 from ossie.properties import structseq_property
 #{% endif %}
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 #{% filter lines|unique|join('\n') %}
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
@@ -148,7 +148,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             """The process method should process a single "chunk" of data and then return.  This method will be called
             from the processing thread again, and again, and again until it returns FINISH or stop() is called on the
             ${artifactType}.  If no work is performed, then return NOOP"""
-            raise NotImplementedError
+            raise NotImplementedError("No service function")
 
         def stop(self):
 #{% for port in component.ports if port.stop%}
@@ -171,7 +171,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
             self.threadControlLock.acquire()
             try:

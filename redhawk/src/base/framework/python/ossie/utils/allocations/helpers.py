@@ -22,6 +22,7 @@ import copy
 from ossie import properties
 import ossie.parsers.prf
 from omniORB import tcInternal, CORBA, any
+from io import IOBase
 
 class WrongInputType(Exception):
     pass
@@ -111,7 +112,7 @@ def setType(props, prop_id, _type, typeCheck=True):
     '''
     if typeCheck:
         __typeCheck(props)
-    if not properties.getTypeMap().has_key(_type):
+    if _type not in properties.getTypeMap():
         raise BadValue('Type "'+_type+'" does not exist')
     if _type == getType(props, prop_id, False):
         return props
@@ -148,7 +149,7 @@ def matchTypes(props, prop_ids=[], prf=None):
                     break
                 _len = len(prfcontents)
             prf.close()
-        elif isinstance(prf, file):
+        elif isinstance(prf, IOBase):
             prfcontents = prf.read()
             prf.close()
         elif isinstance(prf, str):
@@ -191,13 +192,13 @@ def matchTypes(props, prop_ids=[], prf=None):
         for prop_id in prop_ids:
             if not isinstance(prop_id, str):
                 raise WrongInputType('prop_id must be either a string or None')
-            if not classes.has_key(prop_id):
+            if prop_id not in classes:
                 raise MissingProperty(prop_id+' is not defined in the given reference prf file')
             props = setType(props, prop_id, classes[prop_id].type_, typeCheck=False)
         return props
 
     for _prop in props:
-        if not classes.has_key(_prop.id):
+        if _prop.id not in classes:
             raise MissingProperty('props contains property '+_prop.id+', but the given reference prf file does not have it defined')
         if isinstance(classes[_prop.id], ossie.parsers.prf.simple) or isinstance(classes[_prop.id], ossie.parsers.prf.simpleSequence):
             props = setType(props, _prop.id, classes[_prop.id].type_, typeCheck=False)

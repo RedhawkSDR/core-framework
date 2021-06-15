@@ -74,7 +74,7 @@ def _copy_bits(dest, dstart, src, sstart, count):
         # next byte as well)
         dbyte += 1
         sbit += nbits
-        sbyte += sbit / 8
+        sbyte += sbit // 8
         sbit = sbit & 7
         count -= nbits
 
@@ -86,7 +86,7 @@ def _copy_bits(dest, dstart, src, sstart, count):
     else:
         # The two bit arrays are not exactly aligned; iterate through each
         # byte from the left-hand side
-        for pos in xrange(bytes):
+        for pos in range(bytes):
             dest[dbyte+pos] = _read_split_byte(src, sbyte+pos, sbit)
     dbyte += bytes
     sbyte += bytes
@@ -101,7 +101,7 @@ def _unpack(src, start, count):
     byte, bit = _split_index(start)
 
     last_byte = byte + (bit + count + 7) // 8
-    for pos in xrange(byte, last_byte):
+    for pos in range(byte, last_byte):
         nbits = min(8 - bit, count)
 
         # Use the first (inclusive) and last (exclusive) bits to determine the
@@ -166,7 +166,7 @@ class biterator(object):
         self.bits = bits
 
     def __iter__(self):
-        for shift in xrange(self.bits-1, -1, -1):
+        for shift in range(self.bits-1, -1, -1):
             yield (self.value >> shift) & 1
         
 
@@ -196,10 +196,10 @@ def takeskip(iterable, take, skip):
     """
     it = iter(iterable)
     while True:
-        for _ in xrange(take):
-            yield it.next()
-        for _ in xrange(skip):
-            it.next()
+        for _ in range(take):
+            yield next(it)
+        for _ in range(skip):
+            next(it)
 
 class bitbuffer(object):
     """
@@ -314,7 +314,7 @@ class bitbuffer(object):
                     raise TypeError('integer given with no bit count')
                 data = biterator(data, bits)
                 func = int
-            elif isinstance(data, basestring):
+            elif isinstance(data, str):
                 # String: parse as binary string
                 func = _char_to_bit
             else:
@@ -351,7 +351,7 @@ class bitbuffer(object):
                 return bitbuffer(self, bits, start_bit)
             else:
                 # Create a new bitbuffer by striding through this one
-                return bitbuffer(self[pos] for pos in xrange(start, stop, step))
+                return bitbuffer(self[pos] for pos in range(start, stop, step))
         else:
             # Get an individual bit
             pos = self._check_index(pos)
@@ -370,7 +370,7 @@ class bitbuffer(object):
                 self._assign(start, stop, value)
                 return
 
-            indices = xrange(start, stop, step)
+            indices = range(start, stop, step)
             bits = len(indices)
             try:
                 value_len = len(value)
@@ -406,7 +406,7 @@ class bitbuffer(object):
     def __eq__(self, other):
         if len(self) != len(other):
             return False
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             func = _char_to_bit
         else:
             func = bool
@@ -421,8 +421,8 @@ class bitbuffer(object):
             value = (value << 1) | bit
         return value
 
-    def __hex__(self):
-        return hex(int(self))
+    def __index__(self):
+        return self.__int__()
 
     def __copy__(self):
         # Make a copy of the data array so that modifications to the copy do
@@ -512,7 +512,7 @@ class bitbuffer(object):
         # length to do the comparison
         end = min(end, len(self) - length)
 
-        for pos in xrange(start, end):
+        for pos in range(start, end):
             if pattern.distance(self[pos:pos+length]) <= maxDistance:
                 return pos
         return -1

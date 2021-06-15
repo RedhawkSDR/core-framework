@@ -21,8 +21,8 @@
 from ossie.utils.sandbox import LocalSandbox as _LocalSandbox
 from ossie.utils.sandbox import IDESandbox as _IDESandbox
 from ossie.utils.model import NoMatchingPorts as _NoMatchingPorts
-from io_helpers import FileSource as _FileSource
-from io_helpers import FileSink as _FileSink
+from .io_helpers import FileSource as _FileSource
+from .io_helpers import FileSink as _FileSink
 import os as _os
 import logging as _logging
 import time as _time
@@ -205,7 +205,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         sinkBlue = True
 
     def undo_all(undos):
-        keys = undos.keys()
+        keys = list(undos.keys())
         keys.sort(reverse=True)
         for undo in keys:
             try:
@@ -214,7 +214,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
                     undoCall()
                 else:
                     undoCall(undos[undo][1])
-            except Exception, e:
+            except Exception as e:
                 pass
     
     def signalHandler(sig, frame):
@@ -232,7 +232,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         global exit_condition
         while True:
             if timeout < (_time.time() - begin_time):
-                log.warn("Timeout reached. File '"+sink+"' is incomplete")
+                log.warning("Timeout reached. File '"+sink+"' is incomplete")
                 timeout_condition = True
                 undo_all(undos)
             _time.sleep(0.1)
@@ -247,7 +247,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         global exit_condition
         while True:
             if not _comp._process.isAlive():
-                log.warn('******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************')
+                log.warning('******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************')
                 crashed_condition = True
                 undo_all(undos)
             _time.sleep(0.1)
@@ -268,7 +268,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
     if comp!=None:
         try:
             _comp=_sandbox.launch(comp,objType="components",instanceName=instanceName, refid=refid, impl=impl, debugger=debugger, window=window, execparams=execparams, configure=configure, initialize=initialize, timeout=timeout)
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
     else:
@@ -281,7 +281,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         _read=_FileSource(filename=source,dataFormat=sourceFmt,midasFile=sinkBlue,sampleRate=sampleRate)
         undos[str(order)+':releaseObject']=(_read,)
         order += 1
-    except Exception, e:
+    except Exception as e:
         undo_all(undos)
         raise
 
@@ -292,7 +292,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _write=_FileSink(filename=sink,midasFile=sinkBlue)
             undos[str(order)+':releaseObject']=(_write,)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
          
@@ -324,7 +324,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         if outputDataConverter:
             try:
                 _dataConverter_out=_sandbox.launch('rh.DataConverter', timeout=timeout)
-            except Exception, e:
+            except Exception as e:
                 undo_all(undos)
                 if type(e).__name__ == "ValueError" and \
                    str(e) == "'rh.DataConverter' is not a valid softpkg name or SPD file":
@@ -335,7 +335,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
                 _comp.connect(_dataConverter_out, usesPortName=usesPortName)
                 undos[str(order)+':disconnect']=(_comp,_dataConverter_out)
                 order += 1
-            except Exception, e:
+            except Exception as e:
                 undo_all(undos)
                 raise
             try:
@@ -343,7 +343,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
                 _dataConverter_out.connect(_write, usesPortName=portName)
                 undos[str(order)+':disconnect']=(_dataConverter_out,_write)
                 order += 1
-            except Exception, e:
+            except Exception as e:
                 undo_all(undos)
                 raise
         else:
@@ -351,7 +351,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
                 _comp.connect(_write, usesPortName=usesPortName)
                 undos[str(order)+':disconnect']=(_comp,_write)
                 order += 1
-            except Exception, e:
+            except Exception as e:
                 undo_all(undos)
                 raise
 
@@ -360,19 +360,19 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         _read.connect(_comp, providesPortName=providesPortName)
         undos[str(order)+':disconnect']=(_read,_comp)
         order += 1
-    except _NoMatchingPorts, e:
+    except _NoMatchingPorts as e:
         if sourceFmt != None:
             inputDataConverter = True
         else:
             undo_all(undos)
             raise
-    except Exception, e:
+    except Exception as e:
         undo_all(undos)
         raise
     if inputDataConverter:
         try:
             _dataConverter=_sandbox.launch('rh.DataConverter', timeout=timeout)
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             if type(e).__name__ == "ValueError" and \
                str(e) == "'rh.DataConverter' is not a valid softpkg name or SPD file":
@@ -384,14 +384,14 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _read.connect(_dataConverter, providesPortName=portName)
             undos[str(order)+':disconnect']=(_read,_dataConverter)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
         try:
             _dataConverter.connect(_comp)
             undos[str(order)+':disconnect']=(_dataConverter,_comp)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
     
@@ -400,7 +400,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _dataConverter.start()
             undos[str(order)+':stop']=(_comp,)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
 
@@ -409,7 +409,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _dataConverter_out.start()
             undos[str(order)+':stop']=(_comp,)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
 
@@ -417,7 +417,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         _comp.start()
         undos[str(order)+':stop']=(_comp,)
         order += 1
-    except Exception, e:
+    except Exception as e:
         undo_all(undos)
         raise
     
@@ -425,7 +425,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
         _read.start()
         undos[str(order)+':stop']=(_read,)
         order += 1
-    except Exception, e:
+    except Exception as e:
         undo_all(undos)
         raise
     
@@ -434,7 +434,7 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _write.start()
             undos[str(order)+':stop']=(_write,)
             order += 1
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
     
@@ -463,10 +463,10 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
                     done = True
                     continue
                 if not _comp._process.isAlive():
-                    print '******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************'
+                    print('******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************')
                     break
                 _time.sleep(0.1)
-        except Exception, e:
+        except Exception as e:
             if (not timeout_condition) and (not break_condition):
                 undo_all(undos)
                 raise
@@ -475,13 +475,13 @@ def proc(comp,source,sink=None,sourceFmt=None,sinkFmt=None,sampleRate=1.0,execpa
             _c_runThread = _threading.Thread(target=checkCrashed,args=(_comp, comp, undos))
             _c_runThread.setDaemon(True)
             _c_runThread.start()
-            raw_input('enter a new line to exit processing\n')
+            input('enter a new line to exit processing\n')
             done = True
             #if not _comp._process.isAlive():
             #    print '******************************************\n\n\nThe component '+comp+' crashed\nThis indicates a bug in the component code\n\n\n******************************************'
             #else:
             #    done=True
-        except Exception, e:
+        except Exception as e:
             undo_all(undos)
             raise
             

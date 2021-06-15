@@ -69,7 +69,6 @@ NicFacade::initialize()
       const std::string& parsedInterface( *i );
                 
       boost::shared_ptr<NicState> nic_state = get_or_insert_nic_state( parsedInterface );
-
       if( !has_nic_accumulator(nic_state->get_device()) )
         {
           RH_NL_DEBUG( "GPP", __FUNCTION__ << ": Adding NicAccumulator (" << nic_state->get_device() << ")" );
@@ -121,9 +120,9 @@ NicFacade::get_or_insert_nic_state( const std::string& interface )
     std::map<std::string, boost::shared_ptr<NicState> >::iterator i = nic_states_.find(interface);
     if( nic_states_.end() == i )
     {
-      RH_NL_DEBUG( "GPP", __FUNCTION__ << ": Adding NicState (" << interface << ")" );
-      NicStatePtr nc(new NicState(interface));
-      i = nic_states_.insert( std::make_pair(interface, nc )).first;
+      NicStatePtr nc( new NicState(interface) );
+      RH_NL_DEBUG( "GPP", __FUNCTION__ << ": Adding NicState (" << interface << ")");
+      i = nic_states_.insert( std::make_pair(interface, nc) ).first;
     }
     return i->second;
 }

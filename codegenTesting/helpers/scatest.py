@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -19,7 +19,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 from _unitTestHelpers.scatest import *
-import commands
+import subprocess
 import glob
 import os
 from xml.dom.minidom import parse
@@ -129,28 +129,28 @@ class CodeGenTestCase(OssieTestCase):
                     opts = [('-C', self.build_dir), ('--impl', impl)]
                     opts = ' '.join(' '.join(item) for item in opts)
                     _codegen = ' '.join((codegen, opts, spdfile))
-                    (status,output) = commands.getstatusoutput(_codegen)
-                    print output
-                    self.assertEquals(status, 0, msg='failed for impl=' + str(impl) + '\n\n' + output)
+                    (status,output) = subprocess.getstatusoutput(_codegen)
+                    print(output)
+                    self.assertEqual(status, 0, msg='failed for impl=' + str(impl) + '\n\n' + output)
         else:
           for lang in languages:
-             if self.impl_dict.has_key(lang):
+             if lang in self.impl_dict:
                 for impl in self.impl_dict[lang]:
                     implId = impl['id']
                     opts = [('-C', self.build_dir), ('--impl', implId)]
                     opts = ' '.join(' '.join(item) for item in opts)
                     _codegen = ' '.join((codegen, opts, spdfile))
 
-                    (status,output) = commands.getstatusoutput(_codegen)
-                    self.assertEquals(status, 0, msg='failed for lang=' + lang + '\n\n' + output)
+                    (status,output) = subprocess.getstatusoutput(_codegen)
+                    self.assertEqual(status, 0, msg='failed for lang=' + lang + '\n\n' + output)
 
     def compileProject(self, file_dir):
         start_dir = os.getcwd();
         os.chdir(file_dir)
         command = './reconf; ./configure; make'
-        (status,output) = commands.getstatusoutput(command)
+        (status,output) = subprocess.getstatusoutput(command)
         os.chdir(start_dir)
-        self.assertEquals(status, 0 ,msg=output)
+        self.assertEqual(status, 0 ,msg=output)
 
     def getImplementationIDs(self, validLanguageKeys):
         parent_dir = os.getcwd()
@@ -189,10 +189,10 @@ class CodeGenTestCase(OssieTestCase):
                         impl_dict[lang].append(impl)
 
             else:
-                print "No implementations found in SPD file for " + self.artifact_type + " [" + self.artifact_name + "]"
+                print("No implementations found in SPD file for " + self.artifact_type + " [" + self.artifact_name + "]")
 
-        except Exception, e:
-            print "No SPD file found for " + self.artifact_type + " [" + self.artifact_name + "]"
+        except Exception as e:
+            print("No SPD file found for " + self.artifact_type + " [" + self.artifact_name + "]")
 
         os.chdir(parent_dir)
         return impl_dict

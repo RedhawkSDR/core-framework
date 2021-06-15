@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -21,7 +21,7 @@
 
 # System imports
 # NOTE: all REDHAWK framework imports must occur after configureTestPaths()
-import commands
+import subprocess
 import functools
 import os
 import re
@@ -31,11 +31,12 @@ import time
 import functools
 import unittest
 
+
 def prependPythonPath(thepath):
     theabspath = os.path.abspath(thepath)
     sys.path.insert(0, theabspath)
     # And set the PythonPath for any processes that are spawned
-    if os.environ.has_key('PYTHONPATH'):
+    if 'PYTHONPATH' in os.environ:
         os.environ['PYTHONPATH'] = "%s:%s" % (theabspath, os.environ['PYTHONPATH']) 
     else:
         os.environ['PYTHONPATH'] = "%s" % (theabspath) 
@@ -110,10 +111,10 @@ class PromptTestLoader(unittest.TestLoader):
             if function:
                 reason = getattr(function, 'skip_reason', False)
                 if reason:
-                    print "SKIPPING:  {0}.{1} - '{2}'".format(testCaseClass.__name__, function.__name__, reason)
+                    print("SKIPPING:  {0}.{1} - '{2}'".format(testCaseClass.__name__, function.__name__, reason))
                     return False
             return True
-        testFnNames = filter(isTestMethod, dir(testCaseClass))
+        testFnNames = list(filter(isTestMethod, dir(testCaseClass)))
         if self.sortTestMethodsUsing:
             cmp_to_key = None
             if hasattr(unittest, '_CmpToKey'):  # Python 2.6
@@ -123,7 +124,7 @@ class PromptTestLoader(unittest.TestLoader):
             if cmp_to_key:
                 testFnNames.sort(key=cmp_to_key(self.sortTestMethodsUsing))
             else:
-                print 'Conversion function "cmp_to_key" not found.  Not sorting.'
+                print('Conversion function "cmp_to_key" not found.  Not sorting.')
         return testFnNames
 
     def loadTestsFromTestCase(self, testCaseClass):
@@ -134,18 +135,18 @@ class PromptTestLoader(unittest.TestLoader):
         if not testCaseNames and hasattr(testCaseClass, 'runTest'):
             testCaseNames = ['runTest']
         if self.PROMPT:
-            ans = raw_input("Would you like to execute all tests in %s [Y]/N? " % testCaseClass).upper()
+            ans = input("Would you like to execute all tests in %s [Y]/N? " % testCaseClass).upper()
             if ans == "N":
                 testCaseNamesToRun = []
                 for name in testCaseNames:
-                    ans = raw_input("Would you like to execute test %s [Y]/N? " % name).upper()
+                    ans = input("Would you like to execute test %s [Y]/N? " % name).upper()
                     if ans == "N":
                         continue
                     else:
                         testCaseNamesToRun.append(name)
                 testCaseNames = testCaseNamesToRun
 
-        return self.suiteClass(map(testCaseClass, testCaseNames))
+        return self.suiteClass(list(map(testCaseClass, testCaseNames)))
 
 class TestCollector(unittest.TestSuite):
     def __init__(self, files, testMethodPrefix, prompt=True):
@@ -168,19 +169,19 @@ class TestCollector(unittest.TestSuite):
                     if issubclass(candidate, unittest.TestCase):
                         reason = getattr(candidate, 'skip_reason', False)
                         if reason:
-                            print "SKIPPING:  {0} - '{1}'".format(candidate.__name__, reason)
+                            print("SKIPPING:  {0} - '{1}'".format(candidate.__name__, reason))
                             continue
-                        print "LOADING"
+                        print("LOADING")
                         loader = PromptTestLoader()
                         loader.PROMPT = self.__prompt
                         loader.testMethodPrefix = self.__testMethodPrefix
                         self.addTest(loader.loadTestsFromTestCase(candidate))
-                except TypeError, e:
+                except TypeError as e:
                     pass
 
 if __name__ == "__main__":
     if os.path.abspath(os.path.dirname(__file__)) != os.getcwd():
-        print "runtests.py *must* be run from within the testing folder"
+        print("runtests.py *must* be run from within the testing folder")
         sys.exit(-1)
 
     from optparse import OptionParser
@@ -239,7 +240,7 @@ if __name__ == "__main__":
         default=3)
     
     (options, args) = parser.parse_args()
-    
+
     from _unitTestHelpers import scatest
     scatest.DEBUG_NODEBOOTER = options.gdb
     scatest.GDB_CMD_FILE = options.gdbfile
@@ -248,34 +249,34 @@ if __name__ == "__main__":
         files = runtestHelpers.getUnitTestFiles("tests")
     else:
         files = args
-
-    if os.environ.has_key('OSSIEUNITTESTSLOGCONFIG'):
-        ans = raw_input("OSSIEUNITTESTSLOGCONFIG already exists as %s. Do you want to continue [Y]/N? " % os.environ[OSSIEUNITTESTSLOGCONFIG]).upper()
+        
+    if 'OSSIEUNITTESTSLOGCONFIG' in os.environ:
+        ans = input("OSSIEUNITTESTSLOGCONFIG already exists as %s. Do you want to continue [Y]/N? " % os.environ[OSSIEUNITTESTSLOGCONFIG]).upper()
         if ans == "N":
             sys.exit()
     else:
         os.environ['OSSIEUNITTESTSLOGCONFIG'] = os.path.abspath(options.logconfig)
 
+
     from datetime import datetime
     test_start_time = datetime.now()
 
-    print ""
-    print "Creating the Test Domain"
-    print ""
+    print("")
+    print("Creating the Test Domain")
+    print("")
     scatest.createTestDomain()
 
-    print ""
-    print "R U N N I N G  T E S T S"
-    print "SDRROOT: ", scatest.getSdrPath(), " Start:", test_start_time.strftime("%m/%d/%Y %H:%M:%S")
-    print ""
+    print("")
+    print("R U N N I N G  T E S T S")
+    print("SDRROOT: ", scatest.getSdrPath(), " Start:", test_start_time.strftime("%m/%d/%Y %H:%M:%S"))
+    print("")
 
     suite = TestCollector(files, testMethodPrefix=options.prefix, prompt=options.prompt)
 
     if options.xmlfile == None:
         runner = unittest.TextTestRunner(verbosity=options.verbosity)
     else:
-        stream = open(options.xmlfile, "w")
-        runner = xmlrunner.XMLTestRunner(stream)
+        runner = xmlrunner.XMLTestRunner(options.xmlfile,verbosity=options.verbosity,buffer=False)
     if options.debug:
         import pdb
         pdb.run("runner.run(suite)")
@@ -284,6 +285,6 @@ if __name__ == "__main__":
 
     test_end_time = datetime.now()
     dur=    test_end_time - test_start_time
-    print "Completed Execution: End:", test_end_time.strftime("%m/%d/%Y %H:%M:%S"), " Duration: ", str(dur)
+    print("Completed Execution: End:", test_end_time.strftime("%m/%d/%Y %H:%M:%S"), " Duration: ", str(dur))
 
     

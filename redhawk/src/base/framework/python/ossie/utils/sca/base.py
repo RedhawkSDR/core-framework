@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import os
 import xml.dom.minidom
 from ossie.cf import CF, CF__POA
@@ -33,7 +33,7 @@ from ossie.utils.sca import importIDL
 
 # UUID Generator
 def uuidgen():
-   return commands.getoutput('uuidgen')
+   return subprocess.getoutput('uuidgen')
 
 # Finds SDR root directory
 def findSdrRoot():
@@ -44,26 +44,27 @@ def findSdrRoot():
     elif os.path.exists('/sdr'):
         sdrroot = '/sdr'
     else:
-        print "Cannot find SDR root directory"
+        print("Cannot find SDR root directory")
         return False
         
     return sdrroot
 
 # Component Class
 class Component(object):
-  """This is a class used to access a Component in a deployed waveform
-       Relevant member data:
-         name - component's instance name (same as the key from the waveform dictionary)
-         Ports - dictionary with all the ports in this component
-         profile - name of the SPD XML that describes this component
-         API - dictionary with the API for this component
-         
-       A developer interfaces with the component through its API. A call to getAPI()
-        returns a dictionary where the name of the port is the key, and the corresponding
-        value is:
-          - type - Uses (output) or Provides (input)
-          - namespace:interface - The IDL interface that the port implements
-          - function list - list of all functions that the Port supports
+  """
+  This is a class used to access a Component in a deployed waveform
+    Relevant member data:
+      name - component's instance name (same as the key from the waveform dictionary)
+      Ports - dictionary with all the ports in this component
+      profile - name of the SPD XML that describes this component
+      API - dictionary with the API for this component
+
+    A developer interfaces with the component through its API. A call to getAPI()
+     returns a dictionary where the name of the port is the key, and the corresponding
+     value is:
+       - type - Uses (output) or Provides (input)
+       - namespace:interface - The IDL interface that the port implements
+       - function list - list of all functions that the Port supports
   
   """
   def __init__(self, name="",AC=False,type="resource",generate=True, int_list=None):
@@ -105,25 +106,29 @@ class Component(object):
     self.API = {}
     
   def getAPI(self):
-      """Returns a dictionary with the API for this component
+      """
+      Returns a dictionary with the API for this component
       """
       return self.API
   
   def printAPI(self):
-      """Prints a user-friendly version of the API for this component onto the screen
+      """
+      Prints a user-friendly version of the API for this component onto the screen
       """
       for port in self.API:
-          print "Port name: " + port
-          print "  direction: " + self.API[port][0]
-          print "  interface: " + self.API[port][1]
+          print("Port name: " + port)
+          print("  direction: " + self.API[port][0])
+          print("  interface: " + self.API[port][1])
           for funcs in self.API[port][2]:
-              print "    " + funcs
-          print ""
+              print("    " + funcs)
+          print("")
 
   def populatePorts(self):
-      """Add all port descriptions to the component instance"""
+      """
+      Add all port descriptions to the component instance
+      """
       if self.profile == '':
-          print "Unable to create port list for " + self.name + " - profile unavailable"
+          print("Unable to create port list for " + self.name + " - profile unavailable")
           return
       if len(self.ports) != 0:
           return
@@ -149,8 +154,8 @@ class Component(object):
       
       for uses in doc_scd.getElementsByTagName('uses'):
           idl_repid = uses.getAttribute('repid')
-          if not int_list.has_key(idl_repid):
-              print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+          if idl_repid not in int_list:
+              print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
               continue
           int_entry = int_list[idl_repid]
           new_port = Port(uses.getAttribute('usesname'), int_entry, type="Uses")
@@ -161,8 +166,8 @@ class Component(object):
       
       for provides in doc_scd.getElementsByTagName('provides'):
           idl_repid = provides.getAttribute('repid')
-          if not int_list.has_key(idl_repid):
-              print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+          if idl_repid not in int_list:
+              print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
               continue
           int_entry = int_list[idl_repid]
           new_port = Port(provides.getAttribute('providesname'), int_entry, type="Provides")
@@ -172,9 +177,9 @@ class Component(object):
           if str(int_entry.nameSpace) not in interface_modules:
             try:
                 exec_string = 'import ' + str(int_entry.nameSpace)
-                exec exec_string
-            except ImportError, msg:
-                print msg
+                exec(exec_string)
+            except ImportError as msg:
+                print(msg)
                 continue
             else:
                 interface_modules.append(str(int_entry.nameSpace))
@@ -188,7 +193,9 @@ class Component(object):
       self.buildAPI()
 
   def buildAPI(self):
-      """Build a dictionary with the API for the component"""
+      """
+      Build a dictionary with the API for the component
+      """
       if self.API != {}:
           return
           
@@ -223,37 +230,47 @@ class Component(object):
               port_list.append(op_list)
               self.API[name]=port_list
           else:
-              print "Invalid port direction descriptor in " + self.name
+              print("Invalid port direction descriptor in " + self.name)
               continue
   
   def __getitem__(self,i):
-      """Return a list of the connections the component has (obsolete)"""
+      """
+      Return a list of the connections the component has (obsolete)
+      """
       return self.connections[i]
   
   def setUUID(self):
-      """Modify the UUID for the component (use of this function is likely to cause negative effects)"""
+      """
+      Modify the UUID for the component (use of this function is likely to cause negative effects)
+      """
       self.uuid = uuidgen()
       
   def changeName(self,newname):
-      """Modify the component's name (use of this function is likely to cause negative effects)"""
+      """
+      Modify the component's name (use of this function is likely to cause negative effects)
+      """
       self.name = newname
       if self.generate == True:
           self.baseName = newname
           self.xmlName = newname
   
   def getPorts(self):
-      """Return a dictionary of all Component Ports"""
+      """
+      Return a dictionary of all Component Ports
+      """
       return self.Ports
 
   def queryProperties(self):
-      """Return a dictionary of the properties and values."""
+      """
+      Return a dictionary of the properties and values.
+      """
       
       if self.profile == '':
-          print "Unable to query properties for " + self.name + " - profile unavailable"
+          print("Unable to query properties for " + self.name + " - profile unavailable")
           return None
 
       if self.ref == None:
-          print 'No reference to component <' + self.name + '>'
+          print('No reference to component <' + self.name + '>')
           return None
 
       os.chdir(self.root)
@@ -271,9 +288,8 @@ class Component(object):
       # Parse the properties file
       try:
           doc_prf = xml.dom.minidom.parse(self.prf_path)
-      except ExpatError, msg:
-          print "Error reading <" + self.prf_path + ">",
-          print msg
+      except ExpatError as msg:
+          print("Error reading <{}> reason: {}".format(self.prf_path,msg))
           return None
 
       props_tag = doc_prf.documentElement
@@ -323,43 +339,44 @@ class Component(object):
 
 
 class Waveform(object):
-    """This is the basic descriptor for a waveform (collection of inter-connected Components)
+    """
+    This is the basic descriptor for a waveform (collection of inter-connected Components)
 
-       Relevant member data:
-       app - Pointer to the Application (SCA core framework) object
-       Components - dictionary for the different Component instances making up the waveform
-       ns_name - the unique naming service name for this waveform
-       name - the (non-unique) name for this waveform
-       
-       Waveform overview:
-       
-       A waveform is defined by an XML file (<waveform name>.sad.xml) that resides in a waveform
-       directory, usually /sdr/sca/waveforms or /sdr/waveforms. This XML file lists a series of
-       components, a variety of default values for each of these components, and a set of connections
-       between different components' input and output ports. Input ports are referred to as 'Provides'
-       and output ports are referred to as 'Uses'.
-       
-       A waveform can follow any type of design, but may look something like this:
-       
-                                  _________ 
-                                  |        |
-       _________    _________   ->| Comp 3 |
-       |        |   |        | /  |        |
-       | Comp 1 |-->| Comp 2 |/   ----------
-       |        |   |        |\   _________ 
-       ----------   ---------- \  |        |
-                                ->| Comp 4 |
-                                  |        |
-                                  ----------
-       
-       To access a specific component, you need its name. To get a list of the components in
-        the waveform, type
-        
-        obj.Components
-        
-       This member returns a dictionary of all components in the waveform. To access the specific
-        component, just access the specific entry where the component's name is the key
-        in the returned dictionary.
+    Relevant member data:
+    app - Pointer to the Application (SCA core framework) object
+    Components - dictionary for the different Component instances making up the waveform
+    ns_name - the unique naming service name for this waveform
+    name - the (non-unique) name for this waveform
+
+    Waveform overview:
+
+    A waveform is defined by an XML file (<waveform name>.sad.xml) that resides in a waveform
+    directory, usually /sdr/sca/waveforms or /sdr/waveforms. This XML file lists a series of
+    components, a variety of default values for each of these components, and a set of connections
+    between different components' input and output ports. Input ports are referred to as 'Provides'
+    and output ports are referred to as 'Uses'.
+
+    A waveform can follow any type of design, but may look something like this:
+
+                               _________ 
+                               |        |
+    _________    _________   ->| Comp 3 |
+    |        |   |        | /  |        |
+    | Comp 1 |-->| Comp 2 |/   ----------
+    |        |   |        |\   _________ 
+    ----------   ---------- \  |        |
+                             ->| Comp 4 |
+                               |        |
+                               ----------
+
+    To access a specific component, you need its name. To get a list of the components in
+     the waveform, type
+
+     obj.Components
+
+    This member returns a dictionary of all components in the waveform. To access the specific
+    component, just access the specific entry where the component's name is the key
+    in the returned dictionary.
        
     """
     def __init__(self, name="", int_list=None, domain=None):
@@ -406,8 +423,10 @@ class Waveform(object):
         self.populateComponents(comp_list, doc_sad)
 
     def populateComponents(self, component_list, in_doc_sad):
-        """component_list is a list of component names
-           in_doc_sad is a parsed version of the SAD (using xml.dom.minidom)"""
+        """
+        component_list is a list of component names
+        in_doc_sad is a parsed version of the SAD (using xml.dom.minidom)
+        """
         if in_doc_sad == None:
             return
 
@@ -442,15 +461,15 @@ class Waveform(object):
                     find_object_attempts += 1
             
             if find_object_attempts == 50:
-                print "I was unable to get the pointer to Component "+ns_name[0]+"/"+ns_name[1]+"/"+ns_name[2]+", it is probably not running"
+                print("I was unable to get the pointer to Component "+ns_name[0]+"/"+ns_name[1]+"/"+ns_name[2]+", it is probably not running")
             else:
                 new_comp.reference = obj._narrow(CF.Resource)
                 new_comp.ref = new_comp.reference
 
                 new_comp.root = self.sdrroot
 
-                if not dce_list.has_key(new_comp.uuid):
-                    print "Component descriptor error - unmatched Component DCE"
+                if new_comp.uuid not in dce_list:
+                    print("Component descriptor error - unmatched Component DCE")
                     continue
 
                 new_comp.profile = spd_list[dce_list[new_comp.uuid]]
@@ -461,19 +480,24 @@ class Waveform(object):
             self.Components[new_comp.name]=new_comp
     
     def __getitem__(self,i):
-        """Return the component with the given index (obsolete)"""
+        """
+        Return the component with the given index (obsolete)
+        """
         return self.components[i]
     
     def getComponents(self):
-        """Return a dictionary of all Components in the Waveform"""
+        """
+        Return a dictionary of all Components in the Waveform
+        """
         return self.Components
 
         
 class Node(object):
-  """The Node is a descriptor for an logical grouping of devices.
+  """
+  The Node is a descriptor for an logical grouping of devices.
 
-       Relevant member data:
-       name - Node's name
+   Relevant member data:
+   name - Node's name
 
   """
   def __init__(self, name="", path="", generate=True, int_list=None):
@@ -490,25 +514,26 @@ class Node(object):
 
         
 class Domain(object):
-  """The Domain is a descriptor for an already-running nodeBooter process (to start
-      a nodeBooter, either run it from a command window or call start_node from the
-      ossie module).
+  """
+  The Domain is a descriptor for an already-running nodeBooter process (to start
+   a nodeBooter, either run it from a command window or call start_node from the
+   ossie module).
 
-       Relevant member data:
-       installed_waveforms - Dictionary of all waveforms installed on this node
-       name - Domain name
+    Relevant member data:
+    installed_waveforms - Dictionary of all waveforms installed on this node
+    name - Domain name
 
-     The main functionality that can be exercised by this class is:
-      - terminate - uninstalls all running waveforms and terminates the node
-      - waveform management:
-          - getAvailableWaveforms - returns a list of all waveforms that this node can install
-          - getInstalledWaveforms - returns a dictionary of all waveforms that are currently running. Calling this function
-              automatically updated the list of installed waveforms
-          - installWaveform - install a particular waveform
-          - uninstallWaveform - uninstall a particular waveform
-          - update_waveform_list - because nodeBooter is a separate service, other programs
-              might install/uninstall waveforms on the node. This function updates the node descriptor's
-              internal list
+  The main functionality that can be exercised by this class is:
+   - terminate - uninstalls all running waveforms and terminates the node
+   - waveform management:
+       - getAvailableWaveforms - returns a list of all waveforms that this node can install
+       - getInstalledWaveforms - returns a dictionary of all waveforms that are currently running. Calling this function
+           automatically updated the list of installed waveforms
+       - installWaveform - install a particular waveform
+       - uninstallWaveform - uninstall a particular waveform
+       - update_waveform_list - because nodeBooter is a separate service, other programs
+           might install/uninstall waveforms on the node. This function updates the node descriptor's
+           internal list
   """
   def __init__(self, name="DomainName1", int_list=None, location=None):
     self.name = name
@@ -552,7 +577,7 @@ class Domain(object):
             domain_find_attempts += 1
 
     if domain_find_attempts == 30:
-        print "Did not find the domain"
+        print("Did not find the domain")
         return
     #else:
     #    print "found the domain"
@@ -662,7 +687,7 @@ class Domain(object):
       """
       waveroot = os.path.join(self.root, 'waveforms')    
       if not os.path.exists(waveroot):
-          print "Cannot find SDR waveforms directory"
+          print("Cannot find SDR waveforms directory")
           #return {}
           return
 
@@ -680,28 +705,36 @@ class Domain(object):
                       self.waveforms[wave_dir] = f_path
 
   def getAvailableWaveforms(self, domain_name="DomainName1"):
-      """List the waveforms that are available to install"""
-      return self.waveforms.keys()
+      """
+      List the waveforms that are available to install
+      """
+      return list(self.waveforms.keys())
 
   def getInstalledWaveforms(self, domain_name="DomainName1"):
-      """Dictionary of the waveforms that are currently installed"""
+      """
+      Dictionary of the waveforms that are currently installed
+      """
       self.updateInstalledWaveforms()
       return self.Waveforms
   
   def uninstallWaveform(self, waveform_name=''):
-      """Uninstall a running waveform"""
-      if not self.Waveforms.has_key(waveform_name):
-          print "The waveform described for uninstall does not exist"
+      """
+      Uninstall a running waveform
+      """
+      if waveform_name not in self.Waveforms:
+          print("The waveform described for uninstall does not exist")
           return
       waveform = self.Waveforms.pop(waveform_name)
       waveform.app.releaseObject()
 
   def installWaveform(self, waveform_name='', domain_name="DomainName1"):
-      """Install and create a particular waveform. This function returns
-         a pointer to the instantiated waveform"""
+      """
+      Install and create a particular waveform. This function returns
+      a pointer to the instantiated waveform
+      """
       waveform_list = self.waveforms
-      if not waveform_list.has_key(waveform_name):
-          print "Requested waveform does not exist"
+      if waveform_name not in waveform_list:
+          print("Requested waveform does not exist")
           return
       self.DomainManager.installApplication(waveform_list[waveform_name])
 
@@ -744,7 +777,7 @@ class Domain(object):
                           break
 
       if matches_found != len(component_list):
-          print "At least one device required for this waveform is missing - aborting install"
+          print("At least one device required for this waveform is missing - aborting install")
           return
 
       
@@ -760,7 +793,7 @@ class Domain(object):
               break
 
       if app_factory_num == -1:
-          print "Application factory not found"
+          print("Application factory not found")
           sys.exit(-1)
 
       _appFacProps = []
@@ -768,7 +801,7 @@ class Domain(object):
       try:
           app = _applicationFactories[app_factory_num].create(_applicationFactories[app_factory_num]._get_name(),_appFacProps,_available_devSeq)
       except:
-          print "Unable to create application - make sure that all appropriate nodes are installed"
+          print("Unable to create application - make sure that all appropriate nodes are installed")
           return
       
       comp_list = app._get_componentNamingContexts()
@@ -787,7 +820,9 @@ class Domain(object):
       return waveform_entry
 
   def updateInstalledWaveforms(self, shallow=False):
-      """Makes sure that the dictionary of waveforms is up-to-date"""
+      """
+      Makes sure that the dictionary of waveforms is up-to-date
+      """
       try:
           app_list = self.DomainManager._get_applications()
       except:
@@ -810,7 +845,7 @@ class Domain(object):
 
           app_name_list.append(waveform_ns_name)
           
-          if self.Waveforms.has_key(waveform_ns_name):
+          if waveform_ns_name in self.Waveforms:
               self.Waveforms[waveform_ns_name].app = app
               continue
 
@@ -828,7 +863,7 @@ class Domain(object):
           self.Waveforms[waveform_ns_name]=waveform_entry
           self.Waveforms[waveform_ns_name].update()
       
-      for waveform_key in self.Waveforms.keys():
+      for waveform_key in list(self.Waveforms.keys()):
           if waveform_key not in app_name_list:
               tmp = self.Waveforms.pop(waveform_key)
 
@@ -838,29 +873,30 @@ class Platform:
     self.nodes = []      
       
 class Port(object):
-  """The Port is the gateway into and out of a particular component. A Port has a string name that is unique
-      to that port within the context of a particular component.
-     
-     There are two types of Ports: Uses (output) and Provides (input).
-     
-     To access a Provides Port, make the appropriate function call on the Port's ref member. The Port is a
-      server and will service this new request.
-      
-     To access a Uses Port, the port must be informed of the location and name of a server object. The server
-      object must match the interface type that the port supports. The Uses Port is then given a reference
-      to the server object and a name for the new connection - this name must be unique. We recommend that you
-      use uuidgen for that name.
-     
-      When the server object supporting the Uses Port is destroyed, the Uses Port must be informed that the
-      server no longer exists. You do this by calling the Uses Port's disconnectPort function. The argument
-      for disconnectPort is the unique string used to create the connection.
+  """
+  The Port is the gateway into and out of a particular component. A Port has a string name that is unique
+   to that port within the context of a particular component.
 
-       Relevant member data:
-       name - Port's name
-       interface - IDL interface for this port
-       type - Uses (output) or Provides (input)
-       generic_ref - CORBA generic pointer
-       ref - Interface-specific CORBA pointer to port (useful in most cases)
+  There are two types of Ports: Uses (output) and Provides (input).
+
+  To access a Provides Port, make the appropriate function call on the Port's ref member. The Port is a
+   server and will service this new request.
+
+  To access a Uses Port, the port must be informed of the location and name of a server object. The server
+   object must match the interface type that the port supports. The Uses Port is then given a reference
+  to the server object and a name for the new connection - this name must be unique. We recommend that you
+  use uuidgen for that name.
+
+  When the server object supporting the Uses Port is destroyed, the Uses Port must be informed that the
+  server no longer exists. You do this by calling the Uses Port's disconnectPort function. The argument
+  for disconnectPort is the unique string used to create the connection.
+
+  Relevant member data:
+  name - Port's name
+  interface - IDL interface for this port
+  type - Uses (output) or Provides (input)
+  generic_ref - CORBA generic pointer
+  ref - Interface-specific CORBA pointer to port (useful in most cases)
   """
   def __init__(self, name, interface, type="Uses",portType="data"):
     self.name = name

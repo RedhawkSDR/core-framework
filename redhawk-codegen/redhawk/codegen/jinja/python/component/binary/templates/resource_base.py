@@ -20,7 +20,7 @@
 #% set className = component.baseclass.name
 #% set superclass = component.superclasses[0].name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -285,26 +285,26 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             fp.close()
             prog_dir = os.getcwd()+self._softwareProfile[:self._softwareProfile.rfind('/')]+'/python/'
             f_cmd = prog_dir+self.binary
-            status,output=commands.getstatusoutput('chmod a+x '+f_cmd)
+            status,output=subprocess.getstatusoutput('chmod a+x '+f_cmd)
             if status: # in the sandbox, file paths are absolute, not based on $SDRROOT
                 prog_dir = self._softwareProfile[:self._softwareProfile.rfind('/')]+'/python/'
                 f_cmd = prog_dir+self.binary
-                status,output=commands.getstatusoutput('chmod a+x '+f_cmd)
+                status,output=subprocess.getstatusoutput('chmod a+x '+f_cmd)
             f_cmd += ' '+self.inputFileArg+' '+input_file
             f_cmd += ' '+self.outputFileArg+' '+output_file
             for cmd in self.cmdArgs:
                 f_cmd += ' '+cmd.cmdId+' '+cmd.cmdValue
-            status,output = commands.getstatusoutput(f_cmd)
+            status,output = subprocess.getstatusoutput(f_cmd)
             if status != 0:
-                print status
-                print output
+                print(status)
+                print(output)
             else:
-                print output
-            commands.getstatusoutput('rm '+input_file)
+                print(output)
+            subprocess.getstatusoutput('rm '+input_file)
             fp = open(output_file,'r')
             out_str = fp.read()
             fp.close()
-            commands.getstatusoutput('rm '+output_file)
+            subprocess.getstatusoutput('rm '+output_file)
             return out_str
             
         def process(self):

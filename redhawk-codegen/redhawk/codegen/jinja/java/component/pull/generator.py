@@ -31,7 +31,7 @@ from redhawk.codegen.jinja.java.ports.portfactory import JavaPortFactory
 from redhawk.codegen.jinja.java.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.java.component.base import BaseComponentGenerator
 
-from mapping import PullComponentMapper
+from .mapping import PullComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

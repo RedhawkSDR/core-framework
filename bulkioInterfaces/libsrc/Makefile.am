@@ -112,7 +112,7 @@ install-python:
 	$(PYTHON) setup.py install -f $(rootflag) --home=$(prefix) --old-and-unmanageable
 
 clean-python:
-	python setup.py clean --all
+	$(PYTHON) setup.py clean --all
 
 ###############################################################################
 # Java

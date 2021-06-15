@@ -26,10 +26,11 @@
 
 from ossie.cf import CF
 from omniORB import any, CORBA, tcInternal
+import copy
 import ossie.parsers.prf
 import sys
 import traceback
-import StringIO
+import io
 import types
 import struct
 import inspect
@@ -43,10 +44,10 @@ __NP_ALT_MAP = {
     'uint16': (int,   CORBA.TC_ushort),
     'int':    (int,   CORBA.TC_long),
     'int32':  (int,   CORBA.TC_long),
-    'uint32': (long,  CORBA.TC_ulong),
-    'long':   (long,  CORBA.TC_longlong),
-    'int64':  (long,  CORBA.TC_longlong),
-    'uint64': (long,  CORBA.TC_ulonglong),
+    'uint32': (int,  CORBA.TC_ulong),
+    'long':   (int,  CORBA.TC_longlong),
+    'int64':  (int,  CORBA.TC_longlong),
+    'uint64': (int,  CORBA.TC_ulonglong),
     'float':  (float, CORBA.TC_float),
     'float32': (float,  CORBA.TC_float),
     'float64': (float,  CORBA.TC_double),
@@ -63,14 +64,14 @@ __TYPE_MAP = {
     'float':      (float, CORBA.TC_float), 
     'long':       (int,   CORBA.TC_long),
     'longdouble': (float, CORBA.TC_longdouble), 
-    'longlong':   (long,  CORBA.TC_longlong), 
+    'longlong':   (int,  CORBA.TC_longlong), 
     'None':       (None,  CORBA.TC_null), 
     'objref':     (CORBA.Object, CORBA.TC_Object), 
     'octet':      (int,   CORBA.TC_octet), 
     'short':      (int,   CORBA.TC_short), 
     'string':     (str,   CORBA.TC_string), 
-    'ulong':      (long,  CORBA.TC_ulong), 
-    'ulonglong':  (long,  CORBA.TC_ulonglong), 
+    'ulong':      (int,  CORBA.TC_ulong), 
+    'ulonglong':  (int,  CORBA.TC_ulonglong), 
     'ushort':     (int,   CORBA.TC_ushort), 
     'void':       (None,  CORBA.TC_void), 
     'wchar':      (str,   CORBA.TC_char), 
@@ -88,7 +89,7 @@ __TYPE_MAP = {
     'complexULong':     (complex,
                          CF._tc_complexULong,
                          CF.complexULong,
-                         long,
+                         int,
                          CF._tc_complexLongSeq),
     'complexShort':     (complex,
                          CF._tc_complexShort,
@@ -118,17 +119,17 @@ __TYPE_MAP = {
     'complexLong':      (complex,
                          CF._tc_complexLong,
                          CF.complexLong,
-                         long,
+                         int,
                          CF._tc_complexLongSeq),
     'complexLongLong':  (complex,
                          CF._tc_complexLongLong,
                          CF.complexLongLong,
-                         long,
+                         int,
                          CF._tc_complexLongLongSeq),
     'complexULongLong': (complex,
                          CF._tc_complexULongLong,
                          CF.complexULongLong,
-                         long,
+                         int,
                          CF._tc_complexULongLongSeq),
     'utctime': (CF.UTCTime,
                          CF._tc_UTCTime,
@@ -157,11 +158,11 @@ def getTypeNameFromTC(_tc):
 def getPyType(type_, alt_map=None):
     if alt_map:
         try: 
-            if alt_map.has_key(type_):
+            if type_ in alt_map:
                 return  alt_map[type_][0]
         except:
             pass
-    if __TYPE_MAP.has_key(type_):
+    if type_ in __TYPE_MAP:
        return __TYPE_MAP[type_][0]
     return None
 
@@ -212,7 +213,7 @@ def to_pyvalue(data, type_,alt_py_tc=None):
 
     if not isinstance(data, pytype):
         # Handle boolean strings as a special case
-        if type_ == "boolean" and type(data) in (str, unicode):
+        if type_ == "boolean" and type(data) in (str, str):
             try:
                data = {"TRUE": 1, "FALSE": 0}[data.strip().upper()]
             except:
@@ -222,8 +223,8 @@ def to_pyvalue(data, type_,alt_py_tc=None):
             if type_.find("complex") == 0:
                 data = _toPyComplex(data, type_)
             else:
-               if pytype in [int, long] :
-                  if type(data) in (str,unicode):
+               if pytype in [int, int] :
+                  if type(data) in (str,str):
                       data = pytype(data,0)
                   else:
                       data = pytype(data)
@@ -304,7 +305,7 @@ def to_tc_value(data, type_, alt_map=None):
         tc = getTypeCode(type_)
         _any = CORBA.Any(tc, data)
         return CORBA.Any(tc, data)
-    elif alt_map and alt_map.has_key(type_):
+    elif alt_map and type_ in alt_map:
         pytype, tc = alt_map[type_]
         if tc == None:
             # Unknown type, let omniORB decide
@@ -322,10 +323,9 @@ def to_tc_value(data, type_, alt_map=None):
         # Convert to the correct Python using alternate mapping
         data = to_pyvalue(data, type_, alt_map)
         return CORBA.Any(tc, data)
-    elif __TYPE_MAP.has_key(type_):
+    elif type_ in __TYPE_MAP:
         # If the typecode is known, use that
         pytype, tc = __TYPE_MAP[type_]
-
         if tc == None:
             # Unknown type, let omniORB decide
             return any.to_any(data)
@@ -352,7 +352,7 @@ def numpy_to_tc_value(data, type_):
 
 
 def struct_fields(value):
-    if isinstance(value, types.ClassType) or hasattr(value, '__bases__'):
+    if isinstance(value, type) or hasattr(value, '__bases__'):
         clazz = value
     else:
         clazz = type(value)
@@ -360,8 +360,8 @@ def struct_fields(value):
     # just look at the class dictionary to find the fields.
     fields = getattr(clazz, '__fields', None)
     if fields is None:
-        fields = [p for p in clazz.__dict__.itervalues() if isinstance(p, simple_property)]
-        fields += [p for p in clazz.__dict__.itervalues() if isinstance(p, simpleseq_property)]
+        fields = [p for p in clazz.__dict__.values() if isinstance(p, simple_property)]
+        fields += [p for p in clazz.__dict__.values() if isinstance(p, simpleseq_property)]
     members = inspect.getmembers(value)
     for member in members:
         if isinstance(member[1], simple_property) or isinstance(member[1], simpleseq_property):
@@ -382,7 +382,7 @@ def struct_values(value):
     for attr in fields:
         field_value = attr.get(value)
         if type(field_value) == dict:
-            for key in field_value.keys():
+            for key in list(field_value.keys()):
                 result.append((attr.id_+key, field_value[key]))
         else:
             result.append((attr.id_, field_value))
@@ -406,7 +406,7 @@ def struct_from_props(value, structdef, strictComplete=True):
     newvalues = dict([(v["id"], v["value"]) for v in value])
 
     # For each field, try to set the value
-    for name, attr in structdef.__dict__.items():
+    for name, attr in list(structdef.__dict__.items()):
         if type(attr) is not simple_property and type(attr) is not simpleseq_property:
             continue
         if attr.optional == True:
@@ -416,7 +416,7 @@ def struct_from_props(value, structdef, strictComplete=True):
             value = newvalues[attr.id_]
         except: 
             if strictComplete:
-                raise ValueError, "provided value is missing element " + attr.id_
+                raise ValueError("provided value is missing element " + attr.id_)
             else:
                 continue
         else:
@@ -439,7 +439,7 @@ def struct_from_dict(id, dt):
          returns:
             - Struct Property is id of 'id'
     '''
-    a = [CF.DataType(id=k, value=any.to_any(check_type_for_long(v))) for k, v in dt.items()]
+    a = [CF.DataType(id=k, value=any.to_any(check_type_for_long(v))) for k, v in list(dt.items())]
     return CF.DataType(id=id, value=any.to_any(a))
 
 def struct_prop_from_seq(prop, idx):
@@ -454,18 +454,18 @@ def struct_prop_id_update(prop, id, val):
 def check_type_for_long(val):
     if type(val) == int: # any.to_any defaults int values to TC_long, which is not appropriate outside the 2**32 range
         if val < -2147483648 or val > 2147483647:
-            return (long(val))
+            return (int(val))
     return val
 
 def props_from_dict(dt):
     '''Creates a Properties list from a dictionary'''
     result = []
-    for _id,_val in dt.items():
+    for _id,_val in list(dt.items()):
         # either structsequence or simplesequence
         if type(_val) == list:
             # structsequence
             if len(_val) > 0 and type(_val[0]) == dict:
-                a = [props_to_any([CF.DataType(id=k, value=any.to_any(check_type_for_long(v))) for k,v in b.items()]) for b in _val]
+                a = [props_to_any([CF.DataType(id=k, value=any.to_any(check_type_for_long(v))) for k,v in list(b.items())]) for b in _val]
                 result.append(CF.DataType(id=_id, value=any.to_any(a)))
             # simplesequence
             else: 
@@ -542,14 +542,14 @@ def xml_to_class(prop):
     # Basic __init__(), initializes all fields.
     def initialize(self):
         object.__init__(self)
-        for name, attr in self.__class__.__dict__.items():
+        for name, attr in list(self.__class__.__dict__.items()):
             if type(attr) is simple_property:
                 attr.initialize(self)
 
     # Basic __str__(), prints all fields.
     def toString(self):
         out = ''
-        for name, attr in self.__class__.__dict__.items():
+        for name, attr in list(self.__class__.__dict__.items()):
             if type(attr) is simple_property:
                 out += '%s=%s\n' % (name, str(attr.get(self)))
         return out[:-1]
@@ -604,8 +604,8 @@ def mapComplexType(type):
                              "ulong"     : "complexULong",
                              "longlong"  : "complexLongLong",
                              "ulonglong" : "complexULongLong"}
-    if not primitiveToComplexMap.has_key(type):
-        raise ValueError, "Type %s cannot be complex" % type
+    if type not in primitiveToComplexMap:
+        raise ValueError("Type %s cannot be complex" % type)
     return primitiveToComplexMap[type]
 
 
@@ -631,7 +631,7 @@ class _property(object):
 
         self.id_ = id_
         if type_ != None and type_ not in _SCA_TYPES:
-            raise ValueError, "type %s is invalid" % type_
+            raise ValueError("type %s is invalid" % type_)
 
         if complex:
             # Downstream processing wants complexFloat instead of float
@@ -683,7 +683,7 @@ class _property(object):
     def query(self, obj, operator=None):
         # By default operators are not supported
         if operator != None:
-            raise AttributeError, "this property doesn't support configure/query operators"
+            raise AttributeError("this property doesn't support configure/query operators")
         value = self._query(obj)
 
         # Only try to do conversion to CORBA Any if the value is not already
@@ -696,7 +696,7 @@ class _property(object):
     def construct(self, obj, value ):
         # By default operators are not supported
         if operator != None:
-            raise AttributeError, "this property doesn't support configure/query operators"
+            raise AttributeError("this property doesn't support configure/query operators")
 
         # Convert the value to its proper representation (e.g. structs
         # should be a class instance, not a dictionary).
@@ -707,7 +707,7 @@ class _property(object):
     def configure(self, obj, value, operator=None, disableCallbacks=False):
         # By default operators are not supported
         if operator != None:
-            raise AttributeError, "this property doesn't support configure/query operators"
+            raise AttributeError("this property doesn't support configure/query operators")
 
         # Convert the value to its proper representation (e.g. structs
         # should be a class instance, not a dictionary).
@@ -731,12 +731,12 @@ class _property(object):
         realBounds = {"octet"    : Bounds(0, 256),
                       "short"    : Bounds(-32768, 32768),
                       "ushort"   : Bounds(0, 65536),
-                      "long"     : Bounds(-2147483648L,2147483648L),
-                      "ulong"    : Bounds(0, 4294967296L),
-                      "longlong" : Bounds(-9223372036854775808L, 9223372036854775808L),
-                      "ulonglong": Bounds(0, 18446744073709551616L)}
+                      "long"     : Bounds(-2147483648,2147483648),
+                      "ulong"    : Bounds(0, 4294967296),
+                      "longlong" : Bounds(-9223372036854775808, 9223372036854775808),
+                      "ulonglong": Bounds(0, 18446744073709551616)}
         
-        if realBounds.has_key(self.type_):
+        if self.type_ in realBounds:
             # Check bounds of simple type
             goodValue = realBounds[self.type_].inBounds(value)
         
@@ -750,7 +750,7 @@ class _property(object):
                          "complexULong:"    : "ulong",
                          "complexLongLong"  : "longlong",
                          "complexULongLong" : "ulonglong"}
-        if complexBounds.has_key(self.type_):
+        if self.type_ in complexBounds:
             # Check bounds of complex type
             
             # Create a bounds checker for the individual members of the 
@@ -776,11 +776,11 @@ class _property(object):
         
         elif type(self) == ossie.properties.struct_property:
             # Gets the members of the current resources struct
-            members = obj._props._PropertyStorage__properties[self.id_].fields.items()
+            members = list(obj._props._PropertyStorage__properties[self.id_].fields.items())
             # Finds matching struct members to compare
             for id, prop in members:
                 name, val = prop
-                for inId, inVal in value.__dict__.items():
+                for inId, inVal in list(value.__dict__.items()):
                     if id == inId[2:len(inId)-2]:
                         val.checkValue(inVal, obj)
                         
@@ -796,13 +796,13 @@ class _property(object):
                     
         elif type(self) == ossie.properties.structseq_property:
             # Gets the members of the current resources struct
-            members = obj._props._PropertyStorage__properties[self.id_].fields.items()     
+            members = list(obj._props._PropertyStorage__properties[self.id_].fields.items())     
             # Loops through each structure in the sequence
             for currStruct in value:
                 # Finds matching struct members to compare
                 for id , prop in members:
                     name, val = prop
-                    for inId, inVal in currStruct.__dict__.items():
+                    for inId, inVal in list(currStruct.__dict__.items()):
                         if id == inId[2:len(inId)-2]:
                             val.checkValue(inVal, obj)
 
@@ -870,7 +870,7 @@ class _property(object):
 
     def __delete__(self, obj):
         """Prevents SCA properties from being deleted"""
-        raise AttributeError, "can't delete SCA property"
+        raise AttributeError("can't delete SCA property")
 
     def __str__(self):
         #return "%s %s" % (self.id_, self.name)
@@ -944,11 +944,11 @@ class _property(object):
         # Try the implicit callback, then fall back
         # to the automatic attribute
         if self.fval != None and not self.fval(obj, value):
-            raise ValueError, "validation failed for value %s" % value
+            raise ValueError("validation failed for value %s" % value)
         else:
             validate = self._getCallback(obj, self._val_cbname)
             if validate != None and not validate(value):
-                raise ValueError, "validation failed for value %s" % value
+                raise ValueError("validation failed for value %s" % value)
 
         oldvalue = self.get(obj)        
         configure = self._getCallback(obj, self._conf_cbname)
@@ -1028,8 +1028,8 @@ class _sequence_property(_property):
                 return any.to_any(check_type_for_long(value))
             elif operator != None:
                 value = self._getSliceOperator(value, operator)
-        except Exception, e:
-            raise AttributeError, "error processing operator '%s': '%s' %s" % (operator, e, "\n".join(traceback.format_tb(sys.exc_traceback)))
+        except Exception as e:
+            raise AttributeError("error processing operator '%s': '%s' %s" % (operator, e, "\n".join(traceback.format_tb(sys.exc_info()[2]))))
 
         # At this point, value must be a normal sequence, so we can use the
         # standard conversion routine.
@@ -1099,19 +1099,19 @@ class _sequence_property(_property):
     # Internal operator definitions
     def _getDefaultOperator(self, value, operator):
         if isinstance(value, dict):
-            return value.values()
+            return list(value.values())
         else:
             return value
         
     def _getKeysOperator(self, value, operator):
         if isinstance(value, dict):
-            return value.keys()
+            return list(value.keys())
         else:
-            return range(len(value))
+            return list(range(len(value)))
     
     def _getKeyValuePairsOperator(self, value, operator):
         if isinstance(value, dict):
-            values = value.items()
+            values = list(value.items())
         else:
             values = enumerate(value)
         return [CF.DataType(id=str(x[0]), value=self._itemToAny(x[1])) for x in values]
@@ -1120,10 +1120,10 @@ class _sequence_property(_property):
         if isinstance(oldvalue, dict):
             for dt in newvalue:
                 # For now, don't allow new keys to be added
-                if oldvalue.has_key(dt["id"]):
+                if dt["id"] in oldvalue:
                     oldvalue[dt["id"]] = dt["value"]
                 else:
-                    raise ValueError, "attempt to add new key to sequence"
+                    raise ValueError("attempt to add new key to sequence")
             return oldvalue
         elif isinstance(oldvalue, list):
             for dt in newvalue:
@@ -1223,7 +1223,7 @@ class simple_property(_property):
         for kind in self.kinds:
             simp.add_kind(ossie.parsers.prf.kind(kindtype=kind))
 
-        xml = StringIO.StringIO()
+        xml = io.StringIO()
         simp.export(xml, level, name_='simple')
         return xml.getvalue()
 
@@ -1313,7 +1313,7 @@ class simpleseq_property(_sequence_property):
                 values.add_value(to_xmlvalue(v, self.type_))
             simpseq.set_values(values)
 
-        xml = StringIO.StringIO()
+        xml = io.StringIO()
         simpseq.export(xml, level, name_='simplesequence')
         return xml.getvalue()
 
@@ -1324,8 +1324,12 @@ class simpleseq_property(_sequence_property):
         values = any.from_any(value)
         if values is None:
             return None
-        if self.type_ in ('char', 'octet'):
+        if self.type_ == 'char':
+            #return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in value._v ]
             return values
+        if self.type_ == 'octet':
+            return list(values)
+            #return values
         if not isinstance(values, list):
             raise ValueError('value is not a sequence')
         return [to_pyvalue(v, self.type_) for v in values]
@@ -1333,12 +1337,24 @@ class simpleseq_property(_sequence_property):
     def _toAny(self, value):
         if value is None:
             return any.to_any(value)
-        
         result = any.to_any(None)
         if self.type_ == "char":
-            result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), str(value))
+            _v=copy.copy(value)
+            if type(value) == list:
+                if len(value) and type(value[0]) == bytes:
+                    _v =''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in value ])
+                else:
+                    _v=bytes(value).decode('ISO-8859-1')
+            else:
+                _v=str(value)
+            result = CORBA.Any(CORBA.TypeCode(CORBA.CharSeq), _v)
         elif self.type_ == "octet":
-            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq), str(value))
+            _v=copy.copy(value)
+            if type(value) == str:
+                _v=_v.encode()
+            if type(value) == list:
+                _v=bytes(_v)
+            result = CORBA.Any(CORBA.TypeCode(CORBA.OctetSeq),_v )
         else:
             if self._complex:
                 # type code for CF::complex sequence is looked up
@@ -1390,11 +1406,11 @@ class struct_property(_property):
             configurationkind = (configurationkind,)
         _property.__init__(self, id_, None, name, None, mode, "external", configurationkind, description, fget, fset, fval)
                              
-        if type(structdef) is types.ClassType:
+        if not issubclass(structdef, object):
             raise ValueError("structdef must be a new-style python class (i.e. inherits from object)")
         self.structdef = structdef
         self.fields = {} # Map field id's to attribute names
-        for name, attr in self.structdef.__dict__.items():
+        for name, attr in list(self.structdef.__dict__.items()):
             if type(attr) is simple_property:
                 self.fields[attr.id_] = (name, attr)
             elif type(attr) is simpleseq_property:
@@ -1420,7 +1436,7 @@ class struct_property(_property):
         for kind in self.kinds:
             struct.add_configurationkind(ossie.parsers.prf.configurationKind(kind))
 
-        for name, attr in self.structdef.__dict__.items():
+        for name, attr in list(self.structdef.__dict__.items()):
             if type(attr) is simple_property: 
                 simp = ossie.parsers.prf.simple(id_=attr.id_, 
                                                 type_=attr.type_,
@@ -1438,7 +1454,7 @@ class struct_property(_property):
                                                            units=attr.units)
                 struct.add_simplesequence(simpseq)
 
-        xml = StringIO.StringIO()
+        xml = io.StringIO()
         struct.export(xml, level, name_='struct')
         return xml.getvalue()
 
@@ -1459,7 +1475,7 @@ class struct_property(_property):
         # Create an initial object
         structval = self.structdef()
         # Initialize all of the properties in the struct
-        for name, attr in self.structdef.__dict__.items():
+        for name, attr in list(self.structdef.__dict__.items()):
             if type(attr) is simple_property: 
                 attr.initialize(structval)
             elif type(attr) is simpleseq_property:
@@ -1493,11 +1509,11 @@ class structseq_property(_sequence_property):
             configurationkind = (configurationkind,)
         _sequence_property.__init__(self, id_, None, name, None, mode, "external", configurationkind, description, fget, fset, fval)
         
-        if type(structdef) is types.ClassType:
+        if not issubclass(structdef, object):
             raise ValueError("structdef must be a new-style python class (i.e. inherits from object)")
         self.structdef = structdef
         self.fields = {} # Map field id's to attribute names
-        for name, attr in self.structdef.__dict__.items():
+        for name, attr in list(self.structdef.__dict__.items()):
             if type(attr) is simple_property:
                 self.fields[attr.id_] = (name, attr)
             elif type(attr) is simpleseq_property:
@@ -1529,7 +1545,7 @@ class structseq_property(_sequence_property):
             structseq.add_configurationkind(ossie.parsers.prf.configurationKind(kind))
 
         struct = ossie.parsers.prf.struct(id_="")
-        for name, attr in self.structdef.__dict__.items():
+        for name, attr in list(self.structdef.__dict__.items()):
             if type(attr) is simple_property: 
                 simp = ossie.parsers.prf.simple(id_=attr.id_, 
                                                 type_=attr.type_,
@@ -1549,7 +1565,7 @@ class structseq_property(_sequence_property):
         if self.defvalue:
             for v in self.defvalue:
                 structval = ossie.parsers.prf.structValue()
-                for name, attr in self.structdef.__dict__.items():
+                for name, attr in list(self.structdef.__dict__.items()):
                     if type(attr) is simple_property:
                         id_=attr.id_
                         value = to_xmlvalue(attr.get(v), attr.type_)
@@ -1560,7 +1576,7 @@ class structseq_property(_sequence_property):
                         structval.add_simpleseqref(ossie.parsers.prf.simpleSequenceRef(id_, values))
                 structseq.add_structvalue(structval)
 
-        xml = StringIO.StringIO()
+        xml = io.StringIO()
         structseq.export(xml, level, name_='structsequence')
         return xml.getvalue()
         
@@ -1693,9 +1709,9 @@ class PropertyStorage:
         # Don't add things if they are already defined
         id_ = str(property.id_)
         name_ = str(property.name)
-        if self.__properties.has_key(id_):
+        if id_ in self.__properties:
             raise KeyError("Duplicate Property ID %s found", id_)
-        if self.__name_map.has_key(name_):
+        if name_ in self.__name_map:
             raise KeyError("Duplicate Property Name found")
 
         self.__properties[id_] = property
@@ -1716,9 +1732,9 @@ class PropertyStorage:
     def __setitem__(self, key, value):
         # Don't let people add new items to the dictionary
         prop = None
-        if self.__properties.has_key(key):
+        if key in self.__properties:
             prop = self.__properties[key]
-        elif self.__properties.has_key(self.getPropId(key)):
+        elif self.getPropId(key) in self.__properties:
             prop = self.__properties[self.getPropId(key)]
         else:
             raise KeyError
@@ -1769,8 +1785,8 @@ class PropertyStorage:
                 self._changeListeners[id_](id_, oldvalue, newvalue)
             else: # property kind
                 if oldvalue != newvalue:
-                    if self._changeListeners[id_].func_code.co_argcount != 4:
-                        raise CF.PropertySet.InvalidConfiguration(msg='callback function '+self._changeListeners[id_].func_name+' has the wrong number of arguments',invalidProperties=prop)
+                    if self._changeListeners[id_].__code__.co_argcount != 4:
+                        raise CF.PropertySet.InvalidConfiguration(msg='callback function '+self._changeListeners[id_].__name__+' has the wrong number of arguments',invalidProperties=prop)
                     self._changeListeners[id_](id_, oldvalue, newvalue)
                 else:
                     self.__resource._log.debug("Value has not changed on configure for property "+id_+". Not triggering callback")
@@ -1824,7 +1840,7 @@ class PropertyStorage:
         result = False
         # First lookup by propid
         id_, operator = self.splitId(key)
-        if self.__properties.has_key(id_):
+        if id_ in self.__properties:
             return True
         else:
             try:
@@ -1832,23 +1848,23 @@ class PropertyStorage:
             except KeyError:
                 return False
             else:
-                return self.__properties.has_key(id_)
+                return id_ in self.__properties
        
     def keys(self):
-        return self.__properties.keys()
+        return list(self.__properties.keys())
 
     def values(self):
-        return self.__properties.values()
+        return list(self.__properties.values())
 
     def items(self):
-        return self.__properties.items()
+        return list(self.__properties.items())
 
     def has_key(self, key):
         return self.__contains__(key)
 
     def has_id(self, propid):
         id_, operator = self.splitId(propid)
-        return self.__properties.has_key(id_)
+        return id_ in self.__properties
 
     def getPropName(self, propid):
         id_, operator = self.splitId(propid)
@@ -1864,7 +1880,7 @@ class PropertyStorage:
 
     def isValidPropId(self, propid):
         id_, operator = self.splitId(propid)
-        return self.__properties.has_key(id_)
+        return id_ in self.__properties
 
     # Helper functions that implement configure/query logic per D.4.1.1.6
     def isQueryable(self, propid):
@@ -1895,11 +1911,11 @@ class PropertyStorage:
     
     def isSendEventChange(self, propid):
         id_, operator = self.splitId(propid)
-        if self.__properties.has_key(id_):
+        if id_ in self.__properties:
             return self.__properties[id_].isSendEventChange()
         for prop_id in self.__properties:
             if type(self.__properties[prop_id]) == struct_property:
-                if self.__properties[prop_id].fields.has_key(id_):
+                if id_ in self.__properties[prop_id].fields:
                     return self.__properties[prop_id].isSendEventChange()
         return False
 
@@ -1907,11 +1923,11 @@ class PropertyStorage:
         self.initialize()
 
     def initialize(self):
-        for prop in self.__properties.values():
+        for prop in list(self.__properties.values()):
             prop.initialize(self.__resource)
 
-        for propid, value in self.__execparams.items():
-            if self.has_key(propid):
+        for propid, value in list(self.__execparams.items()):
+            if propid in self:
                 # Since execparams are always strings and must be simple,
                 # convert them to the right type
                 self.__setitem__(propid, self._convertType(value, propid))
@@ -1941,7 +1957,7 @@ class PropertyStorage:
             self._genericListeners.append(callback)
         else:
             # Turn single property ID into a list of one
-            if isinstance(filter, basestring):
+            if isinstance(filter, str):
                 filter = [filter]
 
             # Associate the property IDs with the callback
@@ -1949,12 +1965,12 @@ class PropertyStorage:
                 self._changeListeners[propid] = callback
 
     def removeChangeListener(self, callback):
-        if isinstance(callback, basestring):
+        if isinstance(callback, str):
             # Caller provided a property ID
             del self._changeListeners[callback]
         else:
             # Remove any by-id callbacks that use the same function
-            for propid in self._changeListeners.keys():
+            for propid in list(self._changeListeners.keys()):
                 if self._changeListeners[propid] == callback:
                     del self._changeListeners[propid]
             # Filter out generic callbacks that use the same function
@@ -1965,7 +1981,7 @@ class PropertyStorage:
         for prop_id in self.__properties:
             self.__properties[prop_id].sendPropertyChangeEvent = self.__propertyChangeEvent
             if type(self.__properties[prop_id]) == struct_property:
-                for name, attr in self.__properties[prop_id].structdef.__dict__.items():
+                for name, attr in list(self.__properties[prop_id].structdef.__dict__.items()):
                     if type(attr) is simple_property:
                         attr.sendPropertyChangeEvent = self.__propertyChangeEvent
 

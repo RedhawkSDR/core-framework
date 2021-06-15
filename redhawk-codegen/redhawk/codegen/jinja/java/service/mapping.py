@@ -69,7 +69,7 @@ class ServiceMapper(ComponentMapper):
         if softpkg.type() == ComponentTypes.SERVICE:
             name = 'Service'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
         return {'name': name}
 
     def getNamespace(self, idl):

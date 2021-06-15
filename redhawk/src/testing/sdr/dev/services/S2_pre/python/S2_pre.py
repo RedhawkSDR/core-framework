@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED
 #
@@ -25,9 +25,9 @@ class S2_pre(CF__POA.PropertySet):
         try:
             self._props._addProperty( S2_pre.p1 )
             self._props._addProperty( S2_pre.p2)
-        except KeyError, e:
+        except KeyError as e:
             pass
-        except Exceptiopn, e:
+        except Exceptiopn as e:
             raise e
         self._props.initialize()
 
@@ -42,13 +42,13 @@ class S2_pre(CF__POA.PropertySet):
                 if self._props.has_id(prop.id) and self._props.isConfigurable(prop.id):
                     try:
                         self._props.configure(prop.id, prop.value)
-                    except Exception, e:
+                    except Exception as e:
                         self._log.warning("Invalid value provided to configure for property %s: %s", prop.id, e)
                         notSet.append(prop)
                 else:
                     self._log.warning("Tried to configure non-existent, readonly, or property with action not equal to external %s", prop.id)
                     notSet.append(prop)
-            except Exception, e:
+            except Exception as e:
                 error_message += str(e)
                 self._log.exception("Unexpected exception.")
                 notSet.append(prop)
@@ -67,11 +67,11 @@ class S2_pre(CF__POA.PropertySet):
             self._log.trace("query all properties")
             try:
                 rv = []
-                for propid in self._props.keys():
+                for propid in list(self._props.keys()):
                     if self._props.has_id(propid) and self._props.isQueryable(propid):
                         try:
                             value = self._props.query(propid)
-                        except Exception, e:
+                        except Exception as e:
                             self._log.error('Failed to query %s: %s', propid, e)
                             value = any.to_any(None)
                         prp = self._props.getPropDef(propid)
@@ -102,7 +102,7 @@ class S2_pre(CF__POA.PropertySet):
                     if self._props.has_id(prop.id) and self._props.isQueryable(prop.id):
                         try:
                             prop.value = self._props.query(prop.id)
-                        except Exception, e:
+                        except Exception as e:
                             self._log.error('Failed to query %s: %s', prop.id, e)
                         prp = self._props.getPropDef(prop.id)
                         if type(prp) == properties.struct_property:
@@ -141,13 +141,13 @@ class S2_pre(CF__POA.PropertySet):
                     try:
                         # run configure on property.. disable callback feature
                         self._props.construct(prop.id, prop.value)
-                    except ValueError, e:
+                    except ValueError as e:
                         self._log.warning("Invalid value provided to construct for property %s %s", prop.id, e)
                         notSet.append(prop)
                 else:
                     self._log.warning("Tried to construct non-existent, readonly, or property with action not equal to external %s", prop.id)
                     notSet.append(prop)
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Unexpected exception.")
                 notSet.append(prop)
 

@@ -23,7 +23,7 @@ import jinja2
 from redhawk.codegen.jinja.generator import TopLevelGenerator
 from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate
 
-from mapping import ComponentProjectMapper
+from .mapping import ComponentProjectMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

@@ -38,7 +38,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     </code>
     <programminglanguage name="Python"/>
     <humanlanguage name="EN"/>
-    <runtime name="python" version="2.6.6"/>
+    <runtime name="python" version="3.6.8"/>
     <os name="Linux"/>
   </implementation>
   <implementation id="cpp">

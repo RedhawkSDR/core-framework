@@ -26,7 +26,7 @@ except:
     # Handle case where bulkioInterface may not be installed
     SDDS_SB = 1
 
-import domainless as _domainless
+from . import domainless as _domainless
 import threading as _threading
 import ossie.utils.bulkio.bulkio_helpers as _bulkio_helpers
 from ossie.utils.bluefile import bluefile_helpers
@@ -39,14 +39,15 @@ import shlex as _shlex
 import time as _time
 import signal as _signal
 import warnings
-import cStringIO, pydoc
+import io, pydoc
 import sys as _sys
 import os as _os
 import subprocess as _subprocess
-import Queue as _Queue
+import queue as _Queue
 import struct as _struct
 import logging as _logging
 import socket as _socket
+import math as _math
 from omniORB import any as _any
 from omniORB import CORBA as _CORBA
 from omniORB import tcInternal
@@ -60,7 +61,7 @@ from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
 
 # Use orb reference from domainless
-import domainless
+from . import domainless
 
 log = _logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ class helperBase(object):
     def releaseObject(self):
         # Break any connections involving this component.
         manager = ConnectionManager.instance()
-        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in list(manager.getConnections().items()):
             if uses.hasComponent(self) or provides.hasComponent(self):
                 usesRef = uses.getReference()
                 usesRef.disconnectPort(identifier)
@@ -183,7 +184,7 @@ class MessageSink(helperBase, PortSupplier):
             self._messagePort = None
 
     def messageCallback(self, msgId, msgData):
-        print msgId, msgData
+        print(msgId, msgData)
 
     def getMessages(self):
         return self._messagePort.getMessages()
@@ -197,7 +198,7 @@ class MessageSink(helperBase, PortSupplier):
                 self._messagePort.registerMessage(self._messageId,
                                              self._messageFormat, self._messageCallback)
             return self._messagePort._this()
-        except Exception, e:
+        except Exception as e:
             log.error("MessageSink:getPort(): failed " + str(e))
         return None
 
@@ -205,9 +206,9 @@ class MessageSink(helperBase, PortSupplier):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "Component MessageSink :"
+        print("Component MessageSink :", file=destfile)
         PortSupplier.api(self, destfile=destfile)
 
         if localdef_dest:
@@ -314,7 +315,7 @@ class MessageSource(helperBase, PortSupplier):
             if self._messagePort == None:
                  self._messagePort = _events.MessageSupplierPort()
             return self._messagePort._this()
-        except Exception, e:
+        except Exception as e:
             log.error("MessageSource:getPort(): failed " + str(e))
         return None
 
@@ -332,7 +333,7 @@ class MessageSource(helperBase, PortSupplier):
                 return self.getPort('')
             else:
                 return self._messagePort._this()
-        except Exception, e:
+        except Exception as e:
             log.error("MessageSource:getUsesPort(): failed " + str(e))
         return None
 
@@ -340,9 +341,9 @@ class MessageSource(helperBase, PortSupplier):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "Component MessageSource :"
+        print("Component MessageSource :", file=destfile)
         PortSupplier.api(self, destfile=destfile)
 
         if localdef_dest:
@@ -402,7 +403,7 @@ class MsgSupplierHelper(object):
         _msg_port=None
         msg_ports=[ x for x in self.comp.ports if getattr(x,'_using') and x._using.name == 'MessageEvent' ]
         if len(msg_ports) > 1 and msg_port is None:
-            print "Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ]
+            print("Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ])
             return False
         
         if msg_port:
@@ -414,19 +415,19 @@ class MsgSupplierHelper(object):
             _msg_port = msg_ports[0]
 
         if _msg_port is None:
-            print "Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ]
+            print("Unable to determine message port, please specify the msg_port parameter, available ports: ", [ x._name for x in msg_ports ])
 
 
         # get current connection for the component and the msg_port
         _evt_connects=[]
         if _msg_port:
             manager = ConnectionManager.instance()
-            for k, (identifier, uses, provides) in manager.getConnectionsFor(self.comp).iteritems():
+            for k, (identifier, uses, provides) in manager.getConnectionsFor(self.comp).items():
                 if uses.getPortName() == _msg_port._name:
                     _evt_connects.append( provides )
 
         if len(_evt_connects) == 0:
-            print "No available registered connections for sending a message."
+            print("No available registered connections for sending a message.")
             return False
 
         outmsg=msg
@@ -435,7 +436,7 @@ class MsgSupplierHelper(object):
             _msg_struct = None
             _msg_structs = [ x for x in self.comp._properties if x.kinds == ['message']  ]
             if len(_msg_structs) > 1 and msg_id is None:
-                print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
+                print("Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ])
                 return False
 
             if msg_id:
@@ -450,7 +451,7 @@ class MsgSupplierHelper(object):
                 messageId = _msg_struct.id
 
             if _msg_struct is None and restrict :
-                print "Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ]
+                print("Unable to determine message structure, please specify the msg_id parameter, available structures: ", [ x.id for x in _msg_structs ])
                 return False
 
             payload = self._packMessageData(msg)
@@ -471,7 +472,7 @@ class MsgSupplierHelper(object):
             try:
                 conn['proxy_consumer'].push(outmsg)
             except:
-                print "WARNING: Unable to send data to: ", conn
+                print("WARNING: Unable to send data to: ", conn)
                 return False
 
             return True
@@ -510,7 +511,7 @@ class _DataPortBase(helperBase, PortSupplier):
         self.supportedPorts = {
              "char"      : {"bytesPerSample" : 1,
                             "pktSize"        : -1,
-                            "format"         : 'b',
+                            "format"         : 's',
                             "portType" : "_BULKIO__POA.dataChar",
                             "portDict" : {"Port Interface" : "IDL:BULKIO/dataChar:1.0",
                                           "Port Name"      : "char"}},
@@ -589,7 +590,7 @@ class _DataPortBase(helperBase, PortSupplier):
 
         # Allow subclasses to support only a subset of formats
         if formats is not None:
-            for name in self.supportedPorts.keys():
+            for name in list(self.supportedPorts.keys()):
                 if name not in formats:
                     del self.supportedPorts[name]
 
@@ -600,8 +601,7 @@ class _DataPortBase(helperBase, PortSupplier):
         associated with the key 'key' of that port.
 
         """
-
-        for port in self.supportedPorts.values():
+        for port in list(self.supportedPorts.values()):
             if port["portDict"]["Port Name"] == portName:
                 return port[key]
 
@@ -612,13 +612,13 @@ class _DataPortBase(helperBase, PortSupplier):
 
         """
 
-        for port in self.supportedPorts.values():
+        for port in list(self.supportedPorts.values()):
             if port["portDict"]["Port Name"] == portName:
                 return port
 
         # portName not found in self.supportedPorts.  This should never happen
         # as the portName should be set via self.supportedPorts.
-        raise Exception, "Port name " + portName + " not found."
+        raise Exception("Port name " + portName + " not found.")
 
     def api(self, destfile=None):
         """
@@ -628,9 +628,9 @@ class _DataPortBase(helperBase, PortSupplier):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "Component " + self.__class__.__name__ + " :"
+        print("Component " + self.__class__.__name__ + " :", file=destfile)
         PortSupplier.api(self, destfile=destfile)
 
         if localdef_dest:
@@ -661,7 +661,7 @@ class _SourceBase(_DataPortBase):
             # add support for format byte (which is the same as char)
             if dataFormat.lower() == 'byte':
                 dataFormat = 'char'
-            if self.supportedPorts.has_key(dataFormat.lower()):
+            if dataFormat.lower() in self.supportedPorts:
                 self._dataFormat = dataFormat.lower()
             else:
                 self._dataFormat = None
@@ -702,7 +702,7 @@ class _SourceBase(_DataPortBase):
         # Determine number of elements per pushPacket
         # NOTE: complex data is treated real data with alternating real and
         # imaginary values
-        self._pktSize = self.bytesPerPush / port["bytesPerSample"]
+        self._pktSize = self.bytesPerPush // port["bytesPerSample"]
         port["pktSize"] = self._pktSize
 
     def _buildAPI(self):
@@ -718,12 +718,12 @@ class _SourceBase(_DataPortBase):
             self._srcPortType = port["portType"]
             self._addUsesPort(port)
         else:
-            for port in self.supportedPorts.values():
+            for port in list(self.supportedPorts.values()):
                 self._addUsesPort(port)
 
 
         if _domainless._DEBUG == True:
-            print self.className + ":_buildAPI()"
+            print(self.className + ":_buildAPI()")
             self.api(destfile=_sys.stdout)
 
     def getPort(self, name):
@@ -762,13 +762,13 @@ class _SinkBase(_DataPortBase):
         port type defined in self.supportedPorts.
 
         """
-        for port in self.supportedPorts.values():
+        for port in list(self.supportedPorts.values()):
             name = port['portDict']['Port Name'] + self.portNameAppendix
             self._providesPortDict[name] = port["portDict"]
             self._providesPortDict[name]["Port Name"] = name
 
         if _domainless._DEBUG == True:
-            print self.className + ":_buildAPI()"
+            print(self.className + ":_buildAPI()")
             self.api(destfile=_sys.stdout)
 
     def getPortType(self, portName):
@@ -856,7 +856,7 @@ class FileSource(_SourceBase):
         # and flags to determine whether or not it's reversed or complex
         
         if dataFormat == None:
-            log.warn("dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat)
+            log.warning("dataFormat not provided for FileSource; defaulting to " + self._defaultDataFormat)
             dataFormat = self._defaultDataFormat
             if complexData:
                 dataFormat = dataFormat + 'c'
@@ -935,10 +935,10 @@ class FileSource(_SourceBase):
                     dataFormat = 'double'
  
         _SourceBase.__init__(self, bytesPerPush = bytesPerPush, dataFormat = dataFormat, subsize=subsize) 
-        if self.supportedPorts.has_key(dataFormat):
+        if dataFormat in self.supportedPorts:
             self._srcPortType = self.supportedPorts[dataFormat]["portType"]
         else:
-            raise Exception, "ERROR: FileSource does not support data type " + dataFormat
+            raise Exception("ERROR: FileSource does not support data type " + dataFormat)
 
         self._srcPortObject = None
         self.setupFileReader()
@@ -992,7 +992,7 @@ class FileSource(_SourceBase):
 
                 self._sri.blocking = self._blocking
 
-        except Exception, e:
+        except Exception as e:
             log.error(self.className + ":setupFileReader(): failed " + str(e))
 
     def getUsesPort(self):
@@ -1000,7 +1000,7 @@ class FileSource(_SourceBase):
             if self._src != None:
                 self._srcPortObject = self._src.getPort()
                 return self._srcPortObject
-        except Exception, e:
+        except Exception as e:
             log.error(self.className + ":getUsesPort(): failed " + str(e))
         return None
 
@@ -1032,8 +1032,8 @@ class FileSink(_SinkBase):
         self.sinkClass = sinkClass
         self.sinkBlueClass = sinkBlueClass
         if _domainless._DEBUG == True:
-            print className + ":__init__() filename " + str(filename)
-            print className + ":__init__() midasFile " + str(midasFile)
+            print(className + ":__init__() filename " + str(filename))
+            print(className + ":__init__() midasFile " + str(midasFile))
         self._filename = filename
         self._midasFile = midasFile
 
@@ -1055,7 +1055,7 @@ class FileSink(_SinkBase):
                 return self._sinkPortObject
             else:
                 return None
-        except Exception, e:
+        except Exception as e:
             log.error(self.className + ":getPort(): failed " + str(e))
         return None
 
@@ -1080,7 +1080,7 @@ class FileSink(_SinkBase):
                         _time.sleep(self._sleepTime)
                         self._sink.port_lock.acquire()
 
-                except Exception, e:
+                except Exception as e:
                     log.error(self.className + ": " + str(e))
 
             finally:
@@ -1090,7 +1090,7 @@ class FileSink(_SinkBase):
         else:
             # If the user has yet to call getPort(), the the file sink may
             # not yet exist.
-            log.warn("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
+            log.warning("No file writer present, therefore not waiting for EOS.  Is the " + self.className + " module connected?")
 
 class DataSinkSDDS(_SinkBase):
     """
@@ -1113,10 +1113,10 @@ class DataSinkSDDS(_SinkBase):
         return self._sink.getPort()
 
     def __attach_cb(self, streamDef, user_id):
-        print 'attach received: ',streamDef, user_id
+        print('attach received: ',streamDef, user_id)
 
     def __detach_cb(self, attachId):
-        print 'detach received: ',attachId
+        print('detach received: ',attachId)
 
     def registerAttachCallback(self, attach_cb_fn):
         """
@@ -1204,8 +1204,8 @@ class DataSourceSDDS(_SourceBase):
             if len(self._streamdefs) ==  0:
                 raise Exception("No attachment have been made, use grabData or call attach")
             
-            aid = self._streamdefs.keys()[0]
-            print "Defaults to first entry, attach id = ", aid
+            aid = list(self._streamdefs.keys())[0]
+            print("Defaults to first entry, attach id = ", aid)
             sdef = self._streamdefs[aid]
         else:
             sdef = sefl._streamdefs[aid]
@@ -1244,9 +1244,9 @@ class DataSourceSDDS(_SourceBase):
             if ismulticast:
                 mreq=struct.pack('4s4s',_socket.inet_aton(mgroup),_socket.inet_aton(hostip))
                 sock.setsockopt(_socket.IPPROTO_IP, _socket.IP_ADD_MEMBERSHIP, mreq)
-                print "Capturing Socket Interface: (MULTICAST) Host Interface: " + hostip + " Multicast: " + mgroup + " Port: "+ str(port)
+                print("Capturing Socket Interface: (MULTICAST) Host Interface: " + hostip + " Multicast: " + mgroup + " Port: "+ str(port))
             else:
-                print "Capturing Socket Interface: (UDP) Host Interface: " + hostip + " Source Address: " + mgroup + " Port: "+ str(port)
+                print("Capturing Socket Interface: (UDP) Host Interface: " + hostip + " Source Address: " + mgroup + " Port: "+ str(port))
             ncnt=0
             while totalRead < requestedBytes:
                 rcvddata = sock.recv(blen,_socket.MSG_WAITALL)
@@ -1254,18 +1254,18 @@ class DataSourceSDDS(_SourceBase):
                 data=data+list(rcvddata)
                 totalRead = totalRead + len(rcvddata)
                 ncnt += 1
-                print " read ", ncnt, " pkt ", len(rcvddata)
-        except KeyboardInterrupt,e :
+                print(" read ", ncnt, " pkt ", len(rcvddata))
+        except KeyboardInterrupt as e :
             traceback.print_exc()
-            print "Exception during packet capture: " + str(e)
-        except Exception, e :
+            print("Exception during packet capture: " + str(e))
+        except Exception as e :
             traceback.print_exc()
-            print "Exception during packet capture: " + str(e)
+            print("Exception during packet capture: " + str(e))
         finally:
             endTime=_time.time()
             deltaTime=endTime -startTime            
         if sock: sock.close()
-        print "Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime
+        print("Elapsed Time: ", deltaTime, "  Total Data (kB): ", totalRead/1000.0, " Rate (kBps): ", (totalRead/1000.0)/deltaTime)
         if returnSddsAnalyzer:
             from ossie.utils.sdds import SDDSAnalyzer
             return SDDSAnalyzer( rawdata, pkts, pktlen, totalRead )
@@ -1356,7 +1356,7 @@ class DataSource(_SourceBase):
                 pass
             candidateSri = _BULKIO.StreamSRI(1, 0.0, 1, 0, self._subsize, 0.0, 0, 0, 0,
                                              "defaultStreamID", self._blocking, keywords)
-            if self._sampleRate > 0.0:
+            if self._sampleRate and self._sampleRate > 0.0:
                 candidateSri.xdelta = 1.0/float(self._sampleRate)
 
             if self._complexData and self._complexData == True:
@@ -1452,7 +1452,7 @@ class DataSource(_SourceBase):
         self._packetsSentCond.acquire()
         try:
             if self._packetsPending == 0:
-                raise AssertionError, 'Packet sent but no packets pending'
+                raise AssertionError('Packet sent but no packets pending')
             self._packetsPending -= 1
             if self._packetsPending == 0:
                 self._packetsSentCond.notifyAll()
@@ -1607,8 +1607,8 @@ class DataSource(_SourceBase):
                                                       EOS,
                                                       streamID)
                 self._packetSent()
-            except Exception, e:
-                log.warn(self.className + ":pushData() failed " + str(e))
+            except Exception as e:
+                log.warning(self.className + ":pushData() failed " + str(e))
         self.threadExited = True
 
     def _pushPacketsAllConnectedPorts(self,
@@ -1617,7 +1617,7 @@ class DataSource(_SourceBase):
                                       EOS,
                                       streamID):
 
-        for connection in self._connections.values():
+        for connection in list(self._connections.values()):
             self._pushPackets(arraySrcInst      = connection["arraySrcInst"],
                               data              = data,
                               currentSampleTime = currentSampleTime,
@@ -1632,7 +1632,7 @@ class DataSource(_SourceBase):
                                      EOS,
                                      streamID):
 
-        for connection in self._connections.values():
+        for connection in list(self._connections.values()):
             self._pushPacket(arraySrcInst      = connection["arraySrcInst"],
                              data              = data,
                              currentSampleTime = currentSampleTime,
@@ -1652,7 +1652,8 @@ class DataSource(_SourceBase):
         # If necessary, break data into chunks of pktSize for each pushPacket
         if isinstance(data, list):
             # Stride through the data by packet size
-            for startIdx in xrange(0, len(data), pktSize):
+            pktSize=_math.floor(pktSize)
+            for startIdx in range(0, len(data), pktSize):
                 # Calculate the time offset per packet
                 _data = data[startIdx:startIdx+pktSize]
                 sampleTimeForPush = len(_data) / float(self._sampleRate)
@@ -1699,9 +1700,10 @@ class DataSource(_SourceBase):
             if type(data) != list:
                 log.error("data must be a list of values for the specified data type")
                 return
+
         if len(data)>0:
-                data = _bulkio_helpers.formatData(data,
-                                                  BULKIOtype=eval(srcPortType))
+            data = _bulkio_helpers.formatData(data,
+                                              BULKIOtype=eval(srcPortType))
 
         if isinstance(currentSampleTime,_BULKIO.PrecisionUTCTime):
             T= currentSampleTime
@@ -1731,7 +1733,7 @@ class DataSource(_SourceBase):
                 _time.sleep(len(data)/(self._sampleRate*2.0))
 
     def _pushSRIAllConnectedPorts(self, sri):
-        for connection in self._connections.values():
+        for connection in list(self._connections.values()):
             self._pushSRI(arraySrcInst = connection["arraySrcInst"],
                           srcPortType = connection["srcPortType"],
                           sri = sri)
@@ -1767,7 +1769,7 @@ class DataSource(_SourceBase):
                 _time.sleep(0.1)
                 timeout_count -= 1
                 if timeout_count < 0:
-                    raise AssertionError, self.className + ":stop() failed to exit thread"
+                    raise AssertionError(self.className + ":stop() failed to exit thread")
 
 class DataSink(_SinkBase):
     """
@@ -1783,7 +1785,7 @@ class DataSink(_SinkBase):
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
-            print self.className + ":getPort() portName " + str(portName) + "================================="
+            print(self.className + ":getPort() portName " + str(portName) + "=================================")
         try:
             self._sinkPortType = self.getPortType(portName)
 
@@ -1799,7 +1801,7 @@ class DataSink(_SinkBase):
             else:
                 return None
             pass
-        except Exception, e:
+        except Exception as e:
             log.error(self.className + ":getPort(): failed " + str(e))
         return None
 
@@ -1839,7 +1841,7 @@ class DataSink(_SinkBase):
         if isChar:
             # Converts char values into their numeric equivalents
             def from_char(data):
-                return [_struct.unpack('b',ch)[0] for ch in data]
+                return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in data ]
 
             # If SRI is known, and the data is framed, apply conversion on a
             # per-frame basis
@@ -1870,13 +1872,13 @@ class _OutputBase(helperBase):
 
     def __del__(self):
         if _domainless._DEBUG == True:
-            print "_OutputBase: __del__() calling cleanUp"
+            print("_OutputBase: __del__() calling cleanUp")
         self.cleanUp()
 
     def cleanUp(self):
-        for pid in self._processes.keys():
+        for pid in list(self._processes.keys()):
             if _domainless._DEBUG == True:
-                print "_OutputBase: cleanUp() calling __terminate for pid " + str(pid)
+                print("_OutputBase: cleanUp() calling __terminate for pid " + str(pid))
             self.__terminate(pid)
 
     def start(self):
@@ -1892,7 +1894,7 @@ class _OutputBase(helperBase):
                 # the group id is used to handle child processes (if they
                 # exist) of the component being cleaned up
                 if _domainless._DEBUG == True:
-                    print "_OutputBase: __terminate () making killpg call on pid " + str(pid) + " with signal " + str(sig)
+                    print("_OutputBase: __terminate () making killpg call on pid " + str(pid) + " with signal " + str(sig))
                 _os.killpg(pid, sig)
             except OSError:
                 log.error("_OutputBase: __terminate() OSERROR ===============")
@@ -1918,7 +1920,7 @@ class probeBULKIO(_SinkBase):
 
     def getPort(self, portName):
         if _domainless._DEBUG == True:
-            print "probeBULKIO:getPort() portName " + str(portName) + "================================="
+            print("probeBULKIO:getPort() portName " + str(portName) + "=================================")
         try:
             self._sinkPortType = self.getPortType(portName)
 
@@ -1931,22 +1933,22 @@ class probeBULKIO(_SinkBase):
             else:
                 return None
 
-        except Exception, e:
+        except Exception as e:
             log.error("probeBULKIO:getPort(): failed " + str(e))
         return None
 
     def receivedStreams(self):
         if self._sink == None:
-            print None
+            print(None)
         else:
-            print "Current streams:"
+            print("Current streams:")
             for entry in self._sink.valid_streams:
                 average_packet = self._sink.received_data[entry][0]/float(self._sink.received_data[entry][1])
-                print "Received "+str(self._sink.received_data[entry][0])+" on stream ID "+entry+" with mean packet length of "+str(average_packet)
-            print "Terminated streams:"
+                print("Received "+str(self._sink.received_data[entry][0])+" on stream ID "+entry+" with mean packet length of "+str(average_packet))
+            print("Terminated streams:")
             for entry in self._sink.invalid_streams:
                 average_packet = self._sink.received_data[entry][0]/float(self._sink.received_data[entry][1])
-                print "Received "+str(self._sink.received_data[entry])+" on stream ID "+entry+" with mean packet length of "+str(average_packet)
+                print("Received "+str(self._sink.received_data[entry])+" on stream ID "+entry+" with mean packet length of "+str(average_packet))
 
 # Plot class requires the following:
 # - Eclipse Redhawk IDE must be installed
@@ -1954,57 +1956,57 @@ class probeBULKIO(_SinkBase):
 class Plot(OutputBase, _OutputBase):
     def __init__(self,usesPortName=None):
         if _domainless._DEBUG == True:
-            print "Plot:__init__()"
+            print("Plot:__init__()")
         _OutputBase.__init__(self)
         self.usesPortIORString = None
         self._usesPortName = usesPortName
         self._dataType = None
         self._eclipsePath = None
-        if _os.environ.has_key("RH_IDE"):
+        if "RH_IDE" in _os.environ:
             self._eclipsePath = str(_os.environ["RH_IDE"])
         else:
-            raise AssertionError, "Plot():__init__() ERROR - must set environment variable RH_IDE or call IDELocation()"
+            raise AssertionError("Plot():__init__() ERROR - must set environment variable RH_IDE or call IDELocation()")
 
     def __del__(self):
         if _domainless._DEBUG == True:
-            print "Plot: __del__() calling _OutputBase.__del__()"
+            print("Plot: __del__() calling _OutputBase.__del__()")
         _OutputBase.__del__(self)
 
     def cleanUp(self):
         if _domainless._DEBUG == True:
-            print "Plot: cleanUp() calling _OutputBase:cleanUp()"
+            print("Plot: cleanUp() calling _OutputBase:cleanUp()")
         _OutputBase.cleanUp(self)
 
     def __terminate(self,pid):
         if _domainless._DEBUG == True:
-            print "Plot: __terminate() calling _OutputBase:__terminate()"
+            print("Plot: __terminate() calling _OutputBase:__terminate()")
         _OutputBase.__terminate(self,pid)
 
     def plot(self):
         if _domainless._DEBUG == True:
-            print "Plot:plot()"
+            print("Plot:plot()")
 
         # Error checking before launching plot
         if self.usesPortIORString == None:
-            raise AssertionError, "Plot:plot() ERROR - usesPortIORString not set ... must call connect() on this object from another component"
+            raise AssertionError("Plot:plot() ERROR - usesPortIORString not set ... must call connect() on this object from another component")
         if self._usesPortName == None:
-            raise AssertionError, "Plot:plot() ERROR - usesPortName not set ... must call connect() on this object from another component"
+            raise AssertionError("Plot:plot() ERROR - usesPortName not set ... must call connect() on this object from another component")
         if self._dataType == None:
-            raise AssertionError, "Plot:plot() ERROR - dataType not set ... must call connect() on this object from another component"
+            raise AssertionError("Plot:plot() ERROR - dataType not set ... must call connect() on this object from another component")
 
         plotCommand = str(self._eclipsePath) + "/bin/plotter.sh -portname " + str(self._usesPortName) + " -repid " + str(self._dataType) + " -ior " + str(self.usesPortIORString)
         if _domainless._DEBUG == True:
-            print "Plot:plotCommand " + str(plotCommand)
+            print("Plot:plotCommand " + str(plotCommand))
         args = _shlex.split(plotCommand)
         if _domainless._DEBUG == True:
-            print "Plot:args " + str(args)
+            print("Plot:args " + str(args))
         try:
             dev_null = open('/dev/null','w')
             sub_process = _subprocess.Popen(args,stdout=dev_null,preexec_fn=_os.setpgrp)
             pid = sub_process.pid
             self._processes[pid] = sub_process
-        except Exception, e:
-            raise AssertionError, "Plot:plot() Failed to launch plotting due to %s" % ( e)
+        except Exception as e:
+            raise AssertionError("Plot:plot() Failed to launch plotting due to %s" % ( e))
 
 
     def setup(self, usesPort, dataType=None, componentName=None, usesPortName=None):
@@ -2013,7 +2015,7 @@ class Plot(OutputBase, _OutputBase):
         self._usesPortName = usesPortName
 
         if _domainless._DEBUG == True:
-            print "Plot:setup()"
+            print("Plot:setup()")
         self.plot()
 
 class SRIKeyword(object):
@@ -2034,13 +2036,13 @@ class SRIKeyword(object):
     def __init__(self, name, value, format):
         # validate format is legal type to convert to
         if format[0] == '[' and format[-1] == ']':
-            if format[1:-1] in _properties.getTypeMap().keys():
+            if format[1:-1] in list(_properties.getTypeMap().keys()):
                 self._name   = name
                 self._value  = value
                 self._format = format
             else:
                 raise RuntimeError("Unsupported format type: " + format)
-        elif format in _properties.getTypeMap().keys():
+        elif format in list(_properties.getTypeMap().keys()):
             self._name   = name
             self._value  = value
             self._format = format

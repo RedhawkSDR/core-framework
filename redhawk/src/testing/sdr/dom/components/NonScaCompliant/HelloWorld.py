@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -22,5 +22,5 @@
 import time
 
 while True:
-    print "Hello World"
+    print("Hello World")
     time.sleep(1)

@@ -20,7 +20,7 @@
 #% set className = component.baseclass.name
 #% set superclass = component.superclasses[0].name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -49,7 +49,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import structseq_property
 #{% endif %}
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
 from ossie.resource import usesport, providesport, PortCallError
@@ -135,7 +135,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
             ${superclass}.releaseObject(self)
 

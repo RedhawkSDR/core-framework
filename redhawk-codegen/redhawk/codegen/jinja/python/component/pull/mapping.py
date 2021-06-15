@@ -129,7 +129,7 @@ class PullComponentMapper(ComponentMapper):
             name = 'ExecutableDevice'
             package = 'ossie.device'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
         classes = [{'name': name, 'package': package}]
         if softpkg.descriptor().supports('IDL:CF/AggregateDevice:1.0'):
             classes.append({'name': 'AggregateDevice', 'package': 'ossie.device'})
@@ -184,7 +184,7 @@ class PullComponentMapper(ComponentMapper):
             else:
                 return 'CF__POA.ExecutableDevice'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
 
     def getInterfaceDependencies(self, softpkg):
         for namespace in self.getInterfaceNamespaces(softpkg):

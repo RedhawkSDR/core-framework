@@ -18,10 +18,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import threading, struct, time, Queue, copy, random
+import threading, struct, time, queue, copy, random
+import sys
 from omniORB import any, CORBA
-from new import classobj
 from ossie.cf import CF
+
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
     haveBulkio = True
@@ -69,7 +70,7 @@ def bulkioComplexToPythonComplexList(bulkioList):
     if (len(bulkioList)%2):
         raise BadParamException('BulkIO complex data list must have an even number of entries.')
     def _group(data):
-        for ii in xrange(0, len(data), 2):
+        for ii in range(0, len(data), 2):
             yield data[ii:ii+2]
     return [complex(real,imag) for real,imag in _group(bulkioList)]
 
@@ -215,12 +216,11 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 if type(elem) != str and type(elem) != int:
                     raise BadParamException('dataSet contains values which can not be interpreted as type character:', elem, ' -- ', type(elem))
             if type(dataSet[0]) == str:
-                fmt = str(len(dataSet)) + 'c'
+                return ''.join(dataSet)
             else:
-                fmt = str(len(dataSet)) + 'b'
-            return struct.pack(fmt, *[i for i in dataSet])
+                return ''.join([ i.to_bytes(1,sys.byteorder, signed=True).decode('ISO-8859-1') for i in dataSet ])
     elif dataType == 'dataDouble':
-        validDataTypes = [int, long, float]
+        validDataTypes = [int, int, float]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type double:', elem, ' -- ', type(elem))
@@ -228,7 +228,7 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         unpackData = struct.unpack(str(len(dataSet))+'d', packData)
         return (list)(unpackData)
     elif dataType == 'dataFloat':
-        validDataTypes = [int, long, float]
+        validDataTypes = [int, int, float]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type float:', elem, ' -- ', type(elem))
@@ -236,20 +236,20 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
         unpackData = struct.unpack(str(len(dataSet))+'f', packData)
         return (list)(unpackData)
     elif dataType == 'dataLong':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type long:', elem, ' -- ', type(elem))
         return (list)(dataSet)
     elif dataType == 'dataLongLong':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type longlong:', elem, ' -- ', type(elem))
         return (list)(dataSet)
     elif dataType == 'dataOctet':
         if dataSetType == str:
-            return dataSet
+            return dataSet.encode('ISO-8859-1')
         else:
             for elem in dataSet:
                 if type(elem) == str and len(elem) != 1:
@@ -261,12 +261,11 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 if type(elem) != str and type(elem) != int:
                     raise BadParamException('dataSet contains values which can not be interpreted as type octet:', elem, ' -- ', type(elem))
             if type(dataSet[0]) == str:
-                fmt = str(len(dataSet)) + 'c'
+                return ''.join(dataSet).encode('ISO-8859-1')
             else:
-                fmt = str(len(dataSet)) + 'B'
-            return struct.pack(fmt, *[i for i in dataSet])
+                return bytes(dataSet)
     elif dataType == 'dataShort':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type short:', elem, ' -- ', type(elem))
@@ -274,7 +273,7 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 raise BadParamException('dataSet contains values which are out of range for type short(signed 16bit):', elem)
         return (list)(dataSet)
     elif dataType == 'dataUlong':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type ulong:', elem, ' -- ', type(elem))
@@ -282,7 +281,7 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 raise BadParamException('dataSet contains values which are out of range for type ulong:', elem)
         return (list)(dataSet)
     elif dataType == 'dataUlongLong':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type ulonglong:', elem, ' -- ', type(elem))
@@ -290,7 +289,7 @@ def formatData(dataSet, portRef=None, BULKIOtype=None):
                 raise BadParamException('dataSet contains values which are out of range for type ulonglong:', elem)
         return (list)(dataSet)
     elif dataType == 'dataUshort':
-        validDataTypes = [int, long]
+        validDataTypes = [int, int]
         for elem in dataSet:
             if type(elem) not in validDataTypes:
                 raise BadParamException('dataSet contains invalid data types for port type ushort:', elem, ' -- ', type(elem))
@@ -323,16 +322,13 @@ def restoreData(dataSet, dataType):
                 msg = msg + str(x) + ', '
         raise BadParamException(msg)
 
-    fmt = str(len(dataSet))
-    if dataType == 'char':
-        fmt = fmt + 'c'
-    elif dataType == '8bit':
-        fmt = fmt + 'b'
-    elif dataType == 'u8bit':
-        fmt = fmt + 'B'
-
     try:
-        return [x for x in struct.unpack(fmt, dataSet)]
+        if dataType == 'char':
+            return [ int.from_bytes(d.encode('ISO-8859-1'),sys.byteorder,signed=True) for d in dataSet ]
+        elif dataType == '8bit':
+            return [ int.from_bytes(d.encode('ISO-8859-1'),sys.byteorder,signed=True) for d in dataSet ]
+        elif dataType == 'u8bit':
+            return list(dataSet)
     except:
         raise Exception("Was not able to restore data to type: " + dataType)
 
@@ -464,7 +460,7 @@ def createBULKIOInputPort(portType):
         try:
             sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
             sriChanged = False
-            if self.sriDict.has_key(streamID):
+            if streamID in self.sriDict:
                 sri, sriChanged = self.sriDict[streamID]
                 self.sriDict[streamID] = (sri, False)
             else:
@@ -479,7 +475,7 @@ def createBULKIOInputPort(portType):
                         self.queue.mutex.acquire()
                         self.queue.queue.clear()
                         self.queue.mutex.release()
-                    except Queue.Empty:
+                    except queue.Empty:
                         pass
                     packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, True)
                 else:
@@ -536,26 +532,26 @@ def createBULKIOInputPort(portType):
                 data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(timeout=timetowait)
 
             if EOS:
-                if self.sriDict.has_key(streamID):
+                if streamID in self.sriDict:
                     sri, sriChanged = self.sriDict.pop(streamID)
                     if sri.blocking:
                         stillBlock = False
-                        for _sri, _sriChanged in self.sriDict.values():
+                        for _sri, _sriChanged in list(self.sriDict.values()):
                             if _sri.blocking:
                                 stillBlock = True
                                 break
                         if not stillBlock:
                             self.blocking = False
             return (data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed)
-        except Queue.Empty:
+        except queue.Empty:
             return None, None, None, None, None, None, None
 
     #######################################
     # These are used if your port attempts
     # to mimic an SDDS input port
     if portType == BULKIO__POA.dataSDDS:
-        PortClass = classobj('Port',
-                             (portType,object),
+        PortClass = type('Port',
+                             (portType,object,),
                              {'pushSRI':SDDS_pushSRI,
                               'attach':attach,
                               'detach':detach,
@@ -567,13 +563,13 @@ def createBULKIOInputPort(portType):
         retval.detach = tmp.detach
         return retval
     else:
-        PortClass = classobj('PortClass',
-                             (portType,object),
+        PortClass = type('PortClass',
+                         (portType,object),
                              {'pushPacket':pushPacket,
                               'getPacket':getPacket,
                               'pushSRI':pushSRI,
                               'sriDict':{},
-                              'queue':Queue.Queue(1000),
+                              'queue':queue.Queue(1000),
                               'blocking':False,
                               'getMaxQueueDepth':getMaxQueueDepth,
                               'setMaxQueueDepth':setMaxQueueDepth,

@@ -20,7 +20,7 @@
 
 from redhawk.codegen.lang import cpp
 
-from generator import CppPortGenerator
+from .generator import CppPortGenerator
 
 class PropertyEventPortGenerator(CppPortGenerator):
     REPID = 'IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0'

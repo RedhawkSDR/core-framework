@@ -78,14 +78,14 @@ class BaseVectorPort(unittest.TestCase):
         
 
     def setUp(self):
-        self.seq = range(10)
+        self.seq = list(range(10))
         self.setContext()
 
     def test_vector(self):
         dsource=sb.DataSource()
         dsink=sb.DataSink()
         test_comp=sb.Component(self.cname)
-        data=range(100)
+        data=list(range(100))
         dsource.connect(test_comp, providesPortName=self.inport )
         test_comp.connect(dsink, providesPortName=self.sink_port_name, usesPortName=self.outport)
         sb.start()

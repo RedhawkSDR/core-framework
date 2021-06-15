@@ -68,7 +68,7 @@ try:
 
             """
             efname = self.error_report_file_name.replace("%IMPL%", str(self.impl))
-            print "Report ---->>>>>> ", efname, " IMP ", self.impl, " CNT ", self.cnt,  " Mode ", self.mode
+            print("Report ---->>>>>> ", efname, " IMP ", self.impl, " CNT ", self.cnt,  " Mode ", self.mode)
             self.error_report_file = codecs.open(efname, self.mode,
                                                  self.encoding, 'replace')
 
@@ -76,16 +76,16 @@ try:
             self.stats['total'] = (self.stats['errors'] + self.stats['failures']
                                    + self.stats['passes'] + self.stats['skipped'])
             if self.cnt == 0:
-                self.error_report_file.write( u'<?xml version="1.0" encoding="%s"?>' % self.encoding )
+                self.error_report_file.write( '<?xml version="1.0" encoding="%s"?>' % self.encoding )
             
             self.error_report_file.write(            
-                u'<testsuite name="%(testsuite_name)s" tests="%(total)d" '
-                u'errors="%(errors)d" failures="%(failures)d" '
-                u'skip="%(skipped)d">' % self.stats)
+                '<testsuite name="%(testsuite_name)s" tests="%(total)d" '
+                'errors="%(errors)d" failures="%(failures)d" '
+                'skip="%(skipped)d">' % self.stats)
 
-            self.error_report_file.write(u''.join([force_unicode(e, self.encoding)
+            self.error_report_file.write(''.join([force_unicode(e, self.encoding)
                                                    for e in self.errorlist]))
-            self.error_report_file.write(u'</testsuite>')
+            self.error_report_file.write('</testsuite>')
             self.error_report_file.close()
             if self.config.verbosity > 1:
                 stream.writeln("-" * 70)

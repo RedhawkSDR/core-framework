@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -34,7 +34,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 
 NOOP = -1
@@ -215,7 +215,7 @@ class PortCFPropertySetOut_i(ServiceComponent_base.PortCFPropertySetOut):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.items()]
         finally:
             self.port_lock.release()
 
@@ -223,7 +223,7 @@ class PortCFPropertySetOut_i(ServiceComponent_base.PortCFPropertySetOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         port.configure(configProperties)
@@ -238,7 +238,7 @@ class PortCFPropertySetOut_i(ServiceComponent_base.PortCFPropertySetOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         retVal = port.query(configProperties)

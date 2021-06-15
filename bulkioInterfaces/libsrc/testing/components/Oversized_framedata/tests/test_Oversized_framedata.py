@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -49,7 +49,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         ts_first = data.timestamps[0][1]
         ts_last = data.timestamps[-1][1]
         delta = int(ts_last.twsec - ts_first.twsec)
-        self.assertEquals(delta % data.sri.subsize, 0)
+        self.assertEqual(delta % data.sri.subsize, 0)
 
         #######################################################################
         # Simulate regular resource shutdown

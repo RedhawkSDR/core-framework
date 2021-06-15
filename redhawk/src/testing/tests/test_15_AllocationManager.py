@@ -167,7 +167,7 @@ class AllocationManagerTest(scatest.CorbaTestCase):
         response = dict((r.requestID, r) for r in self._allocMgr.allocate(request))
         self.assertEqual(len(request), len(response))
         self.assertFalse(response['external'].allocatedDevice._is_equivalent(response['matching'].allocatedDevice))
-        self._allocMgr.deallocate([r.allocationID for r in response.values()])
+        self._allocMgr.deallocate([r.allocationID for r in list(response.values())])
 
     def test_allocationsMethod(self):
         nb, devMgr = self.launchDeviceManager('/nodes/test_SADUsesDevice/DeviceManager.dcd.xml')
@@ -214,7 +214,7 @@ class AllocationManagerTest(scatest.CorbaTestCase):
     def test_BasicOperations(self):
         # Check that the domain manager back link is correct
         domMgr = self._allocMgr._get_domainMgr()
-        self.assert_(self._domMgr._is_equivalent(domMgr))
+        self.assertTrue(self._domMgr._is_equivalent(domMgr))
 
         # Check that the device list attributes work as expected (with no
         # devices), and do not throw exceptions
@@ -241,7 +241,7 @@ class AllocationManagerTest(scatest.CorbaTestCase):
             # Collect the complete set of device IDs, making sure new devices
             # are added every time through the loop
             devices = allocMgrHelpers.parseDomainDevices(self._domMgr)
-            self.assert_(len(devices) > devCount)
+            self.assertTrue(len(devices) > devCount)
             devCount = len(devices)
 
             # Make sure localDevices matches our known state
@@ -533,7 +533,7 @@ class AllocationManagerTestRedhawkUtils(scatest.CorbaTestCase):
         response = dict((r.requestID, r) for r in self.am.allocate(request))
         self.assertEqual(len(request), len(response))
         self.assertFalse(response['external'].allocatedDevice._is_equivalent(response['matching'].allocatedDevice))
-        self.am.deallocate([r.allocationID for r in response.values()])
+        self.am.deallocate([r.allocationID for r in list(response.values())])
 
     def test_redhawkutils_allocationsMethod(self):
         nb, devMgr = self.launchDeviceManager('/nodes/test_SADUsesDevice/DeviceManager.dcd.xml')
@@ -720,7 +720,7 @@ class AllocationManagerTestRedhawkUtils(scatest.CorbaTestCase):
             # Collect the complete set of device IDs, making sure new devices
             # are added every time through the loop
             devices = allocMgrHelpers.parseDomainDevices(self._domMgr)
-            self.assert_(len(devices) > devCount)
+            self.assertTrue(len(devices) > devCount)
             devCount = len(devices)
 
             # Make sure localDevices matches our known state
@@ -741,7 +741,7 @@ class AllocationManagerTestRedhawkUtils(scatest.CorbaTestCase):
     def test_redhawkutils_BasicOperations(self):
         # Check that the domain manager back link is correct
         domMgr = self.am.getDomainMgr
-        self.assert_(self._domMgr._is_equivalent(domMgr))
+        self.assertTrue(self._domMgr._is_equivalent(domMgr))
 
         # Check that the device list attributes work as expected (with no
         # devices), and do not throw exceptions

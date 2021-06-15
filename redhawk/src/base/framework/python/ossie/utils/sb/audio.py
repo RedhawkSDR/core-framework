@@ -21,6 +21,7 @@
 import platform
 import struct
 import warnings
+import sys
 
 def _deferred_imports():
     # The GStreamer (or bulkio) modules may not be installed; defer imports
@@ -61,10 +62,10 @@ def _deferred_imports():
         from bulkio.bulkioInterfaces import BULKIO__POA
 
         globals().update(locals())
-    except ImportError, e:
+    except ImportError as e:
         raise RuntimeError("Missing required package for sandbox audio: '%s'" % e)
 
-from io_helpers import _SinkBase
+from .io_helpers import _SinkBase
 
 __all__ = ('SoundSink',)
 
@@ -89,7 +90,7 @@ class SoundSink(_SinkBase):
     # string '1234' and repacking it into a native endian 32-bit integer. If the
     # native endianness is little, the packed value will be '1234', otherwise
     # it will be swapped to '4321'.
-    ENDIANNESS = struct.pack('@i', struct.unpack('<i', '1234')[0])
+    ENDIANNESS = sys.byteorder
 
     def __init__(self):
         """
@@ -136,9 +137,9 @@ class SoundSink(_SinkBase):
             self.format_caps = 'F64'
 
         if format_in not in ['octet', 'octetIn']:
-            if self.ENDIANNESS == '1234':
+            if self.ENDIANNESS == 'little':
                 self.format_caps += 'LE'
-            elif self.ENDIANNESS == '4321':
+            elif self.ENDIANNESS == 'big':
                 self.format_caps += 'BE'
 
     def getPort(self, name):

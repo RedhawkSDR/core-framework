@@ -46,7 +46,7 @@ def getNode(inpath,Nname,parent=None,sdrroot='/sdr/sca', in_interface_list=None)
     doc_dcd = xml.dom.minidom.parse(dcdPath)
     if len(doc_dcd.getElementsByTagName('deviceconfiguration')[0].getElementsByTagName('partitioning')) == 0:
 #         utils.errorMsg(parent,"Invalid file: " + dcdPath)
-        print "Invalid file: " + dcdPath
+        print("Invalid file: " + dcdPath)
         return None
     
     newNode.id = doc_dcd.getElementsByTagName('deviceconfiguration')[0].getAttribute('id')
@@ -69,7 +69,7 @@ def getNode(inpath,Nname,parent=None,sdrroot='/sdr/sca', in_interface_list=None)
                 break
         pathSPD = os.path.join(sdrroot, local_SPD)
         if not os.path.exists(pathSPD):
-            print "Cannot locate SPD file: " + pathSPD
+            print("Cannot locate SPD file: " + pathSPD)
             continue
         doc_spd = xml.dom.minidom.parse(pathSPD)
         
@@ -78,7 +78,7 @@ def getNode(inpath,Nname,parent=None,sdrroot='/sdr/sca', in_interface_list=None)
         local_SCD = doc_spd.getElementsByTagName('softpkg')[0].getElementsByTagName('descriptor')[0].getElementsByTagName('localfile')[0].getAttribute('name')
         pathSCD = os.path.join(sdrroot, local_SCD)
         if not os.path.exists(pathSCD):
-            print "Cannot locate SCD file: " + pathSCD
+            print("Cannot locate SCD file: " + pathSCD)
             continue
         doc_scd = xml.dom.minidom.parse(pathSCD)
         
@@ -140,7 +140,7 @@ def getInterface(repid,name):
         
     except:
 #         utils.errorMsg(parent,"Can't read the Interface information for port: " + name)
-        print "Can't read the Interface information for port: " + name
+        print("Can't read the Interface information for port: " + name)
         return None
     
     

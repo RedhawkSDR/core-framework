@@ -49,7 +49,7 @@ def _deferred_imports():
             pass
 
         globals().update(locals())
-    except ImportError, e:
+    except ImportError as e:
         import platform
         if 'el5' in platform.release() and 'PyQt4' in str(e):
             raise RuntimeError("matplotlib-based plots are not available by default on Red Hat Enterprise Linux 5 (missing PyQt4 dependency)")
@@ -258,13 +258,13 @@ class LineBase(PlotBase):
 
     def _getEndpoint(self, port, connectionId):
         if not port['Port Name'] in self._providesPortDict:
-            raise RuntimeError, "Line plot '%s' has no provides port '%s'", (self._instanceName, name)
+            raise RuntimeError("Line plot '%s' has no provides port '%s'").with_traceback((self._instanceName, name))
         return PlotEndpoint(self, port, connectionId)
 
     def _disconnected(self, connectionId):
         self._linesLock.acquire()
         try:
-            for name, trace in self._lines.iteritems():
+            for name, trace in self._lines.items():
                 if trace['id'] == connectionId:
                     trace['port'].stopPort()
                     line = trace['line']
@@ -285,7 +285,7 @@ class LineBase(PlotBase):
         with self._linesLock:
             traceName = '%s-%s' % (port['Port Name'], name)
             if traceName in self._lines:
-                raise KeyError, "Trace '%s' already exists" % traceName
+                raise KeyError("Trace '%s' already exists" % traceName)
 
             port = self._createPort(port, traceName)
             
@@ -323,7 +323,7 @@ class LineBase(PlotBase):
         # lock to do the reads. This allows the read to be interrupted (e.g.,
         # if a source is disconnected) without deadlock.
         with self._linesLock:
-            traces = self._lines.values()
+            traces = list(self._lines.values())
  
         redraw = [self._updateTrace(trace) for trace in traces]
         if not any(redraw):
@@ -350,7 +350,7 @@ class LineBase(PlotBase):
         # Start all associated ports.
         self._linesLock.acquire()
         try:
-            for trace in self._lines.itervalues():
+            for trace in self._lines.values():
                 trace['port'].startPort()
         finally:
             self._linesLock.release()
@@ -360,7 +360,7 @@ class LineBase(PlotBase):
         # Stop all associated port.
         self._linesLock.acquire()
         try:
-            for trace in self._lines.itervalues():
+            for trace in self._lines.values():
                 trace['port'].stopPort()
         finally:
             self._linesLock.release()
@@ -379,7 +379,7 @@ class LineBase(PlotBase):
         if ymin is None or ymax is None:
             return
         if ymax < ymin:
-            raise ValueError, 'Y-axis bounds cannot overlap (%d > %d)' % (ymin, ymax)
+            raise ValueError('Y-axis bounds cannot overlap (%d > %d)' % (ymin, ymax))
 
     @property
     def ymin(self):
@@ -457,7 +457,7 @@ class LinePlot(LineBase):
         if xmin is None or xmax is None:
             return
         if xmax < xmin:
-            raise ValueError, 'X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax)
+            raise ValueError('X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax))
 
     # Plot properties
     @property
@@ -738,7 +738,7 @@ class RasterBase(PlotBase):
 
     def _check_zrange(self, zmin, zmax):
         if zmax < zmin:
-            raise ValueError, 'Z-axis bounds cannot overlap (%d > %d)' % (zmin, zmax)
+            raise ValueError('Z-axis bounds cannot overlap (%d > %d)' % (zmin, zmax))
 
     def _update_zrange(self, zmin, zmax):
         self._zmin = zmin
@@ -1046,7 +1046,7 @@ class XYPlot(LineBase):
         if xmin is None or xmax is None:
             return
         if xmax < xmin:
-            raise ValueError, 'X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax)
+            raise ValueError('X-axis bounds cannot overlap (%f > %f)' % (xmin, xmax))
 
     # Plot properties
     @property

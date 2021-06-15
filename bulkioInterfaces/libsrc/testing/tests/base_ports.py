@@ -33,7 +33,7 @@ from ossie.utils import model
 model._idllib.addSearchPath('../../../idl')
 
 def str_to_class(s):
-    if s in globals() and isinstance(globals()[s], types.ClassType):
+    if s in globals() and isinstance(globals()[s], type):
         return globals()[s]
     return None
 
@@ -101,7 +101,7 @@ class BaseVectorPort(unittest.TestCase):
         if self.srcData:
             self.seq = self.srcData
         else:
-            self.seq = range(100)
+            self.seq = list(range(100))
         self.launchedComps = []
 
     def tearDown(self):
@@ -124,7 +124,7 @@ class BaseVectorPort(unittest.TestCase):
         source.sri = in_sri
         sink = sb.StreamSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Component:" + c_spd_xml
+        print("Test Component:" + c_spd_xml)
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
         data_in = self.seq
 
@@ -138,7 +138,7 @@ class BaseVectorPort(unittest.TestCase):
         #print 'Result data: ' + str(len(data_out))
         #print data_in
         #print data_out
-        if isinstance(data_in, basestring):
+        if isinstance(data_in, str):
             self.assertEqual(data_in, data_out[0], 'PUSH PACKET FAILED....Data Vector Mismatch')
         else:
             self.assertEqual(len(data_in), len(data_out), 'PUSH PACKET FAILED....Data Vector Mismatch')
@@ -147,13 +147,13 @@ class BaseVectorPort(unittest.TestCase):
         # check sri values
         #
         sri = stream_data.sri
-        print "StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID) 
+        print("StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID)) 
         self.assertEqual(sri.streamID,in_sri.streamID,"PUSH PACKET FAILED....SRI StreamID Mismatch")
 
-        print "Mode in:" + str(in_sri.mode)+ " arrive:" + str(sri.mode) 
+        print("Mode in:" + str(in_sri.mode)+ " arrive:" + str(sri.mode)) 
         self.assertEqual(sri.mode,in_sri.mode,"PUSH PACKET FAILED....SRI Mode Mismatch")
 
-        print "SampleRate in:" + str(in_sri.xdelta)+ " arrive:" + str(sri.xdelta) 
+        print("SampleRate in:" + str(in_sri.xdelta)+ " arrive:" + str(sri.xdelta)) 
         self.assertAlmostEqual(sri.xdelta,in_sri.xdelta, 3, msg="PUSH PACKET FAILED....SRI SampleRate Mismatch")
 
 
@@ -167,7 +167,7 @@ class BaseVectorPort(unittest.TestCase):
         source.sri = in_sri
         sink = sb.StreamSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Component:" + c_spd_xml
+        print("Test Component:" + c_spd_xml)
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
         data_in = self.seq
 
@@ -181,7 +181,7 @@ class BaseVectorPort(unittest.TestCase):
         #print "Result data_in: " + str(len(data_out))
         #print data_in
         #print data_out
-        if isinstance(data_in, basestring):
+        if isinstance(data_in, str):
             self.assertEqual(data_in, data_out[0], 'PUSH PACKET FAILED....Data Vector Mismatch')
         else:
             self.assertEqual(len(data_in), len(data_out), 'PUSH PACKET FAILED....Data Vector Mismatch')
@@ -190,13 +190,13 @@ class BaseVectorPort(unittest.TestCase):
         # check sri values
         #
         sri = stream_data.sri
-        print "StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID) 
+        print("StreamID   in:" + str(in_sri.streamID)+ " arrive:" + str(sri.streamID)) 
         self.assertEqual(sri.streamID,in_sri.streamID,"PUSH PACKET CPLX FAILED....SRI StreamID Mismatch")
 
-        print "Mode in:" + str(in_sri.mode)+ " arrive:" + str(sri.mode) 
+        print("Mode in:" + str(in_sri.mode)+ " arrive:" + str(sri.mode)) 
         self.assertEqual(sri.mode,in_sri.mode,"PUSH PACKET CPLX FAILED....SRI Mode Mismatch")
 
-        print "SampleRate in:" + str(in_sri.xdelta)+ " arrive:" + str(sri.xdelta) 
+        print("SampleRate in:" + str(in_sri.xdelta)+ " arrive:" + str(sri.xdelta)) 
         self.assertAlmostEqual(sri.xdelta,in_sri.xdelta, 3, msg="PUSH PACKET CPLX FAILED....SRI SampleRate Mismatch")
 
 
@@ -219,7 +219,7 @@ class BaseVectorPort(unittest.TestCase):
             pushPacket  (unused.  remove/replace?)
         """
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Component:" + c_spd_xml
+        print("Test Component:" + c_spd_xml)
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
 
         ##
@@ -261,7 +261,7 @@ class BaseVectorPort(unittest.TestCase):
             pushPacket  (unused.  remove/replace?)
         """
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Component:" + c_spd_xml
+        print("Test Component:" + c_spd_xml)
         test_comp=self.launch( c_spd_xml, execparams=self.execparams)
 
         ##

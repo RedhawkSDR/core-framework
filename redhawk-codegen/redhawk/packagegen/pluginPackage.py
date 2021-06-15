@@ -59,7 +59,7 @@ class PluginPackage(SoftPackage):
         wavedev = os.path.join(os.path.dirname(self.outputDir), wavedev)
         os.chdir(self.outputDir+'/'+self.plugin_name)
         settings = importWavedevSettings(wavedev)
-        implList = settings.keys()
+        implList = list(settings.keys())
         package = importTemplate(settings['cpp'].template)
         projectGenerator = package.factory(plugin_name=self.plugin_name, outputdir='')
         implFiles = []
