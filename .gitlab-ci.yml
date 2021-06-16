@@ -9,7 +9,7 @@ variables:
   redhawk_lts_branch: 'develop'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
-  redhawk_deps: releng-1128
+  redhawk_deps: 'develop'
   commit: $CI_COMMIT_SHA
   datetime: ""
 
