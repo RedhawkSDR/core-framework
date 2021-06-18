@@ -55,14 +55,11 @@ class ${className}(${baseClass}):
 #{% if component.hastunerstatusstructure %}
         For a tuner device, the structure frontend_tuner_status needs to match the number
         of tuners that this device controls and what kind of device it is.
-        The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
-     
-        For example, if this device has 5 physical
-        tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-        should look like this:
+        The options for devices are: ANTENNA, RX, RX_ARRAY, DBOT, ABOT, ARDC, RDC, SRDC, DRDC, TX, TX_ARRAY, TDC
+        
+        An example of setting up this device as an ABOT would look like this:
 
-        self.addChannels(3, "RX_DIGITIZER")
-        self.addChannels(2, "CHANNELIZER")
+        self.addChannels(1, "ABOT")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
@@ -70,7 +67,7 @@ class ${className}(${baseClass}):
         """
         # TODO add customization here.
 #{% if component.hastunerstatusstructure %}
-        self.addChannels(1, "RX_DIGITIZER")
+        self.addChannels(1, "ABOT")
 #{% else %}
         pass
 #{% endif %}
