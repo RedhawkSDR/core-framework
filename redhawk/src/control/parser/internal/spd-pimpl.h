@@ -600,7 +600,7 @@ namespace spd
     ::std::vector<std::string> values;
   };
 
-  class childPropertyFile_pimpl: public virtual childPropertyFile_pskel
+  class childSoftwarePackageFile_pimpl: public virtual childSoftwarePackageFile_pskel
   {
     public:
     virtual void
@@ -610,20 +610,7 @@ namespace spd
     localfile (const ::std::string&);
 
     virtual void
-    post_childPropertyFile ();
-  };
-
-  class childDescriptorFile_pimpl: public virtual childDescriptorFile_pskel
-  {
-    public:
-    virtual void
-    pre ();
-
-    virtual void
-    localfile (const ::std::string&);
-
-    virtual void
-    post_childDescriptorFile ();
+    post_childSoftwarePackageFile ();
   };
 
   class child_pimpl: public virtual child_pskel
@@ -633,10 +620,7 @@ namespace spd
     pre ();
 
     virtual void
-    childPropertyFile ();
-
-    virtual void
-    childDescriptorFile ();
+    childSoftwarePackageFile ();
 
     virtual void
     name (const ::std::string&);

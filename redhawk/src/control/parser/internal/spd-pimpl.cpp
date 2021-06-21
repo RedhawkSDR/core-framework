@@ -932,40 +932,20 @@ post_values ()
 // childPropertyFile_pimpl
 //
 
-void childPropertyFile_pimpl::
+void childSoftwarePackageFile_pimpl::
 pre ()
 {
 }
 
-void childPropertyFile_pimpl::
+void childSoftwarePackageFile_pimpl::
 localfile (const ::std::string& localfile)
 {
 // TODO
 //
 }
 
-void childPropertyFile_pimpl::
-post_childPropertyFile ()
-{
-}
-
-// childDescriptorFile_pimpl
-//
-
-void childDescriptorFile_pimpl::
-pre ()
-{
-}
-
-void childDescriptorFile_pimpl::
-localfile (const ::std::string& localfile)
-{
-// TODO
-//
-}
-
-void childDescriptorFile_pimpl::
-post_childDescriptorFile ()
+void childSoftwarePackageFile_pimpl::
+post_childSoftwarePackageFile ()
 {
 }
 
@@ -978,12 +958,7 @@ pre ()
 }
 
 void child_pimpl::
-childPropertyFile ()
-{
-}
-
-void child_pimpl::
-childDescriptorFile ()
+childSoftwarePackageFile ()
 {
 }
 
