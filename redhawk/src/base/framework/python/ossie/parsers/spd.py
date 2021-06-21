@@ -20,8 +20,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 
 #
-# Generated Mon Jul 30 12:29:35 2018 by generateDS.py version 2.29.14.
-# Python 2.7.5 (default, Nov  6 2016, 00:28:07)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-11)]
+# Generated Mon Jun 21 16:13:00 2021 by generateDS.py version 2.29.14.
+# Python 2.7.5 (default, Nov 16 2020, 22:23:17)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
 #
 # Command line options:
 #   ('-f', '')
@@ -3246,7 +3246,7 @@ class values(GeneratedsSuper):
 # end class values
 
 
-class childPropertyFile(GeneratedsSuper):
+class childSoftwarePackageFile(GeneratedsSuper):
     subclass = None
     superclass = None
     def __init__(self, localfile=None):
@@ -3255,13 +3255,13 @@ class childPropertyFile(GeneratedsSuper):
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
             subclass = getSubclassFromModule_(
-                CurrentSubclassModule_, childPropertyFile)
+                CurrentSubclassModule_, childSoftwarePackageFile)
             if subclass is not None:
                 return subclass(*args_, **kwargs_)
-        if childPropertyFile.subclass:
-            return childPropertyFile.subclass(*args_, **kwargs_)
+        if childSoftwarePackageFile.subclass:
+            return childSoftwarePackageFile.subclass(*args_, **kwargs_)
         else:
-            return childPropertyFile(*args_, **kwargs_)
+            return childSoftwarePackageFile(*args_, **kwargs_)
     factory = staticmethod(factory)
     def get_localfile(self): return self.localfile
     def set_localfile(self, localfile): self.localfile = localfile
@@ -3273,8 +3273,8 @@ class childPropertyFile(GeneratedsSuper):
             return True
         else:
             return False
-    def export(self, outfile, level, namespace_='', name_='childPropertyFile', namespacedef_='', pretty_print=True):
-        imported_ns_def_ = GenerateDSNamespaceDefs_.get('childPropertyFile')
+    def export(self, outfile, level, namespace_='', name_='childSoftwarePackageFile', namespacedef_='', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('childSoftwarePackageFile')
         if imported_ns_def_ is not None:
             namespacedef_ = imported_ns_def_
         if pretty_print:
@@ -3286,17 +3286,17 @@ class childPropertyFile(GeneratedsSuper):
         showIndent(outfile, level, pretty_print)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
         already_processed = set()
-        self.exportAttributes(outfile, level, already_processed, namespace_, name_='childPropertyFile')
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='childSoftwarePackageFile')
         if self.hasContent_():
             outfile.write('>%s' % (eol_, ))
-            self.exportChildren(outfile, level + 1, namespace_='', name_='childPropertyFile', pretty_print=pretty_print)
+            self.exportChildren(outfile, level + 1, namespace_='', name_='childSoftwarePackageFile', pretty_print=pretty_print)
             showIndent(outfile, level, pretty_print)
             outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
         else:
             outfile.write('/>%s' % (eol_, ))
-    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='childPropertyFile'):
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='childSoftwarePackageFile'):
         pass
-    def exportChildren(self, outfile, level, namespace_='', name_='childPropertyFile', fromsubclass_=False, pretty_print=True):
+    def exportChildren(self, outfile, level, namespace_='', name_='childSoftwarePackageFile', fromsubclass_=False, pretty_print=True):
         if pretty_print:
             eol_ = '\n'
         else:
@@ -3318,92 +3318,16 @@ class childPropertyFile(GeneratedsSuper):
             obj_.build(child_)
             self.localfile = obj_
             obj_.original_tagname_ = 'localfile'
-# end class childPropertyFile
-
-
-class childDescriptorFile(GeneratedsSuper):
-    subclass = None
-    superclass = None
-    def __init__(self, localfile=None):
-        self.original_tagname_ = None
-        self.localfile = localfile
-    def factory(*args_, **kwargs_):
-        if CurrentSubclassModule_ is not None:
-            subclass = getSubclassFromModule_(
-                CurrentSubclassModule_, childDescriptorFile)
-            if subclass is not None:
-                return subclass(*args_, **kwargs_)
-        if childDescriptorFile.subclass:
-            return childDescriptorFile.subclass(*args_, **kwargs_)
-        else:
-            return childDescriptorFile(*args_, **kwargs_)
-    factory = staticmethod(factory)
-    def get_localfile(self): return self.localfile
-    def set_localfile(self, localfile): self.localfile = localfile
-    localfileProp = property(get_localfile, set_localfile)
-    def hasContent_(self):
-        if (
-            self.localfile is not None
-        ):
-            return True
-        else:
-            return False
-    def export(self, outfile, level, namespace_='', name_='childDescriptorFile', namespacedef_='', pretty_print=True):
-        imported_ns_def_ = GenerateDSNamespaceDefs_.get('childDescriptorFile')
-        if imported_ns_def_ is not None:
-            namespacedef_ = imported_ns_def_
-        if pretty_print:
-            eol_ = '\n'
-        else:
-            eol_ = ''
-        if self.original_tagname_ is not None:
-            name_ = self.original_tagname_
-        showIndent(outfile, level, pretty_print)
-        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
-        already_processed = set()
-        self.exportAttributes(outfile, level, already_processed, namespace_, name_='childDescriptorFile')
-        if self.hasContent_():
-            outfile.write('>%s' % (eol_, ))
-            self.exportChildren(outfile, level + 1, namespace_='', name_='childDescriptorFile', pretty_print=pretty_print)
-            showIndent(outfile, level, pretty_print)
-            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
-        else:
-            outfile.write('/>%s' % (eol_, ))
-    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='childDescriptorFile'):
-        pass
-    def exportChildren(self, outfile, level, namespace_='', name_='childDescriptorFile', fromsubclass_=False, pretty_print=True):
-        if pretty_print:
-            eol_ = '\n'
-        else:
-            eol_ = ''
-        if self.localfile is not None:
-            self.localfile.export(outfile, level, namespace_, name_='localfile', pretty_print=pretty_print)
-    def build(self, node):
-        already_processed = set()
-        self.buildAttributes(node, node.attrib, already_processed)
-        for child in node:
-            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
-            self.buildChildren(child, node, nodeName_)
-        return self
-    def buildAttributes(self, node, attrs, already_processed):
-        pass
-    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
-        if nodeName_ == 'localfile':
-            obj_ = localFile.factory()
-            obj_.build(child_)
-            self.localfile = obj_
-            obj_.original_tagname_ = 'localfile'
-# end class childDescriptorFile
+# end class childSoftwarePackageFile
 
 
 class child(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, name=None, childPropertyFile=None, childDescriptorFile=None):
+    def __init__(self, name=None, childSoftwarePackageFile=None):
         self.original_tagname_ = None
         self.name = _cast(None, name)
-        self.childPropertyFile = childPropertyFile
-        self.childDescriptorFile = childDescriptorFile
+        self.childSoftwarePackageFile = childSoftwarePackageFile
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
             subclass = getSubclassFromModule_(
@@ -3415,19 +3339,15 @@ class child(GeneratedsSuper):
         else:
             return child(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_childPropertyFile(self): return self.childPropertyFile
-    def set_childPropertyFile(self, childPropertyFile): self.childPropertyFile = childPropertyFile
-    childPropertyFileProp = property(get_childPropertyFile, set_childPropertyFile)
-    def get_childDescriptorFile(self): return self.childDescriptorFile
-    def set_childDescriptorFile(self, childDescriptorFile): self.childDescriptorFile = childDescriptorFile
-    childDescriptorFileProp = property(get_childDescriptorFile, set_childDescriptorFile)
+    def get_childSoftwarePackageFile(self): return self.childSoftwarePackageFile
+    def set_childSoftwarePackageFile(self, childSoftwarePackageFile): self.childSoftwarePackageFile = childSoftwarePackageFile
+    childSoftwarePackageFileProp = property(get_childSoftwarePackageFile, set_childSoftwarePackageFile)
     def get_name(self): return self.name
     def set_name(self, name): self.name = name
     nameProp = property(get_name, set_name)
     def hasContent_(self):
         if (
-            self.childPropertyFile is not None or
-            self.childDescriptorFile is not None
+            self.childSoftwarePackageFile is not None
         ):
             return True
         else:
@@ -3462,10 +3382,8 @@ class child(GeneratedsSuper):
             eol_ = '\n'
         else:
             eol_ = ''
-        if self.childPropertyFile is not None:
-            self.childPropertyFile.export(outfile, level, namespace_, name_='childPropertyFile', pretty_print=pretty_print)
-        if self.childDescriptorFile is not None:
-            self.childDescriptorFile.export(outfile, level, namespace_, name_='childDescriptorFile', pretty_print=pretty_print)
+        if self.childSoftwarePackageFile is not None:
+            self.childSoftwarePackageFile.export(outfile, level, namespace_, name_='childSoftwarePackageFile', pretty_print=pretty_print)
     def build(self, node):
         already_processed = set()
         self.buildAttributes(node, node.attrib, already_processed)
@@ -3479,16 +3397,11 @@ class child(GeneratedsSuper):
             already_processed.add('name')
             self.name = value
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
-        if nodeName_ == 'childPropertyFile':
-            obj_ = childPropertyFile.factory()
+        if nodeName_ == 'childSoftwarePackageFile':
+            obj_ = childSoftwarePackageFile.factory()
             obj_.build(child_)
-            self.childPropertyFile = obj_
-            obj_.original_tagname_ = 'childPropertyFile'
-        elif nodeName_ == 'childDescriptorFile':
-            obj_ = childDescriptorFile.factory()
-            obj_.build(child_)
-            self.childDescriptorFile = obj_
-            obj_.original_tagname_ = 'childDescriptorFile'
+            self.childSoftwarePackageFile = obj_
+            obj_.original_tagname_ = 'childSoftwarePackageFile'
 # end class child
 
 
@@ -3623,8 +3536,7 @@ if __name__ == '__main__':
 __all__ = [
     "author",
     "child",
-    "childDescriptorFile",
-    "childPropertyFile",
+    "childSoftwarePackageFile",
     "code",
     "compiler",
     "dependency",
