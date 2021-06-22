@@ -53,7 +53,7 @@ IDL_EXTERNS := CF BULKIO
 
 # In some cases, you may need to define python externs 
 #     f:p   Assume Python stub file for file f is in package p.
-PYTHON_EXTERNS := bulkioDataTypes:bulkio.bulkioInterfaces DataType:ossie.cf
+PYTHON_EXTERNS := bulkioDataTypes:bulkio.bulkioInterfaces DataType:ossie.cf Port:ossie.cf
 
 # A Qualifier to append to the version, by default this is a timestamp of the build
 BUNDLE_QUALIFIER := v$(shell date +%Y%m%d%H%M%S)

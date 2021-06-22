@@ -554,14 +554,14 @@ class FrontendTunerDevice(Device):
             #retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop, alloc_id)
             retval = self.allocateCapacity(properties)
             if retval:
-                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+                return [CF.Device.Allocation(self._this(),[],[],properties,alloc_id)]
             else:
                 return []
         if propdict.has_key('FRONTEND::listener_allocation'):
             #return self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
             retval = self.allocateCapacity(properties)
             if retval:
-                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+                return [CF.Device.Allocation(self._this(),[],[],properties,alloc_id)]
             else:
                 return []
 
