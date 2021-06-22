@@ -131,7 +131,11 @@ class SoftPkg(object):
             self.__children = []
             if self.__spd.get_child():
                 for child in self.__spd.get_child():
-                    self.__children.append({'name':child.get_name(), 'prf':child.get_childPropertyFile().get_localfile().get_name(), 'scd':child.get_childDescriptorFile().get_localfile().get_name()})
+                    child_spd_name = child.get_childSoftwarePackageFile().get_localfile().get_name()
+                    child_spd = ossie.parsers.spd.parse(child_spd_name)
+                    child_prf_name = child_spd.propertyfile.localfile.name
+                    child_scd_name = child_spd.descriptor.localfile.name
+                    self.__children.append({'name':child.get_name(), 'spd':child_spd_name, 'prf':child_prf_name, 'scd':child_scd_name})
         else:
             self.__spdFile = None
             class tmpSPD:

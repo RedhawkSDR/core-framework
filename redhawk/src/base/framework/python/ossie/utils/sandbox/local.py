@@ -40,6 +40,7 @@ from naming import ApplicationRegistrarStub
 import launcher
 from debugger import GDB, JDB, PDB, Valgrind, Debugger
 import terminal
+from model import SandboxDevice
 
 warnings.filterwarnings('once',category=DeprecationWarning)
 
@@ -507,7 +508,24 @@ class LocalSandbox(Sandbox):
             return None
         return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
 
+    def _refreshChildDevices(self):
+        for comp in self.__components.values():
+            if hasattr(comp, 'devices'):
+                for dev in comp.devices:
+                    found_device = False
+                    for _tmp_comp_key in self.__components:
+                        if _tmp_comp_key == dev.label:
+                            found_device = True
+                            break
+                    if not found_device:
+                        sdrRoot = self.getSdrRoot()
+                        spd, scd, prf = sdrRoot.readProfile(dev.softwareProfile)
+                        comp = SandboxDevice(self, dev.softwareProfile, spd, scd, prf, dev.label, dev.identifier, None)
+                        comp.ref = dev
+                        self._registerComponent(comp)
+
     def getComponents(self):
+        self._refreshChildDevices()
         return self.__components.values()
 
     def getServices(self):
@@ -526,6 +544,7 @@ class LocalSandbox(Sandbox):
         self.__services[service._instanceName] = service
         
     def getComponent(self, name):
+        self._refreshChildDevices()
         return self.__components.get(name, None)
 
     def retrieve(self, name):

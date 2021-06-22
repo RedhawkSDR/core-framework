@@ -5,6 +5,8 @@ from ossie.cf import CF
 from omniORB import any as _any
 import threading
 
+from utils.sandbox.model import SandboxDevice
+
 class DynamicComponentRegistry:
     def __init__(self):
         self.__components = {}
@@ -44,9 +46,11 @@ class DynamicComponent:
                 self._dynamicComponentCount[device_name] += 1
                 device_name_count = device_name+'_'+str(self._dynamicComponentCount[device_name])
                 device_label = self._label+':'+device_name_count
+                base_path = self._softwareProfile.split('/')
+                device_spd = '/'.join(base_path[:-1])+'/'+device_name+'.spd.xml'
                 parameters.append(CF.DataType('IDM_CHANNEL_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._idm_publisher.channel))))
                 parameters.append(CF.DataType('DEVICE_LABEL', _any.to_any(device_label)))
-                parameters.append(CF.DataType('PROFILE_NAME', _any.to_any('')))
+                parameters.append(CF.DataType('PROFILE_NAME', _any.to_any(device_spd)))
                 parameters.append(CF.DataType('DEVICE_MGR_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._devMgr.ref))))
                 parameters.append(CF.DataType('DEVICE_ID', _any.to_any(self._id+':'+device_name_count)))
                 parameters.append(CF.DataType('COMPOSITE_DEVICE_IOR', _any.to_any(ossie.resource.__orb__.object_to_string(self._this()))))

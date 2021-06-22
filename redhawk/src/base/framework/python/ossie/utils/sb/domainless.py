@@ -301,6 +301,7 @@ def show():
     sandbox = _getSandbox()
     print "Components Running:"
     print "------------------"
+    print '*********'
     for component in sandbox.getComponents():
         print component._instanceName, component
     print "\n"
