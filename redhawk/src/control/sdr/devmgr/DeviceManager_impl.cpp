@@ -1708,12 +1708,11 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
   std::string spd_id;
-  if (not spdFile.empty()) {
+  if ((not spdFile.empty()) and (spdinfo != NULL)) {
     std::string spd_name = spdinfo->getName();
     spd_id = spdinfo->getID();
     std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
     RH_INFO(this->_baseLog, "Device LABEL: " << deviceLabel << "  SPD loaded: " << spd_name << "' - '" << spd_id );
-
 
     //
     // call resource's initializeProperties method to handle any properties required for construction
@@ -1796,7 +1795,7 @@ throw (CORBA::SystemException, CF::InvalidObjectReference)
   {
   boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
 
-  if (not spdFile.empty()) {
+  if ((not spdFile.empty()) and (spdinfo != NULL)) {
     //configure properties
     try {  
         RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);

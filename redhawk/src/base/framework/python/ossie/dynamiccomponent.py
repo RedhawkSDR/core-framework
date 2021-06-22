@@ -5,8 +5,6 @@ from ossie.cf import CF
 from omniORB import any as _any
 import threading
 
-from utils.sandbox.model import SandboxDevice
-
 class DynamicComponentRegistry:
     def __init__(self):
         self.__components = {}
