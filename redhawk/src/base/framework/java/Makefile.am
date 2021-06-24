@@ -30,9 +30,7 @@ CF_IDLDIR = $(top_srcdir)/idl
 # The COS modules are mapped to the org.omg package.
 COSPKGS = CosEventComm CosNaming CosEventChannelAdmin
 COSPREFIX = org.omg
-
-# Suppress warnings due to unrecognized omniORB pragmas in COS packages
-IDLJFLAGS = -noWarn $(COSPKGS:%=-pkgPrefix % $(COSPREFIX)) -i $(IDLDIR) -i $(OMNICOS_IDLDIR) -i $(CF_IDLDIR)
+IDLJFLAGS = -i2jpackage CosEventComm:org.omg.CosEventComm -i2jpackage CosNaming:org.omg.CosNaming -i2jpackage CosEventChannelAdmin:org.omg.CosEventChannelAdmin -I$(IDLDIR) -I$(OMNICOS_IDLDIR) -I$(CF_IDLDIR)
 IDLJNIFLAGS = -Wblibname=ossiecfjni $(COSPKGS:%=-Wbpkgprefix=%:$(COSPREFIX)) -I $(IDLDIR) -I $(OMNICOS_IDLDIR) -I $(CF_IDLDIR)
 IDLJ_BUILDDIR = cf/src
 IDLJNI_BUILDDIR = $(IDLJ_BUILDDIR)

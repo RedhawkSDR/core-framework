@@ -196,7 +196,7 @@ manifest_edit = $(SED) \
   -e 's|@bundle_qualifier[@]|$(BUNDLE_QUALIFIER)|g'
 
 java_JARFILES = FRONTENDInterfaces.jar
-IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR)
+IDLJFLAGS = -Iidl -I$(OSSIE_IDLDIR)
 IDLJ_BUILDDIR = $(IDLJ_SRC_DEST)
 
 # For IDLJ rules, set VPATH for .idl files so that pattern rules can find them.

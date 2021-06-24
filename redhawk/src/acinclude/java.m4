@@ -106,8 +106,8 @@ dnl RH_PROG_IDLJ
 AC_DEFUN([RH_PROG_IDLJ],
 [
   AC_REQUIRE([RH_JAVA_HOME])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
-  AC_PATH_PROG([IDLJ], [idlj], [no], [$java_test_paths])
+  java_test_paths=$JACORB_HOME/bin
+  AC_PATH_PROG([IDLJ], [idl], [no], [$java_test_paths])
   _RH_SILENT_COMMAND([IDLJ], '@echo "  IDLJ  " $<;')
 ])
 

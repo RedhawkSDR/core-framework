@@ -30,7 +30,7 @@ rh__idlvar = $(subst /,_,$*)
 ###############################################################################
 # Generate Java source from IDL files using IDLJ
 ###############################################################################
-rh__idlj = $(IDLJ) -fall -fallTIE $(IDLJFLAGS)
+rh__idlj = $(IDLJ) $(IDLJFLAGS)
 rh__idljtemp = .idlj/$*
 
 # If not otherwise set, generate .java files from .idl source in current
@@ -39,7 +39,7 @@ IDLJ_BUILDDIR ?= .
 
 .idlj/%.mk : %.idl
 	$(AM_V_at)rm -rf $(rh__idljtemp); mkdir -p $(rh__idljtemp)
-	$(AM_V_at)$(rh__idlj) -td $(rh__idljtemp) $<
+	$(AM_V_at)$(rh__idlj) -d $(rh__idljtemp) $<
 	$(AM_V_at)echo -n "$(rh__idlvar)_idlj_SOURCE = " > $@
 	$(AM_V_at)$(call rh__idlfind,$(rh__idljtemp),IDLJ_BUILDDIR) >> $@
 	$(AM_V_at)rm -rf $(rh__idljtemp)
@@ -47,7 +47,7 @@ IDLJ_BUILDDIR ?= .
 	$(AM_V_at)echo '.INTERMEDIATE : $(rh__idljtemp).idlj' >> $@
 	$(AM_V_at)echo '$(rh__idljtemp).idlj : $<' >> $@
 	$(AM_V_at)echo '	@mkdir -p $$(IDLJ_BUILDDIR)' >> $@
-	$(AM_V_at)echo '	$$(RH_V_IDLJ)$(value rh__idlj) -td $$(IDLJ_BUILDDIR) $$<' >> $@
+	$(AM_V_at)echo '	$$(RH_V_IDLJ)$(value rh__idlj) -d $$(IDLJ_BUILDDIR) $$<' >> $@
 
 ###############################################################################
 # Generate JNI-side Java source from IDL files using omniidl/omnijni
