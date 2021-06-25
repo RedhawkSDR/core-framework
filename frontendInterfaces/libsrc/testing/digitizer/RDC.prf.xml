@@ -39,6 +39,12 @@
         <description>Current sample rate in samples per second.</description>
         <units>sps</units>
       </simple>
+      <simple id="FRONTEND::tuner_status::scan_mode_enabled" name="scan_mode_enabled" type="boolean">
+        <description>True if scan mode is enabled. False if Manual Tune is enabled</description>
+      </simple>
+      <simple id="FRONTEND::tuner_status::supports_scan" name="supports_scan" type="boolean">
+        <description>True if scan is supported</description>
+      </simple>
       <simple id="FRONTEND::tuner_status::tuner_type" name="tuner_type" type="string">
         <description>Example Tuner Types: ANTENNA, RX, RX_ARRAY, DBOT, ABOT, ARDC, RDC, SRDC, DRDC, TX, TX_ARRAY, TDC</description>
       </simple>

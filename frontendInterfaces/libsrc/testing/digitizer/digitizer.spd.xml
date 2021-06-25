@@ -28,9 +28,4 @@
         <localfile name="RDC.spd.xml"/>
     </childSoftwarePackageFile>
   </child>
-  <child name="SRDC">
-    <childSoftwarePackageFile>
-        <localfile name="SRDC.spd.xml"/>
-    </childSoftwarePackageFile>
-  </child>
 </softpkg>

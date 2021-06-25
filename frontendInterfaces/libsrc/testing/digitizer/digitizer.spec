@@ -69,10 +69,9 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{_sdrroot}/dev/devices/digitizer
 %{_prefix}/dev/devices/digitizer/digitizer.prf.xml
 %{_prefix}/dev/devices/digitizer/digitizer.scd.xml
-%{_prefix}/dev/devices/digitizer/SRDC.prf.xml
-%{_prefix}/dev/devices/digitizer/SRDC.scd.xml
 %{_prefix}/dev/devices/digitizer/RDC.scd.xml
 %{_prefix}/dev/devices/digitizer/digitizer.spd.xml
 %{_prefix}/dev/devices/digitizer/RDC.prf.xml
+%{_prefix}/dev/devices/digitizer/RDC.spd.xml
 %{_prefix}/dev/devices/digitizer/python
 

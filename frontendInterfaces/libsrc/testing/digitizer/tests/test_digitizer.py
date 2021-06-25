@@ -6,6 +6,7 @@ import frontend
 from ossie.cf import CF
 from bulkio.bulkioInterfaces import BULKIO
 import time
+from omniORB import any as _any
 
 class DeviceTests(ossie.utils.testing.RHTestCase):
     # Path to the SPD file, relative to this file. This must be set in order to
@@ -46,6 +47,16 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.start()
         self.comp.stop()
     
+    def testQuery(self):
+        prop = CF.DataType(id='FRONTEND::tuner_status', value=_any.to_any(None))
+        retval = self.comp.query([prop])
+        self.assertEquals(len(retval[0].value._v), 3)
+
+        retval = self.comp.query([])
+        for entry in retval:
+            if entry.id == 'FRONTEND::tuner_status':
+                self.assertEquals(len(entry.value._v), 3)
+
     def testAlloc(self):
         alloc=frontend.createTunerAllocation(tuner_type='RDC', returnDict=False)
         retval=self.comp.allocate([alloc])

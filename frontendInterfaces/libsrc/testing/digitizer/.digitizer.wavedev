@@ -5,8 +5,5 @@
     <child name="RDC">
         <childvalue template="redhawk.codegen.jinja.python.component.frontend" generatorId="gov.redhawk.ide.codegen.jinja.python.PythonGenerator"/>
     </child>
-    <child name="SRDC">
-        <childvalue template="redhawk.codegen.jinja.python.component.frontend" generatorId="gov.redhawk.ide.codegen.jinja.python.PythonGenerator"/>
-    </child>
   </implSettings>
 </codegen:WaveDevSettings>

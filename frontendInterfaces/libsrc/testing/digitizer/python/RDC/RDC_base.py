@@ -371,6 +371,18 @@ class RDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, rf
 
 
         class frontend_tuner_status_struct_struct(frontend.default_frontend_tuner_status_struct_struct):
+            scan_mode_enabled = simple_property(
+                                                id_="FRONTEND::tuner_status::scan_mode_enabled",
+                                                
+                                                name="scan_mode_enabled",
+                                                type_="boolean")
+        
+            supports_scan = simple_property(
+                                            id_="FRONTEND::tuner_status::supports_scan",
+                                            
+                                            name="supports_scan",
+                                            type_="boolean")
+        
             bandwidth_tolerance = simple_property(
                                                   id_="FRONTEND::tuner_status::bandwidth_tolerance",
                                                   
@@ -383,8 +395,10 @@ class RDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, rf
                                                     name="sample_rate_tolerance",
                                                     type_="double")
         
-            def __init__(self, allocation_id_csv="", bandwidth=0.0, center_frequency=0.0, enabled=False, group_id="", rf_flow_id="", sample_rate=0.0, tuner_type="", bandwidth_tolerance=0.0, sample_rate_tolerance=0.0):
+            def __init__(self, allocation_id_csv="", bandwidth=0.0, center_frequency=0.0, enabled=False, group_id="", rf_flow_id="", sample_rate=0.0, scan_mode_enabled=False, supports_scan=False, tuner_type="", bandwidth_tolerance=0.0, sample_rate_tolerance=0.0):
                 frontend.default_frontend_tuner_status_struct_struct.__init__(self, allocation_id_csv=allocation_id_csv, bandwidth=bandwidth, center_frequency=center_frequency, enabled=enabled, group_id=group_id, rf_flow_id=rf_flow_id, sample_rate=sample_rate, tuner_type=tuner_type)
+                self.scan_mode_enabled = scan_mode_enabled
+                self.supports_scan = supports_scan
                 self.bandwidth_tolerance = bandwidth_tolerance
                 self.sample_rate_tolerance = sample_rate_tolerance
         
@@ -398,6 +412,8 @@ class RDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, rf
                 d["group_id"] = self.group_id
                 d["rf_flow_id"] = self.rf_flow_id
                 d["sample_rate"] = self.sample_rate
+                d["scan_mode_enabled"] = self.scan_mode_enabled
+                d["supports_scan"] = self.supports_scan
                 d["tuner_type"] = self.tuner_type
                 d["bandwidth_tolerance"] = self.bandwidth_tolerance
                 d["sample_rate_tolerance"] = self.sample_rate_tolerance
@@ -412,7 +428,7 @@ class RDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, rf
                 return True
         
             def getMembers(self):
-                return frontend.default_frontend_tuner_status_struct_struct.getMembers(self) + [("bandwidth_tolerance",self.bandwidth_tolerance),("sample_rate_tolerance",self.sample_rate_tolerance)]
+                return frontend.default_frontend_tuner_status_struct_struct.getMembers(self) + [("scan_mode_enabled",self.scan_mode_enabled),("supports_scan",self.supports_scan),("bandwidth_tolerance",self.bandwidth_tolerance),("sample_rate_tolerance",self.sample_rate_tolerance)]
 
         frontend_tuner_status = structseq_property(id_="FRONTEND::tuner_status",
                                                    name="frontend_tuner_status",

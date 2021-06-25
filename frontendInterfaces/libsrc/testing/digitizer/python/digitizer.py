@@ -37,7 +37,6 @@ class digitizer_i(digitizer_base):
         self._delegatedAllocations = {}
         self.rdcs.append(self.addChild(RDC))
         self.rdcs.append(self.addChild(RDC))
-        self.srds = self.addChild(SRDC)
 
     def allocate(self, capacities):
         result = []
