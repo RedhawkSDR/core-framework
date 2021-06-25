@@ -22,3 +22,10 @@
 redhawk_DATA_auto = {{component.baseclass.file}}
 #{% endif %}
 redhawk_SCRIPTS_auto = {{component.userclass.file}}
+#{% if component.children|length != 0 %}
+#{%   for childname, childcomponent in component.children.items() %}
+redhawk_DATA_auto += {{childname}}/{{childcomponent.baseclass.file}}
+redhawk_DATA_auto += {{childname}}/{{childcomponent.userclass.file}}
+redhawk_DATA_auto += {{childname}}/__init__.py
+#{%   endfor %}
+#{% endif %}
