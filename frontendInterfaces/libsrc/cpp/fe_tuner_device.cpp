@@ -615,14 +615,8 @@ namespace frontend {
         if (retval) {
             result->length(1);
             result[0].device_ref = CF::Device::_duplicate(this->_this());
-            result[0].data_ports = new CF::Device::PortDescriptions();
-            /*if (not CORBA::is_nil(this->_dataPort)) {
-                result[0].data_port = CORBA::Object::_duplicate(this->_dataPort);
-            }*/
-            result[0].control_ports = new CF::Device::PortDescriptions();
-            /*if (not CORBA::is_nil(this->_controlPort)) {
-                result[0].control_port = CORBA::Object::_duplicate(this->_controlPort);
-            }*/
+            result[0].data_ports;
+            result[0].control_ports;
             result[0].allocated = local_capacities;
             result[0].alloc_id = CORBA::string_dup(allocation_id.c_str());
             stored_props["SelectedTunerId"] = newly_allocated_tuner[allocation_id];
