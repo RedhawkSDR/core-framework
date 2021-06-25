@@ -28,6 +28,9 @@ _reservedKeywords = set(("and", "as", "assert", "break", "class", "continue", "d
                          "with", "yield", "None"))
 
 def stringLiteral(value):
+    # handle quotes
+    if '"' in value:
+        return "'%s'" % (value,)
     return '"%s"' % (value,)
 
 def charLiteral(value):
