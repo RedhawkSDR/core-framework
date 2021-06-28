@@ -19,7 +19,7 @@
  */
 package Java_Ports.java;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -602,6 +602,10 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
 

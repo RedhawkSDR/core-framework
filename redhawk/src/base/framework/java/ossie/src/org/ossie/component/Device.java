@@ -22,6 +22,7 @@ package org.ossie.component;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -108,6 +109,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      *
      * @deprecated
      */
+    @Deprecated
     protected HashMap <String, AllocCapacity> callbacks = new HashMap<String,AllocCapacity>();
 
     /**
@@ -121,6 +123,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      *
      * @deprecated
      */
+    @Deprecated
     private List<IProperty> legacyAllocProps = null;
     private boolean warnedLegacyAllocProps = false;
 
@@ -321,9 +324,11 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InstantiationException
      * @throws IllegalAccessException
      * @throws InvalidObjectReference 
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
      */
     public static void start_device(final Class<? extends Device> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-    throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy 
+    throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
     {
         final Properties props = new Properties();
         if (!builtInORB) {
@@ -354,9 +359,11 @@ public abstract class Device extends Resource implements DeviceOperations {
      * @throws InvalidObjectReference 
      * @throws WrongPolicy 
      * @throws ServantNotActive 
+     * @throws NoSuchMethodException 
+     * @throws InvocationTargetException 
      */
     public static void start_device(final Class<? extends Device> clazz,  final String[] args, final Properties props) 
-    throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy 
+    throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException 
     {
         // initialize middleware with command line/properties..
         final org.omg.CORBA.ORB orb = org.ossie.corba.utils.Init( args, props );
@@ -439,7 +446,7 @@ public abstract class Device extends Resource implements DeviceOperations {
         logging.DeviceCtx ctx = new logging.DeviceCtx( label, identifier, dom_path );
 	logging.Configure( logcfg_uri, debugLevel, ctx );
 
-        final Device device_i = clazz.newInstance();
+        final Device device_i = clazz.getDeclaredConstructor().newInstance();
         device_i.initializeProperties(execparams);
         final CF.Device device = device_i.setup(devMgr, 
                                                 compositeDevice, 
@@ -698,6 +705,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      *
      * @deprecated
      */
+    @Deprecated
     @SuppressWarnings("deprecation")
     private void updateUsageStateLegacy() {
         boolean active = false;

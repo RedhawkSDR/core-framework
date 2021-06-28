@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -420,6 +421,10 @@ public class TestJavaProps extends Resource implements Runnable {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
 

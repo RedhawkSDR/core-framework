@@ -1,6 +1,6 @@
 package log_test_java.java;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -111,6 +111,10 @@ public abstract class log_test_java_base extends ThreadedDevice {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

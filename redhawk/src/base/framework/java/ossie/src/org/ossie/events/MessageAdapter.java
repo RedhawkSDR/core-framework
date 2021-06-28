@@ -37,7 +37,7 @@ class MessageAdapter<E extends StructDef> implements EventCallback<E> {
     {
         E messageData;
         try {
-            messageData = this.structDef.newInstance();
+            messageData = this.structDef.getDeclaredConstructor().newInstance();
         } catch (final Exception ex) {
             return;
         }

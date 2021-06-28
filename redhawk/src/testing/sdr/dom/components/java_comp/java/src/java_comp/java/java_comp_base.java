@@ -19,6 +19,7 @@
  */
 package java_comp.java;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -167,6 +168,10 @@ public abstract class java_comp_base extends Component {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

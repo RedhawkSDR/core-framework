@@ -1,6 +1,6 @@
 package devj.java;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 import org.ossie.component.RHLogger;
 
@@ -169,6 +169,10 @@ public abstract class devj_base extends ThreadedDevice
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

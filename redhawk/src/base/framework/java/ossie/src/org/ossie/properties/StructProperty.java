@@ -57,7 +57,7 @@ public class StructProperty<T extends StructDef> extends Property<T> {
     protected T fromAny_(Any any) {
         T tmp;
         try {
-            tmp = this.structDef.newInstance();
+            tmp = this.structDef.getDeclaredConstructor().newInstance();
         } catch (Exception ex) {
             throw new IllegalArgumentException("Unable to construct new struct value: " + ex.getMessage(), ex);
         }

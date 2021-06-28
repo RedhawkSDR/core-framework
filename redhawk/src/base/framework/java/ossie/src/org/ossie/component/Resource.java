@@ -25,6 +25,7 @@
 package org.ossie.component;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -939,6 +940,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @deprecated use started instead
      * @return true if the component is started
      */
+    @Deprecated
     public boolean isRunning() {
         return this._started;
     }
@@ -1069,6 +1071,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @throws WrongPolicy 
      * @throws ServantNotActive 
      */
+    @Deprecated
     protected CF.Resource setup(final String compId, final String compName, final ORB orb, final POA poa) throws ServantNotActive, WrongPolicy {
         this.compId = compId;
         this.compName = compName;
@@ -1139,9 +1142,11 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @throws NotFound 
      * @throws WrongPolicy 
      * @throws ServantNotActive 
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
      */
     public static void start_component(final Class<? extends Resource> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy 
+	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
     {
         final Properties props = new Properties();
         if (!builtInORB) {
@@ -1173,9 +1178,11 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @throws NotFound 
      * @throws WrongPolicy 
      * @throws ServantNotActive 
+     * @throws NoSuchMethodException 
+     * @throws InvocationTargetException 
      */
     public static void start_component(final Class<? extends Resource> clazz,  final String[] args, final Properties props) 
-	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy 
+	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy , NoSuchMethodException, InvocationTargetException
     {
         if (args.length == 1) {
             if (args[0].equals("-i")) {
@@ -1276,7 +1283,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
 	logging.ComponentCtx ctx = new	logging.ComponentCtx( nameBinding, identifier, dom_path );
 	logging.Configure( logcfg_uri, debugLevel, ctx );
 
-        final Resource resource_i = clazz.newInstance();
+        final Resource resource_i = clazz.getDeclaredConstructor().newInstance();
         final CF.Resource resource = resource_i.setup(identifier, nameBinding, profile, orb, rootpoa);
         String nic = "";
         if (execparams.containsKey("NIC")) {
@@ -1371,6 +1378,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @param execparams Map of component execparam values
      * @param orb CORBA ORB instance for contacting SCA FileSystem (if LOGGING_CONFIG_URI is an SCA URI)
      */
+    @Deprecated
     protected static void configureLogging(final Map<String, String> execparams, final org.omg.CORBA.ORB orb) {
 	// Sets up the logging
 	String loggingConfigURI = null;

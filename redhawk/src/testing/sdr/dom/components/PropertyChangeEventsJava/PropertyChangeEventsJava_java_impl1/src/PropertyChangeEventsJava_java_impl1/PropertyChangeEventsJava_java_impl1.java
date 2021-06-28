@@ -20,6 +20,7 @@
 
 package PropertyChangeEventsJava_java_impl1;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -385,6 +386,10 @@ public class PropertyChangeEventsJava_java_impl1 extends Resource implements Run
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
 

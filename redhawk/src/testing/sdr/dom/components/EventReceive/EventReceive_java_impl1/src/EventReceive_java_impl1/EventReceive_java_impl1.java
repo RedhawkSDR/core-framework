@@ -20,7 +20,7 @@
 
 package EventReceive_java_impl1;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ArrayList;
@@ -383,6 +383,10 @@ public class EventReceive_java_impl1 extends Resource implements Runnable {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
 

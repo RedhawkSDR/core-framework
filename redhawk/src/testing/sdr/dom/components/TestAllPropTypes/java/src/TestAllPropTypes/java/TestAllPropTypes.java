@@ -20,7 +20,7 @@
 
 package TestAllPropTypes.java;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -1330,7 +1330,11 @@ public class TestAllPropTypes extends Resource implements Runnable {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
             e.printStackTrace();
+        } catch (InvocationTargetException e) {
+			e.printStackTrace();
         }
 
         //begin-user-code

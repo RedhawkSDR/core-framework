@@ -1,6 +1,6 @@
 package time_ja_now.java;
 
-
+import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -167,6 +167,10 @@ public abstract class time_ja_now_base extends Component {
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }
