@@ -665,7 +665,7 @@ public final class AnyUtils {
             retVal.insert_double(((Number) value).doubleValue());
             break;
         case TCKind._tk_fixed:
-            retVal.insert_fixed((BigDecimal) value);
+            retVal.insert_fixed((BigDecimal) value, type);
             break;
         case TCKind._tk_float:
             retVal.insert_float(((Number) value).floatValue());
