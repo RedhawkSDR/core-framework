@@ -39,6 +39,7 @@ _headerMap = {
     'GPS':             '<frontend/fe_gps_port_impl.h>',
     'NavData':         '<frontend/fe_navdata_port_impl.h>',
     'RFInfo':          '<frontend/fe_rfinfo_port_impl.h>',
+    'TransmitDeviceStatus':          '<frontend/fe_tuner_port_impl.h>',
     'RFSource':        '<frontend/fe_rfsource_port_impl.h>'
 }
 
