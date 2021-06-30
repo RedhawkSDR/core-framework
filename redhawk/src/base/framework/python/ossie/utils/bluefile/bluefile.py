@@ -662,7 +662,7 @@ def _unpack_header_main(raw_header_str):
     # Import the main header keywords, they're not a plain old FORTRAN string
     if hdr['keylength'] > 0:
         lkey = _bluestructs['HEADER']['lookups']['keywords'][3]
-        keystr = raw_header_str[lkey:lkey+hdr['keylength']]
+        keystr = raw_header_str[lkey:lkey+hdr['keylength']].decode('ISO-8859-1')
         hdr['keywords'] = dict([kv.split('=', 1)
                                 for kv in keystr.split('\0') if len(kv)])
     else:
