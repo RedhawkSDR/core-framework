@@ -72,7 +72,44 @@ CFInterfaces_jar_MANIFEST = META-INF/MANIFEST.MF
 CFInterfaces_jar_JARADD = -C $(IDLJ_BUILDDIR) . -C $(omnijni_builddir)/src/java omnijni
 
 java_JARFILES = CFInterfaces.jar
-java_DATA = log4j-1.2.17.jar commons-lang3-3.12.0.jar
+java_DATA = log4j-1.2.17.jar \
+            commons-lang3-3.12.0.jar \
+            slf4j-api-1.7.32.jar slf4j-log4j12-1.7.32.jar
+
+# Would use `java_DATA` or so, but how to make that create symlinks instead of copies?
+install-data-local: $(prefix)/lib/jacorb.jar \
+                    $(prefix)/lib/jacorb-omgapi.jar \
+                    $(prefix)/lib/jacorb-services.jar \
+                    $(prefix)/lib/slf4j-api.jar \
+                    $(prefix)/lib/slf4j-log4j12.jar \
+                    $(prefix)/lib/log4j.jar
+
+$(prefix)/lib/jacorb.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(JACORB_HOME)/lib/jacorb-3.9.jar $(prefix)/lib/jacorb.jar
+	ln -sf $(JACORB_HOME)/lib/jacorb-3.9.jar $(prefix)/lib/jacorb-3.9.jar
+
+$(prefix)/lib/jacorb-omgapi.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(JACORB_HOME)/lib/jacorb-omgapi-3.9.jar $(prefix)/lib/jacorb-omgapi.jar
+	ln -sf $(JACORB_HOME)/lib/jacorb-omgapi-3.9.jar $(prefix)/lib/jacorb-omgapi-3.9.jar
+
+$(prefix)/lib/jacorb-services.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(JACORB_HOME)/lib/jacorb-services-3.9.jar $(prefix)/lib/jacorb-services.jar
+	ln -sf $(JACORB_HOME)/lib/jacorb-services-3.9.jar $(prefix)/lib/jacorb-services-3.9.jar
+
+$(prefix)/lib/slf4j-api.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(prefix)/lib/slf4j-api-1.7.32.jar $(prefix)/lib/slf4j-api.jar
+
+$(prefix)/lib/slf4j-log4j12.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(prefix)/lib/slf4j-log4j12-1.7.32.jar $(prefix)/lib/slf4j-log4j12.jar
+
+$(prefix)/lib/log4j.jar:
+	mkdir -p $(prefix)/lib
+	ln -sf $(prefix)/lib/log4j-1.2.17.jar $(prefix)/lib/log4j.jar
 
 clean-local:
 	rm -rf $(IDLJ_BUILDDIR)
