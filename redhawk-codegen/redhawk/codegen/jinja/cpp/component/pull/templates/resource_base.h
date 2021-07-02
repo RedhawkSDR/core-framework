@@ -50,7 +50,6 @@
 /*{% if component.structdefs|length != 0 %}*/
 /*{%   if component.isChild %}*/
 #include "${component.name}_struct_props.h"
-#include "../struct_props.h"
 /*{%   else %}*/
 #include "struct_props.h"
 /*{%   endif %}*/
@@ -82,6 +81,9 @@ namespace enums {
 /*{%   endif %}*/
 /*{% endfor %}*/
 /*{% block classPrototype %}*/
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
 class ${className} : public ${component.superclasses|join(', public ', attribute='name')}${baseClassComponent}
 /*{% endblock %}*/
 {
@@ -164,4 +166,7 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
 /*# Allow for child template extensions #*/
 /*{% endblock %}*/
 };
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 #endif // ${includeGuard}

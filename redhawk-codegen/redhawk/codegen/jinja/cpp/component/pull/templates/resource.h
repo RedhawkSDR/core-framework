@@ -28,6 +28,9 @@
 
 #include "${component.baseclass.header}"
 
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
 class ${className} : public ${baseClass}
 {
     ENABLE_LOGGING
@@ -117,5 +120,8 @@ class ${className} : public ${baseClass}
 /*{% block extensions %}*/
 /*{% endblock %}*/
 };
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 
 #endif // ${includeGuard}

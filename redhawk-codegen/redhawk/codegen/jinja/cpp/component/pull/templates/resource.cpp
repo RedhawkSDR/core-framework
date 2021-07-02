@@ -34,6 +34,10 @@
 
 #include "${component.userclass.header}"
 
+/*{%   if component.isChild %}*/
+using namespace ${component.name}_ns;
+
+/*{%   endif %}*/
 PREPARE_LOGGING(${className})
 
 /*{% if component is device %}*/

@@ -42,6 +42,10 @@
 ******************************************************************************************/
 /*{% endblock %}*/
 
+/*{%   if component.isChild %}*/
+using namespace ${component.name}_ns;
+
+/*{%   endif %}*/
 /*{% if component is device %}*/
 ${className}::${className}(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
     ${baseClass}(devMgr_ior, id, lbl, sftwrPrfl),

@@ -24,10 +24,23 @@
 
 #include <frontend/fe_tuner_device.cpp>
 #include "struct_props.h"
+/*{% if component.children %}*/
+/*{%   for childname, childcomponent in component.children.items() %}*/
+#include "${childcomponent.name}/${childcomponent.name}_struct_props.h"
+/*{%   endfor %}*/
+/*{% endif %}*/
 
 /*{% if 'ScanningTuner' in component.implements %}*/
 template class frontend::FrontendScanningTunerDevice<frontend_tuner_status_struct_struct>;
 /*{% else %}*/
 template class frontend::FrontendTunerDevice<frontend_tuner_status_struct_struct>;
 /*{% endif %}*/
-
+/*{% if component.children %}*/
+/*{%   for childname, childcomponent in component.children.items() %}*/
+/*{%     if 'ScanningTuner' in childcomponent.implements %}*/
+template class frontend::FrontendScanningTunerDevice<${childcomponent.name}_ns::frontend_tuner_status_struct_struct>;
+/*{%     else %}*/
+template class frontend::FrontendTunerDevice<${childcomponent.name}_ns::frontend_tuner_status_struct_struct>;
+/*{%     endif %}*/
+/*{%   endfor %}*/
+/*{% endif %}*/

@@ -58,7 +58,7 @@ typedef bulkio::connection_descriptor_struct connection_descriptor_struct;
 
 /*{% block struct %}*/
 /*{% from "properties/properties.cpp" import structdef with context %}*/
-/*{% for struct in component.structdefs if (not struct.builtin and (not (struct.parentonly and component.isChild))) %}*/
+/*{% for struct in component.structdefs if (not struct.builtin) %}*/
 ${structdef(struct)}
 
 /*{% endfor %}*/

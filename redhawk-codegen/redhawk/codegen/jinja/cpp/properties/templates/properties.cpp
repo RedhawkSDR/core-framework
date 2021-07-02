@@ -85,6 +85,9 @@ namespace enums {
 
 /*{%     endif %}*/
 /*{%   endfor %}*/
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
 struct ${struct.cpptype}${' : public '+struct.baseclass if struct.baseclass} {
     ${struct.cpptype} ()${' : '+struct.baseclass+'()' if struct.baseclass}
     {
@@ -123,8 +126,11 @@ struct ${struct.cpptype}${' : public '+struct.baseclass if struct.baseclass} {
 /*{%   endif %}*/
 /*{% endfor %}*/
 };
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 
-inline bool operator>>= (const CORBA::Any& a, ${struct.cpptype}& s) {
+inline bool operator>>= (const CORBA::Any& a, /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
@@ -169,7 +175,7 @@ inline bool operator>>= (const CORBA::Any& a, ${struct.cpptype}& s) {
     return true;
 }
 
-inline void operator<<= (CORBA::Any& a, const ${struct.cpptype}& s) {
+inline void operator<<= (CORBA::Any& a, const /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s) {
     redhawk::PropertyMap props;
 /*{% for field in struct.fields %}*/
 /*{%   if field.isOptional %}*/
@@ -191,7 +197,7 @@ inline void operator<<= (CORBA::Any& a, const ${struct.cpptype}& s) {
     a <<= props;
 }
 
-inline bool operator== (const ${struct.cpptype}& s1, const ${struct.cpptype}& s2) {
+inline bool operator== (const /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s1, const /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s2) {
 /*{% for field in struct.fields %}*/
     if (s1.${field.cppname}!=s2.${field.cppname})
         return false;
@@ -199,7 +205,7 @@ inline bool operator== (const ${struct.cpptype}& s1, const ${struct.cpptype}& s2
     return true;
 }
 
-inline bool operator!= (const ${struct.cpptype}& s1, const ${struct.cpptype}& s2) {
+inline bool operator!= (const /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s1, const /*{%   if component.isChild %}*/${component.name}_ns::/*{%   endif %}*/${struct.cpptype}& s2) {
     return !(s1==s2);
 }
 /*{%- endmacro %}*/

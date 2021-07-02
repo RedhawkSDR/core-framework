@@ -33,6 +33,9 @@
 /*{% endfor %}*/
 /*{% endfilter %}*/
 
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
 class ${component.baseclass.name};
 class ${component.userclass.name};
 
@@ -45,4 +48,7 @@ class ${component.userclass.name};
 /*{% include portgen.declaration() %}*/
 
 /*{% endfor %}*/
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 #endif // PORT_H
