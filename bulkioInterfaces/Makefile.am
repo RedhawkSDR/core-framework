@@ -238,11 +238,11 @@ ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 all-python: $(PY_SRC_OUT_DIR)/__init__.py
 
 install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	$(PYTHON)  setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python:
 	rm -rf src/python
-	python setup.py clean
+	$(PYTHON) setup.py clean
 
 ###############################################################################
 # Java

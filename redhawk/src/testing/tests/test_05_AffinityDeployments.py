@@ -69,7 +69,7 @@ def  setXmlSource( src, dest=None ):
     lines = [line.rstrip() for line in open(src)]
     for l in lines:
         newline=l
-        for k in affinity_test_src.keys():
+        for k in list(affinity_test_src.keys()):
             newline = re.sub(r'XXX'+k+'XXX', r''+affinity_test_src[k], newline )
         dest_f.write(newline+'\n')
 
@@ -87,7 +87,7 @@ def get_process_affinity( pname, use_pidof=True):
 
     return cpus_allowed   
 
-
+@scatest.requireAffinity
 class TestNodeAffinity(scatest.CorbaTestCase):
 
     def get_node_info(self):
@@ -127,7 +127,8 @@ class TestNodeAffinity(scatest.CorbaTestCase):
 
         self.assertEqual(len(domMgr._get_deviceManagers()), 0)
 
-
+        
+@scatest.requireAffinity
 class TestWaveformAffinity(scatest.CorbaTestCase):
 
     def get_node_info(self):
@@ -450,7 +451,6 @@ def hasNumaSupport( exec_path):
 
     return have_numa
 
-
 ## Set default to minimal system
 all_cpus="0"
 maxcpus=1
@@ -489,7 +489,7 @@ if numasupport and (n1 or n2):
    numa_layout=numa_affinity_ctx['numa_layout']
    numa_match=numa_affinity_ctx['affinity_match']
 else:
-   print "NonNumaSupport ", nonnuma_affinity_ctx
+   print("NonNumaSupport ", nonnuma_affinity_ctx)
    maxcpus = nonnuma_affinity_ctx['maxcpus']
    maxnodes = nonnuma_affinity_ctx['maxnodes']
    all_cpus = nonnuma_affinity_ctx['all_cpus']
@@ -514,12 +514,12 @@ else:
     if maxcpus < 5 :
         affinity_test_src["5"] = all_cpus
 
-print "numa_layout:", numa_layout
-print "maxcpus:", maxcpus
-print "maxnodes:", maxnodes
-print "affinity_test_src:", affinity_test_src
-print "numa_match (wf) :", numa_match
-print "numa_match (dev) :", dev_affinity_ctx
+print("numa_layout:", numa_layout)
+print("maxcpus:", maxcpus)
+print("maxnodes:", maxnodes)
+print("affinity_test_src:", affinity_test_src)
+print("numa_match (wf) :", numa_match)
+print("numa_match (dev) :", dev_affinity_ctx)
 
 ## GPP blacklist=0, affinity=socket,0  deploy_per_socket=true
 setXmlSource( "./sdr/dev/nodes/test_affinity_node_socket/DeviceManager.dcd.xml.GOLD")

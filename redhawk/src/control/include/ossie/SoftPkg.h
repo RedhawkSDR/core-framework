@@ -191,10 +191,16 @@ namespace ossie {
     class SoftPkg {
         public:
             SoftPkg();
-            SoftPkg(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
+            /**
+             * @throw ossie::parser_error
+             */
+            SoftPkg(std::istream& input, const std::string& _spdFile);
 
         public:
-            void load(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
+            /**
+             * @throw ossie::parser_error
+             */
+            void load(std::istream& input, const std::string& _spdFile);
 
             const std::string& getSoftPkgID() const {
                 assert(_spd.get() != 0);

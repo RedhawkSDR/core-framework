@@ -172,11 +172,11 @@ namespace frontend {
 
             // Device specific allocation handling
             virtual CF::Device::UsageType updateUsageState();
-            virtual CF::Device::Allocations* allocate (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
-            virtual CORBA::Boolean allocateCapacity(const CF::Properties & capacities) throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
-            virtual void deallocate (const char* alloc_id) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
-            virtual void deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
-            CF::Device::UsageType usageState () throw (CORBA::SystemException);
+            virtual CF::Device::Allocations* allocate (const CF::Properties& capacities);
+            virtual CORBA::Boolean allocateCapacity(const CF::Properties & capacities);
+            virtual void deallocate (const char* alloc_id);
+            virtual void deallocateCapacity(const CF::Properties & capacities);
+            CF::Device::UsageType usageState ();
             std::vector<TunerStatusStructType> get_frontend_tuner_status();
 
         protected:
@@ -310,7 +310,12 @@ namespace frontend {
             virtual void construct();
 
 	protected:
-            virtual void _deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+            /**
+             * @throw CORBA::SystemException
+             * @throw CF::Device::InvalidCapacity
+             * @throw CF::Device::InvalidState
+             */
+            virtual void _deallocateCapacity(const CF::Properties & capacities);
             virtual bool _removeTunerMapping(size_t tuner_id, std::string allocation_id);
             virtual bool _removeTunerMapping(size_t tuner_id);            
     };

@@ -23,6 +23,7 @@ from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
 from _unitTestHelpers import runtestHelpers
+from ossie.utils import sb, rhtime, redhawk
 
 java_support = runtestHelpers.haveJavaSupport('../Makefile')
 
@@ -79,6 +80,49 @@ class SADPropertiesTest(scatest.CorbaTestCase):
 
         self._app = self._domMgr.createApplication('/waveforms/zero_length_w/zero_length_w.sad.xml', 'zero_length_w', [], [])
 
+    def test_DelegateSBExternalProps(self):
+        dom=redhawk.attach(scatest.getTestDomainName())
+        app=dom.createApplication("/waveforms/TestAppPropDelegate/TestAppPropDelegate.sad.xml")
+        self.assertNotEqual(app, None)
+        foo10=None
+        foo1=None
+        if app.comps[0].instanceName == 'foo10':
+            foo10=app.comps[0]
+        elif app.comps[1].instanceName == 'foo10':
+            foo10=app.comps[1]
+        if app.comps[0].instanceName == 'foo1':
+            foo1=app.comps[0]
+        elif app.comps[1].instanceName == 'foo1':
+            foo1=app.comps[1]
+        self.assertNotEqual(foo10, None)
+        self.assertNotEqual(foo1, None)
+        self.assertEquals(foo1.test_float, app.sometest)
+        app.sometest = foo10.test_float*10
+        self.assertEquals(foo1.test_float, foo10.test_float*10)
+        self.assertEquals(foo1.test_float, app.sometest)
+
+    def test_DelegateExternalProps(self):
+        dom=redhawk.attach(scatest.getTestDomainName())
+        app=dom.createApplication("/waveforms/TestAppPropDelegate/TestAppPropDelegate.sad.xml")
+        self.assertNotEqual(app, None)
+        foo10=None
+        foo1=None
+        if app.comps[0].instanceName == 'foo10':
+            foo10=app.comps[0]
+        elif app.comps[1].instanceName == 'foo10':
+            foo10=app.comps[1]
+        if app.comps[0].instanceName == 'foo1':
+            foo1=app.comps[0]
+        elif app.comps[1].instanceName == 'foo1':
+            foo1=app.comps[1]
+        self.assertNotEqual(foo10, None)
+        self.assertNotEqual(foo1, None)
+        self.assertEquals(foo1.test_float, app.sometest)
+        prop = CF.DataType(id='sometest', value=any.to_any(foo10.test_float*10))
+        app.ref.configure([prop])
+        self.assertEquals(foo1.test_float, foo10.test_float*10)
+        self.assertEquals(foo1.test_float, app.sometest)
+
     def test_ExternalProps(self):
         self._createApp("")
 
@@ -94,7 +138,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         # Make sure cppProp was set
         cppProp = CF.DataType(id="DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71", value=any.to_any(None))
         retProp = self._app.query([cppProp])[0]
-        self.assertEquals(retProp.value.value(), -1)
+        self.assertEqual(retProp.value.value(), -1)
 
         cppProp = CF.DataType(id="ext_prop_long", value=CORBA.Any(CORBA.TC_long, -111))
         pythonProp= CF.DataType(id="ext_prop_string", value=CORBA.Any(CORBA.TC_string, "hello world"))
@@ -113,16 +157,16 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         found = 0
         props = self._app.query([])
         # Should have 3 external properties and 3 AC properties (the 4th AC prop is promoted as external)
-        self.assertEquals(len(props), number_props)
+        self.assertEqual(len(props), number_props)
         for p in props:
             if p.id == "ext_prop_long":
-                self.assertEquals(p.value.value(), -111)
+                self.assertEqual(p.value.value(), -111)
                 found += 1
             elif p.id == "ext_prop_string":
-                self.assertEquals(p.value.value(), "hello world")
+                self.assertEqual(p.value.value(), "hello world")
                 found += 1
             elif p.id == "ext_prop_ulong":
-                self.assertEquals(p.value.value(), 111)
+                self.assertEqual(p.value.value(), 111)
                 found += 1
        # Make sure all 3 external prop IDs were found
         if not found == to_find:
@@ -133,7 +177,7 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         self._app.configure([cppProp])
         cppProp = CF.DataType(id="DCE:4e7c1977-5f53-4061-bae7-cb8c1072f4b7", value=any.to_any(None))
         retProp = self._app.query([cppProp])[0]
-        self.assertEquals(retProp.value.value(), "Hello world")
+        self.assertEqual(retProp.value.value(), "Hello world")
 
         # Can not configure/query other components internal props
         pythonProp = CF.DataType(id="test_float", value=CORBA.Any(CORBA.TC_float, 1.11))
@@ -153,10 +197,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         if java_support:
             pythonRet = self._app.query([pythonProp, javaProp])[0]
             javaRet = self._app.query([pythonProp, javaProp])[1]
-            self.assertEquals(javaRet.value.value(), 222)
+            self.assertEqual(javaRet.value.value(), 222)
         else:
             pythonRet = self._app.query([pythonProp])[0]
-        self.assertEquals(pythonRet.value.value(), "HELLO WORLD")
+        self.assertEqual(pythonRet.value.value(), "HELLO WORLD")
 
         # Individual queries of mix of AC & external properties
         cppProp = CF.DataType(id="ext_prop_long", value=CORBA.Any(CORBA.TC_long, -333))
@@ -183,11 +227,11 @@ class SADPropertiesTest(scatest.CorbaTestCase):
             cppRet2 = self._app.query([pythonProp, cppPropInternal, cppProp])[1]
             cppRet = self._app.query([pythonProp, cppPropInternal, cppProp])[2]
 
-        self.assertEquals(pythonRet.value.value(), "hello world2")
+        self.assertEqual(pythonRet.value.value(), "hello world2")
         if java_support:
-            self.assertEquals(javaRet.value.value(), 333)
-        self.assertEquals(cppRet2.value.value(), "HELLO WORLD2")
-        self.assertEquals(cppRet.value.value(), -333)
+            self.assertEqual(javaRet.value.value(), 333)
+        self.assertEqual(cppRet2.value.value(), "HELLO WORLD2")
+        self.assertEqual(cppRet.value.value(), -333)
 
     def test_DuplicateProps(self):
         # Makes sure that duplicate external property names throws an error
@@ -204,12 +248,12 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         cppPropQuery = CF.DataType(id="DCE:9d1e3621-27ca-4cd0-909d-90b7448b8f71", value=any.to_any(None))
 
         self._app.configure([cppProp])
-        self.assertEquals(self._app.query([cppPropQuery])[0].value.value(), -22)
-        self.assertEquals(self._app.query([cppPropQueryExt])[0].value.value(), -22)
+        self.assertEqual(self._app.query([cppPropQuery])[0].value.value(), -22)
+        self.assertEqual(self._app.query([cppPropQueryExt])[0].value.value(), -22)
 
         self._app.configure([cppPropExt])
-        self.assertEquals(self._app.query([cppPropQuery])[0].value.value(), -11)
-        self.assertEquals(self._app.query([cppPropQueryExt])[0].value.value(), -11)
+        self.assertEqual(self._app.query([cppPropQuery])[0].value.value(), -11)
+        self.assertEqual(self._app.query([cppPropQueryExt])[0].value.value(), -11)
 
     def test_externalAcConflict(self):
         # External property name that is the same as an Assembly Controller property should throw an error
@@ -252,11 +296,11 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         res = app.query([])
         for r in res:
             if r.id == 'ext_prop_ulong':
-                self.assertEquals(123456, r.value.value())
+                self.assertEqual(123456, r.value.value())
             elif r.id == 'DCE:b8f43ac8-26b5-40b3-9102-d127b84f9e4b':
-                self.assertEquals('Override_value', r.value.value())
+                self.assertEqual('Override_value', r.value.value())
             elif r.id == 'DCE:0a3663dd-7747-4b7f-b9cb-20f1e52e7089':
-                self.assertEquals(98765, r.value.value())
+                self.assertEqual(98765, r.value.value())
             elif r.id == 'test_float':
                 self.fail('The property "test_float" was not marked as external')
 
@@ -268,5 +312,5 @@ class SADPropertiesTest(scatest.CorbaTestCase):
         res = comp.componentObject.query([])
         for r in res:
             if r.id == 'test_float':
-                self.assertAlmostEquals(1.234, r.value.value())
-                self.assertNotAlmostEquals(99.9, r.value.value())
+                self.assertAlmostEqual(1.234, r.value.value())
+                self.assertNotAlmostEqual(99.9, r.value.value())

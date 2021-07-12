@@ -342,7 +342,7 @@ class InDigitalScanningTunerPort(FRONTEND__POA.DigitalScanningTuner, InDigitalTu
 
 class gps_delegation(object):
     def get_gps_info(self, port_name):
-        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
+        _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0),[])
         return _gpsinfo
     def set_gps_info(self, port_name, gps_info):
         pass

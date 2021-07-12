@@ -19,15 +19,15 @@
 #
 
 import warnings
-import cStringIO, pydoc
+import io, pydoc
 
 from ossie.cf import CF
 from ossie.utils.notify import notification
 from ossie.utils import model
 from ossie.utils import weakobj
 
-from component import DomainComponent
-from model import CorbaAttribute
+from .component import DomainComponent
+from .model import CorbaAttribute
 
 def createDevice(profile, spd, scd, prf, deviceRef, instanceName, refid, impl=None, idmListener=None):
     """
@@ -169,10 +169,10 @@ class DomainDevice(DomainComponent):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
         super(DomainDevice,self).api(destfile=destfile)
-        print >>destfile, '\n'
+        print('\n', file=destfile)
         model.Device.api(self, destfile=destfile)
 
         if localdef_dest:

@@ -59,14 +59,14 @@ class ${className}(${baseClass}):
 
         try:
             self._unregister()
-        except Exception, e:
+        except Exception as e:
             raise CF.LifeCycle.ReleaseError(str(e))
 
         self._adminState = CF.Device.LOCKED
         try:
             objid = self._default_POA().servant_to_id(self)
             self._default_POA().deactivate_object(objid)
-        except:
+        except Exception as e:
             self._baseLog.error("failed releaseObject()")
 
     def attemptToProgramParent(self):
@@ -139,13 +139,13 @@ class ${className}(${baseClass}):
         return fakePid
 
     def terminate(self, processId):
-        if not self._processMap.has_key(processId):
+        if processId not in self._processMap:
             raise CF.ExecutableDevice.InvalidProcess(CF.CF_ENOENT,
                 "Cannot terminate.  Process %s does not reference a resource!." % str(processId))
 
         resourceId = self._processMap.pop(processId)
 
-        if not self._resourceMap.has_key(resourceId):
+        if resourceId not in self._resourceMap:
             raise CF.ExecutableDevice.InvalidState(
                 "Cannot terminate.  Unable to locate resource '%s'!" % str(resourceId))
 

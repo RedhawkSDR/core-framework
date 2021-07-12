@@ -126,7 +126,7 @@ class StreamContainer(object):
         return []
 
     def _reframeData(self, data, frameSize):
-        return [data[pos:pos+frameSize] for pos in xrange(0, len(data), frameSize)]
+        return [data[pos:pos+frameSize] for pos in range(0, len(data), frameSize)]
 
     def _getBlockSize(self, block):
         if block.complex:
@@ -201,7 +201,7 @@ class StreamSink(SandboxHelper):
         if format:
             formats = [format]
         else:
-            formats = _PORT_MAP.keys()
+            formats = list(_PORT_MAP.keys())
         for format in formats:
             clazz, helper = _PORT_MAP[format]
             if format == 'bit':
@@ -234,7 +234,7 @@ class StreamSink(SandboxHelper):
         Returns:
             list(BULKIO.StreamSRI): The currently active SRIs.
         """
-        sri_list = [c.sri for c in self._cachedStreams.itervalues()]
+        sri_list = [c.sri for c in self._cachedStreams.values()]
         if self._port:
             for stream in self._port.getStreams():
                 if stream.streamID not in self._cachedStreams:
@@ -315,7 +315,7 @@ class StreamSink(SandboxHelper):
             while self._fetchData():
                 pass
 
-            for container in self._cachedStreams.itervalues():
+            for container in self._cachedStreams.values():
                 if streamID and container.streamID != streamID:
                     continue
                 if condition(container):

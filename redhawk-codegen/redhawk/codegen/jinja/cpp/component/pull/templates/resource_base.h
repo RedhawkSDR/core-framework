@@ -107,11 +107,23 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
         ~${className}();
 
 /*{% block cfResource %}*/
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StartError
+         * @throw CORBA::SystemException
+         */
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StopError
+         * @throw CORBA::SystemException
+         */
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
+        void releaseObject();
 /*{% endblock %}*/
 
 /*{% block basePublicFunctions %}*/

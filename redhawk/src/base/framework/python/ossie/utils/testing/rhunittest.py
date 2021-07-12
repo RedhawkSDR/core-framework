@@ -98,7 +98,7 @@ class RHTestCaseMeta(type):
         # For any non-special attribute that is callable (i.e., a function),
         # return a modified name for each implementation, where the name has
         # the implementation ID appended.
-        for attr, value in self.__dict__.iteritems():
+        for attr, value in self.__dict__.items():
             if not attr.startswith('__') and callable(value):
                 names.update(self.getMethodNames(attr))
             else:
@@ -152,7 +152,7 @@ class RHTestCaseMeta(type):
         names for that implementation will be returned.
         """
         names = []
-        for attr, value in self.__dict__.iteritems():
+        for attr, value in self.__dict__.items():
             if attr.startswith(prefix) and callable(value):
                 names.extend(self.getMethodNames(attr, impl))
         return names
@@ -177,7 +177,7 @@ class RHTestCaseMeta(type):
         return [self.addImpl(name, impl) for impl in impls]
 
 
-class RHTestCase(unittest.TestCase):
+class RHTestCase(unittest.TestCase, metaclass=RHTestCaseMeta):
     """
     Unit test base class for REDHAWK components, devices and services.
 
@@ -195,7 +195,6 @@ class RHTestCase(unittest.TestCase):
        def setUp(self):
          self.comp = sb.launch(self.spd_file, impl=self.impl)
     """
-    __metaclass__ = RHTestCaseMeta
 
     def __init__(self, methodName):
         # Pass the method name unmodified to the base class; this ensures that
@@ -235,8 +234,8 @@ class RHTestCase(unittest.TestCase):
         # keys directly (so that the implementation-mangled names don't appear)
         # and finally the instance dictionary keys.
         names = set(dir(unittest.TestCase))
-        names.update(type(self).__dict__.keys())
-        names.update(self.__dict__.keys())
+        names.update(list(type(self).__dict__.keys()))
+        names.update(list(self.__dict__.keys()))
         return sorted(names)
 
 
@@ -257,7 +256,7 @@ class RHTestLoader(unittest.TestLoader):
             if hasattr(self.selectTestsFromCase, 'classes_skipped'):
                 if class_name not in self.selectTestsFromCase.classes_skipped:
                     self.selectTestsFromCase.classes_skipped.append(class_name)
-                    print "SKIPPING:  {0} - '{1}'".format(class_name, reason)
+                    print("SKIPPING:  {0} - '{1}'".format(class_name, reason))
             return None
 
         # check if method should be skipped
@@ -266,7 +265,7 @@ class RHTestLoader(unittest.TestLoader):
         if method:
             reason = getattr(method, 'skip_reason', False)
             if reason:
-                print "SKIPPING:  {0}.{1} - '{2}'".format(class_name, method_name, reason)
+                print("SKIPPING:  {0}.{1} - '{2}'".format(class_name, method_name, reason))
                 return None
         return test
 
@@ -336,11 +335,11 @@ class RHTestLoader(unittest.TestLoader):
 
         if type(obj) == types.ModuleType:
             return self.loadTestsFromModule(obj)
-        elif (isinstance(obj, (type, types.ClassType)) and
+        elif (isinstance(obj, type) and
               issubclass(obj, unittest.TestCase)):
             return self.loadTestsFromTestCase(obj)
-        elif (type(obj) == types.UnboundMethodType and
-              isinstance(parent, (type, types.ClassType)) and
+        elif (type(obj) == types.FunctionType and
+              isinstance(parent, type) and
               issubclass(parent, unittest.TestCase)):
             return self.loadSpecificTestFromTestCase(parent, obj.__name__)
         elif isinstance(obj, unittest.TestSuite):
@@ -387,7 +386,7 @@ class RHTestProgram(unittest.TestProgram):
             else:
                 self.testNames = (self.defaultTest,)
             self.createTests()
-        except getopt.error, msg:
+        except getopt.error as msg:
             self.usageExit(msg)
 
     def runTests(self):

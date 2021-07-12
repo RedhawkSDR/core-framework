@@ -301,10 +301,9 @@ void Logging_impl::setLogConfigURL( const char *in_url ) {
 
 
 void Logging_impl::setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) 
-  throw (CF::UnknownIdentifier)
 {
   if (not haveLoggerHierarchy(logger_id))
-    throw (CF::UnknownIdentifier());
+    throw CF::UnknownIdentifier();
   _logLevel = newLevel;
   if ( logLevelCallback ) {
     (*logLevelCallback)(logger_id, newLevel);
@@ -341,10 +340,9 @@ bool Logging_impl::haveLoggerHierarchy(const std::string &name)
 }
 
 CF::LogLevel Logging_impl::getLogLevel( const char *logger_id ) 
-  throw (CF::UnknownIdentifier)
 {
     if (not haveLoggerHierarchy(logger_id))
-        throw (CF::UnknownIdentifier());
+        throw CF::UnknownIdentifier();
     rh_logger::LoggerPtr tmp_logger(this->_baseLog->getInstanceLogger(logger_id));
     int _level = tmp_logger->getLevel()->toInt();
     if (_level == rh_logger::Level::OFF_INT)

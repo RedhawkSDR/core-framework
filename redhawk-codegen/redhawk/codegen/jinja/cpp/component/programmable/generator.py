@@ -23,7 +23,7 @@ from redhawk.codegen.jinja.loader import CodegenLoader
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 from redhawk.codegen.jinja.cpp import CppTemplate
 
-from mapping import ProgrammableComponentMapper
+from .mapping import ProgrammableComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -80,7 +80,7 @@ class ProgrammableComponentGenerator(PullComponentGenerator):
         dict['hasHwLoadRequestProp'] = False
         dict['hasHwLoadStatusProp'] = False
         for prop in dict['properties']:
-            if prop.has_key('structdef'):
+            if 'structdef' in prop:
                 if str(prop['structdef']['cpptype']) == "hw_load_request_struct":
                     dict['hasHwLoadRequestProp'] = True
                 if str(prop['structdef']['cpptype']) == "hw_load_status_struct":

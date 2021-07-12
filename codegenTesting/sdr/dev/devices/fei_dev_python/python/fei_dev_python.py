@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -242,7 +242,7 @@ class fei_dev_python_i(fei_dev_python_base):
         fts.bandwidth = request.bandwidth
         fts.center_frequency = request.center_frequency
         fts.sample_rate = request.sample_rate
-        print frontend.sri.create('foo',fts)
+        print(frontend.sri.create('foo',fts))
         self.matchAllocationIdToStreamId("hello", "foobar", self.port_dataDouble_out.name)
         return True
 

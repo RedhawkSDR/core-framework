@@ -24,7 +24,7 @@ from test_cntl import *
 
 nchan=1
 wname = "Bwave"
-print "ARGS(" + str(len(sys.argv)) + ")" + str(sys.argv)
+print("ARGS(" + str(len(sys.argv)) + ")" + str(sys.argv))
 
 #
 # attach do domain first,  this affects sys.argv default REDHAWK_DEV

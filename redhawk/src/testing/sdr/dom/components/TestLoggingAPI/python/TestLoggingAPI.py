@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -44,7 +44,7 @@ class TestLoggingAPI_i(TestLoggingAPI_base):
     """<DESCRIPTION GOES HERE>"""
     def __init__(self, identifier, execparams):
         TestLoggingAPI_base.__init__(self, identifier, execparams )
-        if execparams.has_key('DISABLE_CB'):
+        if 'DISABLE_CB' in execparams:
             if execparams['DISABLE_CB'].upper() != 'TRUE':
                 self.setLogListenerCallback( TestLoggingAPI_i.MyLogListenerCB(self) )
         else:

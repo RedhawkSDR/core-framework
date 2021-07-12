@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import PersonaComponentGenerator, loader
+from .generator import PersonaComponentGenerator, loader
 
 def factory(**opts):
     return PersonaComponentGenerator(**opts)

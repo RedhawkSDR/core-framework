@@ -47,6 +47,9 @@ BuildRequires:  redhawk-devel >= {{versions.redhawk}}
 Requires:       redhawk >= {{versions.redhawk}}
 #{$ block requireExtensions $}
 #{$ endblock $}
+#{$ if 'C++' in component.languages and component.languages $}
+BuildRequires:  autoconf-archive
+#{$ endif $}
 
 #{$ for impl in component.implementations $}
 #{$ for softpkgdep in impl.softpkgdeps $}

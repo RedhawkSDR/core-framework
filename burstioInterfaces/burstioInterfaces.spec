@@ -22,6 +22,8 @@
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
 %{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
 %define _prefix %{_ossiehome}
+%global __python %{__python3}
+
 Prefix:         %{_prefix}
 
 # Assume Java support by default. Use "rpmbuild --without java" to disable
@@ -45,6 +47,7 @@ Requires:       bulkioInterfaces = %{version}
 BuildRequires:  bulkioInterfaces = %{version}
 
 BuildRequires:  cppunit-devel
+BuildRequires:  autoconf-archive
 
 %description
 BURSTIO interfaces for REDHAWK

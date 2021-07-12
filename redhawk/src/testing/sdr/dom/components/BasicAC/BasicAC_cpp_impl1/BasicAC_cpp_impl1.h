@@ -32,8 +32,8 @@ class BasicAC_cpp_impl1_i : public BasicAC_cpp_impl1_base
         BasicAC_cpp_impl1_i(const char *uuid, const char *label);
         ~BasicAC_cpp_impl1_i();
         int serviceFunction();
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void start();
+        void stop();
 };
 
 #endif

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -43,12 +43,12 @@ class py_comp_i(py_comp_base):
         try:
             self.app_id = self.getApplication().ref._get_identifier()
             self.number_components = len(self.getApplication().ref._get_registeredComponents())
-        except Exception, e:
+        except Exception as e:
             self.app_id = ""
             self.number_components = -2
         try:
             self.dom_id = self.getDomainManager().ref._get_identifier()
-        except Exception, e:
+        except Exception as e:
             self.dom_id = ""
         self.nic_name = self.getNetwork().getNic()
 

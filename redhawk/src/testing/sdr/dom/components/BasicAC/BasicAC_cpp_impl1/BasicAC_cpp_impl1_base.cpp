@@ -98,11 +98,11 @@ void BasicAC_cpp_impl1_base::construct() {
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void BasicAC_cpp_impl1_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void BasicAC_cpp_impl1_base::initialize()
 {
 }
 
-void BasicAC_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void BasicAC_cpp_impl1_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -111,7 +111,7 @@ void BasicAC_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource
     }
 }
 
-void BasicAC_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void BasicAC_cpp_impl1_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -123,7 +123,7 @@ void BasicAC_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource:
     }
 }
 
-CORBA::Object_ptr BasicAC_cpp_impl1_base::getPort(const char* _id) throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
+CORBA::Object_ptr BasicAC_cpp_impl1_base::getPort(const char* _id)
 {
 
     std::map<std::string, Port_Provides_base_impl *>::iterator p_in = inPorts.find(std::string(_id));
@@ -136,10 +136,10 @@ CORBA::Object_ptr BasicAC_cpp_impl1_base::getPort(const char* _id) throw (CORBA:
         return CF::Port::_duplicate(p_out->second);
     }
 
-    throw (CF::PortSupplier::UnknownPort());
+    throw CF::PortSupplier::UnknownPort();
 }
 
-void BasicAC_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void BasicAC_cpp_impl1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -157,7 +157,7 @@ void BasicAC_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::
     Resource_impl::releaseObject();
 }
 
-void BasicAC_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void BasicAC_cpp_impl1_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }

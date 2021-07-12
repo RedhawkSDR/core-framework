@@ -47,6 +47,9 @@ BuildRequires:  redhawk-devel >= {{versions.redhawk}}
 Requires:       redhawk >= {{versions.redhawk}}
 #{$ block requireExtensions $}
 #{$ endblock $}
+#{$ if 'C++' in component.languages and component.languages $}
+BuildRequires:  autoconf-archive
+#{$ endif $}
 
 #{$ for impl in component.implementations $}
 #{$ for softpkgdep in impl.softpkgdeps $}
@@ -132,9 +135,9 @@ rm -rf $RPM_BUILD_ROOT
 #{$ block files $}
 %defattr(-,redhawk,redhawk,-)
 #{$ set subdirs = component.sdrpath $}
-#{$ for subdir in component.name.split('.') $}
-#{$ set subdirs = subdirs+'/'+subdir $}
-%dir %{_sdrroot}/{{subdirs}}
+#{$ set spaths = component.name.split('.') $}
+#{$ for subdir in spaths $}
+%dir %{_sdrroot}/{{subdirs+'/'+spaths[:loop.index]|join('/')}}
 #{$ endfor $}
 #{$ for xmlfile in component.profile.values() $}
 %{_prefix}/{{component.sdrpath}}/{{dirname}}/{{xmlfile}}

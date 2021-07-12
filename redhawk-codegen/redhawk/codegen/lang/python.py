@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from idl import CorbaTypes
+from .idl import CorbaTypes
 from ossie.utils.prop_helpers import parseComplexString
 
 _reservedKeywords = set(("and", "as", "assert", "break", "class", "continue", "def",
@@ -37,7 +37,7 @@ def charLiteral(value):
     return "'"+value+"'"
 
 def boolLiteral(value):
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         value = stringToBoolean(value)
     else:
         value = bool(value)
@@ -70,7 +70,7 @@ def intLiteral(value):
 
 def longLiteral(value):
     value, base = checkValue(value)
-    return repr(long(value,base))
+    return repr(int(value,base))
 
 def stringToBoolean(value):
     if value.lower() == 'true':
@@ -78,7 +78,7 @@ def stringToBoolean(value):
     elif value.lower() == 'false':
         return False
     else:
-        raise ValueError, 'Invalid boolean literal: "%s"' % value
+        raise ValueError('Invalid boolean literal: "%s"' % value)
 
 _typeMap = {
     CorbaTypes.BOOLEAN:   boolLiteral,

@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -39,7 +39,7 @@ class ResourceOutPort(ExtendedCF__POA.QueryablePort, PortCFResourceOut_i):
     def _get_connections(self):
         self.port_lock.acquire()
         try:    
-            return [ExtendedCF.UsesConnection(connId, port) for connId, port in self.outConnections.items()]
+            return [ExtendedCF.UsesConnection(connId, port) for connId, port in list(self.outConnections.items())]
         finally:
             self.port_lock.release()
 

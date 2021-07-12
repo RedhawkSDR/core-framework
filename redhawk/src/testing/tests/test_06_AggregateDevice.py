@@ -69,7 +69,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(self._parentDevice._get_identifier(), self._childDevice._get_compositeDevice()._narrow(CF.Device)._get_identifier())
 
         self._devMgr.shutdown()
-        self.assert_(self.waitTermination(self._devBooter))
+        self.assertTrue(self.waitTermination(self._devBooter))
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def _test_ShutdownParent(self, node):
@@ -95,7 +95,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(pids), 0)
 
         self._devMgr.shutdown()
-        self.assert_(self.waitTermination(self._devBooter))
+        self.assertTrue(self.waitTermination(self._devBooter))
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def _test_ShutdownChild(self, node):
@@ -146,7 +146,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(pids), 0)
 
         self._devMgr.shutdown()
-        self.assert_(self.waitTermination(self._devBooter))
+        self.assertTrue(self.waitTermination(self._devBooter))
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def test_BasicAggregateDevice(self):

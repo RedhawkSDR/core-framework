@@ -44,13 +44,13 @@ C2_base::~C2_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void C2_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void C2_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void C2_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void C2_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void C2_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
     }
 }
 
-void C2_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void C2_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

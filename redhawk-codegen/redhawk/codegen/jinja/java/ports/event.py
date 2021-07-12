@@ -20,7 +20,7 @@
 
 from redhawk.codegen.lang import java
 
-from generator import BuiltinJavaPort
+from .generator import BuiltinJavaPort
 
 class PropertyEventPortGenerator(BuiltinJavaPort):
     REPID = 'IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0'

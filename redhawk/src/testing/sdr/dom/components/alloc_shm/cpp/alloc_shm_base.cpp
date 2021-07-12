@@ -27,13 +27,13 @@ alloc_shm_base::~alloc_shm_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void alloc_shm_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void alloc_shm_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void alloc_shm_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void alloc_shm_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -41,7 +41,7 @@ void alloc_shm_base::stop() throw (CORBA::SystemException, CF::Resource::StopErr
     }
 }
 
-void alloc_shm_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void alloc_shm_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

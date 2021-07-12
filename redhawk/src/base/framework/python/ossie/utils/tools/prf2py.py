@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -71,7 +71,7 @@ def readPRF(filename):
             action = "external"
 
         if not action in ("eq", "ne", "gt", "lt", "ge", "le", "external"):
-            raise StandardError("Invalid action")
+            raise Exception("Invalid action")
 
         if property.get_mode():
             mode = property.get_mode()
@@ -80,7 +80,7 @@ def readPRF(filename):
 
         for k in property.get_kind():
             if not k.get_kindtype() in ("allocation", "property", "configure", "test", "execparam", "factoryparam"):
-                raise StandardError("Invalid action %s for %s" % (action, property.get_id()))
+                raise Exception("Invalid action %s for %s" % (action, property.get_id()))
         kinds = [ k.get_kindtype() for k in property.get_kind()]
         if len(kinds) == 0:
             kinds = ["property", "configure"]
@@ -108,7 +108,7 @@ def readPRF(filename):
 
         for k in property.get_kind():
             if not k.get_kindtype() in ("allocation", "configure", "test", "execparam", "factoryparam"):
-                raise StandardError("Invalid action %s for %s" % (action, property.get_id()))
+                raise Exception("Invalid action %s for %s" % (action, property.get_id()))
         kinds = [ k.get_kindtype() for k in property.get_kind()]
         if len(kinds) == 0:
             kinds = ["property", "configure"]
@@ -131,15 +131,15 @@ def readPRF(filename):
 if __name__ == "__main__":
     import os.path
     import time
-    print "#!/usr/bin/env python"
-    print "#"
-    print "# AUTO-GENERATED CODE.  DO NOT MODIFY!"
-    print "#"
-    print "# Source: %s" % os.path.basename(sys.argv[1])
-    print "# Generated on: %s" % time.asctime()
-    print ""
+    print("#!/usr/bin/env python")
+    print("#")
+    print("# AUTO-GENERATED CODE.  DO NOT MODIFY!")
+    print("#")
+    print("# Source: %s" % os.path.basename(sys.argv[1]))
+    print("# Generated on: %s" % time.asctime())
+    print("")
 
     p = readPRF(sys.argv[1])
-    print p
-    print ""
+    print(p)
+    print("")
 

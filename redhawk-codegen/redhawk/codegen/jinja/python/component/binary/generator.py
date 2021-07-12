@@ -27,7 +27,7 @@ from redhawk.codegen.jinja.python.ports import PythonPortMapper
 from redhawk.codegen.jinja.python.component.frontend.portfactory import FEIPortFactory
 from redhawk.codegen.jinja.python.component.pull import PullComponentGenerator
 
-from mapping import BinaryComponentMapper
+from .mapping import BinaryComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

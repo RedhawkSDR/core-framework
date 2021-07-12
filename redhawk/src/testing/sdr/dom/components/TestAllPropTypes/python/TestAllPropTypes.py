@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -70,7 +70,7 @@ class TestAllPropTypes_i(TestAllPropTypes_base):
         self.simple_octet = 47
         
     def onconfigure_prop_simple_char(self, old, new):
-        self.simple_char = struct.pack('b', 48)
+        self.simple_char = '0'
         
     def onconfigure_prop_simple_ushort(self, old, new):
         self.simple_ushort = 49
@@ -117,7 +117,7 @@ class TestAllPropTypes_i(TestAllPropTypes_base):
                             
     def onconfigure_prop_simple_sequence_char(self, old, new):
         self.simple_sequence_char = []
-        self.simple_sequence_char.append(struct.pack('b', 60))
+        self.simple_sequence_char.append(60)
                                 
     def onconfigure_prop_simple_sequence_ushort(self, old, new):
         self.simple_sequence_ushort = []

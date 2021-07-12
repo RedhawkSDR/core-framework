@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -28,18 +28,18 @@ try:
 except ImportError:
     pass
 else:
-    import StringIO
+    import io
     stdout, stderr = sys.stdout, sys.stderr
-    sys.stdout = co = StringIO.StringIO()
-    sys.stderr = ce = StringIO.StringIO()
+    sys.stdout = co = io.StringIO()
+    sys.stderr = ce = io.StringIO()
     # Tabnanny doesn't provide any mechanism other than print outs so we have
     # to capture the output
     tabnanny.check("_unitTestHelpers")
     sys.stdout = stdout
     sys.stderr = stderr
     if len(co.getvalue().strip()) != 0:
-        print "Incosistent tab usage:"
-        print co.getvalue()
+        print("Incosistent tab usage:")
+        print(co.getvalue())
         sys.exit(-1)
 
 unitTestHelper = [

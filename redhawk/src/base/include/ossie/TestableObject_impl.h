@@ -37,9 +37,13 @@ class TestableObject_impl
 public:
     TestableObject_impl () { }
 
-    // Run the test specified by TestID with the values supplied in testValues.
-    void runTest (CORBA::ULong TestID, CF::Properties& testValues)
-    throw (CF::UnknownProperties, CF::TestableObject::UnknownTest,
-           CORBA::SystemException);
+    /**
+     * Run the test specified by TestID with the values supplied in testValues.
+     * 
+     * @throw CF::UnknownProperties
+     * @throw CF::TestableObject::UnknownTest
+     * @throw CORBA::SystemException
+     */
+    void runTest (CORBA::ULong TestID, CF::Properties& testValues);
 };
 #endif                                            /*  */

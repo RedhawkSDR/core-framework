@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -103,7 +103,7 @@ class TestProgram(object):
                 else:
                     self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
             except ImportError:
-                print >>sys.stderr, 'WARNING: XML test runner module is not installed'
+                print('WARNING: XML test runner module is not installed', file=sys.stderr)
             except TypeError:
                 # Maybe it didn't like the verbosity argument
                 self.testRunner = xmlrunner.XMLTestRunner()

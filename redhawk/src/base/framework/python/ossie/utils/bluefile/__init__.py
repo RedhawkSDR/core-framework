@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import bluefile
-from bluefile import *
-import bluefile_helpers
-from bluefile_helpers import *
+from . import bluefile
+from .bluefile import *
+from . import bluefile_helpers
+from .bluefile_helpers import *

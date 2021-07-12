@@ -33,38 +33,41 @@ class optional_property
         template< typename charT, typename Traits, typename U>
         friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const optional_property<U> ov);
 
-        optional_property() : _p(0) {
+        optional_property() {
         }
 
-        optional_property(const T& v) : _p(0) {
+        optional_property(const T& v) {
             _p.reset(new T(v));
         }
 
-        optional_property(const T* p) : _p(0) {
-            if (p != 0) {
+        optional_property(const T* p) {
+            if (p != nullptr) {
                 _p.reset(new T(*p));
             }
         }
 
         optional_property(const optional_property<T>& ov) {
-            if (ov._p.get() != 0) {
+            if (ov._p.get() != nullptr) {
                 _p.reset(new T(*(ov._p)));
             }
         }
 
         bool isSet() const {
-            return (_p.get() != 0);
+            return (_p.get() != nullptr);
         }
 
         const T* get() const {
             return _p.get();
         }
 
-        T& operator*() const throw (std::runtime_error) {
-            if (_p.get() == 0) {
+        /**
+         * @throw std::runtime_error
+         */
+        T& operator*() const {
+            if (_p.get() == nullptr) {
                 throw std::runtime_error("Attempted to use unset optional property.");
             }
-            return *(_p.get());
+            return *_p;
         }
 
         T* operator->() const {
@@ -77,27 +80,27 @@ class optional_property
         }
 
         optional_property<T>& operator=(const optional_property<T>& ov) {
-            if (ov._p.get() != 0) {
+            if (ov._p.get() != nullptr) {
                 _p.reset(new T(*(ov._p)));
             } else {
-                _p.reset(0);
+                _p.reset();
             }
             return *this;
         }
 
         void reset() {
-            _p.reset(0);
+            _p.reset();
         }
 
     private:
-        std::auto_ptr<T> _p;
+        std::unique_ptr<T> _p;
 
 };
 
 template<class T>
 inline bool operator==(const optional_property<T>& lhs, const optional_property<T>& rhs)
 {
-    if (lhs.get() != 0 && rhs.get() != 0) {
+    if (lhs.get() != nullptr && rhs.get() != nullptr) {
         if (*lhs == *rhs) {
             return true;
         }

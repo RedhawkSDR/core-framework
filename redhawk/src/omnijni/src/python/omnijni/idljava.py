@@ -21,8 +21,8 @@
 import os
 import errno
 from omniidl import idlast, idlvisitor, idltype
-import javacode
-from typeinfo import *
+from . import javacode
+from .typeinfo import *
 
 # Map of singleton Base Type objects
 baseTypeMap = {
@@ -288,7 +288,7 @@ class JavaVisitor(idlvisitor.AstVisitor):
         path = os.path.join(*package.split('.'))
         try:
             os.makedirs(path)
-        except OSError, e:
+        except OSError as e:
             # If the leaf directory already existed (or was created in the
             # interim), ignore the error
             if e.errno != errno.EEXIST:

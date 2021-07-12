@@ -22,7 +22,7 @@ from redhawk.codegen.utils import parseBoolean
 from ossie.utils.prop_helpers import parseComplexString
 from ossie import properties
 
-from idl import CorbaTypes
+from .idl import CorbaTypes
 
 TRUE = 'true'
 FALSE = 'false'

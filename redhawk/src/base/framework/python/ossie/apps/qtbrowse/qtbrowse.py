@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -22,11 +22,12 @@
 
 import sys
 import getopt
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtCore import *
 import logging
 
-from browsewindow import BrowseWindow
+from .browsewindow import BrowseWindow
 
 def main():
     # Set up a console logger.
@@ -46,7 +47,7 @@ def main():
             kw['verbose'] = True
 
     a = QApplication(sys.argv)
-    QObject.connect(a,SIGNAL("lastWindowClosed()"),a,SLOT("quit()"))
+    a.lastWindowClosed.connect(a.quit)
     w = BrowseWindow(**kw)
     w.show()
     a.exec_()

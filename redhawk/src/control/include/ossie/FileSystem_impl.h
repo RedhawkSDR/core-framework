@@ -41,35 +41,73 @@ public:
     FileSystem_impl (const char* _root);
     ~FileSystem_impl ();
 
-    void remove (const char* fileName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    /**
+     * @throw CF::InvalidFileName
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    void remove (const char* fileName);
 
-    void copy (const char* sourceFileName, const char* destinationFileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    /**
+     * @throw CF::FileException
+     * @throw CF::InvalidFileName
+     * @throw CORBA::SystemException
+     */
+    void copy (const char* sourceFileName, const char* destinationFileName);
 
-    void move (const char* sourceFileName, const char* destinationFileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    /**
+     * @throw CF::FileException
+     * @throw CF::InvalidFileName
+     * @throw CORBA::SystemException
+     */
+    void move (const char* sourceFileName, const char* destinationFileName);
 
-    void mkdir (const char* directoryName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    /**
+     * @throw CF::InvalidFileName
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    void mkdir (const char* directoryName);
 
-    void rmdir (const char* directoryName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    /**
+     * @throw CF::InvalidFileName
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    void rmdir (const char* directoryName);
 
-    void query (CF::Properties& fileSysProperties)
-        throw (CF::FileSystem::UnknownFileSystemProperties, CORBA::SystemException);
+    /**
+     * @throw CF::FileSystem::UnknownFileSystemProperties
+     * @throw CORBA::SystemException
+     */
+    void query (CF::Properties& fileSysProperties);
 
-    CORBA::Boolean exists (const char* fileName)
-        throw (CF::InvalidFileName, CORBA::SystemException);
+    /**
+     * @throw CF::InvalidFileName
+     * @throw CORBA::SystemException
+     */
+    CORBA::Boolean exists (const char* fileName);
 
-    CF::File_ptr create (const char* fileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    /**
+     * @throw CF::FileException
+     * @throw CF::InvalidFileName
+     * @throw CORBA::SystemException
+     */
+    CF::File_ptr create (const char* fileName);
 
-    CF::File_ptr open (const char* fileName, CORBA::Boolean read_Only)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    /**
+     * @throw CF::FileException
+     * @throw CF::InvalidFileName
+     * @throw CORBA::SystemException
+     */
+    CF::File_ptr open (const char* fileName, CORBA::Boolean read_Only);
 
-    CF::FileSystem::FileInformationSequence* list (const char* pattern)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    /**
+     * @throw CF::InvalidFileName
+     * @throw CF::FileException
+     * @throw CORBA::SystemException
+     */
+    CF::FileSystem::FileInformationSequence* list (const char* pattern);
 
     std::string getLocalPath(const char* fileName);
     

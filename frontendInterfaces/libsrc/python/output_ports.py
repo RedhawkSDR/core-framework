@@ -54,12 +54,12 @@ class OutPort (CF__POA.Port ):
             self.port_lock.release()
 
     def getConnectionIds(self):
-        return self.outConnections.keys()
+        return list(self.outConnections.keys())
 
     def _get_connections(self):
         currentConnections = []
         self.port_lock.acquire()
-        for id_, port in self.outConnections.items():
+        for id_, port in list(self.outConnections.items()):
             currentConnections.append(ExtendedCF.UsesConnection(id_, port))
         self.port_lock.release()
         return currentConnections
@@ -77,7 +77,7 @@ class OutPort (CF__POA.Port ):
                     raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
         if __connection_id__ and len(self.outConnections) > 0:
             foundConnection = False
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if __connection_id__ == connId:
                     foundConnection = True
                     break
@@ -94,7 +94,7 @@ class OutFrontendTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -113,7 +113,7 @@ class OutFrontendTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -132,7 +132,7 @@ class OutFrontendTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -151,7 +151,7 @@ class OutFrontendTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -170,7 +170,7 @@ class OutFrontendTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -193,7 +193,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -209,7 +209,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -225,7 +225,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -241,7 +241,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -257,7 +257,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, true, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -272,7 +272,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, false, false);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -286,7 +286,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -301,7 +301,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -315,7 +315,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -330,7 +330,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -344,7 +344,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -359,7 +359,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -373,7 +373,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -388,7 +388,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -402,7 +402,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -417,7 +417,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -431,7 +431,7 @@ class OutAnalogTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -451,7 +451,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -467,7 +467,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -483,7 +483,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -499,7 +499,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -515,7 +515,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -530,7 +530,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -544,7 +544,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -559,7 +559,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -573,7 +573,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -588,7 +588,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -602,7 +602,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -617,7 +617,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -631,7 +631,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -646,7 +646,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -660,7 +660,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -675,7 +675,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -689,7 +689,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -704,7 +704,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -718,7 +718,7 @@ class OutDigitalTunerPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -737,7 +737,7 @@ class OutDigitalScanningTunerPort(OutDigitalTunerPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -750,7 +750,7 @@ class OutDigitalScanningTunerPort(OutDigitalTunerPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -764,7 +764,7 @@ class OutDigitalScanningTunerPort(OutDigitalTunerPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -784,7 +784,7 @@ class OutGPSPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -799,7 +799,7 @@ class OutGPSPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -813,7 +813,7 @@ class OutGPSPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -828,7 +828,7 @@ class OutGPSPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -846,7 +846,7 @@ class OutRFInfoPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -861,7 +861,7 @@ class OutRFInfoPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -875,7 +875,7 @@ class OutRFInfoPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -890,7 +890,7 @@ class OutRFInfoPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -908,7 +908,7 @@ class OutRFSourcePort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -923,7 +923,7 @@ class OutRFSourcePort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -937,7 +937,7 @@ class OutRFSourcePort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -952,7 +952,7 @@ class OutRFSourcePort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -970,7 +970,7 @@ class OutNavDataPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, True, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
@@ -985,7 +985,7 @@ class OutNavDataPort(OutPort):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False);
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -79,10 +79,10 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
     def testAllocation(self):
         frontend_alloc = frontend.createTunerAllocation(returnDict=False)
         retval = self.comp.allocateCapacity([frontend_alloc])
-        self.assertEquals(retval, True)
+        self.assertEqual(retval, True)
 
     def testBasicBehavior(self):
-        self.assertEquals(self.got_logmsg, False)
+        self.assertEqual(self.got_logmsg, False)
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         exc_src = sb.launch('./build/fei_exception_through/tests/fei_exc_src/fei_exc_src.spd.xml')
@@ -104,7 +104,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
                 RFSource_in = port
                 
         _time = BULKIO.PrecisionUTCTime(1,1,1.0,1.0,1.0)
-        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
         _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
         _gpstimepos = FRONTEND.GpsTimePos(_positioninfo,_time)
         _cartesianpos=FRONTEND.CartesianPositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
@@ -135,7 +135,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         DigitalTuner_in.ref.getTunerAgcEnable('hello')
         DigitalTuner_in.ref.setTunerGain('hello', 1.0)
         DigitalTuner_in.ref.getTunerGain('hello')
-        DigitalTuner_in.ref.setTunerReferenceSource('hello', 1L)
+        DigitalTuner_in.ref.setTunerReferenceSource('hello', 1)
         DigitalTuner_in.ref.getTunerReferenceSource('hello')
         DigitalTuner_in.ref.setTunerEnable('hello', True)
         DigitalTuner_in.ref.getTunerEnable('hello')
@@ -178,7 +178,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerAgcEnable, 'hello')
         self.assertRaises(exception, DigitalTuner_in.ref.setTunerGain, 'hello', 1.0)
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerGain, 'hello')
-        self.assertRaises(exception, DigitalTuner_in.ref.setTunerReferenceSource, 'hello', 1L)
+        self.assertRaises(exception, DigitalTuner_in.ref.setTunerReferenceSource, 'hello', 1)
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerReferenceSource, 'hello')
         self.assertRaises(exception, DigitalTuner_in.ref.setTunerEnable, 'hello', True)
         self.assertRaises(exception, DigitalTuner_in.ref.getTunerEnable, 'hello')
@@ -197,7 +197,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
 
     def test_RFSource_Out(self):
-        self.assertEquals(self.got_logmsg, False)
+        self.assertEqual(self.got_logmsg, False)
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         exc_src = sb.launch('./build/fei_exception_through/tests/fei_exc_src/fei_exc_src.spd.xml')

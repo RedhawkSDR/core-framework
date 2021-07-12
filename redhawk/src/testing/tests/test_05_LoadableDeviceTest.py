@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os, commands, time
+import unittest, os, subprocess, time
 from _unitTestHelpers import scatest
 from omniORB import CORBA, URI, any
 from ossie.cf import CF
@@ -125,7 +125,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         app.start()
         app.stop()
         tmpdir = os.path.join(scatest.getSdrCache(), '.BasicTestDevice_node/BasicTestDevice1/components/CommandWrapperEmptyDir/cmd_dir/tmp')
-        self.assert_(os.path.isdir(tmpdir))
+        self.assertTrue(os.path.isdir(tmpdir))
         app.releaseObject()
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         self.assertEqual(len(self._domMgr._get_applications()), 0)
@@ -331,8 +331,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
 
         # Load a some files and directories
         device.load(self._domMgr._get_fileMgr(), "/components/CommandWrapper", CF.LoadableDevice.EXECUTABLE)
@@ -348,7 +348,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         device.releaseObject()
 
         # Wait for the device to unregister.
-        self.assert_(self._waitRegisteredDevices(devMgr, 0))
+        self.assertTrue(self._waitRegisteredDevices(devMgr, 0))
 
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 0)
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 0)
@@ -369,8 +369,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
 
         # Load a some files and directories
         device.load(self._domMgr._get_fileMgr(), "/components/CommandWrapper", CF.LoadableDevice.EXECUTABLE)
@@ -411,7 +411,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 4)
 
         # Now we need to unload 3 times
-        for i in xrange(3):
+        for i in range(3):
             self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 4)
             self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 4)
 
@@ -427,7 +427,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         device.releaseObject()
 
         # Wait for the device to unregister.
-        self.assert_(self._waitRegisteredDevices(devMgr, 0))
+        self.assertTrue(self._waitRegisteredDevices(devMgr, 0))
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
 
@@ -445,8 +445,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         scatest.verifyDeviceLaunch(self, devMgr, 1)
         device = devMgr._get_registeredDevices()[0]
 
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CapacityUser"))
 
         # Load a some files and directories
         device.load(self._domMgr._get_fileMgr(), "/components/CommandWrapper", CF.LoadableDevice.EXECUTABLE)
@@ -487,8 +487,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 4)
 
         # Now we need to unload 3 times
-        print os.listdir(deviceCacheDir + "/components")
-        for i in xrange(3):
+        print(os.listdir(deviceCacheDir + "/components"))
+        for i in range(3):
             self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 4)
             self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 4)
 
@@ -501,13 +501,13 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         #self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CommandWrapper")), 0)
         # Empty directories get deleted
-        self.assert_(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
+        self.assertTrue(not os.path.exists(deviceCacheDir + "/components/CommandWrapper"))
         self.assertEqual(len(os.listdir(deviceCacheDir + "/components/CapacityUser")), 0)
 
         device.releaseObject()
 
         # Wait for the device to unregister.
-        self.assert_(self._waitRegisteredDevices(devMgr, 0))
+        self.assertTrue(self._waitRegisteredDevices(devMgr, 0))
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 1)
 
@@ -649,8 +649,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         self._domMgr.uninstallApplication(appFact._get_identifier())
 
-        (status,output) = commands.getstatusoutput('rm -rf tmp_cache')
-        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        (status,output) = subprocess.getstatusoutput('rm -rf tmp_cache')
+        (status,output) = subprocess.getstatusoutput('rm -rf tmp_working')
         self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
 
     def _test_py_SharedLibraryLoad(self, node):
@@ -702,7 +702,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         cmd = comp.query([CF.DataType(id="prop2", value=any.to_any(None))])[0]
         self.assertEqual(cmd.value._v, "goober")
         cmd = comp.query([CF.DataType(id="prop3", value=any.to_any(None))])[0]
-        self.assertEqual(cmd.value._v, "testing")
+        self.assertEqual(cmd.value._v, "foobar jones testing")
 
         app.stop()
         app.releaseObject()
@@ -725,7 +725,7 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         self._test_py_SharedLibraryLoad("/nodes/test_GPP_node/tmp.dcd.xml")
         
-        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        (status,output) = subprocess.getstatusoutput('rm -rf tmp_working')
         self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
 
     def test_py_SharedLibraryLoad3(self):
@@ -740,8 +740,8 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
         
         self._test_py_SharedLibraryLoad("/nodes/test_GPP_node/tmp.dcd.xml")
         
-        (status,output) = commands.getstatusoutput('rm -rf tmp_cache')
-        (status,output) = commands.getstatusoutput('rm -rf tmp_working')
+        (status,output) = subprocess.getstatusoutput('rm -rf tmp_cache')
+        (status,output) = subprocess.getstatusoutput('rm -rf tmp_working')
         self._testFiles.append('sdr/dev/nodes/test_GPP_node/tmp.dcd.xml')
 
     def _failIfOpen(self, fileSys, path):
@@ -795,13 +795,13 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         # Get LD_LIBRARY_PATH prior to the load
         path_pre = self._query(device, 'LD_LIBRARY_PATH')
-        self.failIf(self._checkCachePath(path_pre, scaPath), 'Library directory already in LD_LIBRARY_PATH')
+        self.assertFalse(self._checkCachePath(path_pre, scaPath), 'Library directory already in LD_LIBRARY_PATH')
 
         device.load(fileSys, scaPath, CF.LoadableDevice.SHARED_LIBRARY)
 
         # Check that LD_LIBRARY has been augmented with the directory
         path_post = self._query(device, 'LD_LIBRARY_PATH')
-        self.assert_(self._checkCachePath(path_post, scaPath), 'Library directory not added to LD_LIBRARY_PATH')
+        self.assertTrue(self._checkCachePath(path_post, scaPath), 'Library directory not added to LD_LIBRARY_PATH')
 
     def test_cpp_LoadSoftpkgDir(self):
         self._test_LoadSoftpkgDir('test_ExecutableDevice_node')
@@ -820,13 +820,13 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         # Get LD_LIBRARY_PATH prior to the load
         path_pre = self._query(device, 'LD_LIBRARY_PATH')
-        self.failIf(self._checkCachePath(path_pre, scaPath), 'Library directory already in LD_LIBRARY_PATH')
+        self.assertFalse(self._checkCachePath(path_pre, scaPath), 'Library directory already in LD_LIBRARY_PATH')
 
         device.load(fileSys, scaFile, CF.LoadableDevice.SHARED_LIBRARY)
 
         # Check that LD_LIBRARY has been augmented with the directory
         path_post = self._query(device, 'LD_LIBRARY_PATH')
-        self.assert_(self._checkCachePath(path_post, scaPath), 'Library directory not added to LD_LIBRARY_PATH')
+        self.assertTrue(self._checkCachePath(path_post, scaPath), 'Library directory not added to LD_LIBRARY_PATH')
 
     def test_cpp_LoadSoftpkgLib(self):
         self._test_LoadSoftpkgLib('test_ExecutableDevice_node')
@@ -845,13 +845,13 @@ class LoadableDeviceTest(scatest.CorbaTestCase):
 
         # Get OCTAVE_PATH prior to the load
         path_pre = self._query(device, 'OCTAVE_PATH')
-        self.failIf(self._checkCachePath(path_pre, scaPath), 'Library directory already in OCTAVE_PATH')
+        self.assertFalse(self._checkCachePath(path_pre, scaPath), 'Library directory already in OCTAVE_PATH')
 
         device.load(fileSys, scaPath, CF.LoadableDevice.SHARED_LIBRARY)
 
         # Check that OCTAVE_PATH has been augmented with the directory
         path_post = self._query(device, 'OCTAVE_PATH')
-        self.assert_(self._checkCachePath(path_post, scaPath), 'Library directory not added to OCTAVE_PATH')
+        self.assertTrue(self._checkCachePath(path_post, scaPath), 'Library directory not added to OCTAVE_PATH')
 
     def test_cpp_LoadOctaveDir(self):
         self._test_LoadOctaveDir('test_ExecutableDevice_node')

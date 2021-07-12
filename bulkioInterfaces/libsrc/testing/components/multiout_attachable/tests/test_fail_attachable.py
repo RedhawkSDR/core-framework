@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -112,23 +112,23 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         newStream = {
             'sdds::privateInfo': "whoops", 
             'sdds::timeTagValid': False, 
-            'sdds::sampleRate': 0L, 
+            'sdds::sampleRate': 0, 
             'sdds::id': streamId, 
             'sdds::multicastAddress': '0.0.0.0', 
-            'sdds::port': 0L, 
-            'sdds::vlan': 0L
+            'sdds::port': 0, 
+            'sdds::vlan': 0
         }
         self.source.SDDSStreamDefinitions.append(newStream)
 
     def addVitaStream(self, streamId):
         newStream = {
             'vita49::data_item_size': 0, 
-            'vita49::vlan': 0L, 
+            'vita49::vlan': 0, 
             'vita49::vector_size': 0, 
             'vita49::valid_data_format': False, 
             'vita49::event_tag_size': 0, 
             'vita49::channel_tag_size': 0, 
-            'vita49::port': 0L, 
+            'vita49::port': 0, 
             'vita49::repeat_count': 0, 
             'vita49::item_packing_field_size': 0, 
             'vita49::ip_address': '0.0.0.0', 
@@ -164,7 +164,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         expected_packets = self.source.packets_ingested + 1
         inFloatPort = self.source.getPort("dataFloat_in")
         inFloatPort.pushSRI(sri)
-        inFloatPort.pushPacket(range(1,100),T,False,streamId)
+        inFloatPort.pushPacket(list(range(1,100)),T,False,streamId)
 
         # Wait until we know that the packet and SRI have been processed by the
         # source; this prevents some tests from reporting spurious failures due
@@ -173,16 +173,16 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.waitForPacketIngestion(self.source, expected_packets, delay=0.1)
     
     def assertNumNewSRICallbacks(self, num):
-        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, num)
-        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink1.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink2.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink3.callback_stats.num_new_sri_callbacks, num)
+        self.assertEqual(self.sink4.callback_stats.num_new_sri_callbacks, num)
 
     def assertNumSRIChangeCallbacks(self, num):
-        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, num)
-        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink1.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink2.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink3.callback_stats.num_sri_change_callbacks, num)
+        self.assertEqual(self.sink4.callback_stats.num_sri_change_callbacks, num)
 
     def checkSRIReceived(self, ports, numSRIs=1, sriFields=None):
         for port in ports:
@@ -195,7 +195,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
                     break
             timeout = 10
             if sriFields:
-                for key,val in sriFields.items():
+                for key,val in list(sriFields.items()):
                     attachedSRIs = port._get_attachedSRIs()
                     self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
                     while getattr(port._get_attachedSRIs()[0],key) != val:

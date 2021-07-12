@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -25,10 +25,11 @@ import sys
 import time
 import calendar
 import contextlib
-import cStringIO
+import io
 import binascii
 import struct
 import re
+import tempfile
 
 from ossie.utils.sdds import *
 
@@ -43,7 +44,7 @@ def stdout_redirect(where):
 class Test_SDDS_Time(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile()
         self.cur_year = datetime.date.today().year
         self.cur_year_str = str(self.cur_year)
 
@@ -64,7 +65,7 @@ class Test_SDDS_Time(unittest.TestCase):
         if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]
-        self.assertEquals( pval, logline)
+        self.assertEqual( pval, logline)
 
 
     def test_startofyear(self):
@@ -100,7 +101,7 @@ class Test_SDDS_Time(unittest.TestCase):
 
         # set partial
         sdds_time.setFromPartial( 4, .001 )
-        self.assertEqual( sdds_time.picoTicks(), (4000000000*4) + long(4000000000*0.001) )
+        self.assertEqual( sdds_time.picoTicks(), (4000000000*4) + int(4000000000*0.001) )
         self.assertEqual( sdds_time.picoTicksFractional(), 0 )
 
 
@@ -178,7 +179,7 @@ class Test_SDDS_Time(unittest.TestCase):
 class Test_SDDS_Packet(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile()
         self.cur_year = datetime.date.today().year
         self.cur_year_str = str(self.cur_year)
 
@@ -191,7 +192,7 @@ class Test_SDDS_Packet(unittest.TestCase):
         self.assertEqual( formatid.asString(), res )
 
         # assign from values sf=1, sos=1, dm =4, bps=16
-        formatid= format_identifier.from_buffer_copy('\xC4\x10')
+        formatid= format_identifier.from_buffer_copy(b'\xC4\x10')
         self.assertEqual( formatid.sf, 1 )
         self.assertEqual( formatid.sos, 1 )
         self.assertEqual( formatid.dm, 4 )
@@ -216,33 +217,33 @@ class Test_SDDS_Packet(unittest.TestCase):
         pkt = sdds_pkt.sdds_packet()
 
         pkt.set_standardformat(True)
-        self.assertEquals(pkt.get_standardformat(),True)
+        self.assertEqual(pkt.get_standardformat(),True)
 
         pkt.set_startofsequence(True)
-        self.assertEquals(pkt.get_startofsequence(),True)
+        self.assertEqual(pkt.get_startofsequence(),True)
 
         pkt.set_paritypacket(True)
-        self.assertEquals(pkt.get_paritypacket(),True)
+        self.assertEqual(pkt.get_paritypacket(),True)
 
         pkt.set_spectralsense(True)
-        self.assertEquals(pkt.get_spectralsense(),True)
+        self.assertEqual(pkt.get_spectralsense(),True)
 
         pkt.set_originalformat(True)
-        self.assertEquals(pkt.get_originalformat(),True)
+        self.assertEqual(pkt.get_originalformat(),True)
 
         pkt.set_complex(True)
-        self.assertEquals(pkt.get_complex(),True)
+        self.assertEqual(pkt.get_complex(),True)
 
         pkt.set_vw(True)
-        self.assertEquals(pkt.get_vw(),True)
+        self.assertEqual(pkt.get_vw(),True)
 
         for x in [ 2, 4, 8, 12 ]:
             pkt.set_bps(x)
-            self.assertEquals(pkt.get_bps(),x)
+            self.assertEqual(pkt.get_bps(),x)
 
         for x in [ 0,1,2,5,6,7]:
             pkt.set_dmode(x)
-            self.assertEquals(pkt.get_dmode(),x)
+            self.assertEqual(pkt.get_dmode(),x)
         
 
         

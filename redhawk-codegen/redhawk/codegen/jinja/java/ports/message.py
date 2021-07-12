@@ -21,7 +21,7 @@
 from redhawk.codegen.lang import java
 from redhawk.codegen.jinja.ports import PortFactory
 
-from generator import BuiltinJavaPort
+from .generator import BuiltinJavaPort
 
 class MessagePortFactory(PortFactory):
     REPID = 'IDL:ExtendedEvent/MessageEvent:1.0'

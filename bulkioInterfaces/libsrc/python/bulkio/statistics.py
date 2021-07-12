@@ -154,14 +154,14 @@ class OutStats:
         return self.connection_errors[connection_id]
 
     def add(self, connectionId):
-        self.receivedStatistics[connectionId] = [self.statPoint() for xx in xrange(self.historyWindow)]
+        self.receivedStatistics[connectionId] = [self.statPoint() for xx in range(self.historyWindow)]
         self.receivedStatistics_idx[connectionId] = 0
         self.connection_errors[connectionId] = 0
     
     def remove(self, connectionId):
-        if self.receivedStatistics.has_key(connectionId):
+        if connectionId in self.receivedStatistics:
             self.receivedStatistics.pop(connectionId)
-        if self.connection_errors.has_key(connectionId):
+        if connectionId in self.connection_errors:
             self.connection_errors.pop(connectionId)
 
     def update(self, elementsReceived, queueSize, EOS, streamID, connectionId):
@@ -170,7 +170,7 @@ class OutStats:
         if not self.enabled:
             return
 
-        if not self.receivedStatistics.has_key(connectionId):
+        if connectionId not in self.receivedStatistics:
             self.add(connectionId)
         self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].elements = elementsReceived
         self.receivedStatistics[connectionId][self.receivedStatistics_idx[connectionId]].queueSize = queueSize

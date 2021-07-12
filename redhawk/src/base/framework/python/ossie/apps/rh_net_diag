@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -26,10 +26,14 @@ usage: %prog
 This program attempts to diagnose various omniORB related problems.
 
 """
-import os, sys, commands
+import os
+import grp
+import sys
 import socket
 import re
 import subprocess
+import traceback
+
 
 def is_readable(path):
     return os.access(path,os.R_OK)
@@ -40,39 +44,79 @@ def is_executable(path):
 def is_writable(path):
     return os.access(path,os.W_OK)
 
-def directoriesReadAccess(path):
+def directoriesReadAccess(path,verbose=False):
+    bad_dirs=[]
     for dirname, subdirlist, files in os.walk(path):
-        if not is_readable(dirname):
-            return False
-    return True
+        readable=is_readable(dirname)
+        if verbose:
+            print(" directory: {} is readable {}".format(dirname,readable))
+        if not readable:
+            bad_dirs.append(dirname)
 
-def directoriesWriteAccess(path):
-    for dirname, subdirlist, files in os.walk(path):
-        if not is_readable(dirname):
-            return False
-    return True
+        for s in subdirlist:
+            subdir=os.path.join(dirname,s)
+            readable=is_readable(subdir)
+            if verbose:
+                print(" directory: {} is readable {}".format(subdir,readable))
+            if not readable:
+                bad_dirs.append(subdir)
+            
+    return bad_dirs
 
-def directoriesExecuteAccess(path):
+def directoriesWriteAccess(path,verbose=False):
+    bad_dirs=[]
     for dirname, subdirlist, files in os.walk(path):
-        if not is_executable(dirname):
-            return False
-    return True
+        writable=is_writable(dirname)
+        if verbose:
+            print(" directory: {} is writable {}".format(dirname,writable))
+        if not writable:
+            bad_dirs.append(dirname)
+
+        for s in subdirlist:
+            subdir=os.path.join(dirname,s)
+            writable=is_writable(subdir)
+            if verbose:
+                print(" directory: {} is writable {}".format(subdir,writable))
+            if not writable:
+                bad_dirs.append(subdir)
+            
+    return bad_dirs
+
+def directoriesExecuteAccess(path,verbose=False):
+    bad_dirs=[]
+    for dirname, subdirlist, files in os.walk(path):
+        executable=is_executable(dirname)
+        if verbose:
+            print(" directory: {} is executable {}".format(dirname,executable))
+        if not executable:
+            bad_dirs.append(dirname)
+
+        for s in subdirlist:
+            subdir=os.path.join(dirname,s)
+            executable=is_executable(subdir)
+            if verbose:
+                print(" directory: {} is executable {}".format(subdir,executable))
+            if not executable:
+                bad_dirs.append(subdir)
+            
+    return bad_dirs
 
 def is_running(process):
-
     s = subprocess.Popen(["ps", "axw"],stdout=subprocess.PIPE)
     for x in s.stdout:
+        if type(x) == bytes:
+             x = x.decode()
         if re.search(process, x):
             return True
 
     return False
 
 def checkCatior():
-    retval = commands.getstatusoutput('catior')
-    if retval[0] == 256:
+    retval = subprocess.getstatusoutput('catior')
+    if retval[0] == 1:
         return 'catior'
-    retval = commands.getstatusoutput('catior.omni')
-    if retval[0] == 256:
+    retval = subprocess.getstatusoutput('catior.omni')
+    if retval[0] == 1:
         return 'catior.omni'
     return '' 
 
@@ -80,22 +124,23 @@ def checkCatior():
 # Possible values will be "Naming Service", "Domain Manager", "Device Manager"
 # Set verbose to True, to turn on debug print statements
 # This method return whether or not an error condition was found
-def checkOmniEvents(process, verbose):
+def checkOmniEvents(process, verbose, orbconfig="/etc/omniORB.cfg"):
     errorFound = False
     if is_running("omniEvents"):
         if verbose:
-            print "omniEvents is running locally."
-            print "=========================================================================="
+            print("omniEvents is running locally.")
+            print("==========================================================================")
     else:
         if verbose:
-            print "omniEvents is not running locally.  If it is supposed to be running on this host, start it using \"sudo /etc/init.d/omniEvents start\""
-            print "=========================================================================="
+            print("omniEvents is not running locally.  If it is supposed to be running on this host, start it using \"sudo /etc/init.d/omniEvents start\"")
+            print("==========================================================================")
     # Check to see if EventChannelFactory exists in the Naming Service 
-    retval=commands.getstatusoutput('nameclt resolve EventChannelFactory')
+    cmd="OMNIORB_CONFIG={} nameclt resolve EventChannelFactory".format(orbconfig)
+    retval=subprocess.getstatusoutput(cmd)
     if not retval[0]:
         # Use catior on that IOR string to get the hostname and port used by omniEvents 
         catior = checkCatior()
-        retval=commands.getstatusoutput(catior+' ' + retval[1])
+        retval=subprocess.getstatusoutput(catior+' ' + retval[1])
         if not retval[0]:
             index = -1
             for idx, s in enumerate(retval[1].split()):
@@ -112,35 +157,35 @@ def checkOmniEvents(process, verbose):
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     status = sock.connect_ex((omniEventsHostIP, int(omniEventsPort)))
                     if status != 0:
-                        print "ERROR(" + str(process) + "): This host failed to connect to omniEvents host " + omniEventsHostIP + " on port " + str(omniEventsPort)
-                        print "POSSIBLE SOLUTION: Check firewall settings on host where omniEvents is running(" + omniEventsHostIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(omniEventsPort) + " is accessible"
-                        print "=========================================================================="
+                        print("ERROR(" + str(process) + "): This host failed to connect to omniEvents host " + omniEventsHostIP + " on port " + str(omniEventsPort))
+                        print("POSSIBLE SOLUTION: Check firewall settings on host where omniEvents is running(" + omniEventsHostIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(omniEventsPort) + " is accessible")
+                        print("==========================================================================")
                         errorFound = True
                     else:
                         if verbose:
-                            print process + ": This host can access omniEvents using port " + omniEventsPort.strip() + " on " + omniEventsHostIP.strip()
-                            print "=========================================================================="
-                except Exception, e:
-                    print process + " Exception on socket connection attempt to omniEvents host:" + str(e) 
+                            print(process + ": This host can access omniEvents using port " + omniEventsPort.strip() + " on " + omniEventsHostIP.strip())
+                            print("==========================================================================")
+                except Exception as e:
+                    print(process + " Exception on socket connection attempt to omniEvents host:" + str(e)) 
                     errorFound = True
             else:
-                print "ERROR(" + str(process) + "): Can't find omniEvents in output of "+catior+" of \"nameclt resolve EventChannelFactory\""
+                print("ERROR(" + str(process) + "): Can't find omniEvents in output of "+catior+" of \"nameclt resolve EventChannelFactory\"")
                 errorFound = True
         else:
-            print "ERROR(" + str(process) + "): "+catior+" of \"nameclt resolve EventChannelFactory\" failed"
+            print("ERROR(" + str(process) + "): "+catior+" of \"nameclt resolve EventChannelFactory\" failed")
             errorFound = True
     else:
-        print "ERROR(" + str(process) + "): EventChannelFactory not found in Naming Service using \"nameclt resolve EventChannelFactory\"."
-        print "POSSIBLE SOLUTIONS: Make sure omniEvents is running."
-        print "                    Make sure Naming Service is running and accessible using \"nameclt list\".  If it's not check firewall settings on host running omniNames." 
+        print("ERROR(" + str(process) + "): EventChannelFactory not found in Naming Service using \"nameclt resolve EventChannelFactory\".")
+        print("POSSIBLE SOLUTIONS: Make sure omniEvents is running.")
+        print("                    Make sure Naming Service is running and accessible using \"nameclt list\".  If it's not check firewall settings on host running omniNames.") 
         errorFound = True
 
     return errorFound
 
-def checkEndPoints(process, verbose):
+def checkEndPoints(process, verbose, orbconfig="/etc/omniORB.cfg" ):
     errorFound = False
     try:
-        cfgFile = open("/etc/omniORB.cfg",'r')
+        cfgFile = open(orbconfig,'r')
         line = cfgFile.readline()
         expectedNameServiceHost = None
         expectedNameServiceIP = None
@@ -160,21 +205,21 @@ def checkEndPoints(process, verbose):
                     #    omniORB: Error: Unable to create an endpoint of this description:
                     #    Failed to initialise the ORB / POA: INITIALIZE_TransportError
                     if len(endPoint.split(":")) != 4:
-                        print "ERROR(" + str(process) + "): Invalid format for giop:tcp endPoint in /etc/omniORB.cfg - " + endPoint 
-                        print "SOLUTION: giop:tcp endPoint format must contain three colons.  Expected format is giop:tcp:<hostname/ip>:<port> where hostname and port can be empty strings."
-                        print "=========================================================================="
+                        print("ERROR({}): Invalid format for giop:tcp endPoint in {} - {}".format(process,orbconfig,endPoint))
+                        print("SOLUTION: giop:tcp endPoint format must contain three colons.  Expected format is giop:tcp:<hostname/ip>:<port> where hostname and port can be empty strings.")
+                        print("==========================================================================")
                         errorFound = True
                     else:
                         giopTCPHost = endPoint.split(":")[2].strip()
                         giopTCPPort = line.split(":")[3].strip()
                         if verbose:
-                            print "checkEndPoints(): Found giop:tcp endPoint defined in /etc/omniORB.cfg "
-                            print line
+                            print("checkEndPoints(): Found giop:tcp endPoint defined in {}".format(orbconfig))
+                            print(line)
                             if giopTCPHost.strip():
-                                print "giop:tcp Host " + giopTCPHost
+                                print("giop:tcp Host " + giopTCPHost)
                             if giopTCPPort.strip():
-                                print "giop:tcp Port " + giopTCPPort
-                            print "=========================================================================="
+                                print("giop:tcp Port " + giopTCPPort)
+                            print("==========================================================================")
 
                         # if giop:tcp contains host/ip, that ip must be contained in ifconfig
                         if giopTCPHost:
@@ -182,25 +227,25 @@ def checkEndPoints(process, verbose):
                             foundIP = False
                             proc = subprocess.Popen(['ifconfig'],stdout=subprocess.PIPE)
                             while True:
-                                line = proc.stdout.readline()
+                                line = proc.stdout.readline().decode()
                                 if line != '':
-                                    if line.find("inet addr:"+ hostIP) != -1:
+                                    if re.match('.*(inet\s+{})'.format(hostIP),line):
                                         foundIP = True
                                         break
                                 else:
                                     break
                             if not foundIP:
-                                print "ERROR(" + str(process) + "): IP address for giop:tcp endPoint host (" + hostIP + ") doesn't match any in ifconfig." 
-                                print "SOLUTION: Make sure host specified in endPoint giop:tcp has an IP address that matches one in ifconfig"
-                                print "=========================================================================="
+                                print("ERROR(" + str(process) + "): IP address for giop:tcp endPoint host (" + hostIP + ") doesn't match any in ifconfig.") 
+                                print("SOLUTION: Make sure host specified in endPoint giop:tcp has an IP address that matches one in ifconfig")
+                                print("==========================================================================")
                                 errorFound = True
 
                     # if giop:tcp contains port, then omniNames and omniEvents can't be running on the same host
                     if giopTCPPort:
                         if is_running("omniNames"):
-                            print "POSSIBLE ERROR(" + str(process) + "): omniNames is running locally.  giop:tcp endPoint specifies a port " + giopTCPPort + " which won't allow omniEvents to run on this host.  If omniEvents is failing to start, this may be why." 
-                            print "SOLUTION: Don't specify a port in a giop:tcp endPoint if omniNames and omniEvents are supposed to run on the same host."
-                            print "=========================================================================="
+                            print("POSSIBLE ERROR(" + str(process) + "): omniNames is running locally.  giop:tcp endPoint specifies a port " + giopTCPPort + " which won't allow omniEvents to run on this host.  If omniEvents is failing to start, this may be why.") 
+                            print("SOLUTION: Don't specify a port in a giop:tcp endPoint if omniNames and omniEvents are supposed to run on the same host.")
+                            print("==========================================================================")
 
                 # giop:unix endPoint
                 elif endPoint.find("giop:unix") != -1: 
@@ -210,15 +255,15 @@ def checkEndPoints(process, verbose):
                     #    omniORB: Error: Unable to create an endpoint of this description:
                     #    Failed to initialise the ORB / POA: INITIALIZE_TransportError
                     if len(endPoint.split(":")) != 3:
-                        print "ERROR(" + str(process) + "): Invalid format for giop:unix endPoint in /etc/omniORB.cfg - " + endPoint 
-                        print "SOLUTION: giop:unix endPoint format must contain one trailing colon.  Expected format is giop:unix:[<filename>]. If the filename is left blank, a filename is created based on the process ID and the current timestamp"
-                        print "=========================================================================="
+                        print("ERROR({}): Invalid format for giop:unix endPoint in {} - {}".format(process,orbconfig,endPoint))
+                        print("SOLUTION: giop:unix endPoint format must contain one trailing colon.  Expected format is giop:unix:[<filename>]. If the filename is left blank, a filename is created based on the process ID and the current timestamp")
+                        print("==========================================================================")
                         errorFound = True
                     else:
                         if verbose:
-                            print "Found giop:unix endPoint in /etc/omniORB.cfg "
-                            print endPoint
-                            print "=========================================================================="
+                            print("Found giop:unix endPoint in {}".format(orbconfig))
+                            print(endPoint)
+                            print("==========================================================================")
 
                 # giop:ssl endPoint
                 elif endPoint.find("giop:ssl") != -1: 
@@ -228,20 +273,21 @@ def checkEndPoints(process, verbose):
                     #    omniORB: Error: Unable to create an endpoint of this description:
                     #    Failed to initialise the ORB / POA: INITIALIZE_TransportError
                     if len(endPoint.split(":")) != 4:
-                        print "ERROR(" + str(process) + "): Invalid format for giop:ssl endPoint in /etc/omniORB.cfg - " + endPoint 
-                        print "SOLUTION: giop:ssl endPoint format must contain three colons.  Expected format is giop:ssl:<hostname/ip>:<port> where hostname and port can be empty strings."
-                        print "=========================================================================="
+                        print("ERROR({}): Invalid format for giop:ssl endPoint in {} - {}".format(process,orbconfig,endPoint))
+                        print("SOLUTION: giop:ssl endPoint format must contain three colons.  Expected format is giop:ssl:<hostname/ip>:<port> where hostname and port can be empty strings.")
+                        print("==========================================================================")
                         errorFound = True
                     else:
                         if verbose:
-                            print "Found giop:ssl endPoint in /etc/omniORB.cfg "
-                            print endPoint 
-                            print "=========================================================================="
+                            print("Found giop:ssl endPoint in {} ".format(orbconfig))
+                            print(endPoint) 
+                            print("==========================================================================")
            
             line = cfgFile.readline() 
         cfgFile.close()
-    except Exception, e:
-        print "checkEndPoints() Exception :  " + str(e) 
+    except Exception as e:
+        traceback.print_exc()
+        print("checkEndPoints() Exception :  " + str(e)) 
         errorFound = True
         
     return errorFound
@@ -254,10 +300,104 @@ def validateIPAddress(name):
         else:
             socket.inet_pton(socket.AF_INET, ipAddress)
         return True
-    except Exception, e:
-        print "validateIPAddress(): Invalid IP address " + str(ipAddress)
-        print "validateIPAddress(): Exception " + str(e)
+    except Exception as e:
+        print("validateIPAddress(): Invalid IP address " + str(ipAddress))
+        print("validateIPAddress(): Exception " + str(e))
         return False
+
+
+def runCheck_OssieHome_SdrRoot(ossiehome, sdrroot, options):
+
+    print("==========================================================================")
+    print("Directory/Permission checks on OSSIHOME {} and SDRROOT {}\n".format(ossiehome,sdrroot))
+
+    if options.verbose:
+        print("Checking Execute Access on {}".format(sdrroot))
+
+    bad_dirs=directoriesExecuteAccess(sdrroot,options.verbose)
+    if len(bad_dirs):
+        print("ERROR - Check execute permission on the following directories\n{}\n".format(bad_dirs))
+    else:
+        print("PASSED - Execute directory check for {}".format(sdrroot))
+
+    if options.verbose:
+        print("Checking Read Access on {}".format(sdrroot))
+
+    bad_dirs=directoriesReadAccess(sdrroot,options.verbose)
+    if len(bad_dirs):
+        print("ERROR - Check read permissions on the following directories\n{}\n".format(bad_dirs))
+    else:
+        print("PASSED - Readable directory check for {}".format(sdrroot))
+
+    checkdir=os.path.join(sdrroot,'dev')
+    writable=is_writable(checkdir)
+    executable=is_executable(checkdir)
+    if options.verbose:
+        print("Checking access on {} writable {} executable {} ".format(checkdir,writable,executable))
+    if not writable or not executable:
+        print("ERROR - Check write permissions on {}".format(checkdir))
+    else:
+        print("PASSED - Directory check for {}".format(checkdir))
+
+    checkdir=os.path.join(sdrroot,'dev/devices')
+    writable=is_writable(checkdir)
+    executable=is_executable(checkdir)
+    if options.verbose:
+        print("Checking access on {} writable {} executable {} ".format(checkdir,writable,executable))
+    if not writable or not executable:
+        print("ERROR - Check write permissions on {}".format(checkdir))
+    else:
+        print("PASSED - Directory check for {}".format(checkdir))
+
+    checkdir=os.path.join(sdrroot,'dev/nodes')
+    writable=is_writable(checkdir)
+    executable=is_executable(checkdir)
+    if options.verbose:
+        print("Checking access on {} writable {} executable {} ".format(checkdir,writable,executable))
+    if not writable or not executable:
+        print("ERROR - Check write permissions on {}".format(checkdir))
+    else:
+        print("PASSED - Directory check for {}".format(checkdir))
+
+    checkdir=os.path.join(sdrroot,'dev/services')
+    writable=is_writable(checkdir)
+    executable=is_executable(checkdir)
+    if options.verbose:
+        print("Checking access on {} writable {} executable {} ".format(checkdir,writable,executable))
+    if not writable or not executable:
+        print("ERROR - Check write permissions on {}".format(checkdir))
+    else:
+        print("PASSED - Directory check for {}".format(checkdir))
+
+    if options.verbose:
+        print("Checking Execute Access on {}".format(ossiehome))
+
+    bad_dirs=directoriesExecuteAccess(ossiehome,options.verbose)
+    if len(bad_dirs):
+        print("ERROR - Check execute permission on the following directories\n{}\n".format(bad_dirs))
+    else:
+        print("PASSED - Execute directory check for {}".format(ossiehome))
+
+    if options.verbose:
+        print("Checking Read Access on {}".format(ossiehome))
+
+    bad_dirs=directoriesReadAccess(ossiehome,options.verbose)
+    if len(bad_dirs):
+        print("ERROR - Check read permissions on the following directories\n{}\n".format(bad_dirs))
+    else:
+        print("PASSED - Readable directory check for {}".format(ossiehome))
+
+    checkdir=os.path.join(ossiehome,'share/idl')
+    writable=is_writable(checkdir)
+    executable=is_executable(checkdir)
+    if options.verbose:
+        print("Checking access on {} writable {} executable {} ".format(checkdir,writable,executable))
+    if not writable or not executable:
+        print("ERROR - Check write permissions on {}".format(checkdir))
+    else:
+        print("PASSED - Directory check for {}".format(checkdir))
+
+    print("==========================================================================")
 
 if __name__ == '__main__':
     # Grab command line arguments and options
@@ -272,6 +412,7 @@ if __name__ == '__main__':
     parser.add_option("--dev", action="store_true", dest="device", help="Whether or not the Device Manager is expected to be running on this host")
     parser.add_option("--domainName", dest="domainName", help="Domain Manager name", default="", type="string")
     parser.add_option("--ORBInitRef", dest="overriddenInitRef", help="overridden InitRef used by device manager", default="", type="string")
+    parser.add_option("--config", dest="orbconfig", help="Use fully qualified path to omniORB config", default="/etc/omniORB.cfg", type="string")
     parser.add_option("-v","--verbose", action="store_true", dest="verbose", help="print out debug statements")
 
     options, args = parser.parse_args()
@@ -284,107 +425,65 @@ if __name__ == '__main__':
         options.device = True 
         options.disk = True 
 
-    # Get hostname
+    # Get hostname and user info
     hostname = (socket.gethostname()).split(".")[0]
-    if options.verbose:
-        print "hostname running this script: " + hostname
-        print "=========================================================================="
+    user=os.getlogin()
+    euid=os.geteuid()
+    egid=os.getegid()
+    gname=grp.getgrgid(os.getegid()).gr_name
+    print("RH NET DIAG: \n  hostname: {}\n  user/id: {}/{}\n  group/id: {}/{}".format(hostname,
+                                                                                        user,euid,
+                                                                                        gname,egid))											
+    # check environment OSSIEHOME, SDRROOT
+    ossiehome="** NOT SET **"
+    if 'OSSIEHOME' in os.environ:
+        ossiehome=os.environ['OSSIEHOME']
+    print("  OSSIEHOME: {}".format(ossiehome))
 
-    # Make sure OSSIEHOME, SDRROOT, and /etc/omniORB.cfg are readable
-    ossiehome_set = False
-    if os.environ.has_key('OSSIEHOME'):
-        ossiehome_set = True
-        if not is_readable(os.environ['OSSIEHOME']):
-            print "WARNING: $OSSIEHOME is not readable by this user."
-            print "=========================================================================="
-    else:
-        print "ERROR: $OSSIEHOME is not set"
-        print "=========================================================================="
-    sdrroot_set = False
-    if os.environ.has_key('SDRROOT'):
-        sdrroot_set = True
-        if not is_readable(os.environ['SDRROOT']):
-            print "WARNING: $SDRROOT is not readable by this user."
-            print "=========================================================================="
-    else:
-        print "ERROR: $SDRROOT is not set"
-        print "=========================================================================="
-    if not is_readable('/etc/omniORB.cfg'):
-        print "ERROR: /etc/omniORB.cfg is not readable by this user.  This will cause nameclt to fail."
-        print "SOLUTION: Set file permissions on /etc/omniORB.cfg to make it accessible to this user."
-        print "=========================================================================="
-        sys.exit() 
+    sdrroot="** NOT SET **"
+    if 'SDRROOT' in os.environ:
+        sdrroot=os.environ['SDRROOT']
+    print("  SDSRROOT: {}".format(sdrroot))
+
+    if 'OSSIEHOME' not in os.environ or  \
+       'SDRROOT' not in os.environ:
+        print("ERROR: Set required environment variables (OSSIEHOME,SDRROOT) before continuing")
+        raise SystemExit
+
+    # check omni setup
+    orbconfig=options.orbconfig
+    if not is_readable(orbconfig):
+        print("ERROR: {} is not readable by this user.  Change permissions on the file.".format(orbconfig))
+        raise SystemExit
     if not is_readable('/etc/hosts'):
-        print "ERROR: /etc/hosts is not readable by this user.  This may cause errors"
-        print "SOLUTION: Set file permissions on /etc/hosts to make it accessible to this user."
-        print "=========================================================================="
-        sys.exit() 
+        print("ERROR: /etc/hosts is not readable by this user.  Change permissions on the file.")
+        raise SystemExit
     if len(checkCatior()) == 0:
-        print 'ERROR: Neither catior (version 4.1.6 of omniORB) nor catior.omni (version 4.1.0 of omniORB) is present. Is omniORB installed?'
-        print 'SOLUTION: Make sure omniORB is installed and confirm that either catior or catior.omni is visible in the current path by using the following commands: \"which catior\" and \"which catior.omni\"'
-        print "=========================================================================="
-        sys.exit() 
+        print('ERROR: Missing omniORB program catior. Please check omniORB is installed')
+        raise SystemExit
 
-    # If this script is running on the omniNames host, run the following diagnostics:
-    errorFound = False
-    if options.disk and ossiehome_set and sdrroot_set:
-        if not directoriesReadAccess(os.getenv('SDRROOT')):
-            errorFound = True
-            print "ERROR: One or more directories in SDRROOT are not readable by this user. This may lead to deployment errors."
-            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
-            print "=========================================================================="
-        if not directoriesWriteAccess(os.getenv('SDRROOT')):
-            errorFound = True
-            print "WARNING: One or more directories in SDRROOT are not writable by this user. This may lead to component or device installation errors."
-            print "SOLUTION: Set directory access permissions on SDRROOT to make it writable to this user."
-            print "=========================================================================="
-        if not directoriesExecuteAccess(os.getenv('SDRROOT')):
-            errorFound = True
-            print "ERROR: One or more directories in SDRROOT are not executable by this user. This may lead to deployment errors."
-            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
-            print "=========================================================================="
-        if not is_writable(os.getenv('SDRROOT')+'/dev'):
-            errorFound = True
-            print "ERROR: SDRROOT/dev is not writable by this user. This will lead to deployment errors."
-            print "SOLUTION: Set directory write permissions on SDRROOT/dev to make it writable to this user."
-            print "=========================================================================="
-        if not directoriesReadAccess(os.getenv('OSSIEHOME')):
-            errorFound = True
-            print "ERROR: One or more directories in SDRROOT are not readable by this user. This may lead to deployment errors."
-            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
-            print "=========================================================================="
-        if not directoriesWriteAccess(os.getenv('OSSIEHOME')):
-            errorFound = True
-            print "WARNING: One or more directories in OSSIEHOME are not writable by this user. This may lead to IDL project installation errors."
-            print "SOLUTION: Set directory access permissions on OSSIEHOME to make it writable to this user."
-            print "=========================================================================="
-        if not directoriesExecuteAccess(os.getenv('OSSIEHOME')):
-            errorFound = True
-            print "ERROR: One or more directories in SDRROOT are not executable by this user. This may lead to deployment errors."
-            print "SOLUTION: Set directory access permissions on SDRROOT to make it accessible to this user."
-            print "=========================================================================="
-        if not errorFound:
-            print "No errors detected with $SDRROOT, $OSSIEHOME, or system configuration permissions"
-            print "=========================================================================="
+    if options.disk:
+        runCheck_OssieHome_SdrRoot(ossiehome,sdrroot, options)
 
     errorFound = False
     if options.namingService:
         # 1. Is omniNames process running?
         if not is_running("omniNames"):
-            print "ERROR(Naming Service): omniNames is not running."
-            print "SOLUTION: sudo /etc/init.d/omniNames start"
-            print "=========================================================================="
+            print("ERROR(Naming Service): omniNames is not running.")
+            print("SOLUTION: sudo /etc/init.d/omniNames start")
+            print("==========================================================================")
             errorFound = True
         # 2. Check to see if omniEvents is running properly
         if checkOmniEvents("Naming Service",options.verbose):
             errorFound = True
         # 3. Does "nameclt list" run successfully?
-        retval=commands.getstatusoutput('nameclt list')
+        cmd="OMNIORB_CONFIG={} nameclt list".format(orbconfig)
+        retval=subprocess.getstatusoutput(cmd)
         if retval[0]:
-            print "ERROR(Naming Service):nameclt list failed with error: \n\t%s" % retval[1]
-            print "=========================================================================="
-            # Check for valid InitRef entry in /etc/omniORB.cfg
-            cfgFile = open("/etc/omniORB.cfg",'r')
+            print("ERROR(Naming Service):nameclt list failed with error: \n\t%s" % retval[1])
+            print("==========================================================================")
+            # Check for valid InitRef entry in omniORB.cfg
+            cfgFile = open(orbconfig,'r')
             line = cfgFile.readline()
             expectedNameServiceHost = None
             expectedNameServiceIP = None
@@ -397,50 +496,51 @@ if __name__ == '__main__':
                     expectedNameServicePort = line.lstrip().split(":")[3].strip()
                     foundInitRef = True
                     if options.verbose:
-                        print "Found valid InitRef for Naming Service in /etc/omniORB.cfg"
-                        print "Naming Service host from omniORB.cfg: " + expectedNameServiceHost
-                        print "Naming Service IP from omniORB.cfg: " + expectedNameServiceIP
-                        print "Naming Service port from omniORB.cfg: " + expectedNameServicePort
-                        print "=========================================================================="
+                        print("Found valid InitRef for Naming Service in {}".format(orbconfig))
+                        print("Naming Service host from omniORB.cfg: " + expectedNameServiceHost)
+                        print("Naming Service IP from omniORB.cfg: " + expectedNameServiceIP)
+                        print("Naming Service port from omniORB.cfg: " + expectedNameServicePort)
+                        print("==========================================================================")
                     break
                 line = cfgFile.readline() 
             cfgFile.close()
             if not foundInitRef:
-                print "ERROR(Naming Service): InitRef for naming service not found in /etc/omniORB.cfg"
-                print "SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to /etc/omniORB.cfg"
-                print "=========================================================================="
+                print("ERROR(Naming Service): InitRef for naming service not found in {}".format(orbconfig))
+                print("SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to {}".format(orbconfig))
+                print("==========================================================================")
             else:
                 # Verify that expected host for omniNames is equivalent to the hostname, "localhost", or 127.0.0.1
                 if expectedNameServiceHost.find("localhost") == -1 and \
                    expectedNameServiceHost != "127.0.0.1" and \
                    expectedNameServiceHost != hostname:
-                    print "ERROR(Naming Service): InitRef in /etc/omniORB.cfg is looking for host " + expectedNameServiceHost + " which is not equal to \"localhost\", \"127.0.0.1\", or " + hostname
-                    print "SOLUTION: Modify the host used in the InitRef for the Naming Service in /etc/omniORB.cfg and then restart omniNames and omniEvents.  If omniNames and omniEvents are running on the same host,this can be done with the command \"sudo $OSSIEHOME/bin/cleanomni\""
-                    print "=========================================================================="
+                    print("ERROR(Naming Service): InitRef in {} is looking for host {} which is not equal to \"localhost\", \"127.0.0.1\", or {}".format(orbconfig, expectedNameServiceHost, hostname))
+                    print("SOLUTION: Modify the host used in the InitRef for the Naming Service in {} and then restart omniNames and omniEvents.".format(orbconfig))
+                    print("==========================================================================")
                 # Stop omniNames and omniEvents, clean out logs for both, and restart them
-                print "POSSIBLE SOLUTION: If there are no other obvious problems, stop omniNames and omniEvents, clean out their logs, and restart them.  If omniNames and omniEvents are running on the same host, this can be done with the command \"sudo $OSSIEHOME/bin/cleanomni\""
-                print "=========================================================================="
+                print("POSSIBLE SOLUTION: If there are no other obvious problems, stop omniNames and omniEvents, clean out their logs, and restart; (run \"sudo $OSSIEHOME/bin/cleanomni\")")
+                print("==========================================================================")
             errorFound = True
         # 4. Check to see if endPoints are defined properly 
         if not endPointsChecked:
             endPointsChecked = True
-            if checkEndPoints("Naming Service",options.verbose):
+            if checkEndPoints("Naming Service",options.verbose,options.orbconfig):
                 errorFound = True
         # Check firewall settings if can't talk to Domain or Device Manager
         if not errorFound:
-            print "No errors detected with Naming Service."
-            print "=========================================================================="
+            print("No errors detected with Naming Service.")
+            print("==========================================================================")
     
     # If this script is running on the Domain Manager host, run the following diagnostics:
     errorFound = False
     if options.domain:
         # 1. Does "nameclt list" run successfully?
-        retval=commands.getstatusoutput('nameclt list')
+        cmd="OMNIORB_CONFIG={} nameclt list".format(orbconfig)
+        retval=subprocess.getstatusoutput(cmd)
         if retval[0]:
-            print "ERROR(Domain Manager):nameclt list failed with error: \n\t%s" % retval[1]
-            print "=========================================================================="
+            print("ERROR(Domain Manager):nameclt list failed with error: \n\t%s" % retval[1])
+            print("==========================================================================")
             # Check for valid InitRef entry in /etc/omniORB.cfg
-            cfgFile = open("/etc/omniORB.cfg",'r')
+            cfgFile = open(orbconfig,'r')
             line = cfgFile.readline()
             expectedNameServiceHost = None
             expectedNameServiceIP = None
@@ -453,27 +553,27 @@ if __name__ == '__main__':
                     expectedNameServicePort = line.lstrip().split(":")[3].strip()
                     foundInitRef = True
                     if options.verbose:
-                        print "Found valid InitRef for Naming Service in /etc/omniORB.cfg"
-                        print "Naming Service host from omniORB.cfg: " + expectedNameServiceHost
-                        print "Naming Service IP from omniORB.cfg: " + expectedNameServiceIP
-                        print "Naming Service port from omniORB.cfg: " + expectedNameServicePort
-                        print "=========================================================================="
+                        print("Found valid InitRef for Naming Service in {}".format(orbconfig))
+                        print("Naming Service host from omniORB.cfg: " + expectedNameServiceHost)
+                        print("Naming Service IP from omniORB.cfg: " + expectedNameServiceIP)
+                        print("Naming Service port from omniORB.cfg: " + expectedNameServicePort)
+                        print("==========================================================================")
                     break
                 line = cfgFile.readline() 
             cfgFile.close()
             if not foundInitRef:
-                print "ERROR(Domain Manager): InitRef for naming service not found in /etc/omniORB.cfg"
-                print "SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to /etc/omniORB.cfg"
-                print "=========================================================================="
+                print("ERROR(Domain Manager): InitRef for naming service not found in {}".format(orbconfig))
+                print("SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to {}".format(orbconfig))
+                print("==========================================================================")
             else:
                 # Validate InitRef IP address
                 validInitRef = False
                 if expectedNameServiceHost:
                     validInitRef = validateIPAddress(expectedNameServiceHost)
                 if not validInitRef:
-                    print "ERROR(Domain Manager): InitRef IP address is not a valid "
-                    print "SOLUTION: add a valid \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to /etc/omniORB.cfg or pass in valid hostname or address with --ORBInitRef"
-                    print "=========================================================================="
+                    print("ERROR(Domain Manager): InitRef IP address is not a valid ")
+                    print("SOLUTION: add a valid \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to {} or pass in valid hostname or address with --ORBInitRef".format(orbconfig))
+                    print("==========================================================================")
                 elif validInitRef:
                     # If host running omniNames is expected to be this host, make sure omniNames is running
                     if expectedNameServiceHost.find("localhost") != -1 or \
@@ -481,10 +581,10 @@ if __name__ == '__main__':
                        expectedNameServiceHost == hostname:
                         # Is omniNames process running?
                         if not is_running("omniNames"):
-                            print "ERROR(Domain Manager): omniNames is not running on this host"
-                            print "SOLUTION: If Naming Service is supposed to be on this host, sudo /etc/init.d/omniNames start"
-                            print "SOLUTION: If Naming Service is supposed to run on another host, modify InitRef entry in /etc/omniORB.cfg on this host and make sure omniNames is running on the remote host"
-                            print "=========================================================================="
+                            print("ERROR(Domain Manager): omniNames is not running on this host")
+                            print("SOLUTION: If Naming Service is supposed to be on this host, sudo /etc/init.d/omniNames start")
+                            print("SOLUTION: If Naming Service is supposed to run on another host, modify InitRef entry in {} on this host and make sure omniNames is running on the remote host".format(orbconfig))
+                            print("==========================================================================")
                     # else Check connectivity to host running omniNames                
                     else:
                         try:
@@ -499,26 +599,26 @@ if __name__ == '__main__':
                                     raise Exception(msg)
                             status = sock.connect_ex((expectedNameServiceIP, ns_port))
                             if status != 0:
-                                print "ERROR(Domain Manager): Domain Manager failed to connect to Naming Service on host " + expectedNameServiceIP + " on port " + str(ns_port)
-                                print "POSSIBLE SOLUTION: Check firewall settings on host running omniNames(" + expectedNameServiceIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(ns_port) + " is accessible"
-                                print "=========================================================================="
+                                print("ERROR(Domain Manager): Domain Manager failed to connect to Naming Service on host " + expectedNameServiceIP + " on port " + str(ns_port))
+                                print("POSSIBLE SOLUTION: Check firewall settings on host running omniNames(" + expectedNameServiceIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(ns_port) + " is accessible")
+                                print("==========================================================================")
                             else:
                                 if options.verbose:
-                                    print "Domain Manager: This host can access port " + expectedNameServicePort.strip() + " on " + expectedNameServiceHost.strip()
-                                    print "=========================================================================="
-                        except Exception, e:
-                            print "Exception on socket connection attempt to omniNames host:" + str(e) 
+                                    print("Domain Manager: This host can access port " + expectedNameServicePort.strip() + " on " + expectedNameServiceHost.strip())
+                                    print("==========================================================================")
+                        except Exception as e:
+                            print("Exception on socket connection attempt to omniNames host:" + str(e)) 
                     # Check to see if omniEvents is running properly
-                    checkOmniEvents("Domain Manager",options.verbose)
+                    checkOmniEvents("Domain Manager",options.verbose,options.config)
             errorFound = True
         # 2. Check to see if endPoints are defined properly 
         if not endPointsChecked:
             endPointsChecked = True
-            if checkEndPoints("Domain Manager",options.verbose):
+            if checkEndPoints("Domain Manager",options.verbose,options.orbconfig):
                 errorFound = True
         if not errorFound:
-            print "No Naming Service related errors found with a Domain Manager running on this host"
-            print "=========================================================================="
+            print("No Naming Service related errors found with a Domain Manager running on this host")
+            print("==========================================================================")
         
     # If this script is running on the Device Manager host, run the following diagnostics:
     errorFound = False
@@ -535,14 +635,14 @@ if __name__ == '__main__':
             else:
                 expectedNameServicePort = "2809"
             if options.verbose:
-                print "InitRef for Naming Service passed in with --ORBInitRef"
-                print "Naming Service host: " + expectedNameServiceHost
-                print "Naming Service IP: " + expectedNameServiceIP
-                print "Naming Service port: " + expectedNameServicePort
-                print "=========================================================================="
+                print("InitRef for Naming Service passed in with --ORBInitRef")
+                print("Naming Service host: " + expectedNameServiceHost)
+                print("Naming Service IP: " + expectedNameServiceIP)
+                print("Naming Service port: " + expectedNameServicePort)
+                print("==========================================================================")
         else:
             # Check for valid InitRef entry in /etc/omniORB.cfg
-            cfgFile = open("/etc/omniORB.cfg",'r')
+            cfgFile = open(orbconfig,'r')
             line = cfgFile.readline()
             foundInitRef = False
             while line:
@@ -555,26 +655,26 @@ if __name__ == '__main__':
                         expectedNameServicePort = ''
                     foundInitRef = True
                     if options.verbose:
-                        print "Found valid InitRef for Naming Service in /etc/omniORB.cfg"
-                        print "Naming Service host from omniORB.cfg: " + expectedNameServiceHost
-                        print "Naming Service IP from omniORB.cfg: " + expectedNameServiceIP
-                        print "Naming Service port from omniORB.cfg: " + expectedNameServicePort
-                        print "=========================================================================="
+                        print("Found valid InitRef for Naming Service in {}".format(orbconfig))
+                        print("Naming Service host from omniORB.cfg: " + expectedNameServiceHost)
+                        print("Naming Service IP from omniORB.cfg: " + expectedNameServiceIP)
+                        print("Naming Service port from omniORB.cfg: " + expectedNameServicePort)
+                        print("==========================================================================")
                     break
                 line = cfgFile.readline() 
             cfgFile.close()
             if not foundInitRef:
-                print "ERROR(Device Manager): InitRef for naming service not found in /etc/omniORB.cfg"
-                print "SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to /etc/omniORB.cfg"
-                print "=========================================================================="
+                print("ERROR(Device Manager): InitRef for naming service not found in {}".format(orbconfig))
+                print("SOLUTION: add \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to {}".format(orbconfig))
+                print("==========================================================================")
                 errorFound = True
         # Validate InitRef IP address
         if expectedNameServiceHost:
             validInitRef = validateIPAddress(expectedNameServiceHost)
             if not validInitRef: 
-                print "ERROR(Device Manager): InitRef IP address for naming service is not a valid"
-                print "SOLUTION: add a valid \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to /etc/omniORB.cfg or pass in valid hostname or address with --ORBInitRef"
-                print "=========================================================================="
+                print("ERROR(Device Manager): InitRef IP address for naming service is not a valid")
+                print("SOLUTION: add a valid \"InitRef = NameService=corbaname::<hostname or IP address>:2809\" to {} or pass in valid hostname or address with --ORBInitRef".format(orbconfig))
+                print("==========================================================================")
                 errorFound = True
         if not errorFound and \
            expectedNameServiceHost != None:
@@ -584,10 +684,10 @@ if __name__ == '__main__':
                expectedNameServiceHost == hostname:
                 # Is omniNames process running?
                 if not is_running("omniNames"):
-                    print "ERROR(Device Manager): omniNames is not running on this host"
-                    print "SOLUTION: If Naming Service is supposed to be on this host, sudo /etc/init.d/omniNames start"
-                    print "SOLUTION: If Naming Service is supposed to run on another host, change InitRef and make sure omniNames is running on the remote host"
-                    print "=========================================================================="
+                    print("ERROR(Device Manager): omniNames is not running on this host")
+                    print("SOLUTION: If Naming Service is supposed to be on this host, sudo /etc/init.d/omniNames start")
+                    print("SOLUTION: If Naming Service is supposed to run on another host, change InitRef and make sure omniNames is running on the remote host")
+                    print("==========================================================================")
                     errorFound = True
             # else Check connectivity to host running Naming Service                
             else:
@@ -595,16 +695,17 @@ if __name__ == '__main__':
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     status = sock.connect_ex((expectedNameServiceIP, int(expectedNameServicePort)))
                     if status != 0:
-                        print "ERROR(Device Manager): Device Manager failed to connect to Naming Service on host " + expectedNameServiceIP + " on port " + str(expectedNameServicePort)
-                        print "POSSIBLE SOLUTION: Check firewall settings on host running omniNames(" + expectedNameServiceIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(expectedNameServicePort) + " is accessible"
-                        print "=========================================================================="
+                        print(" error ip/port {}/{}".format(expectedNameServiceIP, expectedNameServicePort))
+                        print("ERROR(Device Manager): Device Manager failed to connect to Naming Service on host " + expectedNameServiceIP + " on port " + str(expectedNameServicePort))
+                        print("POSSIBLE SOLUTION: Check firewall settings on host running omniNames(" + expectedNameServiceIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(expectedNameServicePort) + " is accessible")
+                        print("==========================================================================")
                         errorFound = True
                     else:
                         if options.verbose:
-                            print "Device Manager: This host can access port " + expectedNameServicePort.strip() + " on " + expectedNameServiceHost.strip()
-                            print "=========================================================================="
-                except Exception, e:
-                    print "Exception on socket connection attempt to omniNames host:" + str(e) 
+                            print("Device Manager: This host can access port " + expectedNameServicePort.strip() + " on " + expectedNameServiceHost.strip())
+                            print("==========================================================================")
+                except Exception as e:
+                    print("Exception on socket connection attempt to omniNames host:" + str(e)) 
                     errorFound = True
 
             # Check to see if omniEvents is running properly
@@ -619,11 +720,12 @@ if __name__ == '__main__':
         domainManagerPort = "" 
         domainManagerHostIP = ""
         # Get IOR string for the domain from the Naming Service
-        retval=commands.getstatusoutput('nameclt resolve ' + domainName + "/" + domainName)
+        cmd="OMNIORB_CONFIG={} nameclt resolve {}/{}".format(orbconfig,domainName,domainName)
+        retval=subprocess.getstatusoutput(cmd)
         if not retval[0]:
             # Use catior on that IOR string to get the hostname and port used by the domain 
             catior = checkCatior()
-            retval=commands.getstatusoutput(catior+' ' + retval[1])
+            retval=subprocess.getstatusoutput(catior+' ' + retval[1])
             if not retval[0]:
                 index = -1
                 for idx, s in enumerate(retval[1].split()):
@@ -639,16 +741,16 @@ if __name__ == '__main__':
                         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         status = sock.connect_ex((domainManagerHostIP, int(domainManagerPort)))
                         if status != 0:
-                            print "ERROR(Device Manager): Device Manager failed to connect to Domain Manager " + domainName + " on host " + domainManagerHostIP + " on port " + str(domainManagerPort)
-                            print "POSSIBLE SOLUTION: Check firewall settings on host where Domain Manager is running(" + domainManagerHostIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(domainManagerPort) + " is accessible"
-                            print "=========================================================================="
+                            print("ERROR(Device Manager): Device Manager failed to connect to Domain Manager " + domainName + " on host " + domainManagerHostIP + " on port " + str(domainManagerPort))
+                            print("POSSIBLE SOLUTION: Check firewall settings on host where Domain Manager is running(" + domainManagerHostIP + ") using the command \"sudo /sbin/iptables -L\" on that host to see if port " + str(domainManagerPort) + " is accessible")
+                            print("==========================================================================")
                             errorFound = True
                         else:
                             if options.verbose:
-                                print "Device Manager: This host can access Domain Manager port " + domainManagerPort.strip() + " on " + domainManagerHostIP.strip()
-                                print "=========================================================================="
-                    except Exception, e:
-                        print "Exception on socket connection attempt to Domain Manager host:" + str(e) 
+                                print("Device Manager: This host can access Domain Manager port " + domainManagerPort.strip() + " on " + domainManagerHostIP.strip())
+                                print("==========================================================================")
+                    except Exception as e:
+                        print("Exception on socket connection attempt to Domain Manager host:" + str(e)) 
                         errorFound = True
                 # Domain Manager doesn't exist in Naming Service
                 else:
@@ -661,18 +763,18 @@ if __name__ == '__main__':
             domainFound = False 
 
         if not domainFound:
-            print "ERROR(Device Manager): Domain Manager " + domainName + " not found in the Naming Service" 
+            print("ERROR(Device Manager): Domain Manager " + domainName + " not found in the Naming Service") 
             if domainManagerHostIP:
-                print "POSSIBLE SOLUTION: Make sure the Domain Manager is running on " + domainManagerHostIP + " and make sure \"nameclt list " + domainName + "\" and \"nameclt resolve " + domainName + "/" + domainName + "\" both succeed."
+                print("POSSIBLE SOLUTION: Make sure the Domain Manager is running on " + domainManagerHostIP + " and make sure \"nameclt list " + domainName + "\" and \"nameclt resolve " + domainName + "/" + domainName + "\" both succeed.")
             else:
-                print "POSSIBLE SOLUTION: Make sure the Domain Manager is running and make sure \"nameclt list " + domainName + "\" and \"nameclt resolve " + domainName + "/" + domainName + "\" both succeed."
-            print "=========================================================================="
+                print("POSSIBLE SOLUTION: Make sure the Domain Manager is running and make sure \"nameclt list " + domainName + "\" and \"nameclt resolve " + domainName + "/" + domainName + "\" both succeed.")
+            print("==========================================================================")
             errorFound = True
 
         # 3. Check to see if endPoints are defined properly 
         if not endPointsChecked:
             endPointsChecked = True
-            if checkEndPoints("Device Manager",options.verbose):
+            if checkEndPoints("Device Manager",options.verbose,options.orbconfig):
                 errorFound = True
        
         # 4. Check ifconfig IP address with the one in /etc/hosts
@@ -682,19 +784,19 @@ if __name__ == '__main__':
         foundIP = False
         proc = subprocess.Popen(['ifconfig'],stdout=subprocess.PIPE)
         while True:
-            line = proc.stdout.readline()
+            line = proc.stdout.readline().decode()
             if line != '':
-                if line.find("inet addr:"+ hostIP) != -1 or line.find("inet "+ hostIP) != -1:
+                 if re.match('.*(inet\s+{})'.format(hostIP),line):
                     foundIP = True
                     break
             else:
                 break
         if not foundIP:
-            print "ERROR(Device Manager): IP address for this host in /etc/hosts (" + hostIP + ") doesn't match the one in ifconfig.  Java components will fail on initialize" 
-            print "SOLUTION: Make sure IP address in /etc/hosts matches the one in ifconfig"
-            print "=========================================================================="
+            print("ERROR(Device Manager): IP address for this host in /etc/hosts (" + hostIP + ") doesn't match the one in ifconfig.  Java components will fail on initialize") 
+            print("SOLUTION: Make sure IP address in /etc/hosts matches the one in ifconfig")
+            print("==========================================================================")
             errorFound = True
 
         if not errorFound:
-            print "No Naming Service related errors found with a Device Manager running on this host"
-            print "=========================================================================="
+            print("No Naming Service related errors found with a Device Manager running on this host")
+            print("==========================================================================")

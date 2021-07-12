@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -11,7 +11,7 @@ from ossie.component import Component
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class math_py_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
@@ -60,7 +60,7 @@ class math_py_base(CF__POA.Resource, Component, ThreadedComponent):
         # or by using the IDE.
         prop1 = simple_property(id_="prop1",
                                 type_="longlong",
-                                defvalue=10000L,
+                                defvalue=10000,
                                 mode="readwrite",
                                 action="external",
                                 kinds=("property",))

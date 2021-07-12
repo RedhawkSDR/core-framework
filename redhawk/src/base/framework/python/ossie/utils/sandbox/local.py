@@ -34,13 +34,13 @@ from ossie.cf import CF
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
 
-from base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
-from devmgr import DeviceManagerStub
-from naming import ApplicationRegistrarStub
-import launcher
-from debugger import GDB, JDB, PDB, Valgrind, Debugger
-import terminal
-from model import SandboxDevice
+from .base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
+from .devmgr import DeviceManagerStub
+from .naming import ApplicationRegistrarStub
+from . import launcher
+from .debugger import GDB, JDB, PDB, Valgrind, Debugger
+from . import terminal
+from .model import SandboxDevice
 
 warnings.filterwarnings('once',category=DeprecationWarning)
 
@@ -77,7 +77,7 @@ class LocalSdrRoot(SdrRoot):
         return os.path.isfile(filename)
 
     def _readFile(self, filename):
-        path = open(self._sdrPath(filename), 'r')
+        path = open(self._sdrPath(filename), 'rb')
         return path.read()
 
     def _getSearchPaths(self, objTypes):
@@ -114,7 +114,7 @@ class LocalSdrRoot(SdrRoot):
 
     def findProfile(self, descriptor, objType=None):
         if not descriptor:
-            raise RuntimeError, 'No component descriptor given'
+            raise RuntimeError('No component descriptor given')
         # Handle user home directory paths
         if descriptor.startswith('~'):
             descriptor = os.path.expanduser(descriptor)
@@ -137,7 +137,7 @@ class LocalLauncher(SandboxLauncher):
         for implementation in spd.get_implementation():
             if implementation.get_id() == identifier:
                 return implementation
-        raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
+        raise KeyError("Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier))
 
     def _resolveDependencies(self, sdrRoot, device, implementation):
         dep_files = []
@@ -179,7 +179,7 @@ class LocalLauncher(SandboxLauncher):
         # Set up the debugger if requested
         debugger = self._debugger
         try:
-            if isinstance(debugger, basestring):
+            if isinstance(debugger, str):
                 if debugger == 'pdb':
                     debugger = PDB()
                 elif debugger == 'jdb':
@@ -194,8 +194,8 @@ class LocalLauncher(SandboxLauncher):
             elif debugger is None:
                 pass
             else:
-                raise RuntimeError, 'not supported'
-        except Exception, e:
+                raise RuntimeError('not supported')
+        except Exception as e:
             log.warning('Cannot run debugger %s (%s)', debugger, e)
             debugger = None
 
@@ -208,15 +208,15 @@ class LocalLauncher(SandboxLauncher):
                     window = 'xterm'
 
         # Allow symbolic names for windows
-        if isinstance(window, basestring):
+        if isinstance(window, str):
             try:
                 if window == 'xterm':
                     window = terminal.XTerm(comp._instanceName)
                 elif window == 'gnome-terminal':
                     window = terminal.GnomeTerm(comp._instanceName)
                 else:
-                    raise RuntimeError, 'not supported'
-            except Exception, e:
+                    raise RuntimeError('not supported')
+            except Exception as e:
                 log.warning('Cannot run terminal %s (%s)', window, e)
                 debugger = None
 
@@ -250,9 +250,9 @@ class LocalLauncher(SandboxLauncher):
             def terminate_callback(pid, status):
                 self._cleanHeap(pid)
                 if status > 0:
-                    print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
+                    print('Component %s (pid=%d) exited with status %d' % (name, pid, status))
                 elif status < 0:
-                    print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
+                    print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             process.setTerminationCallback(terminate_callback)
 
         # Wait for the component to register with the virtual naming service or
@@ -269,12 +269,12 @@ class LocalLauncher(SandboxLauncher):
         sleepIncrement = 0.1
         while self.getReference(comp) is None:
             if not process.isAlive():
-                raise RuntimeError, "%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName)
+                raise RuntimeError("%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName))
             time.sleep(sleepIncrement)
             timeout -= sleepIncrement
             if timeout < 0:
                 process.terminate()
-                raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName)
+                raise RuntimeError("%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName))
 
         # Attach a debugger to the process.
         if debugger and debugger.canAttach():
@@ -427,8 +427,8 @@ class ComponentHost(SandboxComponent):
         pass
 
     def executeLinked(self, entryPoint, options, parameters, deps):
-        log.debug('Executing shared library %s %s', entryPoint, ' '.join('%s=%s' % (k,v) for k,v in parameters.iteritems()))
-        params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.iteritems()]
+        log.debug('Executing shared library %s %s', entryPoint, ' '.join('%s=%s' % (k,v) for k,v in parameters.items()))
+        params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.items()]
         self.ref.executeLinked(entryPoint, options, params, deps)
 
 
@@ -491,7 +491,7 @@ class LocalSandbox(Sandbox):
     def _checkInstanceId(self, refid, componentType):
         # Ensure refid is unique.
         container = self._getComponentContainer(componentType)
-        for component in container.values():
+        for component in list(container.values()):
             if refid == component._refid:
                 return False
         return True
@@ -526,10 +526,10 @@ class LocalSandbox(Sandbox):
 
     def getComponents(self):
         self._refreshChildDevices()
-        return self.__components.values()
+        return list(self.__components.values())
 
     def getServices(self):
-        return self.__services.values()
+        return list(self.__services.values())
 
     def _registerComponent(self, component):
         # Add the component to the sandbox state.
@@ -551,7 +551,7 @@ class LocalSandbox(Sandbox):
         return self.__components.get(name, None)
 
     def getComponentByRefid(self, refid):
-        for component in self.__components.itervalues():
+        for component in self.__components.values():
             if refid == component._refid:
                 return component
         return None
@@ -565,11 +565,11 @@ class LocalSandbox(Sandbox):
     def setSdrRoot(self, path):
         # Validate new root.
         if not os.path.isdir(path):
-            raise RuntimeError, 'invalid SDRROOT, directory does not exist'
+            raise RuntimeError('invalid SDRROOT, directory does not exist')
         if not os.path.isdir(os.path.join(path, 'dom')):
-            raise RuntimeError, 'invalid SDRROOT, dom directory does not exist'
+            raise RuntimeError('invalid SDRROOT, dom directory does not exist')
         if not os.path.isdir(os.path.join(path, 'dev')):
-            raise RuntimeError, 'invalid SDRROOT, dev directory does not exist'
+            raise RuntimeError('invalid SDRROOT, dev directory does not exist')
         self._sdrroot = LocalSdrRoot(path)
 
     def shutdown(self):
@@ -577,7 +577,7 @@ class LocalSandbox(Sandbox):
         self.stop()
 
         # Clean up all components
-        for name, component in self.__components.items():
+        for name, component in list(self.__components.items()):
             log.debug("Releasing component '%s'", name)
             try:
                 component.releaseObject()
@@ -586,7 +586,7 @@ class LocalSandbox(Sandbox):
         self.__components = {}
 
         # Terminate all services
-        for name, service in self.__services.items():
+        for name, service in list(self.__services.items()):
             log.debug("Terminating service '%s'", name)
             try:
                 service._terminate()
@@ -618,7 +618,7 @@ class LocalSandbox(Sandbox):
             elif objType == "services":
                 pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dev', 'services')]
             else:
-                raise ValueError, "'%s' is not a valid object type" % objType
+                raise ValueError("'%s' is not a valid object type" % objType)
         else:
             pathsToSearch = [searchPath]
 
@@ -645,7 +645,7 @@ class LocalSandbox(Sandbox):
                         namespace = full_namespace[:full_namespace.find(spd.get_name())]
                         if namespace == '':
                             namespace = pathPrefix
-                        if rsrcDict.has_key(namespace) == False:
+                        if (namespace in rsrcDict) == False:
                             rsrcDict[namespace] = []
                         if withDescription == True:
                             new_item = {}
@@ -661,11 +661,11 @@ class LocalSandbox(Sandbox):
                             rsrcDict[namespace].append(new_item)
                         else:
                             rsrcDict[namespace].append(spd.get_name())
-                    except Exception, e:
-                        print str(e)
-                        print 'Could not parse %s', filename
+                    except Exception as e:
+                        print(str(e))
+                        print('Could not parse %s', filename)
 
-            for key in sorted(rsrcDict.iterkeys()):
+            for key in sorted(rsrcDict.keys()):
                 if key == pathPrefix:
                     output_text += "************************ " + str(key) + " ***************************\n"
                 else:

@@ -27,7 +27,7 @@ def objectExists(obj):
         return not obj._non_existent()
     except CORBA.Exception:
         return False
-    except Exception, e:
+    except Exception as e:
         return False
 
 def constructDefaultType(typeobj):
@@ -43,7 +43,7 @@ def constructDefaultType(typeobj):
         # findType() is public by Python convention. It returns a tuple with
         # details of the type, but here we only need the class object.
         typeobj = omniORB.findType(tc.id())[1]
-        args = [constructDefaultType(tc.member_type(idx)) for idx in range(tc.member_count())]
+        args = [constructDefaultType(tc.member_type(idx)) for idx in range(int(tc.member_count()))]
         return typeobj(*args)
     if kind == CORBA.tk_enum:
         # As with above, an implementation detail. The last element of the
@@ -54,7 +54,7 @@ def constructDefaultType(typeobj):
         typeobj = omniORB.findType(tc.id())[1]
         index = tc.default_index()
         if index < 0:
-            index = tc.member_count() + index
+            index = int(tc.member_count()) + index
         kwds = {}
         kwds[tc.member_name(index)] = constructDefaultType(tc.member_type(index))
         return typeobj(**kwds)
@@ -65,7 +65,7 @@ def constructDefaultType(typeobj):
     if kind in (CORBA.tk_octet, CORBA.tk_short, CORBA.tk_ushort, CORBA.tk_long, CORBA.tk_boolean):
         return int()
     if kind in (CORBA.tk_ulong, CORBA.tk_longlong, CORBA.tk_ulonglong):
-        return long()
+        return int()
     if kind == CORBA.tk_char:
         return '\x00'
     if kind == CORBA.tk_sequence:
@@ -74,4 +74,4 @@ def constructDefaultType(typeobj):
         return CORBA.Any(CORBA.TC_null, None)
     if kind == CORBA.tk_objref:
         return None
-    raise NotImplementedError, tc
+    raise NotImplementedError(tc)

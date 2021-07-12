@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -23,9 +23,10 @@ import sys
 import os
 import imp
 import inspect
-import __builtin__
+import builtins
 
 import ossie.resource
+import ossie.component
 import ossie.properties
 
 ###############################################################################
@@ -35,8 +36,8 @@ def properties_to_xml(properties, outfile):
     outfile.write('<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">\n')
     outfile.write("<properties>\n")
     for prop in properties:
-	outfile.write(prop.toXML(1))
-	outfile.write("\n")
+        outfile.write(prop.toXML(1))
+        outfile.write("\n")
     outfile.write("</properties>\n")
 
 ###############################################################################
@@ -54,28 +55,28 @@ def py2prf_using_introspection(filepath, classname=None):
 
     module = imp.load_source(name, filepath)
     if module == None:
-	raise ValueError, "could not load " + filepath
+        raise ValueError("could not load " + filepath)
 
     classestoexamine = {}
-    for name, attr in module.__dict__.items():
-	if inspect.isclass(attr) and issubclass(attr, ossie.resource.Resource) and (attr != ossie.resource.Resource and attr != ossie.component.Component):
-	    classestoexamine[name] = attr
+    for name, attr in list(module.__dict__.items()):
+        if inspect.isclass(attr) and issubclass(attr, ossie.resource.Resource) and (attr != ossie.resource.Resource and attr != ossie.component.Component):
+            classestoexamine[name] = attr
 
     clazz = None
-    if len(classestoexamine.values()) == 0 and classname == None:
-	raise StandardError, "File doesn't contain any classes of type Resource"
-    elif len(classestoexamine.values()) > 1 and classname == None:
-	raise StandardError, "File contains more than one class of type Resource; use the --class argument"
+    if len(list(classestoexamine.values())) == 0 and classname == None:
+        raise Exception("File doesn't contain any classes of type Resource")
+    elif len(list(classestoexamine.values())) > 1 and classname == None:
+        raise Exception("File contains more than one class of type Resource; use the --class argument")
     elif len(classestoexamine) == 1:
-	clazz = classestoexamine.values()[0]
+        clazz = list(classestoexamine.values())[0]
     else:
-	clazz = module.__dict__[classname]
+        clazz = module.__dict__[classname]
 
     properties = []
     for name in dir(clazz):
-	class_attr = getattr(clazz, name)
-	if isinstance(class_attr, ossie.properties._property):
-	    properties.append(class_attr)
+        class_attr = getattr(clazz, name)
+        if isinstance(class_attr, ossie.properties._property):
+            properties.append(class_attr)
     return properties
 
 ###############################################################################
@@ -85,61 +86,61 @@ try:
 except ImportError:
     PARSING_SUPPORTED = False
     def py2prf_using_parsing(filepath, classname=None):
-	raise NotImplementedError, "parsing requires the ast module (found in Python 2.6+)"
+        raise NotImplementedError("parsing requires the ast module")
 else:
     PARSING_SUPPORTED = True
     def py2prf_using_parsing(filepath, classname=None):
-	classestoexamine = {}
-	xx = ast.parse(open(filepath).read(), filepath)
+        classestoexamine = {}
+        xx = ast.parse(open(filepath).read(), filepath)
 
-	class Visit(ast.NodeVisitor):
-	    def visit_ClassDef(self, node):
-		classestoexamine[node.name] = node
-	Visit().visit(xx)
+        class Visit(ast.NodeVisitor):
+            def visit_ClassDef(self, node):
+                classestoexamine[node.name] = node
+        Visit().visit(xx)
 
-	clazz = None
-	if len(classestoexamine.values()) == 0:
-	    raise StandardError, "File doesn't contain any classes of type Resource"
-	elif len(classestoexamine.values()) > 1 and classname == None:
-	    raise StandardError, "File contains more than one class of type Resource; use the --class argument"
-	elif len(classestoexamine) == 1:
-	    clazz = classestoexamine.values()[0]
-	else:
-	    clazz = classestoexamine[classname]
+        clazz = None
+        if len(list(classestoexamine.values())) == 0:
+            raise Exception("File doesn't contain any classes of type Resource")
+        elif len(list(classestoexamine.values())) > 1 and classname == None:
+            raise Exception("File contains more than one class of type Resource; use the --class argument")
+        elif len(classestoexamine) == 1:
+            clazz = list(classestoexamine.values())[0]
+        else:
+            clazz = classestoexamine[classname]
 
-	# In the parser-based approach we have to descend the inheritence tree ourselves
-	# For now, let's only support generating properties from the top-most-class
-	# Since that is the typical CONOP
-#	for base in clazz:
-#	    try:
-#		name = None
-#		if type(base) is ast.Name:
-#		    name = base.id
-#		elif type(base) is ast.Attribute:
-#		    name = base.attr
+        # In the parser-based approach we have to descend the inheritence tree ourselves
+        # For now, let's only support generating properties from the top-most-class
+        # Since that is the typical CONOP
+#       for base in clazz:
+#           try:
+#               name = None
+#               if type(base) is ast.Name:
+#                   name = base.id
+#               elif type(base) is ast.Attribute:
+#                   name = base.attr
 
-	properties = []
+        properties = []
         for b in clazz.body:
-	    if type(b) is ast.Assign:
-		if type(b.value) is ast.Call:
-		    if b.value.func.id in ("simple_property", "simpleseq_property"):
-			for x in b.value.args:
-			    print x, dir(x)
-			args = [x.s for x in b.value.args]
+            if type(b) is ast.Assign:
+                if type(b.value) is ast.Call:
+                    if b.value.func.id in ("simple_property", "simpleseq_property"):
+                        for x in b.value.args:
+                            print(x, dir(x))
+                        args = [x.s for x in b.value.args]
 
-			kwargs = {}
-			for kw in b.value.keywords:
-			    if type(kw.value) is ast.Str:
-				kwargs[kw.arg] = kw.value.s
-			    elif type(kw.value) is ast.Num:
-				kwargs[kw.arg] = kw.value.n
-			    elif type(kw.value) is ast.Tuple:
-				elements = [x.s for x in kw.value.elts]
-				kwargs[kw.arg] = tuple(elements)
-			prop_clazz = getattr(ossie.properties, b.value.func.id)
-			prop = prop_clazz(*args, **kwargs)
-			properties.append(prop)
-	return properties
+                        kwargs = {}
+                        for kw in b.value.keywords:
+                            if type(kw.value) is ast.Str:
+                                kwargs[kw.arg] = kw.value.s
+                            elif type(kw.value) is ast.Num:
+                                kwargs[kw.arg] = kw.value.n
+                            elif type(kw.value) is ast.Tuple:
+                                elements = [x.s for x in kw.value.elts]
+                                kwargs[kw.arg] = tuple(elements)
+                        prop_clazz = getattr(ossie.properties, b.value.func.id)
+                        prop = prop_clazz(*args, **kwargs)
+                        properties.append(prop)
+        return properties
 
 ###############################################################################
 # Main
@@ -156,33 +157,33 @@ if __name__ == "__main__":
     parser = OptionParser(__USAGE)
     parser.add_option("-p", "--parsing", dest="parsing",
                       action="store_true",
-		      help="use parsing to analyze the file instead of introspection (require python 2.6+)",
-		      default=False)
+                      help="use parsing to analyze the file instead of introspection (require python 2.6+)",
+                      default=False)
     parser.add_option("-o", "--outfile", dest="outfile",
-		      help="the output file to use, stdout is the default",
-		      default="-")
+                      help="the output file to use, stdout is the default",
+                      default="-")
     parser.add_option("-c", "--class", dest="classname",
-		      help="explictly provide the class to be analyzed",
-		      default=None)
+                      help="explictly provide the class to be analyzed",
+                      default=None)
 
     options, args = parser.parse_args()
     if options.parsing and not PARSING_SUPPORTED:
-	parser.error("the parsing method is not supported by your python installation (version 2.6+ is required)")
+        parser.error("the parsing method is not supported by your python installation (version 2.6+ is required)")
 
     if len(args) != 1:
-	parser.error("one and only one file must be provided")
+        parser.error("one and only one file must be provided")
 
     if not os.path.isfile(args[0]):
-	parser.error("input is not a file")
+        parser.error("input is not a file")
 
     if options.outfile == "-":
-	outfile = sys.stdout
+        outfile = sys.stdout
     else:
-	outfile = open(options.outfile, "w+")
+        outfile = open(options.outfile, "w+")
 
     if not options.parsing:
-	properties = py2prf_using_introspection(args[0], options.classname)
+        properties = py2prf_using_introspection(args[0], options.classname)
     else:
-	properties = py2prf_using_parsing(args[0], options.classname)
+        properties = py2prf_using_parsing(args[0], options.classname)
 
     properties_to_xml(properties, outfile)

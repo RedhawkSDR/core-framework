@@ -71,7 +71,11 @@ class GPP_i : public GPP_base
         void initializeResourceMonitors();
         void send_threshold_event(const threshold_event_struct& message);
         
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        /**
+         * @throw CF::LifeCycle::InitializeError
+         * @throw CORBA::SystemException
+         */
+        void initialize();
         bool allocate_loadCapacity(const double &value);
         void deallocate_loadCapacity(const double &value);
         bool allocate_diskCapacity(const double &value);
@@ -85,30 +89,49 @@ class GPP_i : public GPP_base
         bool allocate_mcastingress_capacity(const CORBA::Long &value);
         void deallocate_mcastingress_capacity(const CORBA::Long &value);
 
+        /**
+         * @throw CORBA::SystemException
+         * @throw CORBA::SystemException
+         * @throw CF::Device::InvalidState
+         * @throw CF::ExecutableDevice::InvalidFunction
+         * @throw CF::ExecutableDevice::InvalidParameters
+         * @throw CF::ExecutableDevice::InvalidOptions
+         * @throw CF::InvalidFileName
+         * @throw CF::ExecutableDevice::ExecuteFail
+         */
         CF::ExecutableDevice::ProcessID_Type execute ( const char* name, 
                                                        const CF::Properties& options, 
-                                                       const CF::Properties& parameters)
-          throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, 
-                 CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
-                 CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail);
+                                                       const CF::Properties& parameters);
 
+        /**
+         * @throw CF::ExecutableDevice::ExecuteFail
+         * @throw CF::InvalidFileName
+         * @throw CF::ExecutableDevice::InvalidOptions
+         * @throw CF::ExecutableDevice::InvalidParameters
+         * @throw CF::ExecutableDevice::InvalidFunction
+         * @throw CF::Device::InvalidState
+         * @throw CORBA::SystemException
+         */
         CF::ExecutableDevice::ProcessID_Type do_execute (const char* name, const CF::Properties& options,
                                                          const CF::Properties& parameters, 
-                                                         const std::vector<std::string> prepend_args) 
-          throw (CF::ExecutableDevice::ExecuteFail,
-                 CF::InvalidFileName, CF::ExecutableDevice::InvalidOptions,
-                 CF::ExecutableDevice::InvalidParameters,
-                 CF::ExecutableDevice::InvalidFunction, CF::Device::InvalidState,
-                 CORBA::SystemException);
+                                                         const std::vector<std::string> prepend_args);
 
 
-        void terminate (CF::ExecutableDevice::ProcessID_Type processId)
-            throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState);
+        /**
+         * @throw CORBA::SystemException
+         * @throw CF::ExecutableDevice::InvalidProcess
+         * @throw CF::Device::InvalidState
+         */
+        void terminate (CF::ExecutableDevice::ProcessID_Type processId);
         void updateThresholdMonitors();
         void sendChildNotification(const std::string &comp_id, const std::string &app_id);
         bool allocateCapacity_nic_allocation(const nic_allocation_struct &value);
         void deallocateCapacity_nic_allocation(const nic_allocation_struct &value);
-        void releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
+        /**
+         * @throw CORBA::SystemException
+         * @throw CF::LifeCycle::ReleaseError
+         */
+        void releaseObject();
 
 
         void postConstruction( std::string &softwareProfile,

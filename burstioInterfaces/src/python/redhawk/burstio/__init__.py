@@ -18,5 +18,5 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 # Bring port implementations up to the top package
-from outports import *
-from inports import *
+from .outports import *
+from .inports import *

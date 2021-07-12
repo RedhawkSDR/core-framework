@@ -79,14 +79,13 @@ import os
 import re
 import numpy
 import warnings
-from exceptions import UserWarning, NameError
 
 # define a portable string instance tester going forward that includes
 # unicode strings in Python 2.x and portable to Python 3
 try:
-    basestring  # attempt to evaluate basestring
+    str  # attempt to evaluate basestring
     def isstr(s):
-        return isinstance(s, basestring)
+        return isinstance(s, str)
 except NameError:
     def isstr(s):
         return isinstance(s, str)
@@ -239,7 +238,7 @@ def set_type2000_format(format=list):
     """
     global _type2000_format
     if format not in [ list, numpy.ndarray ]:
-        raise TypeError, 'Only list and numpy.ndarray are supported'
+        raise TypeError('Only list and numpy.ndarray are supported')
     _type2000_format = format
 
 
@@ -317,6 +316,8 @@ def _unpack_blue_struct(buf, struct_def, endian='@'):
         sdict = {}
         for name, fmt, count, byte_offset in struct_def['fields']:
             # fmt is an optional repcount and a struct pack char
+            if type(fmt) == bytes:
+                fmt = fmt.decode('ISO-8859-1')
             if isstr(fmt):
                 if fmt.endswith('s'):
                     val = ''
@@ -350,6 +351,8 @@ def _unpack_blue_struct(buf, struct_def, endian='@'):
     index = 0
     sdict = {}
     for name, fmt, count, byte_offset in struct_def['fields']:
+        if type(fmt) == bytes:
+            fmt = fmt.decode('ISO-8859-1')
         if index >= len(vals):
             break
         elif not isstr(fmt):
@@ -361,7 +364,7 @@ def _unpack_blue_struct(buf, struct_def, endian='@'):
             sdict[name] = vals[index:index+count]
         elif fmt.endswith('s'):
             # String, remove trailing white space and NULLs
-            sdict[name] = _m_length_raw(vals[index])
+            sdict[name] = _m_length_raw(vals[index].decode('ISO-8859-1'))
         else:
             # Scalar numeric
             sdict[name] = vals[index]
@@ -388,11 +391,11 @@ def _unpack_blue_struct_array(buf, struct_def, count, endian='@'):
     and sub-structures to None.
     """
     if buf is None:
-        return [_unpack_blue_struct(None, struct_def) for ii in xrange(count)]
+        return [_unpack_blue_struct(None, struct_def) for ii in range(count)]
     else:
         nbytes = struct_def['nbytes']
         return [_unpack_blue_struct(buf[ii:ii+nbytes], struct_def, endian)
-                for ii in xrange(0, min(len(buf), count*nbytes), nbytes)]
+                for ii in range(0, min(len(buf), count*nbytes), nbytes)]
 
 
 
@@ -402,7 +405,7 @@ def _blue_subrecord_map(hdr):
     list in a type 3000/5000/6000 header.  See _pack_blue_struct() for
     an explanation of the format of a struct_def dictionary.
     """
-    if hdr.has_key('comp'):
+    if 'comp' in hdr:
         subrecord_defs = hdr['comp']
     else:
         subrecord_defs = hdr['subr']
@@ -415,7 +418,7 @@ def _blue_subrecord_map(hdr):
     for subr in subrecord_defs:
         # Type 6000 subrecords can have multiple elements
         num_elements = subr.get('num_elts', 1) 
-        if subr.has_key('offset') and subr['offset'] > byte_offset:
+        if 'offset' in subr and subr['offset'] > byte_offset:
             padding = subr['offset'] - byte_offset
             packing += 'x' * padding
             byte_offset += padding
@@ -526,7 +529,7 @@ def _resolve_detach_name(hdr, exc_on_fail=1):
     remains unmodified and is returned without a 'detach_name' field.
     """
     if not hdr.get('detached'):
-        if hdr.has_key('detach_name'):
+        if 'detach_name' in hdr:
             del hdr['detach_name']
         return
     
@@ -539,7 +542,7 @@ def _resolve_detach_name(hdr, exc_on_fail=1):
         path, fname = os.path.split(fname)
         hdr['detach_name'] = os.path.join(
             xmpyapi.form_path(hdr['detached'], 'r'), fname)
-    elif not hdr.has_key('detach_name') and exc_on_fail:
+    elif 'detach_name' not in hdr and exc_on_fail:
         # Without xmpyapi we cannot resolve detach_name
         raise Exception("Location of detached data of %(file_name)s on AUX "
                         "%(detached)d cannot be resolved without direct "
@@ -651,7 +654,7 @@ def _unpack_header_main(raw_header_str):
         # Extract the header representation from the head_rep string
         # field in the raw packed header.
         hdr = _unpack_blue_struct(raw_header_str, _bluestructs['HEADER'],
-                                  _rep_tran[raw_header_str[4:8]])
+                                  _rep_tran[raw_header_str[4:8].decode('ISO-8859-1')])
     else:
         # Create a default header with default values.
         hdr = _unpack_blue_struct(None, _bluestructs['HEADER'])
@@ -659,7 +662,7 @@ def _unpack_header_main(raw_header_str):
     # Import the main header keywords, they're not a plain old FORTRAN string
     if hdr['keylength'] > 0:
         lkey = _bluestructs['HEADER']['lookups']['keywords'][3]
-        keystr = raw_header_str[lkey:lkey+hdr['keylength']]
+        keystr = raw_header_str[lkey:lkey+hdr['keylength']].decode('ISO-8859-1')
         hdr['keywords'] = dict([kv.split('=', 1)
                                 for kv in keystr.split('\0') if len(kv)])
     else:
@@ -695,11 +698,11 @@ def update_header_internals(hdr):
     # spa, and bpa for undefined formats (such as those that can occur
     # in Type 6000 files).
     if file_class != 4 and format not in ('NH', 'KW') \
-       and _mode_tran.has_key(format[0]):
+       and format[0] in _mode_tran:
         # bytes per scalar
         if format[1] == 'P':
             hdr['bps'] = .125
-        elif _xm_to_struct.has_key(format[1]):
+        elif format[1] in _xm_to_struct:
             hdr['bps'] = struct.calcsize(_xm_to_struct[format[1]])
         hdr['spa'] = _mode_tran[format[0]]      # scalars per atom
         hdr['bpa'] = hdr['bps'] * hdr['spa']    # bytes per atom
@@ -717,21 +720,21 @@ def update_header_internals(hdr):
     elif file_class <= 6:
         # Covers type 3000, 5000 and 6000
         hdr['bpe'] = hdr['record_length']       # bytes per element
-        if hdr.has_key('bpa'):
-            hdr['ape'] = hdr['bpe'] / hdr['bpa'] # atoms per element
+        if 'bpa' in hdr:
+            hdr['ape'] = hdr['bpe'] // hdr['bpa'] # atoms per element
 
     if hdr['bpe'] > 0:
-        if hdr['type'] % 1000 / 100 == 2:
+        if hdr['type'] % 1000 // 100 == 2:
             # If this is a packetized data file (i.e., type x200), we
             # need to subtract size of packet data to get true data_size
             try:
-                hdr['size'] = long((hdr['data_size']
+                hdr['size'] = int((hdr['data_size']
                                     - int(hdr['keywords']['PKT_BYTE_COUNT']))
                                    / hdr['bpe'])
             except:
-                hdr['size'] = long(hdr['data_size'] / hdr['bpe'])
+                hdr['size'] = int(hdr['data_size'] / hdr['bpe'])
         else:
-            hdr['size'] = long(hdr['data_size'] / hdr['bpe'])
+            hdr['size'] = int(hdr['data_size'] / hdr['bpe'])
 
 
 def unpack_header(raw_header_str, endian=None):
@@ -806,8 +809,8 @@ def header(type=1000, format='SF', **kw):
 
     if 'quadwords' in hdr:
         qw = {}
-        for k in kw.keys():
-            if not k in hdr.keys() and k in hdr['quadwords'].keys():
+        for k in list(kw.keys()):
+            if not k in list(hdr.keys()) and k in list(hdr['quadwords'].keys()):
                 qw[k] = kw[k]
                 del kw[k]
         hdr['quadwords'].update(qw)
@@ -831,7 +834,7 @@ def _open_t6subrecords(hdr):
     repack = 0
     subrec_def_string = 0
     
-    if isstr(hdr['ext_header']):
+    if isstr(hdr['ext_header']) or type(hdr['ext_header']) == bytes:
         unpack_ext_header(hdr)
         repack = 1
         
@@ -840,7 +843,7 @@ def _open_t6subrecords(hdr):
             subrec_def_string = hdr['ext_header']['SUBREC_DEF']
             del hdr['ext_header']['SUBREC_DEF']
     elif isinstance(hdr['ext_header'], list):
-        for index in xrange(0, len(hdr['ext_header'])):
+        for index in range(0, len(hdr['ext_header'])):
             if hdr['ext_header'][index][0] == 'SUBREC_DEF':
                 subrec_def_string = hdr['ext_header'][index][1]
                 del hdr['ext_header'][index]
@@ -976,9 +979,9 @@ def readheader(filename, ext_header_type=None, keepopen=0):
         
     rawhdr = f.read(512)
     head_rep = rawhdr[4:8]
-
-    if head_rep != 'IEEE' and head_rep != 'EEEI':
-        raise Exception(head_rep + ' formatted BLUE headers not supported, '
+    _head_rep = head_rep.decode('ISO-8859-1')
+    if _head_rep != 'IEEE' and _head_rep != 'EEEI':
+        raise Exception(_head_rep + ' formatted BLUE headers not supported, '
                         'convert to IEEE or EEEI format first')
     
     hdr = unpack_header(rawhdr)
@@ -1014,7 +1017,7 @@ def readheader(filename, ext_header_type=None, keepopen=0):
         if not hdr.get('detached'):
             # If the data portion is not detached, seek to the first
             # element in the open file we are returning.
-            f.seek(long(hdr['data_start']))
+            f.seek(int(hdr['data_start']))
         return hdr, f
     else:
         f.close()
@@ -1043,7 +1046,7 @@ def _convert_to_type(hdr, new_type=None):
     if new_type is not None:
         hdr['type'] = new_type
     
-    has_ext_header = hdr.has_key('ext_header')
+    has_ext_header = 'ext_header' in hdr
     if has_ext_header:
         ehdr = hdr['ext_header']
         del hdr['ext_header']
@@ -1324,7 +1327,7 @@ def update_t6_maxmin(hdr, data):
     if hdr['class'] != 6:
         raise Exception('update_t6_maxmin() is for Type 6000 files only')
 
-    for index in xrange(0, len(data)):
+    for index in range(0, len(data)):
         for subrecord in hdr['subr']:
             if subrecord['format'][1] in ['A', 'a']:
                 continue
@@ -1384,12 +1387,12 @@ def _pack_blue_struct(data, struct_def, endian='@'):
                                                     fmt, count, endian))
         elif fmt.endswith('s'):
             # Convert the data to a string if it isn't already (DR #666442-19).
-            s = str(data.get(name, ''))
+            s = str(data.get(name, '')).encode('ISO-8859-1')
             # Space pad out
-            vals.append(s + ' ' * (struct.calcsize(fmt) - len(s)))
+            vals.append(s + ' '.encode('ISO-8859-1') * (struct.calcsize(fmt) - len(s)))
         elif count == 1:
             vals.append(data.get(name, 0))
-        elif data.has_key(name):
+        elif name in data:
             vals += data[name]
         else:
             vals += [0] * count
@@ -1529,7 +1532,7 @@ def pack_header(hdr, structured=0):
                                                          file_class], endian)
 
     # Pack the extended header if present
-    if hdr.has_key('ext_header'):
+    if 'ext_header' in hdr:
         pack_ext_header(hdr, structured=structured)
 
     return _pack_blue_struct(hdr, _bluestructs['HEADER'], endian)
@@ -1554,12 +1557,12 @@ def pack_main_header_keywords(hdr):
     keydict = hdr.get('keywords', {})
     if keydict:
         hdr['keywords'] = '\0'.join([k + '=' + str(v)
-                                     for k,v in keydict.items()]) + '\0'
+                                     for k,v in list(keydict.items())]) + '\0'
         hdr['keylength'] = min(len(hdr['keywords']),
                                struct.calcsize(_bluestructs['HEADER']
                                                ['lookups']['keywords'][1]))
         if hdr['keylength'] < len(hdr['keywords']):
-            print "WARNING: Main header keywords truncated"
+            print("WARNING: Main header keywords truncated")
     else:
         hdr['keywords'] = '\0'
         hdr['keylength'] = 0
@@ -1605,8 +1608,8 @@ def _update_t6subrecords(hdr):
 
     # Make sure the extended header is in list format 
     if isinstance(hdr['ext_header'], dict):
-        hdr['ext_header'] = hdr['ext_header'].items()
-    elif isstr(hdr['ext_header']):
+        hdr['ext_header'] = list(hdr['ext_header'].items())
+    elif isstr(hdr['ext_header']) or type(hdr['ext_header'])  == bytes:
         unpack_ext_header(hdr)
 
     # Pack all of the subrecords into one string
@@ -1676,7 +1679,7 @@ def writeheader(filename, hdr, keepopen=0, ext_header_type=list):
     pathname = form_write_path(filename)
 
     if os.path.isfile(pathname):
-        f = open(pathname, 'r+wb')
+        f = open(pathname, 'r+b')
     else:
         f = open(pathname, 'wb')
         
@@ -1685,24 +1688,25 @@ def writeheader(filename, hdr, keepopen=0, ext_header_type=list):
     if h['class'] == 6:
         _update_t6subrecords(h)
     
-    if h.has_key('ext_header'):
+    if 'ext_header' in h:
         # Determine where the data bytes end.
         if h.get('detached'):
             # Data is in a separate file, the extended header starts
             # right after the header.
-            data_end = 512L
+            data_end = 512
         else:
             # Add the .88 in case we are dealing with bit data that
             # doesn't end on byte boundaries.
-            data_end = long(h['data_start'] + h['data_size'] + .88)
+            data_end = int(h['data_start'] + h['data_size'] + .88)
 
         # The extended header will start at the next multiple of 512
         # bytes after the last data byte.
-        h['ext_start'] = int((data_end + 511) / 512)
+        h['ext_start'] = int((data_end + 511) // 512)
 
         # Write out the updated header
         structured = ext_header_type in (XMTable, XMKVList)
-        f.write(pack_header(h, structured=structured))
+        ph=pack_header(h, structured=structured)
+        f.write(ph)
 
         # _update_extended_header() expects us to be at the end of the
         # data part of the file. 
@@ -1715,7 +1719,7 @@ def writeheader(filename, hdr, keepopen=0, ext_header_type=list):
         if not h.get('detached'):
             # If the data portion is not detached, seek to the first
             # element in the open file we are returning.
-            f.seek(long(h['data_start']))
+            f.seek(int(h['data_start']))
         return pathname, f
     else:
         f.close()
@@ -1746,13 +1750,13 @@ def _extract_t4index(hdr, elements):
     unpack_ext_header(hdr)
     ext_header = hdr['ext_header']
     if isinstance(ext_header, dict):
-        ext_header = ext_header.items()
+        ext_header = list(ext_header.items())
     elif isinstance(ext_header, tuple):
         ext_header = list(ext_header)
 
     t4keyword_index = -1
     t4index = []
-    for ii in xrange(len(ext_header)):
+    for ii in range(len(ext_header)):
         if ext_header[ii][0] == 'T4INDEX':
             if elements == 0:
                 del ext_header[ii]
@@ -1951,7 +1955,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
         # The .88 is in case we have bit data, round up to the next byte
         ext_start = int((hdr['data_start'] + data_size + 511.88)/512)
 
-    if hdr.has_key('ext_header'):
+    if 'ext_header' in hdr:
         # We've got a new extended header
         pass
     elif fhdr and hdr['ext_size'] > 0:
@@ -1966,7 +1970,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
     else:
         # We have no extended header, or want to remove an existing one
         hdr['ext_header'] = ''
-        if hdr.has_key('ext_size'):
+        if 'ext_size' in hdr:
             del hdr['ext_size']
 
     t4index = None
@@ -1975,7 +1979,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
         # these indices from the extended header.  Now that we have
         # the extended header we can do so.
         t4index, t4keyword_index = _extract_t4index(hdr, elements)
-
+    
     reopen_flag = ''
     if fhdr:
         reopen_flag = 'r+'
@@ -1984,7 +1988,11 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
     if memory_file:
         fhdr = pathname
     else:
-        fhdr = open(pathname, reopen_flag + 'wb')
+        if reopen_flag=='':
+            _open_flag='wb'
+        else:
+            _open_flag='r+b'
+        fhdr = open(pathname, _open_flag )
 
     if reopen_flag:
         # Skip past existing header
@@ -1999,7 +2007,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
 
     if hdr.get('detached'):
         # Close the header file and open the detached data file
-        if long(hdr['data_start'] + hdr['data_size']) == 0: reopen_flag = ''
+        if int(hdr['data_start'] + hdr['data_size']) == 0: reopen_flag = ''
         f = open(hdr['detach_name'], reopen_flag + 'wb')
     else:
         f = fhdr
@@ -2009,13 +2017,14 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
         if start:
             # Skip to where we want to start writing
             start_location = (start - 1) * hdr['bpe']
-            f.seek(long(hdr['data_start'] + start_location))
+            f.seek(int(hdr['data_start'] + start_location))
         else:
             # Skip to the end of the data (to append)
-            f.seek(long(hdr['data_start'] + hdr['data_size']))
+            f.seek(int(hdr['data_start'] + hdr['data_size']))
     else:
         # Pad the data start out
-        f.write('\0' * long(hdr['data_start'] - f.tell()))
+        null=bytes([0])
+        f.write(null * int(hdr['data_start'] - f.tell()))
 
     endian = _rep_tran[hdr['data_rep']]
 
@@ -2029,7 +2038,7 @@ def write(filename, hdr=None, data=[], append=0, ext_header_type=list,
             # there may be a bunch of data at the end!  But still
             # make sure we seek to end of data
             hdr['data_size'] = float(elements * hdr['bpe'])
-            f.seek(long(hdr['data_start'] + hdr['data_size']))
+            f.seek(int(hdr['data_start'] + hdr['data_size']))
 
         else :
             # Update the header with how many bytes we wrote out.  This needs
@@ -2128,7 +2137,7 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                     bpe % 1 > .1):
                     raise Exception('Write of BIT data on non-byte '
                                     'boundaries not supported')
-                bpe = long(bpe)
+                bpe = int(bpe)
                 for frame in data:
                     if not isstr(frame):
                         raise Exception('Bit data given for write '
@@ -2146,7 +2155,7 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                                         'proper dimensions')
                     for elem in frame:
                         # Space pad out
-                        f.write(elem + ' ' * (bpa - len(elem)))
+                        f.write(elem + ' '.encode('ISO-8859-1') * (bpa - len(elem)))
         else:
             try: 
                 # numeric data
@@ -2203,9 +2212,9 @@ def pack_data_to_stream(hdr, f, data, endian='@', t4index=None):
                 vdat += '\0' * (lkey - nvalid)
             elif nvalid > lkey:
                 # Fixed length and too many bytes to write out
-                print ('WARNING: VRB at index %d truncated by %d bytes '
+                print(('WARNING: VRB at index %d truncated by %d bytes '
                        'to fit fixed record length of %d bytes: %s' %
-                       (elements, nvalid-lkey, bpe, str(d)))
+                       (elements, nvalid-lkey, bpe, str(d))))
                 nvalid = lkey
                 vdat = vdat[:lkey]
 
@@ -2235,16 +2244,17 @@ def _update_extended_header(hdr, f, structured=0):
     header keywords should have any structure tags interpreted embedded
     in the packed keywords.  See pack_keywords() for more info.
     """
-    if hdr.has_key('ext_header'):
+    if 'ext_header' in hdr:
         pack_ext_header(hdr, structured=structured)
         if len(hdr['ext_header']) > 0:
+            null=bytes([0])
             # Pad out to where the extended header is supposed to start
-            f.write('\0' * (hdr['ext_start'] * 512 - f.tell()))
+            f.write(null * (hdr['ext_start'] * 512 - f.tell()))
             # Write out the extended header...
             f.write(hdr['ext_header'])
             # ...and pad out to multiple of 512 bytes
             leftover = f.tell() % 512
-            if leftover: f.write('\0' * (512 - leftover))
+            if leftover: f.write(null * (512 - leftover))
         # Truncate
         f.truncate()
     elif hdr['ext_size'] <= 0:
@@ -2336,11 +2346,11 @@ def read(filename, ext_header_type=None, start=None, end=None,
 
     # Check to see if data part of the file is detached
     if hdr.get('detached'):
-        # If the detached name cannot be resolved an exception is raised.
+        # If the detached name cannot be resolved an exceptionf is raised.
         if 'detach_name' not in hdr: _resolve_detach_name(hdr)
         f = open(hdr['detach_name'], 'rb')
         if hdr['data_start'] > 0:
-            f.seek(long(hdr['data_start']))
+            f.seek(int(hdr['data_start']))
 
     if start is None and end is None:
         elements = 'all'
@@ -2355,11 +2365,11 @@ def read(filename, ext_header_type=None, start=None, end=None,
         if start is None:
             start = 1
         elif start > hdr['size']:
-            raise Exception, "start value given is > than data size"
+            raise Exception("start value given is > than data size")
         elif start < 1:
-            raise Exception, "start value must be >= 1"
+            raise Exception("start value must be >= 1")
         elif hdr['class'] == 4 and hdr['bpe'] <= 0:
-            raise Exception, "Cannot trim variable length keyword data"
+            raise Exception("Cannot trim variable length keyword data")
         elif hdr['class'] == 1:
             # Adjust the 'xstart' field to reflect the data being returned
             hdr['xstart'] = hdr['xstart'] + ((start-1) * hdr['xdelta'])
@@ -2376,11 +2386,11 @@ def read(filename, ext_header_type=None, start=None, end=None,
         if end is None or end > hdr['size']:
             end = hdr['size']
         elif end < 1:
-            raise Exception, "end value must be >= 1"
+            raise Exception("end value must be >= 1")
 
         elements = end - start + 1
         if elements <= 0:
-            raise Exception, "Must choose a positive number of elements"
+            raise Exception("Must choose a positive number of elements")
 
         # From our current position in the file, seek to our 'start' element
         f.seek((start - 1) * hdr['bpe'], 1)
@@ -2461,13 +2471,13 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
                 if max(hdr['data_start'] % 1, bpe % 1) > .1:
                     raise Exception('Read of BIT data on non-byte '
                                     'boundaries not supported')
-                bpe = long(bpe)
-                pydata = [f.read(bpe) for ii in xrange(elements)]
+                bpe = int(bpe)
+                pydata = [f.read(bpe) for ii in range(elements)]
             else:
                 # ASCII data, read and trim BPA at a time
                 pydata = [[_m_length(f.read(bpa))
-                           for jj in xrange(ape)]
-                          for ii in xrange(elements)]
+                           for jj in range(ape)]
+                          for ii in range(elements)]
 
             if file_class == 1:
                 # Stop pretending 1000 data is one big frame
@@ -2539,9 +2549,9 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
             if fstart is None:
                 fstart = 1
             elif fstart > hdr['subsize']:
-                raise Exception, "fstart value given is > than the frame size"
+                raise Exception("fstart value given is > than the frame size")
             elif fstart < 1:
-                raise Exception, "fstart value must be >= 1"
+                raise Exception("fstart value must be >= 1")
             else:
                 # Adjust the xstart to reflect the data being returned
                 hdr['xstart'] = hdr['xstart'] + ((fstart-1)*hdr['xdelta'])
@@ -2549,18 +2559,18 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
             if fend is None or fend > hdr['subsize']:
                 fend = hdr['subsize']
             elif fend < 1:
-                raise Exception, "fend value must be >= 1"
+                raise Exception("fend value must be >= 1")
 
             subsize = fend - fstart + 1
             if subsize <= 0:
-                raise Exception, "Must choose a positive range within frame"
+                raise Exception("Must choose a positive range within frame")
 
             # Trim each frame to the desired size
             if isinstance(pydata, numpy.ndarray):
                 # Arrays support multiple-axis slicing
                 pydata = pydata[:,fstart-1:fend]
             else:
-                for ii in xrange(elements):
+                for ii in range(elements):
                     pydata[ii] = pydata[ii][fstart-1:fend]
 
             # Update hdr['subsize'] and bpe to reflect the trimmed frame size
@@ -2576,7 +2586,7 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
         # Build a list of dictionaries
         # NB: Coerce the number of bytes to read to a long to avoid
         #     deprecation warnings from read().
-        pydata = _unpack_blue_struct_array(f.read(long(bpe * elements)),
+        pydata = _unpack_blue_struct_array(f.read(int(bpe * elements)),
                                            _blue_subrecord_map(hdr),
                                            elements, endian)
     elif file_class == 4:
@@ -2592,10 +2602,10 @@ def unpack_data_from_stream(hdr, f, elements='all', endian='@', fstart=None,
         pydata = []
         vpacking = endian + _truncate_struct_def(
             _bluestructs['VRBSTRUCT'], 8)['packing']
-        for ii in xrange(elements):
+        for ii in range(elements):
             lblock, lvalid = struct.unpack(vpacking, f.read(8))
             pydata.append(unpack_keywords(f.read(lvalid), endian, lcase=1))
-            if lblock > lvalid: f.seek(long(lblock-lvalid), 1)
+            if lblock > lvalid: f.seek(int(lblock-lvalid), 1)
         if trim:
             hdr['nrecords'] = len(pydata)
 
@@ -2629,7 +2639,7 @@ def unpack_ext_header(hdr, structured=0):
     pack_ext_header() with the same structured=1.  See pack_keywords()
     for more info.
     """
-    if isstr(hdr['ext_header']):
+    if isstr(hdr['ext_header']) or type(hdr['ext_header']) == bytes:
         hdr['ext_header'] = unpack_keywords(hdr['ext_header'],
                                             _rep_tran[hdr['head_rep']],
                                             structured=structured)
@@ -2703,22 +2713,25 @@ def unpack_keywords(buf, endian='@', lcase=0, start=0, structured=0):
             if ldata < 0 or ii + lkey > lbuf:
                 raise ValueError('Corrupted header - unable to read keywords')
 
+        if format and type(format) == bytes:
+            format = format.decode('ISO-8859-1')
         tag = buf[itag:itag+ltag]
+        if type(tag) == bytes:
+            tag = tag.decode('ISO-8859-1')
         data = buf[idata:idata+ldata]
 
         if format != 'A':
             try:
-                if isstr(data):
-                    data = numpy.fromstring(data, _xm_to_numpy[format])
-                    if byteswap:
-                        # DR 667036-19 changed from Numeric.byteswapped()
-                        data = data.byteswap()
-                    if len(data) == 1:
-                        data = numpy.asscalar(data[0])
-                        if format == 'X':
-                            # Coerce type 'X' keywords into longs so they
-                            # are written back as 'X'.
-                            data = long(data)
+                data = numpy.fromstring(data, _xm_to_numpy[format])
+                if byteswap:
+                    # DR 667036-19 changed from Numeric.byteswapped()
+                    data = data.byteswap()
+                if len(data) == 1:
+                    data = numpy.asscalar(data[0])
+                    if format == 'X':
+                        # Coerce type 'X' keywords into longs so they
+                        # are written back as 'X'.
+                        data = int(data)
             except KeyError:
                 # Unknown X-Midas data type.
                 raise Exception('Unrecognized keyword format %s' % format)
@@ -2765,7 +2778,7 @@ def _is_kvpair_list(value):
     """
     return (isinstance(value, list) and value and
             isinstance(value[0], tuple) and len(value[0]) == 2 and
-            isstr(value[0][0]))
+            (isstr(value[0][0])or type(value[0][0]) == bytes))
 
         
 def pack_ext_header(hdr, structured=0):
@@ -2846,13 +2859,15 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
     any future attempt at correctly unpacking them with structured
     format impossible.
     """
-    kpacked = ''
+    kpacked = bytes()
     byteswap = (endian not in ['@', '=', _native_endian])
 
     if isstr(keywords):
         return keywords
+    if type(keywords) == bytes:
+        return keywords
     elif isinstance(keywords, dict):
-        keywords = keywords.items()
+        keywords = list(keywords.items())
 
     kpacking = endian + _bluestructs['KEYSTRUCT']['packing']
 
@@ -2875,7 +2890,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
             # array.
             value = numpy.array([value.real, value.imag])
 
-        if isinstance(value, (int,long)):
+        if isinstance(value, int):
             # On 64-bit platforms, a Python int is also 64 bits, so treat
             # the value as 'L' if it fits into 32 bits, and 'X' if it does
             # not (performance is not critical here).
@@ -2892,7 +2907,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
             ldata = len(value)
             packing += str(ldata) + 's'
         elif structured and isinstance(value, dict):
-            kpacked += pack_structured(tag, 'XT', value.items(), endian, ucase)
+            kpacked += pack_structured(tag, 'XT', list(value.items()), endian, ucase)
             continue
         elif structured and isinstance(value, (list, tuple)):
             if _is_kvpair_list(value):
@@ -2910,7 +2925,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
 
             if isinstance(value, numpy.ndarray):
                 typecode = value.dtype.type
-                if not _numpy_to_xm.has_key(typecode):
+                if typecode not in _numpy_to_xm:
                     # Convert to an X-Midas safe, nearly equivalent type
                     typecode = _numpy_xm_promotion[typecode]
                     value = value.astype(typecode)
@@ -2934,8 +2949,7 @@ def pack_keywords(keywords, endian='@', ucase=0, structured=0):
         lextra = lkey - ldata
         lltag = len(tag)
         packing += str(lltag) + 's' + ('x' * (lextra - lltag - 8))
-        
-        kpacked += struct.pack(packing, lkey, lextra, ltag, format, value, tag)
+        kpacked += struct.pack(packing, lkey, lextra, ltag, format.encode('ISO-8859-1'), value, tag.encode('ISO-8859-1'))
 
     return kpacked
 
@@ -3169,7 +3183,7 @@ def _init_bluestructs ():
 
     # Fill in the 'lookups' field for each struct definition, which is
     # a dictionary versions of its 'fields' list.
-    for bstruct in bstructs.values():
+    for bstruct in list(bstructs.values()):
         bstruct['lookups'] = dict([(f[0], f) for f in bstruct['fields']])
 
     return bstructs
@@ -3236,7 +3250,7 @@ def bpa(format):
         else:
             return _mode_tran[format[0:1]] * (_type_tran[format[1:2]] * -8)
     else:
-        raise Exception, "Format string must be exactly two characters"
+        raise Exception("Format string must be exactly two characters")
 
 
 def decode_xmformat(format):
@@ -3296,7 +3310,7 @@ def decode_xmformat(format):
         format = format.upper()
         return (_mode_tran[format[0:1]], _type_tran[format[1:2]])
     else:
-        raise Exception, "Format string should be exactly two characters"
+        raise Exception("Format string should be exactly two characters")
 
 
 def fexists(filename):

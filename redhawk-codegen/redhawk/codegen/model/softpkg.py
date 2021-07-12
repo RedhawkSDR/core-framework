@@ -23,8 +23,8 @@ import ossie.parsers
 
 from redhawk.codegen.utils import strenum
 
-import properties
-from softwarecomponent import SoftwareComponent, ComponentTypes
+from . import properties
+from .softwarecomponent import SoftwareComponent, ComponentTypes
 
 
 class SoftpkgRef(object):
@@ -241,7 +241,7 @@ class SoftPkg(object):
         return self.__props
 
     def implementations(self):
-        return self.__impls.values()
+        return list(self.__impls.values())
 
     def getImplementation(self, implId):
         if self.__impls.has_key(implId):
@@ -296,5 +296,5 @@ class SoftPkg(object):
             return 'dev/services'
         elif comptype == ComponentTypes.SHAREDPACKAGE:
             return 'dom/deps'
-        raise ValueError, 'Unsupported software component type', comptype
+        raise ValueError('Unsupported software component type').with_traceback(comptype)
 

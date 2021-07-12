@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -29,84 +29,84 @@ import signal
 
 PROPERTIES = (
               (
-               u'DCE:a4e7b230-1d17-4a86-aeff-ddc6ea3df26e', # ID
-               u'command', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:a4e7b230-1d17-4a86-aeff-ddc6ea3df26e', # ID
+               'command', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                '/bin/echo', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:95f19cb8-679e-48fb-bece-dc199ef45f20', # ID
-               u'commandAlive', # NAME
-               u'boolean', # TYPE
-               u'readonly', # MODE
+               'DCE:95f19cb8-679e-48fb-bece-dc199ef45f20', # ID
+               'commandAlive', # NAME
+               'boolean', # TYPE
+               'readonly', # MODE
                False, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:fa8c5924-845c-484a-81df-7941f2c5baa9', # ID
-               u'someprop', # NAME
-               u'long', # TYPE
-               u'readwrite', # MODE
+               'DCE:fa8c5924-845c-484a-81df-7941f2c5baa9', # ID
+               'someprop', # NAME
+               'long', # TYPE
+               'readwrite', # MODE
                10, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2', # ID
-               u'execparams', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:85d133fd-1658-4e4d-b3ff-1443cd44c0e2', # ID
+               'execparams', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'EXEC_PARAM_1', # ID
-               u'Parameter 1', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'EXEC_PARAM_1', # ID
+               'Parameter 1', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'Test1', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'EXEC_PARAM_2', # ID
-               u'Parameter 2', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'EXEC_PARAM_2', # ID
+               'Parameter 2', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                '2', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'EXEC_PARAM_3', # ID
-               u'Parameter 3', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'EXEC_PARAM_3', # ID
+               'Parameter 3', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                '3.3333', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53', # ID
-               u'args', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:5d8bfe8d-bc25-4f26-8144-248bc343aa53', # ID
+               'args', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                ('Hello World',), # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
              )
 
@@ -122,7 +122,7 @@ class CommandWrapper_i(CF__POA.Resource, Resource):
     def __init__(self, identifier, execparams):
         loggerName = execparams['NAME_BINDING'].replace('/', '.')
         Resource.__init__(self, identifier, execparams, propertydefs=PROPERTIES, loggerName=loggerName)
-        self._props["execparams"] = " ".join(["%s %s" % x for x in execparams.items()])
+        self._props["execparams"] = " ".join(["%s %s" % x for x in list(execparams.items())])
         self._pid = None
 
     #####################################

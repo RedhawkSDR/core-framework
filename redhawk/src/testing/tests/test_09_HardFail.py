@@ -23,10 +23,10 @@ from _unitTestHelpers import scatest
 import time
 from omniORB import CORBA, URI, any
 from ossie.cf import CF, CF__POA
-import commands, signal
+import subprocess, signal
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -189,7 +189,7 @@ class HardFailTest(scatest.CorbaTestCase):
         devs = getChildren(devInfo[devMgrToKill]['booter'].pid)
         self.assertEqual(len(devs), 1)
         comps = getChildren(devs[0])
-        self.failIf(len(comps) < 1, "Should be at least one component in the waveform")
+        self.assertFalse(len(comps) < 1, "Should be at least one component in the waveform")
 
         try:
             os.kill(comps[0], signal.SIGKILL)
@@ -273,7 +273,7 @@ class HardFailTest(scatest.CorbaTestCase):
         # try to release the waveform from the dead device manager
         try:
             app1.stop()
-        except CF.Resource.StopError, msg:
+        except CF.Resource.StopError as msg:
             self.fail("application->stop() should work here; failed with message: " + msg)
 
         try:

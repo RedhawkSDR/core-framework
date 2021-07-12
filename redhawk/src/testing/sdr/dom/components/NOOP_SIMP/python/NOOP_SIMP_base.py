@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -32,7 +32,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 from ossie.cf import ExtendedCF
 from omniORB import CORBA

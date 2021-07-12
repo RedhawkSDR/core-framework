@@ -24,10 +24,10 @@ This package provides a structured way to access
 common python modules and packages
 """
 
-import base
-from base import *
-import core
-from core import *
+from . import base
+from .base import *
+from . import core
+from .core import *
 
 # Create a log for library messages, defaulting to the null handler.
 import logging

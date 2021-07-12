@@ -291,7 +291,7 @@ namespace frontend {
     FRONTEND::ScanningTuner::ScanStatus* returnScanStatus(const frontend::ScanStatus &val) {
         FRONTEND::ScanningTuner::ScanStatus* tmpVal = new FRONTEND::ScanningTuner::ScanStatus();
         ScanStrategy* _scan_strategy = val.strategy.get();
-        if (dynamic_cast<ManualStrategy*>(_scan_strategy) != NULL) {
+        if (dynamic_cast<ManualStrategy*>(_scan_strategy) != nullptr) {
             tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::MANUAL_SCAN;
             ManualStrategy* _strat = dynamic_cast<ManualStrategy*>(_scan_strategy);
             tmpVal->strategy.scan_definition.center_frequency(_strat->center_frequency);
@@ -304,7 +304,7 @@ namespace frontend {
                     break;
             }
             tmpVal->strategy.control_value = _strat->control_value;
-        } else if (dynamic_cast<SpanStrategy*>(_scan_strategy) != NULL) {
+        } else if (dynamic_cast<SpanStrategy*>(_scan_strategy) != nullptr) {
             tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::SPAN_SCAN;
             SpanStrategy* _strat = dynamic_cast<SpanStrategy*>(_scan_strategy);
             FRONTEND::ScanningTuner::ScanSpanRanges _tmp;
@@ -324,7 +324,7 @@ namespace frontend {
                     break;
             }
             tmpVal->strategy.control_value = _strat->control_value;
-        } else if (dynamic_cast<DiscreteStrategy*>(_scan_strategy) != NULL) {
+        } else if (dynamic_cast<DiscreteStrategy*>(_scan_strategy) != nullptr) {
             tmpVal->strategy.scan_mode = FRONTEND::ScanningTuner::DISCRETE_SCAN;
             DiscreteStrategy* _strat = dynamic_cast<DiscreteStrategy*>(_scan_strategy);
             FRONTEND::ScanningTuner::Frequencies _tmp;
@@ -365,7 +365,7 @@ namespace frontend {
                         freqs[i].end_frequency = _tmp[i].end_frequency;
                         freqs[i].step = _tmp[i].step;
                     }
-                    SpanStrategy* _strat = new SpanStrategy(freqs);
+                    auto _strat(std::make_unique<SpanStrategy>(freqs));
                     switch(tmpVal.strategy.control_mode) {
                         case frontend::TIME_BASED:
                             _strat->control_mode = frontend::TIME_BASED;
@@ -375,7 +375,7 @@ namespace frontend {
                             break;
                     }
                     _strat->control_value = tmpVal.strategy.control_value;
-                    ScanStatus retval(_strat);
+                    ScanStatus retval(_strat.get());
                     retval.start_time = tmpVal.start_time;
                     retval.started = tmpVal.started;
                     for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
@@ -389,7 +389,7 @@ namespace frontend {
                     for (unsigned int i=0; i<_tmp.length(); i++) {
                         freqs.push_back(_tmp[i]);
                     }
-                    DiscreteStrategy* _strat = new DiscreteStrategy(freqs);
+                    auto _strat(std::make_unique<DiscreteStrategy>(freqs));
                     switch(tmpVal.strategy.control_mode) {
                         case frontend::TIME_BASED:
                             _strat->control_mode = frontend::TIME_BASED;
@@ -399,7 +399,7 @@ namespace frontend {
                             break;
                     }
                     _strat->control_value = tmpVal.strategy.control_value;
-                    ScanStatus retval(_strat);
+                    ScanStatus retval(_strat.get());
                     retval.start_time = tmpVal.start_time;
                     retval.started = tmpVal.started;
                     for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
@@ -407,7 +407,7 @@ namespace frontend {
                     return retval;
                 }
         }
-        ManualStrategy* _strat = new ManualStrategy(tmpVal.strategy.scan_definition.center_frequency());
+        auto _strat = std::make_unique<ManualStrategy>(tmpVal.strategy.scan_definition.center_frequency());
         switch(tmpVal.strategy.control_mode) {
             case frontend::TIME_BASED:
                 _strat->control_mode = frontend::TIME_BASED;
@@ -417,7 +417,7 @@ namespace frontend {
                 break;
         }
         _strat->control_value = tmpVal.strategy.control_value;
-        ScanStatus retval(_strat);
+        ScanStatus retval(_strat.get());
         retval.start_time = tmpVal.start_time;
         retval.started = tmpVal.started;
         for (unsigned int i=0; i<tmpVal.center_tune_frequencies.length(); i++)
@@ -426,7 +426,7 @@ namespace frontend {
     };
     FRONTEND::ScanningTuner::ScanStrategy* returnScanStrategy(const frontend::ScanStrategy &val) {
         FRONTEND::ScanningTuner::ScanStrategy* tmpVal = new FRONTEND::ScanningTuner::ScanStrategy();
-        if (dynamic_cast<const ManualStrategy*>(&val) != NULL) {
+        if (dynamic_cast<const ManualStrategy*>(&val) != nullptr) {
             tmpVal->scan_mode = FRONTEND::ScanningTuner::MANUAL_SCAN;
             const ManualStrategy* _strat = dynamic_cast<const ManualStrategy*>(&val);
             tmpVal->scan_definition.center_frequency(_strat->center_frequency);
@@ -439,7 +439,7 @@ namespace frontend {
                     break;
             }
             tmpVal->control_value = _strat->control_value;
-        } else if (dynamic_cast<const SpanStrategy*>(&val) != NULL) {
+        } else if (dynamic_cast<const SpanStrategy*>(&val) != nullptr) {
             tmpVal->scan_mode = FRONTEND::ScanningTuner::SPAN_SCAN;
             const SpanStrategy* _strat = dynamic_cast<const SpanStrategy*>(&val);
             FRONTEND::ScanningTuner::ScanSpanRanges _tmp;
@@ -459,7 +459,7 @@ namespace frontend {
                     break;
             }
             tmpVal->control_value = _strat->control_value;
-        } else if (dynamic_cast<const DiscreteStrategy*>(&val) != NULL) {
+        } else if (dynamic_cast<const DiscreteStrategy*>(&val) != nullptr) {
             tmpVal->scan_mode = FRONTEND::ScanningTuner::DISCRETE_SCAN;
             const DiscreteStrategy* _strat = dynamic_cast<const DiscreteStrategy*>(&val);
             FRONTEND::ScanningTuner::Frequencies _tmp;

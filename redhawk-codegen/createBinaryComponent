@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''
 Command-line wrapper to the createOctaveComponent.py's create() method.
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # Set option variables based on option flags set on the command line
     for key, value in opts:
         if key == '--help' or key == '-h':
-            print usage
+            print(usage)
             raise SystemExit
         elif key == '--outputDir':
             outputDir = value
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     if len(args) == 0:
         # No m files have been provided, print usage and quit
-        print usage
+        print(usage)
         raise SystemExit
 
     dirs = args[0].split('/')

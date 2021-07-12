@@ -185,10 +185,10 @@ class CharTestHelper(PortTestHelper):
     BITS_PER_ELEMENT = 8
 
     def pack(self, data):
-        return struct.pack('%db' % len(data), *data)
+        return bytes(data).decode()
 
     def unpack(self, data):
-        return list(struct.unpack('%db' % len(data), data))
+        return list(data.encode())
 
 class OctetTestHelper(PortTestHelper):
     PortType = BULKIO.dataOctet
@@ -199,10 +199,10 @@ class OctetTestHelper(PortTestHelper):
     BITS_PER_ELEMENT = 8
 
     def pack(self, data):
-        return struct.pack('%dB' % len(data), *data)
+        return bytes(data)
 
     def unpack(self, data):
-        return list(struct.unpack('%dB' % len(data), data))
+        return list(data)
 
 class ShortTestHelper(PortTestHelper):
     PortType = BULKIO.dataShort

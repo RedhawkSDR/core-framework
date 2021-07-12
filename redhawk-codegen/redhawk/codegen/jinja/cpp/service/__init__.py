@@ -18,8 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import ServiceGenerator, loader
-from mapping import ServiceMapper
+from .generator import ServiceGenerator, loader
+from .mapping import ServiceMapper
 
 def factory(**opts):
     return ServiceGenerator(**opts)

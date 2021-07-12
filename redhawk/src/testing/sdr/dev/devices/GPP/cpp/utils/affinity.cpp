@@ -172,7 +172,6 @@ namespace  gpp {
 
 
     redhawk::affinity::CpuList get_cpu_list( const std::string &list_type,  const std::string &context )
-      throw (redhawk::affinity::AffinityFailed)
     {
       redhawk::affinity::CpuList cpu_list;
       if ( is_disabled() ) {
@@ -231,7 +230,6 @@ namespace  gpp {
 
 
     int set_affinity( const redhawk::affinity::AffinityDirectives &spec, const pid_t pid, const redhawk::affinity::CpuList &blacklist) 
-      throw (redhawk::affinity::AffinityFailed)
     {
       if ( is_disabled() ) {
         return 0;

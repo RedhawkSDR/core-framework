@@ -18,8 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from mapping import *
-from portfactory import *
+from .mapping import *
+from .portfactory import *
 
 __all__ = ('JavaPortMapper', 'JavaPortFactory')
 

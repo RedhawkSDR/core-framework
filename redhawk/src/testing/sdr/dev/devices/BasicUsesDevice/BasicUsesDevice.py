@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -22,7 +22,7 @@
 from ossie.cf import CF, CF__POA
 import os, sys, stat
 from omniORB import URI, any
-import commands, copy, time, signal, pprint, subprocess
+import subprocess, copy, time, signal, pprint, subprocess
 import logging
 import signal
 import shutil
@@ -62,7 +62,7 @@ class toOther_i(CF__POA.Port):
         self.parent.props[getId("number_connections")] = CF.DataType(id=getId("number_connections"), value=any.to_any(number_connections+1))
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)   
             number_connections = self.parent.props[getId("number_connections")].value._v
             self.parent.props[getId("number_connections")] = CF.DataType(id=getId("number_connections"), value=any.to_any(number_connections-1))
@@ -151,7 +151,7 @@ class BasicUsesDevice(CF__POA.Device):
   def initializeProperties(self, ctorProperties):
     self._log.debug("BasicUsesDevice.initializeProperties(%s)", ctorProperties)
     for prop in ctorProperties:
-        if not self.props.has_key(prop.id):
+        if prop.id not in self.props:
             self.props[prop.id] = CF.DataType(id=prop.id, value=prop.value)
         else:
             self.props[prop.id].value = prop.value
@@ -162,7 +162,7 @@ class BasicUsesDevice(CF__POA.Device):
     self._log.debug("BasicUsesDevice.query(%s)", configProperties)
     if configProperties == []:
       rv = []
-      for key in self.props.keys():
+      for key in list(self.props.keys()):
         val = self.props[key].value
         d = CF.DataType(id=key, value=val)
         rv.append(d)
@@ -184,7 +184,7 @@ class BasicUsesDevice(CF__POA.Device):
   def configure(self, configProperties):
     self._log.debug("BasicUsesDevice.configure(%s)", configProperties)
     for prop in configProperties:
-        if not self.props.has_key(prop.id):
+        if prop.id not in self.props:
             self.props[prop.id] = CF.DataType(id=prop.id, value=prop.value)
         else:
             self.props[prop.id].value = prop.value
@@ -220,8 +220,8 @@ class BasicUsesDevice(CF__POA.Device):
     # Consume
     for prop in properties:
         if prop.id == getId("bandwidthCapacity"):
-            print type(self.props[prop.id].value._v)
-            print type(prop.value._v)
+            print(type(self.props[prop.id].value._v))
+            print(type(prop.value._v))
             self.props[prop.id].value._v = self.props[prop.id].value._v - prop.value._v
             if self.props[prop.id].value._v < 0:
                 result = False
@@ -333,7 +333,7 @@ if __name__ == "__main__":
             label = args.pop(0)
 
     if uuid == None or label == None or softwareProfile == None:
-        print "Missing arguments to properly start the GPPpy device"
+        print("Missing arguments to properly start the GPPpy device")
 
     orb = None
     signal.signal(signal.SIGINT, exit_handler)

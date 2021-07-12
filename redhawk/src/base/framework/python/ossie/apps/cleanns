@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     ns_obj = orb.resolve_initial_references("NameService")
     rootContext = ns_obj._narrow(CosNaming.NamingContext)
     if rootContext is None:
-        raise StandardError('Could not initialize CORBA.\nFailed to get root context')
+        raise Exception('Could not initialize CORBA.\nFailed to get root context')
     
     initialContext = rootContext
     
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 obj = rootContext.resolve(context_name)
                 initialContext = obj._narrow(CosNaming.NamingContext)
             except:
-                print "Unable to find context: ", options.init_context
+                print("Unable to find context: ", options.init_context)
                 sys.exit(-1)
         
 
@@ -137,8 +137,8 @@ if __name__ == '__main__':
             cleanNC(initialContext, avoid=[options.spare_context], force=True)
         else:
             cleanNC(initialContext, avoid=[options.spare_context])
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         sys.exit(-1)
 
     if options.init_context != None:
@@ -150,4 +150,4 @@ if __name__ == '__main__':
             try:
                 rootContext.unbind(context_name)
             except:
-                print "unable to remove ", options.init_context
+                print("unable to remove ", options.init_context)

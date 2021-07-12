@@ -130,7 +130,7 @@ import CF.DevicePackage.InvalidCapacity;
             if (connection_id.equals(listen_alloc_id)) {
                 try {
                     this.${port_out.javaname}.disconnectPort(connection_id);
-                } catch (CF.PortPackage.InvalidPort ex) {
+                } catch( final Throwable t ) {
                 }
             }
         }

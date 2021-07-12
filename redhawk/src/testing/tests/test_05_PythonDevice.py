@@ -31,10 +31,10 @@ class PythonDeviceTest(scatest.CorbaTestCase):
         dev = sb.launch('sdr/dev/devices/alloc_test/alloc_test.spd.xml')
         self.assertNotEqual(dev, None)
         alloc = dev.allocateCapacity({'callback_test':5})
-        self.assertEquals(alloc, True)
-        self.assertEquals(dev.callback_value, 5)
+        self.assertEqual(alloc, True)
+        self.assertEqual(dev.callback_value, 5)
         dev.deallocateCapacity({'callback_test':7})
-        self.assertEquals(dev.callback_value, 7)
+        self.assertEqual(dev.callback_value, 7)
 
     def test_AllocReturn(self):
         dev = sb.launch('sdr/dev/devices/alloc_test/alloc_test.spd.xml')
@@ -42,9 +42,9 @@ class PythonDeviceTest(scatest.CorbaTestCase):
         allocation = CF.DataType(id='callback_test',value=any.to_any(5))
         allocation.value._t=CORBA.TC_short
         alloc = dev.ref.allocate([allocation])
-        self.assertEquals(len(alloc), 1)
-        self.assertEquals(dev.callback_value, 5)
-        self.assertEquals(alloc[0].allocated[0].id, 'callback_test')
-        self.assertEquals(alloc[0].allocated[0].value._v, 5)
+        self.assertEqual(len(alloc), 1)
+        self.assertEqual(dev.callback_value, 5)
+        self.assertEqual(alloc[0].allocated[0].id, 'callback_test')
+        self.assertEqual(alloc[0].allocated[0].value._v, 5)
         dev.ref.deallocate(alloc[0].alloc_id)
-        self.assertEquals(dev.callback_value, 7)
+        self.assertEqual(dev.callback_value, 7)

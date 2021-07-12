@@ -18,6 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from template import *
+from .template import *
 
 __all__ = ('ShellTemplate', 'AutomakeTemplate', 'AutoconfTemplate')

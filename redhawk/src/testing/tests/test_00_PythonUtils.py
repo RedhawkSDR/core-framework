@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -21,7 +21,7 @@
 
 import unittest
 import weakref
-
+import gc
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
@@ -141,8 +141,8 @@ class TestPythonUtils(unittest.TestCase):
         objref = weakobj.objectref(obj)
         objref2 = weakobj.objectref(obj)
 
-        self.assertEquals(objref, objref2)
-        self.assertEquals(objref.foo(), obj.foo())
+        self.assertEqual(objref, objref2)
+        self.assertEqual(objref.foo(), obj.foo())
 
         # Delete what should be the only reference to the original object.
         del obj
@@ -150,7 +150,7 @@ class TestPythonUtils(unittest.TestCase):
 
         try:
             objref.foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -180,9 +180,10 @@ class TestPythonUtils(unittest.TestCase):
         # original object to be deleted.
         del reffoo
 
+        gc.collect()
         try:
             objfoo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -221,7 +222,7 @@ class TestPythonUtils(unittest.TestCase):
         del obj
         try:
             foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak bound method should be invalidated')

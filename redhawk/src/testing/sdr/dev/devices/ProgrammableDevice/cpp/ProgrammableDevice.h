@@ -37,7 +37,7 @@ class ProgrammableDevice_i : public ProgrammableDevice_prog_base_type
         ProgrammableDevice_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~ProgrammableDevice_i();
         int serviceFunction();
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
     protected:
         Device_impl* generatePersona(int argc, char* argv[], ConstructorPtr fnptr, const char* libName);

@@ -23,7 +23,7 @@ AC_INIT([ossie],[3.0.0])
 #AM_INIT_AUTOMAKE(nostdinc)
 # allows filenames over 99 characters long during dist
 AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
-dnl Update these verion numbers immedately before a release
+dnl Update these version numbers immedately before a release
 dnl
 dnl The version number is in the format "current:revision:age"
 dnl
@@ -51,6 +51,8 @@ OSSIE_OSSIEHOME_AS_PREFIX
 OSSIE_SDRROOT_IGNORE_PREFIX
 
 AC_PROG_CXX
+AC_MSG_NOTICE([A C++14 compiler can be installed with `sudo yum install devtoolset-9-gcc-c++`])
+AX_CXX_COMPILE_STDCXX(14, noext)
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
@@ -198,7 +200,7 @@ fi
 AC_SUBST([HAVE_JAVASUPPORT], $HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AM_PATH_PYTHON([2.4])
+AM_PATH_PYTHON([3.6])
 
 AC_CHECK_PYMODULE(logging ,[], [AC_MSG_ERROR([the python logging module is required])])
 AC_CHECK_PYMODULE(subprocess, [], [AC_MSG_ERROR([the python subprocess module is required])])
@@ -300,6 +302,7 @@ AC_CONFIG_FILES(Makefile \
                 control/sdr/ComponentHost/Makefile \
                 base/Makefile \
                 base/framework/python/Makefile \
+                base/framework/python/redhawk.pth \
                 base/framework/java/Makefile \
                 base/framework/java/jni/Makefile \
                 base/framework/java/jni/COS/Makefile \

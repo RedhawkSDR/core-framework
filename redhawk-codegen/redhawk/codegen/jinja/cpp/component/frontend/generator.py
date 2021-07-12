@@ -24,7 +24,7 @@ from redhawk.codegen.jinja.cpp.ports import FEIPortFactory
 from redhawk.codegen.jinja.cpp import CppTemplate
 from redhawk.codegen.jinja.common import ShellTemplate, AutomakeTemplate, AutoconfTemplate
 
-from mapping import FrontendComponentMapper, FrontendPropertyMapper
+from .mapping import FrontendComponentMapper, FrontendPropertyMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

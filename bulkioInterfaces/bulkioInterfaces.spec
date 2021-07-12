@@ -22,6 +22,7 @@
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
 %{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
 %define _prefix %{_ossiehome}
+%global __python %{__python3}
 Prefix:         %{_prefix}
 
 # Assume Java support by default. Use "rpmbuild --without java" to disable
@@ -41,6 +42,7 @@ Vendor:         REDHAWK
 Requires: 	redhawk = %{version}
 BuildRequires: 	redhawk-devel = %{version}
 BuildRequires: 	cppunit-devel
+BuildRequires: 	autoconf-archive
 
 %description
 Libraries and interface definitions for bulkio interfaces.
@@ -53,6 +55,7 @@ Libraries and interface definitions for bulkio interfaces.
 
 %build
 ./reconf
+export PYTHON=%{__python3}
 %configure %{?_without_java: --disable-java}
 make %{?_smp_mflags}
 

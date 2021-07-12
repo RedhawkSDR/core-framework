@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -62,7 +62,7 @@ class CommandWrapper_i(CF__POA.Resource):
         self.uuid = execparams['COMPONENT_IDENTIFIER']
         # The storage of property values that don't have getters/setters
         self.propertySet = {}
-        execparams_value = " ".join(["%s %s" % x for x in execparams.items()]) 
+        execparams_value = " ".join(["%s %s" % x for x in list(execparams.items())]) 
         self.propertySet[getId("execparams")] = CF.DataType(id=getId("execparams"), value=omniORB.any.to_any(execparams_value))
 
         # The PID of the child process
@@ -119,7 +119,7 @@ class CommandWrapper_i(CF__POA.Resource):
         self._log.debug("%s.query()", self.naming_service_name)
         # If the properties list is empty we query all properties
         if len(props) == 0:
-            for property in self.propertySet.values():
+            for property in list(self.propertySet.values()):
                 props.append(property)
                 
         for property in props:
@@ -202,15 +202,15 @@ if __name__ == '__main__':
         except IndexError:
             pass
 
-    print execparams
-    if not execparams.has_key('NAMING_CONTEXT_IOR'):
-        print "Missing required execparam NAMING_CONTEXT_IOR"
+    print(execparams)
+    if 'NAMING_CONTEXT_IOR' not in execparams:
+        print("Missing required execparam NAMING_CONTEXT_IOR")
         sys.exit(-1)
-    if not execparams.has_key('COMPONENT_IDENTIFIER'):
-        print "Missing required execparam COMPONENT_IDENTIFIER"
+    if 'COMPONENT_IDENTIFIER' not in execparams:
+        print("Missing required execparam COMPONENT_IDENTIFIER")
         sys.exit(-1)
-    if not execparams.has_key('NAME_BINDING'):
-        print "Missing required execparam NAME_BINDING"
+    if 'NAME_BINDING' not in execparams:
+        print("Missing required execparam NAME_BINDING")
         sys.exit(-1)
     
     orb = None
@@ -224,7 +224,7 @@ if __name__ == '__main__':
             # get the device manager
             rootContext = orb.string_to_object(execparams['NAMING_CONTEXT_IOR'])
             if rootContext == None:
-                print "Failed to lookup naming context"
+                print("Failed to lookup naming context")
                 sys.exit(-1)
             rootContext = rootContext._narrow(CosNaming.NamingContext)
 

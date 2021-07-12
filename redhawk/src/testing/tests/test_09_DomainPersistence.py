@@ -227,22 +227,22 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # We have to compare elements individually since newDevices == origDevices even when the contents are identical
         self.assertEqual(len(newDevices), len(origDevices))
-        for x in xrange(len(newDevices)):
+        for x in range(len(newDevices)):
             self.assertEqual(newDevices[x].componentId, origDevices[x].componentId)
             self.assertEqual(newDevices[x].assignedDeviceId, origDevices[x].assignedDeviceId)
 
         self.assertEqual(len(newProcessIds), len(origProcessIds))
-        for x in xrange(len(newProcessIds)):
+        for x in range(len(newProcessIds)):
             self.assertEqual(newProcessIds[x].componentId, origProcessIds[x].componentId)
             self.assertEqual(newProcessIds[x].processId, origProcessIds[x].processId)
 
         self.assertEqual(len(newImplementations), len(origImplementations))
-        for x in xrange(len(newImplementations)):
+        for x in range(len(newImplementations)):
             self.assertEqual(newImplementations[x].componentId, origImplementations[x].componentId)
             self.assertEqual(newImplementations[x].elementId, origImplementations[x].elementId)
 
         self.assertEqual(len(newNamingContexts), len(origNamingContexts))
-        for x in xrange(len(newNamingContexts)):
+        for x in range(len(newNamingContexts)):
             self.assertEqual(newNamingContexts[x].componentId, origNamingContexts[x].componentId)
             self.assertEqual(newNamingContexts[x].elementId, origNamingContexts[x].elementId)
 
@@ -250,7 +250,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # restored.
         newQuery = app.query([])
         self.assertEqual(len(newQuery), len(origQuery))
-        for x in xrange(len(newQuery)):
+        for x in range(len(newQuery)):
             self.assertEqual(newQuery[x].id, origQuery[x].id)
             self.assertEqual(newQuery[x].value._v, origQuery[x].value._v)
 #
@@ -322,7 +322,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         initial_connection_ids = []
         for _cc in initial_connections:
             initial_connection_ids.append(_cc.connectionRecordId)
-        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        self.assertEqual(len(current_connection_ids), len(initial_connection_ids))
         for _cc in initial_connection_ids:
             self.assertTrue(_cc in current_connection_ids)
 
@@ -337,10 +337,10 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(self.eventFlag, True)
 
         _channels = eventChannelMgr.listChannels(100)[0]
-        self.assertEquals(len(_channel_registrations), len(_channels))
+        self.assertEqual(len(_channel_registrations), len(_channels))
         for _channel in _channels:
-            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
-            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            self.assertTrue(_channel.channel_name in _channel_registrations)
+            self.assertEqual(_channel_registrations[_channel.channel_name], _channel.reg_count)
             _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
@@ -395,7 +395,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         initial_connection_ids = []
         for _cc in initial_connections:
             initial_connection_ids.append(_cc.connectionRecordId)
-        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        self.assertEqual(len(current_connection_ids), len(initial_connection_ids))
         for _cc in initial_connection_ids:
             self.assertTrue(_cc in current_connection_ids)
 
@@ -409,10 +409,10 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertEqual(self.eventFlag, True)
 
         _channels = eventChannelMgr.listChannels(100)[0]
-        self.assertEquals(len(_channel_registrations), len(_channels))
+        self.assertEqual(len(_channel_registrations), len(_channels))
         for _channel in _channels:
-            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
-            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            self.assertTrue(_channel.channel_name in _channel_registrations)
+            self.assertEqual(_channel_registrations[_channel.channel_name], _channel.reg_count)
             _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
@@ -467,7 +467,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         initial_connection_ids = []
         for _cc in initial_connections:
             initial_connection_ids.append(_cc.connectionRecordId)
-        self.assertEquals(len(current_connection_ids), len(initial_connection_ids))
+        self.assertEqual(len(current_connection_ids), len(initial_connection_ids))
         for _cc in initial_connection_ids:
             self.assertTrue(_cc in current_connection_ids)
 
@@ -482,10 +482,10 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         _channels = eventChannelMgr.listChannels(100)[0]
 
-        self.assertEquals(len(_channel_registrations), len(_channels))
+        self.assertEqual(len(_channel_registrations), len(_channels))
         for _channel in _channels:
-            self.assertTrue(_channel_registrations.has_key(_channel.channel_name))
-            self.assertEquals(_channel_registrations[_channel.channel_name], _channel.reg_count)
+            self.assertTrue(_channel.channel_name in _channel_registrations)
+            self.assertEqual(_channel_registrations[_channel.channel_name], _channel.reg_count)
             _channel_registrations[_channel.channel_name] = _channel.reg_count
 
         self.eventFlag = False
@@ -716,7 +716,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         for dev in devMgr._get_registeredDevices():
             if dev._get_label() == 'SADUsesDevice_1':
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value(), 8)
+        self.assertEqual(allocRes[0].value.value(), 8)
 
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
@@ -734,7 +734,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         for dev in devMgr._get_registeredDevices():
             if dev._get_label() == 'SADUsesDevice_1':
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value(), 8)
+        self.assertEqual(allocRes[0].value.value(), 8)
 
         # Release app to free up device capacity to make sure usesdevicecapacties was properly restored
         newApp = newDomMgr._get_applications()[0]
@@ -743,7 +743,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         for dev in devMgr._get_registeredDevices():
             if dev._get_label() == 'SADUsesDevice_1':
                 allocRes = dev.query([prop])
-        self.assertEquals(allocRes[0].value.value(), 10)
+        self.assertEqual(allocRes[0].value.value(), 10)
 
     def test_ApplicationStartOrder(self):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
@@ -755,7 +755,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         app.start()
         comps = app._get_registeredComponents()
         for c in comps:
-            self.assertEquals(c.componentObject._get_started(), True)
+            self.assertEqual(c.componentObject._get_started(), True)
 
         # Kill the domainMgr
         os.kill(self._nb_domMgr.pid, signal.SIGTERM)
@@ -770,18 +770,18 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         # Components should all still be started
         for c in comps:
-            self.assertEquals(c.componentObject._get_started(), True)
+            self.assertEqual(c.componentObject._get_started(), True)
 
         # Stop application to make sure that start order Resource variables were recovered properly
         app = newDomMgr._get_applications()[0]
         app.stop()
         for c in comps:
-            self.assertEquals(c.componentObject._get_started(), False)
+            self.assertEqual(c.componentObject._get_started(), False)
 
         # Start components to make sure that start also works
         app.start()
         for c in comps:
-            self.assertEquals(c.componentObject._get_started(), True)
+            self.assertEqual(c.componentObject._get_started(), True)
 
     def test_ApplicationRegisteredComponents(self):
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
@@ -809,7 +809,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         newComps = newApp._get_registeredComponents()
 
         # Recovered list should be the same
-        self.assertEquals(len(comps), len(newComps))
+        self.assertEqual(len(comps), len(newComps))
         for comp in comps:
             found = False
             for newComp in newComps:
@@ -910,7 +910,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
             if prop.id.startswith('ext_'):
                 configProps.append(prop)
         # If there are no external properties, this test is invalid
-        self.assert_(len(configProps) > 0)
+        self.assertTrue(len(configProps) > 0)
         newApp.configure(configProps)
 
     def test_RegisteredDomains(self):
@@ -924,8 +924,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
 
         remotes = [r._get_identifier() for r in domMgr._get_remoteDomainManagers()]
         self.assertEqual(len(remotes), 2)
-        self.assert_(testMgr1._get_identifier() in remotes)
-        self.assert_(testMgr2._get_identifier() in remotes)
+        self.assertTrue(testMgr1._get_identifier() in remotes)
+        self.assertTrue(testMgr2._get_identifier() in remotes)
 
         # Kill the DomainManager
         os.kill(nb.pid, signal.SIGTERM)
@@ -955,7 +955,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         nicCapacityId = 'DCE:4f9a57fc-8fb3-47f6-b779-3c2692f52cf9'
         allocations = { 'test1': {memCapacityId:2048, nicCapacityId:0.125},
                         'test2': {bogoMipsId:10000}}
-        requests = [CF.AllocationManager.AllocationRequestType(k, properties.props_from_dict(v), [], [], 'test_Allocations') for k,v in allocations.iteritems()]
+        requests = [CF.AllocationManager.AllocationRequestType(k, properties.props_from_dict(v), [], [], 'test_Allocations') for k,v in allocations.items()]
         results = allocMgr.allocate(requests)
         self.assertEqual(len(results), len(requests))
 
@@ -973,8 +973,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)
         post = dict((al.allocationID, al) for al in allocMgr.allocations([]))
         self.assertEqual(len(pre), len(post))
-        self.assertEqual(pre.keys(), post.keys())
-        for allocId, status in pre.iteritems():
+        self.assertEqual(list(pre.keys()), list(post.keys()))
+        for allocId, status in pre.items():
             self._compareAllocation(status, post[allocId])
 
     def _compareAllocation(self, lhs, rhs):
@@ -983,8 +983,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         lhsProps = properties.props_to_dict(lhs.allocationProperties)
         rhsProps = properties.props_to_dict(rhs.allocationProperties)
         self.assertEqual(lhsProps, rhsProps)
-        self.assert_(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
-        self.assert_(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
+        self.assertTrue(lhs.allocatedDevice._is_equivalent(rhs.allocatedDevice))
+        self.assertTrue(lhs.allocationDeviceManager._is_equivalent(rhs.allocationDeviceManager))
 
 
     def test_DomainAndGPPDisappear(self):
@@ -1018,7 +1018,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         self.assertNotEqual( self._devMgr, None )
 
         from ossie.utils import redhawk
-        for i in xrange(5):
+        for i in range(5):
             dom=redhawk.attach(scatest.getTestDomainName())
             if dom == None:
                 time.sleep(.25)
@@ -1076,8 +1076,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
-        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
-        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+        self.assertEqual( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEqual( IDM_ref._is_equivalent(orig_IDM_ref), True )
 
         # check that qualified event channel names are not in naming context
         ns_ODM = URI.stringToName("%s/%s" % (domain_name, domain_name+".ODM_Channel"))
@@ -1114,8 +1114,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
-        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
-        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+        self.assertEqual( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEqual( IDM_ref._is_equivalent(orig_IDM_ref), True )
 
         # restart domain manager
         self._nb_domMgr, self._domMgr = self.launchDomainManager(endpoint="giop:tcp::5679", dbURI=self._dbfile)
@@ -1130,8 +1130,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
-        self.assertEquals( ODM_ref._is_equivalent(orig_ODM_ref), True )
-        self.assertEquals( IDM_ref._is_equivalent(orig_IDM_ref), True )
+        self.assertEqual( ODM_ref._is_equivalent(orig_ODM_ref), True )
+        self.assertEqual( IDM_ref._is_equivalent(orig_IDM_ref), True )
 
         # check that qualified event channel names are not in naming context
         ns_ODM = URI.stringToName("%s/%s" % (domain_name, domain_name+".ODM_Channel"))
@@ -1143,7 +1143,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
     def test_DomainChannelsRestore_KillDeviceManager(self):
 
         # check that event channel names are not in naming context
-	domain_name = scatest.getTestDomainName()
+        domain_name = scatest.getTestDomainName()
         ns_ODM = URI.stringToName("%s/%s" % (domain_name, "ODM_Channel"))
         ns_IDM = URI.stringToName("%s/%s" % (domain_name, "IDM_Channel"))
         self.assertRaises(CosNaming.NamingContext.NotFound, self._root.resolve, ns_ODM)
@@ -1199,8 +1199,8 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         IDM_ref = self._root.resolve(ns_IDM)
         self.assertNotEqual(ODM_ref, None)
         self.assertNotEqual(IDM_ref, None)
-	self.assertEqual( ODM_ref._non_existent(), 0)
-	self.assertEqual( IDM_ref._non_existent(), 0)
+        self.assertEqual( ODM_ref._non_existent(), 0)
+        self.assertEqual( IDM_ref._non_existent(), 0)
 
         # perform normal shutdown for DomainManager
         os.kill(self._nb_domMgr.pid, signal.SIGINT)

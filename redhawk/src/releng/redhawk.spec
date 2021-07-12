@@ -23,6 +23,8 @@
 %{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
 %{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
 %global _prefix %{_ossiehome}
+%global __python %{__python3}
+
 Prefix:         %{_ossiehome}
 Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
@@ -53,18 +55,16 @@ Requires:       gstreamer-plugins-base
 Requires:       python-matplotlib
 %endif
 
-Requires:       python
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-Requires:       python-lxml
-Requires:       python-omniORB >= 3.0
-Requires:       omniORB-devel >= 4.1.0
-Requires:       bash-completion
-%endif
+Requires:       python3
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       python-omniORB > 4.2.2
+Requires:       python3-omniORB > 4.2.2
 Requires:       omniORB-devel > 4.2.2
 %endif
-Requires:       numpy
+Requires:       python36-numpy
+Requires:       python36-qt5
+Requires:       python36-qt5-base
+Requires:       python36-lxml
+Requires:       python36-jinja2
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
@@ -74,13 +74,15 @@ BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
 BuildRequires:  java-1.8.0-openjdk-devel
-BuildRequires:  python-setuptools
-BuildRequires:  python-devel >= 2.4
+BuildRequires:  python3-setuptools
+BuildRequires:  python3-devel >= 3.6
+BuildRequires:  python36-lxml
+BuildRequires:  python36-numpy
+BuildRequires:  python36-qt5
+BuildRequires:  python36-qt5-base
+BuildRequires:  python36-qt5-devel
+BuildRequires:  python36-jinja2
 BuildRequires:  log4cxx-devel >= 0.10
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-BuildRequires:  omniORB-devel >= 4.1.0
-BuildRequires:  omniORBpy-devel >= 3.0
-%endif
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 BuildRequires:  omniORB-devel > 4.2.2
 BuildRequires:  omniORBpy-devel > 4.2.2
@@ -90,6 +92,7 @@ BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
 BuildRequires:  numactl-devel
 BuildRequires:  sqlite-devel
+BuildRequires:  autoconf-archive
 
 %description
 REDHAWK is a Software Defined Radio framework.
@@ -100,7 +103,7 @@ REDHAWK is a Software Defined Radio framework.
 Summary:        PyQt Tools
 Group:          Applications/Engineering
 Requires:       %{name} = %{version}-%{release}
-Requires:       PyQt4
+Requires:       python36-qt5
 
 %description qt-tools
 PyQt-based applications (qtbrowse and rhlauncher)
@@ -147,10 +150,6 @@ Requires:       numactl-devel
 
 # omniORB / omniORBpy
 
-%if 0%{?fedora} == 16 || 0%{?rhel} == 6
-Requires:       omniORB-devel >= 4.1.0
-Requires:       omniORBpy-devel >= 3.0
-%endif
 %if 0%{?fedora} == 17 || 0%{?rhel} == 7
 Requires:       omniORB-devel > 4.2.2
 Requires:       omniORBpy-devel > 4.2.2
@@ -158,7 +157,7 @@ Requires:       omniORBpy-devel > 4.2.2
 Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
-Requires:       python-devel >= 2.4
+Requires:       python3-devel >= 3.6
 Requires:       java-1.8.0-openjdk-devel
 
 %description devel
@@ -176,6 +175,7 @@ This package ensures that all requirements for REDHAWK development are installed
 # build the core framework
 cd src
 ./reconf
+export PYTHON=%{__python3}
 %configure --with-sdr=%{_sdrroot} --with-pyscheme=home --without-tests
 
 make %{?_smp_mflags}

@@ -47,9 +47,13 @@ fi
 
 nproc=`/usr/bin/getconf _NPROCESSORS_ONLN`
 
+cp $core/src/tools/redhawk-devtoolset-disable.sh $OSSIEHOME/bin/
+cp $core/src/tools/redhawk-devtoolset-enable.sh $OSSIEHOME/bin/
+. $OSSIEHOME/redhawk-devtoolset-enable.sh
+
 pushd $core/src
 ./reconf
-./configure
+./configure PYTHON=/usr/bin/python3
 make clean
 make -j$nproc
 make install
@@ -82,13 +86,13 @@ EOF
 . $OSSIEHOME/environment-setup
 
 pushd $codegen
-python setup.py build
-python setup.py install --home=${OSSIEHOME} --old-and-unmanageable
+python3 setup.py build
+python3 setup.py install --home=${OSSIEHOME} --old-and-unmanageable
 popd
 
 pushd $bulkio
 ./reconf
-./configure
+./configure PYTHON=/usr/bin/python3
 make clean
 make -j$nproc
 make install
@@ -96,7 +100,7 @@ popd
 
 pushd $burstio
 ./reconf
-./configure
+./configure PYTHON=/usr/bin/python3
 make clean
 make -j$nproc
 make install
@@ -104,7 +108,7 @@ popd
 
 pushd $frontend
 ./reconf
-./configure
+./configure PYTHON=/usr/bin/python3
 make clean
 make
 make install
@@ -112,7 +116,7 @@ popd
 
 pushd $gpp/cpp
 ./reconf
-./configure
+./configure PYTHON=/usr/bin/python3
 make clean
 make -j$nproc
 make install

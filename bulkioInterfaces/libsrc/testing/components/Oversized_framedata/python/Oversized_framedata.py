@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -127,7 +127,7 @@ class Oversized_framedata_i(Oversized_framedata_base):
         self.sri = bulkio.sri.create(stream_id)
         self.sri.subsize = 1024;
         self.port_dataShort_out.pushSRI(self.sri);
-        data = range(1000) * 20000
+        data = list(range(1000)) * 20000
         tstamp = bulkio.timestamp.now()
         self.port_dataShort_out.pushPacket(data, tstamp, True, stream_id);
         

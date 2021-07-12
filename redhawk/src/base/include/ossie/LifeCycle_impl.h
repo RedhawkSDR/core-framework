@@ -41,13 +41,21 @@ public:
     LifeCycle_impl () {
     };
 
-    // Override this method with component specific initialization.
-    void initialize ()
-    throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+    /**
+     * Override this method with component specific initialization.
+     * 
+     * @throw CF::LifeCycle::InitializeError
+     * @throw CORBA::SystemException
+     */
+    void initialize ();
 
-    // Override this method with the code require to release the object.
-    void releaseObject ()
-    throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+    /**
+     * Override this method with the code require to release the object.
+     * 
+     * @throw CF::LifeCycle::ReleaseError
+     * @throw CORBA::SystemException
+     */
+    void releaseObject ();
 
 };
 #endif                                            /*  */

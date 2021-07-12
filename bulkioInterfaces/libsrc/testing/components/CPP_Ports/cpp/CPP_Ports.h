@@ -33,7 +33,7 @@ class CPP_Ports_i : public CPP_Ports_base
         CPP_Ports_i(const char *uuid, const char *label);
         ~CPP_Ports_i();
         int serviceFunction();
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
  public:
     void newStreamCallback( BULKIO::StreamSRI &sri ) {

@@ -80,10 +80,10 @@ class BasicMessage(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -116,10 +116,10 @@ class TestMessage(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -194,7 +194,7 @@ class MessagingTest(unittest.TestCase):
 
         # Unlike C++, the Python message consumer is threaded, so we need to
         # give it some time to receive the message
-        self.failUnless(receiver.waitMessages(1, 1.0))
+        self.assertTrue(receiver.waitMessages(1, 1.0))
 
         self.assertEqual("basic_message", receiver.messages[0].getId())
         self.assertEqual(msg.value, receiver.messages[0].value)
@@ -212,8 +212,8 @@ class MessagingTest(unittest.TestCase):
 
         # Unlike C++, the Python message consumer is threaded, so we need to
         # give it some time to receive the message
-        self.failUnless(receiver.waitMessages(1, 1.0))
-        self.failUnless(generic_receiver.waitMessages(1, 1.0))
+        self.assertTrue(receiver.waitMessages(1, 1.0))
+        self.assertTrue(generic_receiver.waitMessages(1, 1.0))
 
         self.assertEqual("basic_message", receiver.messages[0].getId())
         self.assertEqual(msg.value, receiver.messages[0].value)
@@ -244,30 +244,30 @@ class MessagingTest(unittest.TestCase):
         self.assertEqual(0, len(receiver_2.messages))
         self._supplier.sendMessage(msg, connectionId="connection_1")
 
-        self.failUnless(receiver_1.waitMessages(1, 1.0))
+        self.assertTrue(receiver_1.waitMessages(1, 1.0))
         self.assertEqual("basic_message", receiver_1.messages[0].getId())
         self.assertEqual(1, receiver_1.messages[0].value)
 
         # Second should not receive it (give it a little time just in case)
-        self.failIf(receiver_2.waitMessages(1, 0.1))
+        self.assertFalse(receiver_2.waitMessages(1, 0.1))
 
         # Target the second connection this time
         msg.value = 2
         self._supplier.sendMessage(msg, connectionId="connection_2")
 
-        self.failUnless(receiver_2.waitMessages(1, 1.0))
+        self.assertTrue(receiver_2.waitMessages(1, 1.0))
         self.assertEqual("basic_message", receiver_2.messages[0].getId())
         self.assertEqual(2, receiver_2.messages[0].value)
 
         # This time, the first should not receive it
-        self.failIf(receiver_1.waitMessages(2, 0.1))
+        self.assertFalse(receiver_1.waitMessages(2, 0.1))
 
         # Target both connections
         msg.value = 3
         self._supplier.sendMessage(msg)
 
-        self.failUnless(receiver_1.waitMessages(2, 1.0))
-        self.failUnless(receiver_2.waitMessages(2, 1.0))
+        self.assertTrue(receiver_1.waitMessages(2, 1.0))
+        self.assertTrue(receiver_2.waitMessages(2, 1.0))
 
         # Target invalid connection
         msg.value = 4
@@ -285,7 +285,7 @@ class MessagingTest(unittest.TestCase):
 
         self.assertEqual(0, len(receiver.messages))
         self._supplier.sendMessages(messages)
-        self.failUnless(receiver.waitMessages(len(messages), 1.0))
+        self.assertTrue(receiver.waitMessages(len(messages), 1.0))
         self.assertEqual('basic_message', receiver.messages[0].getId())
         self.assertEqual(1, receiver.messages[0].value)
         self.assertEqual('test_message', receiver.messages[1].getId())
@@ -309,41 +309,41 @@ class MessagingTest(unittest.TestCase):
         consumer_2.registerMessage("basic_message", BasicMessage, receiver_2.messageReceived)
 
         # Target first connection
-        messages_1 = [BasicMessage(value=x) for x in xrange(2)]
+        messages_1 = [BasicMessage(value=x) for x in range(2)]
         self.assertEqual(0, len(receiver_1.messages))
         self.assertEqual(0, len(receiver_2.messages))
         self._supplier.sendMessages(messages_1, "connection_1")
 
         # Wait for the first receiver to get all messages; the second receiver
         # ought to get none (give it some time due to threading)
-        self.failUnless(receiver_1.waitMessages(2, 1.0))
+        self.assertTrue(receiver_1.waitMessages(2, 1.0))
         self.assertEqual(2, len(receiver_1.messages))
-        self.failIf(receiver_2.waitMessages(1, 0.1))
+        self.assertFalse(receiver_2.waitMessages(1, 0.1))
 
         # Target the second connection this time with a different set of
         # messages
-        messages_2 = [BasicMessage(value=x) for x in xrange(2,5)]
+        messages_2 = [BasicMessage(value=x) for x in range(2,5)]
         self._supplier.sendMessages(messages_2, "connection_2")
 
         # Wait for the second receiver to get all the messages (and check at
         # least the first value)
-        self.failUnless(receiver_2.waitMessages(len(messages_2), 1.0))
+        self.assertTrue(receiver_2.waitMessages(len(messages_2), 1.0))
         self.assertEqual(3, len(receiver_2.messages))
         self.assertEqual(2, receiver_2.messages[0].value)
-        self.failIf(receiver_1.waitMessages(3, 0.1))
+        self.assertFalse(receiver_1.waitMessages(3, 0.1))
 
         # Target both connections
         self._supplier.sendMessages(messages_1)
-        self.failUnless(receiver_1.waitMessages(4, 1.0))
+        self.assertTrue(receiver_1.waitMessages(4, 1.0))
         self.assertEqual(4, len(receiver_1.messages))
-        self.failUnless(receiver_2.waitMessages(5, 1.0))
+        self.assertTrue(receiver_2.waitMessages(5, 1.0))
         self.assertEqual(5, len(receiver_2.messages))
 
         # Target invalid connection
         messages_3 = [BasicMessage(value=5)]
         self.assertRaises(ValueError, self._supplier.sendMessages, messages_3, "bad_connection")
-        self.failIf(receiver_1.waitMessages(5, 0.1))
-        self.failIf(receiver_2.waitMessages(6, 0.1))
+        self.assertFalse(receiver_1.waitMessages(5, 0.1))
+        self.assertFalse(receiver_2.waitMessages(6, 0.1))
 
     def testPush(self):
         receiver = MessageReceiver()
@@ -357,7 +357,7 @@ class MessagingTest(unittest.TestCase):
 
         self._supplier.push(props_to_any(messages))
 
-        self.failUnless(receiver.waitMessages(3, 1.0))
+        self.assertTrue(receiver.waitMessages(3, 1.0))
         self.assertEqual(3, len(receiver.messages))
         self.assertEqual(100, from_any(receiver.messages[0].value))
         self.assertEqual('some text', from_any(receiver.messages[1].value))
@@ -384,9 +384,9 @@ class MessagingTest(unittest.TestCase):
         messages_1.append(CF.DataType('third', to_any(0.25)))
 
         self._supplier.push(props_to_any(messages_1), 'connection_1')
-        self.failUnless(receiver_1.waitMessages(3, 1.0))
+        self.assertTrue(receiver_1.waitMessages(3, 1.0))
         self.assertEqual(3, len(receiver_1.messages))
-        self.failIf(receiver_2.waitMessages(1, 0.1))
+        self.assertFalse(receiver_2.waitMessages(1, 0.1))
 
         # Target the second connection with a different set of messages
         messages_2 = []
@@ -395,23 +395,23 @@ class MessagingTest(unittest.TestCase):
         messages_2 = props_to_any(messages_2)
         self._supplier.push(messages_2, "connection_2")
 
-        self.failUnless(receiver_2.waitMessages(2, 1.0))
+        self.assertTrue(receiver_2.waitMessages(2, 1.0))
         self.assertEqual(2, len(receiver_2.messages))
-        self.failIf(receiver_1.waitMessages(4, 0.1))
+        self.assertFalse(receiver_1.waitMessages(4, 0.1))
 
         # Target both connections with yet another set of messages
         messages_3 = props_to_any([CF.DataType('all', to_any(3))])
         self._supplier.push(messages_3)
-        self.failUnless(receiver_2.waitMessages(3, 1.0))
+        self.assertTrue(receiver_2.waitMessages(3, 1.0))
         self.assertEqual(3, len(receiver_2.messages))
-        self.failUnless(receiver_1.waitMessages(4, 1.0))
+        self.assertTrue(receiver_1.waitMessages(4, 1.0))
         self.assertEqual(4, len(receiver_1.messages))
 
         # Target invalid connection
         messages_4 = props_to_any([CF.DataType('bad', to_any('bad_connection'))])
         self.assertRaises(ValueError, self._supplier.push, messages_4, 'bad_connection')
-        self.failIf(receiver_2.waitMessages(4, 0.1))
-        self.failIf(receiver_1.waitMessages(5, 0.1))
+        self.assertFalse(receiver_2.waitMessages(4, 0.1))
+        self.assertFalse(receiver_1.waitMessages(5, 0.1))
         self.assertEqual(3, len(receiver_2.messages))
         self.assertEqual(4, len(receiver_1.messages))
 

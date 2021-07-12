@@ -242,7 +242,6 @@ void  Device_impl::halt ()
 
 void
 Device_impl::releaseObject ()
-throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
     // SR:419
     RH_DEBUG(_deviceLog, "Receive releaseObject call");
@@ -480,7 +479,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
                     // Verify that both values have the same type
                     if (!ossie::corba::isValidType (currentCapacities[j].value, capacities[i].value)) {
                         RH_ERROR(_deviceLog, "Cannot allocate capacity: Incorrect data type.");
-                        throw (CF::Device::InvalidCapacity("Cannot allocate capacity. Incorrect Data Type.", capacities));
+                        throw CF::Device::InvalidCapacity("Cannot allocate capacity. Incorrect Data Type.", capacities);
                     } else {
                         // Check for sufficient capacity and allocate it
                         if (!allocate (currentCapacities[j].value, capacities[i].value)) {
@@ -499,7 +498,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
 
             if (!foundProperty) {
                 RH_ERROR(_deviceLog, "Cannot allocate capacity: Invalid property ID: " << capacities[i].id);
-                throw (CF::Device::InvalidCapacity("Cannot allocate capacity. Invalid property ID", capacities));
+                throw CF::Device::InvalidCapacity("Cannot allocate capacity. Invalid property ID", capacities);
             }
         }
 
@@ -562,7 +561,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         }
 
         if (invalidProperties.length () > 0) {
-            throw (CF::Device::InvalidCapacity("Cannot allocate capacity", invalidProperties ));
+            throw CF::Device::InvalidCapacity("Cannot allocate capacity", invalidProperties );
         }
 
         cleanup.clear();
@@ -616,7 +615,6 @@ bool Device_impl::allocateCapacityNew (const CF::Properties& capacities)
 }
 
 void Device_impl::deallocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
 {
     // Verify that the device is in a valid state
     if (isLocked() || isDisabled() || isError()) {
@@ -673,7 +671,7 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
             property->getValue(new_value);
             if (!ossie::corba::isValidType (new_value, capacities[i].value)) {
                 RH_WARN(_deviceLog, "Cannot deallocate capacity. Incorrect Data Type.");
-                throw (CF::Device::InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities));
+                throw CF::Device::InvalidCapacity("Cannot deallocate capacity. Incorrect Data Type.", capacities);
             } else {
                 deallocate (new_value, capacities[i].value);
                 // check that we can stay within original bounds
@@ -758,17 +756,17 @@ void Device_impl::deallocateCapacityLegacy (const CF::Properties& capacities)
         }
 
         if (invalidProps.length () > 0) {
-            throw (CF::Device::InvalidCapacity("Invalid capacity allocation Ids", invalidProps ));
+            throw CF::Device::InvalidCapacity("Invalid capacity allocation Ids", invalidProps );
         }
 
         if (overCaps.length () > 0) {
-            throw (CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps ));
+            throw CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps );
         }
 
         return;
     } else {
         /* Not sure */
-        throw (CF::Device::InvalidCapacity ("Cannot deallocate capacity. System is IDLE.", capacities));
+        throw CF::Device::InvalidCapacity ("Cannot deallocate capacity. System is IDLE.", capacities);
         return;
     }
 }
@@ -797,7 +795,7 @@ void Device_impl::deallocateCapacityNew (const CF::Properties& capacities)
     }
 
     if (overCaps.length () > 0) {
-        throw (CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps ));
+        throw CF::Device::InvalidCapacity("Following properties exceeded original bounds", overCaps );
     }
 
     if ( invalidProps.length() > 0 ) {
@@ -1110,7 +1108,6 @@ void Device_impl::setAdminState (CF::Device::AdminType new_adminState)
 
 
 void Device_impl::adminState (CF::Device::AdminType new_adminState)
-throw (CORBA::SystemException)
 {
     setAdminState(new_adminState);
     _adminState = new_adminState;
@@ -1178,43 +1175,36 @@ bool Device_impl::isIdle ()
 
 
 char* Device_impl::label ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_label.c_str());
 }
 
 
 CF::Device::UsageType Device_impl::usageState ()
-throw (CORBA::SystemException)
 {
     return _usageState;
 }
 
 
 CF::Device::AdminType Device_impl::adminState ()
-throw (CORBA::SystemException)
 {
     return _adminState;
 }
 
 
 CF::Device::OperationalType Device_impl::operationalState ()
-throw (CORBA::SystemException)
 {
     return _operationalState;
 }
 
 
 CF::AggregateDevice_ptr Device_impl::compositeDevice ()
-throw (CORBA::SystemException)
 {
     return CF::AggregateDevice::_duplicate(_aggregateDevice);
 }
 
 
 void  Device_impl::configure (const CF::Properties& capacities)
-throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
-       InvalidConfiguration, CORBA::SystemException)
 {
     if (initialConfiguration) {
         initialConfiguration = false;

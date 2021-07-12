@@ -252,7 +252,7 @@ class DataBlock(object):
         """
         self._validateTimestamps()
         max_drift = 0.0
-        for index in xrange(1, len(self._timestamps)):
+        for index in range(1, len(self._timestamps)):
             drift = _get_drift(self._timestamps[index-1], self._timestamps[index], self.xdelta)
             if abs(drift) > abs(max):
                 max_drift = drift

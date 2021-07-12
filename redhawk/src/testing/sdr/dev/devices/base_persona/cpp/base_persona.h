@@ -15,10 +15,8 @@ class base_persona_i : public base_persona_persona_base
         base_persona_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~base_persona_i();
         int serviceFunction();
-        CORBA::Boolean allocateCapacity(const CF::Properties& capacities) 
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
-        void deallocateCapacity(const CF::Properties& capacities) 
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
+        CORBA::Boolean allocateCapacity(const CF::Properties& capacities);
+        void deallocateCapacity(const CF::Properties& capacities);
 
     protected:
         void hwLoadRequest(CF::Properties& request);

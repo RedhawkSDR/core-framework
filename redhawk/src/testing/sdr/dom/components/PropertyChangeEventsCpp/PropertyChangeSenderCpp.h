@@ -39,11 +39,11 @@ public:
     PropertyChangeSenderCpp (const char* uuid, const char* label);
     ~PropertyChangeSenderCpp (void);
 
-    CORBA::Object_ptr getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
+    CORBA::Object_ptr getPort (const char*);
 
-    void releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
+    void releaseObject (void);
 
-    void start() throw (CF::Resource::StartError);
+    void start();
 
 private:
     PropertyEventSupplier* propEvent;

@@ -41,13 +41,13 @@ SoftwareAssembly::SoftwareAssembly() :
 {
 }
 
-SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) :
+SoftwareAssembly::SoftwareAssembly(std::istream& input) :
     _sad(0)
 {
     this->load(input);
 }
 
-void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error) 
+void SoftwareAssembly::load(std::istream& input)
 {
     _sad = ossie::internalparser::parseSAD(input);
 

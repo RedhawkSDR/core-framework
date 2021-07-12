@@ -38,13 +38,13 @@ import logging
 
 from ${baseClass} import *
 
-class HwLoadStates:
+class HwLoadStates(object):
     INACTIVE = 0
     ACTIVE = 1
     PENDING = 2
     ERRORED = 3
 
-class DefaultHWLoadRequestContainer():
+class DefaultHWLoadRequestContainer(object):
     def __init__(self, request_id="",
                        requester_id="",
                        hardware_id="",
@@ -54,7 +54,7 @@ class DefaultHWLoadRequestContainer():
         self.hardware_id = hardware_id
         self.load_filepath = load_filepath
 
-class DefaultHWLoadStatusContainer():
+class DefaultHWLoadStatusContainer(object):
     def __init__(self, request_id="",
                        requester_id="",
                        hardware_id="",
@@ -136,7 +136,7 @@ class ${className}(${baseClass}):
 
         # Validate that the ${executeType} was instantiated properly
         if not ${executeType}:
-            msg = "Unable to instantiate '%s'" % str(name)
+            msg = "Unable to instantiate {}".format(name)
             self._baseLog.error(msg)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, msg)
         
@@ -144,7 +144,7 @@ class ${className}(${baseClass}):
         if hasattr(persona, "_parentDevice"):
             persona._parentDevice = self
         else:
-            msg = "Unable to set parent device on persona '%s'" % str(name)
+            msg = "Unable to set parent device on persona '{}'".format(name)
             self._baseLog.warning(msg)
             raise CF.ExecutableDevice.ExecuteFail(CF.CF_NOTSET, msg)
 
@@ -186,15 +186,15 @@ class ${className}(${baseClass}):
         return start_device(expected_class, skip_run=True)
 
     def terminate(self, processId):
-        if not self._processMap.has_key(processId):
+        if processId not in self._processMap:
             raise CF.ExecutableDevice.InvalidProcess(CF.CF_ENOENT,
-                "Cannot terminate.  Process %s does not reference a resource!." % str(processId))
+                "Cannot terminate.  Process {} does not reference a resource!.".format(processId))
 
         resourceId = self._processMap.pop(processId)
         
-        if not self._${executeType}Map.has_key(resourceId):
+        if resourceId not in self._${executeType}Map:
             raise CF.ExecutableDevice.InvalidState(
-                "Cannot terminate.  Unable to locate resource '%s'!" % str(resourceId))
+                "Cannot terminate.  Unable to locate resource '{}'!".format(resourceId))
 
         resource = self._${executeType}Map[resourceId]
         
@@ -231,14 +231,14 @@ class ${className}(${baseClass}):
                 self._populateHwLoadRequest(hwLoadRequestsContainer, capacity)
 
                 if not (self.hwLoadRequestsAreValid(hwLoadRequestsContainer)):
-                    self._baseLog.warn("Received invalid hw_load_request - Not allocating hardware!")
+                    self._baseLog.warning("Received invalid hw_load_request - Not allocating hardware!")
                     continue;
 
                 hwLoadStatusesContainer = self.getHwLoadStatusesContainer()
                 allocationSuccess = self._applyHwLoadRequests(hwLoadRequestsContainer,
                                                               hwLoadStatusesContainer)
                 if (allocationSuccess):
-                    self._baseLog.warn("TODO: Figure out this callback in allocateCapacity")
+                    self._baseLog.warning("TODO: Figure out this callback in allocateCapacity")
                     # TODO: Figure out the callback
         finally:
             self.updateAdminStates()
@@ -297,7 +297,7 @@ class ${className}(${baseClass}):
         self._hwLoadStatusClass = clazz
 
     def generate${executeType.capitalize()}(self, argc, argv, fn, libraryName):
-        raise "Generate${executeType.capitalize()} method must be overriden!"
+        raise Exception("Generate${executeType.capitalize()} method must be overridden!")
 
     def hwLoadRequestsAreValid(self, hwLoadRequests):
         isValid = True
@@ -388,7 +388,7 @@ class ${className}(${baseClass}):
     def updateAdminStates(self):
         if self._hasAnInactiveHwLoadStatus():
 #{% if executesPersonaDevices %}
-            for resource in self._${executeType}Map.values():
+            for resource in list(self._${executeType}Map.values()):
                 resource._set_adminState(CF.Device.UNLOCKED)
 #{% endif %}
             self._set_adminState = CF.Device.UNLOCKED
@@ -402,10 +402,10 @@ class ${className}(${baseClass}):
                 runningPersonas.append(hwLoadStatus.requester_id)
             
             # Deactivate all non-allocated personas
-            for resource in self._${executeType}Map.values():
+            for resource in list(self._${executeType}Map.values()):
                 resourceId = resource._get_identifier()
                 if runningPersonas.count(resourceId) < 1:
-                    self._baseLog.debug("Locking device: '%s'" % str(resourceId)) 
+                    self._baseLog.debug("Locking device: '{}'".format(resourceId))
                     resource._set_adminState(CF.Device.LOCKED)
 
 #{% endif %}
@@ -420,7 +420,7 @@ class ${className}(${baseClass}):
         # Iterate through each request in list
         for request in requestVals:
             if request.id != "hw_load_request":
-                self._baseLog.warn("Unable to convert incoming request - PropId must be 'hw_load_request'")
+                self._baseLog.warning("Unable to convert incoming request - PropId must be 'hw_load_request'")
                 continue;
             
             request_id = ""
@@ -467,20 +467,20 @@ class ${className}(${baseClass}):
                 for status in container:
                     # Validate that our container has the 'request_id' field
                     if not hasattr(status, "request_id"):
-                        self._baseLog.warn("Unable to locate status by request_id: \
+                        self._baseLog.warning("Unable to locate status by request_id: \
                                         HwLoadStatuses does not have request_id field!")
                         return retVal
 
                     # Check if request_id fields match
                     if status.request_id == capacity.value:
                         retVal.append(status)
-                        print "Found request " + str(status.request_id)
+                        print("Found request {}".format(status.request_id))
         return retVal
 
     def _propMatches(self, prop, propId):
         match = False
         match |= (prop.id == str(propId)) 
-        match |= (prop.id == "hw_load_request::" + str(propId))
+        match |= (prop.id == "hw_load_request::{}".format(propId))
         return match
 
     def _findAvailableHwLoadStatusIndex(self, hwLoadStatusesContainer):

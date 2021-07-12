@@ -191,7 +191,10 @@ namespace ossie {
             _PersistenceStore() {
             }
 
-            _PersistenceStore(const std::string& locationUrl) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            _PersistenceStore(const std::string& locationUrl) {
                 impl.open(locationUrl);        
             }
 
@@ -199,7 +202,10 @@ namespace ossie {
                 impl.close();
             }
         
-            void open(const std::string& locationUrl) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void open(const std::string& locationUrl) {
                 impl.open(locationUrl);
             }
 
@@ -207,17 +213,26 @@ namespace ossie {
                 impl.close();
             }
 
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void store(const std::string& key, const T& value) throw (PersistenceException) {
+            void store(const std::string& key, const T& value) {
                 impl.store(key, value);
             }
 
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void fetch(const std::string& key, T& value, bool consume = false) throw (PersistenceException) {
+            void fetch(const std::string& key, T& value, bool consume = false) {
                 impl.fetch(key, value, consume);
             }
 
-            void del(const std::string& key) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void del(const std::string& key) {
                 impl.del(key);
             }
 
@@ -527,7 +542,10 @@ namespace ossie {
             BdbPersistenceBackend() : db(0, 0), _isopen(false) {
             }
 
-            void open(const std::string& locationUrl) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void open(const std::string& locationUrl) {
                 if (_isopen) return;
 
                 boost::mutex::scoped_lock lock(_bdbLock);
@@ -539,8 +557,11 @@ namespace ossie {
                 }
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void store(const std::string& key, const T& value) throw (PersistenceException) {
+            void store(const std::string& key, const T& value) {
                 if (!_isopen) return;
 
                 std::ostringstream out;
@@ -553,15 +574,21 @@ namespace ossie {
                 storeRaw(key, out.str());
             }
 
-            void store(const std::string& key, const char* value) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void store(const std::string& key, const char* value) {
                 if (!_isopen) return;
 
                 std::string strvalue(value);
                 store(key, strvalue);
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void fetch(const std::string& key, T& value, bool consume) throw (PersistenceException) {
+            void fetch(const std::string& key, T& value, bool consume) {
                 if (!_isopen) return;
 
                 std::string v;
@@ -652,7 +679,10 @@ namespace ossie {
             GdbmPersistenceBackend() : _dbf(NULL) {
             }
 
-            void open(const std::string& locationUrl) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void open(const std::string& locationUrl) {
                 if (_dbf != NULL) return;
                 
                 {
@@ -670,8 +700,11 @@ namespace ossie {
                 }
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void store(const std::string& key, const T& value) throw (PersistenceException) {
+            void store(const std::string& key, const T& value) {
                 if (_dbf == NULL) return;
 
                 std::ostringstream out;
@@ -684,15 +717,21 @@ namespace ossie {
                 storeRaw(key, out.str());
             }
 
-            void store(const std::string& key, const char* value) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void store(const std::string& key, const char* value) {
                 if (_dbf == NULL) return;
 
                 std::string strvalue(value);
                 store(key, strvalue);
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void fetch(const std::string& key, T& value, bool consume) throw (PersistenceException) {
+            void fetch(const std::string& key, T& value, bool consume) {
                 if (_dbf == NULL) return;
 
                 std::string v;
@@ -782,7 +821,10 @@ namespace ossie {
             SQLitePersistenceBackend() : db(NULL) {
             }
 
-            void open(const std::string& locationUrl) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void open(const std::string& locationUrl) {
                 if (db != NULL) return;
 
                 boost::mutex::scoped_lock lock(_sqliteLock);
@@ -793,8 +835,11 @@ namespace ossie {
                 }
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void store(const std::string& key, const T& value) throw (PersistenceException) {
+            void store(const std::string& key, const T& value) {
                 if (db == NULL) return;
 
                 std::ostringstream out;
@@ -807,15 +852,21 @@ namespace ossie {
                 storeRaw(key, out.str());
             }
 
-            void store(const std::string& key, const char* value) throw (PersistenceException) {
+            /**
+             * @throw PersistenceException
+             */
+            void store(const std::string& key, const char* value) {
                 if (db == NULL) return;
 
                 std::string strvalue(value);
                 store(key, strvalue);
             }
         
+            /**
+             * @throw PersistenceException
+             */
             template<typename T>
-            void fetch(const std::string& key, T& value, bool consume) throw (PersistenceException) {
+            void fetch(const std::string& key, T& value, bool consume) {
                 if (db == NULL) return;
 
                 std::string v;

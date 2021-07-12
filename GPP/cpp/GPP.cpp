@@ -775,7 +775,7 @@ void GPP_i::update_grp_child_pids() {
 
             } catch ( ... ) {
                 std::stringstream errstr;
-                errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
+                errstr << "Unable to read " << stat_filename.str() << ". The process is no longer there";
                 RH_DEBUG(this->_baseLog, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
@@ -1270,7 +1270,7 @@ void GPP_i::_sendThresholdMessage(ThresholdMonitor* monitor, const T1& measured,
 //  Device LifeCycle API
 // 
 
-void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void GPP_i::initialize()
 {
 
   if (processor_name.empty()) {
@@ -1524,7 +1524,7 @@ void GPP_i::thresholds_changed(const thresholds_struct& ov, const thresholds_str
     }
 }
 
-void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError) {
+void GPP_i::releaseObject() {
   _signalThread.stop();
   _signalThread.release();
   _handle_io_redirects = false;
@@ -1541,9 +1541,6 @@ void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::Releas
 
 
 CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters)
-    throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, 
-           CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
-           CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
     boost::recursive_mutex::scoped_lock lock;
     try
@@ -1660,7 +1657,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args)
 {
     CF::Properties invalidOptions;
     std::string path;
@@ -1961,7 +1958,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 }
 
 
-void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
+void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId)
 {
     RH_TRACE(this->_baseLog, " Terminate request, processID: " << processId);
     try {
@@ -3016,7 +3013,7 @@ void GPP_i::updateProcessStats()
         cpu_idle_threshold = thresholds.cpu_idle;
     }
 
-    RH_DEBUG(_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
+    RH_TRACE(_baseLog, __FUNCTION__ << " LOAD and IDLE : " << std::endl << 
               " modified_threshold(req+res)=" << modified_thresholds.cpu_idle << std::endl << 
               " system: idle: " << system_monitor->get_idle_percent() << std::endl << 
               "         idle avg: " << system_monitor->get_idle_average() << std::endl << 

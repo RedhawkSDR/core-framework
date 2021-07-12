@@ -82,73 +82,158 @@ private:
 public:
     boost::mutex interfaceAccess;
 
-    char * identifier (void)
-        throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    char * identifier (void);
 
-    char * name (void)
-        throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    char * name (void);
         
-    char * domainManagerProfile (void)
-        throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    char * domainManagerProfile (void);
 
-    CF::FileManager_ptr fileMgr (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::FileManager_ptr fileMgr (void);
     
-    CF::AllocationManager_ptr allocationMgr (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::AllocationManager_ptr allocationMgr (void);
 
-    CF::EventChannelManager_ptr eventChannelMgr (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::EventChannelManager_ptr eventChannelMgr (void);
 
-    CF::ConnectionManager_ptr connectionMgr (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::ConnectionManager_ptr connectionMgr (void);
     
-    CF::DomainManager::ApplicationFactorySequence * applicationFactories (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::DomainManager::ApplicationFactorySequence * applicationFactories (void);
     
-    CF::DomainManager::ApplicationSequence * applications (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::DomainManager::ApplicationSequence * applications (void);
     
-    CF::DomainManager::DeviceManagerSequence * deviceManagers (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::DomainManager::DeviceManagerSequence * deviceManagers (void);
 
-    CF::DomainManager::DomainManagerSequence * remoteDomainManagers (void) throw (CORBA::SystemException);
+    /**
+     * @throw CORBA::SystemException
+     */
+    CF::DomainManager::DomainManagerSequence * remoteDomainManagers (void);
         
-    void registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr)
-        throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::RegisterError
+     * @throw CF::DomainManager::DeviceManagerNotRegistered
+     * @throw CF::InvalidProfile
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr);
     void _local_registerDevice (CF::Device_ptr registeringDevice, CF::DeviceManager_ptr registeredDeviceMgr);
         
-    void registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
-        throw (CF::DomainManager::RegisterError, CF::InvalidProfile, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::RegisterError
+     * @throw CF::InvalidProfile
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void registerDeviceManager (CF::DeviceManager_ptr deviceMgr);
     void _local_registerDeviceManager (CF::DeviceManager_ptr deviceMgr);
         
-    void unregisterDeviceManager (CF::DeviceManager_ptr deviceMgr)
-        throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::UnregisterError
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void unregisterDeviceManager (CF::DeviceManager_ptr deviceMgr);
         
-    void unregisterDevice (CF::Device_ptr unregisteringDevice)
-        throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::UnregisterError
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void unregisterDevice (CF::Device_ptr unregisteringDevice);
         
     CF::Application_ptr createApplication(const char* profileFileName, const char* name, const CF::Properties& initConfiguration, const CF::DeviceAssignmentSequence& deviceAssignments);
 
-    void installApplication (const char* profileFileName)
-        throw (CF::DomainManager::ApplicationInstallationError, CF::InvalidFileName, CF::InvalidProfile, CORBA::SystemException, CF::DomainManager::ApplicationAlreadyInstalled);
+    /**
+     * @throw CF::DomainManager::ApplicationInstallationError
+     * @throw CF::InvalidFileName
+     * @throw CF::InvalidProfile
+     * @throw CORBA::SystemException
+     * @throw CF::DomainManager::ApplicationAlreadyInstalled
+     */
+    void installApplication (const char* profileFileName);
     void _local_installApplication (const std::string& profileFileName);
            
-    void uninstallApplication (const char* applicationId)
-        throw (CF::DomainManager::ApplicationUninstallationError, CF::DomainManager::InvalidIdentifier, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::ApplicationUninstallationError
+     * @throw CF::DomainManager::InvalidIdentifier
+     * @throw CORBA::SystemException
+     */
+    void uninstallApplication (const char* applicationId);
     void _local_uninstallApplication (const char* applicationId);
            
-    void registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
-        throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::RegisterError
+     * @throw CF::DomainManager::DeviceManagerNotRegistered
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name);
     void _local_registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name);
            
-    void unregisterService (CORBA::Object_ptr unregisteringService, const char* name)
-        throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::UnregisterError
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void unregisterService (CORBA::Object_ptr unregisteringService, const char* name);
            
-    void registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName)
-        throw (CF::DomainManager::AlreadyConnected, CF::DomainManager::InvalidEventChannelName, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::AlreadyConnected
+     * @throw CF::DomainManager::InvalidEventChannelName
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void registerWithEventChannel (CORBA::Object_ptr registeringObject, const char* registeringId, const char* eventChannelName);
            
-    void unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName)
-        throw (CF::DomainManager::NotConnected, CF::DomainManager::InvalidEventChannelName, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::NotConnected
+     * @throw CF::DomainManager::InvalidEventChannelName
+     * @throw CORBA::SystemException
+     */
+    void unregisterFromEventChannel (const char* unregisteringId, const char* eventChannelName);
 
-    void registerRemoteDomainManager (CF::DomainManager_ptr registeringRemoteDomainManager)
-        throw (CF::DomainManager::RegisterError, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::RegisterError
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void registerRemoteDomainManager (CF::DomainManager_ptr registeringRemoteDomainManager);
 
-    void unregisterRemoteDomainManager (CF::DomainManager_ptr unregisteringRemoteDomainManager)
-        throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException);
+    /**
+     * @throw CF::DomainManager::UnregisterError
+     * @throw CF::InvalidObjectReference
+     * @throw CORBA::SystemException
+     */
+    void unregisterRemoteDomainManager (CF::DomainManager_ptr unregisteringRemoteDomainManager);
 
 ////////////////////////////////////////////////////////
 // Public Helper Functions and Members

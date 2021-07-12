@@ -19,7 +19,7 @@
 #
 from redhawk.codegen.lang import python
 
-import versions
+from . import versions
 
 redhawkLibs = {
     'BULKIO': {
