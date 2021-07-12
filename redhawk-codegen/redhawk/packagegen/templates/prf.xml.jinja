@@ -4,8 +4,12 @@
 {#
    property element attributes
 #}
-{% macro property_element_attrs ( attrs ) %}
+{% macro property_element_attrs ( attrs, instruct=False ) %}
+{% if instruct %}
+id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'complex','type' ] -%}{%if attr_name in attrs and attrs[attr_name] %} {{attr_name}}="{{attrs[attr_name]}}"{% endif %}{% endfor -%}
+{% else %}
 id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 'commandline', 'type' ] -%}{%if attr_name in attrs and attrs[attr_name] %} {{attr_name}}="{{attrs[attr_name]}}"{% endif %}{% endfor -%}
+{% endif %}
 {% endmacro %}
 
 {#-
@@ -81,9 +85,9 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {#-
    simple_property element definition
 -#}
-{% macro simple_property_element( prop ) %}
-<simple {{ property_element_attrs(prop.attrs) }} >
-{{  simple_property_contents( prop )|indent(4,first=True) -}}
+{% macro simple_property_element( prop, instruct ) %}
+<simple {{ property_element_attrs(prop.attrs, instruct ) }} >
+{{  simple_property_contents( prop )|indent(4,indentfirst=True) }}
 </simple>
 {% endmacro %}
 
@@ -103,9 +107,9 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {#-
    simplesequence property element definition
 -#}
-{% macro simple_sequence_property_element( prop ) %}
-<simplesequence {{ property_element_attrs(prop.attrs) }} >
-{{  simple_sequence_contents( prop )|indent(4,first=True) -}}
+{% macro simple_sequence_property_element( prop, instruct=False ) %}
+<simplesequence {{ property_element_attrs(prop.attrs, instruct ) }} >
+{{  simple_sequence_contents( prop )|indent(4,indentfirst=True) -}}
 </simplesequence>
 {% endmacro %}
 
@@ -118,14 +122,14 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {%  for prop_def in props %}
 {%   for prop_id, p in prop_def.items() %}
 {%      if p.attrs.ptype == 'simple' -%}
-{{         simple_property_element( p )|indent(4,first=True) -}}
+{{         simple_property_element( p, True )|indent(4,indentfirst=True) }}
 {%     endif %}
 {%     if p.attrs.ptype == 'simpleseq' %}
-{{        simple_sequence_property_element( p )|indent(4,first=True) -}}
+{{        simple_sequence_property_element( p, True )|indent(4,indentfirst=True) }}
 {%     endif %}
 {%   endfor %}
 {% endfor %}
-{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,first=True) -}}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) }}
 </struct>
 {% endmacro %}
 {#-
@@ -133,9 +137,9 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 -#}
 {% macro structseq_property_element( attrs, struct ) %}
 <structsequence {{property_element_attrs(attrs)}} >
-{{single_element( 'description', attrs.description) -}}
-{{struct_property_element(struct[0].attrs,struct[1:])|indent(4,first=True) -}}
-{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,first=True) -}}
+{{single_element( 'description', attrs.description) }}
+{{struct_property_element(struct[0].attrs,struct[1:])|indent(4,indentfirst=True) }}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) }}
 </structsequence>
 {% endmacro %}
 

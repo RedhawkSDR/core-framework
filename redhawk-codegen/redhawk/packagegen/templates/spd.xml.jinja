@@ -48,18 +48,14 @@
     </dependency>
 {% endfor %}
 {% endif %}
+  </implementation>
 {% if spd.children is defined and spd.children %}
 {%   for child in spd.children %}
-    <dependency type="child">
-      <softpkgref id="{{child.name}}" >
-{%         if spd.ns_path is defined and spd.ns_path %}
-        <localfile name="/devices/{{spd.ns_path}}/{{child.name}}/{{child.name}}.spd.xml" />
-{%         else %}
-        <localfile name="/devices/{{child.name}}/{{child.name}}.spd.xml" />
-{%         endif %}
-      </softpkgref>
-    </dependency>
+  <child name="{{child.name}}">
+     <childSoftwarePackageFile>
+        <localfile name="{{child.name}}.spd.xml" />
+     </childSoftwarePackageFile>
+  </child>
 {%  endfor %}
 {% endif %}
-  </implementation>
 </softpkg>

@@ -305,10 +305,13 @@ class IdlStruct():
             self.members[member.declarators()[0].scopedName()[-1]] = baseTypes[member.memberType().kind()]
         
 class ExampleVisitor (idlvisitor.AstVisitor):
-    def __init__(self):
+    def __init__(self,*args,**kwds):
         self.myInterfaces = []   #Used to store the interfaces that are found
         self.myStructs = []
-        idlvisitor.AstVisitor.__init__(self)
+        try:
+            super(idlvisitor.AstVisitor,self).__init__(*args,**kwds)
+        except:
+            pass
 
     def visitAST(self, node):
         for n in node.declarations():

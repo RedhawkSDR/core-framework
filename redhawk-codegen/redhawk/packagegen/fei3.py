@@ -5,7 +5,7 @@ import fileinput
 import sys
 import subprocess
 import traceback
-import urllib.parse
+#import urllib.parse
 import json
 import uuid
 import shutil
@@ -17,9 +17,24 @@ import copy
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from textwrap import TextWrapper
 import yaml
-from io import StringIO
+
+if sys.version_info[0] == 3:
+    from io import StringIO
+else:
+    from StringIO import StringIO
+
+    def __debug(*args):
+        logging.debug('args: %s', args)
+        return args[0]
+
+    '''
+    allow StringIO to use `with` statement
+    '''
+    StringIO.__exit__ = __debug
+    StringIO.__enter__ = __debug
+
 from jinja2 import Environment, FileSystemLoader
-from jinja2.ext import debug
+#from jinja2.ext import debug
 
 from redhawk.codegen.lang.idl import CorbaTypes, IDLInterface
 
@@ -198,9 +213,9 @@ rh3_fei3_yaml_sca_types= { 'DEVICE' :  'CF/Device',
 rh3_fei3_device_types= { 'ANTENNA' :  'antenna',
                          'RX' :  'rx_analog',
                          'RX_ARRAY' : 'rx_array',
-                         'ABOT' : 'analog_bank',
+                         'ABOT' : 'analog_tuner_bank',
                          'ARDC' : 'rx_analog_digital',
-                         'DBOT' : 'digital_bank',
+                         'DBOT' : 'digital_tuner_bank',
                          'RDC' : 'rdc_tuner',
                          'SRDC' : 'digital_snapshot',
                          'DRDC' : 'digital_delay',
@@ -500,7 +515,7 @@ def fei3_xml_gen(args):
 
     ns=None
     # determine namespace if used
-    if not args.disable_ns:
+    if args.enable_ns:
 
         # if namespace exists in classname in fei_devices.yml file then use that otherwise use class name
         ns="{}".format(''.join(parentName.split('.')[:-1]))
@@ -515,7 +530,7 @@ def fei3_xml_gen(args):
 
     # check if device namespace differs from on in the specified device name
     deviceNameSpace ='{}'.format(''.join(parentName.split('.')[:-1]))
-    if not args.disable_ns and len(deviceNameSpace) and ns != deviceNameSpace:
+    if args.enable_ns and len(deviceNameSpace) and ns != deviceNameSpace:
         logger.warning("Ignoring device specified namespace {}, differs from derived namespace {} ".format(deviceNameSpace,ns))
 
     parentProfile=None
@@ -536,8 +551,12 @@ def fei3_xml_gen(args):
 
         spd, scd, prf = generate_redhawk_profile( ns, devClassName, className, device_definition,
                                                   fei3_devices['DEVICES'], fei3_devices, args )
+
+        # determine output directory for profile
+        opath=determine_profile_directory( ns, className, args, nest, parent=(not parentProfile))
+
         # write out a redhawk profile
-        profile=write_redhawk_profile( ns, className, spd, scd, prf, args, nest)
+        profile=write_redhawk_profile( className, spd, scd, prf, opath, args)
 
         if not parentProfile:
             parentProfile=profile
@@ -603,6 +622,60 @@ def load_fei3_devices_specification(args):
 
 
 
+
+########################################################################
+#
+# determine_profile_directory
+#
+# Determine profile directory to write redhawk profile
+#
+########################################################################
+def determine_profile_directory( namespace, className, args, nest=None, parent=False):
+
+    logger.debug("Deteremine output directory for profile definition {} with args.output_dir {} \n".format(className,
+                                                                                                             args.output_dir))
+
+    opath=''
+    if namespace:
+        opath=namespace
+        logger.debug("Using namespaces for profiles {}, opath {}".format(namespace,opath))
+
+    if nest:
+        opath=os.path.join(opath,nest)
+        logger.debug("Nesting profiles under {} opath {}".format(nest, opath))
+
+    # check if we should put output in a specific directory
+    # otherwise just put output in namespace directory
+    if args.output_dir:
+        opath=os.path.join(args.output_dir,opath)
+        logger.debug("Output directory {} opath {}".format(args.output_dir, opath))
+
+    if not parent:
+        if args.childirs:
+            opath=os.path.join(opath,className)
+            logger.debug("Add child directory {} to opath {}".format(className, opath))
+
+    else:
+        # dump files into parent directory
+        opath=os.path.join(opath,className)
+        logger.debug("Parent profile {} to opath {}".format(className, opath))
+
+    if opath and opath != '':
+        try:
+            if sys.version_info[0] == 3:
+                os.makedirs(opath, exist_ok = True)
+            else:
+                os.makedirs(opath)
+            logger.info("Create directory '{}'".format(opath))
+        except OSError as error:
+            if error.errno != 17:
+                msg="Error creating directory '{}'.".format(opath)
+                logger.error(msg)
+                raise SystemExit(msg)
+
+    return opath
+
+
 ########################################################################
 #
 # write_redhawk_profile
@@ -610,33 +683,14 @@ def load_fei3_devices_specification(args):
 # Write out redhawk profile using appropriate jinja template
 #
 ########################################################################
-def write_redhawk_profile( namespace, className, spd, scd, prf, args, nest=None):
+def write_redhawk_profile( className, spd, scd, prf, output_dir, args):
 
     logger.debug("Writing out profile definition for {} to output_dir {} \n".format(className,
-                                                                                    args.output_dir))
+                                                                                    output_dir))
 
-    opath=''
-    if namespace:
-        opath=namespace
-
-    if nest:
-        opath=os.path.join(opath,nest)
-
-    # check if we should put output in a specific directory
-    # otherwise just put output in namespace directory
-    if args.output_dir:
-        opath=os.path.join(args.output_dir,opath)
-
-    opath=os.path.join(opath,className)
-
-    if opath and opath != '':
-        try:
-            os.makedirs(opath, exist_ok = True)
-            logger.info("Create directory '{}'".format(opath))
-        except OSError as error:
-            msg="Error creating directory '{}'.".format(opath)
-            logger.error(msg)
-            raise SystemExit(msg)
+    opath=output_dir
+    if not output_dir:
+        opath=''
 
     spd_name="{}.spd.xml".format(className)
     spd_path=os.path.join(opath,spd_name)
@@ -881,7 +935,7 @@ def create_scd_definition( devClassName, className, device, devices):
                     uses_ports.append(pmap)
                 else:
                     for pname, port_def in port.items():
-                        if { 'itype', 'type' } < port_def.keys():
+                        if { 'itype', 'type' } < set(port_def.keys()):
                             logger.error("Device {}, Port {} missing itype or type".format(devClassName,pname))
                             continue
                             continue
@@ -915,7 +969,7 @@ def create_scd_definition( devClassName, className, device, devices):
                                                                                     port.items()))
 
                     for pname, port_def in port.items():
-                        if { 'itype', 'type' } < port_def.keys():
+                        if { 'itype', 'type' } < set(port_def.keys()):
                             logger.error("Device {}, Port type missing for {}".format(devClassName,pname))
                             continue
                         provides_ports.append( { 'itype' : port_def['itype'],
@@ -959,6 +1013,7 @@ def create_prf_definition( className, device, devices, source_file):
     if 'properties' not in device or device['properties'] is None:
         device['properties']=[]
 
+    fei_device_type=None
     # add required device properties
     if 'required_properties' in device  and device['required_properties']:
         req_props=[]
@@ -981,6 +1036,7 @@ def create_prf_definition( className, device, devices, source_file):
 
                 if 'fei_type' in device:
                     fei_device_kind="{}::{}".format(fei_device_kind,device['fei_type'])
+                    fei_device_type=device['fei_type']
 
                 prop['device_kind']['value']=fei_device_kind
 
@@ -1003,6 +1059,38 @@ def create_prf_definition( className, device, devices, source_file):
 
         if 'fei_tuner_allocation' in devices:
             device['properties'].append( {'frontend_tuner_allocation' : convert_properties_to_list(devices['fei_tuner_allocation']) } )
+
+        if 'fei_upstream_allocation' in devices:
+            device['properties'].append( {'frontend_upstream_allocation' : convert_properties_to_list(devices['fei_upstream_allocation']) } )
+
+        # add device type allocation properties
+        if fei_device_kind.upper() == 'SRDC':
+            if 'fei_snapshot_allocation' in devices:
+                device['properties'].append( {'frontend_snapshot_allocation' : convert_properties_to_list(devices['fei_snapshot_allocation']) } )
+
+        if fei_device_kind.upper() == 'DRDC':
+            if 'fei_delay_allocation' in devices:
+                device['properties'].append( {'frontend_delay_allocation' : convert_properties_to_list(devices['fei_delay_allocation']) } )
+
+        # check for bulkio output ports
+        if 'data_outputs' in device and device['data_outputs']:
+            # only way to get the list comprehension to work..
+            data_output_ports=copy.copy(device.get('data_outputs'))
+            port_descs=[ y.values()[0] for y in data_output_ports ]
+            typelist=[ x['itype'] for x in port_descs if 'itype' in x and 'BULKIO' in x['itype'] ]
+            if len(typelist) > 0:
+                if 'fei_stream_id_allocation' in devices:
+                    device['properties'].append( {'frontend_stream_id_allocation' : convert_properties_to_list(devices['fei_stream_id_allocation']) } )
+
+                if 'fei_data_format_allocation' in devices:
+                    device['properties'].append( {'frontend_data_format_allocation' : convert_properties_to_list(devices['fei_data_format_allocation']) } )
+
+                # check for vita49 and sdds port
+                words=['SDDS', 'VITA49']
+                if True in [ t[0] for t in [ map(lambda x: x in y, words) for y in typelist ] ]:
+                    if 'fei_payload_format_allocation' in devices:
+                        device['properties'].append( {'frontend_payload_format_allocation' : convert_properties_to_list(devices['fei_payload_format_allocation']) } )
+
 
         if 'fei_tuner_status_sequence' not in devices:
             msg="Missing 'fei_tuner_status_sequence' source file {}".format(source_file)
@@ -1040,6 +1128,9 @@ def create_prf_definition( className, device, devices, source_file):
             tuner_status_struct = { 'struct' : override_tuner_status_struct }
             frontend_tuner_status_seq.append(tuner_status_struct)
         else:
+            if fei_device_type and 'value' in tuner_status_struct['struct']['tuner_type']:
+                tuner_status_struct['struct']['tuner_type']['value']= fei_device_type
+
             tuner_status_struct['struct'] = convert_properties_to_list(tuner_status_struct['struct'])
 
         # add additional properties to the tuner_status struct
@@ -1097,7 +1188,7 @@ def create_prf_definition( className, device, devices, source_file):
                 raise SystemExit(msg)
 
             # check required attributes
-            if not { 'id', 'name', 'ptype' } < attrs['attrs'].keys():
+            if not { 'id', 'name', 'ptype' } < set(attrs['attrs'].keys()):
                 msg="Device {} property {} missing required attribute values {} ".format(className, prop_name, attrs['attrs'])
                 logger.error(msg)
                 raise SystemExit(msg)
@@ -1202,7 +1293,7 @@ def apply_namespace_to_properties( prop_name, properties, className, ns_name=Non
         raise SystemExit(msg)
 
     attrs=attrs['attrs']
-    if not {'id', 'name'} < attrs.keys():
+    if not {'id', 'name'} < set(attrs.keys()):
         msg="Device {} property {} missing required attributes {}".format(className, prop_name, attrs)
         logger.error(msg)
         raise SystemExit(msg)
@@ -1253,7 +1344,7 @@ def apply_namespace_to_properties( prop_name, properties, className, ns_name=Non
             raise SystemExit(msg)
 
         attrs=v['attrs']
-        if  not {'id', 'name' } < attrs.keys():
+        if  not {'id', 'name' } < set(attrs.keys()):
             msg="Device {} property {} member property {} missing required attributes (id,name)".format(className, prop_name, k)
             logger.error(msg)
             raise SystemExit(msg)
@@ -1391,7 +1482,7 @@ def create_simple_property( className, property_name, property_definition ):
     # get attrs dictionary
     attrs=property_definition['attrs']
 
-    if not { 'id', 'name', 'ptype' } < attrs.keys():
+    if not { 'id', 'name', 'ptype' } < set(attrs.keys()):
         msg='Invalid property definition, Device {} property {} missing required attributes, {} '.format(className,property_name, attrs)
         logger.error(msg)
         raise SystemExit(msg)
@@ -1438,8 +1529,8 @@ def create_simple_property( className, property_name, property_definition ):
 
 ###################################################################################
 #
-#   step4-codegen- Run code generator using parent spd.xml as input. Code generator
-#                  should run in context of directory with parent spd.xml file.x
+#   step4-code- Run code generator using parent spd.xml as input. Code generator
+#               should run in context of directory with parent spd.xml file.x
 #
 ###################################################################################
 
@@ -1459,14 +1550,23 @@ def fei3_codegen(args):
     spd_xml=os.path.basename(args.spd_xml)
 
     logger.info("Changing directory {}".format(outdir))
-    os.chdir(outdir)
+    if outdir != '':
+       os.chdir(outdir)
     try:
         cmd="redhawk-codegen --frontend {} {}".format(ovr,spd_xml)
         logger.debug("Running codegen as <{}>".format(cmd))
-        process=subprocess.run(cmd.split())
-        print("process {}".format(process))
-        if process.returncode != 0:
-            logger.error("Codegen returned the following: {}".format(process.stderr))
+        if sys.version_info[0] == 3:
+            process=subprocess.run(cmd.split())
+            print("process {}".format(process))
+            if process.returncode != 0:
+                logger.error("Codegen returned the following: {}".format(process.stderr))
+        else:
+            process=subprocess.Popen(cmd.split())
+            sdata=process.communicate()[0]
+            print("process {}".format(sdata))
+            if process.returncode != 0:
+                logger.error("Codegen returned the following: {}".format(process.stderr))
+
     except:
         traceback.print_exc()
 
@@ -1479,21 +1579,26 @@ def fei3_codegen(args):
 #################################
 
 def process_command_line():
-    # Set up usage, description, and other --help information
-    usage = "usage: %(prog)s [--help] [options]"
-
-    description  = "Generate FEI3 device template, XML and code generation "
     tw =  TextWrapper(initial_indent="\t", subsequent_indent="\t\t")
     tw2 = TextWrapper(initial_indent="\t", subsequent_indent="\t\t")
 
-    parser = ArgumentParser(usage=usage,
-                            description=description)
-    # Add the flags
-    parser.add_argument('--verbose',
-                        help="verbose messaging",
-                        default=False,
-                        action="store_true")
+    # Set up usage, description, and other --help information
+    usage = "usage: %(prog)s [--help] [options]"
 
+    description = "Generate FEI3 device templates, XML and code generation \n\n"
+    description += "Perform the following sequence to generate code for a FEI3 device:\n"
+    description += "   step1: create-list                - creates list of all FEI devices types to define your device/hierarchy\n"
+    description += "   step2: devices                    - generate device specifiction (YAML) for each type in the device types list file\n"
+    description += "   step3: xml                        - generate a language specific REDHAWK XML profile for each device specification\n"
+    description += "   step4: code                       - generate the language specific implementation from the REDHAWK XML profile\n"
+    description += "\nEach command has optional arguments and help: fei3-generator xml --help"
+
+
+    parser = ArgumentParser(usage=usage,
+                            description=description,
+                            formatter_class=RawDescriptionHelpFormatter)
+
+    # Add the flags
     parser.add_argument('--log',
                         help="log output to file")
 
@@ -1506,7 +1611,7 @@ def process_command_line():
                         dest="debug",
                         default='info',
                         choices=['critical','error', 'warn', 'info', 'debug'],
-                        help="Specify logging level critical,error, warn, info, debug")
+                         help="Specify logging level for output messaging")
 
     subparsers = parser.add_subparsers(dest='cmd')
     subparsers.required=True
@@ -1515,10 +1620,10 @@ def process_command_line():
     #
     # Create DeviceTypes Class Template
     #
-    fei3_create_types_description = "\tCreate FEI3 Devices Class List File "
+    fei3_create_types_description = "\tCreate FEI3 Device Classes List File "
     fei3_create_types_epilog = BOLD + "Examples:" + RESET
     fei3_create_types_epilog += tw2.fill(" \n ")
-    fei3_create_types_epilog += "\n\tfei3-generator step1-create "
+    fei3_create_types_epilog += "\n\tfei3-generator create-list "
     fei3_create_types_epilog += "\n"
     fei3_create_types_epilog += "\n\tAdd device classes as need for each type: - <device class>"
     fei3_create_types_epilog += "\n\tIf a single class is listed then a simple FEI3 device is created"
@@ -1537,14 +1642,15 @@ def process_command_line():
 \t     - WidebandDDC
 """
 
-    fei3_create_types_parser = subparsers.add_parser('step1-create',
+    fei3_create_types_parser = subparsers.add_parser('create-list',
                                       description=fei3_create_types_description,
                                       epilog=fei3_create_types_epilog,
                                       formatter_class=RawDescriptionHelpFormatter)
 
     fei3_create_types_parser.add_argument('--output',
-                                help="Save as FEI devices list file (default: %(default)s)",
-                                default="fei3_devices_list.yml")
+                                          help="Save as FEI device types list file (default: %(default)s)",
+                                          required=False,
+                                          default="fei3_devices_list.yml")
 
     fei3_create_types_parser.set_defaults(func=fei3_create_types)
 
@@ -1554,9 +1660,10 @@ def process_command_line():
     fei3_devices_yaml_description = "\tCreate FEI3 Devices Specification File "
     fei3_devices_yaml_epilog = BOLD + "Examples:" + RESET
     fei3_devices_yaml_epilog += tw2.fill(" \n ")
-    fei3_devices_yaml_epilog += "\n\tCreate FEI3 device types specification file"
-    fei3_devices_yaml_epilog += "\n\tfei3-generator step2-yaml "
-    fei3_devices_yaml_epilog += "\n\tGenerates an output YAML file that contains a definition for each device type. "
+    fei3_devices_yaml_epilog += "\n\tCreate FEI3 devices specification file from a device types list file"
+    fei3_devices_yaml_epilog += "\n\tfei3-generator devices "
+    fei3_devices_yaml_epilog += "\n\tGenerates an output YAML file that contains a basic definition for each device type. It is expected each "
+    fei3_devices_yaml_epilog += "\n\tdevice will be customized with ports, properties, and messages to meet the desired design"
     fei3_devices_yaml_epilog += "\n\t"
     fei3_devices_yaml_epilog += """
 \t...
@@ -1576,7 +1683,7 @@ def process_command_line():
 ...
 """
 
-    fei3_devices_yaml_parser = subparsers.add_parser('step2-yaml',
+    fei3_devices_yaml_parser = subparsers.add_parser('devices',
                                       description=fei3_devices_yaml_description,
                                       epilog=fei3_devices_yaml_epilog,
                                       formatter_class=RawDescriptionHelpFormatter)
@@ -1586,7 +1693,7 @@ def process_command_line():
                                 default="fei3_devices_list.yml")
 
     fei3_devices_yaml_parser.add_argument('--output',
-                                help="Save as FEI device type file",
+                                help="Save as FEI devices file",
                                 default="fei3_devices.yml")
 
     fei3_devices_yaml_parser.set_defaults(func=fei3_devices_yaml)
@@ -1600,8 +1707,8 @@ def process_command_line():
     fei3_xml_gen_epilog = BOLD + "Examples:" + RESET
     fei3_xml_gen_epilog += tw2.fill(" \n ")
     fei3_xml_gen_epilog += "\n\tCreate REDHAWK FEI3 Device XML files: "
-    fei3_xml_gen_epilog += "\n\tfei3-generator step3-xml --fei3-devices "
-    fei3_xml_gen_parser = subparsers.add_parser('step3-xml',
+    fei3_xml_gen_epilog += "\n\tfei3-generator xml "
+    fei3_xml_gen_parser = subparsers.add_parser('xml',
                                       description=fei3_xml_gen_description,
                                       epilog=fei3_xml_gen_epilog,
                                       formatter_class=RawDescriptionHelpFormatter)
@@ -1616,16 +1723,20 @@ def process_command_line():
                                      help="Set namespace for devices (overrides parent default)",
                                      default=None)
 
-    fei3_xml_gen_parser.add_argument('--disable-ns',
-                                     help="Disable namespace from parent device name",
+    fei3_xml_gen_parser.add_argument('--enable-ns',
+                                     help="Enable namespace from parent device name",
                                      action="store_true",
                                      default=False)
 
     fei3_xml_gen_parser.add_argument('--unnest',
-                                     help="Create child profiles in parent directory",
+                                     help="Create child profiles in namespace directory",
                                      action="store_true",
                                      default=False)
 
+    fei3_xml_gen_parser.add_argument('--childirs',
+                                     help="Create child profiles in their own directory",
+                                     action="store_true",
+                                     default=False)
 
     fei3_xml_gen_parser.add_argument('--lang',
                                      default="cpp",
@@ -1651,12 +1762,12 @@ def process_command_line():
     #
     # Run codegen
     #
-    fei3_codegen_description = "\tun Redhawk code generators "
+    fei3_codegen_description = "\tRun REDHAWK code generators for Frontend devices "
     fei3_codegen_epilog = BOLD + "Examples:" + RESET
     fei3_codegen_epilog += tw2.fill(" \n ")
-    fei3_codegen_epilog += "\n\tCreate REDHAWK FEI3 Frontend devices: "
-    fei3_codegen_epilog += "\n\tfei3-generator step4-codegen --spd-xml path to spd.xml file"
-    fei3_codegen_parser = subparsers.add_parser('step4-codegen',
+    fei3_codegen_epilog += "\n\tCreate code files for REDHAWK FEI3 devices: "
+    fei3_codegen_epilog += "\n\tfei3-generator code --spd-xml <path to spd.xml file>"
+    fei3_codegen_parser = subparsers.add_parser('code',
                                       description=fei3_codegen_description,
                                       epilog=fei3_codegen_epilog,
                                       formatter_class=RawDescriptionHelpFormatter)

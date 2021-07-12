@@ -1,5 +1,29 @@
 
 #
+# Generated REDHAWK Device Specifications file
+#
+# Navigate to "Device Definition Customization for XML generation" at
+# the bottom of file to customize the device's specification
+#
+# This YAML file follows all the formatting and macro rules of the
+# Python yaml module.
+#
+# This file contains all the definitions for following:
+#   - REDHAWK simple properties:  double_property, long_property, etc.
+#   - REDHAWK simple sequences:   double_sequence_property, long_sequence_property, etc.
+#   - REDHAWK message ports: message in and message out
+#   - REDHAWK BULKIO data ports:  bulkio_short, bulkio_float, etc.
+#   - FEI3 structures:  frontend_tuner_status_struct, frontend_tuner_allocation, etc
+#   - FEI3 Control Ports:  analog_tuner_port, digital_tuner_port, etc.
+#   - FEI3 Base Devices:  analog_tuner, rdc_tuner, analog_tuner_bank, etc.
+#
+# These definitions are used to generate each device's XML profile. Modifications
+# to these definitions can cause XML generator and code generation errors.
+# Customize your devices following the instructions in section:
+#   Device Definition Customization for XML generation
+#
+
+#
 # REDHAWK Property Types
 #
 
@@ -480,7 +504,7 @@ fei_tuner_status: &fei_tuner_status
         action:
     - tuner_type:
         <<: *string_property
-        description:  "Tuner Types: TX, RX, RDC, TDC, RX_DIGITIZER, RX_ARRAY"
+        description:  "Tuner Types: ANTENNA, RX, RX_ARRAY, ABOT, ARDC, DBOT, RDC, SRDC, DRDC, TX, TX_ARRAY, TDC"
         kind:
         action:
     - bandwidth_tolerance:
@@ -558,7 +582,7 @@ fei_tuner_allocation: &fei_tuner_allocation
 
     - tuner_type:
           <<: *string_property
-          description: "Example Tuner Types: RX, TX, RDC, TDC"
+          description: "Example Tuner Types: RX, RX_ARRAY, ABOT, DBOT, ARDC, RDC, TX, TX_ARRAY, TDC"
     - allocation_id:
           <<: *string_property
           description: "The allocation_id set by the caller. Used by the caller to reference the allocation uniquely"
@@ -614,6 +638,163 @@ fei_listener_allocation: &fei_listener_allocation
           kind:
           action:
 
+
+#
+# FRONTEND::fei_upstream_allocation structure
+#
+fei_upstream_allocation: &fei_upstream_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::upstream_allocation
+        name: frontend_upstream_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - device_id:
+          <<: *string_property
+          kind:
+          action:
+
+#
+# FRONTEND::fei_snapshot_allocation structure
+#
+fei_snapshot_allocation: &fei_snapshot_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::snapshot_allocation
+        name: frontend_snapshot_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - start_whole_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Whole seconds from J1970 GMT"
+
+    - start_partial_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Partial second 0.0 to 1.0"
+
+    - stop_whole_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Whole seconds from J1970 GMT"
+
+    - stop_partial_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Partial second 0.0 to 1.0"
+
+
+
+#
+# FRONTEND::fei_delay_allocation structure
+#
+fei_delay_allocation: &fei_delay_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::delay_allocation
+        name: frontend_delay_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - whole_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Whole seconds from J1970 GMT for absolute time"
+
+    - partial_seconds:
+          <<: *double_property
+          kind:
+          action:
+          description: "Partial second"
+
+    - relative:
+          <<: *boolean_property
+          kind:
+          action:
+          description: "True for absolut time values, False for relative"
+
+
+#
+# FRONTEND::fei_stream_id_allocation structure
+#
+fei_stream_id_allocation: &fei_stream_id_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::stream_id_allocation
+        name: frontend_stream_id_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - requested_stream_id:
+          <<: *string_property
+          kind:
+          action:
+          description: "Stream Identifier to name output stream"
+
+
+#
+# FRONTEND::fei_payload_format_allocation structure
+#
+fei_payload_format_allocation: &fei_payload_format_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::payload_format_allocation
+        name: frontend_payload_format_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - native_type:
+          <<: *string_property
+          kind:
+          action:
+          description: "data type for payload, e.g. float, short, ushort, int "
+
+    - endian:
+          <<: *boolean_property
+          kind:
+          action:
+          description: "True for big endian, False for little endian"
+
+#
+# FRONTEND::fei_data_format_allocation structure
+#
+fei_data_format_allocation: &fei_data_format_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::data_format_allocation
+        name: frontend_data_format_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - bulkio_type:
+          <<: *string_property
+          kind:
+          action:
+          description: "Respository ID for the requested type e.g. BULKIO/dataShort"
+
+    - complex:
+          <<: *boolean_property
+          kind:
+          action:
+          description: "Complex or real data"
+
+
+
+
 #
 # SCA Required properties for all devices
 #
@@ -648,7 +829,7 @@ required_device_properties: &required_device_properties
 fei_device_required_properties: &fei_device_required_properties
     - device_kind :
         <<: *string_property
-        value: FRONTEND::FRONTEND
+        value: FRONTEND
         kind: [ allocation ]
         description: "This specifies the device kind"
         action: eq
@@ -701,7 +882,7 @@ fei_base_tuner: &fei_base_tuner
     tuner_status:
     additional_tuner_status:
     messages:
-    data_output:
+    data_outputs:
     data_inputs:
     control_inputs:
     control_outputs:
@@ -720,7 +901,7 @@ fei_base_tuner: &fei_base_tuner
 #
 fei_base_antenna: &fei_base_antenna
     fei_type: ANTENNA
-    codetype: Exectuable
+    codetype: Executable
     sca_type: DEVICE
     scanning: false
     required_properties:
@@ -729,7 +910,7 @@ fei_base_antenna: &fei_base_antenna
     tuner_status:
     additional_tuner_status:
     messages:
-    data_output:
+    data_outputs:
     data_inputs:
     rf_source_inputs:
         - RFSource_in
@@ -763,9 +944,6 @@ fei_base_analog_receiver: &fei_base_analog_receiver
 fei_base_digital_receiver: &fei_base_digital_receiver
     <<: *fei_base_tuner
     fei_type: RDC
-    data_outputs:
-        - dataShort_out:
-             <<: *bulkio_short
     control_inputs:
           - DigitalTuner_in:
              <<: *digital_tuner_port
@@ -792,9 +970,6 @@ fei_base_analog_transmitter: &fei_base_analog_transmitter
 fei_base_digital_transmitter: &fei_base_digital_transmitter
     <<: *fei_base_tuner
     fei_type: TDC
-    data_inputs:
-        - dataShort_in:
-             <<: *bulkio_short
     control_inputs:
           - DigitalTransmit_in:
              <<: *transmit_control_port
@@ -903,7 +1078,7 @@ digital_delay: &digital_delay
 #
 tx_analog: &tx_analog
     <<: *fei_base_analog_transmitter
-    fei_type: TDC
+    fei_type: TX
 
 #
 # FEI Digital Transmitter Types
@@ -930,31 +1105,41 @@ tx_array: &tx_array
 
 
 #
-# Creating a device definition for XML generation
+# Device Definition Customization for XML generation
 #
-# This file contains the basic device definitions from step1-yaml. If the arguments contained a parent/child
-# relationship then the devices are auto namespace during XML generation and the namespace can be overriden
-# using the --ns parameter or disable via --disable ns.
+# This file contains the device definitions from the devices list file created in step1 (create-list). Parent/child
+# definitions will be auto namepaced during XML generation:
 #
-# It is preferred that you define device types (rx, rdc, etc) to be generated using fei3-generator script.
+# e.g.
+#   PARENT:
+#     - USRP
+#   RDC
+#     - RDC
+# Would be namespaced as USRP.RDC in the SPD.xml for the RDC class.
 #
-# A device Definition consists of the following:
+# This can be controlled using the following parameters during xml generation (step3):
+#   --ns <override ns name>    assigns a new namespace for device class names
+#   --disable-ns               disables any namespacing of device class names
+#
+# A Device Definition consists of the following:
 #
 # - <DeviceClassName> :
-#    <<: *<type of tuner devices: rx_analog, rx_digitizer, rdc_tuner, rx_array, tdc_tuner, tx_array>
+#    <<: *<type of tuner devices: antenna, rx_analog, analog_tuner_bank, rx_array,
+#                                  rx_analog_digital, digital_tuner_bank, rdc_tuner, digital_delay, digital_snapshot,
+#                                  tx_analog, tdc_tuner, tx_array >
+#    additional_tuner_status:                # follow "Adding properties" section, additional tuner status entries to add to the tuner status structure
 #    properties:
 #       - <prop name> :                      # follow "Adding properties" section
-#    additional_tuner_status:                # follow "Adding properties" section, additional tuner status entries to add to default
 #    messages:                               # follow "Adding properties" section
-#    <ports type>:                           # different port type mappings, by default dataShort_out is defined
-#                                            # for data_outputs:
+#    <ports>:                                # follow "Port Customization" section
+#
 #
 
 
 #
 # Adding Properties:
 #
-#    addition_tuner_status:                ## Generator will properly namespace ID values
+#    additional_tuner_status:                ## Generator will properly namespace ID values
 #        - <property name>:
 #              <<: *<simple/seq property macro from above>
 #
@@ -997,7 +1182,7 @@ tx_array: &tx_array
 #        id:                 # (optional) this will default to property name, will auto-namespace for structs
 #        name:                # (optional) this will default to property name
 #        mode: readwrite      # readwrite, readonly, writeonly#
-#        complex:             # True/False for complex values
+#        complex:             # true/false for complex values
 #        commandline:         # Pass property on command line true, false
 
 
@@ -1007,10 +1192,19 @@ tx_array: &tx_array
 #    data_outputs:
 #      - <port name>:
 #           <<: *<bulkio type port>
+# e.g.
+#    data_outputs:
+#        - dataShort_out:
+#             <<: *bulkio_short
 #
 #    data_inputs:
 #      - <port name>:
 #           <<: *<bulkio type port>
+# e.g.
+#    data_inputs:
+#        - dataShort_in:
+#             <<: *bulkio_short
+#
 #
 #    rf_info_inputs:
 #      - port_name             # just port name, type will automatically be set
@@ -1056,23 +1250,24 @@ tx_array: &tx_array
 # Dependencies
 # List softpkg dependencies for a device definitoin
 # dependencies:
-#      - <name> : namespaced name of to default dependency path in SDRROOT
+#      - <name> : namespaced name of the dependency in SDRROOT
 #                  rh.RedhawkDevUtils
 #                 or
-#                 absolute using %%deps%% macro or directory sdr/dom
+#                 absolute path to dependency spd.xml,  using %%deps%% macro or actual path
 #  Examples
 #    - rh.RedhawkDevUtils
 #       or
 #    - rh.RedhawkDevUitls: %%deps%%/rh/RedhawkDevUtils/RedhawkDevUtils.spd.xml
 #        or
-#    - rh.RedhawkDevUitls: /var/redhawk/sdr/dom/depsrh/RedhawkDevUtils/RedhawkDevUtils.spd.xml
+#    - rh.RedhawkDevUitls: /var/redhawk/sdr/dom/deps/rh/RedhawkDevUtils/RedhawkDevUtils.spd.xml
 #
 #
 #
 #
-
 
 DEVICES:
+# this marks the begining of your device specifications do not remove the above
+
 
 {% if fei3_spec.PARENT is defined %}
 {% block parent %}
@@ -1089,14 +1284,13 @@ DEVICES:
      ports:
      dependencies:
      children:
-{%-   for child_name in fei3_spec.PARENT_CHILDREN %}
-        - {{child_name -}}
+{%   for child_name in fei3_spec.PARENT_CHILDREN %}
+        - {{child_name }}
 {%   endfor %}
-
 {% endblock %}
 {% endif %}
 
-{%- block antenna %}
+{% block antenna %}
 {% for ant in fei3_spec.ANTENNA %}
 - {{ant}}:
      <<: *antenna
@@ -1107,8 +1301,7 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-
-{%- block rx_analog %}
+{% block rx_analog %}
 {% for rx in fei3_spec.RX %}
 - {{rx}}:
      <<: *rx_analog
@@ -1120,31 +1313,7 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{%- block rx_digitizer %}
-{% for rx_digi in fei3_spec.RX_DIGITIZER %}
-- {{rx_digi}}:
-     <<: *rx_digitizer
-     properties:
-     additional_tuner_status:
-     messages:
-     dependencies:
-     children:
-{% endfor %}
-{% endblock %}
-
-{%- block rdc %}
-{% for rdc_tuner in fei3_spec.RDC %}
-- {{rdc_tuner}}:
-     <<: *rdc_tuner
-     properties:
-     additional_tuner_status:
-     messages:
-     dependencies:
-     children:
-{% endfor %}
-{% endblock %}
-
-{%- block rx_array %}
+{% block rx_array %}
 {% for rx_array in fei3_spec.RX_ARRAY %}
 - {{rx_array}}:
      <<: *rx_array
@@ -1156,9 +1325,91 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{%- block tdc %}
-{% for tdc_tuner in fei3_spec.TDC %}
-- {{tdc_tuner}}:
+{% block analog_tuner_bank %}
+{% for abot in fei3_spec.ABOT %}
+- {{abot}}:
+     <<: *analog_tuner_bank
+     properties:
+     additional_tuner_status:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{% block rx_analog_digital %}
+{% for ardc in fei3_spec.ARDC %}
+- {{ardc}}:
+     <<: *rx_analog_digital
+     properties:
+     additional_tuner_status:
+     data_outputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{% block digital_tuner_bank %}
+{% for dbot in fei3_spec.DBOT %}
+- {{dbot}}:
+     <<: *digital_tuner_bank
+     properties:
+     additional_tuner_status:
+     data_inputs:
+     data_outputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{% block rdc %}
+{% for rdc_tuner in fei3_spec.RDC %}
+- {{rdc_tuner}}:
+     <<: *rdc_tuner
+     properties:
+     additional_tuner_status:
+     data_outputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+
+{% block digital_snapshot %}
+{% for srdc in fei3_spec.SRDC %}
+- {{srdc}}:
+     <<: *digital_snapshot
+     properties:
+     additional_tuner_status:
+     data_inputs:
+     data_outputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+
+{% block digital_delay %}
+{% for drdc in fei3_spec.DRDC %}
+- {{drdc}}:
+     <<: *digital_delay
+     properties:
+     additional_tuner_status:
+     data_inputs:
+     data_outputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+{% block tx_analog %}
+{% for tx_tuner in fei3_spec.TX %}
+- {{tx_tuner}}:
      <<: *tdc_tuner
      properties:
      additional_tuner_status:
@@ -1168,7 +1419,22 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{%- block tx_array %}
+
+{% block tdc %}
+{% for tdc_tuner in fei3_spec.TDC %}
+- {{tdc_tuner}}:
+     <<: *tdc_tuner
+     properties:
+     additional_tuner_status:
+     data_inputs:
+     messages:
+     dependencies:
+     children:
+{% endfor %}
+{% endblock %}
+
+
+{% block tx_array %}
 {% for tx_array in fei3_spec.TX_ARRAY %}
 - {{tx_array}}:
      <<: *tx_array

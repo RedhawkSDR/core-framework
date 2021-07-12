@@ -12,12 +12,12 @@
     <ports>
 {% for p in scd.input_ports %}
       <provides repid="IDL:{{p.itype}}:1.0" providesname="{{p.name}}">
-      <porttype type="{{p.type}}"/>
+        <porttype type="{{p.type}}"/>
       </provides>
 {% endfor %}
 {% for p in scd.output_ports %}
       <uses repid="IDL:{{p.itype}}:1.0" usesname="{{p.name}}">
-      <porttype type="{{p.type}}"/>
+        <porttype type="{{p.type}}"/>
       </uses>
 {% endfor %}
     </ports>
@@ -32,7 +32,7 @@
 {% endfor %}
     </interface>
 {% else %}
-    <interface name="{{iface[0][1]}}" repid="{{iface[0][0]}}">
+    <interface name="{{iface[0][1]}}" repid="{{iface[0][0]}}" />
 {% endif %}
 {% endfor %}
   </interfaces>

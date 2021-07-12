@@ -52,7 +52,7 @@ if not ('--old-and-unmanageable' in sys.argv) and not buildArg:
 setup(name='redhawk-codegen',
       version=versions.codegen,
       install_requires = ['jinja2'],
-      scripts=['redhawk-codegen','codegen_version','update_project','createGPPplugin','createOctaveComponent','createBinaryComponent','moveComponentNamespace'],
+      scripts=['redhawk-codegen','codegen_version','update_project','createGPPplugin','createOctaveComponent','createBinaryComponent','moveComponentNamespace', 'fei3-generator' ],
       cmdclass={'install_lib':filtered_install_lib},
       packages=['redhawk',
                 'redhawk.codegen',
@@ -124,5 +124,5 @@ setup(name='redhawk-codegen',
                     'redhawk.codegen.jinja.cpp.component.persona':['templates/*'],
                     'redhawk.codegen.jinja.cpp.component.programmable':['templates/*'],
                     'redhawk.codegen.jinja.cpp.properties':['templates/*.cpp'],
-                    'redhawk.packagegen':['templates/*xml']}
+                    'redhawk.packagegen':['templates/*xml', 'templates/*.jinja' ]}
       )

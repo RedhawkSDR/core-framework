@@ -1,11 +1,20 @@
 
 #
-# Add device class name under each type prefixed with dash
-#   e.g. Digital Receiver Channels: RDC
-#             -NBDDC
+# Add device class name under each FEI3 device type prefixed with dash
+#   e.g. Digital Receiver Channel (RDC)
+#             - NBDDC
 #
-# Parent device name can be defined as existing device type
-# or new device name that will be a plain AggregateDevice
+# PARENT:
+# For device hierarchies, define a PARENT device class name. The device class
+# name can be an existing device class name, or a new device class that will
+# be defines as an AggregatePlainDevice.  Leave empty for a non-hierarchial
+# FEI3 device.
+#
+#    e.g. PARENT
+#            - RCV1             -- where RCV1 was listed under Analog Input Receiver(RX)
+# or
+#    e.g. PARENT
+#            - USRP             -- Would generate a parent device called USRP of type AggregatePlainDevice
 #
 
 PARENT:
