@@ -46,8 +46,11 @@ BuildRequires:  redhawk-devel = %{version}
 Requires:       bulkioInterfaces = %{version}
 BuildRequires:  bulkioInterfaces = %{version}
 
+Requires:       java-11-openjdk jacorb
+
 BuildRequires:  cppunit-devel
 BuildRequires:  autoconf-archive
+BuildRequires:  java-11-openjdk-devel jacorb
 
 %description
 BURSTIO interfaces for REDHAWK

@@ -40,9 +40,12 @@ Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
 Requires: 	redhawk = %{version}
+Requires: 	java-11-openjdk jacorb
+
 BuildRequires: 	redhawk-devel = %{version}
 BuildRequires: 	cppunit-devel
 BuildRequires: 	autoconf-archive
+BuildRequires: 	java-11-openjdk-devel jacorb
 
 %description
 Libraries and interface definitions for bulkio interfaces.

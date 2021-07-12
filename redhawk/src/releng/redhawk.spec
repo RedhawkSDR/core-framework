@@ -43,7 +43,6 @@ Vendor:         REDHAWK
 %global __arch_install_post %{nil}
 
 Requires:       util-linux-ng
-Requires:       java >= 1:1.8.0
 
 Requires:       gstreamer-python
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
@@ -69,12 +68,13 @@ Requires:       python36-gobject-devel
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
+Requires:       java-11-openjdk jacorb
 
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
-BuildRequires:  java-1.8.0-openjdk-devel
+BuildRequires:  java-11-openjdk-devel jacorb
 BuildRequires:  python3-setuptools
 BuildRequires:  python3-devel >= 3.6
 BuildRequires:  python36-lxml
@@ -162,7 +162,7 @@ Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
 Requires:       python3-devel >= 3.6
-Requires:       java-1.8.0-openjdk-devel
+Requires:       java-11-openjdk-devel jacorb
 
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.

@@ -44,10 +44,12 @@ Vendor:         REDHAWK
 
 Requires:       redhawk >= 3.0.0
 Requires:       bulkioInterfaces >= 3.0.0
+Requires:       java-11-openjdk jacorb
 BuildRequires:  redhawk-devel >= 3.0.0
 BuildRequires:  bulkioInterfaces >= 3.0.0
 BuildRequires:  cppunit-devel
 BuildRequires:  autoconf-archive
+BuildRequires:  java-11-openjdk-devel jacorb
 
 %description
 Libraries and interface definitions for frontend.

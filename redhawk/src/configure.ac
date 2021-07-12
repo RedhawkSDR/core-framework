@@ -170,7 +170,7 @@ if test "x$enable_java" != "xno"; then
   RH_JAVA_HOME
 
   # Minimum Java version
-  java_source_version=1.8
+  java_source_version=11
 
   # Locate tools we need based on JAVA_HOME
   RH_PROG_JAVAC([$java_source_version])
