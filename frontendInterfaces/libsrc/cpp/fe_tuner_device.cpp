@@ -529,7 +529,6 @@ namespace frontend {
 
     template < typename TunerStatusStructType >
     CF::Device::Allocations* FrontendTunerDevice<TunerStatusStructType>::allocate (const CF::Properties& capacities)
-    throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
     {
         RH_TRACE(_deviceLog, "in allocate");
         CF::Device::Allocations_var result = new CF::Device::Allocations();
@@ -909,7 +908,6 @@ namespace frontend {
 
     template < typename TunerStatusStructType >
     void FrontendTunerDevice<TunerStatusStructType>::deallocate (const char* alloc_id)
-    throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
     {
         // Verify that the device is in a valid state
         if (isLocked() || isDisabled() || isError()) {
@@ -1024,7 +1022,6 @@ namespace frontend {
 
     template < typename TunerStatusStructType >
     CF::Device::UsageType FrontendTunerDevice<TunerStatusStructType>::usageState ()
-    throw (CORBA::SystemException)
     {
         updateUsageState();
         return Device_impl::usageState();

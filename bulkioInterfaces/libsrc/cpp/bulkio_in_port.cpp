@@ -36,7 +36,7 @@ namespace bulkio {
         before_ingest_time.twsec = 0;
         before_ingest_time.tfsec = 0;
         sleep_overhead = 0;
-        int sleep_checks = 10;
+        unsigned int sleep_checks = 10;
         int sleep_time = 100;
 
         // calibrate the amount of overhead from entering/leaving sleep

@@ -895,7 +895,7 @@ namespace frontend {
                 return;
             };
 
-            FRONTEND::TransmitControl::TransmitParameters getTransmitParameters(const std::string __connection_id__ = "") {
+            FRONTEND::TransmitControl::TransmitParameters* getTransmitParameters(const std::string __connection_id__ = "") {
                 FRONTEND::TransmitControl::TransmitParameters_var retval;
                 typename std::vector < std::pair < PortType_var, std::string > >::iterator i;
                 boost::mutex::scoped_lock lock(this->updatingPortsLock);
