@@ -304,7 +304,6 @@ void Device_impl::setControlPort(CORBA::Object_ptr controlPort)
 }
 
 CF::Device::Allocations* Device_impl::allocate (const CF::Properties& capacities)
-throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
 {
     RH_TRACE(_deviceLog, "in allocate");
     CF::Device::Allocations_var result = new CF::Device::Allocations();
@@ -376,7 +375,6 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
 }
 
 void Device_impl::deallocate (const char* alloc_id)
-throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
 {
     // Verify that the device is in a valid state
     if (isLocked() || isDisabled() || isError()) {
@@ -412,7 +410,6 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemExcep
 
 /* Alternate implementation*/
 CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity)
 {
     RH_TRACE(_deviceLog, "in allocateCapacity");
     CF::Device::Allocations_var result = this->allocate(capacities);

@@ -212,6 +212,48 @@ CORBA::Any ossie::convertComplexStringToAny(std::string value) {
     return result;
 }
 
+template <>
+CORBA::Any ossie::convertComplexStringToAny<bool, CF::complexBoolean>(std::string value) {
+    
+    char sign = '+'; // sign represents + or -
+    char j = 0; // j represents the letter j in the string
+    bool A, B;     // A is the real value, B is the complex value
+    A = 0;
+    B = 0;
+
+    CORBA::Any result;
+
+    // Assuming a string of the format A+jB, parse out A and B.
+    std::stringstream stream(value);
+    stream >> A >> sign >> j >> B;
+
+    if (value.size() > 1) {
+        if (value[0] == 'j') {
+            std::stringstream stream(value);
+            stream >> j >> B;
+        } else if ((value[0] == '-') and (value[1] == 'j')) {
+            std::stringstream stream(value);
+            stream >> sign >> j >> B;
+        }
+    }
+
+    // if A-jB instead of A+jB, flip the sign of B
+    if (sign == '-') {
+        B = !B;
+    }
+
+    if (value.find('j') == std::string::npos)
+        B = 0;
+
+    // Create a complex representation and convert it to a CORBA::any.
+    CF::complexBoolean cfComplex;
+    cfComplex.real = A;
+    cfComplex.imag = B;
+    result <<= cfComplex;
+
+    return result;
+}
+
 /*
  * Performs __MATH__ operations.
  *
@@ -738,6 +780,19 @@ std::string ossie::convertComplexAnyToString(const CORBA::Any& value){
     else {
         result << tmpCFComplexType->real << "+j" << tmpCFComplexType->imag;
     }
+
+    return result.str();
+}
+
+template <>
+std::string ossie::convertComplexAnyToString<CF::complexBoolean>(const CORBA::Any& value){
+
+    std::ostringstream result;
+
+    CF::complexBoolean *tmpCFComplexType;
+    value >>= tmpCFComplexType;
+
+    result << tmpCFComplexType->real << "+j" << tmpCFComplexType->imag;
 
     return result.str();
 }
