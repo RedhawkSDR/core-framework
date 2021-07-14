@@ -1051,6 +1051,9 @@ def create_prf_definition( className, device, devices, source_file):
     # check if frontend tuner
     if 'fei_type' in device and device['fei_type'] is not None:
 
+        import pdb
+        pdb.set_trace()
+
         if 'scanning' in device and device['scanning']:
             device['properties'].append( {'frontend_scanner_allocation' : convert_properties_to_list(devices['fei_scanner_allocation']) } )
 
@@ -1064,13 +1067,18 @@ def create_prf_definition( className, device, devices, source_file):
             device['properties'].append( {'frontend_upstream_allocation' : convert_properties_to_list(devices['fei_upstream_allocation']) } )
 
         # add device type allocation properties
-        if fei_device_kind.upper() == 'SRDC':
+        if fei_device_type.upper() == 'SRDC':
             if 'fei_snapshot_allocation' in devices:
                 device['properties'].append( {'frontend_snapshot_allocation' : convert_properties_to_list(devices['fei_snapshot_allocation']) } )
 
-        if fei_device_kind.upper() == 'DRDC':
+        if fei_device_type.upper() == 'DRDC':
             if 'fei_delay_allocation' in devices:
                 device['properties'].append( {'frontend_delay_allocation' : convert_properties_to_list(devices['fei_delay_allocation']) } )
+
+        # add transmitter allocation
+        if fei_device_type.upper() in [ 'TX', 'TDC']:
+            if 'fei_transmitter_allocation' in devices:
+                device['properties'].append( {'frontend_transmitter_allocation' : convert_properties_to_list(devices['fei_transmitter_allocation']) } )
 
         # check for bulkio output ports
         if 'data_outputs' in device and device['data_outputs']:

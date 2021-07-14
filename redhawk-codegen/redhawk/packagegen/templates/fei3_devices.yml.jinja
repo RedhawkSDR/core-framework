@@ -536,6 +536,39 @@ fei_tuner_status_sequence: &fei_tuner_status_sequence
         <<: *fei_tuner_status
 
 #
+# FRONTEND::transmitter_allocation structure
+#
+fei_transmitter_allocation: &fei_transmitter_allocation
+    - attrs:
+        <<: *struct_attributes
+        id : FRONTEND::transmitter_allocation
+        name: frontend_transmitter_allocation
+        mode: writeonly
+        kind: [ allocation ]
+        ptype: struct
+
+    - min_freq:
+        <<: *double_property
+        units: Hz
+        kind:
+        action:
+    - max_freq:
+        <<: *double_property
+        units: Hz
+        kind:
+        action:
+    - contol_limit:
+        <<: *double_property
+        kind:
+        action:
+    - max_power:
+        <<: *double_property
+        kind:
+        action:
+
+
+
+#
 # FRONTEND::scanner_allocation structure
 #
 fei_scanner_allocation: &fei_scanner_allocation
