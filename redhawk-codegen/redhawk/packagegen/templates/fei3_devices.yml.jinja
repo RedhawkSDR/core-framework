@@ -567,6 +567,21 @@ fei_transmitter_allocation: &fei_transmitter_allocation
         action:
 
 
+#
+# FRONTEND:coherent_feeds allocation structure
+#
+fei_array_allocation: &fei_array_allocation
+    - coherent_feeds:
+        <<: *string_sequence_property
+        kind: [ allocation ]
+        description: "List of feed names to allocate against"
+        attrs:
+           <<: *string_attrs
+           id : FRONTEND::coherent_feeds
+           mode: writeonly
+           ptype: simpleseq
+
+
 
 #
 # FRONTEND::scanner_allocation structure

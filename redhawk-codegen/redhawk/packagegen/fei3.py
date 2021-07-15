@@ -1051,9 +1051,6 @@ def create_prf_definition( className, device, devices, source_file):
     # check if frontend tuner
     if 'fei_type' in device and device['fei_type'] is not None:
 
-        import pdb
-        pdb.set_trace()
-
         if 'scanning' in device and device['scanning']:
             device['properties'].append( {'frontend_scanner_allocation' : convert_properties_to_list(devices['fei_scanner_allocation']) } )
 
@@ -1079,6 +1076,11 @@ def create_prf_definition( className, device, devices, source_file):
         if fei_device_type.upper() in [ 'TX', 'TDC']:
             if 'fei_transmitter_allocation' in devices:
                 device['properties'].append( {'frontend_transmitter_allocation' : convert_properties_to_list(devices['fei_transmitter_allocation']) } )
+
+        # add array allocation, which is a simple so we don't need to convert
+        if fei_device_type.upper() in [ 'TX_ARRAY', 'RX_ARRAY']:
+            if 'fei_array_allocation' in devices:
+                device['properties'] +=  devices['fei_array_allocation']
 
         # check for bulkio output ports
         if 'data_outputs' in device and device['data_outputs']:
