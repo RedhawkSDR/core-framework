@@ -57,13 +57,13 @@ void supersimple_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void supersimple_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void supersimple_base::start()
 {
     Device_impl::start();
     ThreadedComponent::startThread();
 }
 
-void supersimple_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void supersimple_base::stop()
 {
     Device_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -71,7 +71,7 @@ void supersimple_base::stop() throw (CORBA::SystemException, CF::Resource::StopE
     }
 }
 
-void supersimple_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void supersimple_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

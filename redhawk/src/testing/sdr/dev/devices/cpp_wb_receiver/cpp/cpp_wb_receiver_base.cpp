@@ -58,19 +58,19 @@ void cpp_wb_receiver_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void cpp_wb_receiver_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void cpp_wb_receiver_base::start()
 {
     ThreadedComponent::startThread();
 }
 
-void cpp_wb_receiver_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void cpp_wb_receiver_base::stop()
 {
     if (!ThreadedComponent::stopThread()) {
         throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
     }
 }
 
-void cpp_wb_receiver_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void cpp_wb_receiver_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

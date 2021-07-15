@@ -23,11 +23,11 @@ class cpp_wb_receiver_base : public Device_impl, public virtual POA_CF::Aggregat
         cpp_wb_receiver_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~cpp_wb_receiver_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 
