@@ -147,6 +147,8 @@ Requires:       boost-devel >= 1.41
 Requires:       autoconf automake libtool
 Requires:       log4cxx-devel >= 0.10
 Requires:       numactl-devel
+# provide autoconf-archive to components at compile-time
+Requires:       autoconf-archive
 
 # omniORB / omniORBpy
 
