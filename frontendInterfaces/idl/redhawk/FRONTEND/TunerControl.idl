@@ -48,7 +48,7 @@ module FRONTEND {
                         || FRONTEND::tuner_allocation::tuner_type 
                         || string 
                         || Example Tuner Types: TX, RX, RX_ARRAY, TX_ARRAY, 
-                            RDC, TDC, RX_DIGITIZER
+                            RDC, ARDC, SRDC, DRDC, TDC, ABOT, DBOT
                     - center_frequency 
                         || FRONTEND::tuner_allocation::center_frequency 
                         || double 
@@ -149,7 +149,7 @@ module FRONTEND {
                         || FRONTEND::tuner_status::tuner_type 
                         || string 
                         || Example Tuner Types: TX, RX, TX_ARRAY, RX_ARRAY, 
-                            TDC, RDC, RX_DIGITIZER
+                            RDC, ARDC, SRDC, DRDC, TDC, ABOT, DBOT
                     - allocation_id_csv
                         || FRONTEND::tuner_status::allocation_id_csv
                         || string 
@@ -240,9 +240,13 @@ module FRONTEND {
             one's CONOP
             - TX: Transmitter (analog input, analog output)
             - RX: Analog Receiver (analog input, analog output)
-            - RX_DIGITIZER: Digital Receiver (analog input, digital output)
+            - ABOT: Bank of tuners with an analog input (tuners are children like RDC)
+            - DBOT: Bank of tuners with an digital input (tuners are children like RDC)
             - RDC: Receive Digital Channel (single digital output). Channel that is extracted from a 
-                receiver (e.g.: RX, or RX_DIGITIZER)
+                receiver (e.g.: ABOT or DBOT)
+            - ARDC: Analog Receive Digital Channel (single digital output) from a single receiver
+            - SRDC: Snapshot Receive Digital Channel (single digital output). RDC that extracts discrete snapshots
+            - DRDC: Delayed Receive Digital Channel (single digital output). RDC with an arbitrary time delayed offset output
             - TDC: Transmit Digital Channel (single digital input). Channel that is transmitted (e.g.: TX)
             - TX_ARRAY: Aggregation of coherent transmitters
             - RX_ARRAY: Aggregation of coherent receivers
@@ -289,8 +293,12 @@ module FRONTEND {
     const string TUNER_TYPE_TX_ARRAY = "TX_ARRAY"; 
     const string TUNER_TYPE_RX = "RX"; 
     const string TUNER_TYPE_RX_ARRAY = "RX_ARRAY"; 
-    const string TUNER_TYPE_RX_DIGITIZER = "RX_DIGITIZER"; 
+    const string TUNER_TYPE_DBOT = "DBOT"; 
+    const string TUNER_TYPE_ABOT = "ABOT"; 
     const string TUNER_TYPE_RDC = "RDC"; 
+    const string TUNER_TYPE_SRDC = "SRDC"; 
+    const string TUNER_TYPE_ARDC = "ARDC"; 
+    const string TUNER_TYPE_DRDC = "DRDC"; 
     const string TUNER_TYPE_TDC = "TDC"; 
 
     /*************************/
