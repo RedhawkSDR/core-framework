@@ -313,7 +313,7 @@ def createScannerAllocation(min_freq=0.0, max_freq=0.0, mode="", control_mode=""
         retval = CF.DataType(id='FRONTEND::scanner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=0.0,
+def createTunerAllocation(tuner_type='RDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=0.0,
                  device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
@@ -346,7 +346,7 @@ def createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_fr
         retval = CF.DataType(id='FRONTEND::tuner_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def createTunerGenericListenerAllocation(tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
+def createTunerGenericListenerAllocation(tuner_type='RDC',allocation_id=None,center_frequency=0.0,bandwidth=0.0,sample_rate=1.0,
                  device_control=False,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True):
     if returnDict:
         retval = {'FRONTEND::tuner_allocation':{'FRONTEND::tuner_allocation::tuner_type':tuner_type,'FRONTEND::tuner_allocation::allocation_id':allocation_id,
@@ -395,7 +395,7 @@ def createTunerListenerAllocation(existing_allocation_id,listener_allocation_id=
         retval = CF.DataType(id='FRONTEND::listener_allocation',value=CORBA.Any(CF._tc_Properties,alloc))
     return retval
 
-def tune(device,tuner_type='RX_DIGITIZER',allocation_id=None,center_frequency=None,bandwidth=256000,sample_rate=None,device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True,gain=None):
+def tune(device,tuner_type='RDC',allocation_id=None,center_frequency=None,bandwidth=256000,sample_rate=None,device_control=True,group_id='',rf_flow_id='',bandwidth_tolerance=0.0,sample_rate_tolerance=0.0,returnDict=True,gain=None):
     numTuners = len(device.frontend_tuner_status)
     newAllocation = False
     allAllocated = False
@@ -693,13 +693,13 @@ class FrontendTunerDevice(Device):
 
     # This sets the number of entries in the frontend_tuner_status struct sequence property
     # as well as the tuner_allocation_ids vector. Call this function during initialization
-    def setNumChannels(self,num,tuner_type='RX_DIGITIZER'):
+    def setNumChannels(self,num,tuner_type='RDC'):
         self.frontend_tuner_status = []
         self.addChannels(num, tuner_type)
 
     # This sets the number of entries in the frontend_tuner_status struct sequence property
     # as well as the tuner_allocation_ids vector. Call this function during initialization
-    def addChannels(self,num,tuner_type='RX_DIGITIZER'):
+    def addChannels(self,num,tuner_type='RDC'):
         for ii in range(num):
             tuner_status = self.frontend_tuner_status_struct_struct()
             tuner_status.tuner_type = tuner_type

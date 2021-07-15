@@ -39,10 +39,10 @@ from ossie.properties import struct_property
 class ValidateRequestTest(unittest.TestCase):
 
     def testFrontendAllocationStruct(self):
-        frontend_allocation = tuner_device.createTunerAllocation(tuner_type="RX_DIGITIZER",bandwidth=24.576, center_frequency=30000000, bandwidth_tolerance=100, allocation_id='hello')
+        frontend_allocation = tuner_device.createTunerAllocation(tuner_type="RDC",bandwidth=24.576, center_frequency=30000000, bandwidth_tolerance=100, allocation_id='hello')
         self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::sample_rate_tolerance'], 0.0)
         self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::group_id'], '')
-        self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type'], 'RX_DIGITIZER')
+        self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::tuner_type'], 'RDC')
         self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::bandwidth'], 24.576)
         self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::rf_flow_id'], '')
         self.assertEqual(frontend_allocation['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::sample_rate'], 0.0)

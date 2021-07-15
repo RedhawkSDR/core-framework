@@ -368,7 +368,7 @@ public abstract class FrontendTunerDevice<TunerStatusStructType extends frontend
      */
     public void setNumChannels(int num)
     {
-        this.setNumChannels(num, "RX_DIGITIZER");
+        this.setNumChannels(num, "RDC");
     }
 
     /* This sets the number of entries in the frontend_tuner_status struct sequence property

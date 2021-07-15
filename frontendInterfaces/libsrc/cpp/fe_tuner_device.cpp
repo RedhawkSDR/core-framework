@@ -881,7 +881,7 @@ namespace frontend {
     template < typename TunerStatusStructType >
     void FrontendTunerDevice<TunerStatusStructType>::setNumChannels(size_t num)
     {
-        this->setNumChannels(num, "RX_DIGITIZER");
+        this->setNumChannels(num, "RDC");
     }
 
     /* This sets the number of entries in the frontend_tuner_status struct sequence property
