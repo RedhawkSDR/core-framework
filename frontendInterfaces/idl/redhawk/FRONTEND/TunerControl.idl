@@ -258,8 +258,10 @@ module FRONTEND {
         Data Ingress/Egress:
         ------------
         Devices contain a single data input or output:
-        - RX_DIGITIZER: single wideband output; may not be suitable for processing
         - RDC: single output
+        - ARDC: single output
+        - SRDC: single output
+        - DRDC: single output
         - TDC: single input
 
         */
