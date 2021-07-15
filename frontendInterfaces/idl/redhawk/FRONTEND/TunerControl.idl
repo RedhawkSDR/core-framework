@@ -250,17 +250,6 @@ module FRONTEND {
             - TDC: Transmit Digital Channel (single digital input). Channel that is transmitted (e.g.: TX)
             - TX_ARRAY: Aggregation of coherent transmitters
             - RX_ARRAY: Aggregation of coherent receivers
-            - ****** DEPRECATED ****** DDC: Digital Down Converter. Channel that is extracted from a 
-                wider bandwidth (ie - CHANNELIZER or RX_DIGITIZER)
-            - ****** DEPRECATED ****** RX_DIGITIZER_CHANNELIZER: RX_DIGITIZER 
-                and CHANNELIZER combo. The reason they are combined is because 
-                they are a single device that cannot operate independetly. For
-                example, and RX_DIGITIZER can not output full-rate or the 
-                CHANNELIZER cannot accept external input
-            - ****** DEPRECATED ****** CHANNELIZER: (digital input, digital output) Accepts digitized 
-                wideband and provides DDC's (allocation against a channelizer 
-                ensures that the input port is not shared)  
-            - ****** DEPRECATED ****** RX_SCANNER_DIGITIZER: Frequency scanning digitizer
 
         Allocation ID:
         --------------
