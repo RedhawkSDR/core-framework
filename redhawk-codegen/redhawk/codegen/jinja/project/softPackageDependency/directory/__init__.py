@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import DependencyDirectoryProjectGenerator
+from .generator import DependencyDirectoryProjectGenerator
 
 def factory(**opts):
     return DependencyDirectoryProjectGenerator(**opts)
